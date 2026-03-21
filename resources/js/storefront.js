@@ -1,0 +1,898 @@
+import '../css/storefront.css';
+
+import Alpine from 'alpinejs';
+
+window.Alpine = Alpine;
+
+/* ============================================
+   Scroll Reveal Observer
+   ============================================ */
+document.addEventListener('DOMContentLoaded', () => {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('revealed');
+
+                // Stagger children if it's a stagger container
+                if (entry.target.classList.contains('reveal-stagger')) {
+                    const children = entry.target.children;
+                    Array.from(children).forEach((child, i) => {
+                        child.style.transitionDelay = `${i * 80}ms`;
+                    });
+                }
+
+                observer.unobserve(entry.target);
+            }
+        });
+    }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px'
+    });
+
+    document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => {
+        observer.observe(el);
+    });
+});
+
+/* ============================================
+   Image Slider (Hero Banner)
+   ============================================ */
+Alpine.data('imageSlider', (config = {}) => ({
+    current: 0,
+    slides: config.slides || [],
+    autoplay: config.autoplay || false,
+    speed: config.speed || 5000,
+    timer: null,
+
+    init() {
+        if (this.autoplay && this.slides.length > 1) {
+            this.startAutoplay();
+        }
+    },
+
+    next() {
+        this.current = (this.current + 1) % this.slides.length;
+        this.resetAutoplay();
+    },
+
+    prev() {
+        this.current = (this.current - 1 + this.slides.length) % this.slides.length;
+        this.resetAutoplay();
+    },
+
+    goTo(index) {
+        this.current = index;
+        this.resetAutoplay();
+    },
+
+    startAutoplay() {
+        this.timer = setInterval(() => this.next(), this.speed);
+    },
+
+    resetAutoplay() {
+        if (this.timer) clearInterval(this.timer);
+        if (this.autoplay && this.slides.length > 1) {
+            this.startAutoplay();
+        }
+    },
+
+    destroy() {
+        if (this.timer) clearInterval(this.timer);
+    }
+}));
+
+/* ============================================
+   Brand Carousel (auto-scroll)
+   ============================================ */
+Alpine.data('brandCarousel', (config = {}) => ({
+    autoplay: config.autoplay || false,
+    speed: config.speed || 3000,
+    timer: null,
+    scrollContainer: null,
+
+    init() {
+        this.scrollContainer = this.$refs.scroll;
+        if (this.autoplay && this.scrollContainer) {
+            this.startAutoplay();
+        }
+    },
+
+    scrollLeft() {
+        if (!this.scrollContainer) return;
+        this.scrollContainer.scrollBy({ left: -160, behavior: 'smooth' });
+    },
+
+    scrollRight() {
+        if (!this.scrollContainer) return;
+        this.scrollContainer.scrollBy({ left: 160, behavior: 'smooth' });
+    },
+
+    startAutoplay() {
+        this.timer = setInterval(() => {
+            if (!this.scrollContainer) return;
+            const maxScroll = this.scrollContainer.scrollWidth - this.scrollContainer.clientWidth;
+            if (this.scrollContainer.scrollLeft >= maxScroll - 10) {
+                this.scrollContainer.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                this.scrollRight();
+            }
+        }, this.speed);
+    },
+
+    destroy() {
+        if (this.timer) clearInterval(this.timer);
+    }
+}));
+
+/* ============================================
+   Category Tabs
+   ============================================ */
+Alpine.data('categoryTabs', () => ({
+    activeTab: 0,
+
+    setTab(index) {
+        this.activeTab = index;
+    }
+}));
+
+/* ============================================
+   Currency Selector
+   ============================================ */
+Alpine.data('currencySelector', (config = {}) => ({
+    open: false,
+    current: config.current || 'PHP',
+    symbol: config.symbol || '₱',
+
+    toggle() {
+        this.open = !this.open;
+    },
+
+    select(code, symbol) {
+        this.current = code;
+        this.symbol = symbol;
+        this.open = false;
+        document.cookie = `currency=${code};path=/;max-age=31536000`;
+        window.location.reload();
+    }
+}));
+
+/* ============================================
+   Mobile Navigation
+   ============================================ */
+Alpine.data('mobileNav', () => ({
+    open: false,
+
+    toggle() {
+        this.open = !this.open;
+        document.body.classList.toggle('overflow-hidden', this.open);
+    },
+
+    close() {
+        this.open = false;
+        document.body.classList.remove('overflow-hidden');
+    }
+}));
+
+/* ============================================
+   Countdown Timer
+   ============================================ */
+Alpine.data('countdown', (config = {}) => ({
+    endDate: config.endDate || null,
+    days: '00',
+    hours: '00',
+    minutes: '00',
+    seconds: '00',
+    expired: false,
+    timer: null,
+
+    init() {
+        if (!this.endDate) {
+            this.expired = true;
+            return;
+        }
+        this.update();
+        this.timer = setInterval(() => this.update(), 1000);
+    },
+
+    update() {
+        const end = new Date(this.endDate).getTime();
+        const now = Date.now();
+        const diff = end - now;
+
+        if (diff <= 0) {
+            this.expired = true;
+            if (this.timer) clearInterval(this.timer);
+            return;
+        }
+
+        this.days = String(Math.floor(diff / 86400000)).padStart(2, '0');
+        this.hours = String(Math.floor((diff % 86400000) / 3600000)).padStart(2, '0');
+        this.minutes = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+        this.seconds = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    },
+
+    destroy() {
+        if (this.timer) clearInterval(this.timer);
+    }
+}));
+
+/* ============================================
+   Search Autocomplete
+   ============================================ */
+Alpine.data('searchAutocomplete', () => ({
+    query: '',
+    results: [],
+    showResults: false,
+    loading: false,
+    searched: false,
+    controller: null,
+
+    async search() {
+        if (this.query.length < 2) {
+            this.results = [];
+            this.showResults = false;
+            this.searched = false;
+            return;
+        }
+
+        // Cancel previous request
+        if (this.controller) this.controller.abort();
+        this.controller = new AbortController();
+
+        this.loading = true;
+        this.showResults = true;
+
+        try {
+            const resp = await fetch(`/search/autocomplete?q=${encodeURIComponent(this.query)}`, {
+                signal: this.controller.signal,
+            });
+            this.results = await resp.json();
+            this.searched = true;
+        } catch (e) {
+            if (e.name !== 'AbortError') {
+                this.results = [];
+            }
+        } finally {
+            this.loading = false;
+        }
+    },
+
+    close() {
+        this.showResults = false;
+    }
+}));
+
+/* ============================================
+   Wishlist Button (localStorage)
+   ============================================ */
+Alpine.data('wishlistBtn', (productId) => ({
+    wishlisted: false,
+
+    init() {
+        const list = JSON.parse(localStorage.getItem('ngd_wishlist') || '[]');
+        this.wishlisted = list.includes(productId);
+    },
+
+    toggle() {
+        let list = JSON.parse(localStorage.getItem('ngd_wishlist') || '[]');
+        if (this.wishlisted) {
+            list = list.filter(id => id !== productId);
+        } else {
+            list.push(productId);
+        }
+        localStorage.setItem('ngd_wishlist', JSON.stringify(list));
+        this.wishlisted = !this.wishlisted;
+    }
+}));
+
+/* ============================================
+   Back to Top Button
+   ============================================ */
+Alpine.data('backToTop', () => ({
+    visible: false,
+
+    init() {
+        const onScroll = () => {
+            this.visible = window.scrollY > 400;
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+    },
+
+    scrollUp() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}));
+
+/* ============================================
+   Add to Cart (product page)
+   ============================================ */
+Alpine.data('addToCart', (config = {}) => ({
+    productId: config.productId,
+    hasVariants: config.hasVariants || false,
+    variantMatrix: config.variantMatrix || {},
+    basePrice: config.basePrice || 0,
+    selectedValues: {},
+    quantity: 1,
+    loading: false,
+    activeVariant: null,
+    message: '',
+    messageType: '',
+
+    get unitPrice() {
+        if (this.hasVariants && this.activeVariant) return parseFloat(this.activeVariant.price);
+        return this.basePrice;
+    },
+
+    get totalPrice() {
+        return this.unitPrice * this.quantity;
+    },
+
+    init() {
+        // Initialize selected values for each variant type
+        (config.variantTypes || []).forEach(type => {
+            this.selectedValues[type.id] = '';
+        });
+    },
+
+    selectValue(typeId, valueId) {
+        this.selectedValues[typeId] = valueId;
+        this.resolveVariant();
+    },
+
+    resolveVariant() {
+        if (!this.hasVariants) return;
+
+        const key = Object.keys(this.selectedValues)
+            .sort((a, b) => a - b)
+            .map(k => this.selectedValues[k])
+            .filter(v => v !== '')
+            .join('_');
+
+        this.activeVariant = this.variantMatrix[key] || null;
+    },
+
+    async submit() {
+        if (this.hasVariants && !this.activeVariant) {
+            this.message = 'Please select all options';
+            this.messageType = 'error';
+            return;
+        }
+
+        this.loading = true;
+        this.message = '';
+
+        try {
+            const resp = await fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    product_id: this.productId,
+                    quantity: this.quantity,
+                    variant_id: this.activeVariant?.variant_id || null,
+                }),
+            });
+
+            const data = await resp.json();
+
+            if (data.success) {
+                this.message = data.message;
+                this.messageType = 'success';
+                // Dispatch event to update cart badge in header
+                window.dispatchEvent(new CustomEvent('cart-updated', {
+                    detail: { count: data.count, subtotal: data.subtotal }
+                }));
+            } else {
+                this.message = data.message || 'Failed to add to cart';
+                this.messageType = 'error';
+            }
+        } catch (e) {
+            this.message = 'Something went wrong';
+            this.messageType = 'error';
+        } finally {
+            this.loading = false;
+            setTimeout(() => { this.message = ''; }, 3000);
+        }
+    }
+}));
+
+/* ============================================
+   Cart Page
+   ============================================ */
+Alpine.data('cartPage', (initialItems, initialSubtotal) => ({
+    items: initialItems || [],
+    subtotal: initialSubtotal || 0,
+
+    recalcSubtotal() {
+        this.subtotal = this.items
+            .filter(i => !i._removed)
+            .reduce((sum, i) => sum + (i.price * i.quantity), 0);
+    },
+
+    async setQty(item, val) {
+        const qty = Math.max(1, parseInt(val) || 1);
+        item.quantity = qty;
+        this.recalcSubtotal();
+        await this.syncQty(item);
+    },
+
+    async increment(item) {
+        item.quantity++;
+        this.recalcSubtotal();
+        await this.syncQty(item);
+    },
+
+    async decrement(item) {
+        if (item.quantity <= 1) return;
+        item.quantity--;
+        this.recalcSubtotal();
+        await this.syncQty(item);
+    },
+
+    async syncQty(item) {
+        const resp = await fetch(`/cart/${item.id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ quantity: item.quantity }),
+        });
+        const data = await resp.json();
+        if (data.success) {
+            window.dispatchEvent(new CustomEvent('cart-updated', {
+                detail: { count: data.count, subtotal: data.subtotal }
+            }));
+        }
+    },
+
+    async removeItem(item) {
+        item._removed = true;
+        this.recalcSubtotal();
+
+        const resp = await fetch(`/cart/${item.id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json',
+            },
+        });
+        const data = await resp.json();
+        if (data.success) {
+            window.dispatchEvent(new CustomEvent('cart-updated', {
+                detail: { count: data.count, subtotal: data.subtotal }
+            }));
+        }
+
+        // If all items removed, reload to show empty state
+        if (this.items.every(i => i._removed)) {
+            window.location.reload();
+        }
+    }
+}));
+
+/* ============================================
+   Address Form (PH cascading dropdowns)
+   ============================================ */
+Alpine.data('addressForm', (config = {}) => ({
+    countryCode: config.countryCode || '',
+    state: config.state || '',
+    city: config.city || '',
+    district: config.district || '',
+    barangay: config.barangay || '',
+
+    provinces: [],
+    cities: [],
+    districts: [],
+    barangays: [],
+    zones: [],
+
+    loadingProvinces: false,
+    loadingCities: false,
+    loadingDistricts: false,
+    loadingBarangays: false,
+    loadingZones: false,
+
+    init() {
+        if (this.countryCode) {
+            this.onCountryChange(false);
+        }
+    },
+
+    // Force Alpine to re-sync x-model on <select> after x-for renders new options.
+    // Without this, the select shows the placeholder even though the model has the correct value.
+    async syncSelect(prop) {
+        const saved = this[prop];
+        if (!saved) return;
+        this[prop] = '';
+        await this.$nextTick();
+        this[prop] = saved;
+    },
+
+    async onCountryChange(clear = true) {
+        if (clear) {
+            this.state = '';
+            this.city = '';
+            this.district = '';
+            this.barangay = '';
+            this.provinces = [];
+            this.cities = [];
+            this.districts = [];
+            this.barangays = [];
+            this.zones = [];
+        }
+
+        if (!this.countryCode) return;
+
+        if (this.countryCode === 'PH') {
+            this.loadingProvinces = true;
+            try {
+                const resp = await fetch('/address-lookup/ph-provinces');
+                this.provinces = await resp.json();
+                if (!clear && this.state) {
+                    await this.$nextTick();
+                    await this.syncSelect('state');
+                    await this.onProvinceChange(false);
+                }
+            } finally {
+                this.loadingProvinces = false;
+            }
+        } else {
+            this.loadingZones = true;
+            try {
+                const resp = await fetch(`/address-lookup/zones?country_code=${this.countryCode}`);
+                this.zones = await resp.json();
+                if (!clear && this.state) {
+                    await this.$nextTick();
+                    await this.syncSelect('state');
+                }
+            } finally {
+                this.loadingZones = false;
+            }
+        }
+    },
+
+    async onProvinceChange(clear = true) {
+        if (clear) {
+            this.city = '';
+            this.district = '';
+            this.barangay = '';
+            this.cities = [];
+            this.districts = [];
+            this.barangays = [];
+        }
+
+        if (!this.state) return;
+
+        const province = this.provinces.find(p => p.name === this.state);
+        if (!province) return;
+
+        this.loadingCities = true;
+        try {
+            const resp = await fetch(`/address-lookup/ph-cities?province_id=${province.id}`);
+            this.cities = await resp.json();
+            if (!clear && this.city) {
+                await this.$nextTick();
+                await this.syncSelect('city');
+                await this.onCityChange(false);
+            }
+        } finally {
+            this.loadingCities = false;
+        }
+    },
+
+    async onCityChange(clear = true) {
+        if (clear) {
+            this.district = '';
+            this.barangay = '';
+            this.districts = [];
+            this.barangays = [];
+        }
+
+        if (!this.city) return;
+
+        const cityObj = this.cities.find(c => c.name === this.city);
+        if (!cityObj) return;
+
+        // First check for districts (e.g. Manila)
+        this.loadingDistricts = true;
+        try {
+            const resp = await fetch(`/address-lookup/ph-districts?city_id=${cityObj.id}`);
+            this.districts = await resp.json();
+        } finally {
+            this.loadingDistricts = false;
+        }
+
+        if (this.districts.length === 0) {
+            // No districts — load barangays directly for this city
+            this.loadingBarangays = true;
+            try {
+                const resp = await fetch(`/address-lookup/ph-barangays?city_id=${cityObj.id}`);
+                this.barangays = await resp.json();
+                if (!clear && this.barangay) {
+                    await this.$nextTick();
+                    await this.syncSelect('barangay');
+                }
+            } finally {
+                this.loadingBarangays = false;
+            }
+        } else if (!clear && this.district) {
+            await this.$nextTick();
+            await this.syncSelect('district');
+            await this.onDistrictChange(false);
+        }
+    },
+
+    async onDistrictChange(clear = true) {
+        if (clear) {
+            this.barangay = '';
+            this.barangays = [];
+        }
+
+        if (!this.district) return;
+
+        const districtObj = this.districts.find(d => d.name === this.district);
+        if (!districtObj) return;
+
+        this.loadingBarangays = true;
+        try {
+            const resp = await fetch(`/address-lookup/ph-barangays?city_id=${districtObj.id}`);
+            this.barangays = await resp.json();
+            if (!clear && this.barangay) {
+                await this.$nextTick();
+                await this.syncSelect('barangay');
+            }
+        } finally {
+            this.loadingBarangays = false;
+        }
+    }
+}));
+
+/* ============================================
+   Checkout Wizard
+   ============================================ */
+Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shippingMethods, paymentMethods, countries, customerName = {}) => ({
+    step: 1,
+    addresses,
+    items,
+    subtotal,
+    shippingMethods,
+    paymentMethods,
+    countries,
+    customerName,
+    selectedAddressId: defaultAddressId,
+    selectedShipping: shippingMethods[0]?.key || 'flat_rate',
+    selectedPayment: paymentMethods[0]?.key || '',
+    differentBilling: false,
+    showNewAddressForm: addresses.length === 0,
+    editingAddress: null,
+    savingAddress: false,
+    placing: false,
+    comment: '',
+    billing: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH' },
+    newAddr: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH' },
+
+    get selectedShippingMethod() {
+        return this.shippingMethods.find(m => m.key === this.selectedShipping) || null;
+    },
+
+    get shippingCost() {
+        const method = this.shippingMethods.find(m => m.key === this.selectedShipping);
+        return method ? method.cost : 0;
+    },
+
+    get total() {
+        return this.subtotal + this.shippingCost;
+    },
+
+    goToStep(n) {
+        if (n === 2 && !this.selectedAddressId) return;
+        if (n === 2) {
+            this.refreshShippingRates();
+        }
+        this.step = n;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    selectAddress(id) {
+        this.selectedAddressId = id;
+    },
+
+    async refreshShippingRates() {
+        if (!this.selectedAddressId) return;
+        try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            const res = await fetch('/checkout/shipping-rates', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ address_id: this.selectedAddressId })
+            });
+            const data = await res.json();
+            if (data.methods) {
+                this.shippingMethods = data.methods;
+                if (data.methods.length > 0) {
+                    this.selectedShipping = data.methods[0].key;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch shipping rates', e);
+        }
+    },
+
+    openNewAddressForm() {
+        this.editingAddress = null;
+        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH' };
+        this.showNewAddressForm = true;
+    },
+
+    editAddress(addr) {
+        this.editingAddress = addr;
+        this.newAddr = {
+            first_name: addr.first_name || '',
+            last_name: addr.last_name || '',
+            address_1: addr.address_1 || '',
+            city: addr.city || '',
+            district: addr.district || '',
+            barangay: addr.barangay || '',
+            state: addr.state || '',
+            postcode: addr.postcode || '',
+            country_code: addr.country_code || 'PH',
+        };
+        this.showNewAddressForm = true;
+    },
+
+    cancelAddressForm() {
+        this.showNewAddressForm = false;
+        this.editingAddress = null;
+        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH' };
+    },
+
+    async saveNewAddress() {
+        this.savingAddress = true;
+        try {
+            const body = { ...this.newAddr };
+            if (!this.editingAddress) {
+                body.is_default = this.addresses.length === 0 ? 1 : 0;
+            }
+            const url = this.editingAddress
+                ? `/account/addresses/${this.editingAddress.id}`
+                : '/checkout/address';
+            const method = this.editingAddress ? 'PUT' : 'POST';
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (data.success || data.addresses) {
+                this.addresses = data.addresses || this.addresses;
+                if (data.address) {
+                    this.selectedAddressId = data.address.id;
+                }
+                this.showNewAddressForm = false;
+                this.editingAddress = null;
+                this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH' };
+            }
+        } catch (e) {
+            console.error('Save address failed:', e);
+        }
+        this.savingAddress = false;
+    },
+
+    submitOrder() {
+        if (!this.selectedAddressId || !this.selectedPayment) return;
+        this.placing = true;
+        this.$refs.orderForm.submit();
+    },
+}));
+
+Alpine.data('miniCart', (initialCount, initialSubtotal, symbol) => ({
+    open: false,
+    loading: false,
+    items: [],
+    count: initialCount,
+    subtotal: initialSubtotal,
+    cartSubtotal: 0,
+    symbol: symbol,
+    fetched: false,
+    leaveTimer: null,
+
+    autoCloseTimer: null,
+
+    onCartUpdated(detail) {
+        this.count = detail.count;
+        this.subtotal = parseFloat(detail.subtotal);
+        this.fetched = false;
+        // Show mini cart briefly after add-to-cart (not for internal removes or cart page)
+        if (this.count > 0 && !detail.silent && window.location.pathname !== '/cart') {
+            this.open = true;
+            this.fetchItems();
+            this.clearAutoCloseTimer();
+            this.autoCloseTimer = setTimeout(() => { this.open = false; }, 4000);
+        }
+    },
+
+    clearAutoCloseTimer() {
+        if (this.autoCloseTimer) {
+            clearTimeout(this.autoCloseTimer);
+            this.autoCloseTimer = null;
+        }
+    },
+
+    onHover() {
+        this.clearLeaveTimer();
+        this.clearAutoCloseTimer();
+        if (this.count === 0) return;
+        this.open = true;
+        if (!this.fetched) {
+            this.fetchItems();
+        }
+    },
+
+    onLeave() {
+        this.clearAutoCloseTimer();
+        this.leaveTimer = setTimeout(() => { this.open = false; }, 200);
+    },
+
+    clearLeaveTimer() {
+        if (this.leaveTimer) {
+            clearTimeout(this.leaveTimer);
+            this.leaveTimer = null;
+        }
+    },
+
+    async removeItem(itemId, index) {
+        try {
+            const res = await fetch(`/cart/${itemId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+            });
+            const data = await res.json();
+            this.items.splice(index, 1);
+            this.count = data.count ?? this.items.reduce((s, i) => s + i.quantity, 0);
+            this.subtotal = data.subtotal ?? this.items.reduce((s, i) => s + i.line_total, 0);
+            this.cartSubtotal = this.subtotal;
+            this.fetched = false;
+            window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: this.count, subtotal: this.subtotal, silent: true } }));
+            if (this.items.length === 0) {
+                this.open = false;
+            }
+        } catch (e) {
+            console.error('Remove item failed:', e);
+        }
+    },
+
+    async fetchItems() {
+        this.loading = true;
+        try {
+            const res = await fetch('/cart/mini', {
+                headers: { 'Accept': 'application/json' },
+            });
+            const data = await res.json();
+            this.items = data.items;
+            this.cartSubtotal = data.subtotal;
+            this.count = data.count;
+            this.fetched = true;
+        } catch (e) {
+            console.error('Mini cart fetch failed:', e);
+        }
+        this.loading = false;
+    },
+}));
+
+Alpine.start();

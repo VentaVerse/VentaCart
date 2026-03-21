@@ -1,0 +1,231 @@
+<x-store-layout title="Shopping Cart">
+    <div class="container-store py-10">
+        <h1 class="section-title reveal">SHOPPING CART</h1>
+
+        @if ($items->isEmpty())
+            <div class="cart-empty-state reveal">
+                <svg class="w-20 h-20 mx-auto text-[#333] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                <p class="text-[#555] text-lg mb-6" class="font-heading-wide">YOUR CART IS EMPTY</p>
+                <a href="{{ route('home') }}" class="btn-checkout inline-block">CONTINUE SHOPPING</a>
+            </div>
+        @else
+            <div x-data="cartPage({{ $items->toJson() }}, {{ $subtotal }})" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {{-- Items List --}}
+                <div class="lg:col-span-2">
+                    <div class="cart-table">
+                        <template x-for="item in items" :key="item.id">
+                            <div class="cart-item" x-show="!item._removed" x-transition.opacity>
+                                <div class="cart-item-image">
+                                    <template x-if="item.product && item.product.images && item.product.images.length">
+                                        <img :src="'/storage/' + item.product.images[0].path" :alt="item.name" loading="lazy">
+                                    </template>
+                                    <template x-if="!item.product || !item.product.images || !item.product.images.length">
+                                        <div class="w-full h-full flex items-center justify-center text-[#333]">
+                                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <div class="cart-item-details">
+                                    <div class="cart-item-name" x-text="item.name"></div>
+                                    <div class="cart-item-variant" x-show="item.variant_label" x-text="item.variant_label"></div>
+                                    <div class="cart-item-sku" x-show="item.sku" x-text="'SKU: ' + item.sku"></div>
+                                </div>
+
+                                <div class="cart-item-price" class="font-heading">
+                                    {{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="parseFloat(item.price).toFixed(2)"></span>
+                                </div>
+
+                                <div class="cart-item-qty">
+                                    <button @click="decrement(item)" class="qty-btn">-</button>
+                                    <input type="number" :value="item.quantity" @change="setQty(item, $event.target.value)" min="1" class="qty-input">
+                                    <button @click="increment(item)" class="qty-btn">+</button>
+                                </div>
+
+                                <div class="cart-item-total" class="font-heading">
+                                    {{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                </div>
+
+                                <button @click="removeItem(item)" class="cart-item-remove" title="Remove">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                {{-- Order Summary --}}
+                <div>
+                    <div class="order-summary-box">
+                        <h3 class="text-lg tracking-[0.15em] mb-6 text-[#E8E8E8]" class="font-heading">ORDER SUMMARY</h3>
+
+                        <div class="flex justify-between text-sm mb-3">
+                            <span class="text-[#888]">Subtotal</span>
+                            <span class="text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                        </div>
+
+                        {{-- Shipping Estimate --}}
+                        <div class="mb-3" x-data="shippingEstimate()">
+                            <div class="flex justify-between text-sm mb-2">
+                                <span class="text-[#888]">Shipping</span>
+                                <button type="button" @click="expanded = !expanded" class="text-[var(--color-primary)] text-xs hover:underline">
+                                    <span x-show="!expanded">Estimate Shipping</span>
+                                    <span x-show="expanded">Hide</span>
+                                </button>
+                            </div>
+
+                            <div x-show="expanded" x-transition.duration.200ms class="space-y-3 mb-3">
+                                <div>
+                                    <select x-model="province" @change="fetchCities()" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                        <option value="">Select Province</option>
+                                        <template x-for="p in provinces" :key="p.id">
+                                            <option :value="p.name" x-text="p.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <div>
+                                    <select x-model="city" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                        <option value="">Select City</option>
+                                        <template x-for="c in cities" :key="c.id">
+                                            <option :value="c.name" x-text="c.name"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <button type="button" @click="getEstimate()" :disabled="!province || !city || loading"
+                                    class="w-full py-2 rounded-lg text-sm font-medium transition-colors"
+                                    :class="!province || !city || loading ? 'bg-[#333] text-[#666] cursor-not-allowed' : 'bg-[var(--color-primary)] text-black hover:brightness-110'">
+                                    <span x-show="!loading">Get Estimate</span>
+                                    <span x-show="loading">Loading...</span>
+                                </button>
+
+                                <template x-if="methods.length > 0">
+                                    <div class="space-y-2">
+                                        <template x-for="m in methods" :key="m.key">
+                                            <div class="flex justify-between text-sm py-1">
+                                                <span class="text-[#999]">
+                                                    <span x-text="m.name"></span>
+                                                    <template x-if="m.estimated_days">
+                                                        <span class="text-[#666] text-xs" x-text="'~' + m.estimated_days + ' days'"></span>
+                                                    </template>
+                                                </span>
+                                                <span class="text-[#E8E8E8]" class="font-heading">
+                                                    <template x-if="m.cost === 0">
+                                                        <span class="text-emerald-400">FREE</span>
+                                                    </template>
+                                                    <template x-if="m.cost > 0">
+                                                        <span>{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="m.cost.toFixed(2)"></span></span>
+                                                    </template>
+                                                </span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+
+                                <template x-if="noResults">
+                                    <p class="text-xs text-[#666]">No shipping options available for this location.</p>
+                                </template>
+                            </div>
+
+                            <template x-if="!expanded && methods.length === 0">
+                                <div class="flex justify-between text-sm">
+                                    <span></span>
+                                    <span class="text-[#555]">Calculated at checkout</span>
+                                </div>
+                            </template>
+                        </div>
+
+                        <hr class="divider-glow my-4">
+
+                        <div class="flex justify-between mb-6">
+                            <span class="text-[#E8E8E8]" class="font-heading-wide">TOTAL</span>
+                            <span class="text-xl text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                        </div>
+
+                        @auth('customer')
+                            <a href="{{ route('checkout.index') }}" class="btn-checkout block text-center mb-3"
+                               x-data="{ clicked: false }"
+                               @click="clicked = true"
+                               :class="clicked && 'btn-checkout-loading'">
+                                <span x-show="!clicked">PROCEED TO CHECKOUT</span>
+                                <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    LOADING...
+                                </span>
+                            </a>
+                        @else
+                            <a href="{{ route('customer.login', ['redirect' => 'checkout']) }}" class="btn-checkout block text-center mb-3"
+                               x-data="{ clicked: false }"
+                               @click="clicked = true"
+                               :class="clicked && 'btn-checkout-loading'">
+                                <span x-show="!clicked">PROCEED TO CHECKOUT</span>
+                                <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
+                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    LOADING...
+                                </span>
+                            </a>
+                        @endauth
+                        <a href="{{ route('home') }}" class="block text-center text-sm text-[#555] hover:text-[var(--color-primary)] transition-colors">Continue Shopping</a>
+                    </div>
+                </div>
+            </div>
+        @endif
+    </div>
+
+    @pushOnce('scripts')
+    <script>
+    function shippingEstimate() {
+        return {
+            expanded: false,
+            provinces: [],
+            cities: [],
+            province: '',
+            city: '',
+            methods: [],
+            loading: false,
+            noResults: false,
+
+            init() {
+                fetch('{{ route("storefront.address.ph-provinces") }}')
+                    .then(r => r.json())
+                    .then(d => this.provinces = d);
+            },
+
+            fetchCities() {
+                this.city = '';
+                this.cities = [];
+                if (!this.province) return;
+                const prov = this.provinces.find(p => p.name === this.province);
+                if (!prov) return;
+                fetch('{{ route("storefront.address.ph-cities") }}?province_id=' + prov.id)
+                    .then(r => r.json())
+                    .then(d => this.cities = d);
+            },
+
+            async getEstimate() {
+                this.loading = true;
+                this.methods = [];
+                this.noResults = false;
+                try {
+                    const res = await fetch('{{ route("cart.estimate-shipping") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ province: this.province, city: this.city })
+                    });
+                    const data = await res.json();
+                    this.methods = data.methods || [];
+                    if (this.methods.length === 0) this.noResults = true;
+                } catch (e) {
+                    console.error('Shipping estimate failed', e);
+                    this.noResults = true;
+                }
+                this.loading = false;
+            }
+        };
+    }
+    </script>
+    @endPushOnce
+</x-store-layout>

@@ -1,0 +1,394 @@
+<x-store-layout :title="$product->meta_title ?: $product->name" :meta-description="$product->meta_description">
+
+    @section('og_title', $product->meta_title ?: $product->name)
+    @section('og_description', $product->meta_description ?: Str::limit(strip_tags($product->description), 200))
+    @if ($product->images->first())
+        @section('og_image', asset('storage/' . $product->images->first()->path))
+    @endif
+
+    @push('head')
+        <meta name="product-id" content="{{ $product->id }}">
+        <script type="application/ld+json">
+        {
+            "@@context": "https://schema.org",
+            "@@type": "Product",
+            "name": "{{ e($product->name) }}",
+            "description": "{{ e(Str::limit(strip_tags($product->description), 200)) }}",
+            "sku": "{{ e($product->sku) }}",
+            "brand": {
+                "@@type": "Brand",
+                "name": "{{ e($product->brand?->name ?? '') }}"
+            },
+            "offers": {
+                "@@type": "Offer",
+                "price": "{{ $effectivePrice }}",
+                "priceCurrency": "PHP",
+                "availability": "{{ $product->quantity > 0 || !$product->track_stock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock' }}"
+            }
+            @if ($reviewCount > 0)
+            ,"aggregateRating": {
+                "@@type": "AggregateRating",
+                "ratingValue": "{{ number_format($averageRating, 1) }}",
+                "reviewCount": "{{ $reviewCount }}"
+            }
+            @endif
+        }
+        </script>
+    @endpush
+
+    {{-- Breadcrumbs --}}
+    <div class="product-page-breadcrumbs">
+        <div class="container-store py-3">
+            <nav>
+                <a href="{{ route('home') }}">Home</a>
+                @foreach ($breadcrumbs as $crumb)
+                    <svg class="w-3 h-3 text-[#333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <a href="{{ route('category.show', $crumb->slug) }}">{{ $crumb->name }}</a>
+                @endforeach
+                <svg class="w-3 h-3 text-[#333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                <span class="text-[#999] truncate">{{ $product->name }}</span>
+            </nav>
+        </div>
+    </div>
+
+    @php
+        $images = $product->images;
+        $thumbPosition = $settings['thumbnail_position'] ?? 'left';
+        $currencySymbol = $defaultCurrency->symbol ?? '₱';
+    @endphp
+
+    <div class="container-store py-8">
+        <div class="flex flex-col lg:flex-row gap-10"
+             x-data="addToCart({
+                 productId: {{ $product->id }},
+                 hasVariants: {{ $product->has_variants ? 'true' : 'false' }},
+                 variantMatrix: {{ json_encode($variantMatrix) }},
+                 variantTypes: {{ json_encode($variantTypes) }},
+                 basePrice: {{ $effectivePrice }},
+                 trackStock: {{ $product->track_stock ? 'true' : 'false' }},
+                 productQuantity: {{ $product->quantity }},
+                 customerName: '{{ addslashes(auth('customer')->user()?->first_name ?? '') }}',
+                 customerEmail: '{{ addslashes(auth('customer')->user()?->email ?? '') }}'
+             })">
+
+            {{-- Image Gallery --}}
+            <div class="lg:w-1/2" x-data="{ activeImage: 0 }">
+                <div class="flex {{ $thumbPosition === 'bottom' ? 'flex-col' : 'flex-row' }} gap-3">
+                    {{-- Thumbnails --}}
+                    @if ($images->count() > 1)
+                        <div class="{{ $thumbPosition === 'bottom' ? 'flex gap-2 order-2' : 'flex flex-col gap-2 order-1 w-16 flex-shrink-0' }}">
+                            @foreach ($images as $i => $img)
+                                <button @click="activeImage = {{ $i }}"
+                                    :class="activeImage === {{ $i }} ? 'active' : ''"
+                                    class="product-gallery-thumb {{ $thumbPosition === 'bottom' ? 'w-16 h-16' : 'w-16 h-16' }}">
+                                    <img src="{{ asset('storage/' . $img->path) }}" alt="" loading="lazy">
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    {{-- Main Image --}}
+                    <div class="flex-1 {{ $thumbPosition === 'bottom' ? 'order-1' : 'order-2' }} product-gallery-main">
+                        @foreach ($images as $i => $img)
+                            <div x-show="activeImage === {{ $i }}" class="aspect-square flex items-center justify-center p-4">
+                                <img src="{{ asset('storage/' . $img->path) }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain">
+                            </div>
+                        @endforeach
+                        @if ($images->isEmpty())
+                            <div class="aspect-square flex items-center justify-center text-[#333]">
+                                <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            {{-- Product Info --}}
+            <div class="lg:w-1/2">
+                <h1 class="text-3xl mb-2" class="font-heading-wide">{{ $product->name }}</h1>
+
+                {{-- Average Rating --}}
+                @if ($reviewCount > 0)
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="star-rating">
+                            @for ($i = 1; $i <= 5; $i++)
+                                @if ($i <= round($averageRating))
+                                    <span>&#9733;</span>
+                                @else
+                                    <span class="star-empty">&#9733;</span>
+                                @endif
+                            @endfor
+                        </div>
+                        <a href="#reviews" class="text-sm text-[#999] hover:text-[var(--color-primary)] transition-colors">({{ $reviewCount }} {{ Str::plural('review', $reviewCount) }})</a>
+                    </div>
+                @endif
+
+                {{-- Brand --}}
+                @if (($settings['show_brand'] ?? true) && $product->brand)
+                    <p class="text-sm text-[#666] mb-4">
+                        Brand: <span class="text-[#999]">{{ $product->brand->name }}</span>
+                    </p>
+                @endif
+
+                {{-- Price --}}
+                <div class="mb-5">
+                    @if ($activeSpecial)
+                        <div class="flex items-baseline gap-3">
+                            <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
+                                {{ $currencySymbol }}{{ number_format($activeSpecial->price, 2) }}
+                            </span>
+                            <span class="text-lg text-[#555] line-through">
+                                {{ $currencySymbol }}{{ number_format($product->price, 2) }}
+                            </span>
+                            @php $pct = round((1 - $activeSpecial->price / $product->price) * 100); @endphp
+                            <span class="text-xs font-bold text-white px-2 py-0.5 rounded" style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;">
+                                -{{ $pct }}%
+                            </span>
+                        </div>
+
+                        {{-- Countdown (only if end date is within 1 year) --}}
+                        @if ($activeSpecial->date_end && $activeSpecial->date_end->lt(now()->addYear()))
+                            <div class="mt-2" x-data="countdown({ endDate: '{{ $activeSpecial->date_end->toISOString() }}' })">
+                                <div class="countdown" x-show="!expired">
+                                    <span class="unit" x-text="days"></span><span class="countdown-label">D</span>
+                                    <span class="separator">:</span>
+                                    <span class="unit" x-text="hours"></span><span class="countdown-label">H</span>
+                                    <span class="separator">:</span>
+                                    <span class="unit" x-text="minutes"></span><span class="countdown-label">M</span>
+                                    <span class="separator">:</span>
+                                    <span class="unit" x-text="seconds"></span><span class="countdown-label">S</span>
+                                </div>
+                            </div>
+                        @endif
+                    @else
+                        <span class="text-4xl" class="font-heading-narrow">
+                            {{ $currencySymbol }}{{ number_format($product->price, 2) }}
+                        </span>
+                    @endif
+
+                    {{-- Dynamic variant price --}}
+                    <template x-if="hasVariants && activeVariant">
+                        <div class="mt-2">
+                            <span class="text-sm text-[#777]">Variant price: </span>
+                            <span class="text-lg text-[#E8E8E8]" class="font-heading">
+                                {{ $currencySymbol }}<span x-text="parseFloat(activeVariant.price).toFixed(2)"></span>
+                            </span>
+                        </div>
+                    </template>
+                </div>
+
+                {{-- Stock --}}
+                @if ($settings['show_stock'] ?? true)
+                    <div class="product-detail-stock flex items-center gap-2 mb-5 text-sm">
+                        @if (!$product->track_stock || $product->quantity > 0)
+                            <span class="led led-green"></span>
+                            <span class="in-stock">In Stock</span>
+                            @if ($product->track_stock)
+                                <span class="text-[#555]">({{ $product->quantity }} available)</span>
+                            @endif
+                        @else
+                            <span class="led led-red"></span>
+                            <span class="out-of-stock">Out of Stock</span>
+                        @endif
+                    </div>
+                @endif
+
+                <div class="divider-glow my-5"></div>
+
+                {{-- Variants --}}
+                @if ($product->has_variants && $product->variantTypes->isNotEmpty())
+                    <div class="space-y-4 mb-5">
+                        <h3 class="text-sm tracking-[0.15em] text-[#999]" class="font-heading">AVAILABLE OPTIONS</h3>
+                        @foreach ($product->variantTypes as $type)
+                            <div>
+                                <label class="block text-sm text-[#777] mb-1.5">{{ $type->name }} <span class="text-[var(--color-secondary)]">*</span></label>
+                                <select class="product-variant-select"
+                                        @change="selectValue({{ $type->id }}, $event.target.value)">
+                                    <option value="">-- Please Select --</option>
+                                    @foreach ($type->values as $option)
+                                        @php $optStock = $valueStockMap[$option->id] ?? null; @endphp
+                                        <option value="{{ $option->id }}">{{ $option->value }}{{ $optStock !== null ? ($optStock > 0 ? " — In Stock ({$optStock})" : ' — Out of Stock') : '' }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endforeach
+
+                    </div>
+                @endif
+
+                {{-- Add to Cart / Notify Me --}}
+                <template x-if="!isOutOfStock">
+                    <div>
+                        <div x-show="quantity > 1" class="mb-3 text-sm text-[#999]">
+                            <span>Total: </span>
+                            <span class="text-lg text-[#E8E8E8]" class="font-heading">{{ $currencySymbol }}<span x-text="totalPrice.toFixed(2)"></span></span>
+                        </div>
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="cart-item-qty">
+                                <button type="button" class="qty-btn" @click="if(quantity > 1) quantity--">-</button>
+                                <input type="number" x-model.number="quantity" min="1" class="qty-input">
+                                <button type="button" class="qty-btn" @click="quantity++">+</button>
+                            </div>
+                            <button class="product-add-btn" @click="submit()" :disabled="loading">
+                                <template x-if="!loading">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                                        ADD TO CART
+                                    </span>
+                                </template>
+                                <template x-if="loading">
+                                    <span class="flex items-center gap-2">
+                                        <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                        ADDING...
+                                    </span>
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <template x-if="isOutOfStock">
+                    <div class="mb-6">
+                        <button class="product-notify-btn" @click="notifyModal = true">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            NOTIFY ME WHEN IN STOCK
+                        </button>
+                    </div>
+                </template>
+
+                {{-- ATC Message --}}
+                <div x-show="message" x-transition.opacity>
+                    <div class="atc-message"
+                         :class="messageType === 'success' ? 'atc-message-success' : 'atc-message-error'"
+                         x-text="message"></div>
+                </div>
+
+                {{-- Notify Me Modal --}}
+                <div x-show="notifyModal" x-cloak class="checkout-modal-overlay" @click.self="notifyModal = false">
+                    <div class="checkout-modal" @click.stop>
+                        <h2 class="checkout-modal-title">NOTIFY ME WHEN IN STOCK</h2>
+                        <p class="text-sm text-[#999] mb-4">
+                            We'll email you when
+                            <strong class="text-[#C8C8C8]" x-text="(hasVariants && activeVariant) ? activeVariant.name : '{{ addslashes($product->name) }}'"></strong>
+                            is back in stock.
+                        </p>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="account-label">Name</label>
+                                <input type="text" x-model="notifyName" class="account-input w-full" placeholder="Your name">
+                            </div>
+                            <div>
+                                <label class="account-label">Email</label>
+                                <input type="email" x-model="notifyEmail" class="account-input w-full" placeholder="your@email.com">
+                            </div>
+                        </div>
+                        <div x-show="notifyMessage" class="mt-3 text-sm" :class="notifySuccess ? 'text-emerald-400' : 'text-[var(--color-secondary)]'" x-text="notifyMessage"></div>
+                        <div class="checkout-modal-actions mt-6">
+                            <button @click="notifyModal = false" class="checkout-modal-btn-back">Cancel</button>
+                            <button @click="submitNotify()" class="checkout-modal-btn-confirm" :disabled="notifyLoading || !notifyName || !notifyEmail">
+                                <span x-show="!notifyLoading">Notify Me</span>
+                                <span x-show="notifyLoading" x-cloak>Submitting...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Tags --}}
+                @if ($product->tags->isNotEmpty())
+                    <div class="flex flex-wrap gap-1.5 mb-4 mt-5">
+                        @foreach ($product->tags as $tag)
+                            <span class="product-tag">{{ $tag->name }}</span>
+                        @endforeach
+                    </div>
+                @endif
+
+            </div>
+        </div>
+
+        {{-- Description Tabs --}}
+        <div class="mt-12" x-data="{ tab: 'description' }" id="reviews">
+            <div class="flex border-b border-[#2A2A2A]">
+                <button @click="tab = 'description'" :class="tab === 'description' ? 'active' : ''" class="product-tab-btn">
+                    DESCRIPTION
+                </button>
+                <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
+                    REVIEWS ({{ $reviewCount }})
+                </button>
+            </div>
+            <div class="py-6">
+                <div x-show="tab === 'description'" class="product-description">
+                    {!! $product->description !!}
+                </div>
+                <div x-show="tab === 'reviews'" x-cloak>
+                    @if ($approvedReviews->isNotEmpty())
+                        <div class="space-y-6">
+                            @foreach ($approvedReviews as $review)
+                                <div class="review-card">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-3">
+                                            <div class="star-rating">
+                                                @for ($i = 1; $i <= 5; $i++)
+                                                    @if ($i <= $review->rating)
+                                                        <span>&#9733;</span>
+                                                    @else
+                                                        <span class="star-empty">&#9733;</span>
+                                                    @endif
+                                                @endfor
+                                            </div>
+                                            <span class="text-sm text-[#999]">{{ $review->name }}</span>
+                                            @if ($review->is_verified_purchase)
+                                                <span class="text-xs px-1.5 py-0.5 rounded bg-emerald-900 text-emerald-300">Verified</span>
+                                            @endif
+                                        </div>
+                                        <span class="text-xs text-[#555]">{{ $review->published_at?->format('M j, Y') }}</span>
+                                    </div>
+                                    @if ($review->title)
+                                        <h4 class="text-sm font-semibold text-[#E8E8E8] mb-1">{{ $review->title }}</h4>
+                                    @endif
+                                    @if ($review->body)
+                                        <p class="text-sm text-[#999] whitespace-pre-wrap">{{ $review->body }}</p>
+                                    @endif
+                                    @if ($review->images->isNotEmpty())
+                                        <div class="flex gap-2 mt-3">
+                                            @foreach ($review->images as $img)
+                                                <a href="{{ asset('storage/' . $img->path) }}" target="_blank" class="w-16 h-16 rounded overflow-hidden border border-[#2A2A2A]">
+                                                    <img src="{{ asset('storage/' . $img->path) }}" alt="Review photo" class="w-full h-full object-cover">
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="text-[#555] text-sm">No reviews yet.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        {{-- Related Products --}}
+        @if (in_array('related', $belowModules) && $relatedProducts->isNotEmpty())
+            <div class="mt-8 border-t border-[#1A1A1A] pt-8">
+                <h2 class="section-title">Related Products</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 reveal-stagger">
+                    @foreach ($relatedProducts->take(4) as $related)
+                        @include('partials.product-card', ['product' => $related])
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        {{-- Same Brand --}}
+        @if (in_array('same_brand', $belowModules) && $sameBrandProducts->isNotEmpty())
+            <div class="mt-8 border-t border-[#1A1A1A] pt-8">
+                <h2 class="section-title">More from {{ $product->brand->name }}</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 reveal-stagger">
+                    @foreach ($sameBrandProducts->take(4) as $brandProduct)
+                        @include('partials.product-card', ['product' => $brandProduct])
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    </div>
+</x-store-layout>

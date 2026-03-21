@@ -1,0 +1,30 @@
+{
+    "name": "Stage Ready",
+    "version": "1.0",
+    "author": "NewGearDay",
+    "description": "Dark pedalboard theme with amber glow effects, noise texture, and LED indicators",
+    "thumbnail": "preview.png",
+    "settings": {
+        "glow_intensity": {
+            "type": "select",
+            "label": "Glow Intensity",
+            "options": ["low", "medium", "high"],
+            "default": "medium"
+        },
+        "noise_texture": {
+            "type": "toggle",
+            "label": "Noise Texture Overlay",
+            "default": true
+        },
+        "led_indicators": {
+            "type": "toggle",
+            "label": "LED Indicator Dots",
+            "default": true
+        },
+        "scroll_reveal": {
+            "type": "toggle",
+            "label": "Scroll Reveal Animations",
+            "default": true
+        }
+    }
+}
