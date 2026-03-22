@@ -1,0 +1,872 @@
+[
+  {
+    "iso2": "AX",
+    "iso3": "ALA",
+    "name": "Aland Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "AS",
+    "iso3": "ASM",
+    "name": "American Samoa",
+    "phone_code": ""
+  },
+  {
+    "iso2": "AD",
+    "iso3": "AND",
+    "name": "Andorra",
+    "phone_code": ""
+  },
+  {
+    "iso2": "AO",
+    "iso3": "AGO",
+    "name": "Angola",
+    "phone_code": ""
+  },
+  {
+    "iso2": "AI",
+    "iso3": "AIA",
+    "name": "Anguilla",
+    "phone_code": ""
+  },
+  {
+    "iso2": "AQ",
+    "iso3": "ATA",
+    "name": "Antarctica",
+    "phone_code": ""
+  },
+  {
+    "iso2": "AG",
+    "iso3": "ATG",
+    "name": "Antigua and Barbuda",
+    "phone_code": ""
+  },
+  {
+    "iso2": "AW",
+    "iso3": "ABW",
+    "name": "Aruba",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BB",
+    "iso3": "BRB",
+    "name": "Barbados",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BJ",
+    "iso3": "BEN",
+    "name": "Benin",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BM",
+    "iso3": "BMU",
+    "name": "Bermuda",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BT",
+    "iso3": "BTN",
+    "name": "Bhutan",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BQ",
+    "iso3": "BES",
+    "name": "Bonaire, Sint Eustatius and Saba",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BW",
+    "iso3": "BWA",
+    "name": "Botswana",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BV",
+    "iso3": "BVT",
+    "name": "Bouvet Island",
+    "phone_code": ""
+  },
+  {
+    "iso2": "IO",
+    "iso3": "IOT",
+    "name": "British Indian Ocean Territory",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BF",
+    "iso3": "BFA",
+    "name": "Burkina Faso",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BI",
+    "iso3": "BDI",
+    "name": "Burundi",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CM",
+    "iso3": "CMR",
+    "name": "Cameroon",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CV",
+    "iso3": "CPV",
+    "name": "Cape Verde",
+    "phone_code": ""
+  },
+  {
+    "iso2": "KY",
+    "iso3": "CYM",
+    "name": "Cayman Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CF",
+    "iso3": "CAF",
+    "name": "Central African Republic",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TD",
+    "iso3": "TCD",
+    "name": "Chad",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CX",
+    "iso3": "CXR",
+    "name": "Christmas Island",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CC",
+    "iso3": "CCK",
+    "name": "Cocos (Keeling) Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "KM",
+    "iso3": "COM",
+    "name": "Comoros",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CG",
+    "iso3": "COG",
+    "name": "Congo",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CK",
+    "iso3": "COK",
+    "name": "Cook Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CW",
+    "iso3": "CUW",
+    "name": "Curaçao",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CD",
+    "iso3": "COD",
+    "name": "Democratic Republic of the Congo",
+    "phone_code": ""
+  },
+  {
+    "iso2": "DJ",
+    "iso3": "DJI",
+    "name": "Djibouti",
+    "phone_code": ""
+  },
+  {
+    "iso2": "DM",
+    "iso3": "DMA",
+    "name": "Dominica",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SV",
+    "iso3": "SLV",
+    "name": "El Salvador",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GQ",
+    "iso3": "GNQ",
+    "name": "Equatorial Guinea",
+    "phone_code": ""
+  },
+  {
+    "iso2": "ER",
+    "iso3": "ERI",
+    "name": "Eritrea",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SZ",
+    "iso3": "SWZ",
+    "name": "Eswatini",
+    "phone_code": ""
+  },
+  {
+    "iso2": "ET",
+    "iso3": "ETH",
+    "name": "Ethiopia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "FK",
+    "iso3": "FLK",
+    "name": "Falkland Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "FO",
+    "iso3": "FRO",
+    "name": "Faroe Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "FJ",
+    "iso3": "FJI",
+    "name": "Fiji Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GF",
+    "iso3": "GUF",
+    "name": "French Guiana",
+    "phone_code": ""
+  },
+  {
+    "iso2": "PF",
+    "iso3": "PYF",
+    "name": "French Polynesia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TF",
+    "iso3": "ATF",
+    "name": "French Southern Territories",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GA",
+    "iso3": "GAB",
+    "name": "Gabon",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GH",
+    "iso3": "GHA",
+    "name": "Ghana",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GI",
+    "iso3": "GIB",
+    "name": "Gibraltar",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GL",
+    "iso3": "GRL",
+    "name": "Greenland",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GD",
+    "iso3": "GRD",
+    "name": "Grenada",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GP",
+    "iso3": "GLP",
+    "name": "Guadeloupe",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GU",
+    "iso3": "GUM",
+    "name": "Guam",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GG",
+    "iso3": "GGY",
+    "name": "Guernsey",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GN",
+    "iso3": "GIN",
+    "name": "Guinea",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GW",
+    "iso3": "GNB",
+    "name": "Guinea-Bissau",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GY",
+    "iso3": "GUY",
+    "name": "Guyana",
+    "phone_code": ""
+  },
+  {
+    "iso2": "HT",
+    "iso3": "HTI",
+    "name": "Haiti",
+    "phone_code": ""
+  },
+  {
+    "iso2": "HM",
+    "iso3": "HMD",
+    "name": "Heard Island and McDonald Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "HN",
+    "iso3": "HND",
+    "name": "Honduras",
+    "phone_code": ""
+  },
+  {
+    "iso2": "CI",
+    "iso3": "CIV",
+    "name": "Ivory Coast",
+    "phone_code": ""
+  },
+  {
+    "iso2": "JE",
+    "iso3": "JEY",
+    "name": "Jersey",
+    "phone_code": ""
+  },
+  {
+    "iso2": "KI",
+    "iso3": "KIR",
+    "name": "Kiribati",
+    "phone_code": ""
+  },
+  {
+    "iso2": "XK",
+    "iso3": "XKX",
+    "name": "Kosovo",
+    "phone_code": ""
+  },
+  {
+    "iso2": "KG",
+    "iso3": "KGZ",
+    "name": "Kyrgyzstan",
+    "phone_code": ""
+  },
+  {
+    "iso2": "LS",
+    "iso3": "LSO",
+    "name": "Lesotho",
+    "phone_code": ""
+  },
+  {
+    "iso2": "LR",
+    "iso3": "LBR",
+    "name": "Liberia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "LY",
+    "iso3": "LBY",
+    "name": "Libya",
+    "phone_code": ""
+  },
+  {
+    "iso2": "LI",
+    "iso3": "LIE",
+    "name": "Liechtenstein",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MG",
+    "iso3": "MDG",
+    "name": "Madagascar",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MW",
+    "iso3": "MWI",
+    "name": "Malawi",
+    "phone_code": ""
+  },
+  {
+    "iso2": "ML",
+    "iso3": "MLI",
+    "name": "Mali",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MT",
+    "iso3": "MLT",
+    "name": "Malta",
+    "phone_code": ""
+  },
+  {
+    "iso2": "IM",
+    "iso3": "IMN",
+    "name": "Man (Isle of)",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MH",
+    "iso3": "MHL",
+    "name": "Marshall Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MQ",
+    "iso3": "MTQ",
+    "name": "Martinique",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MR",
+    "iso3": "MRT",
+    "name": "Mauritania",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MU",
+    "iso3": "MUS",
+    "name": "Mauritius",
+    "phone_code": ""
+  },
+  {
+    "iso2": "YT",
+    "iso3": "MYT",
+    "name": "Mayotte",
+    "phone_code": ""
+  },
+  {
+    "iso2": "FM",
+    "iso3": "FSM",
+    "name": "Micronesia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MD",
+    "iso3": "MDA",
+    "name": "Moldova",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MC",
+    "iso3": "MCO",
+    "name": "Monaco",
+    "phone_code": ""
+  },
+  {
+    "iso2": "ME",
+    "iso3": "MNE",
+    "name": "Montenegro",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MS",
+    "iso3": "MSR",
+    "name": "Montserrat",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MZ",
+    "iso3": "MOZ",
+    "name": "Mozambique",
+    "phone_code": ""
+  },
+  {
+    "iso2": "NA",
+    "iso3": "NAM",
+    "name": "Namibia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "NR",
+    "iso3": "NRU",
+    "name": "Nauru",
+    "phone_code": ""
+  },
+  {
+    "iso2": "NC",
+    "iso3": "NCL",
+    "name": "New Caledonia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "NI",
+    "iso3": "NIC",
+    "name": "Nicaragua",
+    "phone_code": ""
+  },
+  {
+    "iso2": "NE",
+    "iso3": "NER",
+    "name": "Niger",
+    "phone_code": ""
+  },
+  {
+    "iso2": "NU",
+    "iso3": "NIU",
+    "name": "Niue",
+    "phone_code": ""
+  },
+  {
+    "iso2": "NF",
+    "iso3": "NFK",
+    "name": "Norfolk Island",
+    "phone_code": ""
+  },
+  {
+    "iso2": "KP",
+    "iso3": "PRK",
+    "name": "North Korea",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MK",
+    "iso3": "MKD",
+    "name": "North Macedonia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MP",
+    "iso3": "MNP",
+    "name": "Northern Mariana Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "PW",
+    "iso3": "PLW",
+    "name": "Palau",
+    "phone_code": ""
+  },
+  {
+    "iso2": "PS",
+    "iso3": "PSE",
+    "name": "Palestinian Territory Occupied",
+    "phone_code": ""
+  },
+  {
+    "iso2": "PG",
+    "iso3": "PNG",
+    "name": "Papua New Guinea",
+    "phone_code": ""
+  },
+  {
+    "iso2": "PN",
+    "iso3": "PCN",
+    "name": "Pitcairn Island",
+    "phone_code": ""
+  },
+  {
+    "iso2": "PR",
+    "iso3": "PRI",
+    "name": "Puerto Rico",
+    "phone_code": ""
+  },
+  {
+    "iso2": "RE",
+    "iso3": "REU",
+    "name": "Reunion",
+    "phone_code": ""
+  },
+  {
+    "iso2": "RW",
+    "iso3": "RWA",
+    "name": "Rwanda",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SH",
+    "iso3": "SHN",
+    "name": "Saint Helena",
+    "phone_code": ""
+  },
+  {
+    "iso2": "KN",
+    "iso3": "KNA",
+    "name": "Saint Kitts and Nevis",
+    "phone_code": ""
+  },
+  {
+    "iso2": "LC",
+    "iso3": "LCA",
+    "name": "Saint Lucia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "PM",
+    "iso3": "SPM",
+    "name": "Saint Pierre and Miquelon",
+    "phone_code": ""
+  },
+  {
+    "iso2": "VC",
+    "iso3": "VCT",
+    "name": "Saint Vincent and the Grenadines",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BL",
+    "iso3": "BLM",
+    "name": "Saint-Barthelemy",
+    "phone_code": ""
+  },
+  {
+    "iso2": "MF",
+    "iso3": "MAF",
+    "name": "Saint-Martin (French part)",
+    "phone_code": ""
+  },
+  {
+    "iso2": "WS",
+    "iso3": "WSM",
+    "name": "Samoa",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SM",
+    "iso3": "SMR",
+    "name": "San Marino",
+    "phone_code": ""
+  },
+  {
+    "iso2": "ST",
+    "iso3": "STP",
+    "name": "Sao Tome and Principe",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SN",
+    "iso3": "SEN",
+    "name": "Senegal",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SC",
+    "iso3": "SYC",
+    "name": "Seychelles",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SL",
+    "iso3": "SLE",
+    "name": "Sierra Leone",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SX",
+    "iso3": "SXM",
+    "name": "Sint Maarten (Dutch part)",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SB",
+    "iso3": "SLB",
+    "name": "Solomon Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SO",
+    "iso3": "SOM",
+    "name": "Somalia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GS",
+    "iso3": "SGS",
+    "name": "South Georgia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SS",
+    "iso3": "SSD",
+    "name": "South Sudan",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SD",
+    "iso3": "SDN",
+    "name": "Sudan",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SR",
+    "iso3": "SUR",
+    "name": "Suriname",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SJ",
+    "iso3": "SJM",
+    "name": "Svalbard and Jan Mayen Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "SY",
+    "iso3": "SYR",
+    "name": "Syria",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TJ",
+    "iso3": "TJK",
+    "name": "Tajikistan",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TZ",
+    "iso3": "TZA",
+    "name": "Tanzania",
+    "phone_code": ""
+  },
+  {
+    "iso2": "BS",
+    "iso3": "BHS",
+    "name": "The Bahamas",
+    "phone_code": ""
+  },
+  {
+    "iso2": "GM",
+    "iso3": "GMB",
+    "name": "The Gambia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TL",
+    "iso3": "TLS",
+    "name": "Timor-Leste",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TG",
+    "iso3": "TGO",
+    "name": "Togo",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TK",
+    "iso3": "TKL",
+    "name": "Tokelau",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TO",
+    "iso3": "TON",
+    "name": "Tonga",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TT",
+    "iso3": "TTO",
+    "name": "Trinidad and Tobago",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TN",
+    "iso3": "TUN",
+    "name": "Tunisia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TM",
+    "iso3": "TKM",
+    "name": "Turkmenistan",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TC",
+    "iso3": "TCA",
+    "name": "Turks and Caicos Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "TV",
+    "iso3": "TUV",
+    "name": "Tuvalu",
+    "phone_code": ""
+  },
+  {
+    "iso2": "UG",
+    "iso3": "UGA",
+    "name": "Uganda",
+    "phone_code": ""
+  },
+  {
+    "iso2": "UM",
+    "iso3": "UMI",
+    "name": "United States Minor Outlying Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "VU",
+    "iso3": "VUT",
+    "name": "Vanuatu",
+    "phone_code": ""
+  },
+  {
+    "iso2": "VA",
+    "iso3": "VAT",
+    "name": "Vatican City State (Holy See)",
+    "phone_code": ""
+  },
+  {
+    "iso2": "VG",
+    "iso3": "VGB",
+    "name": "Virgin Islands (British)",
+    "phone_code": ""
+  },
+  {
+    "iso2": "VI",
+    "iso3": "VIR",
+    "name": "Virgin Islands (US)",
+    "phone_code": ""
+  },
+  {
+    "iso2": "WF",
+    "iso3": "WLF",
+    "name": "Wallis and Futuna Islands",
+    "phone_code": ""
+  },
+  {
+    "iso2": "EH",
+    "iso3": "ESH",
+    "name": "Western Sahara",
+    "phone_code": ""
+  },
+  {
+    "iso2": "YE",
+    "iso3": "YEM",
+    "name": "Yemen",
+    "phone_code": ""
+  },
+  {
+    "iso2": "ZM",
+    "iso3": "ZMB",
+    "name": "Zambia",
+    "phone_code": ""
+  },
+  {
+    "iso2": "ZW",
+    "iso3": "ZWE",
+    "name": "Zimbabwe",
+    "phone_code": ""
+  }
+]

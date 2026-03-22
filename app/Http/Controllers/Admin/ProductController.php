@@ -143,12 +143,21 @@ class ProductController extends Controller
             ];
         })->values()->toArray();
 
-        // Prepend main image if set
+        // Ensure main image is first and not duplicated
         if ($product->image) {
-            array_unshift($existingImages, [
-                'path' => $product->image,
-                'url' => Storage::disk('public')->url($product->image),
-            ]);
+            $mainIdx = collect($existingImages)->search(fn ($img) => $img['path'] === $product->image);
+            if ($mainIdx !== false && $mainIdx !== 0) {
+                // Move it to the front
+                $main = array_splice($existingImages, $mainIdx, 1);
+                array_unshift($existingImages, $main[0]);
+            } elseif ($mainIdx === false) {
+                // Not in gallery at all — prepend it
+                array_unshift($existingImages, [
+                    'path' => $product->image,
+                    'url' => Storage::disk('public')->url($product->image),
+                ]);
+            }
+            // If $mainIdx === 0, it's already in the right position
         }
 
         $existingSpecials = $product->specials->map(function ($s) {
@@ -165,7 +174,17 @@ class ProductController extends Controller
 
         $pimToken = (string) Str::uuid();
 
-        return view('admin.products.form', compact('product', 'categories', 'customerGroups', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken'));
+        // Derive the brand folder from the product's first image path
+        $brandFolder = '';
+        if ($product->image && str_starts_with($product->image, 'catalog/')) {
+            $relative = substr($product->image, strlen('catalog/'));
+            $dir = dirname($relative);
+            if ($dir !== '.') {
+                $brandFolder = $dir;
+            }
+        }
+
+        return view('admin.products.form', compact('product', 'categories', 'customerGroups', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken', 'brandFolder'));
     }
 
     public function update(Request $request, Product $product)
@@ -489,11 +508,10 @@ class ProductController extends Controller
 
     protected function getCatalogDir(Product $product): string
     {
-        $storeId = $product->store_id;
         $brand = $product->brand;
         $folder = $brand ? $brand->slug : 'unsorted';
 
-        return "stores/{$storeId}/catalog/{$folder}";
+        return "catalog/{$folder}";
     }
 
     protected function moveImagesToDir(Product $product, string $catalogDir): void

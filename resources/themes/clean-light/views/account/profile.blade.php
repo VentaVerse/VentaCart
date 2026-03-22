@@ -36,11 +36,6 @@
                                 <p class="text-xs text-[#555] mt-1">Email cannot be changed.</p>
                             </div>
 
-                            <div>
-                                <label class="account-label">Phone</label>
-                                <input type="text" name="phone" value="{{ old('phone', $customer->phone) }}" class="account-input w-full">
-                            </div>
-
                             <label class="flex items-center gap-2 text-sm text-[#777] cursor-pointer">
                                 <input type="checkbox" name="newsletter" value="1" {{ $customer->newsletter ? 'checked' : '' }} class="accent-[var(--color-primary)]">
                                 Subscribe to newsletter

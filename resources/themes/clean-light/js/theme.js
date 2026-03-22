@@ -712,6 +712,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     showNewAddressForm: addresses.length === 0,
     editingAddress: null,
     savingAddress: false,
+    addressErrors: [],
     placing: false,
     showConfirmModal: false,
     comment: '',
@@ -812,6 +813,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
 
     async saveNewAddress() {
         this.savingAddress = true;
+        this.addressErrors = [];
         try {
             const body = { ...this.newAddr };
             if (!this.editingAddress) {
@@ -831,6 +833,20 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
                 body: JSON.stringify(body),
             });
             const data = await res.json();
+
+            if (!res.ok) {
+                // Validation errors (422) or other server errors
+                if (data.errors) {
+                    this.addressErrors = Object.values(data.errors).flat();
+                } else if (data.message) {
+                    this.addressErrors = [data.message];
+                } else {
+                    this.addressErrors = ['Failed to save address. Please check all required fields.'];
+                }
+                this.savingAddress = false;
+                return;
+            }
+
             if (data.success || data.addresses) {
                 this.addresses = data.addresses || this.addresses;
                 if (data.address) {
@@ -838,10 +854,12 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
                 }
                 this.showNewAddressForm = false;
                 this.editingAddress = null;
+                this.addressErrors = [];
                 this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH', phone: '' };
                 this.refreshShippingRates();
             }
         } catch (e) {
+            this.addressErrors = ['A network error occurred. Please try again.'];
             console.error('Save address failed:', e);
         }
         this.savingAddress = false;

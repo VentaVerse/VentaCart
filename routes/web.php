@@ -299,6 +299,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Localization
     Route::get('/localization', [\App\Http\Controllers\Admin\LocalizationController::class, 'index'])->name('localization.index');
     Route::post('/localization/countries/{country}/toggle', [\App\Http\Controllers\Admin\LocalizationController::class, 'toggleCountry'])->name('localization.toggle-country');
+    Route::put('/localization/countries/{country}', [\App\Http\Controllers\Admin\LocalizationController::class, 'updateCountry'])->name('localization.update-country');
+    Route::post('/localization/zones/{zone}/toggle', [\App\Http\Controllers\Admin\LocalizationController::class, 'toggleZone'])->name('localization.toggle-zone');
     Route::post('/localization/zones', [\App\Http\Controllers\Admin\LocalizationController::class, 'storeZone'])->name('localization.store-zone');
     Route::put('/localization/zones/{zone}', [\App\Http\Controllers\Admin\LocalizationController::class, 'updateZone'])->name('localization.update-zone');
     Route::delete('/localization/zones/{zone}', [\App\Http\Controllers\Admin\LocalizationController::class, 'destroyZone'])->name('localization.destroy-zone');

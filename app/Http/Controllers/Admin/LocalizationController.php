@@ -16,7 +16,7 @@ class LocalizationController extends Controller
     {
         $tab = $request->input('tab', session('tab', 'countries'));
 
-        $countries = Country::orderBy('sort_order')->orderBy('name')->get();
+        $countries = Country::withCount('zones')->orderBy('sort_order')->orderBy('name')->get();
 
         $selectedCountry = $request->input('country', 'PH');
         $zones = Zone::where('country_code', $selectedCountry)->orderBy('name')->get();
@@ -38,10 +38,54 @@ class LocalizationController extends Controller
     public function toggleCountry(Country $country)
     {
         $country->update(['is_active' => !$country->is_active]);
-        return back()->with('success', $country->name . ' ' . ($country->is_active ? 'enabled' : 'disabled') . '.')->with('tab', 'countries');
+        $message = $country->name . ' ' . ($country->is_active ? 'enabled' : 'disabled') . '.';
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'is_active' => $country->is_active,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->route('admin.localization.index', ['tab' => 'countries'])->with('success', $message);
+    }
+
+    public function updateCountry(Request $request, Country $country)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'iso2' => ['required', 'string', 'size:2'],
+            'iso3' => ['required', 'string', 'size:3'],
+            'phone_code' => ['nullable', 'string', 'max:10'],
+            'sort_order' => ['nullable', 'integer'],
+        ]);
+
+        $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        $country->update($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'message' => $country->name . ' updated.']);
+        }
+
+        return redirect()->route('admin.localization.index', ['tab' => 'countries'])->with('success', $country->name . ' updated.');
     }
 
     // --- Zones ---
+
+    public function toggleZone(Zone $zone)
+    {
+        $zone->update(['is_active' => !$zone->is_active]);
+        $message = $zone->name . ' ' . ($zone->is_active ? 'enabled' : 'disabled') . '.';
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'is_active' => $zone->is_active,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->route('admin.localization.index', ['tab' => 'zones'])->with('success', $message);
+    }
 
     public function storeZone(Request $request)
     {
@@ -89,17 +133,47 @@ class LocalizationController extends Controller
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
         $validated['is_active'] = true;
 
-        GeoZone::create($validated);
+        $geoZone = GeoZone::create($validated);
 
-        return back()->with('success', 'Geo zone created.')->with('tab', 'geo-zones');
+        return redirect()->route('admin.localization.edit-geo-zone', $geoZone)->with('success', 'Geo zone created — now add entries.');
     }
 
     public function editGeoZone(GeoZone $geoZone)
     {
-        $phRegions = PhRegion::with('provinces')->orderBy('name')->get();
-        $assignedRegionIds = $geoZone->entries()->pluck('ph_region_id')->filter()->toArray();
+        $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.localization.geo-zone-edit', compact('geoZone', 'phRegions', 'assignedRegionIds'));
+        // Load existing entries with their related models
+        $entries = $geoZone->entries()->get()->map(function ($entry) {
+            $label = '';
+            if ($entry->country_id) {
+                $country = Country::find($entry->country_id);
+                $label = $country ? $country->name : 'Unknown';
+                if ($entry->zone_id) {
+                    $zone = Zone::find($entry->zone_id);
+                    $label .= ' → ' . ($zone ? $zone->name : 'Unknown');
+                } else {
+                    $label .= ' (all zones)';
+                }
+            } elseif ($entry->ph_region_id) {
+                $region = PhRegion::find($entry->ph_region_id);
+                $label = 'PH → ' . ($region ? $region->name : 'Unknown');
+                if ($entry->ph_province_id) {
+                    $province = \App\Models\PhProvince::find($entry->ph_province_id);
+                    $label .= ' → ' . ($province ? $province->name : 'Unknown');
+                }
+            }
+            return [
+                'id' => $entry->id,
+                'country_id' => $entry->country_id,
+                'zone_id' => $entry->zone_id,
+                'ph_region_id' => $entry->ph_region_id,
+                'ph_province_id' => $entry->ph_province_id,
+                'ph_city_id' => $entry->ph_city_id,
+                'label' => $label,
+            ];
+        });
+
+        return view('admin.localization.geo-zone-edit', compact('geoZone', 'countries', 'entries'));
     }
 
     public function updateGeoZone(Request $request, GeoZone $geoZone)
@@ -120,25 +194,50 @@ class LocalizationController extends Controller
 
     public function syncGeoZoneEntries(Request $request, GeoZone $geoZone)
     {
-        $regionIds = $request->input('ph_region_ids', []);
+        $request->validate([
+            'entries' => ['present', 'array'],
+            'entries.*.country_id' => ['nullable', 'integer'],
+            'entries.*.zone_id' => ['nullable', 'integer'],
+            'entries.*.ph_region_id' => ['nullable', 'integer'],
+            'entries.*.ph_province_id' => ['nullable', 'integer'],
+            'entries.*.ph_city_id' => ['nullable', 'integer'],
+        ]);
 
-        // Delete existing entries and recreate
         $geoZone->entries()->delete();
 
-        foreach ($regionIds as $regionId) {
+        $entries = $request->input('entries', []);
+        foreach ($entries as $entry) {
+            // Skip empty rows
+            if (empty($entry['country_id']) && empty($entry['ph_region_id'])) {
+                continue;
+            }
+
             GeoZoneEntry::create([
                 'geo_zone_id' => $geoZone->id,
-                'ph_region_id' => $regionId,
+                'country_id' => $entry['country_id'] ?: null,
+                'zone_id' => $entry['zone_id'] ?: null,
+                'ph_region_id' => $entry['ph_region_id'] ?: null,
+                'ph_province_id' => $entry['ph_province_id'] ?: null,
+                'ph_city_id' => $entry['ph_city_id'] ?: null,
             ]);
         }
 
-        return back()->with('success', 'Region assignments updated for ' . $geoZone->name . '.');
+        return back()->with('success', count($entries) . ' entries saved for ' . $geoZone->name . '.');
     }
 
     public function toggleGeoZone(GeoZone $geoZone)
     {
         $geoZone->update(['is_active' => !$geoZone->is_active]);
-        return back()->with('success', $geoZone->name . ' ' . ($geoZone->is_active ? 'enabled' : 'disabled') . '.')->with('tab', 'geo-zones');
+        $message = $geoZone->name . ' ' . ($geoZone->is_active ? 'enabled' : 'disabled') . '.';
+
+        if (request()->wantsJson()) {
+            return response()->json([
+                'is_active' => $geoZone->is_active,
+                'message' => $message,
+            ]);
+        }
+
+        return redirect()->route('admin.localization.index', ['tab' => 'geo-zones'])->with('success', $message);
     }
 
     public function destroyGeoZone(GeoZone $geoZone)

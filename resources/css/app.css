@@ -40,6 +40,29 @@
         white-space: pre-wrap;
     }
 
+    /* TinyMCE dialog fix — Tailwind Preflight strips borders from inputs.
+       TinyMCE skin uses high specificity, so we must match or exceed it. */
+    .tox.tox-tinymce-aux .tox-textfield,
+    .tox.tox-tinymce-aux .tox-textarea,
+    .tox.tox-tinymce-aux .tox-selectfield select,
+    .tox .tox-dialog .tox-textfield,
+    .tox .tox-dialog .tox-textarea,
+    .tox .tox-dialog .tox-selectfield select {
+        border: 1px solid #999 !important;
+        border-radius: 4px !important;
+        padding: 6px 8px !important;
+        font-size: 14px !important;
+        background-color: #fff !important;
+    }
+    .tox.tox-tinymce-aux .tox-textfield:focus,
+    .tox.tox-tinymce-aux .tox-textarea:focus,
+    .tox .tox-dialog .tox-textfield:focus,
+    .tox .tox-dialog .tox-textarea:focus {
+        border-color: #4f46e5 !important;
+        outline: none !important;
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
+    }
+
     /* Dashboard KPI card accent glows */
     .kpi-glow-indigo {
         background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);

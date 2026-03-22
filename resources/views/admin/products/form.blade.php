@@ -154,6 +154,7 @@
                 @include('admin.products.partials.image_manager', [
                     'existingImages' => $existingImages,
                     'pimToken' => $pimToken,
+                    'brandFolder' => $brandFolder ?? '',
                 ])
             </div>
 
@@ -437,14 +438,35 @@
     </form>
 
     @push('scripts')
+    {{-- TinyMCE dialog input borders — must load after TinyMCE's skin --}}
+    <style>
+        .tox .tox-dialog .tox-textfield,
+        .tox .tox-dialog .tox-textarea,
+        .tox .tox-dialog .tox-selectfield select,
+        .tox.tox-tinymce-aux .tox-textfield,
+        .tox.tox-tinymce-aux .tox-textarea {
+            border: 1px solid #999 !important;
+            border-radius: 4px !important;
+        }
+        .tox .tox-dialog .tox-textfield:focus,
+        .tox .tox-dialog .tox-textarea:focus,
+        .tox.tox-tinymce-aux .tox-textfield:focus,
+        .tox.tox-tinymce-aux .tox-textarea:focus {
+            border-color: #4f46e5 !important;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15) !important;
+        }
+    </style>
     <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
     <script>
         tinymce.init({
             selector: '.tinymce-editor',
             height: 350,
             menubar: false,
-            plugins: 'lists link autolink code table',
-            toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | link table | removeformat code',
+            plugins: 'lists link autolink code table media',
+            toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | link table media | removeformat code',
+            media_live_embeds: true,
+            media_alt_source: false,
+            media_poster: false,
             content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }',
             branding: false,
             promotion: false,

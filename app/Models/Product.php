@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -34,6 +35,46 @@ class Product extends Model
             'track_stock' => 'boolean',
             'date_available' => 'date',
         ];
+    }
+
+    /**
+     * Fix legacy YouTube iframes missing required attributes for modern browsers.
+     */
+    protected function description(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value) {
+                if (!$value || !str_contains($value, 'youtube.com/embed')) {
+                    return $value;
+                }
+
+                return preg_replace_callback(
+                    '/<iframe([^>]*youtube\.com\/embed[^>]*)>/i',
+                    function ($match) {
+                        $attrs = $match[1];
+
+                        // Remove empty sandbox attribute — it blocks YouTube's JS player entirely
+                        $attrs = preg_replace('/\s*sandbox=["\']["\']/', '', $attrs);
+
+                        // Add allow attribute if missing
+                        if (!str_contains($attrs, 'allow=')) {
+                            $attrs .= ' allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"';
+                        }
+
+                        // Add referrerpolicy if missing
+                        if (!str_contains($attrs, 'referrerpolicy=')) {
+                            $attrs .= ' referrerpolicy="strict-origin-when-cross-origin"';
+                        }
+
+                        // Ensure https protocol (replace //www.youtube with https://www.youtube)
+                        $attrs = preg_replace('/src=["\']\/\/www\.youtube/', 'src="https://www.youtube', $attrs);
+
+                        return '<iframe' . $attrs . '>';
+                    },
+                    $value
+                );
+            },
+        );
     }
 
     public function store(): BelongsTo

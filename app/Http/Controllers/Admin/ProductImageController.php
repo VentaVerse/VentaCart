@@ -21,7 +21,6 @@ class ProductImageController extends Controller
         ]);
 
         $file = $request->file('file');
-        $storeId = $request->input('store_id');
         $folder = $request->input('folder');
         $pimToken = $request->input('pim_token');
 
@@ -32,11 +31,11 @@ class ProductImageController extends Controller
 
         // Determine storage path
         if ($pimToken && !$folder) {
-            $directory = "stores/{$storeId}/tmp/{$pimToken}";
+            $directory = "catalog/_tmp/{$pimToken}";
             $kind = 'temp';
         } else {
             $slug = $folder ? Str::slug($folder) : 'unsorted';
-            $directory = "stores/{$storeId}/catalog/{$slug}";
+            $directory = "catalog/{$slug}";
             $kind = 'final';
         }
 
@@ -63,7 +62,6 @@ class ProductImageController extends Controller
         ]);
 
         $imageUrl = $request->input('url');
-        $storeId = $request->input('store_id');
         $folder = $request->input('folder');
         $pimToken = $request->input('pim_token');
 
@@ -90,11 +88,11 @@ class ProductImageController extends Controller
             };
 
             if ($pimToken && !$folder) {
-                $directory = "stores/{$storeId}/tmp/{$pimToken}";
+                $directory = "catalog/_tmp/{$pimToken}";
                 $kind = 'temp';
             } else {
                 $slug = $folder ? Str::slug($folder) : 'unsorted';
-                $directory = "stores/{$storeId}/catalog/{$slug}";
+                $directory = "catalog/{$slug}";
                 $kind = 'final';
             }
 
@@ -123,15 +121,9 @@ class ProductImageController extends Controller
 
     public function browse(Request $request): JsonResponse
     {
-        $request->validate([
-            'store_id' => ['required', 'exists:stores,id'],
-            'path' => ['nullable', 'string'],
-        ]);
-
-        $storeId = $request->input('store_id');
         $relativePath = $request->input('path', '');
 
-        $basePath = "stores/{$storeId}/catalog";
+        $basePath = 'catalog';
         $currentPath = $relativePath ? "{$basePath}/{$relativePath}" : $basePath;
 
         // Prevent path traversal
@@ -144,12 +136,17 @@ class ProductImageController extends Controller
         $directories = Storage::disk('public')->directories($currentPath);
         $files = Storage::disk('public')->files($currentPath);
 
-        $folders = collect($directories)->map(function ($dir) use ($basePath) {
-            return [
-                'name' => basename($dir),
-                'path' => str_replace($basePath . '/', '', $dir),
-            ];
-        })->values();
+        $folders = collect($directories)
+            ->reject(function ($dir) {
+                // Hide temp upload directory from browser
+                return basename($dir) === '_tmp';
+            })
+            ->map(function ($dir) use ($basePath) {
+                return [
+                    'name' => basename($dir),
+                    'path' => str_replace($basePath . '/', '', $dir),
+                ];
+            })->values();
 
         $imageFiles = collect($files)
             ->filter(function ($file) {
@@ -160,7 +157,6 @@ class ProductImageController extends Controller
                 return str_contains($file, '_thumb.');
             })
             ->map(function ($file) {
-                $fullPath = Storage::disk('public')->path($file);
                 return [
                     'name' => basename($file),
                     'path' => $file,
@@ -189,16 +185,21 @@ class ProductImageController extends Controller
     {
         $request->validate([
             'file' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'store_id' => ['required', 'exists:stores,id'],
-            'catalog_path' => ['required', 'string'],
+            'catalog_path' => ['nullable', 'string'],
         ]);
 
         $file = $request->file('file');
-        $storeId = $request->input('store_id');
-        $catalogPath = $request->input('catalog_path');
+        $catalogPath = $request->input('catalog_path', '');
 
-        $basePath = "stores/{$storeId}/catalog";
+        $basePath = 'catalog';
         $directory = $catalogPath ? "{$basePath}/{$catalogPath}" : $basePath;
+
+        // Prevent path traversal
+        $realBase = Storage::disk('public')->path($basePath);
+        $realDir = Storage::disk('public')->path($directory);
+        if (!str_starts_with(realpath($realDir) ?: $realDir, realpath($realBase) ?: $realBase)) {
+            return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
+        }
 
         if ($file->getMimeType() === 'image/webp') {
             $file = $this->convertWebpToJpg($file);
@@ -222,15 +223,20 @@ class ProductImageController extends Controller
     {
         $request->validate([
             'path' => ['required', 'string'],
-            'store_id' => ['required', 'exists:stores,id'],
         ]);
 
         $path = $request->input('path');
-        $storeId = $request->input('store_id');
 
-        // Ensure path belongs to this store
-        if (!str_starts_with($path, "stores/{$storeId}/")) {
+        // Ensure path is within the catalog directory
+        if (!str_starts_with($path, 'catalog/')) {
             return response()->json(['ok' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        // Prevent deleting from _tmp of other sessions, etc. — just verify it's a real catalog path
+        $realBase = Storage::disk('public')->path('catalog');
+        $realFile = Storage::disk('public')->path($path);
+        if (!str_starts_with(realpath($realFile) ?: $realFile, realpath($realBase) ?: $realBase)) {
+            return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
         }
 
         Storage::disk('public')->delete($path);
