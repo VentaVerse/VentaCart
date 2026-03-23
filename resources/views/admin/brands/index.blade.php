@@ -39,7 +39,7 @@
                         <td class="px-6 py-4">
                             <div class="flex items-center">
                                 @if ($brand->image)
-                                    <img class="h-8 w-8 rounded object-contain mr-3" src="{{ Storage::url($brand->image) }}" alt="{{ $brand->name }}">
+                                    <img class="h-8 w-8 rounded object-contain mr-3" src="{{ storage_url($brand->image) }}" alt="{{ $brand->name }}">
                                 @endif
                                 <div>
                                     <div class="text-sm font-medium text-gray-900">{{ $brand->name }}</div>

@@ -46,7 +46,7 @@
                         <td class="px-6 py-4">
                             <div class="flex items-center">
                                 @if ($category->image)
-                                    <img class="h-8 w-8 rounded object-cover mr-3" src="{{ Storage::url($category->image) }}" alt="{{ $category->name }}">
+                                    <img class="h-8 w-8 rounded object-cover mr-3" src="{{ storage_url($category->image) }}" alt="{{ $category->name }}">
                                 @endif
                                 <div>
                                     <div class="text-sm font-medium text-gray-900">
