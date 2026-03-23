@@ -1,5 +1,5 @@
 {{-- Single Image Picker --}}
-{{-- Usage: @include('admin.partials.single_image_picker', ['fieldName' => 'image', 'currentImage' => $model?->image]) --}}
+{{-- Usage: @include('admin.partials.single_image_picker', ['fieldName' => 'image', 'currentImage' => $model?->image, 'defaultFolder' => 'Banners']) --}}
 
 @php
     $fieldName = $fieldName ?? 'image';
@@ -7,6 +7,7 @@
     $label = $label ?? 'Image';
     $hint = $hint ?? '';
     $required = $required ?? false;
+    $defaultFolder = $defaultFolder ?? '';
     $componentId = 'sip_' . str_replace(['[', ']', '.'], '_', $fieldName);
 @endphp
 
@@ -28,17 +29,11 @@
 
     {{-- Actions --}}
     <div class="flex items-center gap-2">
-        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            Upload
-            <input type="file" accept="image/jpeg,image/png,image/webp" @change="handleUpload($event)" class="sr-only">
-        </label>
         <button type="button" @click="openBrowser()"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-medium rounded-lg transition-colors">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
             Browse
         </button>
-        <span x-show="uploading" class="text-xs text-gray-400">Uploading...</span>
     </div>
     @if($hint)
         <p class="text-xs text-gray-400">{{ $hint }}</p>
@@ -50,9 +45,9 @@
         <span x-text="toast"></span>
     </div>
 
-    {{-- Server Browser Modal (light theme) --}}
+    {{-- Server Browser Modal --}}
     <div x-show="browserOpen" x-transition.opacity.duration.200ms
-         class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
          style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
          @keydown.escape.window="browserOpen = false">
 
@@ -143,7 +138,6 @@ function {{ $componentId }}() {
     return {
         imagePath: '{{ $currentImage ?? '' }}',
         imageUrl: '{{ $currentImage ? "/storage/" . $currentImage : '' }}',
-        uploading: false,
         toast: '',
         toastType: 'success',
 
@@ -154,6 +148,8 @@ function {{ $componentId }}() {
         browserFolders: [],
         browserFiles: [],
         browserSearch: '',
+        lastBrowsedPath: null,
+        defaultFolder: '{{ $defaultFolder }}',
 
         showToast(msg, type = 'success') {
             this.toast = msg;
@@ -166,40 +162,10 @@ function {{ $componentId }}() {
             this.imageUrl = '';
         },
 
-        async handleUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            event.target.value = '';
-
-            this.uploading = true;
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('store_id', '1');
-            formData.append('pim_token', crypto.randomUUID());
-
-            try {
-                const res = await fetch('{{ route("admin.products.images.upload") }}', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: formData,
-                });
-                const data = await res.json();
-                if (data.ok) {
-                    this.imagePath = data.path;
-                    this.imageUrl = '/storage/' + data.path;
-                    this.showToast('Image uploaded.');
-                } else {
-                    this.showToast(data.message || 'Upload failed.', 'error');
-                }
-            } catch (e) {
-                this.showToast('Upload failed.', 'error');
-            }
-            this.uploading = false;
-        },
-
         async openBrowser() {
             this.browserOpen = true;
-            await this.browseDir('');
+            const startPath = this.lastBrowsedPath ?? this.defaultFolder;
+            await this.browseDir(startPath);
         },
 
         get browserBreadcrumbs() {
@@ -233,6 +199,7 @@ function {{ $componentId }}() {
                 this.browserParent = data.parent ?? '';
                 this.browserFolders = data.folders;
                 this.browserFiles = data.files;
+                this.lastBrowsedPath = data.path;
             }
             this.browserLoading = false;
         },
@@ -255,7 +222,7 @@ function {{ $componentId }}() {
 
             const res = await fetch('{{ route("admin.products.images.upload-to-catalog") }}', {
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
                 body: formData,
             });
             const data = await res.json();

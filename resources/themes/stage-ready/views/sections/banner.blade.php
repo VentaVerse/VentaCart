@@ -6,19 +6,78 @@
     $slides = $bannerSlides ?? [];
 @endphp
 
-<div class="{{ $width === 'contained' ? 'container-store' : '' }}">
+<div>
     @if (count($slides) > 0)
-        <div class="hero-slider" x-data="imageSlider({ slides: {{ json_encode($slides) }}, autoplay: {{ $autoplay ? 'true' : 'false' }}, speed: {{ $speed }} })">
+        <div class="hero-slider" x-data="imageSlider({ slides: {{ json_encode(array_map(function($s) { $c = $s; unset($c['layers']); return $c; }, $slides)) }}, autoplay: {{ $autoplay ? 'true' : 'false' }}, speed: {{ $speed }} })">
             @foreach ($slides as $i => $slide)
-                <div class="slide" :class="{ 'active': current === {{ $i }} }">
-                    @if (!empty($slide['url']))
-                        <a href="{{ $slide['url'] }}" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif>
-                            <img src="{{ $slide['image'] }}" alt="{{ $slide['alt'] ?? '' }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
-                        </a>
-                    @else
-                        <img src="{{ $slide['image'] }}" alt="{{ $slide['alt'] ?? '' }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
-                    @endif
-                </div>
+                @php
+                    $hasLayers = !empty($slide['layers']);
+                    $bgImage = $slide['image'] ?? null;
+                    $bgColor = $slide['bg_color'] ?? '#000';
+                    $bgSize = $slide['bg_size'] ?? 'cover';
+                    $slideHeight = $slide['height'] ?? 500;
+                    $layers = $slide['layers'] ?? [];
+                @endphp
+
+                @if ($hasLayers)
+                    @php $isFullWidth = $slide['full_width'] ?? true; @endphp
+                    {{-- Advanced banner slide with layers --}}
+                    <div class="slide relative overflow-hidden" :class="{ 'active': current === {{ $i }} }"
+                         style="height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ !$isFullWidth ? ' max-width: 1280px; margin-left: auto; margin-right: auto;' : '' }}">
+
+                        @if (!empty($slide['url']))
+                            <a href="{{ $slide['url'] }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
+                        @endif
+
+                        {{-- Centered stage container for layers --}}
+                        <div style="position: absolute; inset: 0; max-width: 1280px; margin: 0 auto; left: 0; right: 0;">
+                            @foreach ($layers as $li => $layer)
+                                @php
+                                    $type = $layer['type'] ?? 'text';
+                                    $x = $layer['x'] ?? '0';
+                                    $y = $layer['y'] ?? '0';
+                                    $x = preg_match('/[%px]/', $x) ? $x : $x . 'px';
+                                    $y = preg_match('/[%px]/', $y) ? $y : $y . 'px';
+                                    $opacity = ($layer['opacity'] ?? 100) / 100;
+                                    $anim = $layer['animation'] ?? 'none';
+                                    $delay = $layer['delay'] ?? 0;
+                                @endphp
+
+                                @php
+                                    $duration = $layer['duration'] ?? 800;
+                                    $distance = $layer['distance'] ?? 30;
+                                @endphp
+                                <div class="absolute z-10 {{ $anim !== 'none' ? 'banner-anim banner-anim-' . $anim : '' }}"
+                                     style="left: {{ $x }}; top: {{ $y }}; opacity: {{ $opacity }}; animation-duration: {{ $duration }}ms; --anim-dist: {{ $distance }}px;{{ $delay ? " animation-delay: {$delay}ms;" : '' }}">
+
+                                    @if ($type === 'text')
+                                        <span style="font-size: {{ $layer['fontSize'] ?? 24 }}px; font-weight: {{ $layer['fontWeight'] ?? 400 }}; color: {{ $layer['color'] ?? '#fff' }}; letter-spacing: {{ $layer['letterSpacing'] ?? 0 }}px; text-transform: {{ $layer['textTransform'] ?? 'none' }}; white-space: pre-line;">{{ $layer['content'] ?? '' }}</span>
+
+                                    @elseif ($type === 'image')
+                                        <img src="/storage/{{ $layer['src'] ?? '' }}" alt=""
+                                             style="width: {{ $layer['width'] ?? 200 }}px;{{ !empty($layer['height']) ? " height: {$layer['height']}px;" : '' }} display: block; max-width: none;"
+                                             loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
+
+                                    @elseif ($type === 'button')
+                                        <a href="{{ $layer['url'] ?? '#' }}" class="inline-block"
+                                           style="background: {{ $layer['bgColor'] ?? '#fff' }}; color: {{ $layer['color'] ?? '#000' }}; padding: {{ $layer['paddingY'] ?? 12 }}px {{ $layer['paddingX'] ?? 32 }}px; border-radius: {{ $layer['borderRadius'] ?? 0 }}px; font-size: {{ $layer['fontSize'] ?? 14 }}px; font-weight: {{ $layer['fontWeight'] ?? 600 }}; letter-spacing: {{ $layer['letterSpacing'] ?? 1 }}px; text-transform: {{ $layer['textTransform'] ?? 'none' }}; text-decoration: none; position: relative; z-index: 20;">{{ $layer['content'] ?? 'Button' }}</a>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @else
+                    {{-- Simple banner slide (basic banner carousel) --}}
+                    <div class="slide" :class="{ 'active': current === {{ $i }} }">
+                        @if (!empty($slide['url']))
+                            <a href="{{ $slide['url'] }}" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif>
+                                <img src="{{ $slide['image'] }}" alt="{{ $slide['alt'] ?? '' }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
+                            </a>
+                        @else
+                            <img src="{{ $slide['image'] ?? '' }}" alt="{{ $slide['alt'] ?? '' }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
+                        @endif
+                    </div>
+                @endif
             @endforeach
 
             @if (count($slides) > 1)

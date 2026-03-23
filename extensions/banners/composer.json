@@ -1,0 +1,17 @@
+{
+    "name": "ngd/banners",
+    "description": "Layer-based homepage banner with text, image, and button layers with positioning and animations",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Extensions\\Banners\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Extensions\\Banners\\BannerServiceProvider"
+            ]
+        }
+    }
+}

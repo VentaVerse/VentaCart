@@ -52,7 +52,7 @@
                     @include('admin.partials.single_image_picker', [
                         'fieldName' => 'image',
                         'currentImage' => $category?->image,
-                        'pimToken' => $pimToken,
+                        'defaultFolder' => 'Categories',
                     ])
                     @error('image') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>

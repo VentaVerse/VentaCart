@@ -34,8 +34,8 @@ class ProductImageController extends Controller
             $directory = "catalog/_tmp/{$pimToken}";
             $kind = 'temp';
         } else {
-            $slug = $folder ? Str::slug($folder) : 'unsorted';
-            $directory = "catalog/{$slug}";
+            $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : 'unsorted';
+            $directory = "catalog/{$safeName}";
             $kind = 'final';
         }
 

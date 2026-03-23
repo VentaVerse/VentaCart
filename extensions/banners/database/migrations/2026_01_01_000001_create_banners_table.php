@@ -14,15 +14,17 @@ return new class extends Migration
 
         Schema::create('banners', function (Blueprint $table) {
             $table->id();
-            $table->string('title')->nullable();
-            $table->string('subtitle')->nullable();
-            $table->string('button_text')->nullable();
-            $table->string('button_url')->nullable();
-            $table->boolean('button_new_tab')->default(false);
-            $table->string('image')->nullable();
-            $table->string('image_mobile')->nullable();
-            $table->string('text_color', 7)->default('#FFFFFF');
-            $table->string('overlay_color', 30)->nullable();
+            $table->string('name')->nullable();
+            $table->string('bg_image')->nullable();
+            $table->string('bg_image_mobile')->nullable();
+            $table->string('bg_color', 30)->default('#000000');
+            $table->string('bg_size', 20)->default('cover');
+            $table->string('link')->nullable();
+            $table->boolean('link_new_tab')->default(false);
+            $table->json('layers')->nullable();
+            $table->integer('height')->default(500);
+            $table->integer('height_mobile')->default(400);
+            $table->boolean('full_width')->default(true);
             $table->integer('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamp('starts_at')->nullable();

@@ -6,5 +6,5 @@ return [
 
     // Extensions
     Extensions\PhilippineAddress\PhilippineAddressServiceProvider::class,
-    Extensions\BannerCarousel\BannerCarouselServiceProvider::class,
+    Extensions\Banners\BannerServiceProvider::class,
 ];

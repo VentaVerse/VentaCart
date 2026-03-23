@@ -30,7 +30,7 @@
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
             "Extensions\\PhilippineAddress\\": "extensions/philippine-address/src/",
-            "Extensions\\BannerCarousel\\": "extensions/banner-carousel/src/"
+            "Extensions\\Banners\\": "extensions/banners/src/"
         }
     },
     "autoload-dev": {

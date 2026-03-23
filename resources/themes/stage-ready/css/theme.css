@@ -663,6 +663,48 @@
     }
 
     /* ============================================
+       Banner Layer Animations
+       ============================================ */
+    .banner-anim {
+        animation-duration: 0.8s;
+        animation-fill-mode: both;
+        animation-timing-function: ease-out;
+    }
+    .banner-anim-fade-in { animation-name: bannerFadeIn; }
+    .banner-anim-fade-up { animation-name: bannerFadeUp; }
+    .banner-anim-fade-down { animation-name: bannerFadeDown; }
+    .banner-anim-fade-left { animation-name: bannerFadeLeft; }
+    .banner-anim-fade-right { animation-name: bannerFadeRight; }
+    .banner-anim-zoom-in { animation-name: bannerZoomIn; }
+    .banner-anim-zoom-out { animation-name: bannerZoomOut; }
+    .banner-anim-slide-up { animation-name: bannerSlideUp; }
+    .banner-anim-slide-down { animation-name: bannerSlideDown; }
+    .banner-anim-slide-left { animation-name: bannerSlideLeft; }
+    .banner-anim-slide-right { animation-name: bannerSlideRight; }
+    .banner-anim-bounce-in { animation-name: bannerBounceIn; animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .banner-anim-bounce-up { animation-name: bannerBounceUp; animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .banner-anim-rotate-in { animation-name: bannerRotateIn; }
+    .banner-anim-flip-x { animation-name: bannerFlipX; }
+    .banner-anim-flip-y { animation-name: bannerFlipY; }
+
+    @keyframes bannerFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes bannerFadeUp { from { opacity: 0; transform: translateY(var(--anim-dist, 30px)); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bannerFadeDown { from { opacity: 0; transform: translateY(calc(-1 * var(--anim-dist, 30px))); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bannerFadeLeft { from { opacity: 0; transform: translateX(var(--anim-dist, 30px)); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes bannerFadeRight { from { opacity: 0; transform: translateX(calc(-1 * var(--anim-dist, 30px))); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes bannerZoomIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+    @keyframes bannerZoomOut { from { opacity: 0; transform: scale(1.2); } to { opacity: 1; transform: scale(1); } }
+    @keyframes bannerSlideUp { from { transform: translateY(var(--anim-dist, 100px)); } to { transform: translateY(0); } }
+    @keyframes bannerSlideDown { from { transform: translateY(calc(-1 * var(--anim-dist, 100px))); } to { transform: translateY(0); } }
+    @keyframes bannerSlideLeft { from { transform: translateX(var(--anim-dist, 100px)); } to { transform: translateX(0); } }
+    @keyframes bannerSlideRight { from { transform: translateX(calc(-1 * var(--anim-dist, 100px))); } to { transform: translateX(0); } }
+    @keyframes bannerBounceIn { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
+    @keyframes bannerBounceUp { from { opacity: 0; transform: translateY(var(--anim-dist, 60px)); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bannerRotateIn { from { opacity: 0; transform: rotate(-90deg) scale(0.5); } to { opacity: 1; transform: rotate(0) scale(1); } }
+    @keyframes bannerFlipX { from { opacity: 0; transform: perspective(400px) rotateX(90deg); } to { opacity: 1; transform: perspective(400px) rotateX(0); } }
+    @keyframes bannerFlipY { from { opacity: 0; transform: perspective(400px) rotateY(90deg); } to { opacity: 1; transform: perspective(400px) rotateY(0); } }
+
+    /* ============================================
        Hero Placeholder (when no banner uploaded)
        ============================================ */
     .hero-placeholder {

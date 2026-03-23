@@ -1,22 +1,24 @@
 <?php
 
-namespace Extensions\BannerCarousel\Models;
+namespace Extensions\Banners\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Banner extends Model
 {
     protected $fillable = [
-        'title', 'subtitle', 'button_text', 'button_url', 'button_new_tab',
-        'image', 'image_mobile', 'text_color', 'overlay_color',
+        'name', 'bg_image', 'bg_image_mobile', 'bg_color', 'bg_size',
+        'link', 'link_new_tab', 'layers',
+        'height', 'height_mobile', 'full_width',
         'sort_order', 'is_active', 'starts_at', 'ends_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'button_new_tab' => 'boolean',
+            'layers' => 'array',
+            'link_new_tab' => 'boolean',
+            'full_width' => 'boolean',
             'is_active' => 'boolean',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
@@ -39,13 +41,13 @@ class Banner extends Model
         return $query->orderBy('sort_order')->orderBy('id');
     }
 
-    public function getImageUrlAttribute(): ?string
+    public function getBgImageUrlAttribute(): ?string
     {
-        return $this->image ? '/storage/' . $this->image : null;
+        return $this->bg_image ? '/storage/' . $this->bg_image : null;
     }
 
-    public function getMobileImageUrlAttribute(): ?string
+    public function getBgImageMobileUrlAttribute(): ?string
     {
-        return $this->image_mobile ? '/storage/' . $this->image_mobile : null;
+        return $this->bg_image_mobile ? '/storage/' . $this->bg_image_mobile : null;
     }
 }
