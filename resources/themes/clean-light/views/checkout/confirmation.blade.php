@@ -124,7 +124,7 @@
                             <h3 class="confirmation-bank-title">BANK TRANSFER INSTRUCTIONS</h3>
                             @if (($bankAcct ?? null) && $bankAcct->qr_image)
                                 <div class="flex justify-center my-4">
-                                    <img src="{{ asset('storage/' . $bankAcct->qr_image) }}" alt="QR Code — {{ $bankAcct->bank_name }}" class="max-w-[300px] rounded-lg border border-gray-200">
+                                    <img src="{{ storage_url($bankAcct->qr_image) }}" alt="QR Code — {{ $bankAcct->bank_name }}" class="max-w-[300px] rounded-lg border border-gray-200">
                                 </div>
                             @endif
                             @if ($bankInstructions)

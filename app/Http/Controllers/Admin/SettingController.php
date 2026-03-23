@@ -85,12 +85,7 @@ class SettingController extends Controller
             default => $group,
         };
 
-        // Validate referer is an internal URL to prevent open redirect
-        $referer = $request->header('referer', '');
-        $baseUrl = rtrim(config('app.url'), '/');
-        $redirectUrl = str_starts_with($referer, $baseUrl) ? strtok($referer, '?') : url()->previous();
-
-        return redirect($redirectUrl . '?tab=' . $tab)->with('success', ucfirst($group) . ' settings updated.');
+        return redirect()->back()->with('success', ucfirst($group) . ' settings updated.')->with('tab', $tab);
     }
 
     public function testMail(Request $request)

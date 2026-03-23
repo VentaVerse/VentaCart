@@ -14,7 +14,7 @@
             @foreach ($brands as $brand)
                 <a href="{{ route('brand.show', $brand->slug) }}" class="brand-item" title="{{ $brand->name }}">
                     @if ($brand->image)
-                        <img src="{{ asset('storage/' . $brand->image) }}" alt="{{ $brand->name }}">
+                        <img src="{{ storage_url($brand->image) }}" alt="{{ $brand->name }}">
                     @else
                         <span class="text-xs text-[#555] text-center" class="font-heading-wide">{{ $brand->name }}</span>
                     @endif

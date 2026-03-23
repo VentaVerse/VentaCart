@@ -66,6 +66,18 @@
                     </div>
 
                     <div>
+                        <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs text-gray-400">/product/</span>
+                            <input type="text" name="slug" id="slug" value="{{ old('slug', $product?->slug) }}"
+                                class="flex-1 rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="auto-generated-from-name">
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Leave blank to auto-generate from name</p>
+                        @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    <div>
                         <label for="sku" class="block text-sm font-medium text-gray-700 mb-1">SKU</label>
                         <input type="text" name="sku" id="sku" value="{{ old('sku', $product?->sku) }}"
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">

@@ -40,7 +40,7 @@
             {{-- Featured Image --}}
             @if ($post->featured_image)
                 <div class="mb-6 rounded overflow-hidden">
-                    <img src="{{ asset('storage/' . $post->featured_image) }}" alt="{{ $post->title }}" class="w-full h-auto">
+                    <img src="{{ storage_url($post->featured_image) }}" alt="{{ $post->title }}" class="w-full h-auto">
                 </div>
             @endif
 
@@ -72,7 +72,7 @@
                         <article class="flex gap-3">
                             @if ($related->featured_image)
                                 <a href="{{ route('blog.show', $related->slug) }}" class="flex-shrink-0 w-24 h-24 overflow-hidden rounded bg-gray-100">
-                                    <img src="{{ asset('storage/' . $related->featured_image) }}" alt="{{ $related->title }}" class="w-full h-full object-cover">
+                                    <img src="{{ storage_url($related->featured_image) }}" alt="{{ $related->title }}" class="w-full h-full object-cover">
                                 </a>
                             @endif
                             <div>

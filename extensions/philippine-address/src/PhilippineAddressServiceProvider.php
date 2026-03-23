@@ -2,6 +2,7 @@
 
 namespace Extensions\PhilippineAddress;
 
+use App\Models\Setting;
 use App\Services\AddressProviderRegistry;
 use Extensions\PhilippineAddress\Models\PhRegion;
 use Illuminate\Support\Facades\DB;
@@ -13,14 +14,16 @@ class PhilippineAddressServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Register model aliases so existing code using App\Models\Ph* still works
+        // Model aliases always available (admin needs them even when extension is disabled)
         $this->app->bind(\App\Models\PhRegion::class, PhRegion::class);
         $this->app->bind(\App\Models\PhProvince::class, Models\PhProvince::class);
         $this->app->bind(\App\Models\PhCity::class, Models\PhCity::class);
         $this->app->bind(\App\Models\PhBarangay::class, Models\PhBarangay::class);
 
-        // Register as an address provider
+        // Register as address provider only if enabled
         $this->app->booted(function () {
+            if (!$this->isEnabled()) return;
+
             $registry = $this->app->make(AddressProviderRegistry::class);
             $registry->register(new PhilippineAddressProvider());
         });
@@ -28,26 +31,19 @@ class PhilippineAddressServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Load routes
+        // Routes and migrations always load (admin needs them)
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
-
-        // Load migrations
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-
-        // Register views
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'ph-address');
 
-        // Inject PH phone code (+63) into storefront layouts so address forms show the correct prefix
-        // even when Philippines is disabled in the core Countries table
-        View::composer(['layouts.store', 'themes.*.layouts.store'], function ($view) {
-            $view->with('phExtensionPhoneCode', '63');
+        // Sidebar link for PH Address settings
+        View::composer('layouts.admin', function ($view) {
+            $view->with('phAddressInstalled', true);
         });
 
-        // Provide data for the Localization page's PH Reference tab
+        // Provide data for the Localization page (always — admin feature)
         View::composer('admin.localization.index', function ($view) {
-            if (!Schema::hasTable('ph_regions')) {
-                return;
-            }
+            if (!Schema::hasTable('ph_regions')) return;
 
             $phRegions = PhRegion::with(['provinces' => function ($q) {
                 $q->orderBy('name');
@@ -63,6 +59,18 @@ class PhilippineAddressServiceProvider extends ServiceProvider
             $view->with('phRegions', $phRegions);
             $view->with('phStats', $phStats);
             $view->with('phExtensionInstalled', true);
+            $view->with('phExtensionEnabled', $this->isEnabled());
         });
+    }
+
+    private function isEnabled(): bool
+    {
+        try {
+            return Setting::where('group', 'extensions')
+                ->where('key', 'ph_address_enabled')
+                ->value('value') !== '0';
+        } catch (\Throwable) {
+            return true; // Default enabled if settings table doesn't exist yet
+        }
     }
 }

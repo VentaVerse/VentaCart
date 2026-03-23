@@ -3,7 +3,7 @@
     @section('og_title', $product->meta_title ?: $product->name)
     @section('og_description', $product->meta_description ?: Str::limit(strip_tags($product->description), 200))
     @if ($product->images->first())
-        @section('og_image', asset('storage/' . $product->images->first()->path))
+        @section('og_image', storage_url($product->images->first()->path))
     @endif
 
     @push('head')
@@ -81,7 +81,7 @@
                                 <button @click="activeImage = {{ $i }}"
                                     :class="activeImage === {{ $i }} ? 'active' : ''"
                                     class="product-gallery-thumb {{ $thumbPosition === 'bottom' ? 'w-16 h-16' : 'w-16 h-16' }}">
-                                    <img src="{{ asset('storage/' . $img->path) }}" alt="" loading="lazy">
+                                    <img src="{{ storage_url($img->path) }}" alt="" loading="lazy">
                                 </button>
                             @endforeach
                         </div>
@@ -91,7 +91,7 @@
                     <div class="flex-1 {{ $thumbPosition === 'bottom' ? 'order-1' : 'order-2' }} product-gallery-main">
                         @foreach ($images as $i => $img)
                             <div x-show="activeImage === {{ $i }}" class="aspect-square flex items-center justify-center p-4">
-                                <img src="{{ asset('storage/' . $img->path) }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain">
+                                <img src="{{ storage_url($img->path) }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain">
                             </div>
                         @endforeach
                         @if ($images->isEmpty())
@@ -351,8 +351,8 @@
                                     @if ($review->images->isNotEmpty())
                                         <div class="flex gap-2 mt-3">
                                             @foreach ($review->images as $img)
-                                                <a href="{{ asset('storage/' . $img->path) }}" target="_blank" class="w-16 h-16 rounded overflow-hidden border border-[#2A2A2A]">
-                                                    <img src="{{ asset('storage/' . $img->path) }}" alt="Review photo" class="w-full h-full object-cover">
+                                                <a href="{{ storage_url($img->path) }}" target="_blank" class="w-16 h-16 rounded overflow-hidden border border-[#2A2A2A]">
+                                                    <img src="{{ storage_url($img->path) }}" alt="Review photo" class="w-full h-full object-cover">
                                                 </a>
                                             @endforeach
                                         </div>

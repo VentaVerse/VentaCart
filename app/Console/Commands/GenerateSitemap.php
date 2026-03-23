@@ -48,7 +48,7 @@ class GenerateSitemap extends Command
         }
 
         // Brands
-        $brands = Brand::whereNotNull('slug')->get(['slug', 'updated_at']);
+        $brands = Brand::where('is_active', true)->whereNotNull('slug')->get(['slug', 'updated_at']);
         foreach ($brands as $brand) {
             $urls[] = [
                 'loc' => $baseUrl . '/brand/' . $brand->slug,

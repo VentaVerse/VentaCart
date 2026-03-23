@@ -73,7 +73,9 @@ class ProductController extends Controller
         $validated = $this->validateProduct($request);
 
         DB::transaction(function () use ($request, $validated) {
-            $validated['slug'] = $this->generateUniqueSlug($validated['name'], $validated['store_id']);
+            $validated['slug'] = !empty($validated['slug'])
+                ? $validated['slug']
+                : $this->generateUniqueSlug($validated['name'], $validated['store_id']);
             $validated['has_variants'] = $request->has('variants') && count($request->input('variants', [])) > 0;
 
             // Default price to 0 when variants handle pricing
@@ -192,8 +194,12 @@ class ProductController extends Controller
         $validated = $this->validateProduct($request, $product->id);
 
         DB::transaction(function () use ($request, $product, $validated) {
-            if ($validated['name'] !== $product->name || $validated['store_id'] !== $product->store_id) {
+            if (!empty($validated['slug']) && $validated['slug'] !== $product->slug) {
+                // User explicitly set a slug
+            } elseif ($validated['name'] !== $product->name || $validated['store_id'] !== $product->store_id) {
                 $validated['slug'] = $this->generateUniqueSlug($validated['name'], $validated['store_id'], $product->id);
+            } else {
+                unset($validated['slug']);
             }
 
             $validated['has_variants'] = $request->has('variants') && count($request->input('variants', [])) > 0;
@@ -251,6 +257,7 @@ class ProductController extends Controller
         $validated = $request->validate([
             'store_id' => ['required', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
             'sku' => ['nullable', 'string', 'max:100'],
             'model' => ['nullable', 'string', 'max:100'],
             'brand_id' => ['nullable', 'exists:brands,id'],

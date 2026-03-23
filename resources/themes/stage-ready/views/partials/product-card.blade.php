@@ -54,7 +54,7 @@
         <a href="{{ route('product.show', $product->slug) }}">
             @if ($imagePath)
                 <img
-                    src="{{ asset('storage/' . $imagePath) }}"
+                    src="{{ storage_url($imagePath) }}"
                     alt="{{ $product->name }}"
                     loading="lazy"
                     x-on:load="imgLoaded = true"

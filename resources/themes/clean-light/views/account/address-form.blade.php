@@ -136,11 +136,11 @@
 
                         {{-- Phone --}}
                         <div>
-                            <label class="account-label">Phone Number <span class="text-[var(--color-secondary)]">*</span></label>
+                            <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
                             <div class="flex gap-2">
                                 <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-gray-500"
                                     x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
-                                <input type="text" name="phone" value="{{ old('phone', $address?->phone) }}" class="account-input flex-1" placeholder="Phone number">
+                                <input type="tel" name="phone" value="{{ old('phone', $address?->phone) }}" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                             </div>
                         </div>
 

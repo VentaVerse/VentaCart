@@ -23,7 +23,8 @@ class HomeController extends Controller
                     $data['products'] = $this->getProductsForSection($section, $theme);
                     break;
                 case 'brands':
-                    $data['brands'] = Brand::whereNotNull('image')
+                    $data['brands'] = Brand::where('is_active', true)
+                        ->whereNotNull('image')
                         ->where('image', '!=', '')
                         ->orderBy('sort_order')
                         ->orderBy('name')

@@ -16,7 +16,7 @@
         <div class="flex items-center gap-6 mb-8">
             @if ($brand->image)
                 <div class="w-24 h-24 bg-white rounded-lg border border-[#2A2A2A] p-3 flex items-center justify-center flex-shrink-0">
-                    <img src="{{ asset('storage/' . $brand->image) }}" alt="{{ $brand->name }}" class="max-h-full max-w-full object-contain">
+                    <img src="{{ storage_url($brand->image) }}" alt="{{ $brand->name }}" class="max-h-full max-w-full object-contain">
                 </div>
             @endif
             <div>

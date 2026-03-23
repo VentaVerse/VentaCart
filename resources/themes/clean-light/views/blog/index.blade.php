@@ -26,7 +26,7 @@
                                 <article class="flex gap-4 border-b border-gray-100 pb-6">
                                     @if ($post->featured_image)
                                         <a href="{{ route('blog.show', $post->slug) }}" class="flex-shrink-0 w-40 h-28 overflow-hidden rounded bg-gray-100">
-                                            <img src="{{ asset('storage/' . $post->featured_image) }}" alt="{{ $post->title }}" class="w-full h-full object-cover">
+                                            <img src="{{ storage_url($post->featured_image) }}" alt="{{ $post->title }}" class="w-full h-full object-cover">
                                         </a>
                                     @endif
                                     <div class="flex-1 min-w-0">
@@ -54,7 +54,7 @@
                                 <article class="border border-gray-200 rounded overflow-hidden hover:shadow-md transition-shadow">
                                     @if ($post->featured_image)
                                         <a href="{{ route('blog.show', $post->slug) }}" class="block aspect-video overflow-hidden bg-gray-100">
-                                            <img src="{{ asset('storage/' . $post->featured_image) }}" alt="{{ $post->title }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                                            <img src="{{ storage_url($post->featured_image) }}" alt="{{ $post->title }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
                                         </a>
                                     @else
                                         <div class="aspect-video bg-gray-100 flex items-center justify-center text-gray-300">

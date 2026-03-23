@@ -40,12 +40,21 @@ class BrandController extends Controller
         $validated = $request->validate([
             'store_id' => ['required', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
             'image' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:5000'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:1000'],
+            'meta_keywords' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $validated['slug'] = $this->generateUniqueSlug($validated['name'], $validated['store_id']);
+        $validated['slug'] = !empty($validated['slug'])
+            ? $validated['slug']
+            : $this->generateUniqueSlug($validated['name'], $validated['store_id']);
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        $validated['is_active'] = $request->boolean('is_active', true);
 
         Brand::create($validated);
 
@@ -65,15 +74,26 @@ class BrandController extends Controller
         $validated = $request->validate([
             'store_id' => ['required', 'exists:stores,id'],
             'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
             'image' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:5000'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string', 'max:1000'],
+            'meta_keywords' => ['nullable', 'string', 'max:500'],
         ]);
 
-        if ($validated['name'] !== $brand->name || $validated['store_id'] !== $brand->store_id) {
+        if (!empty($validated['slug']) && $validated['slug'] !== $brand->slug) {
+            $validated['slug'] = $validated['slug'];
+        } elseif ($validated['name'] !== $brand->name || $validated['store_id'] !== $brand->store_id) {
             $validated['slug'] = $this->generateUniqueSlug($validated['name'], $validated['store_id'], $brand->id);
+        } else {
+            unset($validated['slug']);
         }
 
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        $validated['is_active'] = $request->boolean('is_active', true);
 
         $brand->update($validated);
 

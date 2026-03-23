@@ -39,6 +39,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">ISO2</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">ISO3</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-20">Phone</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-14">Sort</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">Zones</th>
                                 <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase w-20">Enabled</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-24">Actions</th>
@@ -62,6 +63,9 @@
                                     </template>
                                     <template x-if="!editing">
                                         <td class="px-4 py-2.5 text-xs text-gray-500">{{ $country->phone_code ? '+' . $country->phone_code : '—' }}</td>
+                                    </template>
+                                    <template x-if="!editing">
+                                        <td class="px-4 py-2.5 text-xs text-gray-400 text-center font-mono">{{ $country->sort_order }}</td>
                                     </template>
                                     <template x-if="!editing">
                                         <td class="px-4 py-2.5 text-sm text-gray-500">{{ $country->zones_count }}</td>
@@ -88,7 +92,7 @@
 
                                     {{-- Edit mode --}}
                                     <template x-if="editing">
-                                        <td colspan="7" class="px-4 py-2.5">
+                                        <td colspan="8" class="px-4 py-2.5">
                                             <form method="POST" action="{{ route('admin.localization.update-country', $country) }}" class="flex items-center gap-2">
                                                 @csrf @method('PUT')
                                                 <input type="text" name="name" value="{{ $country->name }}" required class="rounded-md border-gray-300 text-sm flex-1" placeholder="Country name">

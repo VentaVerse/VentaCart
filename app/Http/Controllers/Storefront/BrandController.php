@@ -13,6 +13,10 @@ class BrandController extends Controller
 {
     public function show(Request $request, Brand $brand, ThemeService $theme)
     {
+        if (!$brand->is_active) {
+            abort(404);
+        }
+
         $settings = $theme->getGroup('category_page');
         $perPage = $settings['products_per_page'] ?? 12;
 

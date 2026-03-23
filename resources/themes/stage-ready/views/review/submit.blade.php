@@ -6,7 +6,7 @@
                 @php $productImage = $review->product->images->first(); @endphp
                 @if ($productImage)
                     <div class="w-24 h-24 mx-auto mb-4 rounded-lg overflow-hidden bg-[#1A1A1A]">
-                        <img src="{{ asset('storage/' . $productImage->path) }}" alt="{{ $review->product->name }}" class="w-full h-full object-contain">
+                        <img src="{{ storage_url($productImage->path) }}" alt="{{ $review->product->name }}" class="w-full h-full object-contain">
                     </div>
                 @endif
                 <h1 class="text-2xl mb-2" class="font-heading-wide">WRITE A REVIEW</h1>

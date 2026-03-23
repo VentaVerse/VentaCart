@@ -92,7 +92,7 @@ class CategoryController extends Controller
         $allProducts = Product::where('is_active', true)
             ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds));
         $brandIds = (clone $allProducts)->pluck('brand_id')->unique()->filter();
-        $availableBrands = Brand::whereIn('id', $brandIds)->orderBy('name')->get();
+        $availableBrands = Brand::where('is_active', true)->whereIn('id', $brandIds)->orderBy('name')->get();
         $productIds = (clone $allProducts)->pluck('id');
         $priceRange = Product::whereIn('id', $productIds)->selectRaw('MIN(price) as min_price, MAX(price) as max_price')->first();
         $availableTags = Tag::whereHas('products', function ($q) use ($categoryIds) {

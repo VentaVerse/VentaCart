@@ -49,7 +49,9 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateCategory($request);
-        $validated['slug'] = $this->generateUniqueSlug($validated['name'], $validated['store_id']);
+        $validated['slug'] = !empty($validated['slug'])
+            ? $validated['slug']
+            : $this->generateUniqueSlug($validated['name'], $validated['store_id']);
 
         Category::create($validated);
 
@@ -72,8 +74,12 @@ class CategoryController extends Controller
     {
         $validated = $this->validateCategory($request, $category->id);
 
-        if ($validated['name'] !== $category->name || $validated['store_id'] !== $category->store_id) {
+        if (!empty($validated['slug']) && $validated['slug'] !== $category->slug) {
+            // User explicitly set a slug
+        } elseif ($validated['name'] !== $category->name || $validated['store_id'] !== $category->store_id) {
             $validated['slug'] = $this->generateUniqueSlug($validated['name'], $validated['store_id'], $category->id);
+        } else {
+            unset($validated['slug']);
         }
 
         $category->update($validated);
@@ -99,6 +105,7 @@ class CategoryController extends Controller
             'store_id' => ['required', 'exists:stores,id'],
             'parent_id' => ['nullable', 'exists:categories,id'],
             'name' => ['required', 'string', 'max:255'],
+            'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
             'description' => ['nullable', 'string'],
             'image' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
