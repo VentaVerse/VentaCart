@@ -18,7 +18,7 @@ if (!function_exists('storage_url')) {
     {
         if (!$path) return '';
         $encoded = implode('/', array_map('rawurlencode', explode('/', $path)));
-        return asset('storage/' . $encoded);
+        return '/storage/' . $encoded;
     }
 }
 
