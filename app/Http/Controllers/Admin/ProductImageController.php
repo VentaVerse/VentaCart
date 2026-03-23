@@ -47,7 +47,7 @@ class ProductImageController extends Controller
         return response()->json([
             'ok' => true,
             'path' => $path,
-            'url' => Storage::disk('public')->url($path),
+            'url' => '/storage/' . $path,
             'kind' => $kind,
         ]);
     }
@@ -62,7 +62,7 @@ class ProductImageController extends Controller
         ]);
 
         $imageUrl = $request->input('url');
-        $folder = $request->input('folder');
+        $folder = $request->input('folder') ?? $request->input('catalog_path');
         $pimToken = $request->input('pim_token');
 
         try {
@@ -91,8 +91,8 @@ class ProductImageController extends Controller
                 $directory = "catalog/_tmp/{$pimToken}";
                 $kind = 'temp';
             } else {
-                $slug = $folder ? Str::slug($folder) : 'unsorted';
-                $directory = "catalog/{$slug}";
+                $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : 'unsorted';
+                $directory = "catalog/{$safeName}";
                 $kind = 'final';
             }
 
@@ -111,7 +111,7 @@ class ProductImageController extends Controller
             return response()->json([
                 'ok' => true,
                 'path' => $fullPath,
-                'url' => Storage::disk('public')->url($fullPath),
+                'url' => '/storage/' . $fullPath,
                 'kind' => $kind,
             ]);
         } catch (\Throwable $e) {
@@ -160,7 +160,7 @@ class ProductImageController extends Controller
                 return [
                     'name' => basename($file),
                     'path' => $file,
-                    'url' => Storage::disk('public')->url($file),
+                    'url' => '/storage/' . $file,
                     'size' => Storage::disk('public')->size($file),
                     'modified' => Storage::disk('public')->lastModified($file),
                 ];
@@ -213,7 +213,7 @@ class ProductImageController extends Controller
         return response()->json([
             'ok' => true,
             'path' => $path,
-            'url' => Storage::disk('public')->url($path),
+            'url' => '/storage/' . $path,
             'name' => $filename,
             'size' => Storage::disk('public')->size($path),
         ]);

@@ -8,67 +8,24 @@
 
     {{-- Toolbar --}}
     <div class="flex items-center gap-2 mb-5">
-        <label class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors cursor-pointer shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-            Upload
-            <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="handleFileSelect($event)" class="sr-only">
-        </label>
-
-        <button type="button" @click="showUrlInput = !showUrlInput"
-            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-            :class="showUrlInput ? 'bg-gray-100 border-indigo-300 text-indigo-700' : ''">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-            URL
-        </button>
-
         <button type="button" @click="openBrowser()"
-            class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-            Browse Server
+            Image Manager
         </button>
-
         <span class="ml-auto text-xs text-gray-400" x-show="items.length > 0" x-text="items.length + ' image' + (items.length !== 1 ? 's' : '')"></span>
     </div>
 
-    {{-- URL Import Input --}}
-    <div x-show="showUrlInput" x-transition class="mb-5">
-        <div class="flex gap-2">
-            <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg"
-                class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                @keydown.enter.prevent="importFromUrl()">
-            <button type="button" @click="importFromUrl()" :disabled="importingUrl"
-                class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                <span x-show="!importingUrl">Import</span>
-                <span x-show="importingUrl">Importing...</span>
-            </button>
-        </div>
-    </div>
-
-    {{-- Drop Zone + Thumbnail Grid --}}
-    <div @dragover.prevent="dragover = true"
-         @dragleave.prevent="dragover = false"
-         @drop.prevent="dragover = false; handleDrop($event)"
-         :class="dragover ? 'ring-2 ring-indigo-400 bg-indigo-50 border-indigo-300' : 'bg-gray-50 border-gray-300'"
-         class="rounded-xl border-2 border-dashed p-4 min-h-[10rem] transition-all">
-
-        {{-- Upload Progress --}}
-        <div x-show="uploading" class="mb-4">
-            <div class="flex items-center gap-3">
-                <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
-                    <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300" :style="'width: ' + uploadProgress + '%'"></div>
-                </div>
-                <span class="text-xs text-gray-500 whitespace-nowrap" x-text="uploadStatus"></span>
-            </div>
-        </div>
-
+    {{-- Thumbnail Grid --}}
+    <div class="rounded-xl border-2 border-dashed p-4 min-h-[10rem] bg-gray-50 border-gray-300">
         {{-- Empty State --}}
-        <div x-show="items.length === 0 && !uploading" class="text-center py-10 text-gray-400">
+        <div x-show="items.length === 0" class="text-center py-10 text-gray-400">
             <svg class="w-14 h-14 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             <p class="text-sm font-medium text-gray-500">No images yet</p>
-            <p class="text-xs mt-1">Drag & drop files here, or use the toolbar above</p>
+            <p class="text-xs mt-1">Click Image Manager to browse, upload, or import images</p>
         </div>
 
-        {{-- Thumbnail Grid --}}
+        {{-- Grid --}}
         <div x-show="items.length > 0" x-ref="sortableGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             <template x-for="(item, index) in items" :key="item.path">
                 <div class="relative group rounded-lg overflow-hidden bg-white shadow-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow" :data-index="index">
@@ -95,9 +52,9 @@
         <span x-text="toast"></span>
     </div>
 
-    {{-- Server Browser Modal --}}
+    {{-- Image Manager Modal --}}
     <div x-show="browserOpen" x-transition.opacity.duration.200ms
-         class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
          style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
          @keydown.escape.window="browserOpen = false">
 
@@ -109,7 +66,7 @@
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="flex items-center gap-2">
                             <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                            <h3 class="text-sm font-semibold text-gray-900">Server Browser</h3>
+                            <h3 class="text-sm font-semibold text-gray-900">Image Manager</h3>
                         </div>
                         <span class="text-gray-300">|</span>
                         {{-- Breadcrumb --}}
@@ -132,13 +89,19 @@
                     </button>
                 </div>
 
-                {{-- Modal Toolbar --}}
-                <div class="flex items-center gap-3 px-5 py-3 border-b border-gray-100 bg-white">
+                {{-- Modal Toolbar: Search + URL + Sort + Upload Here --}}
+                <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 bg-white">
                     <div class="relative">
                         <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         <input type="text" x-model="browserSearch" placeholder="Search..."
-                            class="w-52 pl-9 pr-3 py-1.5 rounded-lg bg-white border-gray-300 text-gray-900 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500">
+                            class="w-44 pl-9 pr-3 py-1.5 rounded-lg bg-white border-gray-300 text-gray-900 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
+                    <button type="button" @click="showUrlInput = !showUrlInput"
+                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium rounded-lg border transition-colors"
+                        :class="showUrlInput ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                        URL
+                    </button>
                     <select x-model="browserSort"
                         class="rounded-lg bg-white border-gray-300 text-gray-700 text-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5">
                         <option value="name">Name</option>
@@ -155,8 +118,40 @@
                     </div>
                 </div>
 
-                {{-- Modal Content --}}
-                <div class="flex-1 overflow-y-auto p-5 bg-gray-50/50">
+                {{-- URL Import Bar --}}
+                <div x-show="showUrlInput" x-transition class="px-5 py-2.5 border-b border-gray-100 bg-gray-50/50">
+                    <div class="flex gap-2">
+                        <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg"
+                            class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5"
+                            @keydown.enter.prevent="importFromUrl()">
+                        <button type="button" @click="importFromUrl()" :disabled="importingUrl"
+                            class="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                            <span x-show="!importingUrl">Import</span>
+                            <span x-show="importingUrl">Importing...</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Modal Content with drag & drop --}}
+                <div class="flex-1 overflow-y-auto p-5 bg-gray-50/50 relative"
+                     @dragover.prevent="browserDragover = true"
+                     @dragleave.prevent="browserDragover = false"
+                     @drop.prevent="browserDragover = false; handleBrowserDrop($event)">
+
+                    {{-- Drag overlay --}}
+                    <div x-show="browserDragover" class="absolute inset-0 z-10 flex items-center justify-center bg-indigo-50/90 border-2 border-dashed border-indigo-400 rounded-xl m-2 pointer-events-none">
+                        <div class="text-center">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <p class="text-sm font-medium text-indigo-700">Drop to upload here</p>
+                        </div>
+                    </div>
+
+                    {{-- Upload progress --}}
+                    <div x-show="browserUploading" class="mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 animate-spin text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span class="text-xs text-gray-500" x-text="browserUploadStatus"></span>
+                    </div>
+
                     <div x-show="browserLoading" class="flex items-center justify-center py-16">
                         <svg class="w-6 h-6 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </div>
@@ -208,7 +203,7 @@
                          class="text-center py-16">
                         <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                         <p class="text-sm text-gray-500 font-medium">Empty folder</p>
-                        <p class="text-xs text-gray-400 mt-1">Upload images or navigate to another folder</p>
+                        <p class="text-xs text-gray-400 mt-1">Drop files here or use Upload Here above</p>
                     </div>
                 </div>
             </div>
@@ -224,10 +219,6 @@ function imageManager() {
         items: @json($existingImages ?? []),
         pimToken: '{{ $pimToken ?? Str::uuid() }}',
         brandFolder: '{{ $brandFolder ?? '' }}',
-        uploading: false,
-        uploadProgress: 0,
-        uploadStatus: '',
-        dragover: false,
         showUrlInput: false,
         urlInput: '',
         importingUrl: false,
@@ -243,6 +234,12 @@ function imageManager() {
         browserFiles: [],
         browserSearch: '',
         browserSort: 'date',
+        lastBrowsedPath: null,
+
+        // Drag & drop in modal
+        browserDragover: false,
+        browserUploading: false,
+        browserUploadStatus: '',
 
         init() {
             this.$nextTick(() => {
@@ -270,87 +267,15 @@ function imageManager() {
             setTimeout(() => { this.toast = ''; }, 3000);
         },
 
-        async handleFileSelect(event) {
-            await this.uploadFiles(event.target.files);
-            event.target.value = '';
-        },
-
-        async handleDrop(event) {
-            await this.uploadFiles(event.dataTransfer.files);
-        },
-
-        async uploadFiles(files) {
-            if (!files.length) return;
-            const storeId = this.getStoreId();
-
-            this.uploading = true;
-            this.uploadProgress = 0;
-            let uploaded = 0;
-
-            for (let i = 0; i < files.length; i++) {
-                this.uploadStatus = `Uploading ${i + 1} of ${files.length}...`;
-                const formData = new FormData();
-                formData.append('file', files[i]);
-                formData.append('store_id', storeId);
-                formData.append('pim_token', this.pimToken);
-
-                try {
-                    const res = await fetch('{{ route("admin.products.images.upload") }}', {
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                        body: formData,
-                    });
-                    const data = await res.json();
-                    if (data.ok) {
-                        this.items.push({ path: data.path, url: data.url });
-                        uploaded++;
-                    } else {
-                        this.showToast(data.message || 'Upload failed.', 'error');
-                    }
-                } catch (e) {
-                    this.showToast('Upload failed.', 'error');
-                }
-                this.uploadProgress = Math.round(((i + 1) / files.length) * 100);
-            }
-
-            this.uploading = false;
-            if (uploaded > 0) this.showToast(`${uploaded} image(s) uploaded.`);
-        },
-
-        async importFromUrl() {
-            if (!this.urlInput.trim()) return;
-            const storeId = this.getStoreId();
-
-            this.importingUrl = true;
-            try {
-                const res = await fetch('{{ route("admin.products.images.import-url") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                    body: JSON.stringify({ url: this.urlInput, store_id: storeId, pim_token: this.pimToken }),
-                });
-                const data = await res.json();
-                if (data.ok) {
-                    this.items.push({ path: data.path, url: data.url });
-                    this.urlInput = '';
-                    this.showUrlInput = false;
-                    this.showToast('Image imported.');
-                } else {
-                    this.showToast(data.message || 'Import failed.', 'error');
-                }
-            } catch (e) {
-                this.showToast('Import failed.', 'error');
-            }
-            this.importingUrl = false;
-        },
-
         removeItem(index) {
             this.items.splice(index, 1);
         },
 
-        // --- Server Browser ---
+        // --- Image Manager Modal ---
         async openBrowser() {
             this.browserOpen = true;
-            await this.browseDir(this.brandFolder || '');
+            const startPath = this.lastBrowsedPath ?? this.brandFolder ?? '';
+            await this.browseDir(startPath);
         },
 
         get browserBreadcrumbs() {
@@ -388,6 +313,7 @@ function imageManager() {
                 this.browserParent = data.parent ?? '';
                 this.browserFolders = data.folders;
                 this.browserFiles = data.files;
+                this.lastBrowsedPath = data.path;
             }
             this.browserLoading = false;
         },
@@ -407,7 +333,7 @@ function imageManager() {
 
             const res = await fetch('{{ route("admin.products.images.delete") }}', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
                 body: JSON.stringify({ path: file.path }),
             });
             const data = await res.json();
@@ -422,24 +348,73 @@ function imageManager() {
         async uploadToCatalog(event) {
             const files = event.target.files;
             if (!files.length) return;
-
             for (const file of files) {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('catalog_path', this.browserCurrentPath);
+                await this._uploadFile(file);
+            }
+            event.target.value = '';
+        },
 
+        async handleBrowserDrop(event) {
+            const files = event.dataTransfer?.files;
+            if (!files || files.length === 0) return;
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    await this._uploadFile(file);
+                }
+            }
+        },
+
+        async _uploadFile(file) {
+            this.browserUploading = true;
+            this.browserUploadStatus = 'Uploading ' + file.name + '...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('catalog_path', this.browserCurrentPath);
+
+            try {
                 const res = await fetch('{{ route("admin.products.images.upload-to-catalog") }}', {
                     method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
                     body: formData,
                 });
                 const data = await res.json();
                 if (data.ok) {
                     this.browserFiles.push({ name: data.name, path: data.path, url: data.url, size: data.size, modified: Date.now() / 1000 });
+                    this.showToast('Uploaded ' + data.name);
+                } else {
+                    this.showToast(data.message || 'Upload failed.', 'error');
                 }
+            } catch (e) {
+                this.showToast('Upload failed.', 'error');
             }
-            event.target.value = '';
-            this.showToast('Uploaded to catalog.');
+            this.browserUploading = false;
+            this.browserUploadStatus = '';
+        },
+
+        async importFromUrl() {
+            if (!this.urlInput.trim()) return;
+            this.importingUrl = true;
+
+            try {
+                const res = await fetch('{{ route("admin.products.images.import-url") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: JSON.stringify({ url: this.urlInput.trim(), store_id: this.getStoreId(), catalog_path: this.browserCurrentPath }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.browserFiles.push({ name: data.path.split('/').pop(), path: data.path, url: '/storage/' + data.path, size: 0, modified: Date.now() / 1000 });
+                    this.urlInput = '';
+                    this.showUrlInput = false;
+                    this.showToast('Image imported.');
+                } else {
+                    this.showToast(data.message || 'Import failed.', 'error');
+                }
+            } catch (e) {
+                this.showToast('Import failed.', 'error');
+            }
+            this.importingUrl = false;
         },
     }
 }

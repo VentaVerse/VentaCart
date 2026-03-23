@@ -154,7 +154,7 @@
                             </div>
 
                             {{-- PH: Province --}}
-                            <div x-show="countryCode === 'PH'">
+                            <div x-show="hasProvider">
                                 <label class="account-label">Province <span class="text-[var(--color-secondary)]">*</span></label>
                                 <select x-model="state" @change="onProvinceChange()" class="account-input w-full" :class="loadingProvinces ? 'address-select-loading' : ''">
                                     <option value="">-- Select Province --</option>
@@ -165,7 +165,7 @@
                             </div>
 
                             {{-- PH: City --}}
-                            <div x-show="countryCode === 'PH' && provinces.length > 0">
+                            <div x-show="hasProvider && provinces.length > 0">
                                 <label class="account-label">City / Municipality <span class="text-[var(--color-secondary)]">*</span></label>
                                 <select x-model="city" @change="onCityChange()" class="account-input w-full" :class="loadingCities ? 'address-select-loading' : ''">
                                     <option value="">-- Select City --</option>
@@ -176,7 +176,7 @@
                             </div>
 
                             {{-- PH: District --}}
-                            <div x-show="countryCode === 'PH' && districts.length > 0">
+                            <div x-show="hasProvider && districts.length > 0">
                                 <label class="account-label">District</label>
                                 <select x-model="district" @change="onDistrictChange()" class="account-input w-full">
                                     <option value="">-- Select District --</option>
@@ -187,7 +187,7 @@
                             </div>
 
                             {{-- PH: Barangay --}}
-                            <div x-show="countryCode === 'PH' && barangays.length > 0">
+                            <div x-show="hasProvider && barangays.length > 0">
                                 <label class="account-label">Barangay</label>
                                 <select x-model="barangay" class="account-input w-full" :class="loadingBarangays ? 'address-select-loading' : ''">
                                     <option value="">-- Select Barangay --</option>
@@ -198,7 +198,7 @@
                             </div>
 
                             {{-- Non-PH: State --}}
-                            <div x-show="countryCode !== 'PH' && countryCode !== ''">
+                            <div x-show="!hasProvider && countryCode !== ''">
                                 <label class="account-label">State / Region</label>
                                 <template x-if="zones.length > 0">
                                     <select x-model="state" class="account-input w-full">
@@ -214,7 +214,7 @@
                             </div>
 
                             {{-- Non-PH: City --}}
-                            <div x-show="countryCode !== 'PH' && countryCode !== ''">
+                            <div x-show="!hasProvider && countryCode !== ''">
                                 <label class="account-label">City <span class="text-[var(--color-secondary)]">*</span></label>
                                 <input type="text" x-model="city" class="account-input w-full">
                             </div>
@@ -309,7 +309,7 @@
                             </div>
 
                             {{-- PH: Province --}}
-                            <div x-show="countryCode === 'PH'">
+                            <div x-show="hasProvider">
                                 <label class="account-label">Province <span class="text-[var(--color-secondary)]">*</span></label>
                                 <select x-model="state" @change="onProvinceChange()" class="account-input w-full" :class="loadingProvinces ? 'address-select-loading' : ''">
                                     <option value="">-- Select Province --</option>
@@ -320,7 +320,7 @@
                             </div>
 
                             {{-- PH: City --}}
-                            <div x-show="countryCode === 'PH' && provinces.length > 0">
+                            <div x-show="hasProvider && provinces.length > 0">
                                 <label class="account-label">City / Municipality <span class="text-[var(--color-secondary)]">*</span></label>
                                 <select x-model="city" @change="onCityChange()" class="account-input w-full" :class="loadingCities ? 'address-select-loading' : ''">
                                     <option value="">-- Select City --</option>
@@ -331,7 +331,7 @@
                             </div>
 
                             {{-- PH: District --}}
-                            <div x-show="countryCode === 'PH' && districts.length > 0">
+                            <div x-show="hasProvider && districts.length > 0">
                                 <label class="account-label">District</label>
                                 <select x-model="district" @change="onDistrictChange()" class="account-input w-full">
                                     <option value="">-- Select District --</option>
@@ -342,7 +342,7 @@
                             </div>
 
                             {{-- PH: Barangay --}}
-                            <div x-show="countryCode === 'PH' && barangays.length > 0">
+                            <div x-show="hasProvider && barangays.length > 0">
                                 <label class="account-label">Barangay</label>
                                 <select x-model="barangay" class="account-input w-full" :class="loadingBarangays ? 'address-select-loading' : ''">
                                     <option value="">-- Select Barangay --</option>
@@ -353,7 +353,7 @@
                             </div>
 
                             {{-- Non-PH: State --}}
-                            <div x-show="countryCode !== 'PH' && countryCode !== ''">
+                            <div x-show="!hasProvider && countryCode !== ''">
                                 <label class="account-label">State / Region</label>
                                 <template x-if="zones.length > 0">
                                     <select x-model="state" class="account-input w-full">
@@ -369,7 +369,7 @@
                             </div>
 
                             {{-- Non-PH: City --}}
-                            <div x-show="countryCode !== 'PH' && countryCode !== ''">
+                            <div x-show="!hasProvider && countryCode !== ''">
                                 <label class="account-label">City <span class="text-[var(--color-secondary)]">*</span></label>
                                 <input type="text" x-model="city" class="account-input w-full">
                             </div>

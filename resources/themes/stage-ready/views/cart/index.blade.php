@@ -75,25 +75,50 @@
                             </div>
 
                             <div x-show="expanded" x-transition.duration.200ms class="space-y-3 mb-3">
-                                <div>
-                                    <select x-model="province" @change="fetchCities()" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
-                                        <option value="">Select Province</option>
-                                        <template x-for="p in provinces" :key="p.id">
-                                            <option :value="p.name" x-text="p.name"></option>
-                                        </template>
-                                    </select>
+                                {{-- Country --}}
+                                <select x-model="countryCode" @change="onCountryChange()" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                    <option value="">Select Country</option>
+                                    <template x-for="c in countries" :key="c.iso2">
+                                        <option :value="c.iso2" x-text="c.name"></option>
+                                    </template>
+                                </select>
+
+                                {{-- Provider fields (e.g. PH: Province → City) --}}
+                                <template x-for="field in providerFields" :key="field.key">
+                                    <div x-show="field.conditional ? (providerData[field.key] || []).length > 0 : true">
+                                        <select x-model="fieldValues[field.key]" @change="onProviderFieldChange(field.key)"
+                                            class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                            <option value="" x-text="'Select ' + field.label"></option>
+                                            <template x-for="item in (providerData[field.key] || [])" :key="item.id">
+                                                <option :value="item.name" x-text="item.name"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                </template>
+
+                                {{-- Generic: State/Region (non-provider countries) --}}
+                                <div x-show="countryCode && !hasProvider">
+                                    <template x-if="zones.length > 0">
+                                        <select x-model="state" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                            <option value="">Select State / Region</option>
+                                            <template x-for="z in zones" :key="z.id">
+                                                <option :value="z.name" x-text="z.name"></option>
+                                            </template>
+                                        </select>
+                                    </template>
+                                    <template x-if="zones.length === 0 && countryCode">
+                                        <input type="text" x-model="state" placeholder="State / Region" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                    </template>
                                 </div>
-                                <div>
-                                    <select x-model="city" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
-                                        <option value="">Select City</option>
-                                        <template x-for="c in cities" :key="c.id">
-                                            <option :value="c.name" x-text="c.name"></option>
-                                        </template>
-                                    </select>
+
+                                {{-- Generic: City (non-provider countries) --}}
+                                <div x-show="countryCode && !hasProvider">
+                                    <input type="text" x-model="city" placeholder="City" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
                                 </div>
-                                <button type="button" @click="getEstimate()" :disabled="!province || !city || loading"
+
+                                <button type="button" @click="getEstimate()" :disabled="!canEstimate || loading"
                                     class="w-full py-2 rounded-lg text-sm font-medium transition-colors"
-                                    :class="!province || !city || loading ? 'bg-[#333] text-[#666] cursor-not-allowed' : 'bg-[var(--color-primary)] text-black hover:brightness-110'">
+                                    :class="!canEstimate || loading ? 'bg-[#333] text-[#666] cursor-not-allowed' : 'bg-[var(--color-primary)] text-black hover:brightness-110'">
                                     <span x-show="!loading">Get Estimate</span>
                                     <span x-show="loading">Loading...</span>
                                 </button>
@@ -176,32 +201,113 @@
     function shippingEstimate() {
         return {
             expanded: false,
-            provinces: [],
-            cities: [],
-            province: '',
+            countries: [],
+            countryCode: '',
+            zones: [],
+            state: '',
             city: '',
             methods: [],
             loading: false,
             noResults: false,
 
+            // Address provider system
+            providers: window.__addressProviders || {},
+            providerFields: [],
+            providerData: {},
+            fieldValues: {},
+
             init() {
-                fetch('{{ route("storefront.address.ph-provinces") }}')
+                fetch('{{ route("storefront.address.countries") }}')
                     .then(r => r.json())
-                    .then(d => this.provinces = d);
+                    .then(d => this.countries = d);
             },
 
-            fetchCities() {
+            get hasProvider() {
+                return !!this.providers[this.countryCode];
+            },
+
+            get canEstimate() {
+                if (!this.countryCode) return false;
+                if (this.hasProvider) {
+                    // Need at least the required fields filled
+                    const required = this.providerFields.filter(f => f.required);
+                    return required.every(f => this.fieldValues[f.key]);
+                }
+                return !!this.city;
+            },
+
+            onCountryChange() {
+                this.state = '';
                 this.city = '';
-                this.cities = [];
-                if (!this.province) return;
-                const prov = this.provinces.find(p => p.name === this.province);
-                if (!prov) return;
-                fetch('{{ route("storefront.address.ph-cities") }}?province_id=' + prov.id)
-                    .then(r => r.json())
-                    .then(d => this.cities = d);
+                this.zones = [];
+                this.providerFields = [];
+                this.providerData = {};
+                this.fieldValues = {};
+                this.methods = [];
+                this.noResults = false;
+
+                const provider = this.providers[this.countryCode];
+                if (provider) {
+                    this.providerFields = provider.fields;
+                    // Load the root field (no paramFrom)
+                    const root = provider.fields.find(f => !f.paramFrom);
+                    if (root) {
+                        fetch(root.endpoint)
+                            .then(r => r.json())
+                            .then(d => this.providerData[root.key] = d);
+                    }
+                } else if (this.countryCode) {
+                    fetch('{{ route("storefront.address.zones") }}?country_code=' + this.countryCode)
+                        .then(r => r.json())
+                        .then(d => this.zones = d);
+                }
+            },
+
+            onProviderFieldChange(fieldKey) {
+                // Clear downstream fields
+                const idx = this.providerFields.findIndex(f => f.key === fieldKey);
+                for (let i = idx + 1; i < this.providerFields.length; i++) {
+                    const f = this.providerFields[i];
+                    this.fieldValues[f.key] = '';
+                    this.providerData[f.key] = [];
+                }
+
+                // Map provider field values to state/city for the estimate
+                this._syncFieldValues();
+
+                // Load dependent fields
+                for (const f of this.providerFields) {
+                    if (!f.paramFrom) continue;
+                    const sources = f.paramFrom.split('|');
+                    if (!sources.includes(fieldKey)) continue;
+
+                    // Resolve parent ID
+                    let parentId = null;
+                    for (const src of [...sources].reverse()) {
+                        const val = this.fieldValues[src];
+                        if (!val) continue;
+                        const items = this.providerData[src] || [];
+                        const match = items.find(item => item.name === val);
+                        if (match) { parentId = match.id; break; }
+                    }
+                    if (!parentId) continue;
+
+                    fetch(`${f.endpoint}?${f.paramName}=${parentId}`)
+                        .then(r => r.json())
+                        .then(d => this.providerData[f.key] = d);
+                }
+            },
+
+            _syncFieldValues() {
+                // Map provider fields to state/city used by the estimate endpoint
+                for (const f of this.providerFields) {
+                    if (f.key === 'state') this.state = this.fieldValues.state || '';
+                    if (f.key === 'city') this.city = this.fieldValues.city || '';
+                }
             },
 
             async getEstimate() {
+                this._syncFieldValues();
                 this.loading = true;
                 this.methods = [];
                 this.noResults = false;
@@ -213,7 +319,11 @@
                             'Accept': 'application/json',
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ province: this.province, city: this.city })
+                        body: JSON.stringify({
+                            country_code: this.countryCode,
+                            state: this.state,
+                            city: this.city,
+                        })
                     });
                     const data = await res.json();
                     this.methods = data.methods || [];

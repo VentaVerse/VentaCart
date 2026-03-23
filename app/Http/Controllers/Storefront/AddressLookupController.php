@@ -4,23 +4,32 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
-use App\Models\PhBarangay;
-use App\Models\PhCity;
-use App\Models\PhProvince;
 use App\Models\Zone;
+use App\Services\AddressProviderRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AddressLookupController extends Controller
 {
-    public function countries(): JsonResponse
+    public function countries(AddressProviderRegistry $registry): JsonResponse
     {
         $countries = Country::where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get(['id', 'iso2', 'name']);
 
-        return response()->json($countries);
+        // Merge extension-provided countries (e.g. PhilippineAddress provides 'PH')
+        foreach ($registry->all() as $provider) {
+            if (!$countries->contains('iso2', $provider->countryCode())) {
+                $countries->push((object) [
+                    'id' => null,
+                    'iso2' => $provider->countryCode(),
+                    'name' => $provider->countryName(),
+                ]);
+            }
+        }
+
+        return response()->json($countries->sortBy('name')->values());
     }
 
     public function zones(Request $request): JsonResponse
@@ -35,43 +44,8 @@ class AddressLookupController extends Controller
         return response()->json($zones);
     }
 
-    public function phProvinces(): JsonResponse
+    public function providers(AddressProviderRegistry $registry): JsonResponse
     {
-        $provinces = PhProvince::orderBy('name')->get(['id', 'name']);
-        return response()->json($provinces);
-    }
-
-    public function phCities(Request $request): JsonResponse
-    {
-        $request->validate(['province_id' => 'required|integer']);
-
-        $cities = PhCity::where('ph_province_id', $request->province_id)
-            ->whereNull('parent_id')
-            ->orderBy('name')
-            ->get(['id', 'name', 'zip_code']);
-
-        return response()->json($cities);
-    }
-
-    public function phDistricts(Request $request): JsonResponse
-    {
-        $request->validate(['city_id' => 'required|integer']);
-
-        $districts = PhCity::where('parent_id', $request->city_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return response()->json($districts);
-    }
-
-    public function phBarangays(Request $request): JsonResponse
-    {
-        $request->validate(['city_id' => 'required|integer']);
-
-        $barangays = PhBarangay::where('ph_city_id', $request->city_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        return response()->json($barangays);
+        return response()->json($registry->toFrontendManifest());
     }
 }

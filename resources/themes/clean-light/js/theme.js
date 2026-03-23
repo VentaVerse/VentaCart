@@ -520,7 +520,7 @@ Alpine.data('cartPage', (initialItems, initialSubtotal) => ({
 }));
 
 /* ============================================
-   Address Form (PH cascading dropdowns)
+   Address Form (provider-driven cascading dropdowns)
    ============================================ */
 Alpine.data('addressForm', (config = {}) => ({
     countryCode: config.countryCode || '',
@@ -530,17 +530,27 @@ Alpine.data('addressForm', (config = {}) => ({
     barangay: config.barangay || '',
     phoneCodes: config.phoneCodes || window.__phoneCodes || {},
 
-    provinces: [],
-    cities: [],
-    districts: [],
-    barangays: [],
+    // Provider system
+    providers: window.__addressProviders || {},
+    providerFields: [],
+    providerData: {},
+    providerLoading: {},
     zones: [],
-
-    loadingProvinces: false,
-    loadingCities: false,
-    loadingDistricts: false,
-    loadingBarangays: false,
     loadingZones: false,
+
+    // Backward compat getters for templates that still use these
+    get provinces() { return this.providerData.state || []; },
+    get cities() { return this.providerData.city || []; },
+    get districts() { return this.providerData.district || []; },
+    get barangays() { return this.providerData.barangay || []; },
+    get loadingProvinces() { return this.providerLoading.state || false; },
+    get loadingCities() { return this.providerLoading.city || false; },
+    get loadingDistricts() { return this.providerLoading.district || false; },
+    get loadingBarangays() { return this.providerLoading.barangay || false; },
+
+    get hasProvider() {
+        return !!this.providers[this.countryCode];
+    },
 
     init() {
         if (this.countryCode) {
@@ -562,27 +572,20 @@ Alpine.data('addressForm', (config = {}) => ({
             this.city = '';
             this.district = '';
             this.barangay = '';
-            this.provinces = [];
-            this.cities = [];
-            this.districts = [];
-            this.barangays = [];
-            this.zones = [];
         }
+        this.providerFields = [];
+        this.providerData = {};
+        this.providerLoading = {};
+        this.zones = [];
 
         if (!this.countryCode) return;
 
-        if (this.countryCode === 'PH') {
-            this.loadingProvinces = true;
-            try {
-                const resp = await fetch('/address-lookup/ph-provinces');
-                this.provinces = await resp.json();
-                if (!clear && this.state) {
-                    await this.$nextTick();
-                    await this.syncSelect('state');
-                    await this.onProvinceChange(false);
-                }
-            } finally {
-                this.loadingProvinces = false;
+        const provider = this.providers[this.countryCode];
+        if (provider) {
+            this.providerFields = provider.fields;
+            const root = provider.fields.find(f => !f.paramFrom);
+            if (root) {
+                await this._loadField(root, !clear);
             }
         } else {
             this.loadingZones = true;
@@ -599,98 +602,75 @@ Alpine.data('addressForm', (config = {}) => ({
         }
     },
 
-    async onProvinceChange(clear = true) {
+    async onFieldChange(fieldKey, clear = true) {
+        const provider = this.providers[this.countryCode];
+        if (!provider) return;
+
+        const idx = provider.fields.findIndex(f => f.key === fieldKey);
         if (clear) {
-            this.city = '';
-            this.district = '';
-            this.barangay = '';
-            this.cities = [];
-            this.districts = [];
-            this.barangays = [];
+            for (let i = idx + 1; i < provider.fields.length; i++) {
+                const f = provider.fields[i];
+                this[f.key] = '';
+                this.providerData[f.key] = [];
+            }
         }
 
-        if (!this.state) return;
+        if (!this[fieldKey]) return;
 
-        const province = this.provinces.find(p => p.name === this.state);
-        if (!province) return;
-
-        this.loadingCities = true;
-        try {
-            const resp = await fetch(`/address-lookup/ph-cities?province_id=${province.id}`);
-            this.cities = await resp.json();
-            if (!clear && this.city) {
-                await this.$nextTick();
-                await this.syncSelect('city');
-                await this.onCityChange(false);
-            }
-        } finally {
-            this.loadingCities = false;
+        for (const f of provider.fields) {
+            if (!f.paramFrom) continue;
+            const sources = f.paramFrom.split('|');
+            if (!sources.includes(fieldKey)) continue;
+            await this._loadField(f, !clear);
         }
     },
 
-    async onCityChange(clear = true) {
-        if (clear) {
-            this.district = '';
-            this.barangay = '';
-            this.districts = [];
-            this.barangays = [];
-        }
-
-        if (!this.city) return;
-
-        const cityObj = this.cities.find(c => c.name === this.city);
-        if (!cityObj) return;
-
-        this.loadingDistricts = true;
-        try {
-            const resp = await fetch(`/address-lookup/ph-districts?city_id=${cityObj.id}`);
-            this.districts = await resp.json();
-        } finally {
-            this.loadingDistricts = false;
-        }
-
-        if (this.districts.length === 0) {
-            this.loadingBarangays = true;
+    async _loadField(field, restore = false) {
+        if (!field.paramFrom) {
+            this.providerLoading[field.key] = true;
             try {
-                const resp = await fetch(`/address-lookup/ph-barangays?city_id=${cityObj.id}`);
-                this.barangays = await resp.json();
-                if (!clear && this.barangay) {
+                const resp = await fetch(field.endpoint);
+                this.providerData[field.key] = await resp.json();
+                if (restore && this[field.key]) {
                     await this.$nextTick();
-                    await this.syncSelect('barangay');
+                    await this.syncSelect(field.key);
+                    await this.onFieldChange(field.key, false);
                 }
             } finally {
-                this.loadingBarangays = false;
+                this.providerLoading[field.key] = false;
             }
-        } else if (!clear && this.district) {
-            await this.$nextTick();
-            await this.syncSelect('district');
-            await this.onDistrictChange(false);
+            return;
+        }
+
+        const sources = field.paramFrom.split('|');
+        let parentId = null;
+        for (const src of [...sources].reverse()) {
+            const val = this[src];
+            if (!val) continue;
+            const items = this.providerData[src] || [];
+            const match = items.find(item => item.name === val);
+            if (match) { parentId = match.id; break; }
+        }
+        if (!parentId) return;
+
+        this.providerLoading[field.key] = true;
+        try {
+            const resp = await fetch(`${field.endpoint}?${field.paramName}=${parentId}`);
+            this.providerData[field.key] = await resp.json();
+            if (restore && this[field.key]) {
+                await this.$nextTick();
+                await this.syncSelect(field.key);
+                await this.onFieldChange(field.key, false);
+            }
+        } finally {
+            this.providerLoading[field.key] = false;
         }
     },
 
-    async onDistrictChange(clear = true) {
-        if (clear) {
-            this.barangay = '';
-            this.barangays = [];
-        }
-
-        if (!this.district) return;
-
-        const districtObj = this.districts.find(d => d.name === this.district);
-        if (!districtObj) return;
-
-        this.loadingBarangays = true;
-        try {
-            const resp = await fetch(`/address-lookup/ph-barangays?city_id=${districtObj.id}`);
-            this.barangays = await resp.json();
-            if (!clear && this.barangay) {
-                await this.$nextTick();
-                await this.syncSelect('barangay');
-            }
-        } finally {
-            this.loadingBarangays = false;
-        }
-    }
+    // Backward compat methods
+    async onProvinceChange(clear = true) { await this.onFieldChange('state', clear); },
+    async onCityChange(clear = true) { await this.onFieldChange('city', clear); },
+    async onDistrictChange(clear = true) { await this.onFieldChange('district', clear); },
 }));
 
 /* ============================================
@@ -716,8 +696,8 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     placing: false,
     showConfirmModal: false,
     comment: '',
-    billing: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH', phone: '' },
-    newAddr: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH', phone: '' },
+    billing: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' },
+    newAddr: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' },
 
     get selectedShippingMethod() {
         return this.shippingMethods.find(m => m.key === this.selectedShipping) || null;
@@ -784,7 +764,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
 
     openNewAddressForm() {
         this.editingAddress = null;
-        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH', phone: '' };
+        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' };
         this.showNewAddressForm = true;
     },
 
@@ -799,7 +779,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
             barangay: addr.barangay || '',
             state: addr.state || '',
             postcode: addr.postcode || '',
-            country_code: addr.country_code || 'PH',
+            country_code: addr.country_code || '',
             phone: addr.phone || '',
         };
         this.showNewAddressForm = true;
@@ -808,7 +788,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     cancelAddressForm() {
         this.showNewAddressForm = false;
         this.editingAddress = null;
-        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH', phone: '' };
+        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' };
     },
 
     async saveNewAddress() {
@@ -855,7 +835,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
                 this.showNewAddressForm = false;
                 this.editingAddress = null;
                 this.addressErrors = [];
-                this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: 'PH', phone: '' };
+                this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' };
                 this.refreshShippingRates();
             }
         } catch (e) {

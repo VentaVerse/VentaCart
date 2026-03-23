@@ -13,6 +13,7 @@
         @csrf
         @if ($banner) @method('PUT') @endif
         <input type="hidden" name="layers" :value="JSON.stringify(layers)">
+        <input type="hidden" name="_selected_layer" :value="selectedLayer">
 
         {{-- ============ FULL-WIDTH PREVIEW ============ --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 isolate"
@@ -364,53 +365,51 @@
                                 </div>
 
                                 {{-- Animation --}}
-                                <div class="pt-2 border-t border-gray-100">
+                                <div class="pt-2 border-t border-gray-100 space-y-2">
                                     <label class="block text-[11px] font-medium text-gray-500 mb-1.5">Animation</label>
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <select x-model="currentLayer.animation" class="rounded-md border-gray-300 text-sm py-1.5">
-                                            <optgroup label="None">
-                                                <option value="none">None</option>
-                                            </optgroup>
-                                            <optgroup label="Fade">
-                                                <option value="fade-in">Fade In</option>
-                                                <option value="fade-up">Fade Up</option>
-                                                <option value="fade-down">Fade Down</option>
-                                                <option value="fade-left">Fade Left</option>
-                                                <option value="fade-right">Fade Right</option>
-                                            </optgroup>
-                                            <optgroup label="Zoom">
-                                                <option value="zoom-in">Zoom In</option>
-                                                <option value="zoom-out">Zoom Out</option>
-                                            </optgroup>
-                                            <optgroup label="Slide">
-                                                <option value="slide-up">Slide Up</option>
-                                                <option value="slide-down">Slide Down</option>
-                                                <option value="slide-left">Slide Left</option>
-                                                <option value="slide-right">Slide Right</option>
-                                            </optgroup>
-                                            <optgroup label="Bounce">
-                                                <option value="bounce-in">Bounce In</option>
-                                                <option value="bounce-up">Bounce Up</option>
-                                            </optgroup>
-                                            <optgroup label="Rotate">
-                                                <option value="rotate-in">Rotate In</option>
-                                                <option value="flip-x">Flip X</option>
-                                                <option value="flip-y">Flip Y</option>
-                                            </optgroup>
-                                        </select>
-                                        <div class="grid grid-cols-3 gap-1.5">
-                                            <div class="relative" title="Delay (ms)">
-                                                <input type="number" x-model.number="currentLayer.delay" step="100" min="0" class="w-full rounded-md border-gray-300 text-[11px] py-1.5 pl-1.5 pr-0.5" placeholder="0">
-                                                <span class="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] text-gray-300">ms</span>
-                                            </div>
-                                            <div class="relative" title="Duration (ms)">
-                                                <input type="number" x-model.number="currentLayer.duration" step="100" min="100" class="w-full rounded-md border-gray-300 text-[11px] py-1.5 pl-1.5 pr-0.5" placeholder="800">
-                                                <span class="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] text-gray-300">dur</span>
-                                            </div>
-                                            <div class="relative" title="Distance (px)">
-                                                <input type="number" x-model.number="currentLayer.distance" step="10" min="0" class="w-full rounded-md border-gray-300 text-[11px] py-1.5 pl-1.5 pr-0.5" placeholder="30">
-                                                <span class="absolute right-1 top-1/2 -translate-y-1/2 text-[9px] text-gray-300">px</span>
-                                            </div>
+                                    <select x-model="currentLayer.animation" class="w-full rounded-md border-gray-300 text-sm py-1.5">
+                                        <optgroup label="None">
+                                            <option value="none">None</option>
+                                        </optgroup>
+                                        <optgroup label="Fade">
+                                            <option value="fade-in">Fade In</option>
+                                            <option value="fade-up">Fade Up</option>
+                                            <option value="fade-down">Fade Down</option>
+                                            <option value="fade-left">Fade Left</option>
+                                            <option value="fade-right">Fade Right</option>
+                                        </optgroup>
+                                        <optgroup label="Zoom">
+                                            <option value="zoom-in">Zoom In</option>
+                                            <option value="zoom-out">Zoom Out</option>
+                                        </optgroup>
+                                        <optgroup label="Slide">
+                                            <option value="slide-up">Slide Up</option>
+                                            <option value="slide-down">Slide Down</option>
+                                            <option value="slide-left">Slide Left</option>
+                                            <option value="slide-right">Slide Right</option>
+                                        </optgroup>
+                                        <optgroup label="Bounce">
+                                            <option value="bounce-in">Bounce In</option>
+                                            <option value="bounce-up">Bounce Up</option>
+                                        </optgroup>
+                                        <optgroup label="Rotate">
+                                            <option value="rotate-in">Rotate In</option>
+                                            <option value="flip-x">Flip X</option>
+                                            <option value="flip-y">Flip Y</option>
+                                        </optgroup>
+                                    </select>
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <div>
+                                            <label class="block text-[10px] text-gray-400 mb-0.5">Delay (ms)</label>
+                                            <input type="number" x-model.number="currentLayer.delay" step="100" min="0" class="w-full rounded-md border-gray-300 text-sm py-1.5" placeholder="0">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-gray-400 mb-0.5">Duration (ms)</label>
+                                            <input type="number" x-model.number="currentLayer.duration" step="100" min="100" class="w-full rounded-md border-gray-300 text-sm py-1.5" placeholder="800">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] text-gray-400 mb-0.5">Distance (px)</label>
+                                            <input type="number" x-model.number="currentLayer.distance" step="10" min="0" class="w-full rounded-md border-gray-300 text-sm py-1.5" placeholder="30">
                                         </div>
                                     </div>
                                 </div>
@@ -577,6 +576,17 @@
 
             init() {
                 this.previewWidth = this.$refs.previewCanvas?.offsetWidth || 900;
+
+                // Restore selected layer from URL hash (e.g. #layer-2)
+                const hash = window.location.hash;
+                if (hash && hash.startsWith('#layer-')) {
+                    const idx = parseInt(hash.substring(7));
+                    if (!isNaN(idx) && idx >= 0 && idx < this.layers.length) {
+                        this.selectedLayer = idx;
+                    }
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+
                 this.$watch('isFullWidth', () => {
                     this.$nextTick(() => {
                         this.previewWidth = this.$refs.previewCanvas?.offsetWidth || 900;

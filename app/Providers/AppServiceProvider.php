@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\Setting;
+use App\Services\AddressProviderRegistry;
 use App\Services\ThemeService;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -14,7 +15,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(AddressProviderRegistry::class);
     }
 
     /**
@@ -36,7 +37,12 @@ class AppServiceProvider extends ServiceProvider
             } catch (\Throwable) {
                 // ThemeService may fail during migrations
             }
+        });
 
+        // Expose address provider manifest to storefront layouts
+        View::composer('layouts.store', function ($view) {
+            $registry = app(AddressProviderRegistry::class);
+            $view->with('addressProviders', $registry->toFrontendManifest());
         });
     }
 

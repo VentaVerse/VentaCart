@@ -139,7 +139,7 @@ class ProductController extends Controller
         $existingImages = $product->images->sortBy('sort_order')->map(function ($img) {
             return [
                 'path' => $img->path,
-                'url' => Storage::disk('public')->url($img->path),
+                'url' => '/storage/' . $img->path,
             ];
         })->values()->toArray();
 
@@ -154,7 +154,7 @@ class ProductController extends Controller
                 // Not in gallery at all — prepend it
                 array_unshift($existingImages, [
                     'path' => $product->image,
-                    'url' => Storage::disk('public')->url($product->image),
+                    'url' => '/storage/' . $product->image,
                 ]);
             }
             // If $mainIdx === 0, it's already in the right position

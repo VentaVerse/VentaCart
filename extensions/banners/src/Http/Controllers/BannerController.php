@@ -38,7 +38,13 @@ class BannerController extends Controller
         $validated = $this->validateBanner($request);
         $banner->update($validated);
 
-        return redirect()->route('admin.banners.edit', $banner)->with('success', 'Banner updated.');
+        $layerIndex = $request->input('_selected_layer');
+        $url = route('admin.banners.edit', $banner);
+        if ($layerIndex !== null && $layerIndex !== '') {
+            $url .= '#layer-' . $layerIndex;
+        }
+
+        return redirect($url)->with('success', 'Banner updated.');
     }
 
     public function destroy(Banner $banner)

@@ -112,7 +112,8 @@ Route::prefix('account')->name('customer.')->group(function () {
 Route::prefix('address-lookup')->name('storefront.address.')->group(function () {
     Route::get('/countries', [StorefrontAddressLookupController::class, 'countries'])->name('countries');
     Route::get('/zones', [StorefrontAddressLookupController::class, 'zones'])->name('zones');
-    // PH-specific routes (ph-provinces, ph-cities, ph-districts, ph-barangays) are provided by the PhilippineAddress extension
+    Route::get('/providers', [StorefrontAddressLookupController::class, 'providers'])->name('providers');
+    // Country-specific routes (e.g. ph-provinces, ph-cities) are provided by their respective address extensions
 });
 
 // Customer Account (authenticated)

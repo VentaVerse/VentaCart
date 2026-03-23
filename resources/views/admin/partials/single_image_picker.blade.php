@@ -45,7 +45,7 @@
         <span x-text="toast"></span>
     </div>
 
-    {{-- Server Browser Modal --}}
+    {{-- Image Manager Modal --}}
     <div x-show="browserOpen" x-transition.opacity.duration.200ms
          class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
          style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
@@ -54,11 +54,12 @@
         <div class="w-full max-w-5xl max-h-[85vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
              @click.outside="browserOpen = false">
 
+            {{-- Header --}}
             <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gray-50">
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="flex items-center gap-2">
                         <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                        <h3 class="text-sm font-semibold text-gray-900">Select Image</h3>
+                        <h3 class="text-sm font-semibold text-gray-900">Image Manager</h3>
                     </div>
                     <span class="text-gray-300">|</span>
                     <nav class="flex items-center gap-0.5 text-sm min-w-0 overflow-x-auto">
@@ -76,12 +77,20 @@
                 </button>
             </div>
 
-            <div class="flex items-center gap-3 px-5 py-3 border-b border-gray-100 bg-white">
+            {{-- Toolbar: Search + URL Import + Upload Here --}}
+            <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 bg-white">
                 <div class="relative">
                     <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     <input type="text" x-model="browserSearch" placeholder="Search..."
-                        class="w-52 pl-9 pr-3 py-1.5 rounded-lg bg-white border-gray-300 text-gray-900 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500">
+                        class="w-44 pl-9 pr-3 py-1.5 rounded-lg bg-white border-gray-300 text-gray-900 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
+                {{-- URL Import toggle --}}
+                <button type="button" @click="showUrlInput = !showUrlInput"
+                    class="inline-flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium rounded-lg border transition-colors"
+                    :class="showUrlInput ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    URL
+                </button>
                 <div class="ml-auto">
                     <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
@@ -91,7 +100,40 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-5 bg-gray-50/50">
+            {{-- URL Import Bar (collapsible) --}}
+            <div x-show="showUrlInput" x-transition class="px-5 py-2.5 border-b border-gray-100 bg-gray-50/50">
+                <div class="flex gap-2">
+                    <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg"
+                        class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5"
+                        @keydown.enter.prevent="importFromUrl()">
+                    <button type="button" @click="importFromUrl()" :disabled="importingUrl"
+                        class="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                        <span x-show="!importingUrl">Import</span>
+                        <span x-show="importingUrl">Importing...</span>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Content: drag & drop zone wrapping file grid --}}
+            <div class="flex-1 overflow-y-auto p-5 bg-gray-50/50"
+                 @dragover.prevent="browserDragover = true"
+                 @dragleave.prevent="browserDragover = false"
+                 @drop.prevent="browserDragover = false; handleBrowserDrop($event)">
+
+                {{-- Drag overlay --}}
+                <div x-show="browserDragover" class="absolute inset-0 z-10 flex items-center justify-center bg-indigo-50/90 border-2 border-dashed border-indigo-400 rounded-xl m-2 pointer-events-none">
+                    <div class="text-center">
+                        <svg class="w-10 h-10 mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <p class="text-sm font-medium text-indigo-700">Drop to upload here</p>
+                    </div>
+                </div>
+
+                {{-- Upload progress --}}
+                <div x-show="browserUploading" class="mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 animate-spin text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span class="text-xs text-gray-500" x-text="browserUploadStatus"></span>
+                </div>
+
                 <div x-show="browserLoading" class="flex items-center justify-center py-16">
                     <svg class="w-6 h-6 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </div>
@@ -125,7 +167,7 @@
                      class="text-center py-16">
                     <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                     <p class="text-sm text-gray-500 font-medium">Empty folder</p>
-                    <p class="text-xs text-gray-400 mt-1">Upload images or navigate to another folder</p>
+                    <p class="text-xs text-gray-400 mt-1">Drop files here or use Upload Here above</p>
                 </div>
             </div>
         </div>
@@ -150,6 +192,16 @@ function {{ $componentId }}() {
         browserSearch: '',
         lastBrowsedPath: null,
         defaultFolder: '{{ $defaultFolder }}',
+
+        // URL import
+        showUrlInput: false,
+        urlInput: '',
+        importingUrl: false,
+
+        // Drag & drop
+        browserDragover: false,
+        browserUploading: false,
+        browserUploadStatus: '',
 
         showToast(msg, type = 'success') {
             this.toast = msg;
@@ -215,21 +267,78 @@ function {{ $componentId }}() {
             const file = event.target.files[0];
             if (!file) return;
             event.target.value = '';
+            await this._uploadFile(file);
+        },
+
+        async handleBrowserDrop(event) {
+            const files = event.dataTransfer?.files;
+            if (!files || files.length === 0) return;
+            for (const file of files) {
+                if (file.type.startsWith('image/')) {
+                    await this._uploadFile(file);
+                }
+            }
+        },
+
+        async _uploadFile(file) {
+            this.browserUploading = true;
+            this.browserUploadStatus = 'Uploading ' + file.name + '...';
 
             const formData = new FormData();
             formData.append('file', file);
             formData.append('catalog_path', this.browserCurrentPath);
 
-            const res = await fetch('{{ route("admin.products.images.upload-to-catalog") }}', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                body: formData,
-            });
-            const data = await res.json();
-            if (data.ok) {
-                this.browserFiles.push({ name: data.name, path: data.path, url: data.url, size: data.size, modified: Date.now() / 1000 });
-                this.showToast('Uploaded.');
+            try {
+                const res = await fetch('{{ route("admin.products.images.upload-to-catalog") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: formData,
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.browserFiles.push({ name: data.name, path: data.path, url: data.url, size: data.size, modified: Date.now() / 1000 });
+                    this.showToast('Uploaded ' + data.name);
+                } else {
+                    this.showToast(data.message || 'Upload failed.', 'error');
+                }
+            } catch (e) {
+                this.showToast('Upload failed.', 'error');
             }
+            this.browserUploading = false;
+            this.browserUploadStatus = '';
+        },
+
+        async importFromUrl() {
+            if (!this.urlInput.trim()) return;
+            this.importingUrl = true;
+
+            try {
+                const res = await fetch('{{ route("admin.products.images.import-url") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        url: this.urlInput.trim(),
+                        store_id: 1,
+                        catalog_path: this.browserCurrentPath,
+                    }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    this.browserFiles.push({ name: data.name || data.path.split('/').pop(), path: data.path, url: '/storage/' + data.path, size: 0, modified: Date.now() / 1000 });
+                    this.urlInput = '';
+                    this.showUrlInput = false;
+                    this.showToast('Image imported.');
+                } else {
+                    this.showToast(data.message || 'Import failed.', 'error');
+                }
+            } catch (e) {
+                this.showToast('Import failed.', 'error');
+            }
+            this.importingUrl = false;
         },
     }
 }

@@ -64,9 +64,10 @@
     ])
     <script>
         window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'iso2'));
-        @if (!empty($phExtensionPhoneCode))
-            window.__phoneCodes['PH'] = '{{ $phExtensionPhoneCode }}';
-        @endif
+        window.__addressProviders = @json($addressProviders ?? []);
+        @foreach ($addressProviders ?? [] as $code => $provider)
+            window.__phoneCodes['{{ $code }}'] = '{{ $provider['phoneCode'] }}';
+        @endforeach
     </script>
     @stack('head')
 </head>

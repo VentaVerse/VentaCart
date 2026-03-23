@@ -104,7 +104,8 @@ class CartController extends Controller
     public function estimateShipping(Request $request)
     {
         $request->validate([
-            'province' => 'required|string',
+            'country_code' => 'required|string|size:2',
+            'state' => 'nullable|string',
             'city' => 'required|string',
         ]);
 
@@ -113,7 +114,8 @@ class CartController extends Controller
 
         $quoteService = app(\App\Services\Shipping\ShippingQuoteService::class);
         $quotes = $quoteService->getQuotes([
-            'province' => $request->input('province'),
+            'country_code' => $request->input('country_code'),
+            'province' => $request->input('state', ''),
             'city' => $request->input('city'),
             'barangay' => $request->input('barangay', ''),
         ], $items, $subtotal);

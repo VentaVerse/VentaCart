@@ -2,6 +2,7 @@
 
 namespace Extensions\PhilippineAddress;
 
+use App\Services\AddressProviderRegistry;
 use Extensions\PhilippineAddress\Models\PhRegion;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -17,6 +18,12 @@ class PhilippineAddressServiceProvider extends ServiceProvider
         $this->app->bind(\App\Models\PhProvince::class, Models\PhProvince::class);
         $this->app->bind(\App\Models\PhCity::class, Models\PhCity::class);
         $this->app->bind(\App\Models\PhBarangay::class, Models\PhBarangay::class);
+
+        // Register as an address provider
+        $this->app->booted(function () {
+            $registry = $this->app->make(AddressProviderRegistry::class);
+            $registry->register(new PhilippineAddressProvider());
+        });
     }
 
     public function boot(): void
