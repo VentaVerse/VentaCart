@@ -112,10 +112,7 @@ Route::prefix('account')->name('customer.')->group(function () {
 Route::prefix('address-lookup')->name('storefront.address.')->group(function () {
     Route::get('/countries', [StorefrontAddressLookupController::class, 'countries'])->name('countries');
     Route::get('/zones', [StorefrontAddressLookupController::class, 'zones'])->name('zones');
-    Route::get('/ph-provinces', [StorefrontAddressLookupController::class, 'phProvinces'])->name('ph-provinces');
-    Route::get('/ph-cities', [StorefrontAddressLookupController::class, 'phCities'])->name('ph-cities');
-    Route::get('/ph-districts', [StorefrontAddressLookupController::class, 'phDistricts'])->name('ph-districts');
-    Route::get('/ph-barangays', [StorefrontAddressLookupController::class, 'phBarangays'])->name('ph-barangays');
+    // PH-specific routes (ph-provinces, ph-cities, ph-districts, ph-barangays) are provided by the PhilippineAddress extension
 });
 
 // Customer Account (authenticated)
@@ -152,10 +149,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Address Lookups
     Route::get('/address/countries', [AddressLookupController::class, 'countries'])->name('address.countries');
     Route::get('/address/zones', [AddressLookupController::class, 'zones'])->name('address.zones');
-    Route::get('/address/ph-provinces', [AddressLookupController::class, 'phProvinces'])->name('address.ph-provinces');
-    Route::get('/address/ph-cities', [AddressLookupController::class, 'phCities'])->name('address.ph-cities');
-    Route::get('/address/ph-districts', [AddressLookupController::class, 'phDistricts'])->name('address.ph-districts');
-    Route::get('/address/ph-barangays', [AddressLookupController::class, 'phBarangays'])->name('address.ph-barangays');
+    // PH-specific routes (ph-provinces, ph-cities, ph-districts, ph-barangays) are provided by the PhilippineAddress extension
 
     // Orders
     Route::get('/orders/search-products', [OrderController::class, 'searchProducts'])->name('orders.search-products');

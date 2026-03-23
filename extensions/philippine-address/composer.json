@@ -1,0 +1,17 @@
+{
+    "name": "ngd/philippine-address",
+    "description": "Philippine address hierarchy (PSGC): Regions, Provinces, Cities, Barangays",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Extensions\\PhilippineAddress\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Extensions\\PhilippineAddress\\PhilippineAddressServiceProvider"
+            ]
+        }
+    }
+}

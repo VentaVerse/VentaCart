@@ -3,7 +3,7 @@
     $width = $config['width'] ?? 'full';
     $autoplay = $config['autoplay'] ?? false;
     $speed = $config['speed'] ?? 5000;
-    $slides = [];
+    $slides = $bannerSlides ?? [];
 @endphp
 
 <div class="{{ $width === 'contained' ? 'container-store' : '' }}">

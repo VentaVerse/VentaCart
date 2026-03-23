@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Country;
 use App\Models\GeoZone;
 use App\Models\GeoZoneEntry;
-use App\Models\PhRegion;
 use App\Models\Zone;
 use Illuminate\Http\Request;
 
@@ -24,12 +23,8 @@ class LocalizationController extends Controller
 
         $geoZones = GeoZone::withCount('entries')->orderBy('sort_order')->get();
 
-        $phRegions = PhRegion::with(['provinces' => function ($q) {
-            $q->orderBy('name');
-        }])->orderBy('name')->get();
-
         return view('admin.localization.index', compact(
-            'tab', 'countries', 'zones', 'selectedCountry', 'countryList', 'geoZones', 'phRegions'
+            'tab', 'countries', 'zones', 'selectedCountry', 'countryList', 'geoZones'
         ));
     }
 

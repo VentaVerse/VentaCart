@@ -1,0 +1,17 @@
+{
+    "name": "ngd/banner-carousel",
+    "description": "Homepage banner carousel with admin slide management",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Extensions\\BannerCarousel\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Extensions\\BannerCarousel\\BannerCarouselServiceProvider"
+            ]
+        }
+    }
+}

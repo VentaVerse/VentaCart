@@ -62,7 +62,12 @@
         'resources/themes/' . $activeTheme . '/css/theme.css',
         'resources/themes/' . $activeTheme . '/js/theme.js'
     ])
-    <script>window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'iso2'));</script>
+    <script>
+        window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'iso2'));
+        @if (!empty($phExtensionPhoneCode))
+            window.__phoneCodes['PH'] = '{{ $phExtensionPhoneCode }}';
+        @endif
+    </script>
     @stack('head')
 </head>
 <body x-data="mobileNav()" class="clean-light">
