@@ -16,9 +16,21 @@ class PaymentRestrictionController extends Controller
 
     public function index()
     {
-        $restrictions = PaymentMethodRestriction::orderByRaw("FIELD(payment_method, 'bank_transfer', 'hitpay', 'cod')")->get();
+        $restrictions = PaymentMethodRestriction::orderByRaw("FIELD(payment_method, 'bank_transfer', 'hitpay', 'cod')")->get()->keyBy('payment_method');
 
-        return view('admin.payment-restrictions.index', compact('restrictions'));
+        // Build a restriction (or empty placeholder) for each payment method
+        $methods = collect(self::PAYMENT_METHODS)->map(function ($method) use ($restrictions) {
+            return [
+                'key' => $method,
+                'label' => PaymentMethodRestriction::getPaymentMethodLabel($method),
+                'restriction' => $restrictions->get($method),
+            ];
+        });
+
+        return view('admin.payment-restrictions.index', [
+            'methods' => $methods,
+            ...$this->getFormData(),
+        ]);
     }
 
     public function create()
@@ -45,7 +57,7 @@ class PaymentRestrictionController extends Controller
 
         PaymentMethodRestriction::create($validated);
 
-        return redirect()->route('admin.payment-restrictions.index')
+        return redirect()->route('admin.payment-restrictions.index', ['tab' => $validated['payment_method']])
             ->with('success', 'Payment restriction created.');
     }
 
@@ -65,15 +77,16 @@ class PaymentRestrictionController extends Controller
 
         $paymentRestriction->update($validated);
 
-        return redirect()->route('admin.payment-restrictions.index')
+        return redirect()->route('admin.payment-restrictions.index', ['tab' => $paymentRestriction->payment_method])
             ->with('success', 'Payment restriction updated.');
     }
 
     public function destroy(PaymentMethodRestriction $paymentRestriction)
     {
+        $method = $paymentRestriction->payment_method;
         $paymentRestriction->delete();
 
-        return redirect()->route('admin.payment-restrictions.index')
+        return redirect()->route('admin.payment-restrictions.index', ['tab' => $method])
             ->with('success', 'Payment restriction deleted.');
     }
 
