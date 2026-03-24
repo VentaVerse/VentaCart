@@ -1,8 +1,8 @@
 <x-admin-layout>
     <x-slot name="header">Shipping Rates: {{ $zone->name }}</x-slot>
     <x-slot name="headerActions">
-        <a href="{{ route('admin.shipping-zones.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-            Back to Zones
+        <a href="{{ request('from') === 'shipping' ? route('admin.shipping-settings.index', ['tab' => 'weight-based']) : route('admin.shipping-zones.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
+            Back
         </a>
     </x-slot>
 
@@ -89,7 +89,7 @@
         </template>
 
         <div class="flex justify-end gap-3">
-            <a href="{{ route('admin.shipping-zones.index') }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">Cancel</a>
+            <a href="{{ request('from') === 'shipping' ? route('admin.shipping-settings.index', ['tab' => 'weight-based']) : route('admin.shipping-zones.index') }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">Cancel</a>
             <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Rates</button>
         </div>
     </form>

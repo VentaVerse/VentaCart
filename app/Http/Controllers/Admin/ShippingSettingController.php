@@ -3,10 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\FlatShippingRate;
-use App\Models\GeoZone;
 use App\Models\Setting;
-use App\Models\ShippingZoneRate;
 use Illuminate\Support\Facades\Crypt;
 
 class ShippingSettingController extends Controller
@@ -38,10 +35,6 @@ class ShippingSettingController extends Controller
             }
         }
 
-        $geoZones = GeoZone::where('is_active', true)->orderBy('sort_order')->get();
-        $flatRates = FlatShippingRate::with('geoZone')->orderBy('sort_order')->get();
-        $weightRates = ShippingZoneRate::whereNotNull('geo_zone_id')->orderBy('weight_from')->get();
-
-        return view('admin.shipping-settings.index', compact('settings', 'maskedKeys', 'geoZones', 'flatRates', 'weightRates'));
+        return view('admin.shipping-settings.index', compact('settings', 'maskedKeys'));
     }
 }

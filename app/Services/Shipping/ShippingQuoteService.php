@@ -12,15 +12,14 @@ class ShippingQuoteService
         return [
             new FreeShippingRuleProvider(),
             new DeliveryPhShippingProvider(),
-            new WeightBasedShippingProvider(),
+            new CustomShippingProvider(),
             new DhlShippingProvider(),
-            new FlatRateShippingProvider(),
         ];
     }
 
     /**
      * Get shipping quotes from enabled providers.
-     * If free shipping qualifies, it is the only option returned.
+     * If free shipping qualifies (service_type=free_shipping), it overrides all paid methods.
      */
     public function getQuotes(array $deliveryAddress, Collection $cartItems, float $subtotal): array
     {
@@ -47,10 +46,10 @@ class ShippingQuoteService
             }
         }
 
-        // If any free shipping option qualified, it overrides all paid methods
-        $freeQuotes = array_filter($quotes, fn ($q) => isset($q['cost']) && (float) $q['cost'] === 0.0);
-        if (!empty($freeQuotes)) {
-            return array_values($freeQuotes);
+        // Only free shipping RULES override other methods — not custom methods priced at ₱0
+        $freeShippingQuotes = array_filter($quotes, fn ($q) => ($q['service_type'] ?? '') === 'free_shipping');
+        if (!empty($freeShippingQuotes)) {
+            return array_values($freeShippingQuotes);
         }
 
         return $quotes;
@@ -58,7 +57,6 @@ class ShippingQuoteService
 
     /**
      * Aggregate dimensions from cart items.
-     * Weight: sum all items. Dimensions: largest single item's dimensions.
      */
     private function aggregateDimensions(Collection $cartItems): array
     {

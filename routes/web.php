@@ -251,6 +251,8 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('shipping-zones/{geoZone}/edit', [ShippingZoneController::class, 'edit'])->name('shipping-zones.edit');
     Route::put('shipping-zones/{geoZone}', [ShippingZoneController::class, 'update'])->name('shipping-zones.update');
 
+    Route::resource('shipping-methods', \App\Http\Controllers\Admin\ShippingMethodController::class)->except(['show']);
+
     // Stock Notifications
     Route::get('/marketing', [\App\Http\Controllers\Admin\MarketingController::class, 'index'])->name('marketing.index');
     Route::get('/stock-notifications', [AdminStockNotificationController::class, 'index'])->name('stock-notifications.index');

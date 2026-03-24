@@ -1,164 +1,27 @@
 <x-admin-layout>
     <x-slot name="header">Shipping</x-slot>
 
-    <div x-data="{ activeTab: '{{ request('tab', session('tab', 'flat-rate')) }}' }">
+    {{-- Shipping Methods link --}}
+    <div class="mb-6">
+        <a href="{{ route('admin.shipping-methods.index') }}" class="inline-flex items-center gap-2 px-5 py-3 bg-white rounded-lg shadow-sm border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all w-full">
+            <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+            <div>
+                <span class="text-sm font-semibold text-gray-900">Shipping Methods</span>
+                <span class="text-xs text-gray-400 ml-2">Flat rate, weight-based, pickup — manage all your shipping options</span>
+            </div>
+            <svg class="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+        </a>
+    </div>
+
+    <div x-data="{ activeTab: '{{ request('tab', session('tab', 'free-shipping')) }}' }">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <nav class="flex border-b border-gray-200 overflow-x-auto">
-                @foreach ([['id' => 'flat-rate', 'label' => 'Flat Rate'], ['id' => 'weight-based', 'label' => 'Weight-Based'], ['id' => 'free-shipping', 'label' => 'Free Shipping'], ['id' => 'dhl', 'label' => 'DHL Express'], ['id' => 'dph', 'label' => 'Deliveries PH']] as $t)
+                @foreach ([['id' => 'free-shipping', 'label' => 'Free Shipping'], ['id' => 'dhl', 'label' => 'DHL Express'], ['id' => 'dph', 'label' => 'Deliveries PH']] as $t)
                     <button type="button" @click="activeTab = '{{ $t['id'] }}'"
                         :class="activeTab === '{{ $t['id'] }}' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                         class="whitespace-nowrap px-5 py-3 border-b-2 text-sm font-medium transition-colors">{{ $t['label'] }}</button>
                 @endforeach
             </nav>
-
-            {{-- ==================== FLAT RATE ==================== --}}
-            <div x-show="activeTab === 'flat-rate'" class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Flat Rate Shipping</h3>
-                        <p class="text-xs text-gray-500 mt-1">Set a fixed shipping cost. Optionally assign to a specific geo zone for zone-based flat rates.</p>
-                    </div>
-                    <form method="POST" action="{{ route('admin.settings.update') }}">
-                        @csrf
-                        <input type="hidden" name="group" value="shipping">
-                        <input type="hidden" name="_tab" value="flat-rate">
-                        <div class="flex items-center gap-3">
-                            <input type="hidden" name="settings[flat_rate_enabled]" value="0">
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" name="settings[flat_rate_enabled]" value="1" {{ ($settings['shipping']['flat_rate_enabled'] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                Enabled
-                            </label>
-                            <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700">Save</button>
-                        </div>
-                    </form>
-                </div>
-
-                {{-- Flat Rate entries table --}}
-                <div class="overflow-hidden rounded-lg border border-gray-200 mb-4">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Geo Zone</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-32">Cost (₱)</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-24">Status</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase w-24">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @forelse ($flatRates as $fr)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-2.5 text-sm text-gray-900">{{ $fr->geoZone?->name ?? 'All Zones (Global)' }}</td>
-                                    <td class="px-4 py-2.5 text-sm text-gray-700 font-medium">₱{{ number_format($fr->cost, 2) }}</td>
-                                    <td class="px-4 py-2.5">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $fr->is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500' }}">
-                                            {{ $fr->is_active ? 'Active' : 'Disabled' }}
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-2.5 text-right">
-                                        <form method="POST" action="{{ route('admin.flat-rates.destroy', $fr) }}" class="inline" onsubmit="return confirm('Delete this rate?')">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900 text-sm">Delete</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-gray-400">No flat rates configured. Add one below.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                {{-- Add flat rate --}}
-                <div class="border-t border-gray-200 pt-4">
-                    <h4 class="text-sm font-medium text-gray-700 mb-3">Add Flat Rate</h4>
-                    <form method="POST" action="{{ route('admin.flat-rates.store') }}" class="flex items-end gap-3">
-                        @csrf
-                        <div>
-                            <label class="block text-xs text-gray-600 mb-1">Geo Zone</label>
-                            <select name="geo_zone_id" class="rounded-md border-gray-300 text-sm">
-                                <option value="">All Zones (Global)</option>
-                                @foreach ($geoZones as $gz)
-                                    <option value="{{ $gz->id }}">{{ $gz->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-600 mb-1">Cost (₱)</label>
-                            <input type="number" name="cost" required min="0" step="0.01" class="w-32 rounded-md border-gray-300 text-sm" placeholder="150">
-                        </div>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Add</button>
-                    </form>
-                </div>
-            </div>
-
-            {{-- ==================== WEIGHT-BASED ==================== --}}
-            <div x-show="activeTab === 'weight-based'" x-cloak class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Weight-Based Shipping</h3>
-                        <p class="text-xs text-gray-500 mt-1">Set shipping rates based on cart weight per geo zone. Geo zones are managed in <a href="{{ route('admin.localization.index', ['tab' => 'geo-zones']) }}" class="text-indigo-600 hover:underline">Localization</a>.</p>
-                    </div>
-                    <form method="POST" action="{{ route('admin.settings.update') }}">
-                        @csrf
-                        <input type="hidden" name="group" value="shipping">
-                        <input type="hidden" name="_tab" value="weight-based">
-                        <div class="flex items-center gap-3">
-                            <input type="hidden" name="settings[weight_based_enabled]" value="0">
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" name="settings[weight_based_enabled]" value="1" {{ ($settings['shipping']['weight_based_enabled'] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                Enabled
-                            </label>
-                            <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700">Save</button>
-                        </div>
-                    </form>
-                </div>
-
-                {{-- Per-zone rate tables --}}
-                @foreach ($geoZones as $gz)
-                    @php $zoneRates = $weightRates->where('geo_zone_id', $gz->id); @endphp
-                    <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-50 px-4 py-3 flex items-center justify-between">
-                            <div>
-                                <span class="text-sm font-semibold text-gray-800">{{ $gz->name }}</span>
-                                <span class="text-xs text-gray-500 ml-2">({{ $zoneRates->count() }} rate{{ $zoneRates->count() !== 1 ? 's' : '' }})</span>
-                            </div>
-                            <a href="{{ route('admin.shipping-zones.edit', $gz) }}" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Edit Rates</a>
-                        </div>
-                        @if ($zoneRates->isNotEmpty())
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50/50">
-                                    <tr>
-                                        <th class="px-4 py-2 text-left text-xs text-gray-500">Weight From</th>
-                                        <th class="px-4 py-2 text-left text-xs text-gray-500">Weight To</th>
-                                        <th class="px-4 py-2 text-left text-xs text-gray-500">Cost</th>
-                                        <th class="px-4 py-2 text-left text-xs text-gray-500">Free Threshold</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    @foreach ($zoneRates as $rate)
-                                        <tr>
-                                            <td class="px-4 py-1.5 text-sm text-gray-700">{{ $rate->weight_from }} kg</td>
-                                            <td class="px-4 py-1.5 text-sm text-gray-700">{{ $rate->weight_to }} kg</td>
-                                            <td class="px-4 py-1.5 text-sm text-gray-700 font-medium">₱{{ number_format($rate->cost, 2) }}</td>
-                                            <td class="px-4 py-1.5 text-sm text-gray-400">{{ $rate->free_shipping_threshold ? '₱' . number_format($rate->free_shipping_threshold, 2) : '—' }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        @else
-                            <div class="px-4 py-4 text-sm text-gray-400 text-center">No rates configured. <a href="{{ route('admin.shipping-zones.edit', $gz) }}" class="text-indigo-600 hover:underline">Add rates</a></div>
-                        @endif
-                    </div>
-                @endforeach
-
-                @if ($geoZones->isEmpty())
-                    <div class="text-center py-8 text-gray-400">
-                        No geo zones configured. <a href="{{ route('admin.localization.index', ['tab' => 'geo-zones']) }}" class="text-indigo-600 hover:underline">Create zones in Localization</a> first.
-                    </div>
-                @endif
-            </div>
 
             {{-- ==================== FREE SHIPPING ==================== --}}
             <div x-show="activeTab === 'free-shipping'" x-cloak class="p-6">
