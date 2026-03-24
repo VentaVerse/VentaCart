@@ -47,7 +47,7 @@ class ProductImageController extends Controller
         return response()->json([
             'ok' => true,
             'path' => $path,
-            'url' => '/storage/' . $path,
+            'url' => storage_url($path),
             'kind' => $kind,
         ]);
     }
@@ -111,7 +111,7 @@ class ProductImageController extends Controller
             return response()->json([
                 'ok' => true,
                 'path' => $fullPath,
-                'url' => '/storage/' . $fullPath,
+                'url' => storage_url($fullPath),
                 'kind' => $kind,
             ]);
         } catch (\Throwable $e) {
@@ -160,7 +160,7 @@ class ProductImageController extends Controller
                 return [
                     'name' => basename($file),
                     'path' => $file,
-                    'url' => '/storage/' . $file,
+                    'url' => storage_url($file),
                     'size' => Storage::disk('public')->size($file),
                     'modified' => Storage::disk('public')->lastModified($file),
                 ];
@@ -213,7 +213,7 @@ class ProductImageController extends Controller
         return response()->json([
             'ok' => true,
             'path' => $path,
-            'url' => '/storage/' . $path,
+            'url' => storage_url($path),
             'name' => $filename,
             'size' => Storage::disk('public')->size($path),
         ]);

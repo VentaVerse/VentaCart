@@ -17,7 +17,7 @@
                             <div class="cart-item" x-show="!item._removed" x-transition.opacity>
                                 <div class="cart-item-image">
                                     <template x-if="item.product && item.product.images && item.product.images.length">
-                                        <img :src="'/storage/' + item.product.images[0].path" :alt="item.name" loading="lazy">
+                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" loading="lazy">
                                     </template>
                                     <template x-if="!item.product || !item.product.images || !item.product.images.length">
                                         <div class="w-full h-full flex items-center justify-center text-[#333]">

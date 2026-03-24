@@ -179,7 +179,7 @@
 function {{ $componentId }}() {
     return {
         imagePath: '{{ $currentImage ?? '' }}',
-        imageUrl: '{{ $currentImage ? "/storage/" . $currentImage : '' }}',
+        imageUrl: '{{ $currentImage ? storage_url($currentImage) : '' }}',
         toast: '',
         toastType: 'success',
 
@@ -258,7 +258,7 @@ function {{ $componentId }}() {
 
         selectFile(file) {
             this.imagePath = file.path;
-            this.imageUrl = '/storage/' + file.path;
+            this.imageUrl = storageUrl(file.path);
             this.browserOpen = false;
             this.showToast('Image selected.');
         },
@@ -328,7 +328,7 @@ function {{ $componentId }}() {
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    this.browserFiles.push({ name: data.name || data.path.split('/').pop(), path: data.path, url: '/storage/' + data.path, size: 0, modified: Date.now() / 1000 });
+                    this.browserFiles.push({ name: data.name || data.path.split('/').pop(), path: data.path, url: storageUrl(data.path), size: 0, modified: Date.now() / 1000 });
                     this.urlInput = '';
                     this.showUrlInput = false;
                     this.showToast('Image imported.');

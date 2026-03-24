@@ -404,7 +404,7 @@ function imageManager() {
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    this.browserFiles.push({ name: data.path.split('/').pop(), path: data.path, url: '/storage/' + data.path, size: 0, modified: Date.now() / 1000 });
+                    this.browserFiles.push({ name: data.path.split('/').pop(), path: data.path, url: storageUrl(data.path), size: 0, modified: Date.now() / 1000 });
                     this.urlInput = '';
                     this.showUrlInput = false;
                     this.showToast('Image imported.');

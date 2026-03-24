@@ -449,7 +449,7 @@
                             <div class="flex items-start gap-3">
                                 <div class="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-white">
                                     <template x-if="item.product && item.product.images && item.product.images.length">
-                                        <img :src="'/storage/' + item.product.images[0].path" :alt="item.name" class="w-full h-full object-contain p-0.5" loading="lazy">
+                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" class="w-full h-full object-contain p-0.5" loading="lazy">
                                     </template>
                                     <template x-if="!item.product || !item.product.images || !item.product.images.length">
                                         <div class="w-full h-full flex items-center justify-center text-[#333]">
@@ -563,7 +563,7 @@
                             <div class="checkout-modal-item">
                                 <div class="checkout-modal-item-img">
                                     <template x-if="item.product && item.product.images && item.product.images.length">
-                                        <img :src="'/storage/' + item.product.images[0].path" :alt="item.name" loading="lazy">
+                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" loading="lazy">
                                     </template>
                                 </div>
                                 <div class="flex-1 min-w-0">

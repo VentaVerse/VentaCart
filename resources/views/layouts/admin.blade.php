@@ -8,6 +8,12 @@
         <title>{{ $title ?? 'Admin' }} - {{ config('app.name', 'NGD') }}</title>
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <script>
+            window.storageUrl = function(path) {
+                if (!path) return '';
+                return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
+            };
+        </script>
         @stack('head')
     </head>
     <body class="font-sans antialiased bg-gray-50" x-data="{ mobileMenu: false }">

@@ -50,7 +50,7 @@ class RecentlyViewedController extends Controller
                     'formatted_price' => $currency . number_format($price, 2),
                     'formatted_sale_price' => $salePrice ? $currency . number_format($salePrice, 2) : null,
                     'url' => route('product.show', $product->slug),
-                    'image' => $image ? '/storage/' . $image->path : null,
+                    'image' => $image ? storage_url($image->path) : null,
                     'badges' => $badgeService->getBadgesForProduct($product),
                 ];
             });

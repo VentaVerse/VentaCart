@@ -141,7 +141,7 @@ class ProductController extends Controller
         $existingImages = $product->images->sortBy('sort_order')->map(function ($img) {
             return [
                 'path' => $img->path,
-                'url' => '/storage/' . $img->path,
+                'url' => storage_url($img->path),
             ];
         })->values()->toArray();
 
@@ -156,7 +156,7 @@ class ProductController extends Controller
                 // Not in gallery at all — prepend it
                 array_unshift($existingImages, [
                     'path' => $product->image,
-                    'url' => '/storage/' . $product->image,
+                    'url' => storage_url($product->image),
                 ]);
             }
             // If $mainIdx === 0, it's already in the right position

@@ -54,7 +54,7 @@
                                         <span style="font-size: {{ $layer['fontSize'] ?? 24 }}px; font-weight: {{ $layer['fontWeight'] ?? 400 }}; color: {{ $layer['color'] ?? '#fff' }}; letter-spacing: {{ $layer['letterSpacing'] ?? 0 }}px; text-transform: {{ $layer['textTransform'] ?? 'none' }}; white-space: pre-line;">{{ $layer['content'] ?? '' }}</span>
 
                                     @elseif ($type === 'image')
-                                        <img src="/storage/{{ $layer['src'] ?? '' }}" alt=""
+                                        <img src="{{ storage_url($layer['src'] ?? '') }}" alt=""
                                              style="width: {{ $layer['width'] ?? 200 }}px;{{ !empty($layer['height']) ? " height: {$layer['height']}px;" : '' }} display: block; max-width: none;"
                                              loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
 

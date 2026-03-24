@@ -39,26 +39,40 @@
                     </template>
 
                     <template x-if="rates.length > 0">
-                        <div class="space-y-2">
-                            <div class="grid grid-cols-[1fr_1fr_1fr_40px] gap-2 text-xs text-gray-500 font-medium px-1">
-                                <span>From (kg)</span>
-                                <span>To (kg)</span>
-                                <span>Cost (₱)</span>
-                                <span></span>
-                            </div>
-                            <template x-for="(rate, i) in rates" :key="i">
-                                <div class="grid grid-cols-[1fr_1fr_1fr_40px] gap-2 items-center">
-                                    <input type="number" :name="'rates['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0"
-                                        class="rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <input type="number" :name="'rates['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0"
-                                        class="rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0"
-                                        class="rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <button type="button" @click="rates.splice(i, 1)" class="p-1.5 text-gray-400 hover:text-red-600 transition-colors" title="Remove">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </div>
-                            </template>
+                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">From (kg)</th>
+                                        <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">To (kg)</th>
+                                        <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Cost (₱)</th>
+                                        <th class="px-4 py-2.5 w-10"></th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    <template x-for="(rate, i) in rates" :key="i">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-2">
+                                                <input type="number" :name="'rates['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0"
+                                                    class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="number" :name="'rates['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0"
+                                                    class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                            </td>
+                                            <td class="px-4 py-2">
+                                                <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0"
+                                                    class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                            </td>
+                                            <td class="px-2 py-2 text-center">
+                                                <button type="button" @click="rates.splice(i, 1)" class="p-1 text-gray-400 hover:text-red-600 transition-colors" title="Remove tier">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
                         </div>
                     </template>
                 </div>
@@ -114,11 +128,20 @@
         </div>
     </form>
 
+    @php
+        $ratesData = old('rates', []);
+        if (empty($ratesData) && $method?->rates) {
+            $ratesData = $method->rates->map(function($r) {
+                return ['weight_from' => $r->weight_from, 'weight_to' => $r->weight_to, 'cost' => $r->cost];
+            })->toArray();
+        }
+    @endphp
+
     @push('scripts')
     <script>
     function weightMethodForm() {
         return {
-            rates: @json(old('rates', $method?->rates?->map(fn($r) => ['weight_from' => $r->weight_from, 'weight_to' => $r->weight_to, 'cost' => $r->cost])->toArray() ?? [])),
+            rates: @json($ratesData),
             addRate() {
                 const last = this.rates.length > 0 ? this.rates[this.rates.length - 1] : null;
                 this.rates.push({

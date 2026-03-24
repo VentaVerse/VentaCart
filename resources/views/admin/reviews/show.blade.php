@@ -55,8 +55,8 @@
                     <h4 class="text-sm font-medium text-gray-700 mb-3">Attached Photos</h4>
                     <div class="flex gap-3">
                         @foreach ($review->images as $img)
-                            <a href="{{ asset('storage/' . $img->path) }}" target="_blank" class="block w-32 h-32 rounded-lg overflow-hidden border border-gray-200">
-                                <img src="{{ asset('storage/' . $img->path) }}" alt="Review photo" class="w-full h-full object-cover">
+                            <a href="{{ storage_url($img->path) }}" target="_blank" class="block w-32 h-32 rounded-lg overflow-hidden border border-gray-200">
+                                <img src="{{ storage_url($img->path) }}" alt="Review photo" class="w-full h-full object-cover">
                             </a>
                         @endforeach
                     </div>

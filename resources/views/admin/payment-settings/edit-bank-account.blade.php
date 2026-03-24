@@ -41,7 +41,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">QR Code Image</label>
                     @if ($bankAccount->qr_image)
                         <div class="flex items-start gap-4 mb-3">
-                            <img src="{{ asset('storage/' . $bankAccount->qr_image) }}" alt="QR Code" class="w-32 h-32 rounded-lg border border-gray-200 object-contain">
+                            <img src="{{ storage_url($bankAccount->qr_image) }}" alt="QR Code" class="w-32 h-32 rounded-lg border border-gray-200 object-contain">
                             <div>
                                 <label class="flex items-center gap-2 text-sm text-red-600 cursor-pointer">
                                     <input type="checkbox" name="remove_qr" value="1" class="rounded border-gray-300 text-red-600">

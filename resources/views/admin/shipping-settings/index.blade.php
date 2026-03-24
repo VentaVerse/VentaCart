@@ -102,63 +102,153 @@
                 <div class="flex items-center justify-between p-5 border-b border-gray-100">
                     <div>
                         <h3 class="text-sm font-semibold text-gray-900">Weight-Based Shipping</h3>
-                        <p class="text-xs text-gray-500 mt-0.5">Cost tiers based on cart weight</p>
+                        <p class="text-xs text-gray-500 mt-0.5">Cost tiers based on cart weight. Click a method to expand and edit.</p>
                     </div>
-                    <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
-                        @csrf
-                        <input type="hidden" name="group" value="shipping">
-                        <input type="hidden" name="_tab" value="weight-based">
-                        <input type="hidden" name="settings[weight_based_enabled]" value="0">
-                        <label class="flex items-center gap-2 text-sm cursor-pointer">
-                            <input type="checkbox" name="settings[weight_based_enabled]" value="1" {{ ($settings['shipping']['weight_based_enabled'] ?? '0') === '1' ? 'checked' : '' }}
-                                class="rounded border-gray-300 text-indigo-600" onchange="this.form.submit()">
-                            Enabled
-                        </label>
-                    </form>
+                    <div class="flex items-center gap-3">
+                        <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
+                            @csrf
+                            <input type="hidden" name="group" value="shipping">
+                            <input type="hidden" name="_tab" value="weight-based">
+                            <input type="hidden" name="settings[weight_based_enabled]" value="0">
+                            <label class="flex items-center gap-2 text-sm cursor-pointer">
+                                <input type="checkbox" name="settings[weight_based_enabled]" value="1" {{ ($settings['shipping']['weight_based_enabled'] ?? '0') === '1' ? 'checked' : '' }}
+                                    class="rounded border-gray-300 text-indigo-600" onchange="this.form.submit()">
+                                Enabled
+                            </label>
+                        </form>
+                        <a href="{{ route('admin.weight-based-methods.create') }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Add
+                        </a>
+                    </div>
                 </div>
-                <div class="p-5">
-                    <div class="overflow-hidden rounded-lg border border-gray-200 mb-4">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Geo Zone</th>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Group</th>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Tiers</th>
-                                    <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase w-16">Status</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase w-20"></th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                @forelse ($weightMethods as $wm)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $wm->name }}</td>
-                                        <td class="px-4 py-2 text-sm text-gray-500">{{ $wm->geoZone?->name ?? 'All' }}</td>
-                                        <td class="px-4 py-2 text-sm text-gray-500">{{ $wm->customerGroup?->name ?? 'All' }}</td>
-                                        <td class="px-4 py-2 text-sm text-gray-500">{{ $wm->rates_count }}</td>
-                                        <td class="px-4 py-2 text-center">
-                                            <span class="w-2 h-2 rounded-full inline-block {{ $wm->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                                        </td>
-                                        <td class="px-4 py-2 text-right">
-                                            <a href="{{ route('admin.weight-based-methods.edit', $wm) }}" class="text-indigo-600 hover:text-indigo-900 text-xs mr-2">Edit</a>
-                                            <form method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" class="inline" onsubmit="return confirm('Delete?')">
+                <div class="divide-y divide-gray-100">
+                    @forelse ($weightMethods as $wm)
+                        <div x-data="{ open: false }">
+                            {{-- Method header row --}}
+                            <div class="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors" @click="open = !open">
+                                <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0" :class="open && 'rotate-90'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                <span class="w-2 h-2 rounded-full shrink-0 {{ $wm->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
+                                <span class="text-sm font-medium text-gray-900 flex-1">{{ $wm->name }}</span>
+                                <span class="text-xs text-gray-400">{{ $wm->geoZone?->name ?? 'All zones' }}</span>
+                                <span class="text-xs text-gray-400">{{ $wm->customerGroup?->name ?? 'All groups' }}</span>
+                                <span class="text-xs text-gray-400">{{ $wm->rates_count }} {{ Str::plural('tier', $wm->rates_count) }}</span>
+                            </div>
+
+                            {{-- Expanded edit form --}}
+                            <div x-show="open" x-transition class="px-5 pb-5 bg-gray-50/50 border-t border-gray-100">
+                                @php
+                                    $wmRatesData = $wm->rates->map(function($r) {
+                                        return ['weight_from' => $r->weight_from, 'weight_to' => $r->weight_to, 'cost' => $r->cost];
+                                    })->toArray();
+                                @endphp
+                                <form method="POST" action="{{ route('admin.weight-based-methods.update', $wm) }}"
+                                      x-data="{ rates: {{ json_encode($wmRatesData) }}, addRate() { const last = this.rates.length > 0 ? this.rates[this.rates.length - 1] : null; this.rates.push({ weight_from: last ? last.weight_to : '0.000', weight_to: last ? (parseFloat(last.weight_to) + 5).toFixed(3) : '5.000', cost: last ? last.cost : '0.00' }); } }">
+                                    @csrf @method('PUT')
+                                    <div class="pt-4 space-y-4">
+                                        {{-- Name + settings row --}}
+                                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                                                <input type="text" name="name" value="{{ $wm->name }}" required class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Geo Zone</label>
+                                                <select name="geo_zone_id" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                                    <option value="">All zones</option>
+                                                    @foreach ($geoZones as $zone)
+                                                        <option value="{{ $zone->id }}" {{ $wm->geo_zone_id == $zone->id ? 'selected' : '' }}>{{ $zone->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Customer Group</label>
+                                                <select name="customer_group_id" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                                    <option value="">All customers</option>
+                                                    @foreach ($customerGroups as $group)
+                                                        <option value="{{ $group->id }}" {{ $wm->customer_group_id == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="flex items-end gap-3">
+                                                <label class="flex items-center gap-2 text-sm pb-1.5">
+                                                    <input type="hidden" name="is_active" value="0">
+                                                    <input type="checkbox" name="is_active" value="1" {{ $wm->is_active ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
+                                                    Active
+                                                </label>
+                                                <div class="flex items-center gap-1 pb-1.5">
+                                                    <label class="text-xs text-gray-500">Sort</label>
+                                                    <input type="number" name="sort_order" value="{{ $wm->sort_order }}" class="w-14 rounded-md border-gray-300 text-sm py-1 text-center focus:border-indigo-500 focus:ring-indigo-500">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {{-- Weight tiers table --}}
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <label class="text-xs font-medium text-gray-600">Weight Tiers</label>
+                                                <button type="button" @click="addRate()" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 font-medium">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                                    Add Tier
+                                                </button>
+                                            </div>
+                                            <template x-if="rates.length > 0">
+                                                <div class="overflow-hidden rounded-lg border border-gray-200">
+                                                    <table class="min-w-full divide-y divide-gray-200">
+                                                        <thead class="bg-gray-50">
+                                                            <tr>
+                                                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">From (kg)</th>
+                                                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">To (kg)</th>
+                                                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cost (₱)</th>
+                                                                <th class="px-3 py-2 w-8"></th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="divide-y divide-gray-100">
+                                                            <template x-for="(rate, i) in rates" :key="i">
+                                                                <tr>
+                                                                    <td class="px-3 py-1.5">
+                                                                        <input type="number" :name="'rates['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                                    </td>
+                                                                    <td class="px-3 py-1.5">
+                                                                        <input type="number" :name="'rates['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                                    </td>
+                                                                    <td class="px-3 py-1.5">
+                                                                        <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                                    </td>
+                                                                    <td class="px-1 py-1.5 text-center">
+                                                                        <button type="button" @click="rates.splice(i, 1)" class="p-0.5 text-gray-400 hover:text-red-600" title="Remove">
+                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                                        </button>
+                                                                    </td>
+                                                                </tr>
+                                                            </template>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </template>
+                                            <template x-if="rates.length === 0">
+                                                <p class="text-sm text-gray-400 text-center py-4">No tiers. Click "Add Tier" above.</p>
+                                            </template>
+                                        </div>
+
+                                        {{-- Actions --}}
+                                        <div class="flex items-center justify-between pt-2">
+                                            <form method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" onsubmit="return confirm('Delete {{ addslashes($wm->name) }} and all its tiers?')">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="text-red-500 hover:text-red-700 text-xs">Delete</button>
+                                                <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete Method</button>
                                             </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="px-4 py-8 text-center text-gray-400 text-sm">No weight-based methods configured</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    <a href="{{ route('admin.weight-based-methods.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                        Add Method
-                    </a>
+                                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="px-5 py-12 text-center text-gray-400 text-sm">
+                            No weight-based methods configured.
+                            <a href="{{ route('admin.weight-based-methods.create') }}" class="text-indigo-600 hover:underline">Create your first one</a>.
+                        </div>
+                    @endforelse
                 </div>
             </div>
 

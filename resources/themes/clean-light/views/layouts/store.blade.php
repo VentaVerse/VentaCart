@@ -68,6 +68,10 @@
         @foreach ($addressProviders ?? [] as $code => $provider)
             window.__phoneCodes['{{ $code }}'] = '{{ $provider['phoneCode'] }}';
         @endforeach
+        window.storageUrl = function(path) {
+            if (!path) return '';
+            return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
+        };
     </script>
     @stack('head')
 </head>
@@ -249,7 +253,7 @@
                                     <div class="mini-cart-item">
                                         <div class="mini-cart-item-image">
                                             <template x-if="item.image">
-                                                <img :src="'/storage/' + item.image" :alt="item.name" loading="lazy">
+                                                <img :src="storageUrl(item.image)" :alt="item.name" loading="lazy">
                                             </template>
                                             <template x-if="!item.image">
                                                 <div class="mini-cart-item-noimage">
