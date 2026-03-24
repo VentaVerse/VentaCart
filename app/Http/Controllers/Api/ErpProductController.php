@@ -70,7 +70,7 @@ class ErpProductController extends Controller
     public function show(Request $request, string $sku): JsonResponse
     {
         $product = Product::where('sku', $sku)
-            ->with(['brand:id,name,slug', 'categories:id,name,slug', 'images', 'variants.values'])
+            ->with(['brand:id,name,slug', 'categories:id,name,slug', 'images', 'variants.values', 'variants.groupPrices', 'variantTypes.values'])
             ->first();
 
         if (!$product) {
@@ -98,6 +98,15 @@ class ErpProductController extends Controller
             'images' => $product->images->map(function ($img) {
                 return ['id' => $img->id, 'path' => $img->path, 'sort_order' => $img->sort_order];
             }),
+            'variant_types' => $product->variantTypes->map(function ($type) {
+                return [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'values' => $type->values->map(function ($val) {
+                        return ['id' => $val->id, 'value' => $val->value];
+                    }),
+                ];
+            }),
             'variants' => $product->variants->map(function ($variant) {
                 return [
                     'id' => $variant->id,
@@ -109,6 +118,12 @@ class ErpProductController extends Controller
                     'is_active' => $variant->is_active,
                     'option_values' => $variant->values->map(function ($val) {
                         return ['id' => $val->id, 'value' => $val->value];
+                    }),
+                    'group_prices' => $variant->groupPrices->map(function ($gp) {
+                        return [
+                            'customer_group_id' => $gp->customer_group_id,
+                            'price' => $gp->price,
+                        ];
                     }),
                 ];
             }),
