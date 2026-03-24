@@ -29,21 +29,43 @@
                     </div>
                 </div>
 
-                {{-- Shipping Address --}}
-                @if ($order->shipping_address_1)
+                {{-- Addresses --}}
+                @if ($order->shipping_address_1 || $order->billing_address_1)
                     <div class="account-card reveal">
-                        <h2 class="account-section-title">Shipping Address</h2>
-                        <div class="text-sm text-[#999] space-y-0.5">
-                            <p class="text-[#E8E8E8]">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
-                            <p>{{ $order->shipping_address_1 }}</p>
-                            @if ($order->shipping_barangay)
-                                <p>{{ $order->shipping_barangay }}</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {{-- Shipping --}}
+                            @if ($order->shipping_address_1)
+                                <div>
+                                    <h2 class="account-section-title">Ship To</h2>
+                                    <div class="text-sm text-[#999] space-y-0.5">
+                                        <p class="text-[#E8E8E8]">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
+                                        <p>{{ $order->shipping_address_1 }}</p>
+                                        @if ($order->shipping_barangay) <p>{{ $order->shipping_barangay }}</p> @endif
+                                        @if ($order->shipping_district) <p>{{ $order->shipping_district }}</p> @endif
+                                        <p>{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif @if ($order->shipping_postcode) {{ $order->shipping_postcode }}@endif</p>
+                                        @if ($order->shipping_country_code) <p>{{ $order->shipping_country_code }}</p> @endif
+                                        @if ($order->shipping_phone) <p class="mt-1">{{ $order->shipping_phone }}</p> @endif
+                                    </div>
+                                </div>
                             @endif
-                            @if ($order->shipping_district)
-                                <p>{{ $order->shipping_district }}</p>
-                            @endif
-                            <p>{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif @if ($order->shipping_postcode) {{ $order->shipping_postcode }}@endif</p>
-                            <p>{{ $order->shipping_country_code }}</p>
+
+                            {{-- Billing --}}
+                            <div>
+                                <h2 class="account-section-title">Bill To</h2>
+                                @if ($order->billing_first_name)
+                                    <div class="text-sm text-[#999] space-y-0.5">
+                                        <p class="text-[#E8E8E8]">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
+                                        <p>{{ $order->billing_address_1 }}</p>
+                                        @if ($order->billing_barangay) <p>{{ $order->billing_barangay }}</p> @endif
+                                        @if ($order->billing_district) <p>{{ $order->billing_district }}</p> @endif
+                                        <p>{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif @if ($order->billing_postcode) {{ $order->billing_postcode }}@endif</p>
+                                        @if ($order->billing_country_code) <p>{{ $order->billing_country_code }}</p> @endif
+                                        @if ($order->billing_phone) <p class="mt-1">{{ $order->billing_phone }}</p> @endif
+                                    </div>
+                                @else
+                                    <p class="text-sm text-[#555] italic">Same as shipping</p>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 @endif
