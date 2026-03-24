@@ -27,7 +27,9 @@ class CategoryController extends Controller
 
         $query = Product::where('is_active', true)
             ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
-            ->with(['images', 'specials', 'brand']);
+            ->with(['images', 'specials', 'brand'])
+            ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+            ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]);
 
         // Filters
         if ($request->filled('min_price')) {

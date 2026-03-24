@@ -322,8 +322,11 @@
                         <div class="space-y-6">
                             @foreach ($approvedReviews as $review)
                                 <div class="review-card">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <div class="flex items-center gap-3">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <div>
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-sm font-medium text-gray-900">{{ $review->name }}</span>
+                                            </div>
                                             <div class="star-rating">
                                                 @for ($i = 1; $i <= 5; $i++)
                                                     @if ($i <= $review->rating)
@@ -333,10 +336,6 @@
                                                     @endif
                                                 @endfor
                                             </div>
-                                            <span class="text-sm text-gray-600">{{ $review->name }}</span>
-                                            @if ($review->is_verified_purchase)
-                                                <span class="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700">Verified</span>
-                                            @endif
                                         </div>
                                         <span class="text-xs text-gray-400">{{ $review->published_at?->format('M j, Y') }}</span>
                                     </div>

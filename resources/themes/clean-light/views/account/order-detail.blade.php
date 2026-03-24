@@ -91,14 +91,13 @@
                 <div class="account-card reveal">
                     <h2 class="account-section-title">Items</h2>
                     <div class="overflow-x-auto">
-                        <table class="account-table w-full">
+                        <table class="account-table w-full" style="table-layout: fixed;">
                             <thead>
                                 <tr>
                                     <th>Product</th>
-                                    <th>SKU</th>
-                                    <th>Price</th>
-                                    <th>Qty</th>
-                                    <th>Total</th>
+                                    <th style="width: 5rem; text-align: right;">Price</th>
+                                    <th style="width: 3rem; text-align: center;">Qty</th>
+                                    <th style="width: 6rem; text-align: right;">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -106,14 +105,13 @@
                                     <tr>
                                         <td>
                                             <span class="text-[#E8E8E8]">{{ $item->name }}</span>
-                                            @if ($item->variant_name)
-                                                <span class="block text-xs text-[#555]">{{ $item->variant_name }}</span>
+                                            @if ($item->variant_label)
+                                                <span class="block text-xs text-[#555]">{{ $item->variant_label }}</span>
                                             @endif
                                         </td>
-                                        <td class="text-[#555]">{{ $item->sku ?? '-' }}</td>
-                                        <td class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price, 2) }}</td>
-                                        <td>{{ $item->quantity }}</td>
-                                        <td class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price * $item->quantity, 2) }}</td>
+                                        <td style="text-align: right;" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price, 2) }}</td>
+                                        <td style="text-align: center;">{{ $item->quantity }}</td>
+                                        <td style="text-align: right;" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price * $item->quantity, 2) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -142,11 +140,18 @@
                 @if ($order->histories->isNotEmpty())
                     <div class="account-card reveal">
                         <h2 class="account-section-title">Order History</h2>
-                        <div class="space-y-3">
-                            @foreach ($order->histories as $history)
-                                <div class="flex gap-3 text-sm">
-                                    <div class="text-[#555] whitespace-nowrap">{{ $history->created_at->format('M d, Y H:i') }}</div>
-                                    <div class="text-[#999]">{{ $history->comment }}</div>
+                        <div class="space-y-4">
+                            @foreach ($order->histories->sortByDesc('created_at') as $history)
+                                <div class="flex items-start gap-3 text-sm">
+                                    <div class="text-[#555] whitespace-nowrap pt-0.5">{{ $history->created_at->format('M d, Y H:i') }}</div>
+                                    <div>
+                                        @if ($history->status)
+                                            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[#2A2A2A] text-[#C8C8C8]">{{ $history->status->name }}</span>
+                                        @endif
+                                        @if ($history->comment)
+                                            <p class="text-[#999] mt-0.5">{{ $history->comment }}</p>
+                                        @endif
+                                    </div>
                                 </div>
                             @endforeach
                         </div>

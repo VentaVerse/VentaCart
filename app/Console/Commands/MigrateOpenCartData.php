@@ -241,15 +241,24 @@ class MigrateOpenCartData extends Command
             foreach ($ocProducts as $op) {
                 $ventaProductId = $productMap[$op->product_id] ?? null;
 
+                // Get variant label from order_option
+                $variantLabel = DB::table('0012_order_option')
+                    ->where('order_product_id', $op->order_product_id)
+                    ->orderBy('order_option_id')
+                    ->get()
+                    ->map(fn($o) => $o->name . ': ' . $o->value)
+                    ->implode(' / ') ?: null;
+
                 DB::table('order_products')->insert([
                     'order_id' => $oc->order_id,
                     'product_id' => $ventaProductId,
                     'name' => $op->name,
                     'sku' => $op->model ?: null,
+                    'variant_label' => $variantLabel,
                     'price' => (float) $op->price,
                     'quantity' => $op->quantity,
                     'total' => (float) $op->total,
-                    'is_custom' => $ventaProductId === null, // Mark unmapped as custom
+                    'is_custom' => $ventaProductId === null,
                     'created_at' => $oc->date_added,
                     'updated_at' => $oc->date_added,
                 ]);

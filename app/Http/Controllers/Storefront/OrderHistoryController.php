@@ -22,7 +22,7 @@ class OrderHistoryController extends Controller
     {
         abort_if($order->customer_id !== Auth::guard('customer')->id(), 403);
 
-        $order->load(['products', 'histories', 'status']);
+        $order->load(['products', 'histories.status', 'status', 'shippingCourier']);
 
         return view('account.order-detail', compact('order'));
     }

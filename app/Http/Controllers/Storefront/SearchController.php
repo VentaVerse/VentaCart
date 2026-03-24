@@ -48,7 +48,10 @@ class SearchController extends Controller
                 $products->latest();
         }
 
-        $products = $products->with(['images', 'specials', 'brand'])->paginate(12)->withQueryString();
+        $products = $products->with(['images', 'specials', 'brand'])
+            ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+            ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
+            ->paginate(12)->withQueryString();
 
         return view('search.results', compact('products', 'query', 'sort'));
     }

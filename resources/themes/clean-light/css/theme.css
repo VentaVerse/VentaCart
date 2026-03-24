@@ -528,6 +528,30 @@
         @apply hover:text-[var(--color-primary)] transition-colors duration-200;
     }
 
+    .product-card .product-rating {
+        @apply flex items-center justify-center gap-0.5 mt-1;
+    }
+
+    .product-card .star-icon {
+        @apply w-3.5 h-3.5;
+    }
+
+    .product-card .star-full {
+        color: #F5A623;
+    }
+
+    .product-card .star-half {
+        color: #F5A623;
+    }
+
+    .product-card .star-empty {
+        color: #D1D5DB;
+    }
+
+    .product-card .review-count {
+        @apply text-[11px] text-gray-400 ml-0.5;
+    }
+
     .product-card .product-price {
         font-family: var(--font-heading);
         @apply text-xl text-gray-900 font-bold;

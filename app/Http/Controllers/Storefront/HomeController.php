@@ -44,7 +44,9 @@ class HomeController extends Controller
         $limit = $config['limit'] ?? 12;
         $filter = $config['filter'] ?? 'new';
 
-        $query = Product::where('is_active', true)->with(['images', 'specials']);
+        $query = Product::where('is_active', true)->with(['images', 'specials'])
+            ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+            ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]);
 
         switch ($filter) {
             case 'new':

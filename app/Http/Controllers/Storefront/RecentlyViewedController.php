@@ -26,6 +26,8 @@ class RecentlyViewedController extends Controller
         $products = Product::where('is_active', true)
             ->whereIn('id', $ids)
             ->with(['images', 'specials'])
+            ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+            ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
             ->get()
             ->map(function ($product) use ($badgeService, $currency) {
                 $image = $product->images->sortBy('sort_order')->first();
@@ -52,6 +54,8 @@ class RecentlyViewedController extends Controller
                     'url' => route('product.show', $product->slug),
                     'image' => $image ? storage_url($image->path) : null,
                     'badges' => $badgeService->getBadgesForProduct($product),
+                    'reviews_avg' => $product->reviews_avg_rating ? round($product->reviews_avg_rating, 1) : null,
+                    'reviews_count' => (int) $product->reviews_count,
                 ];
             });
 
