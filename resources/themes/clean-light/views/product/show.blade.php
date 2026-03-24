@@ -160,6 +160,10 @@
                                 </div>
                             </div>
                         @endif
+                    @elseif ($overrideSpecial)
+                        <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
+                            {{ $currencySymbol }}{{ number_format($overrideSpecial->price, 2) }}
+                        </span>
                     @else
                         <span class="text-4xl" class="font-heading-narrow">
                             {{ $currencySymbol }}{{ number_format($product->price, 2) }}

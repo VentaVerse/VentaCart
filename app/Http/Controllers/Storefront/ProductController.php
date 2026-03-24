@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\ThemeService;
 use App\Services\CartService;
+use Illuminate\Support\Facades\Auth;
 
 class ProductController extends Controller
 {
@@ -29,15 +30,36 @@ class ProductController extends Controller
         // Increment views
         $product->increment('views');
 
-        // Active special (sale pricing)
+        // Active special (sale or override pricing)
+        $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+
         $activeSpecial = $product->specials
             ->where('display_mode', 'sale')
-            ->filter(function ($s) {
-                return (!$s->date_start || $s->date_start <= now())
-                    && (!$s->date_end || $s->date_end >= now());
+            ->filter(function ($s) use ($customerGroupId) {
+                if ($s->date_start && $s->date_start > now()) return false;
+                if ($s->date_end && $s->date_end < now()) return false;
+                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                if ($s->quantity > 1) return false;
+                return true;
             })
             ->sortBy('priority')
             ->first();
+
+        // Override special (clean price replacement — no strikethrough)
+        $overrideSpecial = null;
+        if (!$activeSpecial) {
+            $overrideSpecial = $product->specials
+                ->where('display_mode', 'override')
+                ->filter(function ($s) use ($customerGroupId) {
+                    if ($s->date_start && $s->date_start > now()) return false;
+                    if ($s->date_end && $s->date_end < now()) return false;
+                    if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                    if ($s->quantity > 1) return false;
+                    return true;
+                })
+                ->sortBy('priority')
+                ->first();
+        }
 
         // Below-product modules from settings
         $settings = $theme->getGroup('product_page');
@@ -129,10 +151,11 @@ class ProductController extends Controller
         $reviewCount = $approvedReviews->count();
 
         // Determine the effective price for the addToCart component
-        $effectivePrice = $activeSpecial ? (float) $activeSpecial->price : (float) $product->price;
+        $effectivePrice = $activeSpecial ? (float) $activeSpecial->price
+            : ($overrideSpecial ? (float) $overrideSpecial->price : (float) $product->price);
 
         return view('product.show', compact(
-            'product', 'activeSpecial', 'settings',
+            'product', 'activeSpecial', 'overrideSpecial', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
             'variantMatrix', 'variantTypes', 'effectivePrice',

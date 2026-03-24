@@ -4,17 +4,43 @@
 
     $price = $product->price;
     $salePrice = null;
+    $overridePrice = null;
+    $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+
+    // Check for sale special (shows strikethrough)
     $activeSpecial = $product->specials
         ->where('display_mode', 'sale')
-        ->filter(function ($s) {
-            return (!$s->date_start || $s->date_start <= now())
-                && (!$s->date_end || $s->date_end >= now());
+        ->filter(function ($s) use ($customerGroupId) {
+            if ($s->date_start && $s->date_start > now()) return false;
+            if ($s->date_end && $s->date_end < now()) return false;
+            if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+            if ($s->quantity > 1) return false;
+            return true;
         })
         ->sortBy('priority')
         ->first();
 
     if ($activeSpecial) {
         $salePrice = $activeSpecial->price;
+    }
+
+    // Check for override special (clean price replacement, no strikethrough)
+    if (!$salePrice) {
+        $overrideSpecial = $product->specials
+            ->where('display_mode', 'override')
+            ->filter(function ($s) use ($customerGroupId) {
+                if ($s->date_start && $s->date_start > now()) return false;
+                if ($s->date_end && $s->date_end < now()) return false;
+                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                if ($s->quantity > 1) return false;
+                return true;
+            })
+            ->sortBy('priority')
+            ->first();
+
+        if ($overrideSpecial) {
+            $overridePrice = $overrideSpecial->price;
+        }
     }
 
     $currency = $defaultCurrency ?? (object)['symbol' => '₱'];
@@ -77,6 +103,8 @@
             @if ($salePrice)
                 <span class="product-price-old">{{ $currency->symbol }}{{ number_format($price, 2) }}</span>
                 <span class="product-price-sale">{{ $currency->symbol }}{{ number_format($salePrice, 2) }}</span>
+            @elseif ($overridePrice)
+                {{ $currency->symbol }}{{ number_format($overridePrice, 2) }}
             @else
                 {{ $currency->symbol }}{{ number_format($price, 2) }}
             @endif

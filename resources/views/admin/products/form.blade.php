@@ -276,19 +276,55 @@
             {{-- ===================== LINKS ===================== --}}
             <div x-show="activeTab === 'links'" class="p-6 space-y-6">
                 {{-- Categories --}}
-                <div>
+                @php
+                    $allCategories = $categories->map(function($c) use ($categories) {
+                        $parent = $c->parent_id ? $categories->firstWhere('id', $c->parent_id) : null;
+                        return ['id' => $c->id, 'name' => $parent ? $parent->name . ' > ' . $c->name : $c->name];
+                    })->sortBy('name')->values()->toArray();
+                    $selectedCategoryIds = old('category_ids', $product?->categories->pluck('id')->toArray() ?? []);
+                @endphp
+                <div x-data="categoryPicker()">
                     <h3 class="text-sm font-semibold text-gray-700 mb-3">Categories</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        @foreach ($categories as $category)
-                            <label class="flex items-center">
-                                <input type="checkbox" name="category_ids[]" value="{{ $category->id }}"
-                                    {{ in_array($category->id, old('category_ids', $product?->categories->pluck('id')->toArray() ?? [])) ? 'checked' : '' }}
-                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                <span class="ml-2 text-sm text-gray-700">{{ $category->name }}</span>
-                            </label>
-                        @endforeach
+
+                    {{-- Hidden inputs for form submission --}}
+                    <template x-for="id in selected" :key="id">
+                        <input type="hidden" name="category_ids[]" :value="id">
+                    </template>
+
+                    {{-- Search input + dropdown --}}
+                    <div class="relative" @click.outside="open = false">
+                        <input type="text" x-model="search" @focus="open = true" @input="open = true"
+                            placeholder="Search categories..."
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 pr-8">
+                        <svg class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+
+                        {{-- Dropdown --}}
+                        <div x-show="open && filtered.length > 0" x-transition
+                            class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200">
+                            <template x-for="cat in filtered" :key="cat.id">
+                                <button type="button" @mousedown.prevent="add(cat)"
+                                    class="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                    x-text="cat.name"></button>
+                            </template>
+                        </div>
                     </div>
+
                     @error('category_ids') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+
+                    {{-- Selected categories list --}}
+                    <div x-show="selected.length > 0" class="mt-3">
+                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                            <template x-for="cat in selectedCategories" :key="cat.id">
+                                <div class="flex items-center justify-between px-3 py-2 text-sm border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+                                    <span class="text-gray-700" x-text="cat.name"></span>
+                                    <button type="button" @click="remove(cat.id)" class="text-gray-400 hover:text-red-500 transition-colors p-0.5" title="Remove">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1.5" x-text="selected.length + ' selected'"></p>
+                    </div>
                 </div>
 
                 {{-- Customer Group Visibility --}}
@@ -437,14 +473,14 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        {{-- Submit --}}
-        <div class="flex justify-end space-x-3">
-            <a href="{{ route('admin.products.index') }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">Cancel</a>
-            <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                {{ $product ? 'Update Product' : 'Create Product' }}
-            </button>
+            {{-- Submit --}}
+            <div class="border-t border-gray-200 px-6 py-3 flex justify-end space-x-3">
+                <a href="{{ route('admin.products.index') }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">Cancel</a>
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                    {{ $product ? 'Update Product' : 'Create Product' }}
+                </button>
+            </div>
         </div>
     </form>
 
@@ -531,6 +567,30 @@
                     this.search = '';
                     this.results = [];
                 }
+            };
+        }
+
+        window.__allCategories = @json($allCategories);
+        window.__selectedCategoryIds = @json(array_map('intval', $selectedCategoryIds));
+
+        function categoryPicker() {
+            return {
+                search: '',
+                open: false,
+                allCategories: window.__allCategories,
+                selected: [...window.__selectedCategoryIds],
+                get filtered() {
+                    const sel = this.selected;
+                    if (!this.search) return this.allCategories.filter(function(c) { return sel.indexOf(c.id) === -1; });
+                    const q = this.search.toLowerCase();
+                    return this.allCategories.filter(function(c) { return sel.indexOf(c.id) === -1 && c.name.toLowerCase().indexOf(q) !== -1; });
+                },
+                get selectedCategories() {
+                    const sel = this.selected;
+                    return this.allCategories.filter(function(c) { return sel.indexOf(c.id) !== -1; });
+                },
+                add(cat) { this.selected.push(cat.id); this.search = ''; this.open = false; },
+                remove(id) { this.selected = this.selected.filter(function(i) { return i !== id; }); }
             };
         }
 
