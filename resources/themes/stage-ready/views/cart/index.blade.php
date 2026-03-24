@@ -15,7 +15,7 @@
                     <div class="cart-table">
                         <template x-for="item in items" :key="item.id">
                             <div class="cart-item" x-show="!item._removed" x-transition.opacity>
-                                <div class="cart-item-image">
+                                <a :href="item.product ? '/product/' + item.product.slug : '#'" class="cart-item-image">
                                     <template x-if="item.product && item.product.images && item.product.images.length">
                                         <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" loading="lazy">
                                     </template>
@@ -24,10 +24,10 @@
                                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         </div>
                                     </template>
-                                </div>
+                                </a>
 
                                 <div class="cart-item-details">
-                                    <div class="cart-item-name" x-text="item.name"></div>
+                                    <a :href="item.product ? '/product/' + item.product.slug : '#'" class="cart-item-name hover:text-[var(--color-primary)] transition-colors" x-text="item.name"></a>
                                     <div class="cart-item-variant" x-show="item.variant_label" x-text="item.variant_label"></div>
                                     <div class="cart-item-sku" x-show="item.sku" x-text="'SKU: ' + item.sku"></div>
                                 </div>
