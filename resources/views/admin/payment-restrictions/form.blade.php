@@ -1,8 +1,13 @@
 <x-admin-layout>
-    <x-slot name="header">{{ $restriction ? 'Edit Restriction: ' . \App\Models\PaymentMethodRestriction::getPaymentMethodLabel($restriction->payment_method) : 'Add Payment Restriction' }}</x-slot>
+    <x-slot name="breadcrumb">
+        <a href="{{ route('admin.payment-settings.index') }}" class="text-gray-500 hover:text-gray-700 font-medium">Payment</a>
+        <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        <a href="{{ route('admin.payment-restrictions.index') }}" class="text-gray-500 hover:text-gray-700 font-medium">Restrictions</a>
+    </x-slot>
+    <x-slot name="header">{{ $restriction ? 'Edit: ' . \App\Models\PaymentMethodRestriction::getPaymentMethodLabel($restriction->payment_method) : 'Add Restriction' }}</x-slot>
     <x-slot name="headerActions">
         <a href="{{ route('admin.payment-restrictions.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-            Back to Restrictions
+            Back
         </a>
     </x-slot>
 

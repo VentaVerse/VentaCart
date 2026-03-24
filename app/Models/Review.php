@@ -13,6 +13,7 @@ class Review extends Model
     protected $fillable = [
         'product_id', 'customer_id', 'order_id', 'token', 'name', 'email',
         'rating', 'title', 'body', 'status', 'is_verified_purchase', 'published_at',
+        'platform', 'platform_review_id',
     ];
 
     protected function casts(): array

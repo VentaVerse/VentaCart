@@ -29,6 +29,12 @@
                         <span class="w-2 h-2 rounded-full shrink-0 {{ $ext['enabled'] ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
                     </button>
                 @endforeach
+                <div class="border-t border-gray-100">
+                    <a href="{{ route('admin.payment-restrictions.index') }}"
+                        class="flex items-center w-full px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 border-l-2 border-transparent transition-colors text-left">
+                        Restrictions
+                    </a>
+                </div>
             </div>
         </nav>
 
@@ -55,8 +61,6 @@
                     </form>
                 </div>
                 <div class="p-5">
-                    <p class="text-xs text-gray-400 mb-4">Restrictions: <a href="{{ route('admin.payment-restrictions.index') }}" class="text-indigo-600 hover:underline">Payment Restrictions</a></p>
-
                     {{-- Bank Accounts Table --}}
                     <div class="overflow-hidden rounded-lg border border-gray-200 mb-4">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
@@ -253,7 +257,6 @@
                                 </select>
                             </div>
                         </div>
-                        <p class="mt-3 text-xs text-gray-400">Restrictions: <a href="{{ route('admin.payment-restrictions.index') }}" class="text-indigo-600 hover:underline">Payment Restrictions</a></p>
                         <div class="mt-6">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
                         </div>
@@ -291,7 +294,6 @@
                                 <input type="number" name="settings[cod_sort_order]" value="{{ $settings['payment']['cod_sort_order'] ?? '0' }}" min="0" class="mt-1 block w-24 rounded-md border-gray-300 text-sm">
                             </div>
                         </div>
-                        <p class="mt-3 text-xs text-gray-400">Restrictions: <a href="{{ route('admin.payment-restrictions.index') }}" class="text-indigo-600 hover:underline">Payment Restrictions</a></p>
                         <div class="mt-6">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
                         </div>

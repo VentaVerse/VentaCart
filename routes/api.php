@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\ErpProductController;
 use App\Http\Controllers\Api\ErpVariantController;
 use App\Http\Controllers\Api\ErpOrderController;
 use App\Http\Controllers\Api\ErpCatalogController;
+use App\Http\Controllers\Api\ErpReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('erp.auth')->group(function () {
@@ -30,4 +31,7 @@ Route::prefix('v1')->middleware('erp.auth')->group(function () {
     Route::get('/orders', [ErpOrderController::class, 'index']);
     Route::get('/orders/{id}', [ErpOrderController::class, 'show']);
     Route::put('/orders/{id}/status', [ErpOrderController::class, 'updateStatus']);
+
+    // Reviews
+    Route::post('/reviews', [ErpReviewController::class, 'store']);
 });

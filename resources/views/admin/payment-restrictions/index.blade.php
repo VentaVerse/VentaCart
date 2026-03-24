@@ -1,15 +1,14 @@
 <x-admin-layout>
-    <x-slot name="header">Payment Restrictions</x-slot>
+    <x-slot name="breadcrumb">
+        <a href="{{ route('admin.payment-settings.index') }}" class="text-gray-500 hover:text-gray-700 font-medium">Payment</a>
+    </x-slot>
+    <x-slot name="header">Restrictions</x-slot>
     <x-slot name="headerActions">
         <a href="{{ route('admin.payment-restrictions.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Add Restriction
         </a>
     </x-slot>
-
-    <div class="mb-4">
-        <a href="{{ route('admin.payment-settings.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800">&larr; Back to Payment Settings</a>
-    </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
