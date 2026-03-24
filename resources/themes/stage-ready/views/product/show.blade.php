@@ -221,10 +221,6 @@
                 {{-- Add to Cart / Notify Me --}}
                 <template x-if="!isOutOfStock">
                     <div>
-                        <div x-show="quantity > 1" class="mb-3 text-sm text-[#999]">
-                            <span>Total: </span>
-                            <span class="text-lg text-[#E8E8E8]" class="font-heading">{{ $currencySymbol }}<span x-text="totalPrice.toFixed(2)"></span></span>
-                        </div>
                         <div class="flex items-center gap-3 mb-6">
                             <div class="cart-item-qty">
                                 <button type="button" class="qty-btn" @click="if(quantity > 1) quantity--">-</button>
