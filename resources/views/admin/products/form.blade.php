@@ -405,13 +405,13 @@
                     </div>
                     <div class="overflow-x-auto">
                         <div class="overflow-hidden rounded-lg border border-gray-200">
-                            <table class="min-w-full divide-y divide-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200 variant-table">
                                 <thead class="bg-gray-50">
                                     <tr>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-36">Variant</th>
                                         <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-28">Price (₱)</th>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-20">Stock</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-32">Price (₱)</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-28">Stock</th>
                                         <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-24">Weight</th>
                                         <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 uppercase w-14">On</th>
                                     </tr>
@@ -504,6 +504,12 @@
     </form>
 
     @push('scripts')
+    <style>
+        /* Hide number input spinners in variant table */
+        .variant-table input[type="number"]::-webkit-inner-spin-button,
+        .variant-table input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .variant-table input[type="number"] { -moz-appearance: textfield; }
+    </style>
     {{-- TinyMCE dialog input borders — must load after TinyMCE's skin --}}
     <style>
         .tox .tox-dialog .tox-textfield,
