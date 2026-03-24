@@ -403,54 +403,79 @@
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Combinations <span class="text-gray-300" x-text="'(' + variants.length + ')'"></span></h3>
                     </div>
-                    <div class="overflow-x-auto">
-                        <div class="overflow-hidden rounded-lg border border-gray-200">
-                            <table class="min-w-full divide-y divide-gray-200 variant-table">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-36">Variant</th>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-32">Price (₱)</th>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-28">Stock</th>
-                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-24">Weight</th>
-                                        <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 uppercase w-14">On</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <template x-for="(variant, vIndex) in variants" :key="vIndex">
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-3 py-1.5">
-                                                <span class="text-sm font-medium text-gray-900" x-text="variant.label"></span>
-                                                <template x-for="(key, kIndex) in variant.value_keys" :key="kIndex">
-                                                    <input type="hidden" :name="'variants['+vIndex+'][value_keys]['+kIndex+']'" :value="key">
-                                                </template>
-                                            </td>
-                                            <td class="px-3 py-1.5">
-                                                <input type="text" x-model="variant.sku" :name="'variants['+vIndex+'][sku]'"
-                                                    :class="isSkuDuplicate(variant.sku, vIndex) ? 'ring-1 ring-red-500 border-red-400' : 'border-gray-300'"
-                                                    class="w-full rounded-md text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="SKU">
-                                            </td>
-                                            <td class="px-3 py-1.5">
-                                                <input type="number" x-model="variant.price" :name="'variants['+vIndex+'][price]'" step="0.01" min="0"
-                                                    class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                            </td>
-                                            <td class="px-3 py-1.5">
-                                                <input type="number" x-model.number="variant.quantity" :name="'variants['+vIndex+'][quantity]'" min="0"
-                                                    class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                            </td>
-                                            <td class="px-3 py-1.5">
-                                                <input type="number" x-model="variant.weight" :name="'variants['+vIndex+'][weight]'" step="0.001" min="0"
-                                                    class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="kg">
-                                            </td>
-                                            <td class="px-3 py-1.5 text-center">
-                                                <input type="checkbox" x-model="variant.is_active" :name="'variants['+vIndex+'][is_active]'"
-                                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden variant-table">
+                        {{-- Header --}}
+                        <div class="flex bg-gray-50 border-b border-gray-200">
+                            <div class="w-32 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Variant</div>
+                            <div class="flex-1 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">SKU</div>
+                            <div class="w-28 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Price (₱)</div>
+                            <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Stock</div>
+                            <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Weight</div>
+                            <div class="w-10 shrink-0 px-2 py-2.5 text-xs font-medium text-gray-500 uppercase text-center">On</div>
                         </div>
+
+                        {{-- Rows --}}
+                        <template x-for="(variant, vIndex) in variants" :key="vIndex">
+                            <div x-data="{ showGroups: false }" class="border-b border-gray-100 last:border-b-0">
+                                {{-- Main row --}}
+                                <div class="flex items-center hover:bg-gray-50">
+                                    <div class="w-32 shrink-0 px-3 py-2">
+                                        <div class="flex items-center gap-1.5">
+                                            <button type="button" @click="showGroups = !showGroups"
+                                                class="shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors"
+                                                :class="showGroups ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-indigo-600 hover:bg-gray-100'"
+                                                title="Group prices">
+                                                <svg class="w-3 h-3 transition-transform" :class="showGroups && 'rotate-90'" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                            </button>
+                                            <span class="text-sm font-medium text-gray-900" x-text="variant.label"></span>
+                                        </div>
+                                        <template x-for="(key, kIndex) in variant.value_keys" :key="kIndex">
+                                            <input type="hidden" :name="'variants['+vIndex+'][value_keys]['+kIndex+']'" :value="key">
+                                        </template>
+                                    </div>
+                                    <div class="flex-1 px-2 py-1.5">
+                                        <input type="text" x-model="variant.sku" :name="'variants['+vIndex+'][sku]'"
+                                            :class="isSkuDuplicate(variant.sku, vIndex) ? 'ring-1 ring-red-500 border-red-400' : 'border-gray-300'"
+                                            class="w-full rounded-md text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="SKU">
+                                    </div>
+                                    <div class="w-28 shrink-0 px-2 py-1.5">
+                                        <input type="number" x-model="variant.price" :name="'variants['+vIndex+'][price]'" step="0.01" min="0"
+                                            class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                    </div>
+                                    <div class="w-20 shrink-0 px-2 py-1.5">
+                                        <input type="number" x-model.number="variant.quantity" :name="'variants['+vIndex+'][quantity]'" min="0"
+                                            class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                    </div>
+                                    <div class="w-20 shrink-0 px-2 py-1.5">
+                                        <input type="number" x-model="variant.weight" :name="'variants['+vIndex+'][weight]'" step="0.001" min="0"
+                                            class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="kg">
+                                    </div>
+                                    <div class="w-10 shrink-0 px-2 py-1.5 text-center">
+                                        <input type="checkbox" x-model="variant.is_active" :name="'variants['+vIndex+'][is_active]'"
+                                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
+                                    </div>
+                                </div>
+
+                                {{-- Group prices (expandable) --}}
+                                <div x-show="showGroups" x-transition class="px-3 py-3 bg-gray-50 border-t border-gray-100">
+                                    <div class="flex items-start gap-4 ml-7">
+                                        <span class="text-[10px] text-gray-400 uppercase tracking-wider pt-1 shrink-0">Group Prices</span>
+                                        <div class="flex flex-wrap gap-x-4 gap-y-2">
+                                            @foreach ($customerGroups as $cg)
+                                                <div class="flex items-center gap-1.5">
+                                                    <label class="text-xs text-gray-500 whitespace-nowrap">{{ $cg->name }}</label>
+                                                    <input type="number"
+                                                        :name="'variants['+vIndex+'][group_prices][{{ $cg->id }}]'"
+                                                        :value="variant.group_prices?.['{{ $cg->id }}'] || ''"
+                                                        step="0.01" min="0" placeholder="—"
+                                                        class="w-24 rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
@@ -698,6 +723,7 @@
                             quantity: existing?.quantity || 0,
                             weight: existing?.weight || '',
                             is_active: existing?.is_active ?? true,
+                            group_prices: existing?.group_prices || {},
                         };
                     });
                 },

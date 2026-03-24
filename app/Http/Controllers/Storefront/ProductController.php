@@ -23,7 +23,7 @@ class ProductController extends Controller
             'tags',
             'specials',
             'variantTypes.values',
-            'variants',
+            'variants.groupPrices',
             'approvedReviews.images',
         ]);
 
@@ -122,9 +122,19 @@ class ProductController extends Controller
                 $valueIds = $variant->values->pluck('id')->sort()->values();
                 $key = $valueIds->implode('_');
 
-                // Determine variant price (check for active special on variant)
+                // Determine variant price: group price > special > variant default
                 $variantPrice = $variant->price ?? $product->price;
-                if ($activeSpecial) {
+
+                // Check customer group-specific variant price
+                if ($customerGroupId) {
+                    $groupPrice = $variant->groupPrices->where('customer_group_id', $customerGroupId)->first();
+                    if ($groupPrice) {
+                        $variantPrice = (float) $groupPrice->price;
+                    }
+                }
+
+                // Sale special overrides if lower
+                if ($activeSpecial && $activeSpecial->price < $variantPrice) {
                     $variantPrice = $activeSpecial->price;
                 }
 

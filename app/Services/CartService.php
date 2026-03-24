@@ -68,8 +68,18 @@ class CartService
                 ->where('is_active', true)
                 ->firstOrFail();
 
-            $variant->load('values');
+            $variant->load('values', 'groupPrices');
             $price = $variant->price;
+
+            // Check for customer group-specific variant price
+            $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+            if ($customerGroupId) {
+                $groupPrice = $variant->groupPrices->where('customer_group_id', $customerGroupId)->first();
+                if ($groupPrice) {
+                    $price = (float) $groupPrice->price;
+                }
+            }
+
             $sku = $variant->sku ?: $product->sku;
             $variantLabel = $variant->name;
         }
