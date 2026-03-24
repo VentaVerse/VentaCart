@@ -22,18 +22,6 @@
                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="e.g. Wampler, Boss, Friedman">
                     @error('name') <p class="mt-1.5 text-sm text-red-600">{{ $message }}</p> @enderror
-
-                    <div class="mt-3">
-                        <label for="slug" class="block text-sm text-gray-600 mb-1">Slug</label>
-                        <div class="flex items-center gap-1">
-                            <span class="text-xs text-gray-400">/brand/</span>
-                            <input type="text" name="slug" id="slug" value="{{ old('slug', $brand?->slug) }}"
-                                class="flex-1 rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="auto-generated-from-name">
-                        </div>
-                        <p class="text-[11px] text-gray-400 mt-1">Leave blank to auto-generate from name</p>
-                        @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
                 </div>
 
                 {{-- Image --}}
@@ -61,6 +49,17 @@
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">SEO</label>
                     <div class="space-y-4">
+                        <div>
+                            <label for="slug" class="block text-sm text-gray-600 mb-1">Slug</label>
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs text-gray-400">/brand/</span>
+                                <input type="text" name="slug" id="slug" value="{{ old('slug', $brand?->slug) }}"
+                                    class="flex-1 rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="auto-generated-from-name">
+                            </div>
+                            <p class="text-[11px] text-gray-400 mt-1">Leave blank to auto-generate from name</p>
+                            @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
                         <div>
                             <label for="meta_title" class="block text-sm text-gray-600 mb-1">Meta Title</label>
                             <input type="text" name="meta_title" id="meta_title" value="{{ old('meta_title', $brand?->meta_title) }}"

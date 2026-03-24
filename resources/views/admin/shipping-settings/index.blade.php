@@ -231,16 +231,19 @@
                                             </template>
                                         </div>
 
-                                        {{-- Actions --}}
-                                        <div class="flex items-center justify-between pt-2">
-                                            <form method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" onsubmit="return confirm('Delete {{ addslashes($wm->name) }} and all its tiers?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete Method</button>
-                                            </form>
+                                        {{-- Save --}}
+                                        <div class="flex items-center justify-end pt-2">
                                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
                                         </div>
                                     </div>
                                 </form>
+                                {{-- Delete (outside the update form to avoid nested form issue) --}}
+                                <div class="px-5 pb-4 flex justify-start">
+                                    <form method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" onsubmit="return confirm('Delete {{ addslashes($wm->name) }} and all its tiers?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete Method</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     @empty

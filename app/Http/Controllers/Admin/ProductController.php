@@ -97,7 +97,7 @@ class ProductController extends Controller
             $this->syncImagesFromJson($product, $request);
         });
 
-        return redirect()->route('admin.products.index')
+        return redirect()->route('admin.products.edit', $product)
             ->with('success', 'Product created successfully.');
     }
 
@@ -224,7 +224,7 @@ class ProductController extends Controller
             $this->syncImagesFromJson($product, $request);
         });
 
-        return redirect()->route('admin.products.index')
+        return redirect()->route('admin.products.edit', $product)
             ->with('success', 'Product updated successfully.');
     }
 

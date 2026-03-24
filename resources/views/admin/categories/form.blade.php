@@ -41,18 +41,6 @@
                 </div>
 
                 <div class="md:col-span-2">
-                    <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                    <div class="flex items-center gap-1">
-                        <span class="text-xs text-gray-400">/category/</span>
-                        <input type="text" name="slug" id="slug" value="{{ old('slug', $category?->slug) }}"
-                            class="flex-1 rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="auto-generated-from-name">
-                    </div>
-                    <p class="text-[11px] text-gray-400 mt-1">Leave blank to auto-generate from name</p>
-                    @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                </div>
-
-                <div class="md:col-span-2">
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea name="description" id="description" rows="4"
                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('description', $category?->description) }}</textarea>
@@ -91,6 +79,17 @@
             <div class="border-t border-gray-200 pt-6">
                 <h3 class="text-sm font-semibold text-gray-700 mb-4">SEO</h3>
                 <div class="space-y-4">
+                    <div>
+                        <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                        <div class="flex items-center gap-1">
+                            <span class="text-xs text-gray-400">/category/</span>
+                            <input type="text" name="slug" id="slug" value="{{ old('slug', $category?->slug) }}"
+                                class="flex-1 rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500"
+                                placeholder="auto-generated-from-name">
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">Leave blank to auto-generate from name</p>
+                        @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
                     <div>
                         <label for="meta_title" class="block text-sm font-medium text-gray-700 mb-1">Meta Title</label>
                         <input type="text" name="meta_title" id="meta_title" value="{{ old('meta_title', $category?->meta_title) }}" maxlength="255"
