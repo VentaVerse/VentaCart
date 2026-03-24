@@ -8,6 +8,7 @@ use App\Models\CustomerGroup;
 use App\Models\Brand;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Models\Tag;
 use App\Models\VariantType;
 use App\Models\VariantTypeValue;
 use Illuminate\Http\Request;
@@ -55,11 +56,13 @@ class ProductController extends Controller
     {
         $categories = Category::orderBy('name')->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
+        $tags = Tag::orderBy('name')->get();
 
         return view('admin.products.form', [
             'product' => null,
             'categories' => $categories,
             'customerGroups' => $customerGroups,
+            'tags' => $tags,
             'existingTypes' => [],
             'existingVariants' => [],
             'existingSpecials' => [],
@@ -89,6 +92,7 @@ class ProductController extends Controller
                 $product->categories()->sync($request->input('category_ids'));
             }
 
+            $product->tags()->sync($request->input('tag_ids', []));
             $product->customerGroups()->sync($request->input('customer_group_ids', []));
 
             $this->syncVariants($product, $request);
@@ -103,9 +107,10 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load(['brand', 'categories', 'customerGroups', 'specials', 'images', 'variantTypes.values', 'variants.values', 'variants.groupPrices']);
+        $product->load(['brand', 'categories', 'customerGroups', 'tags', 'specials', 'images', 'variantTypes.values', 'variants.values', 'variants.groupPrices']);
         $categories = Category::where('store_id', $product->store_id)->orderBy('name')->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
+        $tags = Tag::orderBy('name')->get();
 
         $existingTypes = $product->variantTypes->map(function ($t) {
             return [
@@ -192,7 +197,7 @@ class ProductController extends Controller
             }
         }
 
-        return view('admin.products.form', compact('product', 'categories', 'customerGroups', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken', 'brandFolder'));
+        return view('admin.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken', 'brandFolder'));
     }
 
     public function update(Request $request, Product $product)
@@ -222,6 +227,7 @@ class ProductController extends Controller
                 $product->categories()->detach();
             }
 
+            $product->tags()->sync($request->input('tag_ids', []));
             $product->customerGroups()->sync($request->input('customer_group_ids', []));
 
             $this->syncVariants($product, $request);

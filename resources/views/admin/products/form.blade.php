@@ -327,6 +327,59 @@
                     </div>
                 </div>
 
+                {{-- Tags --}}
+                @php
+                    $allTags = ($tags ?? collect())->map(function($t) { return ['id' => $t->id, 'name' => $t->name]; })->values()->toArray();
+                    $selectedTagIds = old('tag_ids', $product?->tags->pluck('id')->toArray() ?? []);
+                @endphp
+                <div x-data="{
+                    allItems: {{ json_encode($allTags) }},
+                    selected: {{ json_encode(array_map('intval', $selectedTagIds)) }},
+                    search: '',
+                    open: false,
+                    get filtered() {
+                        return this.allItems.filter(t => !this.selected.includes(t.id) && (!this.search || t.name.toLowerCase().includes(this.search.toLowerCase())));
+                    },
+                    get selectedTags() {
+                        return this.allItems.filter(t => this.selected.includes(t.id));
+                    },
+                    add(tag) { this.selected.push(tag.id); this.search = ''; this.open = false; },
+                    remove(id) { this.selected = this.selected.filter(i => i !== id); }
+                }">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Tags</h3>
+
+                    <template x-for="id in selected" :key="id">
+                        <input type="hidden" name="tag_ids[]" :value="id">
+                    </template>
+
+                    <div class="relative" @click.outside="open = false">
+                        <input type="text" x-model="search" @focus="open = true" @input="open = true"
+                            placeholder="Search tags..."
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 pr-8">
+                        <svg class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+
+                        <div x-show="open && filtered.length > 0" x-transition
+                            class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200">
+                            <template x-for="tag in filtered" :key="tag.id">
+                                <button type="button" @mousedown.prevent="add(tag)"
+                                    class="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+                                    x-text="tag.name"></button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div x-show="selected.length > 0" class="flex flex-wrap gap-1.5 mt-2">
+                        <template x-for="tag in selectedTags" :key="tag.id">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
+                                <span x-text="tag.name"></span>
+                                <button type="button" @click="remove(tag.id)" class="text-indigo-400 hover:text-indigo-700">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+
                 {{-- Customer Group Visibility --}}
                 <div class="border-t border-gray-200 pt-6">
                     <h3 class="text-sm font-semibold text-gray-700 mb-1">Customer Group Visibility</h3>
