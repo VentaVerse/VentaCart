@@ -97,6 +97,20 @@ class ThemeController extends Controller
         return redirect()->route('admin.settings.index')->with('success', 'Favicon uploaded.')->with('tab', 'general');
     }
 
+    public function removeLogo()
+    {
+        Setting::where('group', 'identity')->where('key', 'logo')->delete();
+        app(ThemeService::class)->clearCache();
+        return redirect()->route('admin.settings.index', ['tab' => 'general'])->with('success', 'Logo removed.');
+    }
+
+    public function removeFavicon()
+    {
+        Setting::where('group', 'identity')->where('key', 'favicon')->delete();
+        app(ThemeService::class)->clearCache();
+        return redirect()->route('admin.settings.index', ['tab' => 'general'])->with('success', 'Favicon removed.');
+    }
+
     public function switchTheme(Request $request)
     {
         $request->validate(['theme' => 'required|string']);

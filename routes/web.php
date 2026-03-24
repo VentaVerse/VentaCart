@@ -199,7 +199,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/theme', [ThemeController::class, 'index'])->name('theme.index');
     Route::post('/theme/settings', [ThemeController::class, 'updateSettings'])->name('theme.settings.update');
     Route::post('/theme/upload-logo', [ThemeController::class, 'uploadLogo'])->name('theme.upload-logo');
+    Route::delete('/theme/remove-logo', [ThemeController::class, 'removeLogo'])->name('theme.remove-logo');
     Route::post('/theme/upload-favicon', [ThemeController::class, 'uploadFavicon'])->name('theme.upload-favicon');
+    Route::delete('/theme/remove-favicon', [ThemeController::class, 'removeFavicon'])->name('theme.remove-favicon');
     Route::post('/theme/switch', [ThemeController::class, 'switchTheme'])->name('theme.switch');
     Route::post('/theme/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('theme.update-theme-settings');
 

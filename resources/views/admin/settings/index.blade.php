@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">Settings</x-slot>
 
-    <div x-data="{ activeTab: '{{ session('tab', 'general') }}' }">
+    <div x-data="{ activeTab: '{{ request('tab', session('tab', 'general')) }}' }">
         {{-- Tab Navigation --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <nav class="flex border-b border-gray-200 overflow-x-auto">
@@ -23,52 +23,81 @@
             </nav>
 
             {{-- ==================== GENERAL ==================== --}}
-            <div x-show="activeTab === 'general'" class="p-6">
-                <form method="POST" action="{{ route('admin.settings.update') }}">
+            <div x-show="activeTab === 'general'" class="p-6" x-data="{
+                saveGeneral() {
+                    // Save identity settings
+                    const identityForm = new FormData();
+                    identityForm.append('_token', '{{ csrf_token() }}');
+                    identityForm.append('group', 'identity');
+                    identityForm.append('settings[site_name]', this.$refs.siteName.value);
+                    fetch('{{ route('admin.settings.update') }}', { method: 'POST', body: identityForm });
+
+                    // Submit the main form (timezone under general)
+                    this.$refs.generalForm.submit();
+                }
+            }">
+                <form method="POST" action="{{ route('admin.settings.update') }}" x-ref="generalForm">
                     @csrf
-                    <input type="hidden" name="group" value="identity">
+                    <input type="hidden" name="group" value="general">
+                    <input type="hidden" name="_tab" value="general">
+
+                    {{-- Site Name --}}
                     <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Store Identity</h3>
                     <div class="space-y-4 max-w-lg">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Site Name</label>
-                            <input type="text" name="settings[site_name]" value="{{ $settings['identity']['site_name'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <input type="text" x-ref="siteName" value="{{ $settings['identity']['site_name'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                         </div>
                     </div>
-                    <div class="mt-6">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Identity</button>
-                    </div>
-                </form>
 
-                <div class="mt-8 border-t pt-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-lg">
-                    <div>
-                        <h4 class="text-sm font-medium text-gray-700 mb-2">Logo</h4>
-                        @if (!empty($settings['identity']['logo']))
-                            <img src="{{ asset('storage/' . $settings['identity']['logo']) }}" class="h-12 mb-2" alt="Logo">
-                        @endif
-                        <form method="POST" action="{{ route('admin.theme.upload-logo') }}" enctype="multipart/form-data" class="flex items-center gap-2">
+                    {{-- Logo / Favicon --}}
+                    <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-lg">
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Logo</h4>
+                            @if (!empty($settings['identity']['logo']))
+                                <div class="flex items-center gap-3 mb-2">
+                                    <img src="{{ storage_url($settings['identity']['logo']) }}" class="h-12" alt="Logo">
+                                    <form method="POST" action="{{ route('admin.theme.remove-logo') }}">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700">Remove</button>
+                                    </form>
+                                </div>
+                            @endif
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Favicon</h4>
+                            @if (!empty($settings['identity']['favicon']))
+                                <div class="flex items-center gap-3 mb-2">
+                                    <img src="{{ storage_url($settings['identity']['favicon']) }}" class="h-8" alt="Favicon">
+                                    <form method="POST" action="{{ route('admin.theme.remove-favicon') }}">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700">Remove</button>
+                                    </form>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-3 max-w-lg">
+                        <form method="POST" action="{{ route('admin.theme.upload-logo') }}" enctype="multipart/form-data">
                             @csrf
-                            <input type="file" name="logo" accept="image/*" class="text-sm">
-                            <button type="submit" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300">Upload</button>
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 cursor-pointer border border-gray-300 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                {{ !empty($settings['identity']['logo']) ? 'Change Logo' : 'Upload Logo' }}
+                                <input type="file" name="logo" accept="image/*" onchange="this.form.submit()" class="sr-only">
+                            </label>
+                        </form>
+                        <form method="POST" action="{{ route('admin.theme.upload-favicon') }}" enctype="multipart/form-data">
+                            @csrf
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 cursor-pointer border border-gray-300 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                {{ !empty($settings['identity']['favicon']) ? 'Change Favicon' : 'Upload Favicon' }}
+                                <input type="file" name="favicon" accept=".ico,.png,.svg" onchange="this.form.submit()" class="sr-only">
+                            </label>
                         </form>
                     </div>
-                    <div>
-                        <h4 class="text-sm font-medium text-gray-700 mb-2">Favicon</h4>
-                        @if (!empty($settings['identity']['favicon']))
-                            <img src="{{ asset('storage/' . $settings['identity']['favicon']) }}" class="h-8 mb-2" alt="Favicon">
-                        @endif
-                        <form method="POST" action="{{ route('admin.theme.upload-favicon') }}" enctype="multipart/form-data" class="flex items-center gap-2">
-                            @csrf
-                            <input type="file" name="favicon" accept=".ico,.png,.svg" class="text-sm">
-                            <button type="submit" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded hover:bg-gray-300">Upload</button>
-                        </form>
-                    </div>
-                </div>
 
-                {{-- Timezone --}}
-                <div class="border-t border-gray-200 mt-8 pt-8">
-                    <form method="POST" action="{{ route('admin.settings.update') }}">
-                        @csrf
-                        <input type="hidden" name="group" value="general">
+                    {{-- Timezone --}}
+                    <div class="border-t border-gray-200 mt-8 pt-6">
                         <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Timezone</h3>
                         <div class="max-w-lg">
                             <select name="settings[timezone]" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
@@ -78,11 +107,13 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="mt-6">
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Timezone</button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+
+                    {{-- Save --}}
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" @click="saveGeneral()" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                    </div>
+                </form>
 
 
             </div>
@@ -153,10 +184,23 @@
             </div>
 
             {{-- ==================== CHECKOUT ==================== --}}
-            <div x-show="activeTab === 'checkout'" class="p-6">
-                <form method="POST" action="{{ route('admin.settings.update') }}">
+            <div x-show="activeTab === 'checkout'" class="p-6" x-data="{
+                saveCheckout() {
+                    const stockForm = new FormData();
+                    stockForm.append('_token', '{{ csrf_token() }}');
+                    stockForm.append('group', 'stock');
+                    stockForm.append('settings[low_stock_alert_enabled]', this.$refs.lowStockEnabled.checked ? '1' : '0');
+                    stockForm.append('settings[low_stock_threshold]', this.$refs.lowStockThreshold.value);
+                    stockForm.append('settings[low_stock_alert_email]', this.$refs.lowStockEmail.value);
+                    fetch('{{ route('admin.settings.update') }}', { method: 'POST', body: stockForm });
+                    this.$refs.checkoutForm.submit();
+                }
+            }">
+                <form method="POST" action="{{ route('admin.settings.update') }}" x-ref="checkoutForm">
                     @csrf
                     <input type="hidden" name="group" value="checkout">
+                    <input type="hidden" name="_tab" value="checkout">
+
                     <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Checkout</h3>
                     <div class="space-y-4 max-w-lg">
                         <div class="flex items-center gap-3">
@@ -165,23 +209,14 @@
                             <label class="text-sm text-gray-700">Allow Guest Checkout</label>
                         </div>
                     </div>
-                    <div class="mt-6">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Checkout Settings</button>
-                    </div>
-                </form>
 
-                {{-- Stock management moved to Sales > Order Statuses --}}
-
-                {{-- Low Stock Alerts --}}
-                <div class="border-t border-gray-200 mt-8 pt-8">
-                    <form method="POST" action="{{ route('admin.settings.update') }}">
-                        @csrf
-                        <input type="hidden" name="group" value="stock">
+                    {{-- Low Stock Alerts --}}
+                    <div class="border-t border-gray-200 mt-8 pt-6">
                         <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Low Stock Alerts</h3>
                         <div class="space-y-4 max-w-lg">
                             <div class="flex items-center gap-3">
-                                <input type="hidden" name="settings[low_stock_alert_enabled]" value="0">
-                                <input type="checkbox" name="settings[low_stock_alert_enabled]" value="1"
+                                <input type="hidden" name="_stock_low_stock_alert_enabled" value="0">
+                                <input type="checkbox" x-ref="lowStockEnabled" value="1"
                                     {{ ($settings['stock']['low_stock_alert_enabled'] ?? '0') === '1' ? 'checked' : '' }}
                                     class="rounded border-gray-300 text-indigo-600">
                                 <label class="text-sm text-gray-700">Enable low stock email alerts</label>
@@ -189,25 +224,26 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Stock Threshold</label>
                                 <p class="text-xs text-gray-500 mb-1">Alert when a product's stock drops to or below this number.</p>
-                                <input type="number" name="settings[low_stock_threshold]"
+                                <input type="number" x-ref="lowStockThreshold"
                                     value="{{ $settings['stock']['low_stock_threshold'] ?? 5 }}"
                                     min="1" max="100"
                                     class="mt-1 block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Send alerts to</label>
-                                <input type="email" name="settings[low_stock_alert_email]"
+                                <input type="email" x-ref="lowStockEmail"
                                     value="{{ $settings['stock']['low_stock_alert_email'] ?? '' }}"
                                     placeholder="{{ auth()->user()->email }}"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                                 <p class="text-xs text-gray-500 mt-1">Leave blank to use admin email.</p>
                             </div>
                         </div>
-                        <div class="mt-6">
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Low Stock Settings</button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button type="button" @click="saveCheckout()" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                    </div>
+                </form>
             </div>
 
             {{-- ==================== MAIL ==================== --}}
@@ -261,8 +297,8 @@
                             <input type="text" name="settings[from_name]" value="{{ $settings['mail']['from_name'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" placeholder="New Gear Day">
                         </div>
                     </div>
-                    <div class="mt-6">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Mail Settings</button>
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
                     </div>
                 </form>
 
@@ -338,7 +374,7 @@
                     <p class="mt-3 text-xs text-gray-400">All requests require <code class="bg-gray-100 px-1 rounded">Authorization: Bearer {token}</code> header.</p>
                 </div>
 
-                <div class="mt-6">
+                <div class="mt-6 flex justify-end">
                     <a href="{{ route('admin.api-sync-logs.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
                         View API Sync Logs &rarr;
                     </a>

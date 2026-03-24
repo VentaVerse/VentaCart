@@ -85,7 +85,7 @@ class SettingController extends Controller
             default => $group,
         };
 
-        return redirect()->back()->with('success', ucfirst($group) . ' settings updated.')->with('tab', $tab);
+        return redirect()->route('admin.settings.index', ['tab' => $tab])->with('success', ucfirst($group) . ' settings updated.');
     }
 
     public function testMail(Request $request)
