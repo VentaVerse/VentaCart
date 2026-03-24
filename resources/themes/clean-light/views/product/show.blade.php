@@ -132,53 +132,50 @@
 
                 {{-- Price --}}
                 <div class="mb-5">
-                    {{-- Dynamic price: shows variant price when selected, otherwise base/special price --}}
-                    <template x-if="hasVariants && activeVariant">
-                        <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
-                            {{ $currencySymbol }}<span x-text="parseFloat(activeVariant.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
-                        </span>
-                    </template>
+                    {{-- Dynamic price: unit price × quantity, updates on variant or qty change --}}
+                    <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;"
+                          :style="quantity > 1 || (hasVariants && activeVariant) ? '' : 'display:none'">
+                        {{ $currencySymbol }}<span x-text="(displayPrice * quantity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                    </span>
 
-                    <template x-if="!hasVariants || !activeVariant">
-                        <div>
-                            @if ($activeSpecial)
-                                <div class="flex items-baseline gap-3">
-                                    <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
-                                        {{ $currencySymbol }}{{ number_format($activeSpecial->price, 2) }}
-                                    </span>
-                                    <span class="text-lg text-[#555] line-through">
-                                        {{ $currencySymbol }}{{ number_format($product->price, 2) }}
-                                    </span>
-                                    @php $pct = round((1 - $activeSpecial->price / $product->price) * 100); @endphp
-                                    <span class="text-xs font-bold text-white px-2 py-0.5 rounded" style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;">
-                                        -{{ $pct }}%
-                                    </span>
-                                </div>
-
-                                @if ($activeSpecial->date_end && $activeSpecial->date_end->lt(now()->addYear()))
-                                    <div class="mt-2" x-data="countdown({ endDate: '{{ $activeSpecial->date_end->toISOString() }}' })">
-                                        <div class="countdown" x-show="!expired">
-                                            <span class="unit" x-text="days"></span><span class="countdown-label">D</span>
-                                            <span class="separator">:</span>
-                                            <span class="unit" x-text="hours"></span><span class="countdown-label">H</span>
-                                            <span class="separator">:</span>
-                                            <span class="unit" x-text="minutes"></span><span class="countdown-label">M</span>
-                                            <span class="separator">:</span>
-                                            <span class="unit" x-text="seconds"></span><span class="countdown-label">S</span>
-                                        </div>
-                                    </div>
-                                @endif
-                            @elseif ($overrideSpecial)
-                                <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
-                                    {{ $currencySymbol }}{{ number_format($overrideSpecial->price, 2) }}
+                    <div x-show="quantity <= 1 && (!hasVariants || !activeVariant)">
+                        @if ($activeSpecial)
+                            <div class="flex items-baseline gap-3">
+                                <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
+                                    {{ $currencySymbol }}{{ number_format($activeSpecial->price, 2) }}
                                 </span>
-                            @else
-                                <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
+                                <span class="text-lg text-[#555] line-through">
                                     {{ $currencySymbol }}{{ number_format($product->price, 2) }}
                                 </span>
+                                @php $pct = round((1 - $activeSpecial->price / $product->price) * 100); @endphp
+                                <span class="text-xs font-bold text-white px-2 py-0.5 rounded" style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;">
+                                    -{{ $pct }}%
+                                </span>
+                            </div>
+
+                            @if ($activeSpecial->date_end && $activeSpecial->date_end->lt(now()->addYear()))
+                                <div class="mt-2" x-data="countdown({ endDate: '{{ $activeSpecial->date_end->toISOString() }}' })">
+                                    <div class="countdown" x-show="!expired">
+                                        <span class="unit" x-text="days"></span><span class="countdown-label">D</span>
+                                        <span class="separator">:</span>
+                                        <span class="unit" x-text="hours"></span><span class="countdown-label">H</span>
+                                        <span class="separator">:</span>
+                                        <span class="unit" x-text="minutes"></span><span class="countdown-label">M</span>
+                                        <span class="separator">:</span>
+                                        <span class="unit" x-text="seconds"></span><span class="countdown-label">S</span>
+                                    </div>
+                                </div>
                             @endif
-                        </div>
-                    </template>
+                        @elseif ($overrideSpecial)
+                            <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
+                                {{ $currencySymbol }}{{ number_format($overrideSpecial->price, 2) }}
+                            </span>
+                        @else
+                            <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
+                                {{ $currencySymbol }}{{ number_format($product->price, 2) }}
+                            </span>
+                        @endif
+                    </div>
                 </div>
 
                 {{-- Stock --}}

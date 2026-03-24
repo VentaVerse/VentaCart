@@ -336,6 +336,10 @@ Alpine.data('addToCart', (config = {}) => ({
         return this.basePrice;
     },
 
+    get displayPrice() {
+        return this.unitPrice;
+    },
+
     get totalPrice() {
         return this.unitPrice * this.quantity;
     },
