@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\DB;
 
 class MigrateOpenCartData extends Command
 {
-    protected $signature = 'oc:migrate {--customers} {--orders} {--all} {--dry-run}';
-    protected $description = 'Migrate customers and orders from OpenCart (0012_ tables) to Venta';
+    protected $signature = 'oc:migrate {--customers} {--orders} {--reviews} {--all} {--dry-run}';
+    protected $description = 'Migrate customers, orders, and reviews from OpenCart (0012_ tables) to Venta';
 
     private int $storeId;
 
@@ -32,8 +32,8 @@ class MigrateOpenCartData extends Command
         $dryRun = $this->option('dry-run');
         $all = $this->option('all');
 
-        if (!$all && !$this->option('customers') && !$this->option('orders')) {
-            $this->error('Specify --customers, --orders, or --all');
+        if (!$all && !$this->option('customers') && !$this->option('orders') && !$this->option('reviews')) {
+            $this->error('Specify --customers, --orders, --reviews, or --all');
             return 1;
         }
 
@@ -55,6 +55,10 @@ class MigrateOpenCartData extends Command
 
         if ($all || $this->option('orders')) {
             $this->migrateOrders($dryRun);
+        }
+
+        if ($all || $this->option('reviews')) {
+            $this->migrateReviews($dryRun);
         }
 
         $this->newLine();
@@ -311,5 +315,80 @@ class MigrateOpenCartData extends Command
             str_contains($ocCode, 'Lazada') => 'lazada',
             default => $ocCode ?: null,
         };
+    }
+
+    private function migrateReviews(bool $dryRun): void
+    {
+        $this->info('Migrating reviews...');
+
+        $productMap = DB::table('products')
+            ->whereNotNull('legacy_oc_id')
+            ->pluck('id', 'legacy_oc_id')
+            ->all();
+
+        $customerMap = DB::table('customers')
+            ->where('store_id', $this->storeId)
+            ->whereNotNull('legacy_oc_id')
+            ->pluck('id', 'legacy_oc_id')
+            ->all();
+
+        $existingCount = DB::table('reviews')->count();
+
+        $ocReviews = DB::table('0012_review')
+            ->where('store_id', 0)
+            ->orderBy('review_id')
+            ->get();
+
+        $inserted = 0;
+        $skipped = 0;
+
+        $bar = $this->output->createProgressBar($ocReviews->count());
+
+        foreach ($ocReviews as $oc) {
+            $bar->advance();
+
+            $ventaProductId = $productMap[$oc->product_id] ?? null;
+
+            if (!$ventaProductId) {
+                $skipped++;
+                continue;
+            }
+
+            if ($dryRun) {
+                $inserted++;
+                continue;
+            }
+
+            // Clean review text — strip Shopee/Lazada HTML comment tags
+            $body = trim(preg_replace('/<!--\[.*?\]-->/', '', $oc->text));
+
+            $statusMap = [1 => 'approved', 0 => 'pending'];
+
+            $validDate = fn($d) => $d && $d !== '0000-00-00 00:00:00' ? $d : now();
+            $createdAt = $validDate($oc->date_added);
+            $updatedAt = $validDate($oc->date_modified) !== now() ? $validDate($oc->date_modified) : $createdAt;
+
+            DB::table('reviews')->insert([
+                'product_id' => $ventaProductId,
+                'customer_id' => $customerMap[$oc->customer_id] ?? null,
+                'token' => bin2hex(random_bytes(16)),
+                'name' => $oc->author ?: 'Anonymous',
+                'email' => '',
+                'rating' => max(1, min(5, (int) $oc->rating)),
+                'title' => $oc->title ?: null,
+                'body' => $body ?: null,
+                'status' => $statusMap[$oc->status] ?? 'pending',
+                'is_verified_purchase' => (bool) $oc->verified_buyer,
+                'published_at' => $oc->status == 1 ? $createdAt : null,
+                'created_at' => $createdAt,
+                'updated_at' => $updatedAt,
+            ]);
+
+            $inserted++;
+        }
+
+        $bar->finish();
+        $this->newLine();
+        $this->info("  Reviews: {$inserted} inserted, {$skipped} skipped (unmapped products)");
     }
 }

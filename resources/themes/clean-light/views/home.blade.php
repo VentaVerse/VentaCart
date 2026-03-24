@@ -6,7 +6,7 @@
             <section>
                 @include('sections.banner', ['section' => $section])
             </section>
-            @include('partials.trust-bar')
+
 
         @elseif ($section->type === 'products')
             @if (($data['products'] ?? collect())->isNotEmpty())
