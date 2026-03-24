@@ -42,6 +42,8 @@
                         <a href="{{ route('customer.password.request') }}" class="text-sm text-[var(--color-primary)] hover:underline">Forgot password?</a>
                     </div>
 
+                    <x-turnstile />
+
                     <button type="submit" class="account-btn-primary w-full">SIGN IN</button>
                 </div>
             </form>

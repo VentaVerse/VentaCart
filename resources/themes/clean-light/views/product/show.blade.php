@@ -279,6 +279,7 @@
                                 <input type="email" x-model="notifyEmail" class="account-input w-full" placeholder="your@email.com">
                             </div>
                         </div>
+                            <x-turnstile id="turnstile-notify" />
                         <div x-show="notifyMessage" class="mt-3 text-sm" :class="notifySuccess ? 'text-emerald-600' : 'text-red-600'" x-text="notifyMessage"></div>
                         <div class="checkout-modal-actions mt-6">
                             <button @click="notifyModal = false" class="checkout-modal-btn-back">Cancel</button>

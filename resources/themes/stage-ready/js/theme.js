@@ -431,6 +431,8 @@ Alpine.data('addToCart', (config = {}) => ({
                     variant_id: this.activeVariant?.variant_id || null,
                     name: this.notifyName,
                     email: this.notifyEmail,
+                    'cf-turnstile-response': document.querySelector('#turnstile-notify [name="cf-turnstile-response"]')?.value
+                        || document.querySelector('[name="cf-turnstile-response"]')?.value || '',
                 }),
             });
             const data = await resp.json();

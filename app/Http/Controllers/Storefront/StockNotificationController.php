@@ -4,13 +4,21 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\StockNotification;
+use App\Services\TurnstileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StockNotificationController extends Controller
 {
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, TurnstileService $turnstile): JsonResponse
     {
+        if (!$turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Captcha verification failed. Please try again.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
             'variant_id' => ['nullable', 'exists:product_variants,id'],

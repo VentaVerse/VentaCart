@@ -25,6 +25,8 @@
                                class="account-input w-full">
                     </div>
 
+                    <x-turnstile />
+
                     <button type="submit" class="account-btn-primary w-full">SEND RESET LINK</button>
                 </div>
             </form>

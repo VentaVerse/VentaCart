@@ -57,6 +57,8 @@
                         Subscribe to newsletter
                     </label>
 
+                    <x-turnstile />
+
                     <button type="submit" class="account-btn-primary w-full">CREATE ACCOUNT</button>
                 </div>
             </form>

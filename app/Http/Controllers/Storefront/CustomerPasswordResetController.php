@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Services\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class CustomerPasswordResetController extends Controller
 {
@@ -16,11 +18,17 @@ class CustomerPasswordResetController extends Controller
         return view('account.forgot-password');
     }
 
-    public function sendResetLink(Request $request)
+    public function sendResetLink(Request $request, TurnstileService $turnstile)
     {
         $request->validate([
             'email' => 'required|email',
         ]);
+
+        if (!$turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'Captcha verification failed. Please try again.',
+            ]);
+        }
 
         $status = Password::broker('customers')->sendResetLink(
             $request->only('email')

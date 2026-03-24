@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Mail\WelcomeMail;
 use App\Services\CartService;
+use App\Services\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -28,8 +29,14 @@ class CustomerAuthController extends Controller
         return view('account.login', compact('redirect'));
     }
 
-    public function login(CustomerLoginRequest $request)
+    public function login(CustomerLoginRequest $request, TurnstileService $turnstile)
     {
+        if (!$turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'Captcha verification failed. Please try again.',
+            ]);
+        }
+
         $oldSessionId = session()->getId();
         $storeId = (int) config('app.store_id');
 
@@ -79,8 +86,14 @@ class CustomerAuthController extends Controller
         return view('account.register', compact('redirect'));
     }
 
-    public function register(CustomerRegisterRequest $request)
+    public function register(CustomerRegisterRequest $request, TurnstileService $turnstile)
     {
+        if (!$turnstile->verify($request->input('cf-turnstile-response'), $request->ip())) {
+            throw ValidationException::withMessages([
+                'cf-turnstile-response' => 'Captcha verification failed. Please try again.',
+            ]);
+        }
+
         $oldSessionId = session()->getId();
 
         $storeId = (int) config('app.store_id');

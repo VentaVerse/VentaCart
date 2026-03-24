@@ -23,6 +23,7 @@ class SettingController extends Controller
         'dhl_site_id',
         'dhl_password',
         'claude_api_key',
+        'turnstile_secret_key',
     ];
 
     public function index()
@@ -38,7 +39,7 @@ class SettingController extends Controller
         $maskedKeys = [];
         foreach (self::ENCRYPTED_KEYS as $key) {
             // Check payment, shipping, and seo groups for encrypted keys
-            $encrypted = $settings['payment'][$key] ?? $settings['shipping'][$key] ?? $settings['seo'][$key] ?? null;
+            $encrypted = $settings['payment'][$key] ?? $settings['shipping'][$key] ?? $settings['seo'][$key] ?? $settings['security'][$key] ?? null;
             if ($encrypted) {
                 try {
                     $plain = Crypt::decryptString($encrypted);

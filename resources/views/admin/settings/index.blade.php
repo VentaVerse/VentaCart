@@ -12,6 +12,7 @@
                         ['id' => 'checkout', 'label' => 'Checkout'],
                         ['id' => 'mail', 'label' => 'Mail'],
                         ['id' => 'api', 'label' => 'API'],
+                        ['id' => 'security', 'label' => 'Security'],
                         ['id' => 'cron', 'label' => 'Cron Jobs'],
                     ];
                 @endphp
@@ -400,6 +401,50 @@
                     <a href="{{ route('admin.api-sync-logs.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
                         View API Sync Logs &rarr;
                     </a>
+                </div>
+            </div>
+
+            {{-- ==================== SECURITY ==================== --}}
+            <div x-show="activeTab === 'security'" x-cloak class="p-6">
+                <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Cloudflare Turnstile</h3>
+                <p class="text-xs text-gray-500 mb-4">Protects login, registration, contact, and stock notification forms from bots. Get your keys at <a href="https://dash.cloudflare.com/turnstile" target="_blank" class="text-indigo-600 hover:underline">dash.cloudflare.com/turnstile</a>.</p>
+
+                <form method="POST" action="{{ route('admin.settings.update') }}">
+                    @csrf
+                    <input type="hidden" name="group" value="security">
+                    <input type="hidden" name="_tab" value="security">
+                    <div class="space-y-4 max-w-lg">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <input type="hidden" name="settings[turnstile_enabled]" value="0">
+                            <input type="checkbox" name="settings[turnstile_enabled]" value="1" {{ ($settings['security']['turnstile_enabled'] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                            Enable Turnstile
+                        </label>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Site Key</label>
+                            <input type="text" name="settings[turnstile_site_key]" value="{{ $settings['security']['turnstile_site_key'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm font-mono" placeholder="0x4AAAAAAA...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Secret Key</label>
+                            @if (!empty($maskedKeys['turnstile_secret_key'] ?? ''))
+                                <p class="text-xs text-gray-500 mb-1">Current: {{ $maskedKeys['turnstile_secret_key'] }}</p>
+                            @endif
+                            <input type="password" name="settings[turnstile_secret_key]" autocomplete="new-password" placeholder="{{ !empty($maskedKeys['turnstile_secret_key'] ?? '') ? 'Leave blank to keep current' : 'Enter secret key' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm font-mono">
+                        </div>
+                    </div>
+                    <div class="mt-6">
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                    </div>
+                </form>
+
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Protected Forms</h4>
+                    <ul class="text-sm text-gray-600 space-y-1">
+                        <li>Customer Login</li>
+                        <li>Customer Registration</li>
+                        <li>Forgot Password</li>
+                        <li>Contact Form</li>
+                        <li>Stock Notification (Notify Me)</li>
+                    </ul>
                 </div>
             </div>
 
