@@ -629,8 +629,8 @@
                 tabs: [
                     { id: 'general', label: 'General' },
                     { id: 'images', label: 'Images' },
-                    { id: 'pricing', label: 'Pricing' },
                     { id: 'links', label: 'Links' },
+                    { id: 'pricing', label: 'Pricing' },
                     { id: 'variants', label: 'Variants' },
                     { id: 'seo', label: 'SEO' },
                 ],
