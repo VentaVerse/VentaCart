@@ -3,19 +3,28 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\DphStatus;
 use App\Services\DeliveryPhService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
-class DphExplorerController extends Controller
+class DphController extends Controller
 {
-    public function index()
+    public function updateMapping(Request $request)
     {
-        $logFile = storage_path('logs/dph-' . now()->format('Y-m-d') . '.log');
-        $raw = file_exists($logFile) ? file_get_contents($logFile) : '';
-        $logs = $raw ? self::formatLogEntries($raw) : 'No logs for today.';
+        $validated = $request->validate([
+            'mappings' => 'required|array',
+            'mappings.*' => 'nullable|integer|exists:order_statuses,id',
+        ]);
 
-        return view('admin.dph-explorer.index', compact('logs'));
+        foreach ($validated['mappings'] as $dphStatusId => $orderStatusId) {
+            DphStatus::where('id', $dphStatusId)->update([
+                'order_status_id' => $orderStatusId ?: null,
+            ]);
+        }
+
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'dph', 'dph_tab' => 'mapping'])
+            ->with('success', 'Status mapping updated.');
     }
 
     public function execute(Request $request)
@@ -30,7 +39,6 @@ class DphExplorerController extends Controller
 
         try {
             $dph = app(DeliveryPhService::class);
-
             $startTime = microtime(true);
 
             $result = match ($endpoint) {
@@ -83,6 +91,14 @@ class DphExplorerController extends Controller
         }
     }
 
+    public function logs()
+    {
+        $logFile = storage_path('logs/dph-' . now()->format('Y-m-d') . '.log');
+        $content = file_exists($logFile) ? file_get_contents($logFile) : 'No logs for today.';
+
+        return response()->json(['logs' => self::formatLogEntries($content)]);
+    }
+
     private function doLogin(DeliveryPhService $dph): array
     {
         Cache::forget('dph_auth');
@@ -97,14 +113,6 @@ class DphExplorerController extends Controller
         ];
     }
 
-    public function logs()
-    {
-        $logFile = storage_path('logs/dph-' . now()->format('Y-m-d') . '.log');
-        $content = file_exists($logFile) ? file_get_contents($logFile) : 'No logs for today.';
-
-        return response()->json(['logs' => self::formatLogEntries($content)]);
-    }
-
     private static function formatLogEntries(string $raw): string
     {
         $lines = explode("\n", trim($raw));
@@ -113,7 +121,6 @@ class DphExplorerController extends Controller
         foreach ($lines as $line) {
             if (empty(trim($line))) continue;
 
-            // Match: [timestamp] channel.LEVEL: METHOD /endpoint {json}
             if (preg_match('/^(\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\]) (\S+): (.+?) (\{.+\})\s*$/', $line, $m)) {
                 $json = json_decode($m[4], true);
                 $prettyJson = $json !== null

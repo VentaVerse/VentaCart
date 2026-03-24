@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\OrderStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -53,5 +54,25 @@ class ErpCatalogController extends Controller
         });
 
         return $this->logAndRespond($request, $brands);
+    }
+
+    public function orderStatuses(Request $request): JsonResponse
+    {
+        $statuses = OrderStatus::query()
+            ->select(['id', 'name', 'is_default', 'stock_action', 'sort_order'])
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(function ($status) {
+                return [
+                    'id' => $status->id,
+                    'name' => $status->name,
+                    'is_default' => $status->is_default,
+                    'stock_action' => $status->stock_action,
+                    'sort_order' => $status->sort_order,
+                ];
+            });
+
+        return $this->logAndRespond($request, $statuses);
     }
 }

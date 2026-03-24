@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
+use App\Models\DphStatus;
 use App\Models\OrderHistory;
-use App\Models\OrderStatus;
 use App\Models\Setting;
 use App\Models\Shipment;
 use App\Services\StockService;
@@ -13,22 +13,6 @@ use Illuminate\Support\Facades\Log;
 
 class DphWebhookController extends Controller
 {
-    private const STATUS_MAP = [
-        'ASSIGNED' => 'booked',
-        'ACCEPTED' => 'confirmed',
-        'ASSIGNING_RIDER' => 'confirmed',
-        'START_PICKUP' => 'pickup-started',
-        'DONE_PICKUP' => 'picked-up',
-        'ARRIVED_AT_HUB' => 'in-transit',
-        'START_DELIVERY' => 'out-for-delivery',
-        'DONE' => 'delivered',
-        'FAILED_PICKUP' => 'failed-pickup',
-        'FAILED_DELIVERY' => 'failed-delivery',
-        'CANCEL' => 'canceled',
-        'IN_TRANSIT_FOR_RETURN' => 'returning',
-        'RETURNED' => 'returned',
-    ];
-
     public function __invoke(Request $request)
     {
         $secret = $request->query('secret');
@@ -98,24 +82,19 @@ class DphWebhookController extends Controller
 
         $order = $shipment->order;
 
-        if ($order && isset(self::STATUS_MAP[$status])) {
-            $orderStatusSlug = self::STATUS_MAP[$status];
-            $storeId = $order->store_id;
+        if ($order && $status) {
+            $dphStatus = DphStatus::where('code', $status)->first();
 
-            $newOrderStatus = OrderStatus::where('store_id', $storeId)
-                ->where('slug', $orderStatusSlug)
-                ->first();
-
-            if ($newOrderStatus && (int) $order->order_status_id !== (int) $newOrderStatus->id) {
-                $order->update(['order_status_id' => $newOrderStatus->id]);
+            if ($dphStatus && $dphStatus->order_status_id && (int) $order->order_status_id !== $dphStatus->order_status_id) {
+                $order->update(['order_status_id' => $dphStatus->order_status_id]);
 
                 OrderHistory::create([
                     'order_id' => $order->id,
-                    'order_status_id' => $newOrderStatus->id,
+                    'order_status_id' => $dphStatus->order_status_id,
                     'comment' => "DPH: {$status}" . ($subStatus ? " ({$subStatus})" : '') . ($remarks ? " - {$remarks}" : ''),
                 ]);
 
-                StockService::adjustForStatusChange($order, $newOrderStatus);
+                StockService::adjustForStatusChange($order, $dphStatus->orderStatus);
             }
 
             if ($trackingNumber && !$order->tracking_number) {

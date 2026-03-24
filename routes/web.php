@@ -12,7 +12,7 @@ use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ApiSyncLogController;
 use App\Http\Controllers\Admin\SeoController;
-use App\Http\Controllers\Admin\DphExplorerController;
+use App\Http\Controllers\Admin\DphController;
 use App\Http\Controllers\Admin\EmailTemplateController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\FooterColumnController;
@@ -283,9 +283,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('/seo/suggestions/{suggestion}/reject', [SeoController::class, 'reject'])->name('seo.reject');
     Route::post('/seo/suggestions/bulk-accept', [SeoController::class, 'bulkAccept'])->name('seo.bulk-accept');
 
-    Route::get('/dph-explorer', [DphExplorerController::class, 'index'])->name('dph-explorer.index');
-    Route::post('/dph-explorer/execute', [DphExplorerController::class, 'execute'])->name('dph-explorer.execute');
-    Route::get('/dph-explorer/logs', [DphExplorerController::class, 'logs'])->name('dph-explorer.logs');
+    Route::post('/dph/mapping', [DphController::class, 'updateMapping'])->name('dph.update-mapping');
+    Route::post('/dph/execute', [DphController::class, 'execute'])->name('dph.execute');
+    Route::get('/dph/logs', [DphController::class, 'logs'])->name('dph.logs');
 
     // Users
     Route::resource('users', UserController::class)->except(['show']);

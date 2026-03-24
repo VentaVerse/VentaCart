@@ -17,7 +17,6 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Action</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
                     <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Default</th>
@@ -30,9 +29,6 @@
                         {{-- Read mode --}}
                         <template x-if="editing !== {{ $status->id }}">
                             <td class="px-6 py-3 text-sm font-medium text-gray-900" colspan="0">{{ $status->name }}</td>
-                        </template>
-                        <template x-if="editing !== {{ $status->id }}">
-                            <td class="px-6 py-3 text-sm text-gray-500 font-mono">{{ $status->slug }}</td>
                         </template>
                         <template x-if="editing !== {{ $status->id }}">
                             <td class="px-6 py-3 text-sm">
@@ -67,25 +63,38 @@
                             </td>
                         </template>
 
-                        {{-- Edit mode --}}
+                        {{-- Edit mode (using x-show on a separate row to avoid single-cell colspan issues) --}}
                         <template x-if="editing === {{ $status->id }}">
-                            <td colspan="6" class="px-6 py-3">
-                                <form method="POST" action="{{ route('admin.order-statuses.update', $status) }}" class="flex items-center gap-3">
+                            <td colspan="5" class="px-0 py-0">
+                                <form method="POST" action="{{ route('admin.order-statuses.update', $status) }}">
                                     @csrf @method('PUT')
-                                    <input type="text" name="name" value="{{ $status->name }}" required class="rounded-lg border-gray-300 text-sm w-40 focus:border-indigo-500 focus:ring-indigo-500">
-                                    <select name="stock_action" class="rounded-lg border-gray-300 text-sm w-32 focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">None</option>
-                                        <option value="decrement" {{ $status->stock_action === 'decrement' ? 'selected' : '' }}>Decrement</option>
-                                        <option value="increment" {{ $status->stock_action === 'increment' ? 'selected' : '' }}>Increment</option>
-                                    </select>
-                                    <input type="number" name="sort_order" value="{{ $status->sort_order }}" min="0" class="rounded-lg border-gray-300 text-sm w-16 focus:border-indigo-500 focus:ring-indigo-500">
-                                    <label class="flex items-center gap-1 text-xs text-gray-600">
-                                        <input type="hidden" name="is_default" value="0">
-                                        <input type="checkbox" name="is_default" value="1" {{ $status->is_default ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                        Default
-                                    </label>
-                                    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">Save</button>
-                                    <button type="button" @click="editing = null" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300">Cancel</button>
+                                    <table class="min-w-full">
+                                        <tr class="bg-indigo-50/50">
+                                            <td class="px-6 py-3">
+                                                <input type="text" name="name" value="{{ $status->name }}" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                            </td>
+                                            <td class="px-6 py-3">
+                                                <select name="stock_action" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                    <option value="">None</option>
+                                                    <option value="decrement" {{ $status->stock_action === 'decrement' ? 'selected' : '' }}>Decrement</option>
+                                                    <option value="increment" {{ $status->stock_action === 'increment' ? 'selected' : '' }}>Increment</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-6 py-3 text-center">
+                                                <input type="number" name="sort_order" value="{{ $status->sort_order }}" min="0" class="w-16 rounded-lg border-gray-300 text-sm text-center focus:border-indigo-500 focus:ring-indigo-500 mx-auto">
+                                            </td>
+                                            <td class="px-6 py-3 text-center">
+                                                <input type="hidden" name="is_default" value="0">
+                                                <input type="checkbox" name="is_default" value="1" {{ $status->is_default ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                                            </td>
+                                            <td class="px-6 py-3 text-right">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                                                    <button type="button" @click="editing = null" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300">Cancel</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </form>
                             </td>
                         </template>

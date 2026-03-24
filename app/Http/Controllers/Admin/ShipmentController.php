@@ -132,7 +132,7 @@ class ShipmentController extends Controller
             ]);
 
             $bookedStatus = OrderStatus::where('store_id', $order->store_id)
-                ->where('slug', 'booked')
+                ->where('name', 'Booked')
                 ->first();
 
             if ($bookedStatus) {
@@ -185,7 +185,7 @@ class ShipmentController extends Controller
             $shipment->update(['dph_status' => 'CANCEL']);
 
             $cancelledStatus = OrderStatus::where('store_id', $order->store_id)
-                ->where('slug', 'canceled')
+                ->where('name', 'Canceled')
                 ->first();
 
             if ($cancelledStatus) {

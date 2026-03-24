@@ -77,6 +77,17 @@ class SettingController extends Controller
 
         app(ThemeService::class)->clearCache();
 
+        // Custom redirect (e.g., DPH page has its own settings forms)
+        if ($redirect = $request->input('_redirect')) {
+            $parsed = parse_url($redirect);
+            if (!empty($parsed['host']) || !str_starts_with($parsed['path'] ?? '', '/')) {
+                $redirect = null;
+            }
+            if ($redirect) {
+                return redirect($redirect)->with('success', ucfirst($group) . ' settings updated.');
+            }
+        }
+
         // Determine which tab to return to
         $requestTab = $request->input('_tab');
         $tab = match (true) {

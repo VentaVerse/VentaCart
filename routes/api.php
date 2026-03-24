@@ -10,12 +10,14 @@ Route::prefix('v1')->middleware('erp.auth')->group(function () {
     // Catalog (read-only lookups)
     Route::get('/categories', [ErpCatalogController::class, 'categories']);
     Route::get('/brands', [ErpCatalogController::class, 'brands']);
+    Route::get('/order-statuses', [ErpCatalogController::class, 'orderStatuses']);
 
     // Products
     Route::get('/products', [ErpProductController::class, 'index']);
     Route::get('/products/{sku}', [ErpProductController::class, 'show']);
     Route::post('/products', [ErpProductController::class, 'store']);
     Route::put('/products/{sku}', [ErpProductController::class, 'update']);
+    Route::put('/products/{sku}/qty', [ErpProductController::class, 'updateQuantity']);
     Route::post('/products/{sku}/images', [ErpProductController::class, 'uploadImages']);
 
     // Variants

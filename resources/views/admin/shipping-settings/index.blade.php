@@ -320,12 +320,24 @@
             </div>
 
             {{-- ==================== DPH ==================== --}}
-            <div x-show="active === 'dph'" x-cloak class="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div x-show="active === 'dph'" x-cloak class="bg-white rounded-lg shadow-sm border border-gray-200"
+                 x-data="{ dphTab: '{{ request('dph_tab', 'settings') }}' }">
                 <div class="p-5 border-b border-gray-100">
                     <h3 class="text-sm font-semibold text-gray-900">Deliveries PH</h3>
                     <p class="text-xs text-gray-500 mt-0.5">Domestic shipping via Deliveries PH courier aggregator</p>
                 </div>
-                <div class="p-5">
+
+                {{-- DPH Sub-tabs --}}
+                <nav class="flex border-b border-gray-200 px-5">
+                    @foreach ([['id' => 'settings', 'label' => 'Settings'], ['id' => 'pickup', 'label' => 'Pickup Address'], ['id' => 'mapping', 'label' => 'Status Mapping'], ['id' => 'explorer', 'label' => 'API Explorer']] as $dt)
+                        <button type="button" @click="dphTab = '{{ $dt['id'] }}'"
+                            :class="dphTab === '{{ $dt['id'] }}' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                            class="whitespace-nowrap px-4 py-2.5 border-b-2 text-xs font-medium transition-colors">{{ $dt['label'] }}</button>
+                    @endforeach
+                </nav>
+
+                {{-- DPH > Settings --}}
+                <div x-show="dphTab === 'settings'" x-cloak class="p-5">
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
                         <input type="hidden" name="group" value="shipping">
@@ -378,13 +390,21 @@
                     {{-- Webhook --}}
                     <div class="border-t border-gray-200 mt-6 pt-6">
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Webhook</h4>
-                        <div class="max-w-lg">
+                        <div class="max-w-lg" x-data="{ copied: false }">
                             @if ($settings['shipping']['dph_webhook_secret'] ?? '')
                                 <div class="mb-3">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Secret</label>
                                     <div class="flex gap-2">
-                                        <input type="text" value="{{ $settings['shipping']['dph_webhook_secret'] }}" readonly class="block w-full rounded-md border-gray-300 bg-gray-50 text-sm font-mono">
-                                        <button type="button" onclick="navigator.clipboard.writeText(this.previousElementSibling.value).then(() => this.textContent = 'Copied!')" class="px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 border border-gray-300 whitespace-nowrap">Copy</button>
+                                        <input type="text" x-ref="dphWebhookSecret" value="{{ $settings['shipping']['dph_webhook_secret'] }}" readonly class="block w-full rounded-md border-gray-300 bg-gray-50 text-sm font-mono">
+                                        <button type="button" @click="
+                                            $refs.dphWebhookSecret.select();
+                                            document.execCommand('copy');
+                                            window.getSelection().removeAllRanges();
+                                            if (navigator.clipboard) { navigator.clipboard.writeText($refs.dphWebhookSecret.value); }
+                                            copied = true;
+                                            setTimeout(() => copied = false, 2000);
+                                        " class="px-3 py-2 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 border border-gray-300 whitespace-nowrap"
+                                            x-text="copied ? 'Copied!' : 'Copy'">Copy</button>
                                     </div>
                                 </div>
                             @endif
@@ -394,71 +414,296 @@
                             </form>
                         </div>
                     </div>
+                </div>
 
-                    {{-- Pickup Address --}}
-                    <div class="border-t border-gray-200 mt-6 pt-6">
-                        <form method="POST" action="{{ route('admin.settings.update') }}">
-                            @csrf
-                            <input type="hidden" name="group" value="shipping">
-                            <input type="hidden" name="_tab" value="dph">
-                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Store Pickup Address</h4>
-                            <p class="text-xs text-gray-500 mb-4">Used as sender address for DPH and DHL shipments.</p>
-                            <div class="space-y-4 max-w-lg">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Contact Name</label>
-                                        <input type="text" name="settings[dph_pickup_contact_name]" value="{{ $settings['shipping']['dph_pickup_contact_name'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Contact Number</label>
-                                        <input type="text" name="settings[dph_pickup_contact_number]" value="{{ $settings['shipping']['dph_pickup_contact_number'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                                    </div>
+                {{-- DPH > Pickup Address --}}
+                <div x-show="dphTab === 'pickup'" x-cloak class="p-5">
+                    <form method="POST" action="{{ route('admin.settings.update') }}">
+                        @csrf
+                        <input type="hidden" name="group" value="shipping">
+                        <input type="hidden" name="_tab" value="dph">
+                        <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Store Pickup Address</h4>
+                        <p class="text-xs text-gray-500 mb-4">Used as sender address for DPH and DHL shipments.</p>
+                        <div class="space-y-4 max-w-lg">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Contact Name</label>
+                                    <input type="text" name="settings[dph_pickup_contact_name]" value="{{ $settings['shipping']['dph_pickup_contact_name'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Contact Email</label>
-                                    <input type="email" name="settings[dph_pickup_contact_email]" value="{{ $settings['shipping']['dph_pickup_contact_email'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                    <label class="block text-sm font-medium text-gray-700">Contact Number</label>
+                                    <input type="text" name="settings[dph_pickup_contact_number]" value="{{ $settings['shipping']['dph_pickup_contact_number'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Contact Email</label>
+                                <input type="email" name="settings[dph_pickup_contact_email]" value="{{ $settings['shipping']['dph_pickup_contact_email'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Street Address</label>
+                                <input type="text" name="settings[dph_pickup_address]" value="{{ $settings['shipping']['dph_pickup_address'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Province</label>
+                                    <input type="text" name="settings[dph_pickup_province]" value="{{ $settings['shipping']['dph_pickup_province'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700">Street Address</label>
-                                    <input type="text" name="settings[dph_pickup_address]" value="{{ $settings['shipping']['dph_pickup_address'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Province</label>
-                                        <input type="text" name="settings[dph_pickup_province]" value="{{ $settings['shipping']['dph_pickup_province'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">City</label>
-                                        <input type="text" name="settings[dph_pickup_city]" value="{{ $settings['shipping']['dph_pickup_city'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Barangay</label>
-                                        <input type="text" name="settings[dph_pickup_barangay]" value="{{ $settings['shipping']['dph_pickup_barangay'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700">Postal Code</label>
-                                        <input type="text" name="settings[dph_pickup_postal_code]" value="{{ $settings['shipping']['dph_pickup_postal_code'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                                    </div>
+                                    <label class="block text-sm font-medium text-gray-700">City</label>
+                                    <input type="text" name="settings[dph_pickup_city]" value="{{ $settings['shipping']['dph_pickup_city'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
                                 </div>
                             </div>
-                            <div class="mt-6">
-                                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Pickup Address</button>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Barangay</label>
+                                    <input type="text" name="settings[dph_pickup_barangay]" value="{{ $settings['shipping']['dph_pickup_barangay'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Postal Code</label>
+                                    <input type="text" name="settings[dph_pickup_postal_code]" value="{{ $settings['shipping']['dph_pickup_postal_code'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                </div>
                             </div>
-                        </form>
+                        </div>
+                        <div class="mt-6">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Pickup Address</button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- DPH > Status Mapping --}}
+                <div x-show="dphTab === 'mapping'" x-cloak class="p-5">
+                    <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Status Mapping</h4>
+                    <p class="text-xs text-gray-500 mb-4">Map each DPH shipment status to your order status. When DPH sends a webhook update, the order transitions to the mapped status.</p>
+
+                    <form method="POST" action="{{ route('admin.dph.update-mapping') }}">
+                        @csrf
+                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DPH Status</th>
+                                        <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                                        <th class="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    @foreach ($dphStatuses as $dph)
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-5 py-3 text-sm font-medium text-gray-900">{{ $dph->name }}</td>
+                                            <td class="px-5 py-3 text-xs font-mono text-gray-500">{{ $dph->code }}</td>
+                                            <td class="px-5 py-3">
+                                                <select name="mappings[{{ $dph->id }}]" class="w-full rounded-md border-gray-300 text-sm">
+                                                    <option value="">— Not mapped —</option>
+                                                    @foreach ($orderStatuses as $os)
+                                                        <option value="{{ $os->id }}" {{ $dph->order_status_id == $os->id ? 'selected' : '' }}>{{ $os->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-4">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Mapping</button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- DPH > API Explorer --}}
+                <div x-show="dphTab === 'explorer'" x-cloak class="p-5" x-data="dphExplorer()">
+                    <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">API Explorer</h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Endpoint</label>
+                            <select x-model="endpoint" @change="loadTemplate()" class="w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                                <option value="login">loginV2 (authenticate)</option>
+                                <option value="getPartners">getPartners</option>
+                                <option value="getScheduledRates">v3/getAvailablePartners (scheduled rates)</option>
+                                <option value="getOnDemandRates">v3/getOnDemandQuotation (on-demand rates)</option>
+                                <option value="getPost">getPost</option>
+                                <option value="createPost">v3/createPost</option>
+                                <option value="cancelPost">v3/cancelPost</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Query Params (JSON)</label>
+                            <input type="text" x-model="query" class="w-full rounded-md border-gray-300 shadow-sm sm:text-sm font-mono" placeholder="{}">
+                        </div>
+                        <div class="flex items-end">
+                            <button @click="send()" :disabled="loading"
+                                class="w-full px-4 py-2 rounded-md text-white text-sm font-medium transition-colors"
+                                :class="loading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'">
+                                <span x-show="!loading">Send Request</span>
+                                <span x-show="loading">Sending...</span>
+                            </button>
+                        </div>
                     </div>
 
-                    {{-- DPH Explorer --}}
-                    <div class="mt-6 pt-6 border-t border-gray-200">
-                        <a href="{{ route('admin.dph-explorer.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 border border-gray-300">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z"/></svg>
-                            DPH API Explorer
-                        </a>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Request Body (JSON)</label>
+                        <textarea x-model="body" rows="10" class="w-full rounded-md border-gray-300 shadow-sm sm:text-sm font-mono" placeholder="{}"></textarea>
+                    </div>
+
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-sm font-medium text-gray-700">Response</h4>
+                            <template x-if="lastDuration">
+                                <span class="text-xs text-gray-500" x-text="lastDuration + 'ms'"></span>
+                            </template>
+                        </div>
+                        <div x-show="!response && !error" class="text-sm text-gray-400 italic">No response yet.</div>
+                        <template x-if="error">
+                            <pre class="dph-error-output" x-text="error"></pre>
+                        </template>
+                        <template x-if="response">
+                            <div>
+                                <p class="text-xs text-gray-500 mb-2">
+                                    <span class="font-medium" x-text="'Endpoint: ' + response.endpoint"></span>
+                                    <span x-text="' | ' + response.duration_ms + 'ms'"></span>
+                                </p>
+                                <h4 class="text-xs font-medium text-gray-600 mb-1">Request Sent:</h4>
+                                <pre class="dph-log-output mb-4" x-text="JSON.stringify(response.request, null, 2)"></pre>
+                                <h4 class="text-xs font-medium text-gray-600 mb-1">API Response:</h4>
+                                <pre class="dph-response-output" x-text="JSON.stringify(response.response, null, 2)"></pre>
+                            </div>
+                        </template>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <h4 class="text-sm font-medium text-gray-700">API Log (today)</h4>
+                            <button @click="refreshLogs()" class="px-3 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 text-gray-700">Refresh</button>
+                        </div>
+                        <pre class="dph-log-output" x-text="logContent"></pre>
                     </div>
                 </div>
             </div>
 
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+    function dphExplorer() {
+        const templates = {
+            login: { body: {}, query: {} },
+            getPartners: { body: {}, query: {} },
+            getScheduledRates: {
+                body: {
+                    pickup: { province: "metro manila", city: "quezon city", barangay: "katipunan" },
+                    delivery: { province: "rizal", city: "antipolo city", barangay: "san juan" },
+                    dimensions: { length: 10, width: 10, height: 10 },
+                    weight: 2
+                },
+                query: {}
+            },
+            getOnDemandRates: {
+                body: {
+                    pickup: { name: "Store", phone: "09123456789", address: "Katipunan, Quezon City", province: "Metro Manila", lat: 14.6308, lng: 121.0753 },
+                    delivery: { name: "Customer", phone: "09987654321", address: "BGC, Taguig", lat: 14.5528, lng: 121.0519 },
+                    dimensions: { length: 10, width: 10, height: 10 },
+                    weight: 2
+                },
+                query: {}
+            },
+            getPost: { body: {}, query: { postId: "" } },
+            createPost: {
+                body: {
+                    refNo: "TEST-" + Date.now(),
+                    isPSGC: false,
+                    pickupDetails: {
+                        senderName: "Test Store", contactNumber: "09123456789", emailAddress: "test@example.com",
+                        pickupDateTime: new Date(Date.now() + 3600000).toISOString().slice(0, 16),
+                        pickupAddress: "Katipunan, Quezon City", pickupCity: "Quezon City",
+                        province: "Metro Manila", barangay: "Katipunan", postalCode: "1105"
+                    },
+                    deliveryDetails: {
+                        recipientName: "Test Customer", contactNumber: "09987654321", emailAddress: "customer@example.com",
+                        deliveryDateTime: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+                        deliveryAddress: "San Juan, Antipolo City", deliveryCity: "Antipolo City",
+                        province: "Rizal", barangay: "San Juan", postalCode: "1870",
+                        productSize: "L", itemDescription: "Guitar effects pedal",
+                        weight: 2, length: 10, width: 8, height: 4
+                    }
+                },
+                query: { partnerId: "SANDBOX_QA" }
+            },
+            cancelPost: {
+                body: { postId: "", trackingNumber: "", courierId: "" },
+                query: {}
+            }
+        };
+
+        return {
+            endpoint: 'login',
+            body: '{}',
+            query: '{}',
+            response: null,
+            error: null,
+            loading: false,
+            lastDuration: null,
+            logContent: @json($dphLogs),
+
+            init() { this.loadTemplate(); },
+
+            loadTemplate() {
+                this.response = null;
+                this.error = null;
+                const t = templates[this.endpoint] || { body: {}, query: {} };
+                this.body = JSON.stringify(t.body, null, 2);
+                this.query = JSON.stringify(t.query, null, 2);
+            },
+
+            async send() {
+                this.loading = true;
+                this.response = null;
+                this.error = null;
+                this.lastDuration = null;
+
+                try {
+                    const res = await fetch('{{ route("admin.dph.execute") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            endpoint: this.endpoint,
+                            body: this.body,
+                            query: this.query
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (data.success) {
+                        this.response = data;
+                        this.lastDuration = data.duration_ms;
+                    } else {
+                        this.error = data.error || JSON.stringify(data, null, 2);
+                    }
+                } catch (e) {
+                    this.error = e.message;
+                }
+
+                this.loading = false;
+                this.refreshLogs();
+            },
+
+            async refreshLogs() {
+                try {
+                    const res = await fetch('{{ route("admin.dph.logs") }}', {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await res.json();
+                    this.logContent = data.logs;
+                } catch (e) {}
+            }
+        };
+    }
+    </script>
+    @endpush
 </x-admin-layout>

@@ -172,8 +172,8 @@ class ErpProductController extends Controller
             'description' => $validated['description'] ?? null,
             'brand_id' => $validated['brand_id'] ?? null,
             'quantity' => $validated['quantity'] ?? 0,
-            'weight' => $validated['weight'] ?? null,
-            'cost' => $validated['cost'] ?? null,
+            'weight' => $validated['weight'] ?? 0,
+            'cost' => $validated['cost'] ?? 0,
             'is_active' => $validated['status'] ?? true,
             'meta_title' => $validated['meta_title'] ?? null,
             'meta_description' => $validated['meta_description'] ?? null,
@@ -276,6 +276,28 @@ class ErpProductController extends Controller
         ];
 
         return $this->logAndRespond($request, $data, 200, $product->sku);
+    }
+
+    public function updateQuantity(Request $request, string $sku): JsonResponse
+    {
+        $product = Product::where('sku', $sku)->first();
+
+        if (!$product) {
+            return $this->logAndRespond($request, ['error' => 'Product not found'], 404, $sku);
+        }
+
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:0',
+        ]);
+
+        $product->update(['quantity' => $validated['quantity']]);
+
+        return $this->logAndRespond($request, [
+            'id' => $product->id,
+            'sku' => $product->sku,
+            'quantity' => $product->quantity,
+            'updated_at' => $product->updated_at?->toIso8601String(),
+        ], 200, $sku);
     }
 
     public function uploadImages(Request $request, string $sku): JsonResponse

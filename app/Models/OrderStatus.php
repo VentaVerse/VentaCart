@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderStatus extends Model
 {
-    protected $fillable = ['store_id', 'name', 'slug', 'is_default', 'stock_action', 'sort_order'];
+    protected $fillable = ['store_id', 'name', 'is_default', 'stock_action', 'sort_order'];
 
     protected function casts(): array
     {

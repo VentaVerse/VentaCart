@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\OrderStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-
 class OrderStatusController extends Controller
 {
     private int $storeId;
@@ -35,7 +33,6 @@ class OrderStatusController extends Controller
         ]);
 
         $validated['store_id'] = $this->storeId;
-        $validated['slug'] = Str::slug($validated['name']);
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
         $validated['is_default'] = $request->boolean('is_default');
 
@@ -58,7 +55,6 @@ class OrderStatusController extends Controller
             'is_default' => ['boolean'],
         ]);
 
-        $validated['slug'] = Str::slug($validated['name']);
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
         $validated['is_default'] = $request->boolean('is_default');
 

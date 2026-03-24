@@ -151,7 +151,7 @@ class DashboardController extends Controller
     private function cancelledStatusIds(int $storeId): array
     {
         return OrderStatus::where('store_id', $storeId)
-            ->whereIn('slug', ['canceled', 'cancelled', 'refunded', 'expired'])
+            ->whereIn('name', ['Canceled', 'Cancelled', 'Refunded', 'Expired'])
             ->pluck('id')
             ->all();
     }
@@ -159,7 +159,7 @@ class DashboardController extends Controller
     private function pendingStatusIds(int $storeId): array
     {
         return OrderStatus::where('store_id', $storeId)
-            ->whereIn('slug', ['pending', 'unpaid'])
+            ->whereIn('name', ['Pending', 'Unpaid'])
             ->pluck('id')
             ->all();
     }

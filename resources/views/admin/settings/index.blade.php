@@ -327,22 +327,42 @@
                 @endphp
 
                 @if ($newToken)
-                    <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg" x-data="{ copied: false }">
                         <p class="text-sm font-medium text-amber-800 mb-2">New token generated — copy it now. It will not be shown again in full.</p>
                         <div class="flex items-center gap-2">
-                            <input type="text" id="erp-token-full" value="{{ $newToken }}" readonly
+                            <input type="text" x-ref="tokenInput" value="{{ $newToken }}" readonly
                                 class="flex-1 font-mono text-sm bg-white border border-amber-300 rounded-md px-3 py-2 text-gray-800">
-                            <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('erp-token-full').value).then(() => this.textContent = 'Copied!')"
-                                class="px-3 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 whitespace-nowrap">Copy</button>
+                            <button type="button" @click="
+                                $refs.tokenInput.select();
+                                document.execCommand('copy');
+                                window.getSelection().removeAllRanges();
+                                if (navigator.clipboard) { navigator.clipboard.writeText($refs.tokenInput.value); }
+                                copied = true;
+                                setTimeout(() => copied = false, 2000);
+                            " class="px-3 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 whitespace-nowrap"
+                                x-text="copied ? 'Copied!' : 'Copy'">Copy</button>
                         </div>
                     </div>
                 @elseif ($erpToken)
-                    <div class="mb-4">
+                    <div class="mb-4" x-data="{ copied: false }">
                         <div class="flex items-center gap-2">
                             <input type="text" value="{{ str_repeat('*', max(0, strlen($erpToken) - 8)) . substr($erpToken, -8) }}" readonly
                                 class="flex-1 font-mono text-sm bg-gray-50 border border-gray-300 rounded-md px-3 py-2 text-gray-500">
-                            <button type="button" onclick="navigator.clipboard.writeText('{{ $erpToken }}').then(() => this.textContent = 'Copied!')"
-                                class="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 whitespace-nowrap">Copy</button>
+                            <input type="hidden" x-ref="tokenHidden" value="{{ $erpToken }}">
+                            <button type="button" @click="
+                                const tmp = document.createElement('textarea');
+                                tmp.value = $refs.tokenHidden.value;
+                                tmp.style.position = 'fixed';
+                                tmp.style.opacity = '0';
+                                document.body.appendChild(tmp);
+                                tmp.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(tmp);
+                                if (navigator.clipboard) { navigator.clipboard.writeText($refs.tokenHidden.value); }
+                                copied = true;
+                                setTimeout(() => copied = false, 2000);
+                            " class="px-3 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 whitespace-nowrap"
+                                x-text="copied ? 'Copied!' : 'Copy'">Copy</button>
                         </div>
                     </div>
                 @else
@@ -360,16 +380,18 @@
                 <div class="mt-8 border-t border-gray-200 pt-6">
                     <h3 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">API Endpoints</h3>
                     <div class="bg-gray-50 rounded-lg p-4 font-mono text-xs space-y-1 text-gray-600">
-                        <p><span class="text-green-600 font-semibold">GET</span> /api/erp/products</p>
-                        <p><span class="text-green-600 font-semibold">GET</span> /api/erp/products/{sku}</p>
-                        <p><span class="text-blue-600 font-semibold">POST</span> /api/erp/products</p>
-                        <p><span class="text-amber-600 font-semibold">PUT</span> /api/erp/products/{sku}</p>
-                        <p><span class="text-blue-600 font-semibold">POST</span> /api/erp/products/{sku}/images</p>
-                        <p><span class="text-green-600 font-semibold">GET</span> /api/erp/variants/{sku}</p>
-                        <p><span class="text-amber-600 font-semibold">PUT</span> /api/erp/variants/{sku}</p>
-                        <p><span class="text-green-600 font-semibold">GET</span> /api/erp/orders</p>
-                        <p><span class="text-green-600 font-semibold">GET</span> /api/erp/orders/{id}</p>
-                        <p><span class="text-amber-600 font-semibold">PUT</span> /api/erp/orders/{id}/status</p>
+                        @php
+                            $apiRoutes = collect(\Illuminate\Support\Facades\Route::getRoutes())
+                                ->filter(fn ($r) => str_starts_with($r->uri(), 'api/v1'))
+                                ->sortBy(fn ($r) => $r->uri())
+                                ->map(fn ($r) => ['methods' => collect($r->methods())->reject(fn ($m) => $m === 'HEAD')->values()->all(), 'uri' => '/' . $r->uri()]);
+                            $methodColors = ['GET' => 'text-green-600', 'POST' => 'text-blue-600', 'PUT' => 'text-amber-600', 'PATCH' => 'text-amber-600', 'DELETE' => 'text-red-600'];
+                        @endphp
+                        @foreach ($apiRoutes as $route)
+                            @foreach ($route['methods'] as $method)
+                                <p><span class="{{ $methodColors[$method] ?? 'text-gray-600' }} font-semibold">{{ $method }}</span> {{ $route['uri'] }}</p>
+                            @endforeach
+                        @endforeach
                     </div>
                     <p class="mt-3 text-xs text-gray-400">All requests require <code class="bg-gray-100 px-1 rounded">Authorization: Bearer {token}</code> header.</p>
                 </div>
