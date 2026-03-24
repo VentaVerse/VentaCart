@@ -349,96 +349,115 @@
 
             {{-- ===================== VARIANTS ===================== --}}
             <div x-show="activeTab === 'variants'" class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <p class="text-sm text-gray-500">Add variant types (e.g. Color, Size) and their values to generate combinations.</p>
-                    <button type="button" @click="addVariantType()" class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors">
-                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        Add Variant Type
-                    </button>
-                </div>
-
-                {{-- Variant Types --}}
-                <template x-for="(type, typeIndex) in variantTypes" :key="typeIndex">
-                    <div class="border border-gray-200 rounded-lg p-4 mb-4">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex-1 mr-4">
-                                <input type="text" x-model="type.name" :name="'variant_types['+typeIndex+'][name]'" placeholder="Type name (e.g., Color, Size)"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" @input="generateCombinations()">
-                            </div>
-                            <button type="button" @click="removeVariantType(typeIndex)" class="text-red-500 hover:text-red-700">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            </button>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <template x-for="(value, valueIndex) in type.values" :key="valueIndex">
-                                <div class="flex items-center">
-                                    <input type="text" x-model="type.values[valueIndex]" :name="'variant_types['+typeIndex+'][values]['+valueIndex+']'" placeholder="Value"
-                                        class="w-32 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" @input="generateCombinations()">
-                                    <button type="button" @click="type.values.splice(valueIndex, 1); generateCombinations()" class="ml-1 text-red-400 hover:text-red-600">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </div>
-                            </template>
-                            <button type="button" @click="type.values.push('')" class="inline-flex items-center px-3 py-1.5 border border-dashed border-gray-300 text-sm text-gray-500 rounded-lg hover:border-indigo-500 hover:text-indigo-500">
-                                + Add Value
-                            </button>
-                        </div>
+                {{-- Variant Types (horizontal rows with inline value pills) --}}
+                <div class="space-y-3 mb-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Variant Types</h3>
+                        <button type="button" @click="addVariantType()"
+                            :disabled="variantTypes.length >= 2"
+                            :class="variantTypes.length >= 2 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-100'"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-indigo-50 text-indigo-600 rounded-md font-medium transition-colors">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                            Add Type
+                            <span x-show="variantTypes.length > 0" class="text-indigo-400" x-text="'(' + variantTypes.length + '/2)'"></span>
+                        </button>
                     </div>
-                </template>
+
+                    <template x-for="(type, typeIndex) in variantTypes" :key="typeIndex">
+                        <div class="flex items-start gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50/50">
+                            {{-- Type name --}}
+                            <div class="shrink-0 w-36">
+                                <input type="text" x-model="type.name" :name="'variant_types['+typeIndex+'][name]'" placeholder="e.g. Color, Size"
+                                    class="w-full rounded-md border-gray-300 text-sm py-1.5 font-medium focus:border-indigo-500 focus:ring-indigo-500" @input="generateCombinations()">
+                            </div>
+
+                            {{-- Values as pills --}}
+                            <div class="flex-1 flex flex-wrap items-center gap-1.5">
+                                <template x-for="(value, valueIndex) in type.values" :key="valueIndex">
+                                    <div class="inline-flex items-center gap-0.5 bg-white border border-gray-300 rounded-md overflow-hidden">
+                                        <input type="text" x-model="type.values[valueIndex]" :name="'variant_types['+typeIndex+'][values]['+valueIndex+']'" placeholder="Value"
+                                            class="w-36 border-0 text-sm py-1 px-2 focus:ring-0" @input="generateCombinations()">
+                                        <button type="button" @click="type.values.splice(valueIndex, 1); generateCombinations()"
+                                            class="px-1.5 py-1 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </div>
+                                </template>
+                                <button type="button" @click="type.values.push('')"
+                                    class="inline-flex items-center gap-0.5 px-2 py-1 text-[11px] text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                                    value
+                                </button>
+                            </div>
+
+                            {{-- Remove type --}}
+                            <button type="button" @click="removeVariantType(typeIndex)" class="shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors" title="Remove type">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                </div>
 
                 {{-- Generated Variant Combinations --}}
-                <div x-show="variants.length > 0" class="mt-6">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Variant Combinations (<span x-text="variants.length"></span>)</h3>
+                <div x-show="variants.length > 0">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Combinations <span class="text-gray-300" x-text="'(' + variants.length + ')'"></span></h3>
+                    </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Combination</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Weight (kg)</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Active</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                <template x-for="(variant, vIndex) in variants" :key="vIndex">
+                        <div class="overflow-hidden rounded-lg border border-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
                                     <tr>
-                                        <td class="px-3 py-2 text-sm text-gray-900" x-text="variant.label"></td>
-                                        <td class="px-3 py-2">
-                                            <input type="text" x-model="variant.sku" :name="'variants['+vIndex+'][sku]'"
-                                                :class="isSkuDuplicate(variant.sku, vIndex) ? 'ring-2 ring-red-500 border-red-500' : 'border-gray-300'"
-                                                class="w-40 rounded-lg text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            <template x-for="(key, kIndex) in variant.value_keys" :key="kIndex">
-                                                <input type="hidden" :name="'variants['+vIndex+'][value_keys]['+kIndex+']'" :value="key">
-                                            </template>
-                                            <p x-show="isSkuDuplicate(variant.sku, vIndex)" class="text-xs text-red-600 mt-0.5">Duplicate SKU</p>
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input type="number" x-model="variant.price" :name="'variants['+vIndex+'][price]'" step="0.01" min="0"
-                                                class="w-28 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input type="number" x-model.number="variant.quantity" :name="'variants['+vIndex+'][quantity]'" min="0"
-                                                class="w-20 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input type="number" x-model="variant.weight" :name="'variants['+vIndex+'][weight]'" step="0.001" min="0"
-                                                class="w-24 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="0.000">
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <input type="checkbox" x-model="variant.is_active" :name="'variants['+vIndex+'][is_active]'"
-                                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                        </td>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-28">Price (₱)</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-20">Stock</th>
+                                        <th class="px-3 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-24">Weight</th>
+                                        <th class="px-3 py-2.5 text-center text-xs font-medium text-gray-500 uppercase w-14">On</th>
                                     </tr>
-                                </template>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    <template x-for="(variant, vIndex) in variants" :key="vIndex">
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-3 py-1.5">
+                                                <span class="text-sm font-medium text-gray-900" x-text="variant.label"></span>
+                                                <template x-for="(key, kIndex) in variant.value_keys" :key="kIndex">
+                                                    <input type="hidden" :name="'variants['+vIndex+'][value_keys]['+kIndex+']'" :value="key">
+                                                </template>
+                                            </td>
+                                            <td class="px-3 py-1.5">
+                                                <input type="text" x-model="variant.sku" :name="'variants['+vIndex+'][sku]'"
+                                                    :class="isSkuDuplicate(variant.sku, vIndex) ? 'ring-1 ring-red-500 border-red-400' : 'border-gray-300'"
+                                                    class="w-full rounded-md text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="SKU">
+                                            </td>
+                                            <td class="px-3 py-1.5">
+                                                <input type="number" x-model="variant.price" :name="'variants['+vIndex+'][price]'" step="0.01" min="0"
+                                                    class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                            </td>
+                                            <td class="px-3 py-1.5">
+                                                <input type="number" x-model.number="variant.quantity" :name="'variants['+vIndex+'][quantity]'" min="0"
+                                                    class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                            </td>
+                                            <td class="px-3 py-1.5">
+                                                <input type="number" x-model="variant.weight" :name="'variants['+vIndex+'][weight]'" step="0.001" min="0"
+                                                    class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="kg">
+                                            </td>
+                                            <td class="px-3 py-1.5 text-center">
+                                                <input type="checkbox" x-model="variant.is_active" :name="'variants['+vIndex+'][is_active]'"
+                                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5">
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
-                <div x-show="variantTypes.length === 0 && variants.length === 0" class="text-sm text-gray-400 py-8 text-center">
-                    No variants. This product will use a single price and stock quantity.
+                <div x-show="variantTypes.length === 0 && variants.length === 0" class="text-center py-12">
+                    <svg class="w-10 h-10 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                    <p class="text-sm text-gray-400">No variants configured</p>
+                    <p class="text-xs text-gray-300 mt-1">This product uses a single price and stock quantity</p>
                 </div>
             </div>
 
@@ -634,6 +653,7 @@
                 },
 
                 addVariantType() {
+                    if (this.variantTypes.length >= 2) return;
                     this.variantTypes.push({ name: '', values: [''] });
                 },
 
