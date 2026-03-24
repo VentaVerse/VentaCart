@@ -3,9 +3,8 @@
 namespace App\Services\Shipping;
 
 use App\Models\FlatShippingRate;
-use App\Models\GeoZoneEntry;
-use App\Models\PhProvince;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class FlatRateShippingProvider implements ShippingProviderInterface
@@ -39,53 +38,35 @@ class FlatRateShippingProvider implements ShippingProviderInterface
                 return [];
             }
 
-            $geoZoneId = $this->resolveGeoZoneId($address);
+            $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+            $quotes = [];
 
             foreach ($rates as $rate) {
-                // Global rate (no geo zone set) — applies everywhere
-                if (!$rate->geo_zone_id) {
-                    return [[
-                        'key' => 'flat_rate_global',
-                        'name' => 'Standard Shipping',
-                        'cost' => (float) $rate->cost,
-                        'estimated_days' => null,
-                        'service_type' => 'flat_rate',
-                    ]];
+                // Customer group check
+                if ($rate->customer_group_id && $rate->customer_group_id !== $customerGroupId) {
+                    continue;
                 }
 
-                // Zone-specific rate — check if customer's address matches
-                if ($geoZoneId && $rate->geo_zone_id === $geoZoneId) {
-                    $zoneName = $rate->geoZone?->name ?? 'Standard';
-                    return [[
-                        'key' => 'flat_rate_' . $rate->geo_zone_id,
-                        'name' => "Shipping ({$zoneName})",
-                        'cost' => (float) $rate->cost,
-                        'estimated_days' => null,
-                        'service_type' => 'flat_rate',
-                    ]];
+                // Geo zone check
+                if ($rate->geo_zone_id) {
+                    if (!GeoZoneResolver::matchesGeoZone($address, $rate->geo_zone_id)) {
+                        continue;
+                    }
                 }
+
+                $quotes[] = [
+                    'key' => 'flat_rate_' . $rate->id,
+                    'name' => $rate->name ?: 'Flat Rate Shipping',
+                    'cost' => (float) $rate->cost,
+                    'estimated_days' => null,
+                    'service_type' => 'flat_rate',
+                ];
             }
 
-            return [];
+            return $quotes;
         } catch (\Throwable $e) {
             Log::error('FlatRateShippingProvider: failed', ['error' => $e->getMessage()]);
             return [];
         }
-    }
-
-    private function resolveGeoZoneId(array $address): ?int
-    {
-        $province = $address['province'] ?? '';
-        if (!$province) {
-            return null;
-        }
-
-        $phProvince = PhProvince::where('name', $province)->first();
-        if (!$phProvince) {
-            return null;
-        }
-
-        $entry = GeoZoneEntry::where('ph_region_id', $phProvince->ph_region_id)->first();
-        return $entry?->geo_zone_id;
     }
 }

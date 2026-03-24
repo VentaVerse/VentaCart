@@ -5,25 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CustomerGroup;
 use App\Models\GeoZone;
-use App\Models\ShippingMethod;
+use App\Models\WeightBasedMethod;
 use Illuminate\Http\Request;
 
-class ShippingMethodController extends Controller
+class WeightBasedMethodController extends Controller
 {
-    public function index()
-    {
-        $methods = ShippingMethod::with('geoZone', 'customerGroup')
-            ->withCount('rates')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
-
-        return view('admin.shipping-methods.index', compact('methods'));
-    }
-
     public function create()
     {
-        return view('admin.shipping-methods.form', [
+        return view('admin.weight-based-methods.form', [
             'method' => null,
             'geoZones' => GeoZone::where('is_active', true)->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
@@ -33,60 +22,46 @@ class ShippingMethodController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateMethod($request);
-        $rates = $request->input('rates', []);
+        $method = WeightBasedMethod::create($validated);
+        $this->syncRates($method, $request->input('rates', []));
 
-        $method = ShippingMethod::create($validated);
-
-        if ($validated['type'] === 'weight_based' && !empty($rates)) {
-            $this->syncRates($method, $rates);
-        }
-
-        return redirect()->route('admin.shipping-methods.index')
-            ->with('success', 'Shipping method created.');
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
+            ->with('success', 'Weight-based method created.');
     }
 
-    public function edit(ShippingMethod $shippingMethod)
+    public function edit(WeightBasedMethod $weightBasedMethod)
     {
-        return view('admin.shipping-methods.form', [
-            'method' => $shippingMethod->load('rates'),
+        return view('admin.weight-based-methods.form', [
+            'method' => $weightBasedMethod->load('rates'),
             'geoZones' => GeoZone::where('is_active', true)->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
         ]);
     }
 
-    public function update(Request $request, ShippingMethod $shippingMethod)
+    public function update(Request $request, WeightBasedMethod $weightBasedMethod)
     {
         $validated = $this->validateMethod($request);
-        $rates = $request->input('rates', []);
+        $weightBasedMethod->update($validated);
+        $this->syncRates($weightBasedMethod, $request->input('rates', []));
 
-        $shippingMethod->update($validated);
-
-        if ($validated['type'] === 'weight_based') {
-            $this->syncRates($shippingMethod, $rates);
-        } else {
-            $shippingMethod->rates()->delete();
-        }
-
-        return redirect()->route('admin.shipping-methods.index')
-            ->with('success', 'Shipping method updated.');
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
+            ->with('success', 'Weight-based method updated.');
     }
 
-    public function destroy(ShippingMethod $shippingMethod)
+    public function destroy(WeightBasedMethod $weightBasedMethod)
     {
-        $shippingMethod->delete();
+        $weightBasedMethod->delete();
 
-        return redirect()->route('admin.shipping-methods.index')
-            ->with('success', 'Shipping method deleted.');
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
+            ->with('success', 'Weight-based method deleted.');
     }
 
     private function validateMethod(Request $request): array
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:flat_rate,weight_based'],
             'geo_zone_id' => ['nullable', 'exists:geo_zones,id'],
             'customer_group_id' => ['nullable', 'exists:customer_groups,id'],
-            'cost' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['nullable'],
             'sort_order' => ['nullable', 'integer'],
         ]);
@@ -99,7 +74,7 @@ class ShippingMethodController extends Controller
         return $validated;
     }
 
-    private function syncRates(ShippingMethod $method, array $rates): void
+    private function syncRates(WeightBasedMethod $method, array $rates): void
     {
         $method->rates()->delete();
 

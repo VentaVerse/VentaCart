@@ -251,7 +251,6 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('shipping-zones/{geoZone}/edit', [ShippingZoneController::class, 'edit'])->name('shipping-zones.edit');
     Route::put('shipping-zones/{geoZone}', [ShippingZoneController::class, 'update'])->name('shipping-zones.update');
 
-    Route::resource('shipping-methods', \App\Http\Controllers\Admin\ShippingMethodController::class)->except(['show']);
 
     // Stock Notifications
     Route::get('/marketing', [\App\Http\Controllers\Admin\MarketingController::class, 'index'])->name('marketing.index');
@@ -327,8 +326,18 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::post('free-shipping-rules/{freeShippingRule}/toggle', [\App\Http\Controllers\Admin\FreeShippingRuleController::class, 'toggleActive'])->name('free-shipping-rules.toggle');
 
     // Flat Rate CRUD
+    Route::get('flat-rates/create', [\App\Http\Controllers\Admin\FlatRateController::class, 'create'])->name('flat-rates.create');
     Route::post('flat-rates', [\App\Http\Controllers\Admin\FlatRateController::class, 'store'])->name('flat-rates.store');
-    Route::delete('flat-rates/{flatShippingRate}', [\App\Http\Controllers\Admin\FlatRateController::class, 'destroy'])->name('flat-rates.destroy');
+    Route::get('flat-rates/{flatRate}/edit', [\App\Http\Controllers\Admin\FlatRateController::class, 'edit'])->name('flat-rates.edit');
+    Route::put('flat-rates/{flatRate}', [\App\Http\Controllers\Admin\FlatRateController::class, 'update'])->name('flat-rates.update');
+    Route::delete('flat-rates/{flatRate}', [\App\Http\Controllers\Admin\FlatRateController::class, 'destroy'])->name('flat-rates.destroy');
+
+    // Weight-Based Method CRUD
+    Route::get('weight-based-methods/create', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'create'])->name('weight-based-methods.create');
+    Route::post('weight-based-methods', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'store'])->name('weight-based-methods.store');
+    Route::get('weight-based-methods/{weightBasedMethod}/edit', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'edit'])->name('weight-based-methods.edit');
+    Route::put('weight-based-methods/{weightBasedMethod}', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'update'])->name('weight-based-methods.update');
+    Route::delete('weight-based-methods/{weightBasedMethod}', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'destroy'])->name('weight-based-methods.destroy');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\FlatShippingRate;
 use App\Models\Setting;
+use App\Models\WeightBasedMethod;
 use Illuminate\Support\Facades\Crypt;
 
 class ShippingSettingController extends Controller
@@ -35,6 +37,9 @@ class ShippingSettingController extends Controller
             }
         }
 
-        return view('admin.shipping-settings.index', compact('settings', 'maskedKeys'));
+        $flatRates = FlatShippingRate::with('geoZone', 'customerGroup')->orderBy('sort_order')->get();
+        $weightMethods = WeightBasedMethod::with('geoZone', 'customerGroup')->withCount('rates')->orderBy('sort_order')->get();
+
+        return view('admin.shipping-settings.index', compact('settings', 'maskedKeys', 'flatRates', 'weightMethods'));
     }
 }

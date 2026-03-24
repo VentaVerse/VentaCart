@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FlatShippingRate extends Model
 {
-    protected $fillable = ['geo_zone_id', 'cost', 'is_active', 'sort_order'];
+    protected $fillable = ['name', 'geo_zone_id', 'customer_group_id', 'cost', 'is_active', 'sort_order'];
 
     protected function casts(): array
     {
@@ -20,5 +20,10 @@ class FlatShippingRate extends Model
     public function geoZone(): BelongsTo
     {
         return $this->belongsTo(GeoZone::class);
+    }
+
+    public function customerGroup(): BelongsTo
+    {
+        return $this->belongsTo(CustomerGroup::class);
     }
 }
