@@ -103,27 +103,27 @@
                                 </div>
                             </div>
 
-                            {{-- Conditions --}}
-                            <div>
-                                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Conditions</h4>
-                                <p class="text-xs text-gray-500 mb-3">All must be met. Leave empty to skip.</p>
-                                <div class="space-y-4">
-                                    @include('admin.partials.dual-listbox', ['name' => 'geo_zone_ids', 'label' => 'Geo Zones', 'hint' => 'Only show for these zones', 'items' => $zoneItems, 'selected' => old('geo_zone_ids', $r?->geo_zone_ids ?? [])])
-                                    @include('admin.partials.dual-listbox', ['name' => 'customer_group_ids', 'label' => 'Customer Groups', 'hint' => 'Only show for these groups', 'items' => $groupItems, 'selected' => old('customer_group_ids', $r?->customer_group_ids ?? [])])
-                                    @include('admin.partials.dual-listbox', ['name' => 'category_ids', 'label' => 'Categories', 'hint' => 'Cart must contain products from these', 'items' => $categoryItems, 'selected' => old('category_ids', $r?->category_ids ?? [])])
-                                    @include('admin.partials.dual-listbox', ['name' => 'brand_ids', 'label' => 'Brands', 'hint' => 'Cart must contain products from these', 'items' => $brandItems, 'selected' => old('brand_ids', $r?->brand_ids ?? [])])
+                            {{-- Conditions & Exclusions side by side --}}
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 class="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-1">Include Conditions</h4>
+                                    <p class="text-xs text-gray-500 mb-3">All must be met. Leave empty to skip.</p>
+                                    <div class="space-y-4">
+                                        @include('admin.partials.dual-listbox', ['name' => 'geo_zone_ids', 'label' => 'Geo Zones', 'hint' => 'Only show for these zones', 'items' => $zoneItems, 'selected' => old('geo_zone_ids', $r?->geo_zone_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'customer_group_ids', 'label' => 'Customer Groups', 'hint' => 'Only show for these groups', 'items' => $groupItems, 'selected' => old('customer_group_ids', $r?->customer_group_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'category_ids', 'label' => 'Categories', 'hint' => 'Cart must contain products from these', 'items' => $categoryItems, 'selected' => old('category_ids', $r?->category_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'brand_ids', 'label' => 'Brands', 'hint' => 'Cart must contain products from these', 'items' => $brandItems, 'selected' => old('brand_ids', $r?->brand_ids ?? [])])
+                                    </div>
                                 </div>
-                            </div>
-
-                            {{-- Exclusions --}}
-                            <div>
-                                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Exclusions</h4>
-                                <p class="text-xs text-gray-500 mb-3">Block if any match.</p>
-                                <div class="space-y-4">
-                                    @include('admin.partials.dual-listbox', ['name' => 'exclude_geo_zone_ids', 'label' => 'Exclude Zones', 'hint' => 'Block for these zones', 'items' => $zoneItems, 'selected' => old('exclude_geo_zone_ids', $r?->exclude_geo_zone_ids ?? [])])
-                                    @include('admin.partials.dual-listbox', ['name' => 'exclude_customer_group_ids', 'label' => 'Exclude Groups', 'hint' => 'Block for these groups', 'items' => $groupItems, 'selected' => old('exclude_customer_group_ids', $r?->exclude_customer_group_ids ?? [])])
-                                    @include('admin.partials.dual-listbox', ['name' => 'exclude_category_ids', 'label' => 'Exclude Categories', 'hint' => 'Block if cart has these', 'items' => $categoryItems, 'selected' => old('exclude_category_ids', $r?->exclude_category_ids ?? [])])
-                                    @include('admin.partials.dual-listbox', ['name' => 'exclude_brand_ids', 'label' => 'Exclude Brands', 'hint' => 'Block if cart has these', 'items' => $brandItems, 'selected' => old('exclude_brand_ids', $r?->exclude_brand_ids ?? [])])
+                                <div>
+                                    <h4 class="text-xs font-semibold text-red-500 uppercase tracking-wider mb-1">Exclude Conditions</h4>
+                                    <p class="text-xs text-gray-500 mb-3">Block if any match.</p>
+                                    <div class="space-y-4">
+                                        @include('admin.partials.dual-listbox', ['name' => 'exclude_geo_zone_ids', 'label' => 'Geo Zones', 'hint' => 'Block for these zones', 'items' => $zoneItems, 'selected' => old('exclude_geo_zone_ids', $r?->exclude_geo_zone_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'exclude_customer_group_ids', 'label' => 'Customer Groups', 'hint' => 'Block for these groups', 'items' => $groupItems, 'selected' => old('exclude_customer_group_ids', $r?->exclude_customer_group_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'exclude_category_ids', 'label' => 'Categories', 'hint' => 'Block if cart has these', 'items' => $categoryItems, 'selected' => old('exclude_category_ids', $r?->exclude_category_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'exclude_brand_ids', 'label' => 'Brands', 'hint' => 'Block if cart has these', 'items' => $brandItems, 'selected' => old('exclude_brand_ids', $r?->exclude_brand_ids ?? [])])
+                                    </div>
                                 </div>
                             </div>
                         </div>
