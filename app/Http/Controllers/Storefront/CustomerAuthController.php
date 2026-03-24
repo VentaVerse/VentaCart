@@ -31,11 +31,23 @@ class CustomerAuthController extends Controller
     public function login(CustomerLoginRequest $request)
     {
         $oldSessionId = session()->getId();
+        $storeId = (int) config('app.store_id');
+
+        // Check if this is a migrated customer with no password set
+        $customer = Customer::where('store_id', $storeId)
+            ->where('email', $request->email)
+            ->first();
+
+        if ($customer && $customer->password === null) {
+            throw ValidationException::withMessages([
+                'needs_reset' => $customer->email,
+            ]);
+        }
 
         $credentials = [
             'email' => $request->email,
             'password' => $request->password,
-            'store_id' => (int) config('app.store_id'),
+            'store_id' => $storeId,
             'is_active' => true,
         ];
 

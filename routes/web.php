@@ -40,6 +40,7 @@ use App\Http\Controllers\Storefront\CartController as StorefrontCartController;
 use App\Http\Controllers\Storefront\ProductController as StorefrontProductController;
 use App\Http\Controllers\Storefront\SearchController as StorefrontSearchController;
 use App\Http\Controllers\Storefront\CustomerAuthController;
+use App\Http\Controllers\Storefront\CustomerPasswordResetController;
 use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\AccountAddressController;
 use App\Http\Controllers\Storefront\OrderHistoryController;
@@ -106,6 +107,11 @@ Route::prefix('account')->name('customer.')->group(function () {
     Route::get('/register', [CustomerAuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [CustomerAuthController::class, 'register'])->name('register.submit');
     Route::post('/logout', [CustomerAuthController::class, 'logout'])->name('logout');
+    Route::get('/forgot-password', [CustomerPasswordResetController::class, 'showForgotForm'])->name('password.request');
+    Route::post('/forgot-password', [CustomerPasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::get('/reset-password/{token}', [CustomerPasswordResetController::class, 'showResetForm'])->name('password.reset');
+    Route::post('/reset-password', [CustomerPasswordResetController::class, 'reset'])->name('password.update');
+    Route::post('/migration-reset', [CustomerPasswordResetController::class, 'sendMigrationResetLink'])->name('password.migration');
 });
 
 // Storefront address lookup (public, no auth — used by address forms)
