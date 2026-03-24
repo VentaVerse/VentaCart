@@ -25,4 +25,4 @@ Thumbs.db
 CLAUDE.md
 /delivery_ph
 .playwright-mcp/
-ngdadm_dev.sql
+*.sql

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
@@ -146,8 +148,11 @@ class ErpProductController extends Controller
             'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
             'brand_id' => 'nullable|integer|exists:brands,id',
+            'brand_name' => 'nullable|string|max:255',
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'integer|exists:categories,id',
+            'category_names' => 'nullable|array',
+            'category_names.*' => 'string|max:255',
             'quantity' => 'nullable|integer|min:0',
             'weight' => 'nullable|numeric|min:0',
             'cost' => 'nullable|numeric|min:0',
@@ -155,6 +160,20 @@ class ErpProductController extends Controller
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
         ]);
+
+        $storeId = (int) config('app.store_id', 1);
+
+        // Resolve brand: brand_id takes priority, then brand_name (find-or-create)
+        $brandId = $validated['brand_id'] ?? null;
+        if (!$brandId && !empty($validated['brand_name'])) {
+            $brandId = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
+        }
+
+        // Resolve categories: category_ids takes priority, then category_names (find-or-create)
+        $categoryIds = $validated['category_ids'] ?? [];
+        if (empty($categoryIds) && !empty($validated['category_names'])) {
+            $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
+        }
 
         $slug = Str::slug($validated['name']);
         $originalSlug = $slug;
@@ -164,13 +183,13 @@ class ErpProductController extends Controller
         }
 
         $product = Product::create([
-            'store_id' => (int) config('app.store_id', 1),
+            'store_id' => $storeId,
             'name' => $validated['name'],
             'sku' => $validated['sku'],
             'slug' => $slug,
             'price' => $validated['price'],
             'description' => $validated['description'] ?? null,
-            'brand_id' => $validated['brand_id'] ?? null,
+            'brand_id' => $brandId,
             'quantity' => $validated['quantity'] ?? 0,
             'weight' => $validated['weight'] ?? 0,
             'cost' => $validated['cost'] ?? 0,
@@ -179,8 +198,8 @@ class ErpProductController extends Controller
             'meta_description' => $validated['meta_description'] ?? null,
         ]);
 
-        if (!empty($validated['category_ids'])) {
-            $product->categories()->sync($validated['category_ids']);
+        if (!empty($categoryIds)) {
+            $product->categories()->sync($categoryIds);
         }
 
         $product->load(['brand:id,name,slug', 'categories:id,name,slug']);
@@ -212,8 +231,11 @@ class ErpProductController extends Controller
             'price' => 'sometimes|numeric|min:0',
             'description' => 'nullable|string',
             'brand_id' => 'nullable|integer|exists:brands,id',
+            'brand_name' => 'nullable|string|max:255',
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'integer|exists:categories,id',
+            'category_names' => 'nullable|array',
+            'category_names.*' => 'string|max:255',
             'quantity' => 'sometimes|integer|min:0',
             'weight' => 'nullable|numeric|min:0',
             'cost' => 'nullable|numeric|min:0',
@@ -221,6 +243,13 @@ class ErpProductController extends Controller
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
         ]);
+
+        $storeId = (int) config('app.store_id', 1);
+
+        // Resolve brand_name to brand_id if provided
+        if (!$request->has('brand_id') && !empty($validated['brand_name'])) {
+            $validated['brand_id'] = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
+        }
 
         $fillable = [];
         $fieldMap = [
@@ -237,7 +266,7 @@ class ErpProductController extends Controller
         ];
 
         foreach ($fieldMap as $input => $column) {
-            if ($request->has($input)) {
+            if ($request->has($input) || ($input === 'brand_id' && !empty($validated['brand_name']))) {
                 $fillable[$column] = $validated[$input] ?? null;
             }
         }
@@ -258,7 +287,13 @@ class ErpProductController extends Controller
 
         $product->update($fillable);
 
-        if ($request->has('category_ids')) {
+        // Resolve category_names to category_ids if provided
+        if (!$request->has('category_ids') && !empty($validated['category_names'])) {
+            $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
+            if (!empty($categoryIds)) {
+                $product->categories()->sync($categoryIds);
+            }
+        } elseif ($request->has('category_ids')) {
             $product->categories()->sync($validated['category_ids'] ?? []);
         }
 
@@ -340,5 +375,63 @@ class ErpProductController extends Controller
             'message' => count($uploaded) . ' image(s) uploaded',
             'images' => $uploaded,
         ], 200, $sku);
+    }
+
+    /**
+     * Find a brand by name (case-insensitive) or create it.
+     */
+    private function resolveOrCreateBrand(string $name, int $storeId): int
+    {
+        $name = trim($name);
+        if ($name === '') return 0;
+
+        $brand = Brand::where('store_id', $storeId)
+            ->whereRaw('LOWER(name) = ?', [strtolower($name)])
+            ->first();
+
+        if ($brand) {
+            return $brand->id;
+        }
+
+        $brand = Brand::create([
+            'store_id'  => $storeId,
+            'name'      => $name,
+            'slug'      => Str::slug($name),
+            'is_active' => true,
+        ]);
+
+        return $brand->id;
+    }
+
+    /**
+     * Find categories by name (case-insensitive) or create them.
+     * Returns array of category IDs.
+     */
+    private function resolveOrCreateCategories(array $names, int $storeId): array
+    {
+        $ids = [];
+
+        foreach ($names as $name) {
+            $name = trim($name);
+            if ($name === '') continue;
+
+            $category = Category::where('store_id', $storeId)
+                ->whereRaw('LOWER(name) = ?', [strtolower($name)])
+                ->first();
+
+            if ($category) {
+                $ids[] = $category->id;
+            } else {
+                $category = Category::create([
+                    'store_id'  => $storeId,
+                    'name'      => $name,
+                    'slug'      => Str::slug($name),
+                    'is_active' => true,
+                ]);
+                $ids[] = $category->id;
+            }
+        }
+
+        return $ids;
     }
 }
