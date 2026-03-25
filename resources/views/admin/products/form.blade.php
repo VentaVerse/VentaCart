@@ -1,3 +1,24 @@
+@php
+    $errorTab = 'general';
+    if ($errors->any()) {
+        $tabFields = [
+            'general' => ['name', 'slug', 'sku', 'model', 'brand_id', 'description', 'date_available', 'price', 'quantity', 'weight', 'is_active', 'track_stock', 'minimum_quantity'],
+            'images' => ['images_json'],
+            'pricing' => ['specials'],
+            'links' => ['category_ids', 'tag_ids', 'customer_group_ids'],
+            'variants' => ['variants', 'variant_types'],
+            'seo' => ['meta_title', 'meta_description', 'meta_keywords'],
+        ];
+        foreach ($tabFields as $tab => $fields) {
+            foreach ($fields as $field) {
+                if ($errors->has($field) || $errors->has($field . '.*')) {
+                    $errorTab = $tab;
+                    break 2;
+                }
+            }
+        }
+    }
+@endphp
 <x-admin-layout>
     <x-slot name="header">{{ $product ? 'Edit Product' : 'Create Product' }}</x-slot>
     <x-slot name="headerActions">
@@ -10,6 +31,7 @@
           action="{{ $product ? route('admin.products.update', $product) : route('admin.products.store') }}"
           enctype="multipart/form-data"
           x-data="productForm()"
+          novalidate
           class="space-y-6">
         @csrf
         @if ($product)
@@ -59,7 +81,7 @@
                     </div>
 
                     <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Product Name <span class="text-red-500">*</span></label>
                         <input type="text" name="name" id="name" required value="{{ old('name', $product?->name) }}"
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
@@ -703,7 +725,7 @@
             const existingSpecials = @json($existingSpecials);
 
             return {
-                activeTab: 'general',
+                activeTab: '{{ $errorTab ?? 'general' }}',
                 tabs: [
                     { id: 'general', label: 'General' },
                     { id: 'images', label: 'Images' },

@@ -275,7 +275,7 @@ class ProductController extends Controller
             'brand_id' => ['nullable', 'exists:brands,id'],
             'description' => ['nullable', 'string'],
             'price' => ['nullable', 'numeric', 'min:0'],
-            'quantity' => ['nullable', 'integer', 'min:0'],
+            'quantity' => ['nullable', 'integer'],
             'weight' => ['nullable', 'numeric', 'min:0'],
             'weight_unit' => ['nullable', 'string', 'in:kg,g,lb,oz'],
             'length' => ['nullable', 'numeric', 'min:0'],

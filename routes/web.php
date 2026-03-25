@@ -150,6 +150,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     Route::resource('products', ProductController::class)->except(['show']);
     Route::resource('categories', CategoryController::class)->except(['show']);
+    Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
     Route::get('/brands/search', [BrandController::class, 'search'])->name('brands.search');
     Route::resource('brands', BrandController::class)->except(['show']);
     Route::resource('customers', CustomerController::class)->except(['show']);

@@ -30,7 +30,7 @@ class CategoryController extends Controller
             }
         }
 
-        $categories = $query->orderBy('sort_order')->orderBy('name')->paginate(30)->withQueryString();
+        $categories = $query->orderBy('sort_order')->orderBy('name')->get();
 
         return view('admin.categories.index', compact('categories'));
     }
@@ -97,6 +97,21 @@ class CategoryController extends Controller
 
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category deleted. Child categories were moved up.');
+    }
+
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'order' => 'required|array',
+            'order.*.id' => 'required|exists:categories,id',
+            'order.*.sort_order' => 'required|integer',
+        ]);
+
+        foreach ($request->input('order') as $item) {
+            Category::where('id', $item['id'])->update(['sort_order' => $item['sort_order']]);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     protected function validateCategory(Request $request, ?int $categoryId = null): array
