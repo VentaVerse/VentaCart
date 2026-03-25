@@ -87,42 +87,37 @@
                     </div>
                 @endif
 
-                {{-- Payment Card --}}
+                {{-- Payment & Status Card --}}
+                @php
+                    $statusName = $order->status?->name ?? 'Pending';
+                    $bankAcct = null;
+                    if (str_starts_with($order->payment_method, 'bank_transfer') && preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
+                        $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
+                    }
+                @endphp
                 <div class="account-card reveal">
-                    <h2 class="checkout-section-title">PAYMENT</h2>
-                    <div class="text-sm space-y-2">
-                        <div class="flex justify-between">
-                            <span class="text-[#888]">Method</span>
-                            <span class="text-[#E8E8E8]">
-                                @if (str_starts_with($order->payment_method, 'bank_transfer'))
-                                    @php
-                                        $bankAcct = null;
-                                        if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
-                                            $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
-                                        }
-                                        if (!$bankAcct) {
-                                            $bankAcct = \App\Models\BankAccount::where('is_active', true)->orderBy('sort_order')->first();
-                                        }
-                                    @endphp
-                                    {{ $bankAcct ? 'Bank Transfer — ' . $bankAcct->bank_name : 'Bank Transfer' }}
-                                @elseif ($order->payment_method === 'cod')
-                                    Cash on Delivery
-                                @else
-                                    {{ ucwords(str_replace('_', ' ', $order->payment_method)) }}
-                                @endif
-                            </span>
+                    <div class="text-center mb-4">
+                        <p class="text-xs text-gray-400 uppercase tracking-widest mb-1">Order Status</p>
+                        <p class="text-2xl font-bold text-[var(--color-primary)] tracking-wide">{{ strtoupper($statusName) }}</p>
+                    </div>
+                    <hr class="border-gray-200 my-4">
+                    <div class="text-sm">
+                        <div class="flex justify-between py-1.5">
+                            <span class="text-gray-500">Payment</span>
+                            <span class="text-gray-900 font-medium">{{ $order->payment_method_label }}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-[#888]">Status</span>
-                            @php $statusName = $order->status?->name ?? 'Pending'; @endphp
-                            <span class="account-status-badge account-status-{{ strtolower($statusName) }}">{{ $statusName }}</span>
-                        </div>
+                        @if ($order->shipping_method)
+                            <div class="flex justify-between py-1.5">
+                                <span class="text-gray-500">Shipping</span>
+                                <span class="text-gray-900">{{ $order->shipping_method }}</span>
+                            </div>
+                        @endif
                     </div>
 
-                    @if ($bankInstructions || ($bankAcct ?? null))
+                    @if ($bankInstructions || ($bankAcct && $bankAcct->qr_image))
                         <div class="confirmation-bank-instructions">
                             <h3 class="confirmation-bank-title">BANK TRANSFER INSTRUCTIONS</h3>
-                            @if (($bankAcct ?? null) && $bankAcct->qr_image)
+                            @if ($bankAcct && $bankAcct->qr_image)
                                 <div class="flex justify-center my-4">
                                     <img src="{{ storage_url($bankAcct->qr_image) }}" alt="QR Code — {{ $bankAcct->bank_name }}" class="max-w-[300px] rounded-lg border border-gray-200">
                                 </div>
