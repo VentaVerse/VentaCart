@@ -24,6 +24,7 @@ Homestead.yaml
 Thumbs.db
 CLAUDE.md
 /.claude
+/.github
 /delivery_ph
 .playwright-mcp/
 *.sql
