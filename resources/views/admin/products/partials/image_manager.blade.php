@@ -224,9 +224,31 @@ function imageManager() {
         browserUploadStatus: '',
 
         _dragFromIndex: null,
+        _dragEl: null,
+        _placeholder: null,
 
         init() {
             this.$nextTick(() => this.renderGrid());
+        },
+
+        _createPlaceholder() {
+            const ph = document.createElement('div');
+            ph.className = 'rounded-lg border-2 border-dashed border-indigo-400 bg-indigo-50 aspect-square';
+            ph.dataset.placeholder = 'true';
+            return ph;
+        },
+
+        _getDropIndex(grid, e) {
+            const cards = [...grid.querySelectorAll('[data-path]:not([style*="opacity: 0.4"])')];
+            for (let i = 0; i < cards.length; i++) {
+                const rect = cards[i].getBoundingClientRect();
+                const midX = rect.left + rect.width / 2;
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY || (e.clientY < rect.bottom && e.clientX < midX)) {
+                    return parseInt(cards[i].dataset.index);
+                }
+            }
+            return this.items.length - 1;
         },
 
         renderGrid() {
@@ -236,7 +258,7 @@ function imageManager() {
 
             this.items.forEach((item, index) => {
                 const card = document.createElement('div');
-                card.className = 'relative group rounded-lg overflow-hidden bg-white shadow-sm border border-gray-200 cursor-grab hover:shadow-md transition-all duration-150';
+                card.className = 'relative group rounded-lg overflow-hidden bg-white shadow-sm border border-gray-200 cursor-grab hover:shadow-md';
                 card.draggable = true;
                 card.dataset.path = item.path;
                 card.dataset.index = index;
@@ -280,39 +302,97 @@ function imageManager() {
 
                 card.addEventListener('dragstart', (e) => {
                     this._dragFromIndex = parseInt(card.dataset.index);
-                    card.style.opacity = '0.4';
-                    card.classList.add('cursor-grabbing');
+                    this._dragEl = card;
+                    this._placeholder = this._createPlaceholder();
                     e.dataTransfer.effectAllowed = 'move';
+                    // Delay so the browser captures the drag image first
+                    requestAnimationFrame(() => {
+                        grid.insertBefore(this._placeholder, card);
+                        card.style.display = 'none';
+                    });
                 });
+
                 card.addEventListener('dragend', () => {
-                    card.style.opacity = '';
-                    card.classList.remove('cursor-grabbing');
-                    grid.querySelectorAll('[data-path]').forEach(el => {
-                        el.classList.remove('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
-                    });
-                });
-                card.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    grid.querySelectorAll('[data-path]').forEach(el => {
-                        el.classList.remove('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
-                    });
-                    card.classList.add('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
-                });
-                card.addEventListener('dragleave', () => {
-                    card.classList.remove('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
-                });
-                card.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    const toIndex = parseInt(card.dataset.index);
-                    if (this._dragFromIndex === null || this._dragFromIndex === toIndex) return;
-                    const moved = this.items.splice(this._dragFromIndex, 1)[0];
-                    this.items.splice(toIndex, 0, moved);
+                    // Remove placeholder
+                    if (this._placeholder && this._placeholder.parentNode) {
+                        this._placeholder.remove();
+                    }
+                    // Restore dragged card
+                    card.style.display = '';
+
+                    // Calculate drop position from placeholder position
+                    if (this._dragFromIndex !== null) {
+                        const allCards = [...grid.querySelectorAll('[data-path]')];
+                        const visibleCards = allCards.filter(c => c !== this._dragEl);
+                        // Placeholder was already removed, so just use _dragFromIndex
+                        // The drop event handles the actual reorder
+                    }
+                    this._dragEl = null;
                     this._dragFromIndex = null;
-                    this.renderGrid();
+                    this._placeholder = null;
                 });
 
                 grid.appendChild(card);
+            });
+
+            // Grid-level dragover to position placeholder
+            grid.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (!this._placeholder || !this._dragEl) return;
+
+                // Find the card closest to cursor, insert placeholder before or after it
+                const cards = [...grid.querySelectorAll('[data-path]')].filter(c => c !== this._dragEl);
+                if (!cards.length) return;
+
+                // insert placeholder before the first card whose left edge the cursor has passed
+                let inserted = false;
+                for (const c of cards) {
+                    const rect = c.getBoundingClientRect();
+                    // Trigger as soon as cursor enters the card at all
+                    if (e.clientY < rect.bottom && e.clientX < rect.right) {
+                        if (this._placeholder.nextSibling !== c) {
+                            grid.insertBefore(this._placeholder, c);
+                        }
+                        inserted = true;
+                        break;
+                    }
+                }
+                if (!inserted) {
+                    grid.appendChild(this._placeholder);
+                }
+            });
+
+            grid.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (this._dragFromIndex === null || !this._placeholder) return;
+
+                // Figure out where placeholder ended up
+                const allChildren = [...grid.children].filter(c => c.dataset.path || c.dataset.placeholder);
+                const placeholderPos = allChildren.indexOf(this._placeholder);
+                // Count only real cards before placeholder
+                let toIndex = 0;
+                for (let i = 0; i < allChildren.length; i++) {
+                    if (allChildren[i] === this._placeholder) break;
+                    if (allChildren[i].dataset.path && allChildren[i] !== this._dragEl) toIndex++;
+                }
+                // Adjust if dragging down
+                if (this._dragFromIndex < toIndex) toIndex--;
+
+                if (toIndex < 0) toIndex = 0;
+                if (toIndex >= this.items.length) toIndex = this.items.length - 1;
+
+                if (this._dragFromIndex !== toIndex) {
+                    const moved = this.items.splice(this._dragFromIndex, 1)[0];
+                    this.items.splice(toIndex, 0, moved);
+                }
+
+                // Clean up
+                if (this._placeholder && this._placeholder.parentNode) this._placeholder.remove();
+                this._dragFromIndex = null;
+                this._dragEl = null;
+                this._placeholder = null;
+                this.renderGrid();
             });
         },
 
