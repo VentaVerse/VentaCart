@@ -23,6 +23,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 CLAUDE.md
+/.claude
 /delivery_ph
 .playwright-mcp/
 *.sql
