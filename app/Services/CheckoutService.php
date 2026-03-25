@@ -190,7 +190,22 @@ class CheckoutService
         }
         $total = $subtotal + $shippingCost;
 
-        $defaultStatus = OrderStatus::where('store_id', $this->storeId)
+        // Resolve initial order status based on payment method
+        $statusSettingKey = match (preg_replace('/_\d+$/', '', $paymentMethodKey)) {
+            'bank_transfer' => 'bank_transfer_success_status_id',
+            'cod' => 'cod_success_status_id',
+            default => null,
+        };
+
+        $initialStatus = null;
+        if ($statusSettingKey) {
+            $statusId = \App\Models\Setting::where('group', 'payment')->where('key', $statusSettingKey)->value('value');
+            if ($statusId) {
+                $initialStatus = OrderStatus::find($statusId);
+            }
+        }
+
+        $defaultStatus = $initialStatus ?? OrderStatus::where('store_id', $this->storeId)
             ->where('is_default', true)
             ->first();
 

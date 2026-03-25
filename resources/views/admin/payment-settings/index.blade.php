@@ -61,6 +61,21 @@
                         </label>
                     </form>
                 </div>
+                <div class="px-5 py-3 border-b border-gray-100">
+                    <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
+                        @csrf
+                        <input type="hidden" name="group" value="payment">
+                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_tab" value="bank-transfer">
+                        <label class="text-sm text-gray-700">Order Status on Checkout</label>
+                        <select name="settings[bank_transfer_success_status_id]" class="rounded-lg border-gray-300 text-sm" onchange="this.form.submit()">
+                            <option value="">Default (Pending)</option>
+                            @foreach ($orderStatuses as $os)
+                                <option value="{{ $os->id }}" {{ ($settings['payment']['bank_transfer_success_status_id'] ?? '') == $os->id ? 'selected' : '' }}>{{ $os->name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
                 <div class="p-5">
                     {{-- Bank Accounts Table --}}
                     <div class="overflow-hidden rounded-lg border border-gray-200 mb-4">
@@ -174,6 +189,21 @@
                         </label>
                     </form>
                 </div>
+                <div class="px-5 py-3 border-b border-gray-100">
+                    <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
+                        @csrf
+                        <input type="hidden" name="group" value="payment">
+                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_tab" value="hitpay">
+                        <label class="text-sm text-gray-700">Order Status on Payment</label>
+                        <select name="settings[hitpay_success_status_id]" class="rounded-lg border-gray-300 text-sm" onchange="this.form.submit()">
+                            <option value="">Default (Pending)</option>
+                            @foreach ($orderStatuses as $os)
+                                <option value="{{ $os->id }}" {{ ($settings['payment']['hitpay_success_status_id'] ?? '') == $os->id ? 'selected' : '' }}>{{ $os->name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
                 <div class="p-5">
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
@@ -285,6 +315,21 @@
                                 class="rounded border-gray-300 text-indigo-600" onchange="this.form.submit()">
                             Enabled
                         </label>
+                    </form>
+                </div>
+                <div class="px-5 py-3 border-b border-gray-100">
+                    <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
+                        @csrf
+                        <input type="hidden" name="group" value="payment">
+                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_tab" value="cod">
+                        <label class="text-sm text-gray-700">Order Status on Checkout</label>
+                        <select name="settings[cod_success_status_id]" class="rounded-lg border-gray-300 text-sm" onchange="this.form.submit()">
+                            <option value="">Default (Pending)</option>
+                            @foreach ($orderStatuses as $os)
+                                <option value="{{ $os->id }}" {{ ($settings['payment']['cod_success_status_id'] ?? '') == $os->id ? 'selected' : '' }}>{{ $os->name }}</option>
+                            @endforeach
+                        </select>
                     </form>
                 </div>
                 <div class="p-5">
