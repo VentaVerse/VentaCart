@@ -49,7 +49,7 @@ class BankTransferPayment implements PaymentMethodInterface
 
     public function isEnabled(): bool
     {
-        return (bool) theme('payment.bank_transfer_enabled');
+        return (bool) \App\Models\Setting::where('group', 'payment')->where('key', 'bank_transfer_enabled')->value('value');
     }
 
     public function processPayment(Order $order): PaymentResult

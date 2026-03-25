@@ -158,36 +158,33 @@ class PaymentRestrictionService
 
     /**
      * Resolve the geo zone ID for a given address.
+     * Uses GeoZoneResolver for consistent matching with the shipping system.
      */
     private static function resolveGeoZoneId(array $address): ?int
     {
         $state = $address['state'] ?? null;
         $city = $address['city'] ?? null;
-        $countryCode = $address['country_code'] ?? 'PH';
 
         if (!$state && !$city) {
             return null;
         }
 
-        $query = GeoZoneEntry::query()
-            ->select('geo_zone_id')
-            ->join('geo_zones', 'geo_zones.id', '=', 'geo_zone_entries.geo_zone_id')
-            ->where('geo_zones.is_active', true);
+        // Map address keys to what GeoZoneResolver expects
+        $resolverAddress = [
+            'province' => $state,
+            'city' => $city,
+            'country_code' => $address['country_code'] ?? 'PH',
+        ];
 
-        if ($countryCode === 'PH' && $state) {
-            $query->where(function ($q) use ($state) {
-                $q->whereNotNull('ph_province_id')
-                  ->whereExists(function ($sub) use ($state) {
-                      $sub->select(DB::raw(1))
-                          ->from('ph_provinces')
-                          ->whereColumn('ph_provinces.id', 'geo_zone_entries.ph_province_id')
-                          ->where('ph_provinces.name', $state);
-                  });
-            });
+        // Check each active geo zone for a match
+        $geoZones = \App\Models\GeoZone::where('is_active', true)->pluck('id');
+
+        foreach ($geoZones as $geoZoneId) {
+            if (\App\Services\Shipping\GeoZoneResolver::matchesGeoZone($resolverAddress, $geoZoneId)) {
+                return $geoZoneId;
+            }
         }
 
-        $entry = $query->first();
-
-        return $entry?->geo_zone_id;
+        return null;
     }
 }

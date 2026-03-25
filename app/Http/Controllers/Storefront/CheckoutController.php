@@ -51,7 +51,9 @@ class CheckoutController extends Controller
             'country_code' => $defaultAddress->country_code ?? 'PH',
         ] : null;
 
-        $paymentMethods = $this->checkoutService->getAvailablePaymentMethods($addressData, $subtotal);
+        $paymentMethods = $this->checkoutService->getAvailablePaymentMethods($addressData, $subtotal, [
+            'customer_group_id' => $customer->customer_group_id,
+        ]);
 
         return view('checkout.index', compact(
             'customer', 'items', 'addresses', 'defaultAddress', 'countries',
