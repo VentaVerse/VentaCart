@@ -25,25 +25,8 @@
             <p class="text-xs mt-1">Click Image Manager to browse, upload, or import images</p>
         </div>
 
-        {{-- Grid --}}
-        <div x-show="items.length > 0" x-ref="sortableGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-            <template x-for="(item, index) in items" :key="item.path">
-                <div class="relative group rounded-lg overflow-hidden bg-white shadow-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow" :data-index="index">
-                    <div class="aspect-square">
-                        <img :src="item.url" :alt="'Image ' + (index + 1)" class="w-full h-full object-cover">
-                    </div>
-                    {{-- Badge --}}
-                    <span class="absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded shadow-sm"
-                          :class="index === 0 ? 'bg-indigo-600 text-white' : 'bg-black/50 text-white backdrop-blur-sm'"
-                          x-text="index === 0 ? 'Main' : '#' + (index + 1)"></span>
-                    {{-- Remove --}}
-                    <button type="button" @click="removeItem(index)"
-                        class="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-sm">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-            </template>
-        </div>
+        {{-- Grid (no x-for — rendered via JS to avoid SortableJS conflict) --}}
+        <div x-show="items.length > 0" x-ref="sortableGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"></div>
     </div>
 
     {{-- Toast --}}
@@ -212,7 +195,6 @@
 </div>
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 <script>
 function imageManager() {
     return {
@@ -241,18 +223,96 @@ function imageManager() {
         browserUploading: false,
         browserUploadStatus: '',
 
+        _dragFromIndex: null,
+
         init() {
-            this.$nextTick(() => {
-                if (this.$refs.sortableGrid) {
-                    new Sortable(this.$refs.sortableGrid, {
-                        animation: 150,
-                        ghostClass: 'opacity-30',
-                        onEnd: (evt) => {
-                            const moved = this.items.splice(evt.oldIndex, 1)[0];
-                            this.items.splice(evt.newIndex, 0, moved);
-                        },
+            this.$nextTick(() => this.renderGrid());
+        },
+
+        renderGrid() {
+            const grid = this.$refs.sortableGrid;
+            if (!grid) return;
+            grid.textContent = '';
+
+            this.items.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'relative group rounded-lg overflow-hidden bg-white shadow-sm border border-gray-200 cursor-grab hover:shadow-md transition-all duration-150';
+                card.draggable = true;
+                card.dataset.path = item.path;
+                card.dataset.index = index;
+
+                const imgWrap = document.createElement('div');
+                imgWrap.className = 'aspect-square';
+                const img = document.createElement('img');
+                img.src = item.url;
+                img.alt = 'Image ' + (index + 1);
+                img.className = 'w-full h-full object-cover pointer-events-none';
+                img.draggable = false;
+                imgWrap.appendChild(img);
+                card.appendChild(imgWrap);
+
+                const badge = document.createElement('span');
+                badge.className = 'absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded shadow-sm ' +
+                    (index === 0 ? 'bg-indigo-600 text-white' : 'bg-black/50 text-white backdrop-blur-sm');
+                badge.textContent = index === 0 ? 'Main' : '#' + (index + 1);
+                card.appendChild(badge);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-sm';
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'w-3 h-3');
+                svg.setAttribute('fill', 'none');
+                svg.setAttribute('stroke', 'currentColor');
+                svg.setAttribute('stroke-width', '2.5');
+                svg.setAttribute('viewBox', '0 0 24 24');
+                const svgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                svgPath.setAttribute('stroke-linecap', 'round');
+                svgPath.setAttribute('stroke-linejoin', 'round');
+                svgPath.setAttribute('d', 'M6 18L18 6M6 6l12 12');
+                svg.appendChild(svgPath);
+                removeBtn.appendChild(svg);
+                removeBtn.addEventListener('click', () => {
+                    const idx = this.items.findIndex(i => i.path === item.path);
+                    if (idx !== -1) this.removeItem(idx);
+                });
+                card.appendChild(removeBtn);
+
+                card.addEventListener('dragstart', (e) => {
+                    this._dragFromIndex = parseInt(card.dataset.index);
+                    card.style.opacity = '0.4';
+                    card.classList.add('cursor-grabbing');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                card.addEventListener('dragend', () => {
+                    card.style.opacity = '';
+                    card.classList.remove('cursor-grabbing');
+                    grid.querySelectorAll('[data-path]').forEach(el => {
+                        el.classList.remove('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
                     });
-                }
+                });
+                card.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    grid.querySelectorAll('[data-path]').forEach(el => {
+                        el.classList.remove('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
+                    });
+                    card.classList.add('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
+                });
+                card.addEventListener('dragleave', () => {
+                    card.classList.remove('ring-2', 'ring-indigo-400', 'scale-[1.03]', 'border-indigo-400');
+                });
+                card.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const toIndex = parseInt(card.dataset.index);
+                    if (this._dragFromIndex === null || this._dragFromIndex === toIndex) return;
+                    const moved = this.items.splice(this._dragFromIndex, 1)[0];
+                    this.items.splice(toIndex, 0, moved);
+                    this._dragFromIndex = null;
+                    this.renderGrid();
+                });
+
+                grid.appendChild(card);
             });
         },
 
@@ -269,6 +329,7 @@ function imageManager() {
 
         removeItem(index) {
             this.items.splice(index, 1);
+            this.$nextTick(() => this.renderGrid());
         },
 
         // --- Image Manager Modal ---
@@ -325,6 +386,7 @@ function imageManager() {
                 return;
             }
             this.items.push({ path: file.path, url: file.url });
+            this.$nextTick(() => this.renderGrid());
             this.showToast('Image added.');
         },
 
@@ -341,6 +403,7 @@ function imageManager() {
             if (data.ok) {
                 this.browserFiles = this.browserFiles.filter(f => f.path !== file.path);
                 this.items = this.items.filter(i => i.path !== file.path);
+                this.$nextTick(() => this.renderGrid());
                 this.showToast('File deleted.');
             }
         },
