@@ -18,21 +18,24 @@ class DatabaseSeeder extends Seeder
         $this->call([
             StoreSeeder::class,
             RolePermissionSeeder::class,
-            SampleProductSeeder::class,
+            OrderStatusSeeder::class,
             CountrySeeder::class,
             ZoneSeeder::class,
             PhilippineGeographicSeeder::class,
             ThemeSeeder::class,
+            EmailTemplateSeeder::class,
         ]);
 
         // Create super admin user
         $superAdmin = \App\Models\Role::where('slug', 'super-admin')->first();
-        User::create([
-            'name' => 'Admin',
-            'email' => 'admin@newgearday.com',
-            'password' => bcrypt('password'),
-            'role_id' => $superAdmin->id,
-            'is_active' => true,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@venta.local'],
+            [
+                'name' => 'Admin',
+                'password' => bcrypt('password'),
+                'role_id' => $superAdmin?->id,
+                'is_active' => true,
+            ]
+        );
     }
 }

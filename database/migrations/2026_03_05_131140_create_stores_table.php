@@ -31,10 +31,9 @@ return new class extends Migration
         // Seed default store so foreign keys don't fail on subsequent migrations
         DB::table('stores')->insert([
             'id' => 1,
-            'name' => 'New Gear Day',
-            'code' => 'ngd',
+            'name' => config('app.name', 'Venta Store'),
+            'code' => 'default',
             'domain' => config('app.url'),
-            'email' => 'happy@newgearday.com',
             'currency' => 'PHP',
             'timezone' => 'Asia/Manila',
             'is_active' => true,

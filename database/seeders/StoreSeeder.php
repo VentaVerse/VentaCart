@@ -12,19 +12,10 @@ class StoreSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\Store::create([
-            'name' => 'New Gear Day',
-            'code' => 'ngd',
-            'domain' => 'newgearday.com',
-            'currency' => 'PHP',
-            'timezone' => 'Asia/Manila',
-            'is_active' => true,
-        ]);
-
-        \App\Models\Store::create([
-            'name' => 'Dragon Switch',
-            'code' => 'ds',
-            'domain' => 'dragon-switch.com',
+        \App\Models\Store::updateOrCreate(['id' => 1], [
+            'name' => config('app.name', 'Venta Store'),
+            'code' => 'default',
+            'domain' => parse_url(config('app.url', ''), PHP_URL_HOST) ?: 'localhost',
             'currency' => 'PHP',
             'timezone' => 'Asia/Manila',
             'is_active' => true,
