@@ -21,7 +21,7 @@
 
     <form method="POST"
           action="{{ $rule ? route('admin.free-shipping-rules.update', $rule) : route('admin.free-shipping-rules.store') }}"
-          class="max-w-4xl">
+          class="">
         @csrf
         @if ($rule)
             @method('PUT')

@@ -69,9 +69,6 @@
             @elseif ($badge['type'] === 'hot')
                 <span class="badge badge-hot" style="top: {{ 12 + $badgeOffset }}px;">{{ $badge['label'] }}</span>
                 @php $badgeOffset += 28; @endphp
-            @elseif ($badge['type'] === 'free_shipping')
-                <span class="badge badge-free-shipping" style="top: {{ 12 + $badgeOffset }}px;">{{ $badge['label'] }}</span>
-                @php $badgeOffset += 28; @endphp
             @elseif ($badge['type'] === 'sale')
                 <span class="badge badge-sale">{{ $badge['label'] }}</span>
             @endif

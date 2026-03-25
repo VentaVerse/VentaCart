@@ -168,12 +168,16 @@ class ProductController extends Controller
         $effectivePrice = $activeSpecial ? (float) $activeSpecial->price
             : ($overrideSpecial ? (float) $overrideSpecial->price : (float) $product->price);
 
+        $hasFreeShipping = app(\App\Services\BadgeService::class)->getBadgesForProduct($product);
+        $hasFreeShipping = collect($hasFreeShipping)->where('type', 'free_shipping')->isNotEmpty();
+
         return view('product.show', compact(
             'product', 'activeSpecial', 'overrideSpecial', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
             'variantMatrix', 'variantTypes', 'effectivePrice',
-            'valueStockMap', 'approvedReviews', 'averageRating', 'reviewCount'
+            'valueStockMap', 'approvedReviews', 'averageRating', 'reviewCount',
+            'hasFreeShipping'
         ));
     }
 }

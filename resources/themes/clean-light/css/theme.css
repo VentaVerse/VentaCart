@@ -588,8 +588,8 @@
         @apply top-3 right-3;
     }
 
-    .badge-free-shipping {
-        @apply bg-cyan-600 left-3;
+    .product-card .product-free-shipping {
+        @apply text-[11px] text-cyan-600 font-medium ml-1;
     }
 
     .badge-custom {

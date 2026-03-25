@@ -601,8 +601,8 @@
         @apply top-3 right-3 rounded-sm;
     }
 
-    .badge-free-shipping {
-        @apply bg-cyan-600 left-3 rounded-sm;
+    .product-card .product-free-shipping {
+        @apply text-[11px] text-cyan-400 font-medium ml-1;
     }
 
     .badge-custom {

@@ -42,7 +42,7 @@
                         <div class="product-card">
                             <div class="product-image-wrap">
                                 {{-- Badges --}}
-                                <template x-for="(badge, bi) in (item.badges || [])" :key="bi">
+                                <template x-for="(badge, bi) in (item.badges || []).filter(b => b.type !== 'free_shipping')" :key="bi">
                                     <span class="badge"
                                           :class="badge.type === 'new' ? 'badge-new' : (badge.type === 'hot' ? 'badge-hot' : 'badge-sale')"
                                           :style="badge.type !== 'sale' ? 'top: ' + (12 + bi * 28) + 'px' : ''"
