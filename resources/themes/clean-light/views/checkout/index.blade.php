@@ -8,6 +8,7 @@
             'key' => $m->getKey(),
             'name' => $m->getName(),
             'description' => $m->getDescription(),
+            'image' => $m->getImage(),
         ];
     })->values()->toJson();
     $countriesJson = $countries->toJson();
@@ -408,9 +409,15 @@
                                    @click="selectedPayment = method.key">
                                 <input type="radio" :value="method.key" x-model="selectedPayment"
                                        class="mt-0.5 accent-[var(--color-primary)]">
-                                <div>
-                                    <div class="text-sm text-[#E8E8E8]" class="font-heading-wide" x-text="method.name"></div>
-                                    <div class="text-xs text-[#777] mt-1" x-text="method.description"></div>
+                                <div class="flex-1">
+                                    <div class="text-sm text-gray-900" x-text="method.name"></div>
+                                    <div class="text-xs text-gray-500 mt-1" x-text="method.description"></div>
+                                    <template x-if="method.image && selectedPayment === method.key">
+                                        <div class="mt-3" @click.prevent.stop="$dispatch('show-qr', { src: method.image, name: method.name })">
+                                            <img :src="method.image" alt="QR Code" class="w-48 h-48 rounded-lg border border-gray-200 object-contain bg-white p-2 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)] transition-all">
+                                            <p class="text-[10px] text-gray-400 mt-1 cursor-pointer">Tap to enlarge</p>
+                                        </div>
+                                    </template>
                                 </div>
                             </label>
                         </template>
@@ -444,25 +451,31 @@
                     <h3 class="text-lg tracking-[0.15em] mb-6 text-[#E8E8E8]" class="font-heading">ORDER SUMMARY</h3>
 
                     {{-- Items --}}
-                    <div class="checkout-items-scroll space-y-3 mb-4" style="max-height: 280px; overflow-y: auto;">
+                    <div class="checkout-items-scroll space-y-4 mb-4" style="max-height: 360px; overflow-y: auto;">
                         <template x-for="item in items" :key="item.id">
                             <div class="flex items-start gap-3">
-                                <div class="w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-[#141414]">
+                                <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
                                     <template x-if="item.product && item.product.images && item.product.images.length">
-                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" class="w-full h-full object-contain p-0.5" loading="lazy">
+                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" class="w-full h-full object-contain p-1" loading="lazy">
                                     </template>
                                     <template x-if="!item.product || !item.product.images || !item.product.images.length">
-                                        <div class="w-full h-full flex items-center justify-center text-[#333]">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        <div class="w-full h-full flex items-center justify-center text-gray-300">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         </div>
                                     </template>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-xs text-[#C8C8C8] leading-snug truncate" x-text="item.name"></div>
-                                    <div class="text-[11px] text-[#555]" x-show="item.variant_label" x-text="item.variant_label"></div>
-                                    <div class="text-[11px] text-[#777]" x-text="'Qty: ' + item.quantity"></div>
+                                    <div class="text-sm text-gray-800 leading-snug truncate" x-text="item.name"></div>
+                                    <div class="text-xs text-gray-400" x-show="item.variant_label" x-text="item.variant_label"></div>
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <button type="button" @click="updateItemQty(item, item.quantity - 1)"
+                                            class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-colors">−</button>
+                                        <span class="text-sm text-gray-800 w-6 text-center font-medium" x-text="item.quantity"></span>
+                                        <button type="button" @click="updateItemQty(item, item.quantity + 1)"
+                                            class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-colors">+</button>
+                                    </div>
                                 </div>
-                                <div class="text-xs text-[#E8E8E8] flex-shrink-0" class="font-heading">
+                                <div class="text-sm text-gray-800 flex-shrink-0 font-medium">
                                     {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
                                 </div>
                             </div>
@@ -653,6 +666,19 @@
                         <span x-show="!placing">Confirm & Pay</span>
                         <span x-show="placing">Processing...</span>
                     </button>
+                </div>
+            </div>
+        </div>
+        {{-- QR Enlarge Modal --}}
+        <div x-data="{ qrOpen: false, qrSrc: '', qrName: '' }"
+             @show-qr.window="qrSrc = $event.detail.src; qrName = $event.detail.name; qrOpen = true">
+            <div x-show="qrOpen" x-transition.opacity class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                 style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);" @click="qrOpen = false" @keydown.escape.window="qrOpen = false">
+                <div class="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full" @click.stop>
+                    <h3 class="text-center text-sm font-semibold text-gray-900 mb-3" x-text="qrName"></h3>
+                    <img :src="qrSrc" alt="QR Code" class="w-full rounded-lg">
+                    <p class="text-center text-xs text-gray-500 mt-3">Scan with your banking app</p>
+                    <button @click="qrOpen = false" class="mt-4 w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Close</button>
                 </div>
             </div>
         </div>

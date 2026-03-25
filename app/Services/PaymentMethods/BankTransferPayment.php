@@ -47,6 +47,14 @@ class BankTransferPayment implements PaymentMethodInterface
         return 'Pay via bank transfer. Order will be confirmed after payment is verified.';
     }
 
+    public function getImage(): ?string
+    {
+        if ($this->bankAccount && $this->bankAccount->qr_image) {
+            return storage_url($this->bankAccount->qr_image);
+        }
+        return null;
+    }
+
     public function isEnabled(): bool
     {
         return (bool) \App\Models\Setting::where('group', 'payment')->where('key', 'bank_transfer_enabled')->value('value');

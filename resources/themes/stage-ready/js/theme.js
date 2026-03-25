@@ -855,6 +855,37 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
         this.savingAddress = false;
     },
 
+    async updateItemQty(item, newQty) {
+        if (newQty < 1) {
+            if (!confirm('Remove this item from cart?')) return;
+            newQty = 0;
+        }
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        try {
+            const res = await fetch(`/cart/${item.id}`, {
+                method: 'PATCH',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quantity: newQty })
+            });
+            const data = await res.json();
+            if (data.success) {
+                if (newQty === 0) {
+                    this.items = this.items.filter(function(i) { return i.id !== item.id; });
+                    if (this.items.length === 0) {
+                        window.location.href = '/cart';
+                        return;
+                    }
+                } else {
+                    item.quantity = newQty;
+                }
+                this.subtotal = parseFloat(data.subtotal);
+                window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.count, subtotal: data.subtotal } }));
+            }
+        } catch (e) {
+            console.error('Failed to update quantity', e);
+        }
+    },
+
     submitOrder() {
         if (!this.selectedAddressId || !this.selectedPayment) return;
         this.showConfirmModal = true;

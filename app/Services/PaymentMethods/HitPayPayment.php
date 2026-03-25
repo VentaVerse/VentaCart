@@ -28,6 +28,11 @@ class HitPayPayment implements PaymentMethodInterface
         return 'Pay securely via credit card, GCash, GrabPay, or Maya.';
     }
 
+    public function getImage(): ?string
+    {
+        return null;
+    }
+
     public function isEnabled(): bool
     {
         return (bool) $this->getSetting('hitpay_enabled');

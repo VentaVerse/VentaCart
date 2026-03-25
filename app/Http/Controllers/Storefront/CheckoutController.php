@@ -226,6 +226,29 @@ class CheckoutController extends Controller
             $cart->items()->delete();
         }
 
+        // If webhook hasn't processed yet, update status and send emails now
+        $successStatusId = \App\Models\Setting::where('group', 'payment')
+            ->where('key', 'hitpay_success_status_id')->value('value');
+
+        if ($successStatusId && (int) $order->order_status_id !== (int) $successStatusId) {
+            $newStatus = \App\Models\OrderStatus::find($successStatusId);
+            $order->update(['order_status_id' => $successStatusId]);
+
+            \App\Models\OrderHistory::create([
+                'order_id' => $order->id,
+                'order_status_id' => $successStatusId,
+                'comment' => 'Payment confirmed via HitPay (return URL).',
+            ]);
+
+            if ($newStatus) {
+                \App\Services\StockService::adjustForStatusChange($order, $newStatus);
+            }
+
+            $order->load('products', 'status');
+            \App\Services\CheckoutService::sendOrderConfirmationEmail($order);
+            \App\Services\CheckoutService::sendAdminOrderNotification($order);
+        }
+
         return redirect()->route('checkout.confirmation', $order);
     }
 

@@ -22,6 +22,11 @@ class CodPayment implements PaymentMethodInterface
         return 'Pay with cash when your order is delivered.';
     }
 
+    public function getImage(): ?string
+    {
+        return null;
+    }
+
     public function isEnabled(): bool
     {
         return (bool) Setting::where('group', 'payment')->where('key', 'cod_enabled')->value('value');
