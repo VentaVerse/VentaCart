@@ -40,7 +40,7 @@ class StockNotificationController extends Controller
         }
 
         StockNotification::create([
-            'store_id' => 1,
+            'store_id' => (int) config('app.store_id', 1),
             'product_id' => $validated['product_id'],
             'product_variant_id' => $validated['variant_id'] ?? null,
             'name' => $validated['name'],

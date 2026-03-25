@@ -24,6 +24,7 @@ class SettingController extends Controller
         'dhl_password',
         'claude_api_key',
         'turnstile_secret_key',
+        'erp_token',
     ];
 
     public function index()
@@ -146,7 +147,7 @@ class SettingController extends Controller
     public function uploadGscCredentials(Request $request)
     {
         $request->validate(['gsc_credentials' => 'required|file|mimes:json|max:50']);
-        $request->file('gsc_credentials')->storeAs('', 'gsc-credentials.json');
+        $request->file('gsc_credentials')->storeAs('credentials', 'gsc-credentials.json', 'local');
 
         return back()->with('success', 'Google Search Console credentials uploaded.')->with('tab', 'seo');
     }

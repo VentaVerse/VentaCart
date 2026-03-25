@@ -33,7 +33,7 @@ class ReviewController extends Controller
         $validated = $request->validate([
             'rating' => 'required|integer|min:1|max:5',
             'title' => 'nullable|string|max:255',
-            'body' => 'nullable|string',
+            'body' => 'nullable|string|max:5000',
             'images' => 'nullable|array|max:2',
             'images.*' => 'image|max:2048',
         ]);

@@ -91,34 +91,6 @@ class CheckoutService
         return null;
     }
 
-    public function getShippingMethods(float $subtotal): array
-    {
-        $shippingSettings = \App\Models\Setting::where('group', 'shipping')
-            ->whereIn('key', ['shipping_flat_rate', 'shipping_free_threshold'])
-            ->pluck('value', 'key');
-
-        $flatRate = (float) ($shippingSettings->get('shipping_flat_rate') ?? theme('checkout.shipping_flat_rate', 150));
-        $freeThreshold = (float) ($shippingSettings->get('shipping_free_threshold') ?? theme('checkout.shipping_free_threshold', 3000));
-
-        $methods = [];
-
-        if ($freeThreshold > 0 && $subtotal >= $freeThreshold) {
-            $methods[] = [
-                'key' => 'free',
-                'name' => 'Free Shipping',
-                'cost' => 0,
-            ];
-        }
-
-        $methods[] = [
-            'key' => 'flat_rate',
-            'name' => 'Standard Shipping',
-            'cost' => $flatRate,
-        ];
-
-        return $methods;
-    }
-
     public function placeOrder(
         Customer $customer,
         CustomerAddress $shippingAddress,

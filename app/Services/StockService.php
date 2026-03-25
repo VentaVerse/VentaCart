@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Illuminate\Support\Facades\DB;
 
 class StockService
 {
@@ -15,13 +16,18 @@ class StockService
             return;
         }
 
-        if ($action === 'decrement' && !$order->stock_adjusted) {
-            self::decrementStock($order);
-            $order->update(['stock_adjusted' => true]);
-        } elseif ($action === 'increment' && $order->stock_adjusted) {
-            self::incrementStock($order);
-            $order->update(['stock_adjusted' => false]);
-        }
+        DB::transaction(function () use ($order, $action) {
+            $fresh = Order::lockForUpdate()->find($order->id);
+            if (!$fresh) return;
+
+            if ($action === 'decrement' && !$fresh->stock_adjusted) {
+                self::decrementStock($fresh);
+                $fresh->update(['stock_adjusted' => true]);
+            } elseif ($action === 'increment' && $fresh->stock_adjusted) {
+                self::incrementStock($fresh);
+                $fresh->update(['stock_adjusted' => false]);
+            }
+        });
     }
 
     private static function decrementStock(Order $order): void

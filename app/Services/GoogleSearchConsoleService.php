@@ -21,7 +21,7 @@ class GoogleSearchConsoleService
 
     public function isConfigured(): bool
     {
-        return Storage::exists('gsc-credentials.json') && !empty($this->siteUrl);
+        return Storage::disk('local')->exists('credentials/gsc-credentials.json') && !empty($this->siteUrl);
     }
 
     private function getService(): ?SearchConsole
@@ -36,7 +36,7 @@ class GoogleSearchConsoleService
 
         try {
             $client = new GoogleClient();
-            $client->setAuthConfig(Storage::path('gsc-credentials.json'));
+            $client->setAuthConfig(Storage::disk('local')->path('credentials/gsc-credentials.json'));
             $client->addScope(SearchConsole::WEBMASTERS_READONLY);
             $this->service = new SearchConsole($client);
             return $this->service;

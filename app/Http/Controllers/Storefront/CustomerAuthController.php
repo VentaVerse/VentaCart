@@ -7,13 +7,10 @@ use App\Http\Requests\Storefront\CustomerLoginRequest;
 use App\Http\Requests\Storefront\CustomerRegisterRequest;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
-use App\Mail\WelcomeMail;
 use App\Services\CartService;
 use App\Services\TurnstileService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class CustomerAuthController extends Controller
