@@ -702,6 +702,9 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     placing: false,
     showConfirmModal: false,
     comment: '',
+    qrOpen: false,
+    qrSrc: '',
+    qrName: '',
     billing: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' },
     newAddr: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' },
 

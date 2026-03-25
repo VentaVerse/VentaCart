@@ -413,7 +413,7 @@
                                     <div class="text-sm text-gray-900" x-text="method.name"></div>
                                     <div class="text-xs text-gray-500 mt-1" x-text="method.description"></div>
                                     <template x-if="method.image && selectedPayment === method.key">
-                                        <div class="mt-3" @click.prevent.stop="$dispatch('show-qr', { src: method.image, name: method.name })">
+                                        <div class="mt-3" @click.prevent.stop="qrSrc = method.image; qrName = method.name; qrOpen = true">
                                             <img :src="method.image" alt="QR Code" class="w-48 h-48 rounded-lg border border-gray-200 object-contain bg-white p-2 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)] transition-all">
                                             <p class="text-[10px] text-gray-400 mt-1 cursor-pointer">Tap to enlarge</p>
                                         </div>
@@ -670,16 +670,13 @@
             </div>
         </div>
         {{-- QR Enlarge Modal --}}
-        <div x-data="{ qrOpen: false, qrSrc: '', qrName: '' }"
-             @show-qr.window="qrSrc = $event.detail.src; qrName = $event.detail.name; qrOpen = true">
-            <div x-show="qrOpen" x-transition.opacity class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-                 style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);" @click="qrOpen = false" @keydown.escape.window="qrOpen = false">
-                <div class="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full" @click.stop>
-                    <h3 class="text-center text-sm font-semibold text-gray-900 mb-3" x-text="qrName"></h3>
-                    <img :src="qrSrc" alt="QR Code" class="w-full rounded-lg">
-                    <p class="text-center text-xs text-gray-500 mt-3">Scan with your banking app</p>
-                    <button @click="qrOpen = false" class="mt-4 w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Close</button>
-                </div>
+        <div x-show="qrOpen" x-transition.opacity class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+             style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);" @click="qrOpen = false" @keydown.escape.window="qrOpen = false" x-cloak>
+            <div class="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full" @click.stop>
+                <h3 class="text-center text-sm font-semibold text-gray-900 mb-3" x-text="qrName"></h3>
+                <img :src="qrSrc" alt="QR Code" class="w-full rounded-lg">
+                <p class="text-center text-xs text-gray-500 mt-3">Scan with your banking app</p>
+                <button @click="qrOpen = false" class="mt-4 w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Close</button>
             </div>
         </div>
     </div>
