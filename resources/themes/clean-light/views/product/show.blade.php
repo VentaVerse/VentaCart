@@ -324,11 +324,11 @@
                 <div x-show="tab === 'description'" class="product-description">
                     {!! $product->description !!}
                 </div>
-                <div x-show="tab === 'reviews'" x-cloak>
+                <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
                     @if ($approvedReviews->isNotEmpty())
                         <div class="space-y-6">
-                            @foreach ($approvedReviews as $review)
-                                <div class="review-card">
+                            @foreach ($approvedReviews as $idx => $review)
+                                <div class="review-card" x-show="{{ $idx }} >= (reviewPage - 1) * perPage && {{ $idx }} < reviewPage * perPage">
                                     <div class="flex items-start justify-between mb-2">
                                         <div>
                                             <div class="flex items-center gap-2 mb-1">
@@ -364,6 +364,26 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        @if ($approvedReviews->count() > 20)
+                            <div class="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-gray-200">
+                                <button @click="reviewPage = Math.max(1, reviewPage - 1); document.getElementById('reviews').scrollIntoView({behavior: 'smooth'})"
+                                    :disabled="reviewPage === 1"
+                                    style="padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; color: #6b7280; background: transparent; cursor: pointer;"
+                                    :style="reviewPage === 1 && 'opacity: 0.3; cursor: not-allowed;'">
+                                    &laquo; Prev
+                                </button>
+                                <span style="font-size: 13px; color: #9ca3af;">
+                                    Page <span x-text="reviewPage"></span> of <span x-text="Math.ceil({{ $approvedReviews->count() }} / perPage)"></span>
+                                </span>
+                                <button @click="reviewPage = Math.min(Math.ceil({{ $approvedReviews->count() }} / perPage), reviewPage + 1); document.getElementById('reviews').scrollIntoView({behavior: 'smooth'})"
+                                    :disabled="reviewPage >= Math.ceil({{ $approvedReviews->count() }} / perPage)"
+                                    style="padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; color: #6b7280; background: transparent; cursor: pointer;"
+                                    :style="reviewPage >= Math.ceil({{ $approvedReviews->count() }} / perPage) && 'opacity: 0.3; cursor: not-allowed;'">
+                                    Next &raquo;
+                                </button>
+                            </div>
+                        @endif
                     @else
                         <p class="text-gray-400 text-sm">No reviews yet.</p>
                     @endif

@@ -150,10 +150,12 @@
                     </div>
 
                     {{-- Existing items --}}
-                    <div class="space-y-2" id="nav-items-list">
+                    <div class="space-y-2" x-data="sortableList('{{ route('admin.theme.nav.reorder') }}')">
                         @foreach ($navItems as $item)
-                            <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
-                                <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                            <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-3 sortable-item"
+                                 draggable="true" data-id="{{ $item->id }}"
+                                 @dragstart="dragStart($event)" @dragover.prevent="dragOver($event)" @drop="drop($event)" @dragend="dragEnd()">
+                                <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                                 <div class="flex-1 min-w-0">
                                     <span class="text-sm font-medium">{{ $item->label }}</span>
                                     <span class="text-xs text-gray-500 ml-2">
@@ -223,11 +225,13 @@
                     </div>
 
                     {{-- Existing sections --}}
-                    <div class="space-y-2">
+                    <div class="space-y-2" x-data="sortableList('{{ route('admin.theme.sections.reorder') }}')">
                         @foreach ($sections as $section)
-                            <div class="bg-gray-50 rounded-lg p-4" x-data="{ expanded: false }">
+                            <div class="bg-gray-50 rounded-lg p-4 sortable-item" x-data="{ expanded: false }"
+                                 draggable="true" data-id="{{ $section->id }}"
+                                 @dragstart="dragStart($event)" @dragover.prevent="dragOver($event)" @drop="drop($event)" @dragend="dragEnd()">
                                 <div class="flex items-center gap-3">
-                                    <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                                    <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">{{ $section->type }}</span>
                                     <span class="text-sm font-medium flex-1">{{ $section->title }}</span>
                                     <span class="text-xs {{ $section->is_enabled ? 'text-green-600' : 'text-red-500' }}">
@@ -434,8 +438,11 @@
                     <div class="space-y-4">
                         <h3 class="text-sm font-semibold text-gray-700">Footer Columns</h3>
 
+                        <div x-data="sortableList('{{ route('admin.theme.footer.reorder') }}')">
                         @foreach ($footerColumns as $colIdx => $col)
-                            <div class="bg-gray-50 rounded-lg overflow-hidden" x-data="{
+                            <div class="bg-gray-50 rounded-lg overflow-hidden mb-2 sortable-item" data-id="{{ $col->id }}"
+                                 draggable="true" @dragstart="dragStart($event)" @dragover.prevent="dragOver($event)" @drop="drop($event)" @dragend="dragEnd()"
+                                 x-data="{
                                 open: false,
                                 links: {{ json_encode($col->config['links'] ?? []) }},
                                 socials: {{ json_encode($col->type === 'social' ? ($col->config['links'] ?? []) : []) }},
@@ -445,6 +452,7 @@
 
                                 {{-- Header --}}
                                 <div class="flex items-center gap-3 p-4 cursor-pointer" @click="open = !open">
+                                    <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0 drag-handle" @click.stop fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                                     <svg class="w-4 h-4 text-gray-400 transition-transform" :class="open && 'rotate-90'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{{ $col->type }}</span>
                                     <input type="text" name="columns[{{ $col->id }}][title]" value="{{ $col->title }}" class="text-sm font-medium flex-1 bg-transparent border-0 p-0 focus:ring-0" @click.stop>
@@ -526,6 +534,7 @@
                                 </div>
                             </div>
                         @endforeach
+                        </div>
                     </div>
 
                     <div class="mt-6">
@@ -669,6 +678,63 @@
         function topbarLinks() {
             return {
                 links: @json(json_decode($settings['header']['topbar_links'] ?? '[]', true) ?: []),
+            };
+        }
+        function sortableList(reorderUrl) {
+            return {
+                dragId: null,
+                dragEl: null,
+
+                dragStart(e) {
+                    this.dragId = e.target.closest('.sortable-item').dataset.id;
+                    this.dragEl = e.target.closest('.sortable-item');
+                    this.dragEl.style.opacity = '0.4';
+                    e.dataTransfer.effectAllowed = 'move';
+                },
+
+                dragOver(e) {
+                    const target = e.target.closest('.sortable-item');
+                    if (!target || target === this.dragEl) return;
+                    const container = target.parentElement;
+                    const items = [...container.querySelectorAll('.sortable-item')];
+                    const dragIdx = items.indexOf(this.dragEl);
+                    const targetIdx = items.indexOf(target);
+                    if (dragIdx < targetIdx) {
+                        target.after(this.dragEl);
+                    } else {
+                        target.before(this.dragEl);
+                    }
+                },
+
+                drop(e) {
+                    e.preventDefault();
+                    this.saveOrder();
+                },
+
+                dragEnd() {
+                    if (this.dragEl) this.dragEl.style.opacity = '1';
+                    this.dragEl = null;
+                    this.dragId = null;
+                },
+
+                saveOrder() {
+                    const container = this.$el;
+                    const items = [...container.querySelectorAll('.sortable-item')];
+                    const order = items.map((el, idx) => ({
+                        id: parseInt(el.dataset.id),
+                        sort_order: idx
+                    }));
+
+                    fetch(reorderUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ order })
+                    });
+                }
             };
         }
     </script>
