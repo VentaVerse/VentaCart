@@ -150,11 +150,10 @@
                     </div>
 
                     {{-- Existing items --}}
-                    <div class="space-y-2" x-data="sortableList('{{ route('admin.theme.nav.reorder') }}')">
+                    <div class="space-y-2" x-init="initSortable($el, '{{ route('admin.theme.nav.reorder') }}')">
                         @foreach ($navItems as $item)
-                            <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-3 sortable-item"
-                                 draggable="true" data-id="{{ $item->id }}"
-                                 @dragstart="dragStart($event)" @dragover.prevent="dragOver($event)" @drop="drop($event)" @dragend="dragEnd()">
+                            <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-3"
+                                 draggable="true" data-id="{{ $item->id }}">
                                 <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                                 <div class="flex-1 min-w-0">
                                     <span class="text-sm font-medium">{{ $item->label }}</span>
@@ -225,11 +224,10 @@
                     </div>
 
                     {{-- Existing sections --}}
-                    <div class="space-y-2" x-data="sortableList('{{ route('admin.theme.sections.reorder') }}')">
+                    <div class="space-y-2" x-init="initSortable($el, '{{ route('admin.theme.sections.reorder') }}')">
                         @foreach ($sections as $section)
-                            <div class="bg-gray-50 rounded-lg p-4 sortable-item" x-data="{ expanded: false }"
-                                 draggable="true" data-id="{{ $section->id }}"
-                                 @dragstart="dragStart($event)" @dragover.prevent="dragOver($event)" @drop="drop($event)" @dragend="dragEnd()">
+                            <div class="bg-gray-50 rounded-lg p-4" x-data="{ expanded: false }"
+                                 draggable="true" data-id="{{ $section->id }}">
                                 <div class="flex items-center gap-3">
                                     <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">{{ $section->type }}</span>
@@ -438,10 +436,10 @@
                     <div class="space-y-4">
                         <h3 class="text-sm font-semibold text-gray-700">Footer Columns</h3>
 
-                        <div x-data="sortableList('{{ route('admin.theme.footer.reorder') }}')">
+                        <div x-init="initSortable($el, '{{ route('admin.theme.footer.reorder') }}')">
                         @foreach ($footerColumns as $colIdx => $col)
-                            <div class="bg-gray-50 rounded-lg overflow-hidden mb-2 sortable-item" data-id="{{ $col->id }}"
-                                 draggable="true" @dragstart="dragStart($event)" @dragover.prevent="dragOver($event)" @drop="drop($event)" @dragend="dragEnd()"
+                            <div class="bg-gray-50 rounded-lg overflow-hidden mb-2" data-id="{{ $col->id }}"
+                                 draggable="true"
                                  x-data="{
                                 open: false,
                                 links: {{ json_encode($col->config['links'] ?? []) }},
@@ -680,62 +678,55 @@
                 links: @json(json_decode($settings['header']['topbar_links'] ?? '[]', true) ?: []),
             };
         }
-        function sortableList(reorderUrl) {
-            return {
-                dragId: null,
-                dragEl: null,
+        function initSortable(container, reorderUrl) {
+            let dragEl = null;
 
-                dragStart(e) {
-                    this.dragId = e.target.closest('.sortable-item').dataset.id;
-                    this.dragEl = e.target.closest('.sortable-item');
-                    this.dragEl.style.opacity = '0.4';
-                    e.dataTransfer.effectAllowed = 'move';
-                },
+            container.addEventListener('dragstart', function(e) {
+                const item = e.target.closest('[data-id]');
+                if (!item) return;
+                dragEl = item;
+                item.style.opacity = '0.4';
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', item.dataset.id);
+            });
 
-                dragOver(e) {
-                    const target = e.target.closest('.sortable-item');
-                    if (!target || target === this.dragEl) return;
-                    const container = target.parentElement;
-                    const items = [...container.querySelectorAll('.sortable-item')];
-                    const dragIdx = items.indexOf(this.dragEl);
-                    const targetIdx = items.indexOf(target);
-                    if (dragIdx < targetIdx) {
-                        target.after(this.dragEl);
-                    } else {
-                        target.before(this.dragEl);
-                    }
-                },
-
-                drop(e) {
-                    e.preventDefault();
-                    this.saveOrder();
-                },
-
-                dragEnd() {
-                    if (this.dragEl) this.dragEl.style.opacity = '1';
-                    this.dragEl = null;
-                    this.dragId = null;
-                },
-
-                saveOrder() {
-                    const container = this.$el;
-                    const items = [...container.querySelectorAll('.sortable-item')];
-                    const order = items.map((el, idx) => ({
-                        id: parseInt(el.dataset.id),
-                        sort_order: idx
-                    }));
-
-                    fetch(reorderUrl, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ order })
-                    });
+            container.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!dragEl) return;
+                const target = e.target.closest('[data-id]');
+                if (!target || target === dragEl) return;
+                const rect = target.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    target.before(dragEl);
+                } else {
+                    target.after(dragEl);
                 }
-            };
+            });
+
+            container.addEventListener('drop', function(e) {
+                e.preventDefault();
+                if (!dragEl) return;
+                const items = [...container.querySelectorAll(':scope > [data-id]')];
+                const order = items.map(function(el, idx) {
+                    return { id: parseInt(el.dataset.id), sort_order: idx };
+                });
+
+                fetch(reorderUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ order: order })
+                });
+            });
+
+            container.addEventListener('dragend', function() {
+                if (dragEl) dragEl.style.opacity = '1';
+                dragEl = null;
+            });
         }
     </script>
     @endpush
