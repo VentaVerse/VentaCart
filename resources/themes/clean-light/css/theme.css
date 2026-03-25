@@ -1251,6 +1251,12 @@
         @apply text-sm text-gray-600 leading-relaxed;
     }
 
+    .product-description *,
+    .product-description [style] {
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+
     .product-description h1,
     .product-description h2,
     .product-description h3 {
