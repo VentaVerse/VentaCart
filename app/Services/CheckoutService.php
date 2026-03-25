@@ -302,13 +302,74 @@ class CheckoutService
         // Immediate payments (e.g. bank transfer, COD): clear cart and send email now
         $cart->items()->delete();
 
-        try {
-            $order->load('products', 'status');
-            Mail::to($order->email)->send(new OrderConfirmationMail($order));
-        } catch (\Exception $e) {
-            Log::warning('Order confirmation email failed: ' . $e->getMessage());
-        }
+        $order->load('products', 'status');
+        self::sendOrderConfirmationEmail($order);
+
+        // Send admin notification
+        self::sendAdminOrderNotification($order);
 
         return ['order' => $order, 'payment' => $paymentResult];
+    }
+
+    public static function sendOrderConfirmationEmail(Order $order): void
+    {
+        $order->loadMissing('products');
+        $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
+
+        $itemsHtml = '';
+        foreach ($order->products as $item) {
+            $itemsHtml .= '<p style="margin: 2px 0; font-size: 13px; color: #ccc;">'
+                . e($item->name)
+                . ($item->variant_label ? ' — ' . e($item->variant_label) : '')
+                . ' × ' . $item->quantity
+                . ' = ' . $currency . number_format($item->total, 2)
+                . '</p>';
+        }
+
+        $sent = TemplateMailService::send('order_confirmation', $order->email, [
+            'customer_name' => $order->first_name . ' ' . $order->last_name,
+            'order_id' => $order->id,
+            'order_total' => $currency . number_format($order->total, 2),
+            'order_items' => $itemsHtml,
+            'payment_method' => $order->payment_method,
+            'store_name' => config('app.name'),
+        ]);
+
+        // Fallback to Blade mailable if template is disabled or missing
+        if (!$sent) {
+            try {
+                Mail::to($order->email)->send(new \App\Mail\OrderConfirmationMail($order));
+            } catch (\Exception $e) {
+                Log::warning('Order confirmation email failed: ' . $e->getMessage());
+            }
+        }
+    }
+
+    public static function sendAdminOrderNotification(Order $order): void
+    {
+        $adminEmail = \App\Models\Setting::where('group', 'mail')->where('key', 'from_address')->value('value');
+        if (!$adminEmail) return;
+
+        $order->loadMissing('products');
+        $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
+
+        $itemsHtml = '';
+        foreach ($order->products as $item) {
+            $itemsHtml .= '<p style="margin: 2px 0; font-size: 13px; color: #ccc;">'
+                . e($item->name)
+                . ($item->variant_label ? ' — ' . e($item->variant_label) : '')
+                . ' × ' . $item->quantity
+                . ' = ' . $currency . number_format($item->total, 2)
+                . '</p>';
+        }
+
+        TemplateMailService::send('new_order_admin', $adminEmail, [
+            'order_id' => $order->id,
+            'customer_name' => $order->first_name . ' ' . $order->last_name,
+            'customer_email' => $order->email,
+            'payment_method' => $order->payment_method,
+            'order_total' => $currency . number_format($order->total, 2),
+            'order_items' => $itemsHtml,
+        ]);
     }
 }

@@ -78,6 +78,27 @@ class Order extends Model
         return "{$this->first_name} {$this->last_name}";
     }
 
+    public function getPaymentMethodLabelAttribute(): string
+    {
+        $key = $this->payment_method;
+        if (!$key) return '';
+
+        if (str_starts_with($key, 'bank_transfer')) {
+            $accountId = (int) preg_replace('/^bank_transfer_?/', '', $key);
+            if ($accountId) {
+                $bankName = BankAccount::where('id', $accountId)->value('bank_name');
+                return 'Bank Transfer' . ($bankName ? ' — ' . $bankName : '');
+            }
+            return 'Bank Transfer';
+        }
+
+        return match ($key) {
+            'hitpay' => 'HitPay',
+            'cod' => 'Cash on Delivery',
+            default => str_replace('_', ' ', ucfirst($key)),
+        };
+    }
+
     public function getTrackingLinkAttribute(): ?string
     {
         if (!$this->tracking_number || !$this->shippingCourier) {

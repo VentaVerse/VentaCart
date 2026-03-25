@@ -24,25 +24,34 @@ class Customer extends Authenticatable
             'email' => $this->getEmailForPasswordReset(),
         ]);
 
-        $this->notify(new class($url) extends Notification {
-            public function __construct(private string $url) {}
+        $sent = \App\Services\TemplateMailService::send('password_reset', $this->email, [
+            'customer_name' => $this->first_name . ' ' . $this->last_name,
+            'reset_url' => $url,
+            'store_name' => config('app.name'),
+        ]);
 
-            public function via($notifiable): array
-            {
-                return ['mail'];
-            }
+        // Fallback to Laravel notification if template is disabled or missing
+        if (!$sent) {
+            $this->notify(new class($url) extends Notification {
+                public function __construct(private string $url) {}
 
-            public function toMail($notifiable): \Illuminate\Notifications\Messages\MailMessage
-            {
-                return (new \Illuminate\Notifications\Messages\MailMessage)
-                    ->subject('Reset Your Password')
-                    ->greeting('Hello ' . $notifiable->first_name . '!')
-                    ->line('You are receiving this email because a password reset was requested for your account.')
-                    ->action('Reset Password', $this->url)
-                    ->line('This link will expire in 60 minutes.')
-                    ->line('If you did not request a password reset, no further action is required.');
-            }
-        });
+                public function via($notifiable): array
+                {
+                    return ['mail'];
+                }
+
+                public function toMail($notifiable): \Illuminate\Notifications\Messages\MailMessage
+                {
+                    return (new \Illuminate\Notifications\Messages\MailMessage)
+                        ->subject('Reset Your Password')
+                        ->greeting('Hello ' . $notifiable->first_name . '!')
+                        ->line('You are receiving this email because a password reset was requested for your account.')
+                        ->action('Reset Password', $this->url)
+                        ->line('This link will expire in 60 minutes.')
+                        ->line('If you did not request a password reset, no further action is required.');
+                }
+            });
+        }
     }
 
     protected $fillable = [

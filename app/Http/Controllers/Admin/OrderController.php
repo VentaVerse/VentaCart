@@ -169,6 +169,7 @@ class OrderController extends Controller
             'notify_customer' => ['boolean'],
         ]);
 
+        $oldStatus = $order->status?->name ?? 'Unknown';
         $validated['created_by'] = Auth::id();
         $validated['notify_customer'] = $request->has('notify_customer');
 
@@ -178,6 +179,18 @@ class OrderController extends Controller
         $newStatus = OrderStatus::find($validated['order_status_id']);
         if ($newStatus) {
             StockService::adjustForStatusChange($order, $newStatus);
+        }
+
+        // Send email notification if requested
+        if ($validated['notify_customer'] && $order->email) {
+            \App\Services\TemplateMailService::send('order_status_update', $order->email, [
+                'customer_name' => $order->first_name . ' ' . $order->last_name,
+                'order_id' => $order->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus?->name ?? 'Unknown',
+                'comment' => $validated['comment'] ?? '',
+                'store_name' => config('app.name'),
+            ]);
         }
 
         return redirect()->route('admin.orders.show', $order)
@@ -197,9 +210,28 @@ class OrderController extends Controller
         $validated = $request->validate([
             'shipping_courier_id' => ['nullable', 'exists:shipping_couriers,id'],
             'tracking_number' => ['nullable', 'string', 'max:255'],
+            'notify_customer' => ['nullable', 'boolean'],
         ]);
 
-        $order->update($validated);
+        $hadTracking = !empty($order->tracking_number);
+        $notify = $request->boolean('notify_customer');
+
+        $order->update([
+            'shipping_courier_id' => $validated['shipping_courier_id'],
+            'tracking_number' => $validated['tracking_number'],
+        ]);
+
+        // Send shipping notification if new tracking number and notify is checked
+        if ($notify && !empty($validated['tracking_number']) && $order->email) {
+            $courier = $order->shippingCourier;
+            \App\Services\TemplateMailService::send('shipping_notification', $order->email, [
+                'customer_name' => $order->first_name . ' ' . $order->last_name,
+                'order_id' => $order->id,
+                'tracking_number' => $validated['tracking_number'],
+                'carrier_name' => $courier?->name ?? $order->shipping_method ?? 'Courier',
+                'store_name' => config('app.name'),
+            ]);
+        }
 
         return redirect()->route('admin.orders.show', $order)
             ->with('success', 'Tracking information updated.');

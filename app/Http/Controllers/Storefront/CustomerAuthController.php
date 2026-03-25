@@ -117,11 +117,11 @@ class CustomerAuthController extends Controller
 
         app(CartService::class)->migrateGuestCart($oldSessionId, $customer);
 
-        try {
-            Mail::to($customer->email)->send(new WelcomeMail($customer));
-        } catch (\Throwable $e) {
-            Log::warning('Welcome email failed: ' . $e->getMessage());
-        }
+        \App\Services\TemplateMailService::send('welcome', $customer->email, [
+            'customer_name' => $customer->first_name . ' ' . $customer->last_name,
+            'store_name' => config('app.name'),
+            'store_url' => config('app.url'),
+        ]);
 
         if ($request->input('redirect') === 'checkout') {
             return redirect()->route('checkout.index');

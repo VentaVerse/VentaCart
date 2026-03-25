@@ -126,13 +126,10 @@ class HitPayWebhookController extends Controller
             $cart->items()->delete();
         }
 
-        // Send confirmation email
-        try {
-            $order->load('products', 'status');
-            Mail::to($order->email)->send(new OrderConfirmationMail($order));
-        } catch (\Throwable $e) {
-            Log::warning('HitPay webhook: Order confirmation email failed: ' . $e->getMessage());
-        }
+        // Send confirmation + admin notification
+        $order->load('products', 'status');
+        \App\Services\CheckoutService::sendOrderConfirmationEmail($order);
+        \App\Services\CheckoutService::sendAdminOrderNotification($order);
     }
 
     private function handleFailed(Order $order, string $status): void
