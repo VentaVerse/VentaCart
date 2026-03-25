@@ -40,7 +40,9 @@ return new class extends Migration
             ['group' => 'payment', 'key' => 'bank_transfer_instructions', 'value' => "Please transfer to the following bank account:\n\nBank: BDO\nAccount Name: New Gear Day\nAccount Number: 1234567890\n\nPlease include your order number as reference.", 'created_at' => $now, 'updated_at' => $now],
         ];
 
-        DB::table('settings')->insert($settings);
+        if (Schema::hasTable('settings')) {
+            DB::table('settings')->insert($settings);
+        }
     }
 
     public function down(): void
