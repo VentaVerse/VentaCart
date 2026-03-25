@@ -31,7 +31,8 @@ class RecentlyViewedController extends Controller
             ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
             ->get()
             ->map(function ($product) use ($badgeService, $currency) {
-                $image = $product->images->sortBy('sort_order')->first();
+                $galleryImage = $product->images->sortBy('sort_order')->first();
+                $image = $product->image ? (object)['path' => $product->image] : $galleryImage;
                 $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
 
                 $price = (float) $product->price;

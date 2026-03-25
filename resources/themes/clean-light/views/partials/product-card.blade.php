@@ -1,6 +1,6 @@
 @php
     $mainImage = $product->images->sortBy('sort_order')->first();
-    $imagePath = $mainImage?->path;
+    $imagePath = $product->image ?? $mainImage?->path;
 
     $price = $product->price;
     $salePrice = null;

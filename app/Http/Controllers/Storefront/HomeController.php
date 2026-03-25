@@ -68,7 +68,9 @@ class HomeController extends Controller
                 });
                 break;
             case 'best_sellers':
-                $query->latest();
+                $query->withCount(['orderProducts as total_revenue' => function ($q) {
+                    $q->select(\Illuminate\Support\Facades\DB::raw('COALESCE(SUM(order_products.price * order_products.quantity), 0)'));
+                }])->orderByDesc('total_revenue');
                 break;
             default:
                 $query->latest();

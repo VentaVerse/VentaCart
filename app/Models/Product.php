@@ -144,6 +144,11 @@ class Product extends Model
         return $this->hasMany(SeoSuggestion::class);
     }
 
+    public function orderProducts(): HasMany
+    {
+        return $this->hasMany(OrderProduct::class);
+    }
+
     public function approvedReviews(): HasMany
     {
         return $this->hasMany(Review::class)->where('status', 'approved')->latest('published_at');

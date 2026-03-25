@@ -52,7 +52,16 @@
     </div>
 
     @php
-        $images = $product->images;
+        $images = $product->images->sortBy('sort_order')->values();
+        // Ensure main image is first and included
+        if ($product->image) {
+            $mainInGallery = $images->firstWhere('path', $product->image);
+            if (!$mainInGallery) {
+                $images->prepend((object)['path' => $product->image, 'sort_order' => -1]);
+            } elseif ($images->search(fn($img) => $img->path === $product->image) !== 0) {
+                $images = $images->reject(fn($img) => $img->path === $product->image)->prepend($mainInGallery)->values();
+            }
+        }
         $thumbPosition = $settings['thumbnail_position'] ?? 'left';
         $currencySymbol = $defaultCurrency->symbol ?? '₱';
     @endphp
@@ -76,14 +85,29 @@
                 <div class="flex {{ $thumbPosition === 'bottom' ? 'flex-col' : 'flex-row' }} gap-3">
                     {{-- Thumbnails --}}
                     @if ($images->count() > 1)
-                        <div class="{{ $thumbPosition === 'bottom' ? 'flex gap-2 order-2' : 'flex flex-col gap-2 order-1 w-16 flex-shrink-0' }}">
-                            @foreach ($images as $i => $img)
-                                <button @click="activeImage = {{ $i }}"
-                                    :class="activeImage === {{ $i }} ? 'active' : ''"
-                                    class="product-gallery-thumb {{ $thumbPosition === 'bottom' ? 'w-16 h-16' : 'w-16 h-16' }}">
-                                    <img src="{{ storage_url($img->path) }}" alt="" loading="lazy">
+                        <div class="{{ $thumbPosition === 'bottom' ? 'order-2' : 'order-1 w-16 flex-shrink-0' }} relative" x-data="{ thumbContainer: null }" x-init="thumbContainer = $refs.thumbScroll">
+                            @if ($thumbPosition !== 'bottom' && $images->count() > 6)
+                                <button @click="thumbContainer.scrollBy({ top: -200, behavior: 'smooth' })"
+                                    class="absolute -top-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-b from-[#111] to-transparent z-10 text-[#999] hover:text-white">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
                                 </button>
-                            @endforeach
+                            @endif
+                            <div x-ref="thumbScroll" class="{{ $thumbPosition === 'bottom' ? 'flex gap-2 overflow-x-auto' : 'flex flex-col gap-2 overflow-y-auto' }}"
+                                 style="{{ $thumbPosition !== 'bottom' ? 'max-height: 420px;' : '' }} scrollbar-width: none;">
+                                @foreach ($images as $i => $img)
+                                    <button @click="activeImage = {{ $i }}"
+                                        :class="activeImage === {{ $i }} ? 'active' : ''"
+                                        class="product-gallery-thumb w-16 h-16 flex-shrink-0">
+                                        <img src="{{ storage_url($img->path) }}" alt="" loading="lazy">
+                                    </button>
+                                @endforeach
+                            </div>
+                            @if ($thumbPosition !== 'bottom' && $images->count() > 6)
+                                <button @click="thumbContainer.scrollBy({ top: 200, behavior: 'smooth' })"
+                                    class="absolute -bottom-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-t from-[#111] to-transparent z-10 text-[#999] hover:text-white">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                </button>
+                            @endif
                         </div>
                     @endif
 
