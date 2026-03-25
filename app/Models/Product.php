@@ -22,6 +22,18 @@ class Product extends Model
         'meta_description', 'meta_keywords', 'legacy_oc_id', 'views',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product) {
+            if (is_null($product->date_available)) {
+                $product->date_available = now();
+            }
+        });
+
+        static::created(fn () => \App\Services\BadgeService::clearCache());
+        static::updated(fn () => \App\Services\BadgeService::clearCache());
+    }
+
     protected function casts(): array
     {
         return [

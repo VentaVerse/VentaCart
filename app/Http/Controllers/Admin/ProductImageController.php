@@ -126,10 +126,8 @@ class ProductImageController extends Controller
         $basePath = 'catalog';
         $currentPath = $relativePath ? "{$basePath}/{$relativePath}" : $basePath;
 
-        // Prevent path traversal
-        $realBase = Storage::disk('public')->path($basePath);
-        $realCurrent = Storage::disk('public')->path($currentPath);
-        if (!str_starts_with(realpath($realCurrent) ?: $realCurrent, realpath($realBase) ?: $realBase)) {
+        // Prevent path traversal (string-based to avoid open_basedir with symlinks)
+        if (!$this->isWithinBase($basePath, $currentPath)) {
             return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
         }
 
@@ -194,10 +192,8 @@ class ProductImageController extends Controller
         $basePath = 'catalog';
         $directory = $catalogPath ? "{$basePath}/{$catalogPath}" : $basePath;
 
-        // Prevent path traversal
-        $realBase = Storage::disk('public')->path($basePath);
-        $realDir = Storage::disk('public')->path($directory);
-        if (!str_starts_with(realpath($realDir) ?: $realDir, realpath($realBase) ?: $realBase)) {
+        // Prevent path traversal (string-based to avoid open_basedir with symlinks)
+        if (!$this->isWithinBase($basePath, $directory)) {
             return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
         }
 
@@ -232,10 +228,8 @@ class ProductImageController extends Controller
             return response()->json(['ok' => false, 'message' => 'Unauthorized.'], 403);
         }
 
-        // Prevent deleting from _tmp of other sessions, etc. — just verify it's a real catalog path
-        $realBase = Storage::disk('public')->path('catalog');
-        $realFile = Storage::disk('public')->path($path);
-        if (!str_starts_with(realpath($realFile) ?: $realFile, realpath($realBase) ?: $realBase)) {
+        // Prevent deleting from _tmp of other sessions, etc. (string-based to avoid open_basedir with symlinks)
+        if (!$this->isWithinBase('catalog', $path)) {
             return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
         }
 
@@ -247,6 +241,20 @@ class ProductImageController extends Controller
         Storage::disk('public')->delete($thumbPath);
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Check if a path is within the base directory (no realpath to avoid open_basedir with symlinks).
+     */
+    protected function isWithinBase(string $base, string $path): bool
+    {
+        // Normalize: collapse ../ and ./ segments
+        $normalized = str_replace('\\', '/', $path);
+        if (str_contains($normalized, '..') || str_contains($normalized, './')) {
+            return false;
+        }
+
+        return str_starts_with($normalized, $base . '/') || $normalized === $base;
     }
 
     protected function generateThumbnail(string $path): void

@@ -66,7 +66,7 @@ class BadgeService
 
     private function isNew(Product $product): bool
     {
-        $newCount = (int) $this->theme->get('badges.new_count', 10);
+        $newCount = (int) $this->theme->get('badges.new_count', 15);
         $newIds = $this->getNewProductIds($newCount);
         return in_array($product->id, $newIds);
     }

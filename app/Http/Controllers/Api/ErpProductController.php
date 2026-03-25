@@ -159,6 +159,8 @@ class ErpProductController extends Controller
             'status' => 'nullable|boolean',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
+            'images' => 'nullable|array|max:20',
+            'images.*' => 'required|url|max:2048',
         ]);
 
         $storeId = (int) config('app.store_id', 1);
@@ -202,6 +204,9 @@ class ErpProductController extends Controller
             $product->categories()->sync($categoryIds);
         }
 
+        // Download and attach images from URLs
+        $imageResult = $this->downloadAndAttachImages($product, $validated['images'] ?? []);
+
         $product->load(['brand:id,name,slug', 'categories:id,name,slug']);
 
         $data = [
@@ -211,8 +216,13 @@ class ErpProductController extends Controller
             'slug' => $product->slug,
             'price' => $product->price,
             'status' => $product->is_active,
+            'images' => $imageResult['uploaded'],
             'created_at' => $product->created_at?->toIso8601String(),
         ];
+
+        if (!empty($imageResult['failed'])) {
+            $data['images_failed'] = $imageResult['failed'];
+        }
 
         return $this->logAndRespond($request, $data, 201, $product->sku);
     }
@@ -242,6 +252,8 @@ class ErpProductController extends Controller
             'status' => 'sometimes|boolean',
             'meta_title' => 'nullable|string|max:255',
             'meta_description' => 'nullable|string|max:500',
+            'images' => 'nullable|array|max:20',
+            'images.*' => 'required|url|max:2048',
         ]);
 
         $storeId = (int) config('app.store_id', 1);
@@ -297,6 +309,9 @@ class ErpProductController extends Controller
             $product->categories()->sync($validated['category_ids'] ?? []);
         }
 
+        // Download and attach images from URLs (appends to existing)
+        $imageResult = $this->downloadAndAttachImages($product, $validated['images'] ?? []);
+
         $product->load(['brand:id,name,slug', 'categories:id,name,slug']);
 
         $data = [
@@ -309,6 +324,13 @@ class ErpProductController extends Controller
             'status' => $product->is_active,
             'updated_at' => $product->updated_at?->toIso8601String(),
         ];
+
+        if (!empty($imageResult['uploaded'])) {
+            $data['images'] = $imageResult['uploaded'];
+        }
+        if (!empty($imageResult['failed'])) {
+            $data['images_failed'] = $imageResult['failed'];
+        }
 
         return $this->logAndRespond($request, $data, 200, $product->sku);
     }
@@ -344,7 +366,7 @@ class ErpProductController extends Controller
         }
 
         $hasFiles = $request->hasFile('images');
-        $hasUrls = $request->filled('image_urls');
+        $hasUrls = $request->filled('image_urls') || (!$hasFiles && $request->filled('images'));
 
         if (!$hasFiles && !$hasUrls) {
             return $this->logAndRespond($request, ['error' => 'Provide images (file upload) or image_urls (array of URLs)'], 422, $sku);
@@ -358,9 +380,10 @@ class ErpProductController extends Controller
         }
 
         if ($hasUrls) {
+            $urlField = $request->filled('image_urls') ? 'image_urls' : 'images';
             $request->validate([
-                'image_urls' => 'required|array|max:20',
-                'image_urls.*' => 'required|url|max:2048',
+                $urlField => 'required|array|max:20',
+                $urlField . '.*' => 'required|url|max:2048',
             ]);
         }
 
@@ -396,7 +419,8 @@ class ErpProductController extends Controller
             $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
             $maxSize = 5 * 1024 * 1024; // 5MB
 
-            foreach ($request->input('image_urls') as $url) {
+            $urls = $request->input('image_urls') ?? $request->input('images');
+            foreach ($urls as $url) {
                 try {
                     $response = \Illuminate\Support\Facades\Http::timeout(15)->get($url);
 
@@ -455,6 +479,81 @@ class ErpProductController extends Controller
         }
 
         return $this->logAndRespond($request, $response, 200, $sku);
+    }
+
+    /**
+     * Download images from URLs and attach them to a product.
+     */
+    private function downloadAndAttachImages(Product $product, array $urls): array
+    {
+        $uploaded = [];
+        $failed = [];
+
+        if (empty($urls)) {
+            return compact('uploaded', 'failed');
+        }
+
+        $product->loadMissing('brand:id,slug');
+        $brandSlug = $product->brand?->slug ?? 'unsorted';
+        $storagePath = 'products/' . $brandSlug;
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        $maxSize = 5 * 1024 * 1024;
+        $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+
+        $maxSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? -1;
+
+        foreach ($urls as $url) {
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(15)->get($url);
+
+                if (!$response->successful()) {
+                    $failed[] = ['url' => $url, 'reason' => 'HTTP ' . $response->status()];
+                    continue;
+                }
+
+                $contentType = explode(';', $response->header('Content-Type') ?? '')[0];
+
+                if (!in_array($contentType, $allowedTypes)) {
+                    $failed[] = ['url' => $url, 'reason' => 'Invalid type: ' . $contentType];
+                    continue;
+                }
+
+                $body = $response->body();
+
+                if (strlen($body) > $maxSize) {
+                    $failed[] = ['url' => $url, 'reason' => 'Exceeds 5MB limit'];
+                    continue;
+                }
+
+                $ext = $extensions[$contentType] ?? 'jpg';
+                $filename = Str::random(40) . '.' . $ext;
+
+                \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath . '/' . $filename, $body);
+                $path = $storagePath . '/' . $filename;
+                $maxSort++;
+
+                $record = ProductImage::create([
+                    'product_id' => $product->id,
+                    'path' => $path,
+                    'sort_order' => $maxSort,
+                ]);
+
+                // Set as main image if first
+                if ($maxSort === 0 && !$product->image) {
+                    $product->update(['image' => $path]);
+                }
+
+                $uploaded[] = [
+                    'id' => $record->id,
+                    'path' => $path,
+                    'sort_order' => $record->sort_order,
+                ];
+            } catch (\Exception $e) {
+                $failed[] = ['url' => $url, 'reason' => 'Download failed: ' . $e->getMessage()];
+            }
+        }
+
+        return compact('uploaded', 'failed');
     }
 
     /**

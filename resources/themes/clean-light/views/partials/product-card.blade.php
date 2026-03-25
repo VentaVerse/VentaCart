@@ -47,7 +47,7 @@
     $badges = isset($badgeService) ? $badgeService->getBadgesForProduct($product) : [];
 @endphp
 
-<div class="product-card" x-data="{ imgLoaded: false }">
+<div class="product-card" x-data="{ imgLoaded: false }" x-init="$nextTick(() => { const img = $el.querySelector('img'); if (img && img.complete) imgLoaded = true })">
     <div class="product-image-wrap">
         {{-- Wishlist Heart --}}
         <button
