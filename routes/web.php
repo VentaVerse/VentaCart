@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AddressLookupController;
 use App\Http\Controllers\Admin\BlogCategoryController;
 use App\Http\Controllers\Admin\BlogPostController;
+use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\CurrencyController;
@@ -241,6 +242,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     // Blog
     Route::resource('blog', BlogPostController::class)->except(['show']);
     Route::resource('blog-categories', BlogCategoryController::class)->except(['show']);
+    Route::resource('pages', PageController::class)->except(['show']);
 
     // Tags
     Route::resource('tags', TagController::class)->except(['show']);
@@ -355,4 +357,11 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+Route::get('/sitemap', [\App\Http\Controllers\Storefront\SitemapController::class, 'index'])->name('sitemap');
+
 require __DIR__.'/auth.php';
+
+// CMS Pages (catch-all — must be absolutely last, after auth routes)
+Route::get('/{slug}', [\App\Http\Controllers\Storefront\PageController::class, 'show'])
+    ->name('page.show')
+    ->where('slug', '^(?!admin|login|register|forgot-password|reset-password|confirm-password|verify-email|logout)[a-z0-9][a-z0-9-]*$');

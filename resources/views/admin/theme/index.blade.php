@@ -433,16 +433,122 @@
                     <h3 class="text-sm font-semibold text-gray-700">Footer Columns</h3>
 
                     @foreach ($footerColumns as $col)
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <div class="flex items-center gap-3">
-                                <svg class="w-5 h-5 text-gray-400 cursor-grab flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                        <div class="bg-gray-50 rounded-lg overflow-hidden" x-data="{
+                            open: false,
+                            title: '{{ addslashes($col->title) }}',
+                            type: '{{ $col->type }}',
+                            links: {{ json_encode($col->config['links'] ?? []) }},
+                            icons: {{ json_encode($col->config['icons'] ?? []) }},
+                            socials: {{ json_encode($col->config['links'] ?? []) }},
+                            textContent: {{ json_encode($col->config['content'] ?? '') }},
+                            newIcon: '',
+                        }">
+                            {{-- Header --}}
+                            <div class="flex items-center gap-3 p-4 cursor-pointer" @click="open = !open">
+                                <svg class="w-4 h-4 text-gray-400 transition-transform" :class="open && 'rotate-90'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">{{ $col->type }}</span>
-                                <span class="text-sm font-medium flex-1">{{ $col->title }}</span>
-                                <form method="POST" action="{{ route('admin.theme.footer.destroy', $col) }}" class="inline" onsubmit="return confirm('Delete?')">
+                                <span class="text-sm font-medium flex-1" x-text="title"></span>
+                                <span class="text-xs text-gray-400" x-show="type === 'links'" x-text="links.length + ' links'"></span>
+                                <form method="POST" action="{{ route('admin.theme.footer.destroy', $col) }}" class="inline" onsubmit="return confirm('Delete this column?')" @click.stop>
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="text-red-500 hover:text-red-700">
+                                    <button type="submit" class="text-red-400 hover:text-red-600">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                     </button>
+                                </form>
+                            </div>
+
+                            {{-- Expanded edit --}}
+                            <div x-show="open" x-transition class="border-t border-gray-200 p-4 bg-white" @click.stop>
+                                <form method="POST" action="{{ route('admin.theme.footer.update', $col) }}" enctype="multipart/form-data">
+                                    @csrf @method('PUT')
+
+                                    <div class="mb-4">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Column Title</label>
+                                        <input type="text" name="title" x-model="title" required class="w-64 rounded-md border-gray-300 text-sm">
+                                    </div>
+
+                                    @if ($col->type === 'links')
+                                        <div class="space-y-2 mb-3">
+                                            <template x-for="(link, idx) in links" :key="idx">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="text" :name="'config[links]['+idx+'][label]'" x-model="link.label" placeholder="Label" class="flex-1 rounded-md border-gray-300 text-sm">
+                                                    <input type="text" :name="'config[links]['+idx+'][url]'" x-model="link.url" placeholder="/slug" class="flex-1 rounded-md border-gray-300 text-sm font-mono">
+                                                    <button type="button" @click="links.splice(idx, 1)" class="text-red-400 hover:text-red-600 p-1">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <button type="button" @click="links.push({label: '', url: ''})" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium mb-4">+ Add Link</button>
+
+                                    @elseif ($col->type === 'social')
+                                        <div class="space-y-2 mb-3">
+                                            <template x-for="(social, idx) in socials" :key="idx">
+                                                <div class="flex items-center gap-2">
+                                                    <select :name="'config[links]['+idx+'][platform]'" x-model="social.platform" class="w-32 rounded-md border-gray-300 text-sm">
+                                                        <option value="facebook">Facebook</option>
+                                                        <option value="instagram">Instagram</option>
+                                                        <option value="youtube">YouTube</option>
+                                                        <option value="tiktok">TikTok</option>
+                                                    </select>
+                                                    <input type="text" :name="'config[links]['+idx+'][url]'" x-model="social.url" placeholder="https://..." class="flex-1 rounded-md border-gray-300 text-sm font-mono">
+                                                    <button type="button" @click="socials.splice(idx, 1)" class="text-red-400 hover:text-red-600 p-1">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        <button type="button" @click="socials.push({platform: 'facebook', url: ''})" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium mb-4">+ Add Social</button>
+
+                                    @elseif ($col->type === 'payment_icons')
+                                        @php
+                                            $paymentIcons = collect($col->config['icons'] ?? [])->map(function ($icon) {
+                                                return is_string($icon) ? ['type' => 'text', 'value' => $icon] : $icon;
+                                            })->values()->toArray();
+                                        @endphp
+                                        <div x-data="{ payIcons: {{ json_encode($paymentIcons) }} }">
+                                            <div class="space-y-2 mb-3">
+                                                <template x-for="(icon, idx) in payIcons" :key="idx">
+                                                    <div class="flex items-center gap-2 bg-gray-50 rounded p-2">
+                                                        <select :name="'config[icons]['+idx+'][type]'" x-model="icon.type" class="w-20 rounded-md border-gray-300 text-xs">
+                                                            <option value="text">Text</option>
+                                                            <option value="image">Image</option>
+                                                        </select>
+                                                        <template x-if="icon.type === 'text'">
+                                                            <input type="text" :name="'config[icons]['+idx+'][value]'" x-model="icon.value" placeholder="e.g. Visa" class="flex-1 rounded-md border-gray-300 text-sm">
+                                                        </template>
+                                                        <template x-if="icon.type === 'image'">
+                                                            <div class="flex-1 flex items-center gap-2">
+                                                                <template x-if="icon.value">
+                                                                    <img :src="icon.value.startsWith('http') || icon.value.startsWith('/') ? icon.value : '/storage/' + icon.value" class="h-6 rounded" alt="">
+                                                                </template>
+                                                                <input type="hidden" :name="'config[icons]['+idx+'][value]'" :value="icon.value">
+                                                                <input type="file" :name="'icon_uploads['+idx+']'" accept="image/*" class="text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-indigo-50 file:text-indigo-600">
+                                                            </div>
+                                                        </template>
+                                                        <button type="button" @click="payIcons.splice(idx, 1)" class="text-red-400 hover:text-red-600 p-1">
+                                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                            <button type="button" @click="payIcons.push({type: 'text', value: ''})" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium mb-4">+ Add Payment Method</button>
+                                        </div>
+
+                                    @elseif ($col->type === 'text')
+                                        <div class="mb-4">
+                                            <textarea name="config[content]" x-model="textContent" rows="3" class="w-full rounded-md border-gray-300 text-sm" placeholder="Free text content..."></textarea>
+                                        </div>
+                                    @endif
+
+                                    <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                                        <label class="flex items-center gap-2">
+                                            <input type="hidden" name="is_enabled" value="0">
+                                            <input type="checkbox" name="is_enabled" value="1" {{ $col->is_enabled ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                                            <span class="text-xs text-gray-600">Enabled</span>
+                                        </label>
+                                        <button type="submit" class="px-4 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                                    </div>
                                 </form>
                             </div>
                         </div>

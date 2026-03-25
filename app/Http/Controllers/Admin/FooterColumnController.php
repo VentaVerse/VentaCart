@@ -42,9 +42,39 @@ class FooterColumnController extends Controller
             'title' => 'required|string|max:255',
         ]);
 
+        $config = $request->input('config', []);
+
+        // Clean up: remove empty links/socials
+        if (isset($config['links'])) {
+            $config['links'] = array_values(array_filter($config['links'], function ($link) {
+                return !empty($link['label']) || !empty($link['url']);
+            }));
+        }
+
+        // Handle payment icon uploads
+        if (isset($config['icons']) && $column->type === 'payment_icons') {
+            $uploads = $request->file('icon_uploads', []);
+            foreach ($config['icons'] as $idx => &$icon) {
+                if (is_string($icon)) {
+                    $icon = ['type' => 'text', 'value' => $icon];
+                }
+                if (isset($uploads[$idx])) {
+                    $path = $uploads[$idx]->store('payment-icons', 'public');
+                    $icon['value'] = $path;
+                    $icon['type'] = 'image';
+                }
+            }
+            unset($icon);
+            $config['icons'] = array_values(array_filter($config['icons'], function ($icon) {
+                return !empty($icon['value']);
+            }));
+        } elseif (isset($config['icons'])) {
+            $config['icons'] = array_values(array_filter($config['icons']));
+        }
+
         $column->update([
             'title' => $request->input('title'),
-            'config' => $request->input('config', $column->config),
+            'config' => !empty($config) ? $config : $column->config,
             'is_enabled' => $request->boolean('is_enabled'),
         ]);
 

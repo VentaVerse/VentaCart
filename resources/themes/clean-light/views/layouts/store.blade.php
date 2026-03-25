@@ -453,7 +453,13 @@
                         @elseif ($column->type === 'payment_icons')
                             <div class="payment-icons">
                                 @foreach ($column->config['icons'] ?? [] as $icon)
-                                    <span class="inline-block bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-500">{{ $icon }}</span>
+                                    @if (is_string($icon))
+                                        <span class="inline-block bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-500">{{ $icon }}</span>
+                                    @elseif (($icon['type'] ?? '') === 'image' && !empty($icon['value']))
+                                        <img src="{{ storage_url($icon['value']) }}" alt="" class="h-7 rounded">
+                                    @elseif (!empty($icon['value']))
+                                        <span class="inline-block bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-500">{{ $icon['value'] }}</span>
+                                    @endif
                                 @endforeach
                             </div>
 
