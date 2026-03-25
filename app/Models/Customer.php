@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Notifications\Notification;
 
 class Customer extends Authenticatable
 {
+    use Notifiable;
+
     /**
      * Send the password reset notification to the customer route (not admin).
      */
