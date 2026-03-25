@@ -229,6 +229,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
 
     // Footer Columns
     Route::post('/theme/footer', [FooterColumnController::class, 'store'])->name('theme.footer.store');
+    Route::post('/theme/footer/bulk-update', [FooterColumnController::class, 'bulkUpdate'])->name('theme.footer.bulk-update');
     Route::put('/theme/footer/{column}', [FooterColumnController::class, 'update'])->name('theme.footer.update');
     Route::delete('/theme/footer/{column}', [FooterColumnController::class, 'destroy'])->name('theme.footer.destroy');
     Route::post('/theme/footer/reorder', [FooterColumnController::class, 'reorder'])->name('theme.footer.reorder');

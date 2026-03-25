@@ -36,6 +36,50 @@ class FooterColumnController extends Controller
         return back()->with('success', 'Footer column added.')->with('tab', 'footer');
     }
 
+    public function bulkUpdate(Request $request)
+    {
+        $columns = $request->input('columns', []);
+        $allUploads = $request->file('icon_uploads', []);
+
+        foreach ($columns as $id => $data) {
+            $column = FooterColumn::find($id);
+            if (!$column) continue;
+
+            $config = $data['config'] ?? [];
+
+            // Clean up links
+            if (isset($config['links'])) {
+                $config['links'] = array_values(array_filter($config['links'], fn($l) => !empty($l['label']) || !empty($l['url'])));
+            }
+
+            // Handle payment icon uploads
+            if (isset($config['icons']) && $column->type === 'payment_icons') {
+                $uploads = $allUploads[$id] ?? [];
+                foreach ($config['icons'] as $idx => &$icon) {
+                    if (is_string($icon)) {
+                        $icon = ['type' => 'text', 'value' => $icon];
+                    }
+                    if (isset($uploads[$idx])) {
+                        $icon['value'] = $uploads[$idx]->store('payment-icons', 'public');
+                        $icon['type'] = 'image';
+                    }
+                }
+                unset($icon);
+                $config['icons'] = array_values(array_filter($config['icons'], fn($i) => !empty($i['value'])));
+            }
+
+            $column->update([
+                'title' => $data['title'] ?? $column->title,
+                'config' => !empty($config) ? $config : $column->config,
+                'is_enabled' => (bool) ($data['is_enabled'] ?? false),
+            ]);
+        }
+
+        app(ThemeService::class)->clearCache();
+
+        return back()->with('success', 'Footer updated.')->with('tab', 'footer');
+    }
+
     public function update(Request $request, FooterColumn $column)
     {
         $request->validate([

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\FreeShippingRule;
 use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
 
@@ -34,6 +35,16 @@ class BadgeService
                 'type' => 'hot',
                 'label' => 'HOT',
                 'color' => $this->theme->get('colors.primary', '#E2293D'),
+                'text_color' => '#ffffff',
+            ];
+        }
+
+        // Free Shipping badge
+        if ($this->qualifiesForFreeShippingBadge($product)) {
+            $badges[] = [
+                'type' => 'free_shipping',
+                'label' => 'FREE SHIPPING',
+                'color' => '#0891b2',
                 'text_color' => '#ffffff',
             ];
         }
@@ -123,9 +134,43 @@ class BadgeService
         });
     }
 
+    private function qualifiesForFreeShippingBadge(Product $product): bool
+    {
+        $rules = $this->getFreeShippingBadgeRules();
+        if ($rules->isEmpty()) return false;
+
+        $productBrandId = $product->brand_id;
+        $productCategoryIds = $product->relationLoaded('categories')
+            ? $product->categories->pluck('id')->toArray()
+            : $product->categories()->pluck('categories.id')->toArray();
+
+        foreach ($rules as $rule) {
+            $brandMatch = empty($rule->brand_ids) || in_array($productBrandId, $rule->brand_ids);
+            $categoryMatch = empty($rule->category_ids) || !empty(array_intersect($productCategoryIds, $rule->category_ids));
+            $excludeBrand = !empty($rule->exclude_brand_ids) && in_array($productBrandId, $rule->exclude_brand_ids);
+            $excludeCategory = !empty($rule->exclude_category_ids) && !empty(array_intersect($productCategoryIds, $rule->exclude_category_ids));
+
+            if ($brandMatch && $categoryMatch && !$excludeBrand && !$excludeCategory) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function getFreeShippingBadgeRules()
+    {
+        return Cache::remember('free_shipping_badge_rules', 3600, function () {
+            return FreeShippingRule::where('is_active', true)
+                ->where('show_badge', true)
+                ->get();
+        });
+    }
+
     public static function clearCache(): void
     {
         Cache::forget('badge_new_ids');
         Cache::forget('badge_hot_ids');
+        Cache::forget('free_shipping_badge_rules');
     }
 }

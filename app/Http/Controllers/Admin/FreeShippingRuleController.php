@@ -44,12 +44,14 @@ class FreeShippingRuleController extends Controller
             'exclude_customer_group_ids' => ['nullable', 'array'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'apply_whole_cart' => ['boolean'],
+            'show_badge' => ['boolean'],
             'is_active' => ['boolean'],
         ]);
 
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
         $validated['is_active'] = $request->boolean('is_active');
         $validated['apply_whole_cart'] = $request->boolean('apply_whole_cart');
+        $validated['show_badge'] = $request->boolean('show_badge');
 
         // Clean empty arrays to null
         foreach (['brand_ids', 'category_ids', 'customer_group_ids', 'shipping_zone_ids', 'exclude_brand_ids', 'exclude_category_ids', 'exclude_customer_group_ids'] as $field) {

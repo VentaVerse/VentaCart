@@ -601,6 +601,10 @@
         @apply top-3 right-3 rounded-sm;
     }
 
+    .badge-free-shipping {
+        @apply bg-cyan-600 left-3 rounded-sm;
+    }
+
     .badge-custom {
         @apply bottom-3 left-3 rounded-sm;
     }

@@ -10,7 +10,7 @@ class FreeShippingRule extends Model
         'name', 'min_order_total', 'min_quantity',
         'brand_ids', 'category_ids', 'customer_group_ids', 'shipping_zone_ids',
         'exclude_brand_ids', 'exclude_category_ids', 'exclude_customer_group_ids',
-        'apply_whole_cart', 'sort_order', 'is_active',
+        'apply_whole_cart', 'show_badge', 'sort_order', 'is_active',
     ];
 
     protected function casts(): array
@@ -25,6 +25,7 @@ class FreeShippingRule extends Model
             'exclude_category_ids' => 'array',
             'exclude_customer_group_ids' => 'array',
             'apply_whole_cart' => 'boolean',
+            'show_badge' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

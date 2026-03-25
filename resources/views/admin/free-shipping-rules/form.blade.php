@@ -61,7 +61,7 @@
                         class="rounded border-gray-300 text-indigo-600">
                     <span class="text-sm text-gray-700">Active</span>
                 </label>
-                <div class="border-t border-gray-200 pt-4 mt-2">
+                <div class="border-t border-gray-200 pt-4 mt-2 space-y-3">
                     <label class="flex items-start gap-2">
                         <input type="hidden" name="apply_whole_cart" value="0">
                         <input type="checkbox" name="apply_whole_cart" value="1"
@@ -70,6 +70,16 @@
                         <div>
                             <span class="text-sm text-gray-700 font-medium">Apply to whole cart</span>
                             <p class="text-xs text-gray-500">If ANY qualifying product is in the cart, the entire cart gets free shipping — even if other products don't match the brand/category conditions.</p>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-2">
+                        <input type="hidden" name="show_badge" value="0">
+                        <input type="checkbox" name="show_badge" value="1"
+                            {{ old('show_badge', $rule?->show_badge ?? false) ? 'checked' : '' }}
+                            class="rounded border-gray-300 text-indigo-600 mt-0.5">
+                        <div>
+                            <span class="text-sm text-gray-700 font-medium">Show "Free Shipping" badge</span>
+                            <p class="text-xs text-gray-500">Display a "Free Shipping" label on product cards and product pages for items that qualify for this rule.</p>
                         </div>
                     </label>
                 </div>
