@@ -27,3 +27,4 @@ CLAUDE.md
 /delivery_ph
 .playwright-mcp/
 *.sql
+*.jpeg
