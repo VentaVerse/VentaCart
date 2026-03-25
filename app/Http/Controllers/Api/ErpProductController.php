@@ -343,38 +343,118 @@ class ErpProductController extends Controller
             return $this->logAndRespond($request, ['error' => 'Product not found'], 404, $sku);
         }
 
-        $request->validate([
-            'images' => 'required|array',
-            'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
-        ]);
+        $hasFiles = $request->hasFile('images');
+        $hasUrls = $request->filled('image_urls');
+
+        if (!$hasFiles && !$hasUrls) {
+            return $this->logAndRespond($request, ['error' => 'Provide images (file upload) or image_urls (array of URLs)'], 422, $sku);
+        }
+
+        if ($hasFiles) {
+            $request->validate([
+                'images' => 'required|array',
+                'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:5120',
+            ]);
+        }
+
+        if ($hasUrls) {
+            $request->validate([
+                'image_urls' => 'required|array|max:20',
+                'image_urls.*' => 'required|url|max:2048',
+            ]);
+        }
 
         $brandSlug = $product->brand?->slug ?? 'unsorted';
         $storagePath = 'products/' . $brandSlug;
         $uploaded = [];
+        $failed = [];
 
         $maxSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? -1;
 
-        foreach ($request->file('images') as $image) {
-            $path = $image->store($storagePath, 'public');
-            $maxSort++;
+        // Handle file uploads
+        if ($hasFiles) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store($storagePath, 'public');
+                $maxSort++;
 
-            $record = ProductImage::create([
-                'product_id' => $product->id,
-                'path' => $path,
-                'sort_order' => $maxSort,
-            ]);
+                $record = ProductImage::create([
+                    'product_id' => $product->id,
+                    'path' => $path,
+                    'sort_order' => $maxSort,
+                ]);
 
-            $uploaded[] = [
-                'id' => $record->id,
-                'path' => $path,
-                'sort_order' => $record->sort_order,
-            ];
+                $uploaded[] = [
+                    'id' => $record->id,
+                    'path' => $path,
+                    'sort_order' => $record->sort_order,
+                ];
+            }
         }
 
-        return $this->logAndRespond($request, [
+        // Handle URL downloads
+        if ($hasUrls) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            $maxSize = 5 * 1024 * 1024; // 5MB
+
+            foreach ($request->input('image_urls') as $url) {
+                try {
+                    $response = \Illuminate\Support\Facades\Http::timeout(15)->get($url);
+
+                    if (!$response->successful()) {
+                        $failed[] = ['url' => $url, 'reason' => 'HTTP ' . $response->status()];
+                        continue;
+                    }
+
+                    $contentType = $response->header('Content-Type');
+                    $mimeType = explode(';', $contentType)[0] ?? '';
+
+                    if (!in_array($mimeType, $allowedTypes)) {
+                        $failed[] = ['url' => $url, 'reason' => 'Invalid type: ' . $mimeType];
+                        continue;
+                    }
+
+                    $body = $response->body();
+
+                    if (strlen($body) > $maxSize) {
+                        $failed[] = ['url' => $url, 'reason' => 'Exceeds 5MB limit'];
+                        continue;
+                    }
+
+                    $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+                    $ext = $extensions[$mimeType] ?? 'jpg';
+                    $filename = Str::random(40) . '.' . $ext;
+
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath . '/' . $filename, $body);
+                    $path = $storagePath . '/' . $filename;
+                    $maxSort++;
+
+                    $record = ProductImage::create([
+                        'product_id' => $product->id,
+                        'path' => $path,
+                        'sort_order' => $maxSort,
+                    ]);
+
+                    $uploaded[] = [
+                        'id' => $record->id,
+                        'path' => $path,
+                        'sort_order' => $record->sort_order,
+                    ];
+                } catch (\Exception $e) {
+                    $failed[] = ['url' => $url, 'reason' => 'Download failed: ' . $e->getMessage()];
+                }
+            }
+        }
+
+        $response = [
             'message' => count($uploaded) . ' image(s) uploaded',
             'images' => $uploaded,
-        ], 200, $sku);
+        ];
+
+        if (!empty($failed)) {
+            $response['failed'] = $failed;
+        }
+
+        return $this->logAndRespond($request, $response, 200, $sku);
     }
 
     /**
