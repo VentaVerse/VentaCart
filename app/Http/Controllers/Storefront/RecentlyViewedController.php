@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Services\BadgeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RecentlyViewedController extends Controller
 {
@@ -31,25 +32,58 @@ class RecentlyViewedController extends Controller
             ->get()
             ->map(function ($product) use ($badgeService, $currency) {
                 $image = $product->images->sortBy('sort_order')->first();
-                $special = $product->specials
+                $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+
+                $price = (float) $product->price;
+                $salePrice = null;
+                $overridePrice = null;
+
+                // Sale special (shows strikethrough)
+                $activeSpecial = $product->specials
                     ->where('display_mode', 'sale')
-                    ->filter(function ($s) {
-                        return (!$s->date_start || $s->date_start <= now())
-                            && (!$s->date_end || $s->date_end >= now());
+                    ->filter(function ($s) use ($customerGroupId) {
+                        if ($s->date_start && $s->date_start > now()) return false;
+                        if ($s->date_end && $s->date_end < now()) return false;
+                        if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                        if ($s->quantity > 1) return false;
+                        return true;
                     })
                     ->sortBy('priority')
                     ->first();
 
-                $price = (float) $product->price;
-                $salePrice = $special ? (float) $special->price : null;
+                if ($activeSpecial) {
+                    $salePrice = (float) $activeSpecial->price;
+                }
+
+                // Override special (clean price replacement)
+                if (!$salePrice) {
+                    $overrideSpecial = $product->specials
+                        ->where('display_mode', 'override')
+                        ->filter(function ($s) use ($customerGroupId) {
+                            if ($s->date_start && $s->date_start > now()) return false;
+                            if ($s->date_end && $s->date_end < now()) return false;
+                            if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                            if ($s->quantity > 1) return false;
+                            return true;
+                        })
+                        ->sortBy('priority')
+                        ->first();
+
+                    if ($overrideSpecial) {
+                        $overridePrice = (float) $overrideSpecial->price;
+                    }
+                }
+
+                $displayPrice = $overridePrice ?? $price;
 
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
                     'slug' => $product->slug,
-                    'price' => $price,
+                    'price' => $displayPrice,
                     'sale_price' => $salePrice,
-                    'formatted_price' => $currency . number_format($price, 2),
+                    'override_price' => $overridePrice,
+                    'formatted_price' => $currency . number_format($displayPrice, 2),
                     'formatted_sale_price' => $salePrice ? $currency . number_format($salePrice, 2) : null,
                     'url' => route('product.show', $product->slug),
                     'image' => $image ? storage_url($image->path) : null,

@@ -189,21 +189,6 @@
                         </label>
                     </form>
                 </div>
-                <div class="px-5 py-3 border-b border-gray-100">
-                    <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
-                        @csrf
-                        <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
-                        <input type="hidden" name="_tab" value="hitpay">
-                        <label class="text-sm text-gray-700">Order Status on Payment</label>
-                        <select name="settings[hitpay_success_status_id]" class="rounded-lg border-gray-300 text-sm" onchange="this.form.submit()">
-                            <option value="">Default (Pending)</option>
-                            @foreach ($orderStatuses as $os)
-                                <option value="{{ $os->id }}" {{ ($settings['payment']['hitpay_success_status_id'] ?? '') == $os->id ? 'selected' : '' }}>{{ $os->name }}</option>
-                            @endforeach
-                        </select>
-                    </form>
-                </div>
                 <div class="p-5">
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
@@ -290,7 +275,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="mt-6">
+                        <div class="mt-6 flex justify-end">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
                         </div>
                     </form>
@@ -344,7 +329,7 @@
                                 <input type="number" name="settings[cod_sort_order]" value="{{ $settings['payment']['cod_sort_order'] ?? '0' }}" min="0" class="mt-1 block w-24 rounded-md border-gray-300 text-sm">
                             </div>
                         </div>
-                        <div class="mt-6">
+                        <div class="mt-6 flex justify-end">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
                         </div>
                     </form>

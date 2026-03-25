@@ -62,7 +62,7 @@
                             </div>
                         @endforeach
                     </div>
-                    <div class="mt-6">
+                    <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Colors</button>
                     </div>
                 </form>
@@ -94,7 +94,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mt-6">
+                    <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Fonts</button>
                     </div>
                 </form>
@@ -136,7 +136,7 @@
                             <input type="hidden" name="settings[topbar_links]" :value="JSON.stringify(links)">
                         </div>
                     </div>
-                    <div class="mt-6">
+                    <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Header</button>
                     </div>
                 </form>
@@ -265,7 +265,9 @@
 
                                         @include('admin.theme.section-config', ['section' => $section])
 
-                                        <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">Update Section</button>
+                                        <div class="flex justify-end">
+                                            <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">Update Section</button>
+                                        </div>
                                     </form>
                                 </div>
                             </div>
@@ -328,7 +330,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mt-6">
+                    <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Product Page</button>
                     </div>
                 </form>
@@ -370,16 +372,9 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mt-6">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Category Page</button>
-                    </div>
-                </form>
 
-                <div class="mt-8 border-t pt-6">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-4">Sidebar Filters</h3>
-                    <form method="POST" action="{{ route('admin.theme.settings.update') }}">
-                        @csrf
-                        <input type="hidden" name="group" value="filters">
+                    <div class="mt-8 border-t pt-6">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-4">Sidebar Filters</h3>
                         <div class="space-y-3 max-w-md">
                             @php
                                 $filterToggles = [
@@ -393,17 +388,18 @@
                             @endphp
                             @foreach ($filterToggles as $key => $label)
                                 <div class="flex items-center gap-3">
-                                    <input type="hidden" name="settings[{{ $key }}]" value="0">
-                                    <input type="checkbox" name="settings[{{ $key }}]" value="1" {{ ($settings['filters'][$key] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                                    <input type="hidden" name="filters[{{ $key }}]" value="0">
+                                    <input type="checkbox" name="filters[{{ $key }}]" value="1" {{ ($settings['filters'][$key] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
                                     <label class="text-sm text-gray-700">{{ $label }}</label>
                                 </div>
                             @endforeach
                         </div>
-                        <div class="mt-4">
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Filters</button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Category</button>
+                    </div>
+                </form>
             </div>
 
             {{-- ==================== BADGES ==================== --}}
@@ -423,7 +419,7 @@
                             <p class="text-xs text-gray-500 mt-1">Products with the most orders. Set 0 to disable.</p>
                         </div>
                     </div>
-                    <div class="mt-6">
+                    <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Badges</button>
                     </div>
                 </form>
@@ -535,7 +531,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-6">
+                    <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-5 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Footer</button>
                     </div>
                 </form>
@@ -600,7 +596,7 @@
                             <label class="text-sm text-gray-700">Show Related Articles on Product Pages</label>
                         </div>
                     </div>
-                    <div class="mt-6">
+                    <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Blog Settings</button>
                     </div>
                 </form>
@@ -640,7 +636,7 @@
                                 </div>
                             @endforeach
                         </div>
-                        <div class="mt-6">
+                        <div class="mt-6 flex justify-end">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Theme Settings</button>
                         </div>
                     </form>

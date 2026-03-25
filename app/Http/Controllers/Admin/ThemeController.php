@@ -60,6 +60,17 @@ class ThemeController extends Controller
             );
         }
 
+        // Handle additional groups submitted in the same form (e.g. filters within category_page)
+        $filters = $request->input('filters', []);
+        if (!empty($filters)) {
+            foreach ($filters as $key => $value) {
+                Setting::updateOrCreate(
+                    ['group' => 'filters', 'key' => $key],
+                    ['value' => $value]
+                );
+            }
+        }
+
         app(ThemeService::class)->clearCache();
 
         return back()->with('success', ucfirst($group) . ' settings updated.')->with('tab', $group);
