@@ -23,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->configureAppNameFromDatabase();
         $this->configureMailFromDatabase();
         $this->configureTimezoneFromDatabase();
 
@@ -59,6 +60,18 @@ class AppServiceProvider extends ServiceProvider
         if ($timezone && in_array($timezone, timezone_identifiers_list())) {
             config(['app.timezone' => $timezone]);
             date_default_timezone_set($timezone);
+        }
+    }
+
+    private function configureAppNameFromDatabase(): void
+    {
+        try {
+            $siteName = Setting::where('group', 'identity')->where('key', 'site_name')->value('value');
+            if ($siteName) {
+                config(['app.name' => $siteName]);
+            }
+        } catch (\Throwable $e) {
+            // DB may not be available during migrations
         }
     }
 
