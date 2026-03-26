@@ -132,17 +132,4 @@
         </div>
     </div>
 
-    {{-- Generate Now --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Generate Now</h3>
-        <div class="max-w-lg">
-            <form method="POST" action="{{ route('admin.extensions.seo.generate') }}">
-                @csrf
-                <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
-                    Generate All Suggestions Now
-                </button>
-            </form>
-            <p class="mt-2 text-xs text-yellow-600">This will generate SEO suggestions for all entity types. It may take a few minutes.</p>
-        </div>
-    </div>
 </x-admin-layout>

@@ -114,24 +114,6 @@
         <div x-show="selected.length > 0" x-cloak class="flex items-center justify-between px-5 py-3 bg-indigo-50 border-b border-indigo-200">
             <span class="text-sm font-medium text-indigo-800" x-text="selected.length + ' item(s) selected'"></span>
             <div class="flex items-center gap-3">
-                <form method="POST" action="{{ route('admin.extensions.seo.generate') }}" @submit.prevent="
-                    const form = $el;
-                    selected.forEach(id => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = 'entity_ids[]';
-                        input.value = id;
-                        form.appendChild(input);
-                    });
-                    form.submit();
-                ">
-                    @csrf
-                    <input type="hidden" name="entity_type" value="{{ $entityType }}">
-                    <button type="submit" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors">
-                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        Generate SEO for Selected
-                    </button>
-                </form>
                 <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" @submit.prevent="
                     const form = $el;
                     selected.forEach(id => {

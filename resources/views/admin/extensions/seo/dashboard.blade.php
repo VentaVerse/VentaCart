@@ -96,23 +96,19 @@
 
         {{-- Right: Quick Actions + GSC --}}
         <div class="space-y-6">
-            {{-- Quick Actions --}}
+            {{-- Quick Links --}}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div class="px-5 py-4 border-b border-gray-200">
-                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Quick Actions</h3>
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Manage SEO</h3>
                 </div>
                 <div class="p-5 space-y-3">
-                    @foreach (['product' => 'Products', 'category' => 'Categories', 'brand' => 'Brands', 'blog_post' => 'Blog Posts'] as $entityType => $entityLabel)
-                        <form method="POST" action="{{ route('admin.extensions.seo.generate') }}">
-                            @csrf
-                            <input type="hidden" name="entity_type" value="{{ $entityType }}">
-                            <button type="submit" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
-                                <span>Generate All {{ $entityLabel }}</span>
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                                </svg>
-                            </button>
-                        </form>
+                    @foreach (['products' => 'Products', 'categories' => 'Categories', 'brands' => 'Brands', 'blog' => 'Blog', 'pages' => 'Pages'] as $type => $label)
+                        <a href="{{ route('admin.extensions.seo.entities', ['type' => $type]) }}" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+                            <span>{{ $label }}</span>
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                        </a>
                     @endforeach
                 </div>
             </div>
