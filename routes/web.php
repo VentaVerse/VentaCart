@@ -296,6 +296,21 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::post('/seo/suggestions/{suggestion}/reject', [SeoController::class, 'reject'])->name('seo.reject');
     Route::post('/seo/suggestions/bulk-accept', [SeoController::class, 'bulkAccept'])->name('seo.bulk-accept');
 
+    // SEO Extension
+    Route::prefix('extensions/seo')->name('extensions.seo.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'dashboard'])->name('dashboard');
+        Route::get('/search-console', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'searchConsole'])->name('search-console');
+        Route::get('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'settings'])->name('settings');
+        Route::post('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'saveSettings'])->name('save-settings');
+        Route::post('/settings/upload-gsc', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'uploadGsc'])->name('upload-gsc');
+        Route::post('/generate', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'generate'])->name('generate');
+        Route::post('/optimize', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'optimize'])->name('optimize');
+        Route::post('/suggestions/{suggestion}/accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'accept'])->name('accept');
+        Route::post('/suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'reject'])->name('reject');
+        Route::post('/suggestions/bulk-accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'bulkAccept'])->name('bulk-accept');
+        Route::get('/{type}', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'entities'])->name('entities')->where('type', 'products|categories|brands|blog');
+    });
+
     Route::post('/dph/mapping', [DphController::class, 'updateMapping'])->name('dph.update-mapping');
     Route::post('/dph/execute', [DphController::class, 'execute'])->name('dph.execute');
     Route::get('/dph/logs', [DphController::class, 'logs'])->name('dph.logs');

@@ -1,0 +1,24 @@
+@php
+    $tabs = [
+        ['route' => 'admin.extensions.seo.dashboard', 'label' => 'Dashboard', 'pattern' => 'admin.extensions.seo.dashboard'],
+        ['route' => 'admin.extensions.seo.entities', 'routeParams' => ['type' => 'products'], 'label' => 'Products', 'active' => ($type ?? '') === 'products'],
+        ['route' => 'admin.extensions.seo.entities', 'routeParams' => ['type' => 'categories'], 'label' => 'Categories', 'active' => ($type ?? '') === 'categories'],
+        ['route' => 'admin.extensions.seo.entities', 'routeParams' => ['type' => 'brands'], 'label' => 'Brands', 'active' => ($type ?? '') === 'brands'],
+        ['route' => 'admin.extensions.seo.entities', 'routeParams' => ['type' => 'blog'], 'label' => 'Blog', 'active' => ($type ?? '') === 'blog'],
+        ['route' => 'admin.extensions.seo.search-console', 'label' => 'Search Console', 'pattern' => 'admin.extensions.seo.search-console'],
+        ['route' => 'admin.extensions.seo.settings', 'label' => 'Settings', 'pattern' => 'admin.extensions.seo.settings'],
+    ];
+@endphp
+<div class="border-b border-gray-200 mb-6">
+    <nav class="flex gap-6 overflow-x-auto">
+        @foreach ($tabs as $tab)
+            @php
+                $isActive = isset($tab['active']) ? $tab['active'] : (isset($tab['pattern']) && request()->routeIs($tab['pattern']));
+                $url = route($tab['route'], $tab['routeParams'] ?? []);
+            @endphp
+            <a href="{{ $url }}" class="pb-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors {{ $isActive ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}">
+                {{ $tab['label'] }}
+            </a>
+        @endforeach
+    </nav>
+</div>
