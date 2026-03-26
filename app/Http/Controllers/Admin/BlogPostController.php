@@ -29,7 +29,7 @@ class BlogPostController extends Controller
             $query->where('is_published', $request->input('status') === 'published');
         }
 
-        $posts = $query->latest()->paginate(20)->withQueryString();
+        $posts = $query->latest('published_at')->paginate(20)->withQueryString();
         $categories = BlogCategory::orderBy('sort_order')->get();
 
         return view('admin.blog.index', compact('posts', 'categories'));
