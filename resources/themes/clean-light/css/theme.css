@@ -100,6 +100,8 @@
        Top Bar
        ============================================ */
     .topbar {
+        background-color: var(--color-announcement-bg);
+        color: var(--color-announcement-text);
         @apply bg-gray-50 border-b border-gray-200 text-xs py-2;
     }
 
@@ -111,6 +113,7 @@
        Header
        ============================================ */
     .site-header {
+        background-color: var(--color-nav-bg);
         @apply bg-white py-4 border-b border-gray-200;
     }
 

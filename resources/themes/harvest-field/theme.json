@@ -1,0 +1,33 @@
+{
+    "name": "Harvest Field",
+    "version": "1.0",
+    "author": "Venta",
+    "description": "Earthy dark theme with sage, gold and terracotta — autumn vintage warmth",
+    "thumbnail": "preview.png",
+    "colors": {
+        "primary": "#E5BA41",
+        "secondary": "#D1855C",
+        "nav_bg": "#1F2B42",
+        "nav_text": "#E5BA41",
+        "footer_bg": "#1A2538",
+        "footer_text": "#94A378",
+        "announcement_bg": "#E5BA41",
+        "announcement_text": "#2D3C59"
+    },
+    "fonts": {
+        "url": "https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=Open+Sans:wght@300;400;600&display=swap"
+    },
+    "settings": {
+        "glow_intensity": {
+            "type": "select",
+            "label": "Glow Intensity",
+            "options": ["low", "medium", "high"],
+            "default": "low"
+        },
+        "scroll_reveal": {
+            "type": "toggle",
+            "label": "Scroll Reveal Animations",
+            "default": true
+        }
+    }
+}

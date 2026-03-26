@@ -111,7 +111,9 @@
        Top Bar
        ============================================ */
     .topbar {
-        @apply bg-[#0A0A0A] border-b border-[#1A1A1A] text-xs py-2;
+        background-color: var(--color-announcement-bg);
+        color: var(--color-announcement-text);
+        @apply border-b border-[#1A1A1A] text-xs py-2;
     }
 
     .topbar a {
@@ -122,7 +124,8 @@
        Header
        ============================================ */
     .site-header {
-        @apply bg-[#0D0D0D] py-4 border-b border-[#1A1A1A];
+        background-color: var(--color-nav-bg);
+        @apply py-4 border-b border-[#1A1A1A];
     }
 
     .site-header .logo img {

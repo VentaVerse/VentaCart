@@ -126,18 +126,104 @@ class ThemeController extends Controller
     {
         $request->validate(['theme' => 'required|string']);
 
-        $theme = $request->input('theme');
-        $themePath = resource_path("themes/{$theme}/theme.json");
+        $newTheme = $request->input('theme');
+        $themePath = resource_path("themes/{$newTheme}/theme.json");
 
         if (!file_exists($themePath)) {
             return back()->with('error', 'Theme not found.');
         }
 
         $themeService = app(ThemeService::class);
-        $themeService->set('identity', 'active_theme', $theme);
+        $oldTheme = $themeService->getActiveTheme();
+
+        // Save current colors under the old theme's key
+        $currentColors = Setting::where('group', 'colors')->pluck('value', 'key')->all();
+        $currentFontsUrl = Setting::where('group', 'fonts')->where('key', 'google_fonts_url')->value('value');
+        if (!empty($currentColors)) {
+            foreach ($currentColors as $key => $value) {
+                Setting::updateOrCreate(
+                    ['group' => "colors__{$oldTheme}", 'key' => $key],
+                    ['value' => $value]
+                );
+            }
+        }
+        if ($currentFontsUrl) {
+            Setting::updateOrCreate(
+                ['group' => "fonts__{$oldTheme}", 'key' => 'google_fonts_url'],
+                ['value' => $currentFontsUrl]
+            );
+        }
+
+        // Load saved colors for the new theme, or fall back to theme.json defaults
+        $themeJson = json_decode(file_get_contents($themePath), true);
+        $savedColors = Setting::where('group', "colors__{$newTheme}")->pluck('value', 'key')->all();
+        $savedFontsUrl = Setting::where('group', "fonts__{$newTheme}")->where('key', 'google_fonts_url')->value('value');
+
+        $colors = !empty($savedColors) ? $savedColors : ($themeJson['colors'] ?? []);
+        $fontsUrl = $savedFontsUrl ?: ($themeJson['fonts']['url'] ?? null);
+
+        foreach ($colors as $key => $value) {
+            Setting::updateOrCreate(
+                ['group' => 'colors', 'key' => $key],
+                ['value' => $value]
+            );
+        }
+
+        if ($fontsUrl) {
+            Setting::updateOrCreate(
+                ['group' => 'fonts', 'key' => 'google_fonts_url'],
+                ['value' => $fontsUrl]
+            );
+        }
+
+        $themeService->set('identity', 'active_theme', $newTheme);
         $themeService->clearCache();
 
-        return back()->with('success', 'Theme switched successfully.');
+        return back()->with('success', 'Theme switched to ' . ($themeJson['name'] ?? $newTheme) . '.');
+    }
+
+    public function revertThemeColors()
+    {
+        $themeService = app(ThemeService::class);
+        $activeTheme = $themeService->getActiveTheme();
+        $themePath = resource_path("themes/{$activeTheme}/theme.json");
+
+        if (!file_exists($themePath)) {
+            return back()->with('error', 'Theme config not found.');
+        }
+
+        $themeJson = json_decode(file_get_contents($themePath), true);
+
+        if (!empty($themeJson['colors'])) {
+            foreach ($themeJson['colors'] as $key => $value) {
+                Setting::updateOrCreate(
+                    ['group' => 'colors', 'key' => $key],
+                    ['value' => $value]
+                );
+            }
+            // Also update the saved copy
+            foreach ($themeJson['colors'] as $key => $value) {
+                Setting::updateOrCreate(
+                    ['group' => "colors__{$activeTheme}", 'key' => $key],
+                    ['value' => $value]
+                );
+            }
+        }
+
+        if (!empty($themeJson['fonts']['url'])) {
+            Setting::updateOrCreate(
+                ['group' => 'fonts', 'key' => 'google_fonts_url'],
+                ['value' => $themeJson['fonts']['url']]
+            );
+            Setting::updateOrCreate(
+                ['group' => "fonts__{$activeTheme}", 'key' => 'google_fonts_url'],
+                ['value' => $themeJson['fonts']['url']]
+            );
+        }
+
+        $themeService->clearCache();
+
+        return back()->with('success', 'Colors reverted to theme defaults.');
     }
 
     public function updateThemeSettings(Request $request)

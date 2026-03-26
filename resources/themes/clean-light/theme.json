@@ -4,6 +4,19 @@
     "author": "NewGearDay",
     "description": "Clean, minimal light theme with modern sans-serif typography",
     "thumbnail": "preview.png",
+    "colors": {
+        "primary": "#2563EB",
+        "secondary": "#DC2626",
+        "nav_bg": "#FFFFFF",
+        "nav_text": "#374151",
+        "footer_bg": "#F9FAFB",
+        "footer_text": "#6B7280",
+        "announcement_bg": "#2563EB",
+        "announcement_text": "#FFFFFF"
+    },
+    "fonts": {
+        "url": "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    },
     "settings": {
         "card_shadow": {
             "type": "select",

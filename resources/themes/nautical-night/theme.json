@@ -1,0 +1,43 @@
+{
+    "name": "Nautical Night",
+    "version": "1.0",
+    "author": "Venta",
+    "description": "Dark navy theme with golden amber accents and vintage maritime feel",
+    "thumbnail": "preview.png",
+    "colors": {
+        "primary": "#FAB95B",
+        "secondary": "#547792",
+        "nav_bg": "#0F1F3D",
+        "nav_text": "#E8E2DB",
+        "footer_bg": "#0C1A33",
+        "footer_text": "#8A9BB5",
+        "announcement_bg": "#FAB95B",
+        "announcement_text": "#1A3263"
+    },
+    "fonts": {
+        "url": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@300;400;600;700&display=swap"
+    },
+    "settings": {
+        "glow_intensity": {
+            "type": "select",
+            "label": "Glow Intensity",
+            "options": ["low", "medium", "high"],
+            "default": "medium"
+        },
+        "noise_texture": {
+            "type": "toggle",
+            "label": "Noise Texture Overlay",
+            "default": true
+        },
+        "led_indicators": {
+            "type": "toggle",
+            "label": "LED Indicator Dots",
+            "default": true
+        },
+        "scroll_reveal": {
+            "type": "toggle",
+            "label": "Scroll Reveal Animations",
+            "default": true
+        }
+    }
+}

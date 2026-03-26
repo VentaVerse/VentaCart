@@ -54,17 +54,23 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">{{ $label }}</label>
                                 <div class="flex items-center gap-2">
-                                    <input type="color" name="settings[{{ $key }}]" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="h-10 w-14 rounded border border-gray-300 cursor-pointer">
-                                    <input type="text" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="w-24 text-xs border-gray-300 rounded" readonly
-                                        x-on:input.debounce="$el.previousElementSibling.value = $el.value"
-                                        x-init="$el.previousElementSibling.addEventListener('input', e => $el.value = e.target.value)">
+                                    <input type="color" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="h-10 w-14 rounded border border-gray-300 cursor-pointer"
+                                        oninput="this.nextElementSibling.value = this.value">
+                                    <input type="text" name="settings[{{ $key }}]" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="w-24 text-xs font-mono border-gray-300 rounded"
+                                        oninput="this.previousElementSibling.value = this.value"
+                                        placeholder="#000000">
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                    <div class="mt-6 flex justify-end">
+                    <div class="mt-6 flex items-center justify-between">
+                        <button type="button" onclick="if(confirm('Revert all colors and fonts to theme defaults?')) document.getElementById('revert-colors-form').submit()"
+                            class="text-xs text-gray-500 hover:text-red-600 font-medium">Revert to Default</button>
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Colors</button>
                     </div>
+                </form>
+                <form id="revert-colors-form" method="POST" action="{{ route('admin.theme.revert-colors') }}" class="hidden">
+                    @csrf
                 </form>
             </div>
 

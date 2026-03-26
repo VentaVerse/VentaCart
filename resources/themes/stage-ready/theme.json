@@ -4,6 +4,19 @@
     "author": "NewGearDay",
     "description": "Dark pedalboard theme with amber glow effects, noise texture, and LED indicators",
     "thumbnail": "preview.png",
+    "colors": {
+        "primary": "#F5A623",
+        "secondary": "#E2293D",
+        "nav_bg": "#111111",
+        "nav_text": "#E8E8E8",
+        "footer_bg": "#080808",
+        "footer_text": "#B0B0B0",
+        "announcement_bg": "#F5A623",
+        "announcement_text": "#0D0D0D"
+    },
+    "fonts": {
+        "url": "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap"
+    },
     "settings": {
         "glow_intensity": {
             "type": "select",

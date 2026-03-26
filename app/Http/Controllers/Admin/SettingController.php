@@ -96,6 +96,21 @@ class SettingController extends Controller
             );
         }
 
+        // Also save per-theme copy when saving colors or fonts
+        if (in_array($group, ['colors', 'fonts'])) {
+            $activeTheme = app(ThemeService::class)->getActiveTheme();
+            if ($activeTheme) {
+                foreach ($data as $key => $value) {
+                    if (in_array($key, self::ENCRYPTED_KEYS) && empty($value)) continue;
+                    $val = is_array($value) ? json_encode($value) : $value;
+                    Setting::updateOrCreate(
+                        ['group' => "{$group}__{$activeTheme}", 'key' => $key],
+                        ['value' => $val]
+                    );
+                }
+            }
+        }
+
         app(ThemeService::class)->clearCache();
 
         // Redirect to new admin URL after prefix change
@@ -104,14 +119,13 @@ class SettingController extends Controller
             return redirect('/' . $newPrefix . '/settings?tab=security')->with('success', 'Admin URL changed to /' . $newPrefix);
         }
 
-        // Custom redirect (e.g., DPH page has its own settings forms)
+        // Custom redirect (e.g., shipping settings forms redirect back to their own page)
         if ($redirect = $request->input('_redirect')) {
             $parsed = parse_url($redirect);
-            if (!empty($parsed['host']) || !str_starts_with($parsed['path'] ?? '', '/')) {
-                $redirect = null;
-            }
-            if ($redirect) {
-                return redirect($redirect)->with('success', ucfirst($group) . ' settings updated.');
+            $path = $parsed['path'] ?? '/';
+            if (str_starts_with($path, '/admin/')) {
+                $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+                return redirect($path . $query)->with('success', ucfirst($group) . ' settings updated.');
             }
         }
 

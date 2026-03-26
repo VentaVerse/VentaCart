@@ -214,6 +214,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::post('/theme/upload-favicon', [ThemeController::class, 'uploadFavicon'])->name('theme.upload-favicon');
     Route::delete('/theme/remove-favicon', [ThemeController::class, 'removeFavicon'])->name('theme.remove-favicon');
     Route::post('/theme/switch', [ThemeController::class, 'switchTheme'])->name('theme.switch');
+    Route::post('/theme/revert-colors', [ThemeController::class, 'revertThemeColors'])->name('theme.revert-colors');
     Route::post('/theme/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('theme.update-theme-settings');
 
     // Homepage Sections

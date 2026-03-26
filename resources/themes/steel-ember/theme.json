@@ -1,0 +1,33 @@
+{
+    "name": "Steel Ember",
+    "version": "1.0",
+    "author": "Venta",
+    "description": "Cold dark theme with silver grey and ember red — sharp modern contrast",
+    "thumbnail": "preview.png",
+    "colors": {
+        "primary": "#F05454",
+        "secondary": "#30475E",
+        "nav_bg": "#1A1E27",
+        "nav_text": "#DDDDDD",
+        "footer_bg": "#161A22",
+        "footer_text": "#6B7D8F",
+        "announcement_bg": "#F05454",
+        "announcement_text": "#222831"
+    },
+    "fonts": {
+        "url": "https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap"
+    },
+    "settings": {
+        "glow_intensity": {
+            "type": "select",
+            "label": "Glow Intensity",
+            "options": ["low", "medium", "high"],
+            "default": "medium"
+        },
+        "scroll_reveal": {
+            "type": "toggle",
+            "label": "Scroll Reveal Animations",
+            "default": true
+        }
+    }
+}
