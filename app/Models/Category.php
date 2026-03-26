@@ -12,7 +12,7 @@ class Category extends Model
     protected $fillable = [
         'store_id', 'parent_id', 'name', 'slug', 'description', 'image',
         'sort_order', 'is_active', 'meta_title', 'meta_description',
-        'meta_keywords', 'legacy_oc_id',
+        'meta_keywords', 'og_title', 'og_description', 'legacy_oc_id',
     ];
 
     protected function casts(): array

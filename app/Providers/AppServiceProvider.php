@@ -23,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Database\Eloquent\Relations\Relation::enforceMorphMap([
+            'product' => \App\Models\Product::class,
+            'category' => \App\Models\Category::class,
+            'brand' => \App\Models\Brand::class,
+            'blog_post' => \App\Models\BlogPost::class,
+        ]);
+
         $this->configureAppNameFromDatabase();
         $this->configureMailFromDatabase();
         $this->configureTimezoneFromDatabase();

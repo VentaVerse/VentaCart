@@ -19,7 +19,8 @@ class Product extends Model
         'length', 'width', 'height',
         'has_variants', 'image', 'is_active', 'date_available', 'sort_order',
         'minimum_quantity', 'track_stock', 'meta_title',
-        'meta_description', 'meta_keywords', 'legacy_oc_id', 'views',
+        'meta_description', 'meta_keywords', 'og_title', 'og_description',
+        'legacy_oc_id', 'views',
     ];
 
     protected static function booted(): void

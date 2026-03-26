@@ -11,7 +11,7 @@ class BlogPost extends Model
     protected $fillable = [
         'title', 'slug', 'content', 'excerpt', 'featured_image',
         'blog_category_id', 'view_count', 'is_published', 'published_at',
-        'meta_title', 'meta_description',
+        'meta_title', 'meta_description', 'og_title', 'og_description',
     ];
 
     protected function casts(): array

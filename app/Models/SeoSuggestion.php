@@ -9,15 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SeoSuggestion extends Model
 {
     protected $fillable = [
+        'entity_type', 'entity_id',
         'product_id',
-        'current_meta_title',
-        'suggested_meta_title',
-        'current_meta_description',
-        'suggested_meta_description',
-        'current_meta_keywords',
-        'suggested_meta_keywords',
-        'status',
-        'generated_at',
+        'current_meta_title', 'suggested_meta_title',
+        'current_meta_description', 'suggested_meta_description',
+        'current_meta_keywords', 'suggested_meta_keywords',
+        'current_og_title', 'suggested_og_title',
+        'current_og_description', 'suggested_og_description',
+        'status', 'generated_at',
     ];
 
     protected function casts(): array
@@ -25,6 +24,11 @@ class SeoSuggestion extends Model
         return [
             'generated_at' => 'datetime',
         ];
+    }
+
+    public function entity(): \Illuminate\Database\Eloquent\Relations\MorphTo
+    {
+        return $this->morphTo('entity', 'entity_type', 'entity_id');
     }
 
     public function product(): BelongsTo
