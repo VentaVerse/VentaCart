@@ -201,12 +201,22 @@
 
     {{-- ==================== GSC Upload (separate form) ==================== --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Upload GSC Credentials</h3>
+        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">GSC Credentials</h3>
+        @if ($gscCredentialsExist)
+            <div class="flex items-center gap-3 mb-4">
+                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="text-sm text-gray-700">gsc-credentials.json</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Uploaded</span>
+            </div>
+            <p class="text-xs text-gray-400 mb-3">To replace, upload a new file below.</p>
+        @else
+            <p class="text-sm text-gray-500 mb-3">No credentials uploaded yet. Upload your Google service account JSON file.</p>
+        @endif
         <form method="POST" action="{{ route('admin.extensions.seo.upload-gsc') }}" enctype="multipart/form-data" class="flex items-center gap-3 max-w-lg">
             @csrf
             <input type="file" name="gsc_credentials" accept=".json"
                 class="block text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">Upload</button>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">{{ $gscCredentialsExist ? 'Replace' : 'Upload' }}</button>
         </form>
     </div>
 
