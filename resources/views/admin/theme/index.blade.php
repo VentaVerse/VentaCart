@@ -40,8 +40,15 @@
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl">
                         @php
                             $colorFields = [
-                                'primary' => 'Primary',
-                                'secondary' => 'Secondary',
+                                'primary' => 'Primary / Buttons',
+                                'secondary' => 'Secondary / Sale',
+                                'bg' => 'Background',
+                                'text' => 'Body Text',
+                                'text_heading' => 'Heading Text',
+                                'text_muted' => 'Muted Text',
+                                'card_bg' => 'Card Background',
+                                'border' => 'Borders',
+                                'btn_text' => 'Button Text',
                                 'nav_bg' => 'Nav Background',
                                 'nav_text' => 'Nav Text',
                                 'footer_bg' => 'Footer Background',
@@ -81,7 +88,7 @@
                     <input type="hidden" name="group" value="fonts">
                     <div class="space-y-4 max-w-md">
                         @php
-                            $fontOptions = ['Oswald','Montserrat','Roboto','Roboto Slab','Open Sans','Lato','Poppins','Raleway','Playfair Display','Merriweather','Nunito','Inter','PT Sans','Source Sans 3','Ubuntu'];
+                            $fontOptions = ['Bebas Neue','Bitter','Cormorant Garamond','DM Sans','DM Serif Display','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Lato','Libre Baskerville','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Source Sans 3','Space Grotesk','Space Mono','Ubuntu','Work Sans'];
                         @endphp
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Heading Font</label>

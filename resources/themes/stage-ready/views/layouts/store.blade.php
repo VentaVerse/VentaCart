@@ -51,11 +51,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="{{ $googleFontsUrl }}">
 
-    {{-- CSS Variables from Theme Settings --}}
+    @php $activeTheme = app(\App\Services\ThemeService::class)->getActiveTheme(); @endphp
+    @vite([
+        'resources/themes/' . $activeTheme . '/css/theme.css',
+        'resources/themes/' . $activeTheme . '/js/theme.js'
+    ])
+
+    {{-- CSS Variables from Theme Settings (AFTER @vite so DB values override compiled defaults) --}}
     <style>
         :root {
             --color-primary: {{ $theme->get('colors.primary', '#F5A623') }};
             --color-secondary: {{ $theme->get('colors.secondary', '#E2293D') }};
+            --color-bg: {{ $theme->get('colors.bg', '#0D0D0D') }};
+            --color-text: {{ $theme->get('colors.text', '#C8C8C8') }};
+            --color-text-heading: {{ $theme->get('colors.text_heading', '#E8E8E8') }};
+            --color-text-muted: {{ $theme->get('colors.text_muted', '#999') }};
+            --color-card-bg: {{ $theme->get('colors.card_bg', '#1A1A1A') }};
+            --color-border: {{ $theme->get('colors.border', '#2A2A2A') }};
+            --color-btn-text: {{ $theme->get('colors.btn_text', '#0D0D0D') }};
             --color-nav-bg: {{ $theme->get('colors.nav_bg', '#111111') }};
             --color-nav-text: {{ $theme->get('colors.nav_text', '#E8E8E8') }};
             --color-footer-bg: {{ $theme->get('colors.footer_bg', '#080808') }};
@@ -68,12 +81,6 @@
             --glow-secondary: {{ $theme->get('colors.secondary', '#E2293D') }}4D;
         }
     </style>
-
-    @php $activeTheme = app(\App\Services\ThemeService::class)->getActiveTheme(); @endphp
-    @vite([
-        'resources/themes/' . $activeTheme . '/css/theme.css',
-        'resources/themes/' . $activeTheme . '/js/theme.js'
-    ])
     <script>
         window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'iso2'));
         window.__addressProviders = @json($addressProviders ?? []);

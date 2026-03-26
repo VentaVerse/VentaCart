@@ -7,6 +7,13 @@
     "colors": {
         "primary": "#2563EB",
         "secondary": "#DC2626",
+        "bg": "#FFFFFF",
+        "text": "#374151",
+        "text_heading": "#111827",
+        "text_muted": "#9CA3AF",
+        "card_bg": "#F9FAFB",
+        "border": "#E5E7EB",
+        "btn_text": "#FFFFFF",
         "nav_bg": "#FFFFFF",
         "nav_text": "#374151",
         "footer_bg": "#F9FAFB",
