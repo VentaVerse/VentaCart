@@ -172,20 +172,21 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse ($entities as $entity)
                         @php
-                            $entityName = $entityType === 'blog_post' ? $entity->title : $entity->name;
+                            $entityName = $entityType === 'blog_post' || $entityType === 'page' ? $entity->title : $entity->name;
                             $entityImage = $entityType === 'blog_post' ? $entity->featured_image : $entity->image;
+                            $hasPending = $pendingSuggestions->has($entity->id);
                             $hasMeta = !empty($entity->meta_title) && !empty($entity->meta_description);
                             $hasPartial = !empty($entity->meta_title) || !empty($entity->meta_description);
-                            if ($hasMeta) {
-                                $seoStatus = 'complete';
+                            if ($hasPending) {
+                                $badgeClass = 'bg-amber-100 text-amber-800';
+                                $badgeLabel = 'Pending Review';
+                            } elseif ($hasMeta) {
                                 $badgeClass = 'bg-green-100 text-green-800';
                                 $badgeLabel = 'Complete';
                             } elseif ($hasPartial) {
-                                $seoStatus = 'partial';
                                 $badgeClass = 'bg-yellow-100 text-yellow-800';
                                 $badgeLabel = 'Partial';
                             } else {
-                                $seoStatus = 'missing';
                                 $badgeClass = 'bg-red-100 text-red-800';
                                 $badgeLabel = 'Missing';
                             }
