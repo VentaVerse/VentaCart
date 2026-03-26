@@ -112,8 +112,16 @@ class SeoExtensionController extends Controller
         $editRoute = $config['editRoute'];
         $entityType = $config['entityType'];
 
+        $homepageMeta = [];
+        if ($type === 'pages') {
+            $homepageMeta = Setting::where('group', 'general')
+                ->whereIn('key', ['default_meta_title', 'default_meta_description'])
+                ->pluck('value', 'key')
+                ->toArray();
+        }
+
         return view('admin.extensions.seo.entities', compact(
-            'entities', 'type', 'pendingSuggestions', 'editRoute', 'entityType', 'search', 'status'
+            'entities', 'type', 'pendingSuggestions', 'editRoute', 'entityType', 'search', 'status', 'homepageMeta'
         ));
     }
 
@@ -159,9 +167,14 @@ class SeoExtensionController extends Controller
     public function optimize(Request $request)
     {
         $request->validate([
-            'entity_type' => 'required|in:product,category,brand,blog_post,page',
+            'entity_type' => 'required|in:product,category,brand,blog_post,page,homepage',
             'entity_id' => 'required|integer',
         ]);
+
+        // Homepage is a special case — uses settings table
+        if ($request->entity_type === 'homepage') {
+            return $this->optimizeHomepage();
+        }
 
         $service = new SeoGeneratorService();
         $suggestion = $service->optimizeSingle($request->entity_type, $request->entity_id);
@@ -186,6 +199,86 @@ class SeoExtensionController extends Controller
                 'current_slug' => $suggestion->current_slug,
             ],
         ]);
+    }
+
+    /**
+     * Optimize homepage meta via Claude (special case — no entity model).
+     */
+    private function optimizeHomepage()
+    {
+        $service = new SeoGeneratorService();
+        if (!$service->isConfigured()) {
+            return response()->json(['error' => 'Claude API key not configured.'], 422);
+        }
+
+        $currentTitle = Setting::where('group', 'general')->where('key', 'default_meta_title')->value('value') ?? '';
+        $currentDesc = Setting::where('group', 'general')->where('key', 'default_meta_description')->value('value') ?? '';
+        $siteName = Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? 'Store';
+
+        // Build strategy context
+        $seoSettings = Setting::where('group', 'seo')->pluck('value', 'key');
+        $storeContext = $seoSettings['store_context'] ?? '';
+        $targetMarket = $seoSettings['target_market'] ?? '';
+        $brandVoice = $seoSettings['brand_voice'] ?? '';
+        $priorityKeywords = $seoSettings['priority_keywords'] ?? '';
+
+        $prompt = "You are an SEO specialist. Generate an optimized homepage meta title and meta description for this store.\n\n";
+        $prompt .= "Store name: {$siteName}\n";
+        if ($storeContext) $prompt .= "Store description: {$storeContext}\n";
+        if ($targetMarket) $prompt .= "Target market: {$targetMarket}\n";
+        if ($brandVoice) $prompt .= "Brand voice: {$brandVoice}\n";
+        if ($priorityKeywords) $prompt .= "Priority keywords: {$priorityKeywords}\n";
+        if ($currentTitle) $prompt .= "Current meta title: {$currentTitle}\n";
+        if ($currentDesc) $prompt .= "Current meta description: {$currentDesc}\n";
+        $prompt .= "\nProvide:\n- meta_title: max 60 chars, compelling, include store name\n- meta_description: max 155 chars, include call-to-action\n";
+        $prompt .= "\nRespond ONLY with valid JSON: {\"meta_title\": \"...\", \"meta_description\": \"...\"}";
+
+        try {
+            $apiKey = Crypt::decryptString($seoSettings['claude_api_key'] ?? '');
+            $model = $seoSettings['claude_model'] ?? 'claude-sonnet-4-6';
+
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'x-api-key' => $apiKey,
+                'anthropic-version' => '2023-06-01',
+                'content-type' => 'application/json',
+            ])->timeout(30)->post('https://api.anthropic.com/v1/messages', [
+                'model' => $model,
+                'max_tokens' => 256,
+                'messages' => [['role' => 'user', 'content' => $prompt]],
+            ]);
+
+            if (!$response->successful()) {
+                return response()->json(['error' => 'Claude API error: ' . $response->status()], 422);
+            }
+
+            $content = $response->json('content.0.text', '');
+            if (preg_match('/\{[\s\S]*\}/', $content, $matches)) {
+                $seo = json_decode($matches[0], true);
+                if ($seo) {
+                    return response()->json([
+                        'ok' => true,
+                        'suggestion' => [
+                            'id' => null,
+                            'current_meta_title' => $currentTitle,
+                            'suggested_meta_title' => $seo['meta_title'] ?? null,
+                            'current_meta_description' => $currentDesc,
+                            'suggested_meta_description' => $seo['meta_description'] ?? null,
+                            'current_og_title' => null,
+                            'suggested_og_title' => null,
+                            'current_og_description' => null,
+                            'suggested_og_description' => null,
+                            'suggested_slug' => null,
+                            'current_slug' => null,
+                            'is_homepage' => true,
+                        ],
+                    ]);
+                }
+            }
+
+            return response()->json(['error' => 'Could not parse Claude response.'], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Failed: ' . $e->getMessage()], 422);
+        }
     }
 
     /**
@@ -470,6 +563,20 @@ class SeoExtensionController extends Controller
      */
     public function saveSettings(Request $request)
     {
+        // Homepage meta apply (from AI optimize)
+        if ($request->input('_homepage_apply')) {
+            if ($request->filled('default_meta_title')) {
+                Setting::updateOrCreate(['group' => 'general', 'key' => 'default_meta_title'], ['value' => $request->input('default_meta_title')]);
+            }
+            if ($request->filled('default_meta_description')) {
+                Setting::updateOrCreate(['group' => 'general', 'key' => 'default_meta_description'], ['value' => $request->input('default_meta_description')]);
+            }
+            if ($request->expectsJson()) {
+                return response()->json(['ok' => true]);
+            }
+            return back()->with('success', 'Homepage SEO updated.');
+        }
+
         $settings = [
             'claude_model' => $request->input('claude_model', 'claude-sonnet-4-6'),
             'gsc_site_url' => $request->input('gsc_site_url', ''),

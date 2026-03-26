@@ -123,6 +123,7 @@
                                 <p class="mt-1 text-xs text-gray-400">The content value from your Google Search Console verification meta tag.</p>
                             </div>
                         </div>
+
                     </div>
 
                     {{-- Save --}}

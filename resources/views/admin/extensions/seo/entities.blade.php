@@ -3,6 +3,72 @@
 
     @include('admin.extensions.seo.partials.tabs')
 
+    @if ($type === 'pages')
+    {{-- Homepage SEO --}}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 mb-6" x-data="{
+        loading: false,
+        suggestion: null,
+        error: null,
+        async optimize() {
+            this.loading = true; this.error = null; this.suggestion = null;
+            try {
+                const res = await fetch('{{ route("admin.extensions.seo.optimize") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: JSON.stringify({ entity_type: 'homepage', entity_id: 0 })
+                });
+                const data = await res.json();
+                if (data.ok) { this.suggestion = data.suggestion; } else { this.error = data.message || data.error || 'Failed.'; }
+            } catch (e) { this.error = 'Request failed.'; }
+            this.loading = false;
+        },
+        async apply() {
+            if (!this.suggestion) return;
+            const res = await fetch('{{ route("admin.extensions.seo.save-settings") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                body: JSON.stringify({
+                    default_meta_title: this.suggestion.suggested_meta_title,
+                    default_meta_description: this.suggestion.suggested_meta_description,
+                    _homepage_apply: true
+                })
+            });
+            this.suggestion = null;
+            window.location.reload();
+        }
+    }">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-gray-700">Homepage SEO</h3>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    Meta Title: <span class="text-gray-600">{{ $homepageMeta['default_meta_title'] ?? '(not set)' }}</span>
+                    &middot;
+                    Meta Description: <span class="text-gray-600">{{ Str::limit($homepageMeta['default_meta_description'] ?? '(not set)', 60) }}</span>
+                </p>
+            </div>
+            <button type="button" @click="optimize()" :disabled="loading"
+                class="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors">
+                <template x-if="!loading"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg></template>
+                <template x-if="loading"><svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg></template>
+                <span x-text="loading ? 'Optimizing...' : 'Optimize'"></span>
+            </button>
+        </div>
+        <div x-show="error" x-cloak class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" x-text="error"></div>
+        <div x-show="suggestion" x-cloak class="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <div class="grid grid-cols-2 gap-3">
+                <div><p class="text-xs font-medium text-gray-500 mb-1">Current Meta Title</p><p class="text-sm bg-white rounded p-2 border border-gray-200" x-text="suggestion?.current_meta_title || '(empty)'"></p></div>
+                <div><p class="text-xs font-medium text-purple-600 mb-1">Suggested Meta Title</p><p class="text-sm bg-white rounded p-2 border-l-2 border-purple-400" x-text="suggestion?.suggested_meta_title || '(no change)'"></p></div>
+                <div><p class="text-xs font-medium text-gray-500 mb-1">Current Meta Description</p><p class="text-sm bg-white rounded p-2 border border-gray-200" x-text="suggestion?.current_meta_description || '(empty)'"></p></div>
+                <div><p class="text-xs font-medium text-purple-600 mb-1">Suggested Meta Description</p><p class="text-sm bg-white rounded p-2 border-l-2 border-purple-400" x-text="suggestion?.suggested_meta_description || '(no change)'"></p></div>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button type="button" @click="apply()" class="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">Accept & Apply</button>
+                <button type="button" @click="suggestion = null" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300">Dismiss</button>
+            </div>
+        </div>
+    </div>
+    @endif
+
     {{-- Filters Bar --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <form method="GET" action="{{ route('admin.extensions.seo.entities', ['type' => $type]) }}" class="flex flex-wrap items-end gap-3">
