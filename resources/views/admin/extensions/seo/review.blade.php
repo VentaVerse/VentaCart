@@ -101,7 +101,6 @@
                                 'meta_description' => 'Meta Description',
                                 'og_title' => 'OG Title',
                                 'og_description' => 'OG Description',
-                                'slug' => 'Slug',
                             ] as $field => $label)
                                 @php
                                     $current = $suggestion->{"current_{$field}"};
