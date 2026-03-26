@@ -41,6 +41,7 @@
                     </div>
                     <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
                         @csrf
+                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
                         <input type="hidden" name="group" value="shipping">
                         <input type="hidden" name="_tab" value="flat-rate">
                         <input type="hidden" name="settings[flat_rate_enabled]" value="0">
@@ -107,6 +108,7 @@
                     <div class="flex items-center gap-3">
                         <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
                             @csrf
+                            <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
                             <input type="hidden" name="group" value="shipping">
                             <input type="hidden" name="_tab" value="weight-based">
                             <input type="hidden" name="settings[weight_based_enabled]" value="0">
