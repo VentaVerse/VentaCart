@@ -1,24 +1,24 @@
 <x-store-layout :title="$post->meta_title ?: $post->title" :meta-description="$post->meta_description">
 
     {{-- Breadcrumbs --}}
-    <div class="bg-gray-50 border-b border-gray-200">
+    <div class="page-breadcrumbs">
         <div class="container-store py-3">
-            <nav class="flex items-center gap-2 text-xs text-gray-500">
-                <a href="{{ route('home') }}" class="hover:text-gray-700">Home</a>
+            <nav>
+                <a href="{{ route('home') }}">Home</a>
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <a href="{{ route('blog.index') }}" class="hover:text-gray-700">Blog</a>
+                <a href="{{ route('blog.index') }}">Blog</a>
                 @if ($post->category)
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    <a href="{{ route('blog.index', ['category' => $post->category->slug]) }}" class="hover:text-gray-700">{{ $post->category->name }}</a>
+                    <a href="{{ route('blog.index', ['category' => $post->category->slug]) }}">{{ $post->category->name }}</a>
                 @endif
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <span class="text-gray-800 font-medium truncate">{{ $post->title }}</span>
+                <span class="truncate">{{ $post->title }}</span>
             </nav>
         </div>
     </div>
 
     <div class="container-store py-6">
-        <article class="max-w-3xl mx-auto">
+        <article>
             {{-- Header --}}
             <header class="mb-6">
                 <h1 class="text-3xl font-bold mb-3" class="font-heading">{{ $post->title }}</h1>
@@ -45,16 +45,16 @@
             @endif
 
             {{-- Content --}}
-            <div class="prose max-w-none text-gray-700">
+            <div class="blog-content">
                 {!! $post->content !!}
             </div>
 
             {{-- Tags --}}
             @if ($post->tags->isNotEmpty())
-                <div class="mt-8 pt-4 border-t border-gray-200">
+                <div class="mt-8 pt-4 border-t border-[#1A1A1A]">
                     <div class="flex flex-wrap gap-1.5">
                         @foreach ($post->tags as $tag)
-                            <a href="{{ route('blog.index', ['tag' => $tag->slug]) }}" class="text-xs border border-gray-300 rounded-full px-2.5 py-0.5 text-gray-500 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
+                            <a href="{{ route('blog.index', ['tag' => $tag->slug]) }}" class="text-xs border border-[#333] rounded-full px-2.5 py-0.5 text-[#888] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
                                 {{ $tag->name }}
                             </a>
                         @endforeach
@@ -65,7 +65,7 @@
 
         {{-- Related Posts --}}
         @if ($relatedPosts->isNotEmpty())
-            <div class="max-w-3xl mx-auto mt-10 pt-8 border-t border-gray-200">
+            <div class="mt-10 pt-8 border-t border-[#1A1A1A]">
                 <h2 class="section-title">Related Articles</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     @foreach ($relatedPosts as $related)

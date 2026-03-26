@@ -1172,23 +1172,64 @@
     }
 
     /* ============================================
-       Product Page (dark theme)
+       Breadcrumbs (shared across all pages)
        ============================================ */
-    .product-page-breadcrumbs {
+    .page-breadcrumbs {
         @apply bg-[#0A0A0A] border-b border-[#1A1A1A];
     }
 
-    .product-page-breadcrumbs nav {
+    .page-breadcrumbs nav {
         @apply flex items-center gap-2 text-xs text-[#555];
     }
 
-    .product-page-breadcrumbs a {
+    .page-breadcrumbs a {
         @apply hover:text-[var(--color-primary)] transition-colors;
     }
 
-    .product-page-breadcrumbs span:last-child {
+    .page-breadcrumbs span:last-child {
         @apply text-[#999] truncate;
     }
+
+    .product-page-breadcrumbs { @apply bg-[#0A0A0A] border-b border-[#1A1A1A]; }
+    .product-page-breadcrumbs nav { @apply flex items-center gap-2 text-xs text-[#555]; }
+    .product-page-breadcrumbs a { @apply hover:text-[var(--color-primary)] transition-colors; }
+    .product-page-breadcrumbs span:last-child { @apply text-[#999] truncate; }
+
+    /* ============================================
+       Blog
+       ============================================ */
+    .blog-content {
+        @apply text-[#B0B0B0] leading-relaxed;
+    }
+
+    .blog-content p,
+    .blog-content div,
+    .blog-content span,
+    .blog-content li {
+        color: #B0B0B0 !important;
+        font-size: inherit;
+    }
+
+    .blog-content h1,
+    .blog-content h2,
+    .blog-content h3,
+    .blog-content h4 {
+        @apply text-[#E0E0E0] font-semibold mb-3;
+    }
+
+    .blog-content a {
+        color: var(--color-primary) !important;
+    }
+
+    .blog-content img {
+        @apply rounded my-2 inline-block align-top;
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* ============================================
+       Product Page (dark theme)
+       ============================================ */
 
     .product-gallery-main {
         @apply border border-[#2A2A2A] rounded-lg overflow-hidden bg-white;

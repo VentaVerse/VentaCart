@@ -1,12 +1,12 @@
 <x-store-layout title="Blog">
 
     {{-- Breadcrumbs --}}
-    <div class="bg-gray-50 border-b border-gray-200">
+    <div class="page-breadcrumbs">
         <div class="container-store py-3">
-            <nav class="flex items-center gap-2 text-xs text-gray-500">
-                <a href="{{ route('home') }}" class="hover:text-gray-700">Home</a>
+            <nav>
+                <a href="{{ route('home') }}">Home</a>
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <span class="text-gray-800 font-medium">Blog</span>
+                <span>Blog</span>
             </nav>
         </div>
     </div>

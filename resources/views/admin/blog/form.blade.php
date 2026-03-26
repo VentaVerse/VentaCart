@@ -28,7 +28,7 @@
                     <div>
                         <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Content</label>
                         <textarea name="content" id="content" rows="16" required
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('content', $post?->content) }}</textarea>
+                            class="tinymce-editor w-full rounded-lg border-gray-300 text-sm">{{ old('content', $post?->content) }}</textarea>
                         @error('content') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
@@ -121,4 +121,38 @@
             </div>
         </div>
     </form>
+    @push('scripts')
+    <style>
+        .tox.tox-tinymce-aux .tox-textfield,
+        .tox.tox-tinymce-aux .tox-textarea,
+        .tox .tox-dialog .tox-textfield,
+        .tox .tox-dialog .tox-textarea {
+            border: 1px solid #999 !important;
+            border-radius: 4px !important;
+            padding: 6px 8px !important;
+        }
+    </style>
+    <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
+    <script>
+        tinymce.init({
+            selector: '.tinymce-editor',
+            height: 600,
+            menubar: 'file edit view insert format table',
+            plugins: 'lists link autolink code table media image fullscreen',
+            toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright | link image media table | removeformat code fullscreen',
+            content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; } img { max-width: 100%; height: auto; }',
+            branding: false,
+            promotion: false,
+            license_key: 'gpl',
+            relative_urls: false,
+            remove_script_host: true,
+            image_advtab: true,
+            image_dimensions: true,
+            extended_valid_elements: 'iframe[src|width|height|name|align|frameborder|scrolling|allowfullscreen|allow|style|class]',
+            sandbox_iframes: false,
+            convert_unsafe_embeds: false,
+            media_live_embeds: true,
+        });
+    </script>
+    @endpush
 </x-admin-layout>

@@ -1149,23 +1149,65 @@
     }
 
     /* ============================================
-       Product Page
+       Breadcrumbs (shared across all pages)
        ============================================ */
-    .product-page-breadcrumbs {
+    .page-breadcrumbs {
         @apply bg-gray-50 border-b border-gray-200;
     }
 
-    .product-page-breadcrumbs nav {
+    .page-breadcrumbs nav {
         @apply flex items-center gap-2 text-xs text-gray-400;
     }
 
-    .product-page-breadcrumbs a {
+    .page-breadcrumbs a {
         @apply hover:text-[var(--color-primary)] transition-colors;
     }
 
-    .product-page-breadcrumbs span:last-child {
+    .page-breadcrumbs span:last-child {
         @apply text-gray-600 truncate;
     }
+
+    /* backward compat alias */
+    .product-page-breadcrumbs { @apply bg-gray-50 border-b border-gray-200; }
+    .product-page-breadcrumbs nav { @apply flex items-center gap-2 text-xs text-gray-400; }
+    .product-page-breadcrumbs a { @apply hover:text-[var(--color-primary)] transition-colors; }
+    .product-page-breadcrumbs span:last-child { @apply text-gray-600 truncate; }
+
+    /* ============================================
+       Blog
+       ============================================ */
+    .blog-content {
+        @apply text-gray-500 leading-relaxed;
+    }
+
+    .blog-content p,
+    .blog-content div,
+    .blog-content span,
+    .blog-content li {
+        color: #6B7280 !important;
+        font-size: inherit;
+    }
+
+    .blog-content h1,
+    .blog-content h2,
+    .blog-content h3,
+    .blog-content h4 {
+        @apply text-gray-600 font-semibold mb-3;
+    }
+
+    .blog-content a {
+        color: var(--color-primary) !important;
+    }
+
+    .blog-content img {
+        @apply rounded my-2 inline-block align-top;
+        max-width: 100%;
+        height: auto;
+    }
+
+    /* ============================================
+       Product Page
+       ============================================ */
 
     .product-gallery-main {
         @apply border border-gray-200 rounded-lg overflow-hidden bg-gray-50;
