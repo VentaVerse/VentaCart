@@ -301,6 +301,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
         Route::get('/', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'dashboard'])->name('dashboard');
         Route::get('/search-console', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'searchConsole'])->name('search-console');
         Route::get('/strategy', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'strategy'])->name('strategy');
+        Route::get('/review', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'review'])->name('review');
         Route::post('/strategy', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'saveStrategy'])->name('save-strategy');
         Route::get('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'settings'])->name('settings');
         Route::post('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'saveSettings'])->name('save-settings');

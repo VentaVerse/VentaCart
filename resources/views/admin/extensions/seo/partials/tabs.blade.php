@@ -5,6 +5,7 @@
         ['route' => 'admin.extensions.seo.entities', 'routeParams' => ['type' => 'categories'], 'label' => 'Categories', 'active' => ($type ?? '') === 'categories'],
         ['route' => 'admin.extensions.seo.entities', 'routeParams' => ['type' => 'brands'], 'label' => 'Brands', 'active' => ($type ?? '') === 'brands'],
         ['route' => 'admin.extensions.seo.entities', 'routeParams' => ['type' => 'blog'], 'label' => 'Blog', 'active' => ($type ?? '') === 'blog'],
+        ['route' => 'admin.extensions.seo.review', 'label' => 'Review', 'pattern' => 'admin.extensions.seo.review'],
         ['route' => 'admin.extensions.seo.search-console', 'label' => 'Search Console', 'pattern' => 'admin.extensions.seo.search-console'],
         ['route' => 'admin.extensions.seo.strategy', 'label' => 'Strategy', 'pattern' => 'admin.extensions.seo.strategy'],
         ['route' => 'admin.extensions.seo.settings', 'label' => 'Settings', 'pattern' => 'admin.extensions.seo.settings'],

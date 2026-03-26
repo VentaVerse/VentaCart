@@ -34,7 +34,7 @@
                 </svg>
                 <span class="text-sm font-medium text-amber-800">{{ $pendingCount }} pending suggestion{{ $pendingCount !== 1 ? 's' : '' }} awaiting review</span>
             </div>
-            <a href="{{ route('admin.extensions.seo.entities', ['type' => 'products']) }}?seo_status=pending" class="text-sm font-medium text-amber-700 hover:text-amber-900 underline">Review</a>
+            <a href="{{ route('admin.extensions.seo.review') }}" class="text-sm font-medium text-amber-700 hover:text-amber-900 underline">Review</a>
         </div>
     @endif
 

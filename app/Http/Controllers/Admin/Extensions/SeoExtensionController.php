@@ -293,6 +293,34 @@ class SeoExtensionController extends Controller
     }
 
     /**
+     * Review tab — all pending suggestions grouped by entity type.
+     */
+    public function review(Request $request)
+    {
+        $filter = $request->get('type', 'all');
+
+        $query = SeoSuggestion::where('status', 'pending')
+            ->with('entity')
+            ->orderByDesc('generated_at');
+
+        if ($filter !== 'all') {
+            $query->where('entity_type', $filter);
+        }
+
+        $suggestions = $query->paginate(30)->appends($request->query());
+
+        $counts = SeoSuggestion::where('status', 'pending')
+            ->selectRaw('entity_type, COUNT(*) as count')
+            ->groupBy('entity_type')
+            ->pluck('count', 'entity_type')
+            ->toArray();
+
+        $totalPending = array_sum($counts);
+
+        return view('admin.extensions.seo.review', compact('suggestions', 'counts', 'totalPending', 'filter'));
+    }
+
+    /**
      * SEO Strategy view.
      */
     public function strategy()
