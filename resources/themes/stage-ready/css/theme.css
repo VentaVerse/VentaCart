@@ -469,18 +469,36 @@
     /* Mobile Nav Subcategories */
     .mobile-nav-subs {
         padding-left: 1.25rem;
+        border-top: 1px solid #1A1A1A;
     }
 
-    .mobile-nav-subs a {
+    .mobile-nav-subs > a,
+    .mobile-nav-subs .mobile-nav-parent > a {
         display: block;
+        font-family: var(--font-body);
         font-size: 0.8125rem;
-        color: #666;
-        padding: 0.375rem 1.25rem;
+        color: #888;
+        padding: 0.5rem 1.25rem;
+        border-bottom: 1px solid #111;
         transition: color 0.15s;
     }
 
-    .mobile-nav-subs a:hover {
+    .mobile-nav-subs > a:hover,
+    .mobile-nav-subs .mobile-nav-parent > a:hover {
         color: var(--color-primary);
+    }
+
+    .mobile-nav-subs .mobile-nav-parent {
+        @apply flex items-center;
+        border-bottom: 1px solid #111;
+    }
+
+    .mobile-nav-subs .mobile-nav-parent > a {
+        @apply flex-1 border-b-0;
+    }
+
+    .mobile-nav-subs .mobile-nav-toggle {
+        @apply px-4 py-2 text-[#555] hover:text-[var(--color-primary)] transition-colors;
     }
 
     /* ============================================
@@ -854,10 +872,23 @@
         @apply fixed top-0 left-0 bottom-0 w-80 z-50 overflow-y-auto transform transition-transform border-r border-[#2A2A2A];
     }
 
-    .mobile-nav a {
+    .mobile-nav > a,
+    .mobile-nav-parent > a {
         color: #B0B0B0;
         font-family: var(--font-heading);
         @apply block px-6 py-4 text-base tracking-[0.2em] border-b border-[#1A1A1A] hover:text-[var(--color-primary)] hover:bg-[#111] transition-all;
+    }
+
+    .mobile-nav-parent {
+        @apply flex items-center border-b border-[#1A1A1A];
+    }
+
+    .mobile-nav-parent > a {
+        @apply flex-1 border-b-0;
+    }
+
+    .mobile-nav-toggle {
+        @apply px-5 py-4 text-[#555] hover:text-[var(--color-primary)] transition-colors;
     }
 
     /* ============================================
