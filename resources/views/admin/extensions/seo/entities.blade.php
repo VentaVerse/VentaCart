@@ -62,6 +62,12 @@
                     this.suggestion = data.suggestion;
                     this.pendingSuggestions[entityId] = data.suggestion;
                     this.expanded = entityId;
+                    // Update badge to Pending Review
+                    const badge = document.getElementById('status-badge-' + entityId);
+                    if (badge) {
+                        badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800';
+                        badge.textContent = 'Pending Review';
+                    }
                 } else {
                     alert(data.error || 'Failed to generate suggestion.');
                 }
@@ -78,14 +84,22 @@
                 });
                 const data = await res.json();
                 if (data.ok) {
+                    const accepted = this.pendingSuggestions[entityId];
                     delete this.pendingSuggestions[entityId];
                     this.expanded = null;
                     this.suggestion = null;
-                    // Update the row status badge
+                    // Update badge to Complete
                     const badge = document.getElementById('status-badge-' + entityId);
                     if (badge) {
                         badge.className = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800';
                         badge.textContent = 'Complete';
+                    }
+                    // Update meta title cell
+                    const metaCell = document.getElementById('meta-title-' + entityId);
+                    if (metaCell && accepted?.suggested_meta_title) {
+                        metaCell.textContent = accepted.suggested_meta_title.length > 40
+                            ? accepted.suggested_meta_title.substring(0, 40) + '...'
+                            : accepted.suggested_meta_title;
                     }
                 }
             } catch (e) {
@@ -193,7 +207,7 @@
                             <td class="px-4 py-3">
                                 <span id="status-badge-{{ $entity->id }}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $badgeClass }}">{{ $badgeLabel }}</span>
                             </td>
-                            <td class="px-4 py-3 text-gray-600 text-xs">
+                            <td class="px-4 py-3 text-gray-600 text-xs" id="meta-title-{{ $entity->id }}">
                                 {{ $entity->meta_title ? Str::limit($entity->meta_title, 40) : '—' }}
                             </td>
                             <td class="px-4 py-3 text-right" @click.stop>
