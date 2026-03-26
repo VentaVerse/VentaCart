@@ -75,25 +75,21 @@ class SeoExtensionController extends Controller
                 'complete' => $query->whereNotNull('meta_title')
                     ->where('meta_title', '!=', '')
                     ->whereNotNull('meta_description')
-                    ->where('meta_description', '!=', '')
-                    ->whereNotNull('og_title')
-                    ->where('og_title', '!=', ''),
+                    ->where('meta_description', '!=', ''),
                 'partial' => $query->where(function ($q) {
                     $q->where(function ($q2) {
                         $q2->whereNotNull('meta_title')->where('meta_title', '!=', '');
-                    })->where(function ($q2) {
-                        $q2->whereNull('og_title')->orWhere('og_title', '');
+                    })->orWhere(function ($q2) {
+                        $q2->whereNotNull('meta_description')->where('meta_description', '!=', '');
                     });
-                })->orWhere(function ($q) use ($config) {
-                    $q->where($config['activeScope'][0], $config['activeScope'][1])
-                      ->where(function ($q2) {
-                          $q2->whereNull('meta_title')->orWhere('meta_title', '');
-                      })->where(function ($q2) {
-                          $q2->whereNotNull('meta_description')->where('meta_description', '!=', '');
-                      });
+                })->where(function ($q) {
+                    $q->whereNull('meta_title')->orWhere('meta_title', '')
+                      ->orWhereNull('meta_description')->orWhere('meta_description', '');
                 }),
                 'missing' => $query->where(function ($q) {
                     $q->whereNull('meta_title')->orWhere('meta_title', '');
+                })->where(function ($q) {
+                    $q->whereNull('meta_description')->orWhere('meta_description', '');
                 }),
                 'pending' => $query->whereHas('seoSuggestions', function ($q) use ($config) {
                     $q->where('entity_type', $config['entityType'])->where('status', 'pending');
