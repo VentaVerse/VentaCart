@@ -25,7 +25,7 @@
                 <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" class="ml-auto" onsubmit="return confirm('Accept all {{ $totalPending }} pending suggestions?')">
                     @csrf
                     @foreach ($suggestions as $s)
-                        <input type="hidden" name="suggestion_ids[]" value="{{ $s->id }}">
+                        <input type="hidden" name="ids[]" value="{{ $s->id }}">
                     @endforeach
                     <button type="submit" class="px-4 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
                         Accept All ({{ $totalPending }})
