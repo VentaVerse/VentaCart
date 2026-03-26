@@ -278,6 +278,7 @@
                 <div class="p-5">
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
+                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
                         <input type="hidden" name="group" value="shipping">
                         <input type="hidden" name="_tab" value="dhl">
                         <div class="space-y-4 max-w-lg">
@@ -340,6 +341,7 @@
                 <div x-show="dphTab === 'settings'" x-cloak class="p-5">
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
+                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
                         <input type="hidden" name="group" value="shipping">
                         <input type="hidden" name="_tab" value="dph">
                         <div class="space-y-4 max-w-lg">
@@ -420,6 +422,7 @@
                 <div x-show="dphTab === 'pickup'" x-cloak class="p-5">
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
+                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
                         <input type="hidden" name="group" value="shipping">
                         <input type="hidden" name="_tab" value="dph">
                         <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Store Pickup Address</h4>
