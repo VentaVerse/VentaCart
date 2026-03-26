@@ -31,6 +31,13 @@
                         <p class="mt-1 text-xs text-gray-400">From <a href="https://console.anthropic.com/" target="_blank" class="text-indigo-600 hover:underline">console.anthropic.com</a></p>
                     </div>
                     <div>
+                        <button type="button" onclick="document.getElementById('test-claude-form').submit()"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Test Connection
+                        </button>
+                    </div>
+                    <div>
                         <label for="claude_model" class="block text-xs text-gray-500">Model</label>
                         <select name="claude_model" id="claude_model" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
                             <option value="claude-opus-4-6" {{ ($seoSettings['claude_model'] ?? '') === 'claude-opus-4-6' ? 'selected' : '' }}>Opus 4.6 — most capable</option>
@@ -40,6 +47,7 @@
                         </select>
                     </div>
                 </div>
+
 
                 {{-- GSC --}}
                 <div class="space-y-4">
@@ -59,9 +67,23 @@
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Service Account Credentials (JSON)</label>
                         @if ($gscCredentialsExist)
-                            <p class="text-xs text-green-600 mb-1">Credentials uploaded</p>
+                            <div class="flex items-center gap-2 mb-1">
+                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span class="text-xs text-gray-600">gsc-credentials.json</span>
+                            </div>
                         @endif
-                        <p class="text-xs text-gray-400">Upload via the button below (separate form).</p>
+                        <button type="button" onclick="document.getElementById('upload-gsc-form').querySelector('input[type=file]').click()"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border transition-colors {{ $gscCredentialsExist ? 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100' : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700' }}">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+                            {{ $gscCredentialsExist ? 'Replace' : 'Upload' }}
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" onclick="document.getElementById('test-gsc-form').submit()"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-md hover:bg-green-700 transition-colors">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            Test Connection
+                        </button>
                     </div>
                 </div>
             </div>
@@ -199,47 +221,13 @@
         </div>
     </form>
 
-    {{-- ==================== GSC Upload (separate form) ==================== --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">GSC Credentials</h3>
-        @if ($gscCredentialsExist)
-            <div class="flex items-center gap-3 mb-4">
-                <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span class="text-sm text-gray-700">gsc-credentials.json</span>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Uploaded</span>
-            </div>
-            <p class="text-xs text-gray-400 mb-3">To replace, upload a new file below.</p>
-        @else
-            <p class="text-sm text-gray-500 mb-3">No credentials uploaded yet. Upload your Google service account JSON file.</p>
-        @endif
-        <form method="POST" action="{{ route('admin.extensions.seo.upload-gsc') }}" enctype="multipart/form-data" class="flex items-center gap-3 max-w-lg">
-            @csrf
-            <input type="file" name="gsc_credentials" accept=".json"
-                class="block text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
-            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">{{ $gscCredentialsExist ? 'Replace' : 'Upload' }}</button>
-        </form>
-    </div>
-
-    {{-- ==================== Test Connections ==================== --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Test Connections</h3>
-        <div class="flex gap-3">
-            <form method="POST" action="{{ route('admin.extensions.seo.test-claude') }}">
-                @csrf
-                <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Test Claude
-                </button>
-            </form>
-            <form method="POST" action="{{ route('admin.extensions.seo.test-gsc') }}">
-                @csrf
-                <button type="submit" class="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Test GSC
-                </button>
-            </form>
-        </div>
-    </div>
+    {{-- Hidden forms (outside main form) --}}
+    <form id="test-claude-form" method="POST" action="{{ route('admin.extensions.seo.test-claude') }}" class="hidden">@csrf</form>
+    <form id="test-gsc-form" method="POST" action="{{ route('admin.extensions.seo.test-gsc') }}" class="hidden">@csrf</form>
+    <form id="upload-gsc-form" method="POST" action="{{ route('admin.extensions.seo.upload-gsc') }}" enctype="multipart/form-data" class="hidden">
+        @csrf
+        <input type="file" name="gsc_credentials" accept=".json" onchange="this.form.submit()">
+    </form>
 
     {{-- ==================== Cron Job ==================== --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
