@@ -19,10 +19,12 @@
     @hasSection('og_title')
         <meta property="og:title" content="@yield('og_title')">
     @else
-        <meta property="og:title" content="{{ $pageTitle }}">
+        <meta property="og:title" content="{{ $ogTitle ?? $pageTitle }}">
     @endif
     @hasSection('og_description')
         <meta property="og:description" content="@yield('og_description')">
+    @elseif (!empty($ogDescription ?? $metaDescription ?? ''))
+        <meta property="og:description" content="{{ $ogDescription ?? $metaDescription }}">
     @endif
     @hasSection('og_image')
         <meta property="og:image" content="@yield('og_image')">

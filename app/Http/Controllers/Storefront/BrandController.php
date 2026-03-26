@@ -91,9 +91,13 @@ class BrandController extends Controller
             $q->where('is_active', true)->where('brand_id', $brand->id);
         })->orderBy('name')->get();
 
+        $ogTitle = $brand->og_title ?: null;
+        $ogDescription = $brand->og_description ?: null;
+
         return view('brand.show', compact(
             'brand', 'products', 'sort', 'settings',
-            'priceRange', 'availableBrands', 'availableTags'
+            'priceRange', 'availableBrands', 'availableTags',
+            'ogTitle', 'ogDescription'
         ));
     }
 }

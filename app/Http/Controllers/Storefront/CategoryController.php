@@ -107,9 +107,13 @@ class CategoryController extends Controller
         // Breadcrumb
         $breadcrumbs = $this->buildBreadcrumbs($category);
 
+        $ogTitle = $category->og_title ?: null;
+        $ogDescription = $category->og_description ?: null;
+
         return view('category.index', compact(
             'category', 'products', 'availableBrands', 'priceRange',
-            'availableTags', 'subcategories', 'breadcrumbs', 'sort', 'settings'
+            'availableTags', 'subcategories', 'breadcrumbs', 'sort', 'settings',
+            'ogTitle', 'ogDescription'
         ));
     }
 

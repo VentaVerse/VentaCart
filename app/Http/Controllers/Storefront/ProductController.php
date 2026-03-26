@@ -171,13 +171,16 @@ class ProductController extends Controller
         $hasFreeShipping = app(\App\Services\BadgeService::class)->getBadgesForProduct($product);
         $hasFreeShipping = collect($hasFreeShipping)->where('type', 'free_shipping')->isNotEmpty();
 
+        $ogTitle = $product->og_title ?: null;
+        $ogDescription = $product->og_description ?: null;
+
         return view('product.show', compact(
             'product', 'activeSpecial', 'overrideSpecial', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
             'variantMatrix', 'variantTypes', 'effectivePrice',
             'valueStockMap', 'approvedReviews', 'averageRating', 'reviewCount',
-            'hasFreeShipping'
+            'hasFreeShipping', 'ogTitle', 'ogDescription'
         ));
     }
 }

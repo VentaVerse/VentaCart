@@ -123,21 +123,34 @@ class SeoExtensionController extends Controller
     public function generate(Request $request)
     {
         $request->validate([
-            'entity_type' => 'required|in:product,category,brand,blog_post',
+            'entity_type' => 'required|in:product,category,brand,blog_post,all',
         ]);
 
         $service = new SeoGeneratorService();
-        $result = $service->generateForType($request->entity_type);
+        $types = $request->entity_type === 'all'
+            ? ['product', 'category', 'brand', 'blog_post']
+            : [$request->entity_type];
 
-        if (isset($result['error'])) {
-            return back()->with('error', $result['error']);
+        $totalSuggestions = 0;
+        $lastError = null;
+
+        foreach ($types as $type) {
+            $result = $service->generateForType($type);
+            if (isset($result['error'])) {
+                $lastError = $result['error'];
+            }
+            $totalSuggestions += $result['suggestions'] ?? 0;
         }
 
-        if (isset($result['message'])) {
-            return back()->with('success', $result['message']);
+        if ($lastError && $totalSuggestions === 0) {
+            return back()->with('error', $lastError);
         }
 
-        return back()->with('success', "Generated {$result['suggestions']} suggestion(s) with {$result['errors']} error(s).");
+        if ($totalSuggestions === 0) {
+            return back()->with('success', 'All entities have up-to-date SEO.');
+        }
+
+        return back()->with('success', "Generated {$totalSuggestions} suggestion(s).");
     }
 
     /**

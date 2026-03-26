@@ -72,6 +72,9 @@ class BlogController extends Controller
                 ->get();
         }
 
-        return view('blog.show', compact('post', 'relatedPosts', 'settings'));
+        $ogTitle = $post->og_title ?: null;
+        $ogDescription = $post->og_description ?: null;
+
+        return view('blog.show', compact('post', 'relatedPosts', 'settings', 'ogTitle', 'ogDescription'));
     }
 }
