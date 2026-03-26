@@ -185,6 +185,8 @@ class SeoExtensionController extends Controller
                 'current_meta_description' => $suggestion->current_meta_description,
                 'current_og_title' => $suggestion->current_og_title,
                 'current_og_description' => $suggestion->current_og_description,
+                'suggested_slug' => $suggestion->suggested_slug,
+                'current_slug' => $suggestion->current_slug,
             ],
         ]);
     }
@@ -203,12 +205,13 @@ class SeoExtensionController extends Controller
                 'og_title' => $suggestion->suggested_og_title ?? $entity->og_title,
                 'og_description' => $suggestion->suggested_og_description ?? $entity->og_description,
             ];
-            $entity->update($updateData);
 
-            // Backward compat: also update via product_id for products
-            if ($suggestion->product_id && $suggestion->entity_type === Product::class) {
-                Product::where('id', $suggestion->product_id)->update($updateData);
+            // Only apply slug if entity doesn't have one and suggestion provides one
+            if (empty($entity->slug) && !empty($suggestion->suggested_slug)) {
+                $updateData['slug'] = $suggestion->suggested_slug;
             }
+
+            $entity->update($updateData);
         }
 
         $suggestion->update(['status' => 'accepted']);

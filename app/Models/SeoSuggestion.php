@@ -16,6 +16,7 @@ class SeoSuggestion extends Model
         'current_meta_keywords', 'suggested_meta_keywords',
         'current_og_title', 'suggested_og_title',
         'current_og_description', 'suggested_og_description',
+        'current_slug', 'suggested_slug',
         'status', 'generated_at',
     ];
 

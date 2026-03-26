@@ -136,6 +136,8 @@ class SeoGeneratorService
                     'suggested_og_title' => $seo['og_title'] ?? null,
                     'current_og_description' => $entity->og_description ?? null,
                     'suggested_og_description' => $seo['og_description'] ?? null,
+                    'current_slug' => $entity->slug ?? null,
+                    'suggested_slug' => empty($entity->slug) ? ($seo['slug'] ?? null) : null,
                     'status' => $status,
                     'generated_at' => now(),
                 ];
@@ -212,6 +214,8 @@ class SeoGeneratorService
             'suggested_og_title' => $seo['og_title'] ?? null,
             'current_og_description' => $entity->og_description ?? null,
             'suggested_og_description' => $seo['og_description'] ?? null,
+            'current_slug' => $entity->slug ?? null,
+            'suggested_slug' => empty($entity->slug) ? ($seo['slug'] ?? null) : null,
             'status' => 'pending',
             'generated_at' => now(),
         ];
@@ -300,7 +304,8 @@ class SeoGeneratorService
         $prompt .= "- meta_title: max 60 chars, include name + key selling point + store context\n";
         $prompt .= "- meta_description: max 155 chars, compelling, include call-to-action\n";
         $prompt .= "- og_title: max 60 chars, optimized for social sharing (engaging, click-worthy)\n";
-        $prompt .= "- og_description: max 200 chars, engaging description for social media preview cards\n\n";
+        $prompt .= "- og_description: max 200 chars, engaging description for social media preview cards\n";
+        $prompt .= "- slug: ONLY if the item has \"needs_slug\": true. URL-friendly slug (lowercase, hyphens, no special chars, max 80 chars). Omit slug for items that don't need it.\n\n";
         $prompt .= ucfirst($typeLabel) . "s:\n" . json_encode($entityData, JSON_PRETTY_PRINT);
 
         // Append global GSC data for batch
@@ -323,7 +328,11 @@ class SeoGeneratorService
         $prompt .= "- meta_title: max 60 chars, include name + key selling point + store context\n";
         $prompt .= "- meta_description: max 155 chars, compelling, include call-to-action\n";
         $prompt .= "- og_title: max 60 chars, optimized for social sharing (engaging, click-worthy)\n";
-        $prompt .= "- og_description: max 200 chars, engaging description for social media preview cards\n\n";
+        $prompt .= "- og_description: max 200 chars, engaging description for social media preview cards\n";
+        if (empty($entity->slug)) {
+            $prompt .= "- slug: URL-friendly slug (lowercase, hyphens, no special chars, max 80 chars)\n";
+        }
+        $prompt .= "\n";
 
         $prompt .= $this->buildSingleEntityContext($entityType, $entity);
 
@@ -342,34 +351,50 @@ class SeoGeneratorService
     private function formatEntitiesForPrompt(string $entityType, Collection $chunk): array
     {
         return match ($entityType) {
-            'product' => $chunk->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'brand' => $p->brand?->name ?? '',
-                'category' => $p->categories->pluck('name')->join(', '),
-                'price' => $p->price,
-                'description_excerpt' => substr(strip_tags($p->description ?? ''), 0, 200),
-            ])->values()->toArray(),
+            'product' => $chunk->map(function ($p) {
+                $data = [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'brand' => $p->brand?->name ?? '',
+                    'category' => $p->categories->pluck('name')->join(', '),
+                    'price' => $p->price,
+                    'description_excerpt' => substr(strip_tags($p->description ?? ''), 0, 200),
+                ];
+                if (empty($p->slug)) $data['needs_slug'] = true;
+                return $data;
+            })->values()->toArray(),
 
-            'category' => $chunk->map(fn ($c) => [
-                'id' => $c->id,
-                'name' => $c->name,
-                'description_excerpt' => substr(strip_tags($c->description ?? ''), 0, 200),
-                'parent' => $c->parent?->name ?? '',
-            ])->values()->toArray(),
+            'category' => $chunk->map(function ($c) {
+                $data = [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'description_excerpt' => substr(strip_tags($c->description ?? ''), 0, 200),
+                    'parent' => $c->parent?->name ?? '',
+                ];
+                if (empty($c->slug)) $data['needs_slug'] = true;
+                return $data;
+            })->values()->toArray(),
 
-            'brand' => $chunk->map(fn ($b) => [
-                'id' => $b->id,
-                'name' => $b->name,
-                'description_excerpt' => substr(strip_tags($b->description ?? ''), 0, 200),
-            ])->values()->toArray(),
+            'brand' => $chunk->map(function ($b) {
+                $data = [
+                    'id' => $b->id,
+                    'name' => $b->name,
+                    'description_excerpt' => substr(strip_tags($b->description ?? ''), 0, 200),
+                ];
+                if (empty($b->slug)) $data['needs_slug'] = true;
+                return $data;
+            })->values()->toArray(),
 
-            'blog_post' => $chunk->map(fn ($bp) => [
-                'id' => $bp->id,
-                'title' => $bp->title,
-                'excerpt' => substr(strip_tags($bp->excerpt ?? ''), 0, 200),
-                'category' => $bp->category?->name ?? '',
-            ])->values()->toArray(),
+            'blog_post' => $chunk->map(function ($bp) {
+                $data = [
+                    'id' => $bp->id,
+                    'title' => $bp->title,
+                    'excerpt' => substr(strip_tags($bp->excerpt ?? ''), 0, 200),
+                    'category' => $bp->category?->name ?? '',
+                ];
+                if (empty($bp->slug)) $data['needs_slug'] = true;
+                return $data;
+            })->values()->toArray(),
 
             default => [],
         };
