@@ -51,13 +51,14 @@ class StockNotificationController extends Controller
         $template = StockNotificationTemplate::where('store_id', 1)->first();
 
         // Analytics: most requested products
+        $p = config('database.connections.mysql.prefix', '');
         $topProducts = DB::table('stock_notifications')
             ->join('products', 'stock_notifications.product_id', '=', 'products.id')
             ->select(
                 'products.id',
                 'products.name',
                 DB::raw('COUNT(*) as total_requests'),
-                DB::raw("SUM(CASE WHEN stock_notifications.status = 'waiting' THEN 1 ELSE 0 END) as waiting_count")
+                DB::raw("SUM(CASE WHEN {$p}stock_notifications.status = 'waiting' THEN 1 ELSE 0 END) as waiting_count")
             )
             ->groupBy('products.id', 'products.name')
             ->orderByDesc('total_requests')

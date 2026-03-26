@@ -101,11 +101,12 @@ class DashboardController extends Controller
         ];
 
         // === Top Selling Products (by order quantity) ===
+        $p = config('database.connections.mysql.prefix', '');
         $topProducts = DB::table('order_products')
             ->join('orders', 'order_products.order_id', '=', 'orders.id')
             ->where('orders.store_id', $storeId)
             ->whereNotIn('orders.order_status_id', $this->cancelledStatusIds($storeId))
-            ->select('order_products.name', DB::raw('SUM(order_products.quantity) as qty_sold'), DB::raw('SUM(order_products.price * order_products.quantity) as revenue'))
+            ->select('order_products.name', DB::raw("SUM({$p}order_products.quantity) as qty_sold"), DB::raw("SUM({$p}order_products.price * {$p}order_products.quantity) as revenue"))
             ->groupBy('order_products.name')
             ->orderByDesc('qty_sold')
             ->limit(8)

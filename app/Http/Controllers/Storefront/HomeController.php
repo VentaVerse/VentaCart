@@ -68,8 +68,9 @@ class HomeController extends Controller
                 });
                 break;
             case 'best_sellers':
-                $query->withCount(['orderProducts as total_revenue' => function ($q) {
-                    $q->select(\Illuminate\Support\Facades\DB::raw('COALESCE(SUM(order_products.price * order_products.quantity), 0)'));
+                $prefix = config('database.connections.mysql.prefix', '');
+                $query->withCount(['orderProducts as total_revenue' => function ($q) use ($prefix) {
+                    $q->select(\Illuminate\Support\Facades\DB::raw("COALESCE(SUM({$prefix}order_products.price * {$prefix}order_products.quantity), 0)"));
                 }])->orderByDesc('total_revenue');
                 break;
             default:
