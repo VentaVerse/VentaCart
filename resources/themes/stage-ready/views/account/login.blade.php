@@ -72,6 +72,7 @@
                                 <h2 class="text-lg font-semibold text-gray-900">Welcome to our new platform!</h2>
                                 <p class="text-sm text-gray-600 mt-2">We've upgraded our store to a brand new system. For your security, you'll need to set a new password.</p>
                                 <p class="text-sm text-gray-600 mt-1">We'll send a password reset link to <strong x-text="email"></strong>.</p>
+                                <p class="text-sm text-gray-600 mt-2 font-semibold">Please check your spam or junk folder if you don't see it in your inbox.</p>
                             </div>
                             <button @click="sendResetLink()" :disabled="resetLoading"
                                 class="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-colors"
