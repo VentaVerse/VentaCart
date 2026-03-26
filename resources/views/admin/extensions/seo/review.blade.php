@@ -21,14 +21,19 @@
                 @endforeach
             </div>
 
-            @if ($totalPending > 0)
-                <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" class="ml-auto" onsubmit="return confirm('Accept all {{ $totalPending }} pending suggestions?')">
+            @php
+                $filterLabels = ['all' => 'All', 'product' => 'Products', 'category' => 'Categories', 'brand' => 'Brands', 'blog_post' => 'Blog', 'page' => 'Pages'];
+                $buttonLabel = 'Accept All ' . ($filter === 'all' ? '' : ($filterLabels[$filter] ?? ''));
+                $buttonCount = $filter === 'all' ? $totalPending : ($counts[$filter] ?? 0);
+            @endphp
+            @if ($buttonCount > 0)
+                <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" class="ml-auto" onsubmit="return confirm('Accept {{ $buttonCount }} {{ trim($buttonLabel) }} suggestions?')">
                     @csrf
                     @foreach ($suggestions as $s)
                         <input type="hidden" name="ids[]" value="{{ $s->id }}">
                     @endforeach
                     <button type="submit" class="px-4 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                        Accept All ({{ $totalPending }})
+                        {{ trim($buttonLabel) }} ({{ $buttonCount }})
                     </button>
                 </form>
             @endif
