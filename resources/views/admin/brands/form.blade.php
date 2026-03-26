@@ -80,6 +80,85 @@
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 placeholder="guitar pedals, effects, accessories">
                         </div>
+
+                        {{-- AI SEO Optimizer --}}
+                        <div x-data="{
+                            loading: false,
+                            suggestion: null,
+                            error: null,
+                            async optimize() {
+                                this.loading = true;
+                                this.error = null;
+                                this.suggestion = null;
+                                try {
+                                    const res = await fetch('{{ route("admin.extensions.seo.optimize") }}', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                                        body: JSON.stringify({ entity_type: 'brand', entity_id: {{ $brand->id ?? 0 }} })
+                                    });
+                                    const data = await res.json();
+                                    if (data.ok) {
+                                        this.suggestion = data.suggestion;
+                                    } else {
+                                        this.error = data.message || 'Failed to generate suggestion.';
+                                    }
+                                } catch (e) {
+                                    this.error = 'Request failed. Check your Claude API key in Extensions > SEO > Settings.';
+                                }
+                                this.loading = false;
+                            },
+                            apply() {
+                                if (!this.suggestion) return;
+                                const s = this.suggestion;
+                                const mt = document.querySelector('[name=meta_title]');
+                                const md = document.querySelector('[name=meta_description]');
+                                if (mt && s.suggested_meta_title) mt.value = s.suggested_meta_title;
+                                if (md && s.suggested_meta_description) md.value = s.suggested_meta_description;
+                                this.suggestion = null;
+                            }
+                        }" class="mt-4 pt-4 border-t border-gray-100">
+                            @if ($brand ?? false)
+                                <button type="button" @click="optimize()" :disabled="loading"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors">
+                                    <template x-if="!loading">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+                                    </template>
+                                    <template x-if="loading">
+                                        <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                    </template>
+                                    <span x-text="loading ? 'Optimizing...' : 'Optimize with AI'"></span>
+                                </button>
+                            @else
+                                <p class="text-xs text-gray-400">Save the brand first to use AI optimization.</p>
+                            @endif
+
+                            <div x-show="error" x-cloak class="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" x-text="error"></div>
+
+                            <div x-show="suggestion" x-cloak class="mt-3 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                <h4 class="text-sm font-semibold text-purple-800 mb-3">AI Suggestion Preview</h4>
+                                <div class="space-y-3">
+                                    <template x-for="field in ['meta_title', 'meta_description', 'og_title', 'og_description']" :key="field">
+                                        <div>
+                                            <label class="text-xs font-medium text-gray-500 uppercase" x-text="field.replace(/_/g, ' ')"></label>
+                                            <div class="grid grid-cols-2 gap-2 mt-1">
+                                                <div class="bg-white rounded p-2 text-xs">
+                                                    <span class="text-gray-400 block mb-0.5">Current:</span>
+                                                    <span x-text="suggestion['current_' + field] || '(empty)'"></span>
+                                                </div>
+                                                <div class="bg-white rounded p-2 text-xs border-l-2 border-purple-400">
+                                                    <span class="text-purple-600 block mb-0.5">Suggested:</span>
+                                                    <span x-text="suggestion['suggested_' + field] || '(empty)'"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div class="flex gap-2 mt-4">
+                                    <button type="button" @click="apply()" class="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">Apply to Form</button>
+                                    <button type="button" @click="suggestion = null" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300">Dismiss</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
