@@ -11,7 +11,7 @@
                    class="px-3 py-1.5 text-sm rounded-lg border transition-colors {{ $filter === 'all' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50' }}">
                     All ({{ $totalPending }})
                 </a>
-                @foreach (['product' => 'Products', 'category' => 'Categories', 'brand' => 'Brands', 'blog_post' => 'Blog'] as $key => $label)
+                @foreach (['product' => 'Products', 'category' => 'Categories', 'brand' => 'Brands', 'blog_post' => 'Blog', 'page' => 'Pages'] as $key => $label)
                     @if (($counts[$key] ?? 0) > 0)
                         <a href="{{ route('admin.extensions.seo.review', ['type' => $key]) }}"
                            class="px-3 py-1.5 text-sm rounded-lg border transition-colors {{ $filter === $key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50' }}">
