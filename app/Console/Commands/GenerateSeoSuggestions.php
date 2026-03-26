@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Setting;
 use App\Services\SeoGeneratorService;
 use Illuminate\Console\Command;
 
@@ -19,7 +20,32 @@ class GenerateSeoSuggestions extends Command
             return 1;
         }
 
-        $types = ['product', 'category', 'brand', 'blog_post', 'page'];
+        // Respect scope rules from settings
+        $scopeMap = [
+            'product' => 'rule_scope_products',
+            'category' => 'rule_scope_categories',
+            'brand' => 'rule_scope_brands',
+            'blog_post' => 'rule_scope_blog_posts',
+            'page' => 'rule_scope_pages',
+        ];
+
+        $scopeSettings = Setting::where('group', 'seo')
+            ->whereIn('key', array_values($scopeMap))
+            ->pluck('value', 'key')
+            ->toArray();
+
+        $types = [];
+        foreach ($scopeMap as $type => $settingKey) {
+            if (($scopeSettings[$settingKey] ?? '1') === '1') {
+                $types[] = $type;
+            }
+        }
+
+        if (empty($types)) {
+            $this->warn('All entity types are disabled in SEO settings scope.');
+            return 0;
+        }
+
         $totalSuggestions = 0;
 
         foreach ($types as $type) {

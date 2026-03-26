@@ -447,17 +447,25 @@ class SeoExtensionController extends Controller
      */
     public function saveSettings(Request $request)
     {
-        $request->validate([
-            'claude_api_key' => 'nullable|string',
-            'claude_model' => 'nullable|string|max:100',
-            'gsc_site_url' => 'nullable|url|max:255',
-            'auto_accept' => 'nullable|boolean',
-        ]);
-
         $settings = [
             'claude_model' => $request->input('claude_model', 'claude-sonnet-4-6'),
             'gsc_site_url' => $request->input('gsc_site_url', ''),
             'auto_accept' => $request->boolean('auto_accept') ? '1' : '0',
+            // Optimization rules
+            'rule_skip_pending' => $request->boolean('rule_skip_pending') ? '1' : '0',
+            'rule_skip_recently_accepted' => $request->boolean('rule_skip_recently_accepted') ? '1' : '0',
+            'rule_skip_complete' => $request->boolean('rule_skip_complete') ? '1' : '0',
+            'rule_process_empty' => $request->boolean('rule_process_empty') ? '1' : '0',
+            'rule_process_rejected' => $request->boolean('rule_process_rejected') ? '1' : '0',
+            'rule_refresh_days' => max(0, (int) $request->input('rule_refresh_days', 90)),
+            // Scope
+            'rule_scope_products' => $request->boolean('rule_scope_products') ? '1' : '0',
+            'rule_scope_categories' => $request->boolean('rule_scope_categories') ? '1' : '0',
+            'rule_scope_brands' => $request->boolean('rule_scope_brands') ? '1' : '0',
+            'rule_scope_blog_posts' => $request->boolean('rule_scope_blog_posts') ? '1' : '0',
+            'rule_scope_pages' => $request->boolean('rule_scope_pages') ? '1' : '0',
+            // Batch
+            'rule_batch_limit' => max(0, (int) $request->input('rule_batch_limit', 0)),
         ];
 
         // Only update API key if a new one was provided
@@ -468,7 +476,7 @@ class SeoExtensionController extends Controller
         foreach ($settings as $key => $value) {
             Setting::updateOrCreate(
                 ['group' => 'seo', 'key' => $key],
-                ['value' => $value]
+                ['value' => (string) $value]
             );
         }
 

@@ -249,6 +249,19 @@ class SeoGeneratorService
      */
     private function getEntitiesNeedingSeo(string $entityType, string $modelClass): Collection
     {
+        $rules = Setting::where('group', 'seo')
+            ->where('key', 'like', 'rule_%')
+            ->pluck('value', 'key')
+            ->toArray();
+
+        $skipPending = ($rules['rule_skip_pending'] ?? '1') === '1';
+        $skipRecentlyAccepted = ($rules['rule_skip_recently_accepted'] ?? '1') === '1';
+        $skipComplete = ($rules['rule_skip_complete'] ?? '0') === '1';
+        $processEmpty = ($rules['rule_process_empty'] ?? '1') === '1';
+        $processRejected = ($rules['rule_process_rejected'] ?? '1') === '1';
+        $refreshDays = (int) ($rules['rule_refresh_days'] ?? 90);
+        $batchLimit = (int) ($rules['rule_batch_limit'] ?? 0);
+
         $query = $modelClass::query();
 
         // Active filter
@@ -258,14 +271,66 @@ class SeoGeneratorService
             $query->where('is_active', true);
         }
 
-        // Needs SEO: no meta_title, or no recent suggestion in 30 days
-        $query->where(function (Builder $q) {
-            $q->whereNull('meta_title')
-              ->orWhere('meta_title', '')
-              ->orWhereDoesntHave('seoSuggestions', function (Builder $sq) {
-                  $sq->where('generated_at', '>', now()->subDays(30));
-              });
+        // Build inclusion criteria
+        $query->where(function (Builder $q) use ($entityType, $processEmpty, $processRejected, $refreshDays) {
+            if ($processEmpty) {
+                $q->orWhere(function (Builder $q2) {
+                    $q2->where(function ($q3) {
+                        $q3->whereNull('meta_title')->orWhere('meta_title', '');
+                    });
+                });
+            }
+
+            if ($processRejected) {
+                $q->orWhereHas('seoSuggestions', function (Builder $sq) use ($entityType) {
+                    $sq->where('entity_type', $entityType)->where('status', 'rejected');
+                });
+            }
+
+            // No suggestion at all
+            $q->orWhereDoesntHave('seoSuggestions', function (Builder $sq) use ($entityType) {
+                $sq->where('entity_type', $entityType);
+            });
+
+            // Due for refresh
+            if ($refreshDays > 0) {
+                $q->orWhere(function (Builder $q2) use ($entityType, $refreshDays) {
+                    $q2->whereHas('seoSuggestions', function (Builder $sq) use ($entityType, $refreshDays) {
+                        $sq->where('entity_type', $entityType)
+                           ->where('status', 'accepted')
+                           ->where('generated_at', '<', now()->subDays($refreshDays));
+                    })->whereDoesntHave('seoSuggestions', function (Builder $sq) use ($entityType, $refreshDays) {
+                        $sq->where('entity_type', $entityType)
+                           ->where('status', 'accepted')
+                           ->where('generated_at', '>=', now()->subDays($refreshDays));
+                    });
+                });
+            }
         });
+
+        // Exclusions
+        if ($skipPending) {
+            $query->whereDoesntHave('seoSuggestions', function (Builder $sq) use ($entityType) {
+                $sq->where('entity_type', $entityType)->where('status', 'pending');
+            });
+        }
+
+        if ($skipRecentlyAccepted && $refreshDays > 0) {
+            $query->whereDoesntHave('seoSuggestions', function (Builder $sq) use ($entityType, $refreshDays) {
+                $sq->where('entity_type', $entityType)
+                   ->where('status', 'accepted')
+                   ->where('generated_at', '>', now()->subDays($refreshDays));
+            });
+        }
+
+        if ($skipComplete) {
+            $query->where(function (Builder $q) {
+                $q->whereNull('meta_title')
+                  ->orWhere('meta_title', '')
+                  ->orWhereNull('meta_description')
+                  ->orWhere('meta_description', '');
+            });
+        }
 
         // Eager-load relationships
         if ($entityType === 'product') {
@@ -274,7 +339,8 @@ class SeoGeneratorService
             $query->with(['category', 'tags']);
         }
 
-        return $query->limit($this->batchSize)->get();
+        $limit = $batchLimit > 0 ? $batchLimit : 1000;
+        return $query->limit($limit)->get();
     }
 
     /**
