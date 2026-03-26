@@ -239,15 +239,21 @@ class SeoExtensionController extends Controller
      */
     public function bulkAccept(Request $request)
     {
+        $entityType = $request->input('entity_type');
         $ids = $request->input('ids', []);
 
-        if (empty($ids)) {
+        // If entity_type is provided, accept ALL pending for that type (or all types)
+        if ($entityType) {
+            $query = SeoSuggestion::where('status', 'pending');
+            if ($entityType !== 'all') {
+                $query->where('entity_type', $entityType);
+            }
+            $suggestions = $query->get();
+        } elseif (!empty($ids)) {
+            $suggestions = SeoSuggestion::whereIn('id', $ids)->where('status', 'pending')->get();
+        } else {
             return back()->with('error', 'No suggestions selected.');
         }
-
-        $suggestions = SeoSuggestion::whereIn('id', $ids)
-            ->where('status', 'pending')
-            ->get();
 
         $accepted = 0;
         foreach ($suggestions as $suggestion) {

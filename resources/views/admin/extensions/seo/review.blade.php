@@ -27,11 +27,9 @@
                 $buttonCount = $filter === 'all' ? $totalPending : ($counts[$filter] ?? 0);
             @endphp
             @if ($buttonCount > 0)
-                <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" class="ml-auto" onsubmit="return confirm('Accept {{ $buttonCount }} {{ trim($buttonLabel) }} suggestions?')">
+                <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" class="ml-auto" onsubmit="return confirm('Accept all {{ $buttonCount }} {{ trim($buttonLabel) }} suggestions? This includes all pages, not just the current one.')">
                     @csrf
-                    @foreach ($suggestions as $s)
-                        <input type="hidden" name="ids[]" value="{{ $s->id }}">
-                    @endforeach
+                    <input type="hidden" name="entity_type" value="{{ $filter }}">
                     <button type="submit" class="px-4 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
                         {{ trim($buttonLabel) }} ({{ $buttonCount }})
                     </button>
