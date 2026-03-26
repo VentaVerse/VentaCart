@@ -107,7 +107,7 @@ class SeoExtensionController extends Controller
         // Load pending suggestions for displayed entities
         $entityIds = $entities->pluck('id')->toArray();
         $modelClass = $config['model'];
-        $pendingSuggestions = SeoSuggestion::where('entity_type', $modelClass)
+        $pendingSuggestions = SeoSuggestion::where('entity_type', $config['entityType'])
             ->whereIn('entity_id', $entityIds)
             ->where('status', 'pending')
             ->get()
