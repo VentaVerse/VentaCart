@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class BlogPost extends Model
 {
@@ -30,5 +31,10 @@ class BlogPost extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'blog_post_tag');
+    }
+
+    public function seoSuggestions(): MorphMany
+    {
+        return $this->morphMany(SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
     }
 }

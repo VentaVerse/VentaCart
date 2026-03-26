@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Category extends Model
 {
@@ -40,5 +41,10 @@ class Category extends Model
     public function products(): BelongsToMany
     {
         return $this->belongsToMany(Product::class, 'category_product');
+    }
+
+    public function seoSuggestions(): MorphMany
+    {
+        return $this->morphMany(SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
     }
 }

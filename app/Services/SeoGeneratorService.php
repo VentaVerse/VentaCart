@@ -2,10 +2,15 @@
 
 namespace App\Services;
 
+use App\Models\Brand;
+use App\Models\BlogPost;
+use App\Models\Category;
 use App\Models\Product;
-use App\Models\SeoSuggestion;
 use App\Models\SeoReport;
+use App\Models\SeoSuggestion;
 use App\Models\Setting;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -15,6 +20,9 @@ class SeoGeneratorService
     private string $apiKey;
     private int $batchSize;
     private bool $autoAccept;
+    private string $model;
+
+    private const STORE_CONTEXT = 'an online store selling music gear (guitar pedals, cables, accessories, amplifiers) in the Philippines';
 
     public function __construct()
     {
@@ -26,75 +34,444 @@ class SeoGeneratorService
         }
         $this->batchSize = (int) (Setting::where('group', 'seo')->where('key', 'batch_size')->value('value') ?? 50);
         $this->autoAccept = (bool) (Setting::where('group', 'seo')->where('key', 'auto_accept')->value('value') ?? false);
+        $this->model = Setting::where('group', 'seo')->where('key', 'claude_model')->value('value') ?? 'claude-sonnet-4-5-20250514';
     }
 
+    /**
+     * Backward-compatible: generate SEO for products only.
+     * Called by the seo:generate CLI command.
+     */
     public function generate(): array
+    {
+        return $this->generateForType('product');
+    }
+
+    /**
+     * Generate SEO suggestions for all entities of the given type.
+     */
+    public function generateForType(string $entityType): array
     {
         if (!$this->apiKey) {
             return ['error' => 'Claude API key not configured'];
         }
 
-        // Find products needing SEO (no meta title, or no recent suggestion in 30 days)
-        $products = Product::where('is_active', true)
-            ->where(function ($q) {
-                $q->whereNull('meta_title')
-                  ->orWhere('meta_title', '')
-                  ->orWhereDoesntHave('seoSuggestions', function ($sq) {
-                      $sq->where('generated_at', '>', now()->subDays(30));
-                  });
-            })
-            ->with(['brand', 'categories'])
-            ->limit($this->batchSize)
-            ->get();
+        $modelClass = $this->getModelClass($entityType);
+        $entities = $this->getEntitiesNeedingSeo($entityType, $modelClass);
 
-        if ($products->isEmpty()) {
-            return ['message' => 'All products have up-to-date SEO', 'count' => 0];
+        if ($entities->isEmpty()) {
+            return ['message' => "All {$entityType} entities have up-to-date SEO", 'suggestions' => 0, 'errors' => 0];
         }
 
         $suggestions = [];
         $errors = 0;
 
         // Process in chunks of 10 for API efficiency
-        foreach ($products->chunk(10) as $chunk) {
-            $result = $this->callClaudeApi($chunk);
+        foreach ($entities->chunk(10) as $chunk) {
+            $prompt = $this->buildBatchPrompt($entityType, $chunk);
+            $result = $this->callClaudeApi($prompt);
+
             if ($result === null) {
                 $errors += $chunk->count();
                 continue;
             }
 
-            foreach ($result as $productId => $seo) {
-                $product = $chunk->firstWhere('id', $productId);
-                if (!$product) {
+            foreach ($result as $entityId => $seo) {
+                $entity = $chunk->firstWhere('id', $entityId);
+                if (!$entity) {
                     continue;
                 }
 
                 $status = $this->autoAccept ? 'accepted' : 'pending';
 
-                $suggestion = SeoSuggestion::create([
-                    'product_id' => $productId,
-                    'current_meta_title' => $product->meta_title,
+                $suggestionData = [
+                    'entity_type' => $modelClass,
+                    'entity_id' => $entityId,
+                    'current_meta_title' => $entity->meta_title,
                     'suggested_meta_title' => $seo['meta_title'] ?? null,
-                    'current_meta_description' => $product->meta_description,
+                    'current_meta_description' => $entity->meta_description,
                     'suggested_meta_description' => $seo['meta_description'] ?? null,
-                    'current_meta_keywords' => $product->meta_keywords,
-                    'suggested_meta_keywords' => $seo['meta_keywords'] ?? null,
+                    'current_og_title' => $entity->og_title ?? null,
+                    'suggested_og_title' => $seo['og_title'] ?? null,
+                    'current_og_description' => $entity->og_description ?? null,
+                    'suggested_og_description' => $seo['og_description'] ?? null,
                     'status' => $status,
                     'generated_at' => now(),
-                ]);
+                ];
+
+                // Backward compat: also set product_id for products
+                if ($entityType === 'product') {
+                    $suggestionData['product_id'] = $entityId;
+                }
+
+                $suggestion = SeoSuggestion::create($suggestionData);
 
                 if ($this->autoAccept) {
-                    $product->update([
-                        'meta_title' => $seo['meta_title'] ?? $product->meta_title,
-                        'meta_description' => $seo['meta_description'] ?? $product->meta_description,
-                        'meta_keywords' => $seo['meta_keywords'] ?? $product->meta_keywords,
-                    ]);
+                    $updateData = [
+                        'meta_title' => $seo['meta_title'] ?? $entity->meta_title,
+                        'meta_description' => $seo['meta_description'] ?? $entity->meta_description,
+                        'og_title' => $seo['og_title'] ?? $entity->og_title,
+                        'og_description' => $seo['og_description'] ?? $entity->og_description,
+                    ];
+                    $entity->update($updateData);
                 }
 
                 $suggestions[] = $suggestion;
             }
         }
 
-        // Gather GSC search insights for the report
+        // Generate report for product runs (backward compat)
+        if ($entityType === 'product') {
+            $this->generateProductReport($entities, $suggestions);
+        }
+
+        return [
+            'suggestions' => count($suggestions),
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * Generate a single SEO suggestion for one entity (for "Optimize with AI" button).
+     */
+    public function optimizeSingle(string $entityType, int $entityId): ?SeoSuggestion
+    {
+        if (!$this->apiKey) {
+            return null;
+        }
+
+        $modelClass = $this->getModelClass($entityType);
+        $entity = $this->loadEntityWithRelationships($entityType, $modelClass, $entityId);
+
+        if (!$entity) {
+            return null;
+        }
+
+        $prompt = $this->buildSinglePrompt($entityType, $entity);
+        $result = $this->callClaudeApi($prompt);
+
+        if ($result === null) {
+            return null;
+        }
+
+        // The single-entity response has the entity ID as key, or might be a flat object
+        $seo = $result[$entityId] ?? reset($result) ?: null;
+        if (!$seo || !is_array($seo)) {
+            return null;
+        }
+
+        $suggestionData = [
+            'entity_type' => $modelClass,
+            'entity_id' => $entityId,
+            'current_meta_title' => $entity->meta_title,
+            'suggested_meta_title' => $seo['meta_title'] ?? null,
+            'current_meta_description' => $entity->meta_description,
+            'suggested_meta_description' => $seo['meta_description'] ?? null,
+            'current_og_title' => $entity->og_title ?? null,
+            'suggested_og_title' => $seo['og_title'] ?? null,
+            'current_og_description' => $entity->og_description ?? null,
+            'suggested_og_description' => $seo['og_description'] ?? null,
+            'status' => 'pending',
+            'generated_at' => now(),
+        ];
+
+        // Backward compat: also set product_id for products
+        if ($entityType === 'product') {
+            $suggestionData['product_id'] = $entityId;
+        }
+
+        return SeoSuggestion::create($suggestionData);
+    }
+
+    /**
+     * Map entity type string to model class.
+     */
+    private function getModelClass(string $type): string
+    {
+        return match ($type) {
+            'product' => Product::class,
+            'category' => Category::class,
+            'brand' => Brand::class,
+            'blog_post' => BlogPost::class,
+            default => throw new \InvalidArgumentException("Unknown entity type: {$type}"),
+        };
+    }
+
+    /**
+     * Query entities that need SEO generation.
+     */
+    private function getEntitiesNeedingSeo(string $entityType, string $modelClass): Collection
+    {
+        $query = $modelClass::query();
+
+        // Active filter
+        if ($entityType === 'blog_post') {
+            $query->where('is_published', true);
+        } else {
+            $query->where('is_active', true);
+        }
+
+        // Needs SEO: no meta_title, or no recent suggestion in 30 days
+        $query->where(function (Builder $q) {
+            $q->whereNull('meta_title')
+              ->orWhere('meta_title', '')
+              ->orWhereDoesntHave('seoSuggestions', function (Builder $sq) {
+                  $sq->where('generated_at', '>', now()->subDays(30));
+              });
+        });
+
+        // Eager-load relationships
+        if ($entityType === 'product') {
+            $query->with(['brand', 'categories']);
+        } elseif ($entityType === 'blog_post') {
+            $query->with(['category', 'tags']);
+        }
+
+        return $query->limit($this->batchSize)->get();
+    }
+
+    /**
+     * Load a single entity with rich relationships for optimizeSingle.
+     */
+    private function loadEntityWithRelationships(string $entityType, string $modelClass, int $entityId)
+    {
+        $query = $modelClass::where('id', $entityId);
+
+        return match ($entityType) {
+            'product' => $query->with(['brand', 'categories'])->first(),
+            'category' => $query->withCount('products')->first(),
+            'brand' => $query->withCount('products')->first(),
+            'blog_post' => $query->with(['category', 'tags'])->first(),
+            default => $query->first(),
+        };
+    }
+
+    /**
+     * Build a batch prompt for multiple entities.
+     */
+    private function buildBatchPrompt(string $entityType, Collection $chunk): string
+    {
+        $entityData = $this->formatEntitiesForPrompt($entityType, $chunk);
+
+        $typeLabel = str_replace('_', ' ', $entityType);
+        $prompt = "You are an SEO specialist for " . self::STORE_CONTEXT . ". Generate optimized meta tags and Open Graph tags for each {$typeLabel}.\n\n";
+        $prompt .= "For each {$typeLabel}, provide:\n";
+        $prompt .= "- meta_title: max 60 chars, include name + key selling point + store context\n";
+        $prompt .= "- meta_description: max 155 chars, compelling, include call-to-action\n";
+        $prompt .= "- og_title: max 60 chars, optimized for social sharing (engaging, click-worthy)\n";
+        $prompt .= "- og_description: max 200 chars, engaging description for social media preview cards\n\n";
+        $prompt .= ucfirst($typeLabel) . "s:\n" . json_encode($entityData, JSON_PRETTY_PRINT);
+
+        // Append global GSC data for batch
+        $prompt .= $this->appendGscGlobalData();
+
+        $prompt .= "\n\nRespond ONLY with valid JSON in this format:\n";
+        $prompt .= "{\"<{$typeLabel}_id>\": {\"meta_title\": \"...\", \"meta_description\": \"...\", \"og_title\": \"...\", \"og_description\": \"...\"}, ...}";
+
+        return $prompt;
+    }
+
+    /**
+     * Build a rich single-entity prompt for optimizeSingle.
+     */
+    private function buildSinglePrompt(string $entityType, $entity): string
+    {
+        $typeLabel = str_replace('_', ' ', $entityType);
+        $prompt = "You are an SEO specialist for " . self::STORE_CONTEXT . ". Generate optimized meta tags and Open Graph tags for the following {$typeLabel}.\n\n";
+        $prompt .= "Provide:\n";
+        $prompt .= "- meta_title: max 60 chars, include name + key selling point + store context\n";
+        $prompt .= "- meta_description: max 155 chars, compelling, include call-to-action\n";
+        $prompt .= "- og_title: max 60 chars, optimized for social sharing (engaging, click-worthy)\n";
+        $prompt .= "- og_description: max 200 chars, engaging description for social media preview cards\n\n";
+
+        $prompt .= $this->buildSingleEntityContext($entityType, $entity);
+
+        // Try to get GSC data for this entity's URL
+        $prompt .= $this->appendGscEntityData($entity);
+
+        $prompt .= "\n\nRespond ONLY with valid JSON in this format:\n";
+        $prompt .= "{\"{$entity->id}\": {\"meta_title\": \"...\", \"meta_description\": \"...\", \"og_title\": \"...\", \"og_description\": \"...\"}}";
+
+        return $prompt;
+    }
+
+    /**
+     * Format entity data for the batch prompt.
+     */
+    private function formatEntitiesForPrompt(string $entityType, Collection $chunk): array
+    {
+        return match ($entityType) {
+            'product' => $chunk->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'brand' => $p->brand?->name ?? '',
+                'category' => $p->categories->pluck('name')->join(', '),
+                'price' => $p->price,
+                'description_excerpt' => substr(strip_tags($p->description ?? ''), 0, 200),
+            ])->values()->toArray(),
+
+            'category' => $chunk->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+                'description_excerpt' => substr(strip_tags($c->description ?? ''), 0, 200),
+                'parent' => $c->parent?->name ?? '',
+            ])->values()->toArray(),
+
+            'brand' => $chunk->map(fn ($b) => [
+                'id' => $b->id,
+                'name' => $b->name,
+                'description_excerpt' => substr(strip_tags($b->description ?? ''), 0, 200),
+            ])->values()->toArray(),
+
+            'blog_post' => $chunk->map(fn ($bp) => [
+                'id' => $bp->id,
+                'title' => $bp->title,
+                'excerpt' => substr(strip_tags($bp->excerpt ?? ''), 0, 200),
+                'category' => $bp->category?->name ?? '',
+            ])->values()->toArray(),
+
+            default => [],
+        };
+    }
+
+    /**
+     * Build rich context for a single entity.
+     */
+    private function buildSingleEntityContext(string $entityType, $entity): string
+    {
+        return match ($entityType) {
+            'product' => $this->buildProductContext($entity),
+            'category' => $this->buildCategoryContext($entity),
+            'brand' => $this->buildBrandContext($entity),
+            'blog_post' => $this->buildBlogPostContext($entity),
+            default => '',
+        };
+    }
+
+    private function buildProductContext($product): string
+    {
+        $ctx = "Product details:\n";
+        $ctx .= "- ID: {$product->id}\n";
+        $ctx .= "- Name: {$product->name}\n";
+        $ctx .= "- Brand: " . ($product->brand?->name ?? 'N/A') . "\n";
+        $ctx .= "- Categories: " . $product->categories->pluck('name')->join(', ') . "\n";
+        $ctx .= "- Price: {$product->price}\n";
+        if ($product->sku) {
+            $ctx .= "- SKU: {$product->sku}\n";
+        }
+        $ctx .= "- Description: " . substr(strip_tags($product->description ?? ''), 0, 500) . "\n";
+        return $ctx;
+    }
+
+    private function buildCategoryContext($category): string
+    {
+        $ctx = "Category details:\n";
+        $ctx .= "- ID: {$category->id}\n";
+        $ctx .= "- Name: {$category->name}\n";
+        if ($category->parent) {
+            $ctx .= "- Parent category: {$category->parent->name}\n";
+        }
+        $ctx .= "- Description: " . substr(strip_tags($category->description ?? ''), 0, 500) . "\n";
+        $productCount = $category->products_count ?? $category->products()->count();
+        $ctx .= "- Product count: {$productCount}\n";
+        $topProducts = $category->products()->where('is_active', true)->limit(5)->pluck('name');
+        if ($topProducts->isNotEmpty()) {
+            $ctx .= "- Top products: " . $topProducts->join(', ') . "\n";
+        }
+        return $ctx;
+    }
+
+    private function buildBrandContext($brand): string
+    {
+        $ctx = "Brand details:\n";
+        $ctx .= "- ID: {$brand->id}\n";
+        $ctx .= "- Name: {$brand->name}\n";
+        $ctx .= "- Description: " . substr(strip_tags($brand->description ?? ''), 0, 500) . "\n";
+        $productCount = $brand->products_count ?? $brand->products()->count();
+        $ctx .= "- Product count: {$productCount}\n";
+        $topProducts = $brand->products()->where('is_active', true)->limit(5)->pluck('name');
+        if ($topProducts->isNotEmpty()) {
+            $ctx .= "- Top products: " . $topProducts->join(', ') . "\n";
+        }
+        return $ctx;
+    }
+
+    private function buildBlogPostContext($post): string
+    {
+        $ctx = "Blog post details:\n";
+        $ctx .= "- ID: {$post->id}\n";
+        $ctx .= "- Title: {$post->title}\n";
+        $ctx .= "- Category: " . ($post->category?->name ?? 'N/A') . "\n";
+        $tags = $post->tags->pluck('name');
+        if ($tags->isNotEmpty()) {
+            $ctx .= "- Tags: " . $tags->join(', ') . "\n";
+        }
+        $ctx .= "- Excerpt: " . substr(strip_tags($post->excerpt ?? ''), 0, 500) . "\n";
+        return $ctx;
+    }
+
+    /**
+     * Append top global GSC queries to a prompt.
+     */
+    private function appendGscGlobalData(): string
+    {
+        $gsc = new GoogleSearchConsoleService();
+        if (!$gsc->isConfigured()) {
+            return '';
+        }
+
+        $topQueries = array_slice($gsc->getSearchPerformance(28, 10), 0, 10);
+        if (empty($topQueries)) {
+            return '';
+        }
+
+        $text = "\n\nAdditionally, here are the top search queries driving traffic to this store (from Google Search Console):\n";
+        foreach ($topQueries as $q) {
+            $text .= "- \"{$q['query']}\" ({$q['clicks']} clicks, {$q['impressions']} impressions, {$q['ctr']}% CTR, position {$q['position']})\n";
+        }
+        $text .= "\nConsider these real search terms when optimizing meta tags \u2014 target queries where the store already has impressions but low CTR.";
+
+        return $text;
+    }
+
+    /**
+     * Append GSC page-specific data for a single entity URL.
+     */
+    private function appendGscEntityData($entity): string
+    {
+        $gsc = new GoogleSearchConsoleService();
+        if (!$gsc->isConfigured()) {
+            return '';
+        }
+
+        $slug = $entity->slug ?? null;
+        if (!$slug) {
+            return '';
+        }
+
+        // Try to match entity URL in GSC page performance data
+        $pages = $gsc->getPagePerformance(28, 100);
+        $matchingPage = collect($pages)->first(function ($page) use ($slug) {
+            return str_contains($page['page'], $slug);
+        });
+
+        if (!$matchingPage) {
+            return '';
+        }
+
+        $text = "\n\nGoogle Search Console data for this page:\n";
+        $text .= "- URL: {$matchingPage['page']}\n";
+        $text .= "- Clicks: {$matchingPage['clicks']}, Impressions: {$matchingPage['impressions']}\n";
+        $text .= "- CTR: {$matchingPage['ctr']}%, Average Position: {$matchingPage['position']}\n";
+        $text .= "\nOptimize meta tags to improve CTR for this page's current search position.";
+
+        return $text;
+    }
+
+    /**
+     * Generate a product-specific SEO report (backward compat).
+     */
+    private function generateProductReport(Collection $entities, array $suggestions): void
+    {
         $searchInsights = [];
         $gsc = new GoogleSearchConsoleService();
         if ($gsc->isConfigured()) {
@@ -104,7 +481,6 @@ class SeoGeneratorService
             ];
         }
 
-        // Generate report
         $totalProducts = Product::where('is_active', true)->count();
         $withMeta = Product::where('is_active', true)
             ->whereNotNull('meta_title')
@@ -112,7 +488,6 @@ class SeoGeneratorService
             ->count();
         $healthScore = $totalProducts > 0 ? round(($withMeta / $totalProducts) * 100, 2) : 0;
 
-        // Top opportunities: products with no meta
         $topOps = Product::where('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('meta_title')->orWhere('meta_title', '');
@@ -120,14 +495,12 @@ class SeoGeneratorService
             ->orderByDesc('views')
             ->limit(10)
             ->get(['id', 'name', 'views'])
-            ->map(function ($p) {
-                return ['id' => $p->id, 'name' => $p->name, 'views' => $p->views];
-            })
+            ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'views' => $p->views])
             ->toArray();
 
-        $report = SeoReport::create([
+        SeoReport::create([
             'store_id' => (int) config('app.store_id', 1),
-            'total_products_analyzed' => $products->count(),
+            'total_products_analyzed' => $entities->count(),
             'suggestions_generated' => count($suggestions),
             'auto_accepted' => $this->autoAccept ? count($suggestions) : 0,
             'pending_review' => $this->autoAccept ? 0 : count($suggestions),
@@ -136,52 +509,20 @@ class SeoGeneratorService
             'search_insights' => $searchInsights ?: null,
             'generated_at' => now(),
         ]);
-
-        return [
-            'suggestions' => count($suggestions),
-            'errors' => $errors,
-            'health_score' => $healthScore,
-            'report_id' => $report->id,
-        ];
     }
 
-    private function callClaudeApi($products): ?array
+    /**
+     * Call the Claude API with a prompt and return the parsed JSON response.
+     */
+    private function callClaudeApi(string $prompt): ?array
     {
-        $productData = $products->map(function ($p) {
-            return [
-                'id' => $p->id,
-                'name' => $p->name,
-                'brand' => $p->brand?->name ?? '',
-                'category' => $p->categories->pluck('name')->join(', '),
-                'price' => $p->price,
-                'description_excerpt' => substr(strip_tags($p->description ?? ''), 0, 200),
-            ];
-        })->values()->toArray();
-
-        $prompt = "You are an SEO specialist for an e-commerce store in the Philippines selling music gear (guitar pedals, cables, accessories). Generate optimized meta tags for each product.\n\nFor each product, provide:\n- meta_title: max 60 chars, include product name + key selling point + store context\n- meta_description: max 155 chars, compelling, include call-to-action\n- meta_keywords: 5-8 relevant keywords, comma-separated\n\nProducts:\n" . json_encode($productData, JSON_PRETTY_PRINT);
-
-        // Append GSC data if available
-        $gsc = new GoogleSearchConsoleService();
-        if ($gsc->isConfigured()) {
-            $topQueries = array_slice($gsc->getSearchPerformance(28, 10), 0, 10);
-            if (!empty($topQueries)) {
-                $prompt .= "\n\nAdditionally, here are the top search queries driving traffic to this store (from Google Search Console):\n";
-                foreach ($topQueries as $q) {
-                    $prompt .= "- \"{$q['query']}\" ({$q['clicks']} clicks, {$q['impressions']} impressions, {$q['ctr']}% CTR, position {$q['position']})\n";
-                }
-                $prompt .= "\nConsider these real search terms when optimizing meta tags — target queries where the store already has impressions but low CTR.";
-            }
-        }
-
-        $prompt .= "\n\nRespond ONLY with valid JSON in this format:\n{\"<product_id>\": {\"meta_title\": \"...\", \"meta_description\": \"...\", \"meta_keywords\": \"...\"}, ...}";
-
         try {
             $response = Http::withHeaders([
                 'x-api-key' => $this->apiKey,
                 'anthropic-version' => '2023-06-01',
                 'content-type' => 'application/json',
             ])->timeout(60)->post('https://api.anthropic.com/v1/messages', [
-                'model' => 'claude-sonnet-4-5-20250514',
+                'model' => $this->model,
                 'max_tokens' => 4096,
                 'messages' => [
                     ['role' => 'user', 'content' => $prompt],
