@@ -12,6 +12,23 @@
             </p>
         </div>
     @else
+        {{-- Last updated + Refresh --}}
+        <div class="flex items-center justify-between mb-4">
+            <p class="text-xs text-gray-400">
+                @if ($fetchedAt)
+                    Last fetched: {{ $fetchedAt->diffForHumans() }} ({{ $fetchedAt->format('M d, Y g:i A') }})
+                @else
+                    Not fetched yet.
+                @endif
+                <span class="text-gray-300 mx-1">|</span>
+                Data from Google has a 2-3 day delay.
+            </p>
+            <a href="{{ route('admin.extensions.seo.search-console', ['refresh' => 1]) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-200 border border-gray-300 transition-colors">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
+                Refresh
+            </a>
+        </div>
+
         {{-- Top Queries --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
             <div class="px-6 py-4 border-b border-gray-200">

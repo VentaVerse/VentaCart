@@ -277,15 +277,32 @@ class SeoExtensionController extends Controller
     /**
      * Search Console data view.
      */
-    public function searchConsole()
+    public function searchConsole(Request $request)
     {
         $gsc = new GoogleSearchConsoleService();
         $gscConfigured = $gsc->isConfigured();
-        $queries = $gscConfigured ? $gsc->getSearchPerformance(28, 50) : [];
-        $pages = $gscConfigured ? $gsc->getPagePerformance(28, 50) : [];
+        $forceRefresh = $request->has('refresh');
+
+        $cacheKey = 'seo_gsc_data';
+        $cacheTtl = 3600; // 1 hour
+
+        if ($gscConfigured && ($forceRefresh || !\Illuminate\Support\Facades\Cache::has($cacheKey))) {
+            $queries = $gsc->getSearchPerformance(28, 50);
+            $pages = $gsc->getPagePerformance(28, 50);
+            \Illuminate\Support\Facades\Cache::put($cacheKey, [
+                'queries' => $queries,
+                'pages' => $pages,
+                'fetched_at' => now()->toIso8601String(),
+            ], $cacheTtl);
+        }
+
+        $cached = \Illuminate\Support\Facades\Cache::get($cacheKey, []);
+        $queries = $cached['queries'] ?? [];
+        $pages = $cached['pages'] ?? [];
+        $fetchedAt = isset($cached['fetched_at']) ? \Carbon\Carbon::parse($cached['fetched_at']) : null;
 
         return view('admin.extensions.seo.search-console', compact(
-            'gscConfigured', 'queries', 'pages'
+            'gscConfigured', 'queries', 'pages', 'fetchedAt'
         ));
     }
 
