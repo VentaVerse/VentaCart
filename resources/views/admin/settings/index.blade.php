@@ -395,6 +395,66 @@
                         View API Sync Logs &rarr;
                     </a>
                 </div>
+
+                {{-- Google Search Console --}}
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Google Search Console</h3>
+                    <p class="text-xs text-gray-500 mb-4">Connect GSC to power AI-driven SEO optimization with real search data.</p>
+
+                    <div class="space-y-4 max-w-lg">
+                        {{-- Credentials Upload --}}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Service Account Credentials (JSON)</label>
+                            @if (file_exists(storage_path('app/credentials/gsc-credentials.json')))
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Uploaded</span>
+                                    <span class="text-xs text-gray-400">{{ basename(storage_path('app/credentials/gsc-credentials.json')) }}</span>
+                                </div>
+                            @endif
+                            <form method="POST" action="{{ route('admin.settings.upload-gsc-credentials') }}" enctype="multipart/form-data" class="flex items-center gap-2">
+                                @csrf
+                                <input type="file" name="gsc_credentials" accept=".json" required
+                                    class="block text-sm text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-gray-300 file:text-sm file:font-medium file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100">
+                                <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Upload</button>
+                            </form>
+                        </div>
+
+                        {{-- Site URL --}}
+                        <form method="POST" action="{{ route('admin.settings.update') }}">
+                            @csrf
+                            <input type="hidden" name="group" value="seo">
+                            <input type="hidden" name="_tab" value="api">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Site URL</label>
+                                <input type="url" name="settings[gsc_site_url]" value="{{ $settings['seo']['gsc_site_url'] ?? '' }}" placeholder="https://newgearday.com"
+                                    class="block w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <p class="text-xs text-gray-400 mt-1">Must match exactly how your site appears in GSC (including https://).</p>
+                            </div>
+                            <div class="mt-3">
+                                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                            </div>
+                        </form>
+
+                        {{-- Claude API Key --}}
+                        <form method="POST" action="{{ route('admin.settings.update') }}" class="border-t border-gray-100 pt-4">
+                            @csrf
+                            <input type="hidden" name="group" value="seo">
+                            <input type="hidden" name="_tab" value="api">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Claude API Key</label>
+                                @if (!empty($maskedKeys['claude_api_key'] ?? ''))
+                                    <p class="text-xs text-gray-500 mb-1">Current: {{ $maskedKeys['claude_api_key'] }}</p>
+                                @endif
+                                <input type="password" name="settings[claude_api_key]" autocomplete="new-password" placeholder="{{ !empty($maskedKeys['claude_api_key'] ?? '') ? 'Leave blank to keep current' : 'sk-ant-...' }}"
+                                    class="block w-full rounded-md border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500">
+                                <p class="text-xs text-gray-400 mt-1">Get your key from <a href="https://console.anthropic.com/settings/keys" target="_blank" class="text-indigo-600 hover:underline">console.anthropic.com</a></p>
+                            </div>
+                            <div class="mt-3">
+                                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             {{-- ==================== SECURITY ==================== --}}
