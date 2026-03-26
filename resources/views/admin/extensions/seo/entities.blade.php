@@ -166,7 +166,6 @@
                         <th class="px-4 py-3 font-medium">Name</th>
                         <th class="px-4 py-3 font-medium w-28">SEO Status</th>
                         <th class="px-4 py-3 font-medium">Meta Title</th>
-                        <th class="px-4 py-3 font-medium w-16 text-center">Pending</th>
                         <th class="px-4 py-3 font-medium w-28 text-right">Actions</th>
                     </tr>
                 </thead>
@@ -213,11 +212,6 @@
                             </td>
                             <td class="px-4 py-3 text-gray-600 text-xs">
                                 {{ $entity->meta_title ? Str::limit($entity->meta_title, 40) : '—' }}
-                            </td>
-                            <td class="px-4 py-3 text-center">
-                                <template x-if="pendingSuggestions[{{ $entity->id }}]">
-                                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-400" title="Pending suggestion"></span>
-                                </template>
                             </td>
                             <td class="px-4 py-3 text-right" @click.stop>
                                 <button @click="optimize('{{ $entityType }}', {{ $entity->id }})"
