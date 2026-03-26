@@ -300,9 +300,13 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::prefix('extensions/seo')->name('extensions.seo.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'dashboard'])->name('dashboard');
         Route::get('/search-console', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'searchConsole'])->name('search-console');
+        Route::get('/strategy', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'strategy'])->name('strategy');
+        Route::post('/strategy', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'saveStrategy'])->name('save-strategy');
         Route::get('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'settings'])->name('settings');
         Route::post('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'saveSettings'])->name('save-settings');
         Route::post('/settings/upload-gsc', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'uploadGsc'])->name('upload-gsc');
+        Route::post('/settings/test-claude', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'testClaude'])->name('test-claude');
+        Route::post('/settings/test-gsc', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'testGsc'])->name('test-gsc');
         Route::post('/generate', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'generate'])->name('generate');
         Route::post('/optimize', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'optimize'])->name('optimize');
         Route::post('/suggestions/{suggestion}/accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'accept'])->name('accept');

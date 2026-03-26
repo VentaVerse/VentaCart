@@ -94,6 +94,9 @@ class SeoExtensionController extends Controller
                 'missing' => $query->where(function ($q) {
                     $q->whereNull('meta_title')->orWhere('meta_title', '');
                 }),
+                'pending' => $query->whereHas('seoSuggestions', function ($q) use ($config) {
+                    $q->where('entity_type', $config['entityType'])->where('status', 'pending');
+                }),
                 default => null,
             };
         }
@@ -287,6 +290,41 @@ class SeoExtensionController extends Controller
     }
 
     /**
+     * SEO Strategy view.
+     */
+    public function strategy()
+    {
+        $seoSettings = Setting::where('group', 'seo')->pluck('value', 'key');
+
+        return view('admin.extensions.seo.strategy', compact('seoSettings'));
+    }
+
+    /**
+     * Save SEO Strategy settings.
+     */
+    public function saveStrategy(Request $request)
+    {
+        $request->validate([
+            'store_context' => 'nullable|string|max:2000',
+            'target_market' => 'nullable|string|max:500',
+            'brand_voice' => 'nullable|string|max:500',
+            'priority_keywords' => 'nullable|string|max:1000',
+            'avoid_keywords' => 'nullable|string|max:500',
+        ]);
+
+        $fields = ['store_context', 'target_market', 'brand_voice', 'priority_keywords', 'avoid_keywords'];
+
+        foreach ($fields as $key) {
+            Setting::updateOrCreate(
+                ['group' => 'seo', 'key' => $key],
+                ['value' => $request->input($key, '')]
+            );
+        }
+
+        return back()->with('success', 'SEO strategy saved. Claude will use this context for all future optimizations.');
+    }
+
+    /**
      * SEO extension settings view.
      */
     public function settings()
@@ -324,7 +362,7 @@ class SeoExtensionController extends Controller
         ]);
 
         $settings = [
-            'claude_model' => $request->input('claude_model', 'claude-sonnet-4-5-20250514'),
+            'claude_model' => $request->input('claude_model', 'claude-sonnet-4-6'),
             'gsc_site_url' => $request->input('gsc_site_url', ''),
             'auto_accept' => $request->boolean('auto_accept') ? '1' : '0',
         ];
@@ -360,6 +398,67 @@ class SeoExtensionController extends Controller
         );
 
         return back()->with('success', 'GSC credentials uploaded successfully.');
+    }
+
+    /**
+     * Test Claude API connection.
+     */
+    public function testClaude()
+    {
+        $service = new SeoGeneratorService();
+
+        if (!$service->isConfigured()) {
+            return back()->with('error', 'Claude API key not configured.');
+        }
+
+        try {
+            $encrypted = Setting::where('group', 'seo')->where('key', 'claude_api_key')->value('value');
+            $apiKey = Crypt::decryptString($encrypted);
+            $model = Setting::where('group', 'seo')->where('key', 'claude_model')->value('value') ?: 'claude-sonnet-4-6';
+
+            $response = \Illuminate\Support\Facades\Http::withHeaders([
+                'x-api-key' => $apiKey,
+                'anthropic-version' => '2023-06-01',
+                'content-type' => 'application/json',
+            ])->timeout(15)->post('https://api.anthropic.com/v1/messages', [
+                'model' => $model,
+                'max_tokens' => 50,
+                'messages' => [['role' => 'user', 'content' => 'Reply with just "ok"']],
+            ]);
+
+            if ($response->successful()) {
+                return back()->with('success', 'Claude API connection successful! Model: ' . $model);
+            }
+
+            return back()->with('error', 'Claude API error: ' . $response->status() . ' — ' . ($response->json('error.message') ?? $response->body()));
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Claude API test failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Test Google Search Console connection.
+     */
+    public function testGsc()
+    {
+        $gsc = new GoogleSearchConsoleService();
+
+        if (!$gsc->isConfigured()) {
+            return back()->with('error', 'GSC not configured. Upload credentials and set site URL first.');
+        }
+
+        try {
+            $queries = $gsc->getSearchPerformance(7, 5);
+
+            if (empty($queries)) {
+                return back()->with('success', 'GSC connection successful! No query data found for the last 7 days (this may be normal for new sites).');
+            }
+
+            $topQuery = $queries[0]['query'] ?? 'N/A';
+            return back()->with('success', 'GSC connection successful! Found ' . count($queries) . ' queries. Top query: "' . $topQuery . '"');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'GSC test failed: ' . $e->getMessage());
+        }
     }
 
     /**

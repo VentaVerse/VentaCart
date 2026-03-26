@@ -98,6 +98,33 @@
                         </div>
                     </div>
 
+                    {{-- SEO --}}
+                    <div class="border-t border-gray-200 mt-8 pt-6">
+                        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">SEO</h3>
+                        <div class="space-y-4 max-w-lg">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Default Meta Title</label>
+                                <input type="text" name="settings[default_meta_title]" value="{{ $settings['general']['default_meta_title'] ?? '' }}" placeholder="{{ $settings['identity']['site_name'] ?? 'My Store' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-400">Used as the homepage title and fallback for pages without a specific meta title.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Default Meta Description</label>
+                                <textarea name="settings[default_meta_description]" rows="2" placeholder="Describe your store in 155 characters..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">{{ $settings['general']['default_meta_description'] ?? '' }}</textarea>
+                                <p class="mt-1 text-xs text-gray-400">Shown in search results for your homepage. Keep under 155 characters.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Meta Keywords</label>
+                                <input type="text" name="settings[default_meta_keywords]" value="{{ $settings['general']['default_meta_keywords'] ?? '' }}" placeholder="guitar pedals, music gear, Philippines" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <p class="mt-1 text-xs text-gray-400">Comma-separated. Low impact on modern SEO but used by some search engines.</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Google Site Verification</label>
+                                <input type="text" name="settings[google_site_verification]" value="{{ $settings['general']['google_site_verification'] ?? '' }}" placeholder="google-site-verification=..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono">
+                                <p class="mt-1 text-xs text-gray-400">The content value from your Google Search Console verification meta tag.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {{-- Save --}}
                     <div class="mt-6 flex justify-end">
                         <button type="button" @click="saveGeneral()" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>

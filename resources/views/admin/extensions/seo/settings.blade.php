@@ -25,8 +25,10 @@
                     <label for="claude_model" class="block text-sm font-medium text-gray-700">Claude Model</label>
                     <select name="claude_model" id="claude_model"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                        <option value="claude-sonnet-4-5-20250514" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-5-20250514' || empty($seoSettings['claude_model']) ? 'selected' : '' }}>claude-sonnet-4-5-20250514</option>
-                        <option value="claude-sonnet-4-5-latest" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-5-latest' ? 'selected' : '' }}>claude-sonnet-4-5-latest</option>
+                        <option value="claude-opus-4-6" {{ ($seoSettings['claude_model'] ?? '') === 'claude-opus-4-6' ? 'selected' : '' }}>Claude Opus 4.6 — most capable</option>
+                        <option value="claude-sonnet-4-6" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-6' || empty($seoSettings['claude_model']) ? 'selected' : '' }}>Claude Sonnet 4.6 — advanced (recommended)</option>
+                        <option value="claude-sonnet-4-5-20250514" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-5-20250514' ? 'selected' : '' }}>Claude Sonnet 4.5 — balanced</option>
+                        <option value="claude-haiku-4-5-20251001" {{ ($seoSettings['claude_model'] ?? '') === 'claude-haiku-4-5-20251001' ? 'selected' : '' }}>Claude Haiku 4.5 — fast, cost-effective</option>
                     </select>
                 </div>
 
@@ -39,13 +41,23 @@
                     <label for="auto_accept" class="text-sm font-medium text-gray-700">Auto-accept suggestions</label>
                 </div>
 
-                <div class="pt-2">
+                <div class="pt-2 flex items-center gap-3">
                     <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
                         Save Settings
                     </button>
                 </div>
             </div>
         </form>
+
+        <div class="mt-4 pt-4 border-t border-gray-100 max-w-lg">
+            <form method="POST" action="{{ route('admin.extensions.seo.test-claude') }}" class="inline">
+                @csrf
+                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Test Claude Connection
+                </button>
+            </form>
+        </div>
     </div>
 
     {{-- Google Search Console --}}
@@ -91,6 +103,16 @@
                 </div>
             </div>
         </form>
+
+        <div class="mt-4 pt-4 border-t border-gray-100 max-w-lg">
+            <form method="POST" action="{{ route('admin.extensions.seo.test-gsc') }}" class="inline">
+                @csrf
+                <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Test GSC Connection
+                </button>
+            </form>
+        </div>
     </div>
 
     {{-- Cron Job --}}

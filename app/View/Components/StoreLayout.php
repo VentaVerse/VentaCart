@@ -3,6 +3,7 @@
 namespace App\View\Components;
 
 use App\Models\Category;
+use App\Models\Setting;
 use App\Services\CartService;
 use App\Services\ThemeService;
 use Illuminate\Support\Facades\Cache;
@@ -22,7 +23,18 @@ class StoreLayout extends Component
         $cartService = app(CartService::class);
 
         $siteName = $theme->get('identity.site_name', 'Store');
-        $pageTitle = $this->title ? "{$this->title} - {$siteName}" : $siteName;
+
+        // Load general SEO settings
+        $seoDefaults = Cache::remember('general_seo_defaults', 3600, function () {
+            return Setting::where('group', 'general')
+                ->whereIn('key', ['default_meta_title', 'default_meta_description', 'default_meta_keywords', 'google_site_verification'])
+                ->pluck('value', 'key')
+                ->toArray();
+        });
+
+        $pageTitle = $this->title
+            ? "{$this->title} - {$siteName}"
+            : ($seoDefaults['default_meta_title'] ?? $siteName);
 
         $headingFont = $theme->get('fonts.heading', 'Oswald');
         $bodyFont = $theme->get('fonts.body', 'Roboto Slab');
@@ -84,6 +96,9 @@ class StoreLayout extends Component
             'cartSubtotal' => $cartService->getSubtotal(),
             'customerLoggedIn' => auth('customer')->check(),
             'customerUser' => auth('customer')->user(),
+            'defaultMetaDescription' => $seoDefaults['default_meta_description'] ?? '',
+            'defaultMetaKeywords' => $seoDefaults['default_meta_keywords'] ?? '',
+            'googleSiteVerification' => $seoDefaults['google_site_verification'] ?? '',
         ]);
     }
 

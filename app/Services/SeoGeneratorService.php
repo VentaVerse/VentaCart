@@ -22,19 +22,56 @@ class SeoGeneratorService
     private bool $autoAccept;
     private string $model;
 
-    private const STORE_CONTEXT = 'an online store selling music gear (guitar pedals, cables, accessories, amplifiers) in the Philippines';
+    private string $storeContext;
 
     public function __construct()
     {
-        $encrypted = Setting::where('group', 'seo')->where('key', 'claude_api_key')->value('value') ?? '';
+        $seoSettings = Setting::where('group', 'seo')->pluck('value', 'key');
+
+        $encrypted = $seoSettings['claude_api_key'] ?? '';
         try {
             $this->apiKey = $encrypted ? Crypt::decryptString($encrypted) : '';
         } catch (\Throwable) {
             $this->apiKey = '';
         }
-        $this->batchSize = (int) (Setting::where('group', 'seo')->where('key', 'batch_size')->value('value') ?? 50);
-        $this->autoAccept = (bool) (Setting::where('group', 'seo')->where('key', 'auto_accept')->value('value') ?? false);
-        $this->model = Setting::where('group', 'seo')->where('key', 'claude_model')->value('value') ?? 'claude-sonnet-4-5-20250514';
+        $this->batchSize = (int) ($seoSettings['batch_size'] ?? 50);
+        $this->autoAccept = (bool) ($seoSettings['auto_accept'] ?? false);
+        $this->model = $seoSettings['claude_model'] ?? 'claude-sonnet-4-6';
+        $this->storeContext = $this->buildStoreContext($seoSettings);
+    }
+
+    private function buildStoreContext(mixed $settings): string
+    {
+        $parts = [];
+
+        $storeDesc = $settings['store_context'] ?? '';
+        if ($storeDesc) {
+            $parts[] = "Store: {$storeDesc}";
+        } else {
+            $parts[] = 'Store: an online store selling music gear (guitar pedals, cables, accessories, amplifiers) in the Philippines';
+        }
+
+        $target = $settings['target_market'] ?? '';
+        if ($target) {
+            $parts[] = "Target market: {$target}";
+        }
+
+        $voice = $settings['brand_voice'] ?? '';
+        if ($voice) {
+            $parts[] = "Brand voice: {$voice}";
+        }
+
+        $priority = $settings['priority_keywords'] ?? '';
+        if ($priority) {
+            $parts[] = "Priority keywords to incorporate when relevant: {$priority}";
+        }
+
+        $avoid = $settings['avoid_keywords'] ?? '';
+        if ($avoid) {
+            $parts[] = "NEVER use these words/phrases: {$avoid}";
+        }
+
+        return implode("\n", $parts);
     }
 
     public function isConfigured(): bool
@@ -89,7 +126,7 @@ class SeoGeneratorService
                 $status = $this->autoAccept ? 'accepted' : 'pending';
 
                 $suggestionData = [
-                    'entity_type' => $modelClass,
+                    'entity_type' => $entityType,
                     'entity_id' => $entityId,
                     'current_meta_title' => $entity->meta_title,
                     'suggested_meta_title' => $seo['meta_title'] ?? null,
@@ -165,7 +202,7 @@ class SeoGeneratorService
         }
 
         $suggestionData = [
-            'entity_type' => $modelClass,
+            'entity_type' => $entityType,
             'entity_id' => $entityId,
             'current_meta_title' => $entity->meta_title,
             'suggested_meta_title' => $seo['meta_title'] ?? null,
@@ -258,7 +295,7 @@ class SeoGeneratorService
         $entityData = $this->formatEntitiesForPrompt($entityType, $chunk);
 
         $typeLabel = str_replace('_', ' ', $entityType);
-        $prompt = "You are an SEO specialist for " . self::STORE_CONTEXT . ". Generate optimized meta tags and Open Graph tags for each {$typeLabel}.\n\n";
+        $prompt = "You are an SEO specialist for " . $this->storeContext . ". Generate optimized meta tags and Open Graph tags for each {$typeLabel}.\n\n";
         $prompt .= "For each {$typeLabel}, provide:\n";
         $prompt .= "- meta_title: max 60 chars, include name + key selling point + store context\n";
         $prompt .= "- meta_description: max 155 chars, compelling, include call-to-action\n";
@@ -281,7 +318,7 @@ class SeoGeneratorService
     private function buildSinglePrompt(string $entityType, $entity): string
     {
         $typeLabel = str_replace('_', ' ', $entityType);
-        $prompt = "You are an SEO specialist for " . self::STORE_CONTEXT . ". Generate optimized meta tags and Open Graph tags for the following {$typeLabel}.\n\n";
+        $prompt = "You are an SEO specialist for " . $this->storeContext . ". Generate optimized meta tags and Open Graph tags for the following {$typeLabel}.\n\n";
         $prompt .= "Provide:\n";
         $prompt .= "- meta_title: max 60 chars, include name + key selling point + store context\n";
         $prompt .= "- meta_description: max 155 chars, compelling, include call-to-action\n";

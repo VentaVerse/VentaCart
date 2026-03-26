@@ -9,6 +9,14 @@
 
     @if ($metaDescription)
         <meta name="description" content="{{ $metaDescription }}">
+    @elseif (!empty($defaultMetaDescription))
+        <meta name="description" content="{{ $defaultMetaDescription }}">
+    @endif
+    @if (!empty($defaultMetaKeywords))
+        <meta name="keywords" content="{{ $defaultMetaKeywords }}">
+    @endif
+    @if (!empty($googleSiteVerification))
+        <meta name="google-site-verification" content="{{ $googleSiteVerification }}">
     @endif
 
     <link rel="canonical" href="{{ url()->current() }}">

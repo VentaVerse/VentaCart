@@ -17,6 +17,7 @@
                     <option value="complete" {{ $status === 'complete' ? 'selected' : '' }}>Complete</option>
                     <option value="partial" {{ $status === 'partial' ? 'selected' : '' }}>Partial</option>
                     <option value="missing" {{ $status === 'missing' ? 'selected' : '' }}>Missing</option>
+                    <option value="pending" {{ $status === 'pending' ? 'selected' : '' }}>Pending Review</option>
                 </select>
             </div>
             <div class="flex items-center gap-2">
