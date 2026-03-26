@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureAppNameFromDatabase();
         $this->configureMailFromDatabase();
         $this->configureTimezoneFromDatabase();
+        $this->configureAdminPrefixFromDatabase();
 
         $this->app->booted(function () {
             try {
@@ -72,6 +73,21 @@ class AppServiceProvider extends ServiceProvider
             }
         } catch (\Throwable $e) {
             // DB may not be available during migrations
+        }
+    }
+
+    private function configureAdminPrefixFromDatabase(): void
+    {
+        try {
+            $prefix = Setting::where('group', 'security')
+                ->where('key', 'admin_prefix')
+                ->value('value');
+        } catch (\Throwable) {
+            return;
+        }
+
+        if ($prefix && preg_match('/^[a-z][a-z0-9-]*$/', $prefix)) {
+            config(['admin.prefix' => $prefix]);
         }
     }
 

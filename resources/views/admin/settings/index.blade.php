@@ -406,6 +406,30 @@
 
             {{-- ==================== SECURITY ==================== --}}
             <div x-show="activeTab === 'security'" x-cloak class="p-6">
+                <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Admin URL</h3>
+                <p class="text-xs text-gray-500 mb-4">Change the admin panel URL path for security. Default is <code class="bg-gray-100 px-1 rounded">/admin</code>.</p>
+
+                <form method="POST" action="{{ route('admin.settings.update') }}">
+                    @csrf
+                    <input type="hidden" name="group" value="security">
+                    <input type="hidden" name="_tab" value="security">
+                    <div class="space-y-4 max-w-lg">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Admin Path</label>
+                            <div class="mt-1 flex items-center gap-1">
+                                <span class="text-sm text-gray-500">/</span>
+                                <input type="text" name="settings[admin_prefix]" value="{{ $settings['security']['admin_prefix'] ?? 'admin' }}" class="block w-full rounded-md border-gray-300 text-sm font-mono" placeholder="admin" pattern="[a-z][a-z0-9\-]*" required>
+                            </div>
+                            <p class="mt-1 text-xs text-gray-400">Lowercase letters, numbers, and hyphens only. Must start with a letter.</p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                    </div>
+                </form>
+
+                <div class="mt-8 border-t border-gray-200 pt-6"></div>
+
                 <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Cloudflare Turnstile</h3>
                 <p class="text-xs text-gray-500 mb-4">Protects login, registration, contact, and stock notification forms from bots. Get your keys at <a href="https://dash.cloudflare.com/turnstile" target="_blank" class="text-indigo-600 hover:underline">dash.cloudflare.com/turnstile</a>.</p>
 

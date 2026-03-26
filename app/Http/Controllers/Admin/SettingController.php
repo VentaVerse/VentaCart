@@ -54,10 +54,29 @@ class SettingController extends Controller
         return view('admin.settings.index', compact('settings', 'currencies', 'maskedKeys'));
     }
 
+    private const RESERVED_PREFIXES = [
+        'login', 'register', 'logout', 'forgot-password', 'reset-password',
+        'confirm-password', 'verify-email', 'account', 'api', 'storage',
+        'sitemap', 'checkout', 'contact', 'brand', 'brands', 'category',
+        'categories', 'product', 'products', 'blog', 'cart', 'search',
+        'wishlist', 'compare', 'page', 'pages',
+    ];
+
     public function update(Request $request)
     {
         $group = $request->input('group');
         $data = $request->input('settings', []);
+
+        // Validate admin prefix if being updated
+        if ($group === 'security' && isset($data['admin_prefix'])) {
+            $prefix = $data['admin_prefix'];
+            if (!preg_match('/^[a-z][a-z0-9-]*$/', $prefix) || strlen($prefix) < 2 || strlen($prefix) > 50) {
+                return back()->with('error', 'Admin path must be 2-50 characters, lowercase letters, numbers and hyphens only, starting with a letter.')->with('tab', 'security');
+            }
+            if (in_array($prefix, self::RESERVED_PREFIXES)) {
+                return back()->with('error', 'That path is reserved and cannot be used as the admin URL.')->with('tab', 'security');
+            }
+        }
 
         foreach ($data as $key => $value) {
             // Skip empty encrypted fields (don't overwrite existing)
@@ -78,6 +97,12 @@ class SettingController extends Controller
         }
 
         app(ThemeService::class)->clearCache();
+
+        // Redirect to new admin URL after prefix change
+        if ($group === 'security' && isset($data['admin_prefix'])) {
+            $newPrefix = $data['admin_prefix'];
+            return redirect('/' . $newPrefix . '/settings?tab=security')->with('success', 'Admin URL changed to /' . $newPrefix);
+        }
 
         // Custom redirect (e.g., DPH page has its own settings forms)
         if ($redirect = $request->input('_redirect')) {

@@ -145,7 +145,7 @@ Route::prefix('account')->name('account.')->middleware('customer.auth')->group(f
     Route::get('/orders/{order}', [OrderHistoryController::class, 'show'])->name('orders.show');
 });
 
-Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::resource('products', ProductController::class)->except(['show']);
@@ -366,4 +366,4 @@ require __DIR__.'/auth.php';
 // CMS Pages (catch-all — must be absolutely last, after auth routes)
 Route::get('/{slug}', [\App\Http\Controllers\Storefront\PageController::class, 'show'])
     ->name('page.show')
-    ->where('slug', '^(?!admin|login|register|forgot-password|reset-password|confirm-password|verify-email|logout)[a-z0-9][a-z0-9-]*$');
+    ->where('slug', '^(?!' . config('admin.prefix', 'admin') . '|login|register|forgot-password|reset-password|confirm-password|verify-email|logout)[a-z0-9][a-z0-9-]*$');
