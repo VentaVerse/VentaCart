@@ -192,7 +192,7 @@
                             }
                         @endphp
                         {{-- Main Row --}}
-                        <tr class="hover:bg-gray-50 cursor-pointer" @click="if (pendingSuggestions[{{ $entity->id }}]) { expanded = expanded === {{ $entity->id }} ? null : {{ $entity->id }}; suggestion = pendingSuggestions[{{ $entity->id }}]; }">
+                        <tr class="hover:bg-gray-50 cursor-pointer" @click="expanded = expanded === {{ $entity->id }} ? null : {{ $entity->id }}; suggestion = pendingSuggestions[{{ $entity->id }}] || null;">
                             <td class="px-4 py-3" @click.stop>
                                 <input type="checkbox" value="{{ $entity->id }}" x-model.number="selected" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                             </td>
@@ -231,62 +231,66 @@
 
                         {{-- Expandable Suggestion Row --}}
                         <tr x-show="expanded === {{ $entity->id }}" x-cloak>
-                            <td colspan="7" class="px-0 py-0">
+                            <td colspan="6" class="px-0 py-0">
                                 <div class="bg-gray-50 border-t border-b border-gray-200 px-6 py-4">
                                     <div class="flex items-center justify-between mb-3">
-                                        <h4 class="text-xs font-semibold text-gray-700 uppercase tracking-wide">SEO Suggestion Preview</h4>
+                                        <h4 class="text-xs font-semibold text-gray-700 uppercase tracking-wide" x-text="suggestion ? 'SEO Suggestion Preview' : 'Current SEO Meta'"></h4>
                                         <div class="flex items-center gap-2">
-                                            <button @click="acceptSuggestion(suggestion?.id, {{ $entity->id }})" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">
-                                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                                                Accept
-                                            </button>
-                                            <button @click="rejectSuggestion(suggestion?.id, {{ $entity->id }})" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
-                                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                Reject
-                                            </button>
+                                            <template x-if="suggestion">
+                                                <div class="flex items-center gap-2">
+                                                    <button @click="acceptSuggestion(suggestion.id, {{ $entity->id }})" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">
+                                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                                        Accept
+                                                    </button>
+                                                    <button @click="rejectSuggestion(suggestion.id, {{ $entity->id }})" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors">
+                                                        <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            </template>
                                             <button @click="expanded = null" class="inline-flex items-center px-2 py-1.5 text-xs text-gray-500 hover:text-gray-700">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {{-- Meta Title --}}
-                                        <div>
-                                            <p class="text-xs font-medium text-gray-500 mb-1">Current Meta Title</p>
-                                            <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.current_meta_title || '(empty)'"></p>
+
+                                    {{-- With suggestion: side-by-side --}}
+                                    <template x-if="suggestion">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            @foreach (['meta_title' => 'Meta Title', 'meta_description' => 'Meta Description', 'og_title' => 'OG Title', 'og_description' => 'OG Description'] as $field => $label)
+                                                <div>
+                                                    <p class="text-xs font-medium text-gray-500 mb-1">Current {{ $label }}</p>
+                                                    <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion.current_{{ $field }} || '(empty)'"></p>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-medium text-green-600 mb-1">Suggested {{ $label }}</p>
+                                                    <p class="text-sm text-gray-700 bg-green-50 border border-green-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion.suggested_{{ $field }} || '(no change)'"></p>
+                                                </div>
+                                            @endforeach
                                         </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-green-600 mb-1">Suggested Meta Title</p>
-                                            <p class="text-sm text-gray-700 bg-green-50 border border-green-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.suggested_meta_title || '(no change)'"></p>
+                                    </template>
+
+                                    {{-- Without suggestion: current values only --}}
+                                    <template x-if="!suggestion">
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <p class="text-xs font-medium text-gray-500 mb-1">Meta Title</p>
+                                                <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]">{{ $entity->meta_title ?: '(empty)' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-medium text-gray-500 mb-1">Meta Description</p>
+                                                <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]">{{ $entity->meta_description ?: '(empty)' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-medium text-gray-500 mb-1">OG Title</p>
+                                                <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]">{{ $entity->og_title ?: '(empty)' }}</p>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-medium text-gray-500 mb-1">OG Description</p>
+                                                <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]">{{ $entity->og_description ?: '(empty)' }}</p>
+                                            </div>
                                         </div>
-                                        {{-- Meta Description --}}
-                                        <div>
-                                            <p class="text-xs font-medium text-gray-500 mb-1">Current Meta Description</p>
-                                            <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.current_meta_description || '(empty)'"></p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-green-600 mb-1">Suggested Meta Description</p>
-                                            <p class="text-sm text-gray-700 bg-green-50 border border-green-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.suggested_meta_description || '(no change)'"></p>
-                                        </div>
-                                        {{-- OG Title --}}
-                                        <div>
-                                            <p class="text-xs font-medium text-gray-500 mb-1">Current OG Title</p>
-                                            <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.current_og_title || '(empty)'"></p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-green-600 mb-1">Suggested OG Title</p>
-                                            <p class="text-sm text-gray-700 bg-green-50 border border-green-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.suggested_og_title || '(no change)'"></p>
-                                        </div>
-                                        {{-- OG Description --}}
-                                        <div>
-                                            <p class="text-xs font-medium text-gray-500 mb-1">Current OG Description</p>
-                                            <p class="text-sm text-gray-700 bg-white border border-gray-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.current_og_description || '(empty)'"></p>
-                                        </div>
-                                        <div>
-                                            <p class="text-xs font-medium text-green-600 mb-1">Suggested OG Description</p>
-                                            <p class="text-sm text-gray-700 bg-green-50 border border-green-200 rounded px-3 py-2 min-h-[2.5rem]" x-text="suggestion?.suggested_og_description || '(no change)'"></p>
-                                        </div>
-                                    </div>
+                                    </template>
                                 </div>
                             </td>
                         </tr>
