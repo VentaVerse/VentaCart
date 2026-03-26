@@ -17,8 +17,6 @@ Schedule::command('stock:notify')->everyFifteenMinutes();
 // Send review request emails daily at 10am
 Schedule::command('review:send')->dailyAt('10:00');
 
-// Generate SEO suggestions (default monthly on 1st at 3am)
-Schedule::command('seo:generate')->monthlyOn(1, '03:00');
 
 // Generate sitemap daily at 4am
 Schedule::command('sitemap:generate')->dailyAt('04:00');

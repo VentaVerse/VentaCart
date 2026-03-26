@@ -37,6 +37,11 @@ class SeoGeneratorService
         $this->model = Setting::where('group', 'seo')->where('key', 'claude_model')->value('value') ?? 'claude-sonnet-4-5-20250514';
     }
 
+    public function isConfigured(): bool
+    {
+        return !empty($this->apiKey);
+    }
+
     /**
      * Backward-compatible: generate SEO for products only.
      * Called by the seo:generate CLI command.

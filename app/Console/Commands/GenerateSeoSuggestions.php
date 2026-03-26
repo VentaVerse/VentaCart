@@ -12,23 +12,32 @@ class GenerateSeoSuggestions extends Command
 
     public function handle(): int
     {
-        $this->info('Starting SEO generation...');
-
         $service = new SeoGeneratorService();
-        $result = $service->generate();
 
-        if (isset($result['error'])) {
-            $this->error($result['error']);
+        if (!$service->isConfigured()) {
+            $this->error('Claude API key not configured. Set it in Extensions > SEO > Settings.');
             return 1;
         }
 
-        if (isset($result['message'])) {
-            $this->info($result['message']);
-            return 0;
+        $types = ['product', 'category', 'brand', 'blog_post'];
+        $totalSuggestions = 0;
+
+        foreach ($types as $type) {
+            $this->info("Generating SEO for {$type}s...");
+            $result = $service->generateForType($type);
+
+            if (isset($result['error'])) {
+                $this->warn("  {$type}: {$result['error']}");
+                continue;
+            }
+
+            $count = $result['suggestions'] ?? 0;
+            $totalSuggestions += $count;
+            $this->info("  {$type}: {$count} suggestions generated");
         }
 
-        $this->info("Suggestions: {$result['suggestions']}, Errors: {$result['errors']}, Health: {$result['health_score']}%");
-
+        $this->newLine();
+        $this->info("Done. Total: {$totalSuggestions} suggestions.");
         return 0;
     }
 }
