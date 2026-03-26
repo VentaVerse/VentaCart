@@ -51,17 +51,14 @@
                         </div>
                     </div>
 
-                    {{-- Logo / Favicon --}}
+                    {{-- Logo / Favicon (previews only — forms are outside the parent form below) --}}
                     <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-lg">
                         <div>
                             <h4 class="text-sm font-medium text-gray-700 mb-2">Logo</h4>
                             @if (!empty($settings['identity']['logo']))
                                 <div class="flex items-center gap-3 mb-2">
                                     <img src="{{ storage_url($settings['identity']['logo']) }}" class="h-12" alt="Logo">
-                                    <form method="POST" action="{{ route('admin.theme.remove-logo') }}">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700">Remove</button>
-                                    </form>
+                                    <button type="button" onclick="document.getElementById('remove-logo-form').submit()" class="text-xs text-red-500 hover:text-red-700">Remove</button>
                                 </div>
                             @endif
                         </div>
@@ -70,31 +67,22 @@
                             @if (!empty($settings['identity']['favicon']))
                                 <div class="flex items-center gap-3 mb-2">
                                     <img src="{{ storage_url($settings['identity']['favicon']) }}" class="h-8" alt="Favicon">
-                                    <form method="POST" action="{{ route('admin.theme.remove-favicon') }}">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-xs text-red-500 hover:text-red-700">Remove</button>
-                                    </form>
+                                    <button type="button" onclick="document.getElementById('remove-favicon-form').submit()" class="text-xs text-red-500 hover:text-red-700">Remove</button>
                                 </div>
                             @endif
                         </div>
                     </div>
                     <div class="flex gap-2 mt-3 max-w-lg">
-                        <form method="POST" action="{{ route('admin.theme.upload-logo') }}" enctype="multipart/form-data">
-                            @csrf
-                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 cursor-pointer border border-gray-300 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                {{ !empty($settings['identity']['logo']) ? 'Change Logo' : 'Upload Logo' }}
-                                <input type="file" name="logo" accept="image/*" onchange="this.form.submit()" class="sr-only">
-                            </label>
-                        </form>
-                        <form method="POST" action="{{ route('admin.theme.upload-favicon') }}" enctype="multipart/form-data">
-                            @csrf
-                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 cursor-pointer border border-gray-300 transition-colors">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                                {{ !empty($settings['identity']['favicon']) ? 'Change Favicon' : 'Upload Favicon' }}
-                                <input type="file" name="favicon" accept=".ico,.png,.svg" onchange="this.form.submit()" class="sr-only">
-                            </label>
-                        </form>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 cursor-pointer border border-gray-300 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            {{ !empty($settings['identity']['logo']) ? 'Change Logo' : 'Upload Logo' }}
+                            <input type="file" accept="image/*" onchange="document.getElementById('upload-logo-form').querySelector('input[name=logo]').files = this.files; document.getElementById('upload-logo-form').submit();" class="sr-only">
+                        </label>
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 cursor-pointer border border-gray-300 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            {{ !empty($settings['identity']['favicon']) ? 'Change Favicon' : 'Upload Favicon' }}
+                            <input type="file" accept=".ico,.png,.svg" onchange="document.getElementById('upload-favicon-form').querySelector('input[name=favicon]').files = this.files; document.getElementById('upload-favicon-form').submit();" class="sr-only">
+                        </label>
                     </div>
 
                     {{-- Timezone --}}
@@ -116,6 +104,11 @@
                     </div>
                 </form>
 
+                {{-- Logo/Favicon forms (must be outside the parent form) --}}
+                <form id="remove-logo-form" method="POST" action="{{ route('admin.theme.remove-logo') }}" class="hidden">@csrf @method('DELETE')</form>
+                <form id="remove-favicon-form" method="POST" action="{{ route('admin.theme.remove-favicon') }}" class="hidden">@csrf @method('DELETE')</form>
+                <form id="upload-logo-form" method="POST" action="{{ route('admin.theme.upload-logo') }}" enctype="multipart/form-data" class="hidden">@csrf <input type="file" name="logo"></form>
+                <form id="upload-favicon-form" method="POST" action="{{ route('admin.theme.upload-favicon') }}" enctype="multipart/form-data" class="hidden">@csrf <input type="file" name="favicon"></form>
 
             </div>
 
