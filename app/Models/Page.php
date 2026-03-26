@@ -8,8 +8,14 @@ class Page extends Model
 {
     protected $fillable = [
         'store_id', 'title', 'slug', 'body',
-        'meta_title', 'meta_description', 'is_active', 'sort_order',
+        'meta_title', 'meta_description', 'og_title', 'og_description',
+        'is_active', 'sort_order',
     ];
+
+    public function seoSuggestions(): \Illuminate\Database\Eloquent\Relations\MorphMany
+    {
+        return $this->morphMany(SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
+    }
 
     protected function casts(): array
     {

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Brand;
 use App\Models\BlogPost;
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Product;
 use App\Models\SeoReport;
 use App\Models\SeoSuggestion;
@@ -238,6 +239,7 @@ class SeoGeneratorService
             'category' => Category::class,
             'brand' => Brand::class,
             'blog_post' => BlogPost::class,
+            'page' => Page::class,
             default => throw new \InvalidArgumentException("Unknown entity type: {$type}"),
         };
     }
@@ -396,6 +398,16 @@ class SeoGeneratorService
                 return $data;
             })->values()->toArray(),
 
+            'page' => $chunk->map(function ($p) {
+                $data = [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'body_excerpt' => substr(strip_tags($p->body ?? ''), 0, 200),
+                ];
+                if (empty($p->slug)) $data['needs_slug'] = true;
+                return $data;
+            })->values()->toArray(),
+
             default => [],
         };
     }
@@ -410,6 +422,7 @@ class SeoGeneratorService
             'category' => $this->buildCategoryContext($entity),
             'brand' => $this->buildBrandContext($entity),
             'blog_post' => $this->buildBlogPostContext($entity),
+            'page' => $this->buildPageContext($entity),
             default => '',
         };
     }
@@ -473,6 +486,15 @@ class SeoGeneratorService
             $ctx .= "- Tags: " . $tags->join(', ') . "\n";
         }
         $ctx .= "- Excerpt: " . substr(strip_tags($post->excerpt ?? ''), 0, 500) . "\n";
+        return $ctx;
+    }
+
+    private function buildPageContext($page): string
+    {
+        $ctx = "Page details:\n";
+        $ctx .= "- ID: {$page->id}\n";
+        $ctx .= "- Title: {$page->title}\n";
+        $ctx .= "- Body excerpt: " . substr(strip_tags($page->body ?? ''), 0, 500) . "\n";
         return $ctx;
     }
 

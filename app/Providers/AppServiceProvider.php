@@ -28,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
             'category' => \App\Models\Category::class,
             'brand' => \App\Models\Brand::class,
             'blog_post' => \App\Models\BlogPost::class,
+            'page' => \App\Models\Page::class,
         ]);
 
         $this->configureAppNameFromDatabase();

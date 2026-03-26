@@ -19,7 +19,7 @@ class GenerateSeoSuggestions extends Command
             return 1;
         }
 
-        $types = ['product', 'category', 'brand', 'blog_post'];
+        $types = ['product', 'category', 'brand', 'blog_post', 'page'];
         $totalSuggestions = 0;
 
         foreach ($types as $type) {

@@ -302,6 +302,8 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
         Route::get('/search-console', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'searchConsole'])->name('search-console');
         Route::get('/strategy', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'strategy'])->name('strategy');
         Route::get('/review', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'review'])->name('review');
+        Route::get('/slugs', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'slugs'])->name('slugs');
+        Route::post('/slugs/update', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'updateSlug'])->name('update-slug');
         Route::post('/strategy', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'saveStrategy'])->name('save-strategy');
         Route::get('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'settings'])->name('settings');
         Route::post('/settings', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'saveSettings'])->name('save-settings');
@@ -313,7 +315,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
         Route::post('/suggestions/{suggestion}/accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'accept'])->name('accept');
         Route::post('/suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'reject'])->name('reject');
         Route::post('/suggestions/bulk-accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'bulkAccept'])->name('bulk-accept');
-        Route::get('/{type}', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'entities'])->name('entities')->where('type', 'products|categories|brands|blog');
+        Route::get('/{type}', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'entities'])->name('entities')->where('type', 'products|categories|brands|blog|pages');
     });
 
     Route::post('/dph/mapping', [DphController::class, 'updateMapping'])->name('dph.update-mapping');

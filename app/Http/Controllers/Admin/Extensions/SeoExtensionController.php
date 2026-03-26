@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Product;
 use App\Models\SeoSuggestion;
 use App\Models\Setting;
@@ -126,12 +127,12 @@ class SeoExtensionController extends Controller
     public function generate(Request $request)
     {
         $request->validate([
-            'entity_type' => 'required|in:product,category,brand,blog_post,all',
+            'entity_type' => 'required|in:product,category,brand,blog_post,page,all',
         ]);
 
         $service = new SeoGeneratorService();
         $types = $request->entity_type === 'all'
-            ? ['product', 'category', 'brand', 'blog_post']
+            ? ['product', 'category', 'brand', 'blog_post', 'page']
             : [$request->entity_type];
 
         $totalSuggestions = 0;
@@ -162,7 +163,7 @@ class SeoExtensionController extends Controller
     public function optimize(Request $request)
     {
         $request->validate([
-            'entity_type' => 'required|in:product,category,brand,blog_post',
+            'entity_type' => 'required|in:product,category,brand,blog_post,page',
             'entity_id' => 'required|integer',
         ]);
 
@@ -290,6 +291,71 @@ class SeoExtensionController extends Controller
         return view('admin.extensions.seo.search-console', compact(
             'gscConfigured', 'queries', 'pages'
         ));
+    }
+
+    /**
+     * Slugs management tab.
+     */
+    public function slugs(Request $request)
+    {
+        $filter = $request->get('type', 'products');
+        $search = $request->get('search', '');
+
+        $config = $this->entityConfigs()[$filter] ?? $this->entityConfigs()['products'];
+        $modelClass = $config['model'];
+        $nameCol = $config['entityType'] === 'blog_post' ? 'title' : ($config['entityType'] === 'page' ? 'title' : 'name');
+
+        $query = $modelClass::where($config['activeScope'][0], $config['activeScope'][1]);
+
+        if ($search) {
+            $query->where($nameCol, 'like', "%{$search}%");
+        }
+
+        $entities = $query->select('id', $nameCol . ' as display_name', 'slug')
+            ->orderBy($nameCol)
+            ->paginate(30)
+            ->appends($request->query());
+
+        $entityType = $config['entityType'];
+
+        return view('admin.extensions.seo.slugs', compact('entities', 'filter', 'search', 'entityType'));
+    }
+
+    /**
+     * Update a single entity's slug.
+     */
+    public function updateSlug(Request $request)
+    {
+        $request->validate([
+            'entity_type' => 'required|in:product,category,brand,blog_post,page',
+            'entity_id' => 'required|integer',
+            'slug' => 'required|string|max:255|regex:/^[a-z0-9][a-z0-9-]*$/',
+        ]);
+
+        $modelClass = $this->getModelClassFromType($request->entity_type);
+        $entity = $modelClass::findOrFail($request->entity_id);
+
+        // Check uniqueness within the same table
+        $existing = $modelClass::where('slug', $request->slug)->where('id', '!=', $entity->id)->exists();
+        if ($existing) {
+            return response()->json(['error' => 'Slug already in use.'], 422);
+        }
+
+        $entity->update(['slug' => $request->slug]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    private function getModelClassFromType(string $type): string
+    {
+        return match ($type) {
+            'product' => Product::class,
+            'category' => Category::class,
+            'brand' => Brand::class,
+            'blog_post' => BlogPost::class,
+            'page' => Page::class,
+            default => abort(404),
+        };
     }
 
     /**
@@ -502,6 +568,7 @@ class SeoExtensionController extends Controller
             'categories' => ['model' => Category::class, 'activeScope' => ['is_active', true], 'entityType' => 'category', 'editRoute' => 'admin.categories.edit'],
             'brands' => ['model' => Brand::class, 'activeScope' => ['is_active', true], 'entityType' => 'brand', 'editRoute' => 'admin.brands.edit'],
             'blog' => ['model' => BlogPost::class, 'activeScope' => ['is_published', true], 'entityType' => 'blog_post', 'editRoute' => 'admin.blog.edit'],
+            'pages' => ['model' => Page::class, 'activeScope' => ['is_active', true], 'entityType' => 'page', 'editRoute' => 'admin.pages.edit'],
         ];
     }
 
