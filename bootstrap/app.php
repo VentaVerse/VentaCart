@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'customer.auth' => \App\Http\Middleware\CustomerAuthenticated::class,
             'erp.auth' => \App\Http\Middleware\ErpApiAuth::class,
         ]);
+
+        $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

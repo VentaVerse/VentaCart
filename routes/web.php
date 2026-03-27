@@ -416,4 +416,4 @@ require __DIR__.'/auth.php';
 // CMS Pages (catch-all — must be absolutely last, after auth routes)
 Route::get('/{slug}', [\App\Http\Controllers\Storefront\PageController::class, 'show'])
     ->name('page.show')
-    ->where('slug', '^(?!' . config('admin.prefix', 'admin') . '|login|register|forgot-password|reset-password|confirm-password|verify-email|logout)[a-z0-9][a-z0-9-]*$');
+    ->where('slug', '^(?!' . config('admin.prefix', 'admin') . ')[a-z0-9][a-z0-9-]*$');
