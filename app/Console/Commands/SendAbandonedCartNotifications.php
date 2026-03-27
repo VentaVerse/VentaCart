@@ -67,7 +67,7 @@ class SendAbandonedCartNotifications extends Command
             $matchedRule = null;
             foreach ($rules as $rule) {
                 // Check cart age
-                $ageHours = now()->diffInHours($cart->updated_at);
+                $ageHours = $cart->updated_at->diffInHours(now());
                 if ($ageHours < $rule->min_cart_age_hours) {
                     continue;
                 }
