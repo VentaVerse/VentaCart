@@ -32,4 +32,13 @@ class ApiSyncLogController extends Controller
 
         return view('admin.api-sync-logs.index', compact('logs'));
     }
+
+    public function destroyAll()
+    {
+        $count = ApiSyncLog::count();
+        ApiSyncLog::truncate();
+
+        return redirect()->route('admin.api-sync-logs.index')
+            ->with('success', "{$count} log(s) deleted.");
+    }
 }

@@ -262,6 +262,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
 
     // API Sync Logs
     Route::get('/api-sync-logs', [ApiSyncLogController::class, 'index'])->name('api-sync-logs.index');
+    Route::delete('/api-sync-logs', [ApiSyncLogController::class, 'destroyAll'])->name('api-sync-logs.destroy-all');
 
     Route::get('shipping-zones', [ShippingZoneController::class, 'index'])->name('shipping-zones.index');
     Route::get('shipping-zones/{geoZone}/edit', [ShippingZoneController::class, 'edit'])->name('shipping-zones.edit');

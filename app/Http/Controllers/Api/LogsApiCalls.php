@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Models\ApiSyncLog;
+use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -11,6 +12,14 @@ trait LogsApiCalls
     protected function logAndRespond(Request $request, mixed $data, int $status = 200, ?string $sku = null): JsonResponse
     {
         $response = response()->json($data, $status);
+
+        $enabled = Setting::where('group', 'api')
+            ->where('key', 'api_sync_log_enabled')
+            ->value('value') ?? '1';
+
+        if ($enabled !== '1') {
+            return $response;
+        }
 
         ApiSyncLog::create([
             'method' => $request->method(),

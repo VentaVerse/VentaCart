@@ -32,6 +32,10 @@
                 <a href="{{ route('admin.api-sync-logs.index') }}" class="text-sm text-gray-500 hover:text-gray-700">Clear</a>
             @endif
         </form>
+        <form method="POST" action="{{ route('admin.api-sync-logs.destroy-all') }}" class="mt-3" onsubmit="return confirm('Delete ALL API sync logs? This cannot be undone.')">
+            @csrf @method('DELETE')
+            <button type="submit" class="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-lg hover:bg-red-200 transition-colors">Delete All Logs</button>
+        </form>
     </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">

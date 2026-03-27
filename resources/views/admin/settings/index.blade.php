@@ -418,6 +418,23 @@
                     <p class="mt-3 text-xs text-gray-400">All requests require <code class="bg-gray-100 px-1 rounded">Authorization: Bearer {token}</code> header.</p>
                 </div>
 
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Sync Logging</h3>
+                    <form method="POST" action="{{ route('admin.settings.update') }}">
+                        @csrf
+                        <input type="hidden" name="_redirect" value="{{ route('admin.settings.index', ['tab' => 'api']) }}">
+                        <input type="hidden" name="group" value="api">
+                        <div class="flex items-center gap-2 mb-4">
+                            <input type="hidden" name="api_sync_log_enabled" value="0">
+                            <input type="checkbox" name="api_sync_log_enabled" id="api_sync_log_enabled" value="1"
+                                {{ ($settings['api']['api_sync_log_enabled'] ?? '1') === '1' ? 'checked' : '' }}
+                                class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <label for="api_sync_log_enabled" class="text-sm text-gray-700">Log API sync requests to database</label>
+                        </div>
+                        <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">Save</button>
+                    </form>
+                </div>
+
                 <div class="mt-6 flex justify-end">
                     <a href="{{ route('admin.api-sync-logs.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
                         View API Sync Logs &rarr;
