@@ -36,7 +36,7 @@
             <p class="text-sm text-gray-500 mb-4">Add this command to your server's crontab to send abandoned cart notifications. Adjust the schedule to your preference.</p>
 
             <div class="flex items-center gap-2">
-                <code class="flex-1 block px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm font-mono text-gray-700" id="cron-cmd">cd {{ base_path() }} && php artisan cart:notify >> /dev/null 2>&1</code>
+                <code class="flex-1 block px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm font-mono text-gray-700" id="cron-cmd">/usr/bin/php {{ base_path() }}/artisan cart:notify >> /dev/null 2>&1</code>
                 <button type="button" onclick="copyCron('cron-cmd')" class="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Copy</button>
             </div>
 
