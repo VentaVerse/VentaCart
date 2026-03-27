@@ -65,15 +65,8 @@
     </div>
 
     {{-- Table --}}
-    <form id="bulk-form" method="POST" action="{{ route('admin.abandoned-carts.bulk-delete') }}">
-        @csrf
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
-                <button type="submit" onclick="return confirm('Delete selected abandoned carts?')"
-                    class="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors hidden" id="bulk-delete-btn">
-                    Delete Selected
-                </button>
-                <div class="ml-auto flex items-center gap-2">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-end gap-2">
                     <button type="button" onclick="if(confirm('Delete ALL guest carts? This cannot be undone.')) document.getElementById('mass-delete-guests').submit()"
                         class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300 transition-colors">
                         Delete All Guests
@@ -82,14 +75,10 @@
                         class="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-lg hover:bg-red-200 transition-colors">
                         Delete All
                     </button>
-                </div>
             </div>
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left">
-                            <input type="checkbox" id="select-all" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        </th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
@@ -100,9 +89,6 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse ($carts as $cart)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4">
-                                <input type="checkbox" name="ids[]" value="{{ $cart->id }}" class="cart-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            </td>
                             <td class="px-6 py-4">
                                 @if ($cart->customer)
                                     <div class="text-sm font-medium text-gray-900">{{ $cart->customer->first_name }} {{ $cart->customer->last_name }}</div>
@@ -124,7 +110,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">No abandoned carts found.</td>
+                            <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">No abandoned carts found.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -135,8 +121,7 @@
                     {{ $carts->links() }}
                 </div>
             @endif
-        </div>
-    </form>
+    </div>
 
     <form id="mass-delete-guests" method="POST" action="{{ route('admin.abandoned-carts.mass-delete') }}">
         @csrf
@@ -147,15 +132,4 @@
         <input type="hidden" name="type" value="all">
     </form>
 
-    <script>
-        document.getElementById('select-all')?.addEventListener('change', function () {
-            document.querySelectorAll('.cart-checkbox').forEach(cb => cb.checked = this.checked);
-            toggleBulkBtn();
-        });
-        document.querySelectorAll('.cart-checkbox').forEach(cb => cb.addEventListener('change', toggleBulkBtn));
-        function toggleBulkBtn() {
-            const checked = document.querySelectorAll('.cart-checkbox:checked').length;
-            document.getElementById('bulk-delete-btn').classList.toggle('hidden', checked === 0);
-        }
-    </script>
 </x-admin-layout>

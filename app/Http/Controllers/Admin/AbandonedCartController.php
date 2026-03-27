@@ -77,22 +77,6 @@ class AbandonedCartController extends Controller
         return redirect()->route('admin.abandoned-carts.index')->with('success', 'Abandoned cart deleted.');
     }
 
-    public function bulkDelete(Request $request)
-    {
-        $ids = $request->input('ids', []);
-
-        if (empty($ids)) {
-            return back()->with('error', 'No carts selected.');
-        }
-
-        Cart::whereIn('id', $ids)->each(function ($cart) {
-            $cart->items()->delete();
-            $cart->delete();
-        });
-
-        return back()->with('success', count($ids) . ' abandoned cart(s) deleted.');
-    }
-
     public function massDelete(Request $request)
     {
         $type = $request->input('type');
