@@ -9,10 +9,27 @@ use App\Models\Cart;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
 use App\Models\OrderProduct;
+use App\Models\Setting;
+use App\Services\TemplateMailService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AbandonedCartController extends Controller
 {
+    private const ABANDONED_CART_SLUGS = ['abandoned_cart_reminder', 'abandoned_cart_final'];
+
+    private const PLACEHOLDER_MAP = [
+        'abandoned_cart_reminder' => ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'],
+        'abandoned_cart_final' => ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'],
+    ];
+
+    private const TEST_DATA = [
+        'customer_name' => 'John Doe',
+        'cart_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
+        'cart_total' => '4,599.00',
+        'cart_url' => '#',
+        'store_name' => 'NewGearDay',
+    ];
     public function index(Request $request)
     {
         $query = Cart::with(['customer', 'items.product'])
@@ -76,6 +93,56 @@ class AbandonedCartController extends Controller
         return back()->with('success', count($ids) . ' abandoned cart(s) deleted.');
     }
 
+    // --- Templates ---
+
+    public function templates()
+    {
+        $templates = EmailTemplate::whereIn('slug', self::ABANDONED_CART_SLUGS)
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.abandoned-carts.templates', compact('templates'));
+    }
+
+    public function editTemplate(EmailTemplate $emailTemplate)
+    {
+        $placeholders = self::PLACEHOLDER_MAP[$emailTemplate->slug] ?? [];
+
+        return view('admin.abandoned-carts.template-form', compact('emailTemplate', 'placeholders'));
+    }
+
+    public function updateTemplate(Request $request, EmailTemplate $emailTemplate)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'subject' => 'required|string|max:500',
+            'body' => 'required|string',
+        ]);
+
+        $emailTemplate->update($validated);
+
+        return redirect()->route('admin.abandoned-carts.templates')
+            ->with('success', 'Template updated.');
+    }
+
+    public function toggleTemplate(EmailTemplate $emailTemplate)
+    {
+        $emailTemplate->update(['is_active' => !$emailTemplate->is_active]);
+
+        return back()->with('success', 'Template ' . ($emailTemplate->is_active ? 'enabled' : 'disabled') . '.');
+    }
+
+    public function testTemplate(EmailTemplate $emailTemplate)
+    {
+        $adminEmail = Auth::user()->email;
+        $success = TemplateMailService::send($emailTemplate->slug, $adminEmail, self::TEST_DATA);
+
+        return back()->with(
+            $success ? 'success' : 'error',
+            $success ? "Test email sent to {$adminEmail}." : 'Failed to send test email.'
+        );
+    }
+
     // --- Rules ---
 
     public function rules()
@@ -89,7 +156,10 @@ class AbandonedCartController extends Controller
 
     public function createRule()
     {
-        $templates = EmailTemplate::where('is_active', true)->orderBy('name')->get();
+        $templates = EmailTemplate::whereIn('slug', self::ABANDONED_CART_SLUGS)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
         return view('admin.abandoned-carts.rule-form', [
@@ -120,7 +190,10 @@ class AbandonedCartController extends Controller
 
     public function editRule(AbandonedCartRule $rule)
     {
-        $templates = EmailTemplate::where('is_active', true)->orderBy('name')->get();
+        $templates = EmailTemplate::whereIn('slug', self::ABANDONED_CART_SLUGS)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
         return view('admin.abandoned-carts.rule-form', compact('rule', 'templates', 'customerGroups'));
@@ -213,5 +286,27 @@ class AbandonedCartController extends Controller
         }
 
         return view('admin.abandoned-carts.recovered', compact('recoveredCarts'));
+    }
+
+    // --- Settings ---
+
+    public function settings()
+    {
+        $enabled = Setting::where('group', 'abandoned_cart')
+            ->where('key', 'enabled')
+            ->value('value') === '1';
+
+        return view('admin.abandoned-carts.settings', compact('enabled'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        Setting::updateOrCreate(
+            ['group' => 'abandoned_cart', 'key' => 'enabled'],
+            ['value' => $request->boolean('enabled') ? '1' : '0']
+        );
+
+        return redirect()->route('admin.abandoned-carts.settings')
+            ->with('success', 'Settings updated.');
     }
 }

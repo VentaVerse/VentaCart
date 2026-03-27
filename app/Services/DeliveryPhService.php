@@ -15,6 +15,7 @@ class DeliveryPhService
     private string $baseUrl;
     private string $email;
     private string $password;
+    private string $mode;
 
     public function __construct()
     {
@@ -22,8 +23,8 @@ class DeliveryPhService
             ->whereIn('key', ['dph_mode', 'dph_email', 'dph_password', 'dph_production_url'])
             ->pluck('value', 'key');
 
-        $mode = $settings->get('dph_mode', 'sandbox');
-        $this->baseUrl = $mode === 'production'
+        $this->mode = $settings->get('dph_mode', 'sandbox');
+        $this->baseUrl = $this->mode === 'production'
             ? ($settings->get('dph_production_url') ?: self::SANDBOX_URL)
             : self::SANDBOX_URL;
 
@@ -252,6 +253,23 @@ class DeliveryPhService
      */
     public function createPost(array $pickupDetails, array $deliveryDetails, string $partnerId, string $refNo, bool $isPsgc = true): array
     {
+        // Auto-populate metaFields with postal codes if not already set
+        if (!isset($deliveryDetails['metaFields'])) {
+            $deliveryDetails['metaFields'] = [];
+        }
+        $deliveryDetails['metaFields'] += [
+            'pickup_postal_code' => $pickupDetails['postalCode'] ?? '',
+            'delivery_postal_code' => $deliveryDetails['postalCode'] ?? '',
+        ];
+
+        // Sandbox requires additional test metaFields
+        if ($this->mode === 'sandbox') {
+            $deliveryDetails['metaFields'] += [
+                'sampleString' => 'test',
+                'sampleDropdown' => 'first',
+            ];
+        }
+
         $body = [
             'refNo' => $refNo,
             'isPSGC' => $isPsgc,

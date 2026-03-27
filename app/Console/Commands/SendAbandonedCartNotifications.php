@@ -17,6 +17,15 @@ class SendAbandonedCartNotifications extends Command
 
     public function handle(): int
     {
+        $enabled = Setting::where('group', 'abandoned_cart')
+            ->where('key', 'enabled')
+            ->value('value') === '1';
+
+        if (!$enabled) {
+            $this->info('Abandoned cart notifications are disabled.');
+            return self::SUCCESS;
+        }
+
         $rules = AbandonedCartRule::where('is_active', true)
             ->with('emailTemplate')
             ->orderByDesc('priority')

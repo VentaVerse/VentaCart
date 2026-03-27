@@ -19,8 +19,6 @@ class EmailTemplateController extends Controller
         'review_request' => ['customer_name', 'product_name', 'product_image', 'review_url', 'store_name'],
         'new_order_admin' => ['order_id', 'customer_name', 'customer_email', 'order_total', 'order_items', 'payment_method'],
         'low_stock_admin' => ['product_name', 'product_sku', 'current_qty', 'store_name'],
-        'abandoned_cart_reminder' => ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'],
-        'abandoned_cart_final' => ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'],
     ];
 
     private const TEST_DATA = [
@@ -43,14 +41,12 @@ class EmailTemplateController extends Controller
         'customer_email' => 'john@example.com',
         'product_sku' => 'BOSS-DS1',
         'current_qty' => '2',
-        'cart_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
-        'cart_total' => '4,599.00',
-        'cart_url' => '#',
     ];
 
     public function index()
     {
-        $templates = EmailTemplate::orderBy('type')->orderBy('name')->get();
+        $templates = EmailTemplate::where('slug', 'not like', 'abandoned_cart_%')
+            ->orderBy('type')->orderBy('name')->get();
 
         return view('admin.email-templates.index', compact('templates'));
     }

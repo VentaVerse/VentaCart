@@ -279,8 +279,15 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::get('/abandoned-carts/rules/{rule}/edit', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'editRule'])->name('abandoned-carts.rules.edit');
     Route::put('/abandoned-carts/rules/{rule}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'updateRule'])->name('abandoned-carts.rules.update');
     Route::delete('/abandoned-carts/rules/{rule}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'destroyRule'])->name('abandoned-carts.rules.destroy');
+    Route::get('/abandoned-carts/templates', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'templates'])->name('abandoned-carts.templates');
+    Route::get('/abandoned-carts/templates/{emailTemplate}/edit', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'editTemplate'])->name('abandoned-carts.templates.edit');
+    Route::put('/abandoned-carts/templates/{emailTemplate}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'updateTemplate'])->name('abandoned-carts.templates.update');
+    Route::post('/abandoned-carts/templates/{emailTemplate}/toggle', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'toggleTemplate'])->name('abandoned-carts.templates.toggle');
+    Route::post('/abandoned-carts/templates/{emailTemplate}/test', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'testTemplate'])->name('abandoned-carts.templates.test');
     Route::get('/abandoned-carts/notifications', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'notifications'])->name('abandoned-carts.notifications');
     Route::get('/abandoned-carts/recovered', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'recovered'])->name('abandoned-carts.recovered');
+    Route::get('/abandoned-carts/settings', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'settings'])->name('abandoned-carts.settings');
+    Route::post('/abandoned-carts/settings', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'updateSettings'])->name('abandoned-carts.settings.update');
     Route::get('/abandoned-carts/{cart}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'show'])->name('abandoned-carts.show');
     Route::delete('/abandoned-carts/{cart}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'destroy'])->name('abandoned-carts.destroy');
     Route::post('/abandoned-carts/bulk-delete', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'bulkDelete'])->name('abandoned-carts.bulk-delete');
