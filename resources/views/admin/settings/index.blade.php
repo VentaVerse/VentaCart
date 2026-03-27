@@ -425,8 +425,8 @@
                         <input type="hidden" name="_redirect" value="{{ route('admin.settings.index', ['tab' => 'api']) }}">
                         <input type="hidden" name="group" value="api">
                         <div class="flex items-center gap-2 mb-4">
-                            <input type="hidden" name="api_sync_log_enabled" value="0">
-                            <input type="checkbox" name="api_sync_log_enabled" id="api_sync_log_enabled" value="1"
+                            <input type="hidden" name="settings[api_sync_log_enabled]" value="0">
+                            <input type="checkbox" name="settings[api_sync_log_enabled]" id="api_sync_log_enabled" value="1"
                                 {{ ($settings['api']['api_sync_log_enabled'] ?? '1') === '1' ? 'checked' : '' }}
                                 class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                             <label for="api_sync_log_enabled" class="text-sm text-gray-700">Log API sync requests to database</label>
