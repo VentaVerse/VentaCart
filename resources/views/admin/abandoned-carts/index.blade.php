@@ -73,6 +73,16 @@
                     class="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors hidden" id="bulk-delete-btn">
                     Delete Selected
                 </button>
+                <div class="ml-auto flex items-center gap-2">
+                    <button type="button" onclick="if(confirm('Delete ALL guest carts? This cannot be undone.')) document.getElementById('mass-delete-guests').submit()"
+                        class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300 transition-colors">
+                        Delete All Guests
+                    </button>
+                    <button type="button" onclick="if(confirm('Delete ALL abandoned carts? This cannot be undone.')) document.getElementById('mass-delete-all').submit()"
+                        class="px-3 py-1.5 bg-red-100 text-red-700 text-xs font-medium rounded-lg hover:bg-red-200 transition-colors">
+                        Delete All
+                    </button>
+                </div>
             </div>
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
@@ -126,6 +136,15 @@
                 </div>
             @endif
         </div>
+    </form>
+
+    <form id="mass-delete-guests" method="POST" action="{{ route('admin.abandoned-carts.mass-delete') }}">
+        @csrf
+        <input type="hidden" name="type" value="guest">
+    </form>
+    <form id="mass-delete-all" method="POST" action="{{ route('admin.abandoned-carts.mass-delete') }}">
+        @csrf
+        <input type="hidden" name="type" value="all">
     </form>
 
     <script>

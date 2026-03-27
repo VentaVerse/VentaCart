@@ -93,6 +93,30 @@ class AbandonedCartController extends Controller
         return back()->with('success', count($ids) . ' abandoned cart(s) deleted.');
     }
 
+    public function massDelete(Request $request)
+    {
+        $type = $request->input('type');
+
+        $query = Cart::whereHas('items')
+            ->where('updated_at', '<', now()->subHour());
+
+        if ($type === 'guest') {
+            $query->whereNull('customer_id');
+        }
+
+        $count = 0;
+        $query->each(function ($cart) use (&$count) {
+            $cart->items()->delete();
+            $cart->delete();
+            $count++;
+        });
+
+        $label = $type === 'guest' ? 'guest ' : '';
+
+        return redirect()->route('admin.abandoned-carts.index')
+            ->with('success', "{$count} {$label}abandoned cart(s) deleted.");
+    }
+
     // --- Templates ---
 
     public function templates()

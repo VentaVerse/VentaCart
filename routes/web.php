@@ -291,6 +291,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::get('/abandoned-carts/{cart}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'show'])->name('abandoned-carts.show');
     Route::delete('/abandoned-carts/{cart}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'destroy'])->name('abandoned-carts.destroy');
     Route::post('/abandoned-carts/bulk-delete', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'bulkDelete'])->name('abandoned-carts.bulk-delete');
+    Route::post('/abandoned-carts/mass-delete', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'massDelete'])->name('abandoned-carts.mass-delete');
 
     // Stock Notifications
     Route::get('/stock-notifications', [AdminStockNotificationController::class, 'index'])->name('stock-notifications.index');
