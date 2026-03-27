@@ -46,10 +46,12 @@ class SendAbandonedCartNotifications extends Command
         $skippedMaxed = 0;
         $skippedRecovered = 0;
 
+        $skippedOutOfStock = 0;
+
         // Get all abandoned carts for registered customers
         $carts = Cart::whereNotNull('customer_id')
             ->whereHas('items')
-            ->with(['customer', 'items'])
+            ->with(['customer', 'items.product', 'items.productVariant'])
             ->get();
 
         foreach ($carts as $cart) {
@@ -102,6 +104,22 @@ class SendAbandonedCartNotifications extends Command
                 continue;
             }
 
+            // Skip if all cart items are out of stock
+            $hasInStock = $cart->items->contains(function ($item) {
+                if ($item->product_variant_id && $item->productVariant) {
+                    return $item->productVariant->quantity > 0;
+                }
+                if ($item->product && $item->product->track_stock) {
+                    return $item->product->quantity > 0;
+                }
+                return true; // not tracking stock = assume available
+            });
+
+            if (!$hasInStock) {
+                $skippedOutOfStock++;
+                continue;
+            }
+
             // Build cart items HTML
             $cartItemsHtml = $cart->items->map(function ($item) {
                 $label = $item->name;
@@ -142,7 +160,7 @@ class SendAbandonedCartNotifications extends Command
             }
         }
 
-        $this->info("Abandoned cart notifications: {$sent} sent, {$skippedMaxed} maxed out, {$skippedRecovered} recovered.");
+        $this->info("Abandoned cart notifications: {$sent} sent, {$skippedMaxed} maxed out, {$skippedRecovered} recovered, {$skippedOutOfStock} out of stock.");
         return self::SUCCESS;
     }
 }

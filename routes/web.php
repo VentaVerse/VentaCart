@@ -280,6 +280,8 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::put('/abandoned-carts/rules/{rule}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'updateRule'])->name('abandoned-carts.rules.update');
     Route::delete('/abandoned-carts/rules/{rule}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'destroyRule'])->name('abandoned-carts.rules.destroy');
     Route::get('/abandoned-carts/templates', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'templates'])->name('abandoned-carts.templates');
+    Route::get('/abandoned-carts/templates/create', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'createTemplate'])->name('abandoned-carts.templates.create');
+    Route::post('/abandoned-carts/templates', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'storeTemplate'])->name('abandoned-carts.templates.store');
     Route::get('/abandoned-carts/templates/{emailTemplate}/edit', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'editTemplate'])->name('abandoned-carts.templates.edit');
     Route::put('/abandoned-carts/templates/{emailTemplate}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'updateTemplate'])->name('abandoned-carts.templates.update');
     Route::post('/abandoned-carts/templates/{emailTemplate}/toggle', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'toggleTemplate'])->name('abandoned-carts.templates.toggle');

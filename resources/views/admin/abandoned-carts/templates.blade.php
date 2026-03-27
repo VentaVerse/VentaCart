@@ -13,7 +13,10 @@
         </nav>
     </div>
 
-    <p class="text-sm text-gray-500 mb-4">Email templates used by abandoned cart notification rules. These are independent from the core email templates.</p>
+    <div class="flex justify-between items-center mb-4">
+        <p class="text-sm text-gray-500">Email templates used by abandoned cart notification rules. These are independent from the core email templates.</p>
+        <a href="{{ route('admin.abandoned-carts.templates.create') }}" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">Create Template</a>
+    </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <table class="min-w-full divide-y divide-gray-200">

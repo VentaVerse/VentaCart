@@ -16,12 +16,7 @@ use Illuminate\Support\Facades\Auth;
 
 class AbandonedCartController extends Controller
 {
-    private const ABANDONED_CART_SLUGS = ['abandoned_cart_reminder', 'abandoned_cart_final'];
-
-    private const PLACEHOLDER_MAP = [
-        'abandoned_cart_reminder' => ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'],
-        'abandoned_cart_final' => ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'],
-    ];
+    private const ABANDONED_CART_PLACEHOLDERS = ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'];
 
     private const TEST_DATA = [
         'customer_name' => 'John Doe',
@@ -105,16 +100,45 @@ class AbandonedCartController extends Controller
 
     public function templates()
     {
-        $templates = EmailTemplate::whereIn('slug', self::ABANDONED_CART_SLUGS)
+        $templates = EmailTemplate::where('slug', 'like', 'abandoned_cart_%')
             ->orderBy('name')
             ->get();
 
         return view('admin.abandoned-carts.templates', compact('templates'));
     }
 
+    public function createTemplate()
+    {
+        $placeholders = self::ABANDONED_CART_PLACEHOLDERS;
+
+        return view('admin.abandoned-carts.template-form', [
+            'emailTemplate' => null,
+            'placeholders' => $placeholders,
+        ]);
+    }
+
+    public function storeTemplate(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|regex:/^abandoned_cart_/|unique:email_templates,slug',
+            'subject' => 'required|string|max:500',
+            'body' => 'required|string',
+        ]);
+
+        $validated['store_id'] = 1;
+        $validated['type'] = 'customer';
+        $validated['is_active'] = true;
+
+        EmailTemplate::create($validated);
+
+        return redirect()->route('admin.abandoned-carts.templates')
+            ->with('success', 'Template created.');
+    }
+
     public function editTemplate(EmailTemplate $emailTemplate)
     {
-        $placeholders = self::PLACEHOLDER_MAP[$emailTemplate->slug] ?? [];
+        $placeholders = self::ABANDONED_CART_PLACEHOLDERS;
 
         return view('admin.abandoned-carts.template-form', compact('emailTemplate', 'placeholders'));
     }
@@ -164,7 +188,7 @@ class AbandonedCartController extends Controller
 
     public function createRule()
     {
-        $templates = EmailTemplate::whereIn('slug', self::ABANDONED_CART_SLUGS)
+        $templates = EmailTemplate::where('slug', 'like', 'abandoned_cart_%')
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -198,7 +222,7 @@ class AbandonedCartController extends Controller
 
     public function editRule(AbandonedCartRule $rule)
     {
-        $templates = EmailTemplate::whereIn('slug', self::ABANDONED_CART_SLUGS)
+        $templates = EmailTemplate::where('slug', 'like', 'abandoned_cart_%')
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
@@ -245,7 +269,7 @@ class AbandonedCartController extends Controller
 
         $notifications = $query->paginate(25)->withQueryString();
 
-        $templates = EmailTemplate::whereIn('slug', ['abandoned_cart_reminder', 'abandoned_cart_final'])
+        $templates = EmailTemplate::where('slug', 'like', 'abandoned_cart_%')
             ->orderBy('name')
             ->get();
 
