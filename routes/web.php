@@ -286,6 +286,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::put('/abandoned-carts/templates/{emailTemplate}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'updateTemplate'])->name('abandoned-carts.templates.update');
     Route::post('/abandoned-carts/templates/{emailTemplate}/toggle', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'toggleTemplate'])->name('abandoned-carts.templates.toggle');
     Route::post('/abandoned-carts/templates/{emailTemplate}/test', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'testTemplate'])->name('abandoned-carts.templates.test');
+    Route::delete('/abandoned-carts/templates/{emailTemplate}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'destroyTemplate'])->name('abandoned-carts.templates.destroy');
     Route::get('/abandoned-carts/notifications', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'notifications'])->name('abandoned-carts.notifications');
     Route::get('/abandoned-carts/recovered', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'recovered'])->name('abandoned-carts.recovered');
     Route::get('/abandoned-carts/settings', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'settings'])->name('abandoned-carts.settings');

@@ -157,6 +157,20 @@ class AbandonedCartController extends Controller
             ->with('success', 'Template updated.');
     }
 
+    public function destroyTemplate(EmailTemplate $emailTemplate)
+    {
+        $inUse = AbandonedCartRule::where('email_template_id', $emailTemplate->id)->exists();
+
+        if ($inUse) {
+            return back()->with('error', 'Cannot delete — this template is used by a rule.');
+        }
+
+        $emailTemplate->delete();
+
+        return redirect()->route('admin.abandoned-carts.templates')
+            ->with('success', 'Template deleted.');
+    }
+
     public function toggleTemplate(EmailTemplate $emailTemplate)
     {
         $emailTemplate->update(['is_active' => !$emailTemplate->is_active]);

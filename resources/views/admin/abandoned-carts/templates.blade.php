@@ -50,6 +50,10 @@
                                 @csrf
                                 <button type="submit" class="text-gray-600 hover:text-gray-900">Send Test</button>
                             </form>
+                            <form method="POST" action="{{ route('admin.abandoned-carts.templates.destroy', $template) }}" class="inline" onsubmit="return confirm('Delete this template?')">
+                                @csrf @method('DELETE')
+                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                            </form>
                         </td>
                     </tr>
                 @empty
