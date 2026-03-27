@@ -20,11 +20,17 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h3 class="text-sm font-medium text-gray-900">Abandoned Cart Notifications</h3>
                 <p class="text-sm text-gray-500 mt-1 mb-4">When enabled, the cron command will process rules and send notification emails to customers with abandoned carts.</p>
-                <div class="flex items-center gap-2 mb-4">
+                <div class="flex items-center gap-2 mb-3">
                     <input type="hidden" name="enabled" value="0">
                     <input type="checkbox" name="enabled" id="enabled" value="1" {{ $enabled ? 'checked' : '' }}
                         class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                     <label for="enabled" class="text-sm font-medium text-gray-700">Enable abandoned cart notifications</label>
+                </div>
+                <div class="flex items-center gap-2 mb-4">
+                    <input type="hidden" name="skip_out_of_stock" value="0">
+                    <input type="checkbox" name="skip_out_of_stock" id="skip_out_of_stock" value="1" {{ $skipOutOfStock ? 'checked' : '' }}
+                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <label for="skip_out_of_stock" class="text-sm text-gray-700">Skip notifications when all cart items are out of stock</label>
                 </div>
                 <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">Save</button>
             </div>

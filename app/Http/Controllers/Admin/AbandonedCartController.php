@@ -338,11 +338,14 @@ class AbandonedCartController extends Controller
 
     public function settings()
     {
-        $enabled = Setting::where('group', 'abandoned_cart')
-            ->where('key', 'enabled')
-            ->value('value') === '1';
+        $settings = Setting::where('group', 'abandoned_cart')
+            ->whereIn('key', ['enabled', 'skip_out_of_stock'])
+            ->pluck('value', 'key');
 
-        return view('admin.abandoned-carts.settings', compact('enabled'));
+        $enabled = ($settings->get('enabled') ?? '0') === '1';
+        $skipOutOfStock = ($settings->get('skip_out_of_stock') ?? '1') === '1';
+
+        return view('admin.abandoned-carts.settings', compact('enabled', 'skipOutOfStock'));
     }
 
     public function updateSettings(Request $request)
@@ -350,6 +353,11 @@ class AbandonedCartController extends Controller
         Setting::updateOrCreate(
             ['group' => 'abandoned_cart', 'key' => 'enabled'],
             ['value' => $request->boolean('enabled') ? '1' : '0']
+        );
+
+        Setting::updateOrCreate(
+            ['group' => 'abandoned_cart', 'key' => 'skip_out_of_stock'],
+            ['value' => $request->boolean('skip_out_of_stock') ? '1' : '0']
         );
 
         return redirect()->route('admin.abandoned-carts.settings')
