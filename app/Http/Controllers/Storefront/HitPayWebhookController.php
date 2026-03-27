@@ -100,8 +100,8 @@ class HitPayWebhookController extends Controller
             ->where('key', 'hitpay_success_status_id')
             ->value('value');
 
-        // Idempotency: skip if already at target status
-        if ($successStatusId && (int) $order->order_status_id === (int) $successStatusId) {
+        // Idempotency: skip if already confirmed at target status
+        if ($successStatusId && $order->order_status_id !== null && (int) $order->order_status_id === (int) $successStatusId) {
             return;
         }
 

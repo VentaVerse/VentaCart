@@ -24,8 +24,13 @@ class OrderController extends Controller
             $query->where('store_id', $request->input('store_id'));
         }
 
-        if ($request->filled('order_status_id')) {
+        if ($request->input('order_status_id') === 'missing') {
+            $query->whereNull('order_status_id');
+        } elseif ($request->filled('order_status_id')) {
             $query->where('order_status_id', $request->input('order_status_id'));
+        } else {
+            // By default, hide missing orders (NULL status)
+            $query->whereNotNull('order_status_id');
         }
 
         if ($request->filled('search')) {

@@ -17,6 +17,7 @@
             <div>
                 <select name="order_status_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">All Statuses</option>
+                    <option value="missing" {{ request('order_status_id') === 'missing' ? 'selected' : '' }}>Missing</option>
                     @foreach ($statuses as $status)
                         <option value="{{ $status->id }}" {{ request('order_status_id') == $status->id ? 'selected' : '' }}>{{ $status->name }}</option>
                     @endforeach
@@ -51,8 +52,8 @@
                             <div class="text-xs text-gray-400">{{ $order->email }}</div>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                {{ $order->status?->name ?? '—' }}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $order->order_status_id ? 'bg-gray-100 text-gray-800' : 'bg-red-50 text-red-600' }}">
+                                {{ $order->status?->name ?? 'Missing' }}
                             </span>
                         </td>
                         <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ number_format($order->total, 2) }}</td>

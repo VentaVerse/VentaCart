@@ -184,12 +184,12 @@ class CheckoutService
         $order = DB::transaction(function () use (
             $customer, $shippingAddress, $billingAddress, $paymentMethodKey,
             $shippingMethod, $shippingMethodKey, $shippingMethodName, $items, $subtotal, $shippingCost, $total,
-            $defaultStatus, $comment, $cart
+            $comment, $cart
         ) {
             $orderData = [
                 'store_id' => $this->storeId,
                 'customer_id' => $customer->id,
-                'order_status_id' => $defaultStatus?->id,
+                'order_status_id' => null,
                 'first_name' => $customer->first_name,
                 'last_name' => $customer->last_name,
                 'email' => $customer->email,
@@ -245,17 +245,6 @@ class CheckoutService
                 ]);
             }
 
-            OrderHistory::create([
-                'order_id' => $order->id,
-                'order_status_id' => $defaultStatus?->id,
-                'comment' => 'Order placed via storefront.',
-            ]);
-
-            // Adjust stock based on initial order status
-            if ($defaultStatus) {
-                StockService::adjustForStatusChange($order, $defaultStatus);
-            }
-
             return $order;
         });
 
@@ -266,21 +255,43 @@ class CheckoutService
             return ['order' => $order, 'payment' => $paymentResult];
         }
 
-        // Redirect-based payments (e.g. HitPay): webhook handles cart + email
+        // Redirect-based payments (e.g. HitPay): webhook confirms and sets status
         if ($paymentResult->redirectUrl) {
             return ['order' => $order, 'payment' => $paymentResult];
         }
 
-        // Immediate payments (e.g. bank transfer, COD): clear cart and send email now
+        // Immediate payments (e.g. bank transfer, COD): confirm order now
+        $this->confirmOrder($order, $defaultStatus);
         $cart->items()->delete();
+
+        return ['order' => $order, 'payment' => $paymentResult];
+    }
+
+    /**
+     * Confirm an order — sets status, creates history, adjusts stock, sends emails.
+     * Called when payment is confirmed (immediately for Bank/COD, via webhook for HitPay).
+     */
+    public function confirmOrder(Order $order, ?OrderStatus $status = null): void
+    {
+        $status = $status ?? OrderStatus::where('store_id', $order->store_id)
+            ->where('is_default', true)
+            ->first();
+
+        if ($status) {
+            $order->update(['order_status_id' => $status->id]);
+
+            OrderHistory::create([
+                'order_id' => $order->id,
+                'order_status_id' => $status->id,
+                'comment' => 'Order confirmed.',
+            ]);
+
+            StockService::adjustForStatusChange($order, $status);
+        }
 
         $order->load('products', 'status');
         self::sendOrderConfirmationEmail($order);
-
-        // Send admin notification
         self::sendAdminOrderNotification($order);
-
-        return ['order' => $order, 'payment' => $paymentResult];
     }
 
     public static function sendOrderConfirmationEmail(Order $order): void
