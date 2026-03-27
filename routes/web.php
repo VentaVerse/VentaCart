@@ -268,8 +268,16 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::put('shipping-zones/{geoZone}', [ShippingZoneController::class, 'update'])->name('shipping-zones.update');
 
 
+    // Modules
+    Route::get('/modules', [\App\Http\Controllers\Admin\ModuleController::class, 'index'])->name('modules.index');
+
+    // Abandoned Carts
+    Route::get('/abandoned-carts', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'index'])->name('abandoned-carts.index');
+    Route::get('/abandoned-carts/{cart}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'show'])->name('abandoned-carts.show');
+    Route::delete('/abandoned-carts/{cart}', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'destroy'])->name('abandoned-carts.destroy');
+    Route::post('/abandoned-carts/bulk-delete', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'bulkDelete'])->name('abandoned-carts.bulk-delete');
+
     // Stock Notifications
-    Route::get('/marketing', [\App\Http\Controllers\Admin\MarketingController::class, 'index'])->name('marketing.index');
     Route::get('/stock-notifications', [AdminStockNotificationController::class, 'index'])->name('stock-notifications.index');
     Route::delete('/stock-notifications/{stockNotification}', [AdminStockNotificationController::class, 'destroy'])->name('stock-notifications.destroy');
     Route::post('/stock-notifications/bulk-delete', [AdminStockNotificationController::class, 'bulkDelete'])->name('stock-notifications.bulk-delete');

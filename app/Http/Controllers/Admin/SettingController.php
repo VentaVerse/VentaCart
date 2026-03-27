@@ -123,7 +123,8 @@ class SettingController extends Controller
         if ($redirect = $request->input('_redirect')) {
             $parsed = parse_url($redirect);
             $path = $parsed['path'] ?? '/';
-            if (str_starts_with($path, '/admin/')) {
+            $adminPrefix = '/' . $request->segment(1) . '/';
+            if (str_starts_with($path, $adminPrefix)) {
                 $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
                 return redirect($path . $query)->with('success', ucfirst($group) . ' settings updated.');
             }
