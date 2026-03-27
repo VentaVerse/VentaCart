@@ -128,8 +128,7 @@
             branding: false,
             promotion: false,
             license_key: 'gpl',
-            relative_urls: false,
-            remove_script_host: true,
+            convert_urls: false,
         });
     </script>
     @endpush
