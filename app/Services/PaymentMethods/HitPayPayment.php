@@ -103,15 +103,14 @@ class HitPayPayment implements PaymentMethodInterface
 
         $params = $data;
         unset($params['hmac']);
-        ksort($params);
 
-        $message = implode('|', array_map(
-            fn($k, $v) => "{$k}{$v}",
-            array_keys($params),
-            array_values($params)
-        ));
+        $hmacSource = [];
+        foreach ($params as $key => $val) {
+            $hmacSource[$key] = "{$key}{$val}";
+        }
+        ksort($hmacSource);
 
-        $computed = hash_hmac('sha256', $message, $salt);
+        $computed = hash_hmac('sha256', implode('', array_values($hmacSource)), $salt);
 
         return hash_equals($computed, $hmac);
     }
