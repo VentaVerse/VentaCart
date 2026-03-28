@@ -51,7 +51,7 @@
                     <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
                         @csrf
                         <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="bank-transfer">
                         <input type="hidden" name="settings[bank_transfer_enabled]" value="0">
                         <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -65,7 +65,7 @@
                     <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
                         @csrf
                         <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="bank-transfer">
                         <label class="text-sm text-gray-700">Order Status on Checkout</label>
                         <select name="settings[bank_transfer_success_status_id]" class="rounded-lg border-gray-300 text-sm" onchange="this.form.submit()">
@@ -179,7 +179,7 @@
                     <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
                         @csrf
                         <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="hitpay">
                         <input type="hidden" name="settings[hitpay_enabled]" value="0">
                         <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -193,7 +193,7 @@
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
                         <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="hitpay">
                         <div class="space-y-4 max-w-lg">
                             <div>
@@ -292,7 +292,7 @@
                     <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
                         @csrf
                         <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="cod">
                         <input type="hidden" name="settings[cod_enabled]" value="0">
                         <label class="flex items-center gap-2 text-sm cursor-pointer">
@@ -306,7 +306,7 @@
                     <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
                         @csrf
                         <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="cod">
                         <label class="text-sm text-gray-700">Order Status on Checkout</label>
                         <select name="settings[cod_success_status_id]" class="rounded-lg border-gray-300 text-sm" onchange="this.form.submit()">
@@ -321,7 +321,7 @@
                     <form method="POST" action="{{ route('admin.settings.update') }}">
                         @csrf
                         <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="/admin/payment-settings">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="cod">
                         <div class="space-y-4 max-w-lg">
                             <div>
