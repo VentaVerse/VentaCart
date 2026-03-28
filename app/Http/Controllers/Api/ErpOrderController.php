@@ -22,6 +22,8 @@ class ErpOrderController extends Controller
 
         if ($request->filled('status_id')) {
             $query->where('order_status_id', $request->input('status_id'));
+        } else {
+            $query->whereNotNull('order_status_id');
         }
 
         if ($request->filled('since')) {
