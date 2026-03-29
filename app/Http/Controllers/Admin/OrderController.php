@@ -79,7 +79,7 @@ class OrderController extends Controller
     {
         $validated = $this->validateOrder($request);
 
-        DB::transaction(function () use ($request, $validated) {
+        $order = DB::transaction(function () use ($request, $validated) {
             $validated['created_by'] = Auth::id();
             $validated['subtotal'] = 0;
 
@@ -95,13 +95,25 @@ class OrderController extends Controller
             }
 
             // Create initial history entry
+            $notifyCustomer = $request->boolean('notify_customer');
             $order->histories()->create([
                 'order_status_id' => $order->order_status_id,
                 'created_by' => Auth::id(),
                 'comment' => 'Order created manually from admin.',
-                'notify_customer' => false,
+                'notify_customer' => $notifyCustomer,
             ]);
+
+            return $order;
         });
+
+        // Send emails after transaction commits
+        $order->load('products', 'status');
+        if ($request->boolean('notify_customer') && $order->email) {
+            \App\Services\CheckoutService::sendOrderConfirmationEmail($order);
+        }
+        if ($request->boolean('notify_admin')) {
+            \App\Services\CheckoutService::sendAdminOrderNotification($order);
+        }
 
         return redirect()->route('admin.orders.index')
             ->with('success', 'Order created successfully.');
