@@ -183,7 +183,7 @@
                             ">#{{ $order->id }}</div>
                             <div>
                                 <p class="text-sm font-medium text-gray-900">{{ $order->first_name }} {{ $order->last_name }}</p>
-                                <p class="text-xs text-gray-400">{{ $order->created_at->diffForHumans() }} &middot; {{ ucwords(str_replace('_', ' ', $order->payment_method ?? '')) }}</p>
+                                <p class="text-xs text-gray-400">{{ $order->created_at->diffForHumans() }} &middot; {{ $order->payment_method_label }}</p>
                             </div>
                         </div>
                         <div class="text-right">

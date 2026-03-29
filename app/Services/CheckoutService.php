@@ -344,7 +344,7 @@ class CheckoutService
             'order_id' => $order->id,
             'order_total' => $currency . number_format($order->total, 2),
             'order_items' => $itemsHtml,
-            'payment_method' => $order->payment_method,
+            'payment_method' => $order->payment_method_label,
             'store_name' => config('app.name'),
         ]);
 
@@ -380,7 +380,7 @@ class CheckoutService
             'order_id' => $order->id,
             'customer_name' => $order->first_name . ' ' . $order->last_name,
             'customer_email' => $order->email,
-            'payment_method' => $order->payment_method,
+            'payment_method' => $order->payment_method_label,
             'order_total' => $currency . number_format($order->total, 2),
             'order_items' => $itemsHtml,
         ]);

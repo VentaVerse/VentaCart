@@ -20,7 +20,7 @@
                         </div>
                         <div>
                             <span class="account-label">Payment</span>
-                            <p class="text-sm text-[#999]">{{ $order->payment_method ?: 'N/A' }}</p>
+                            <p class="text-sm text-[#999]">{{ $order->payment_method_label ?: 'N/A' }}</p>
                         </div>
                         <div>
                             <span class="account-label">Total</span>
