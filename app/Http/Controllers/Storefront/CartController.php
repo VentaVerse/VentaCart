@@ -19,7 +19,30 @@ class CartController extends Controller
         $items = $this->cartService->getItems();
         $subtotal = $items->sum(fn($item) => $item->price * $item->quantity);
 
-        return view('cart.index', compact('items', 'subtotal'));
+        $blockOutOfStock = \App\Models\Setting::where('group', 'checkout')
+            ->where('key', 'block_out_of_stock')
+            ->value('value') ?? '1';
+
+        $outOfStockIds = [];
+        if ($blockOutOfStock === '1') {
+            foreach ($items as $item) {
+                $product = $item->product;
+                if (!$product || !$product->track_stock) {
+                    continue;
+                }
+                if ($item->productVariant) {
+                    if ($item->productVariant->quantity < $item->quantity) {
+                        $outOfStockIds[] = $item->id;
+                    }
+                } elseif ($product->quantity < $item->quantity) {
+                    $outOfStockIds[] = $item->id;
+                }
+            }
+        }
+
+        $hasOutOfStock = !empty($outOfStockIds);
+
+        return view('cart.index', compact('items', 'subtotal', 'hasOutOfStock', 'outOfStockIds'));
     }
 
     public function add(Request $request): JsonResponse

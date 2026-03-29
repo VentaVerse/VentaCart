@@ -112,6 +112,36 @@ class CheckoutService
             throw new \InvalidArgumentException('Cart is empty.');
         }
 
+        // Block checkout if cart contains out-of-stock items
+        $blockOutOfStock = \App\Models\Setting::where('group', 'checkout')
+            ->where('key', 'block_out_of_stock')
+            ->value('value') ?? '1';
+
+        if ($blockOutOfStock === '1') {
+            $outOfStock = [];
+            foreach ($items as $item) {
+                $product = $item->product;
+                if (!$product || !$product->track_stock) {
+                    continue;
+                }
+
+                if ($item->productVariant) {
+                    if ($item->productVariant->quantity < $item->quantity) {
+                        $label = $item->name . ($item->variant_label ? ' — ' . $item->variant_label : '');
+                        $outOfStock[] = $label;
+                    }
+                } elseif ($product->quantity < $item->quantity) {
+                    $outOfStock[] = $item->name;
+                }
+            }
+
+            if (!empty($outOfStock)) {
+                throw new \InvalidArgumentException(
+                    'The following items are out of stock or have insufficient quantity: ' . implode(', ', $outOfStock) . '. Please update your cart before checkout.'
+                );
+            }
+        }
+
         $subtotal = $items->sum(function ($item) {
             return $item->price * $item->quantity;
         });

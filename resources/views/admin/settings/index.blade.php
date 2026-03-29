@@ -230,6 +230,12 @@
                             <input type="checkbox" name="settings[guest_allowed]" value="1" {{ ($settings['checkout']['guest_allowed'] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
                             <label class="text-sm text-gray-700">Allow Guest Checkout</label>
                         </div>
+                        <div class="flex items-center gap-3">
+                            <input type="hidden" name="settings[block_out_of_stock]" value="0">
+                            <input type="checkbox" name="settings[block_out_of_stock]" value="1" {{ ($settings['checkout']['block_out_of_stock'] ?? '1') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                            <label class="text-sm text-gray-700">Block checkout for out-of-stock items</label>
+                        </div>
+                        <p class="text-xs text-gray-500 -mt-2 ml-7">Prevents orders when cart contains products or variants with zero stock. Items added before going out of stock will be blocked at checkout.</p>
                     </div>
 
                     {{-- Low Stock Alerts --}}

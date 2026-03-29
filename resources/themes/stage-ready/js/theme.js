@@ -452,9 +452,10 @@ Alpine.data('addToCart', (config = {}) => ({
 /* ============================================
    Cart Page
    ============================================ */
-Alpine.data('cartPage', (initialItems, initialSubtotal) => ({
+Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds) => ({
     items: initialItems || [],
     subtotal: initialSubtotal || 0,
+    outOfStockIds: initialOutOfStockIds || [],
 
     recalcSubtotal() {
         this.subtotal = this.items

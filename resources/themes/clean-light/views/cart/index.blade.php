@@ -9,7 +9,13 @@
                 <a href="{{ route('home') }}" class="btn-checkout inline-block">CONTINUE SHOPPING</a>
             </div>
         @else
-            <div x-data="cartPage({{ $items->toJson() }}, {{ $subtotal }})" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            @if ($hasOutOfStock)
+            <div class="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6 reveal">
+                <p class="text-red-300 text-sm">Some items in your cart are out of stock or have insufficient quantity. Please remove or update them before checking out.</p>
+            </div>
+        @endif
+
+        <div x-data="cartPage({{ $items->toJson() }}, {{ $subtotal }}, {{ json_encode($outOfStockIds) }})" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {{-- Items List --}}
                 <div class="lg:col-span-2">
                     <div class="cart-table">
@@ -30,6 +36,9 @@
                                     <a :href="item.product ? '/product/' + item.product.slug : '#'" class="cart-item-name hover:text-[var(--color-primary)] transition-colors" x-text="item.name"></a>
                                     <div class="cart-item-variant" x-show="item.variant_label" x-text="item.variant_label"></div>
                                     <div class="cart-item-sku" x-show="item.sku" x-text="'SKU: ' + item.sku"></div>
+                                    <div x-show="outOfStockIds.includes(item.id)" class="mt-1">
+                                        <span class="text-xs font-medium text-red-400 bg-red-900/40 px-2 py-0.5 rounded">OUT OF STOCK</span>
+                                    </div>
                                 </div>
 
                                 <div class="cart-item-price" class="font-heading">
@@ -166,29 +175,38 @@
                             <span class="text-xl text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
-                        @auth('customer')
-                            <a href="{{ route('checkout.index') }}" class="btn-checkout block text-center mb-3"
-                               x-data="{ clicked: false }"
-                               @click="clicked = true"
-                               :class="clicked && 'btn-checkout-loading'">
-                                <span x-show="!clicked">PROCEED TO CHECKOUT</span>
-                                <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
-                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                                    LOADING...
-                                </span>
-                            </a>
-                        @else
-                            <a href="{{ route('customer.login', ['redirect' => 'checkout']) }}" class="btn-checkout block text-center mb-3"
-                               x-data="{ clicked: false }"
-                               @click="clicked = true"
-                               :class="clicked && 'btn-checkout-loading'">
-                                <span x-show="!clicked">PROCEED TO CHECKOUT</span>
-                                <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
-                                    <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                                    LOADING...
-                                </span>
-                            </a>
-                        @endauth
+                        <template x-if="outOfStockIds.length > 0">
+                            <div class="btn-checkout block text-center mb-3 opacity-50 cursor-not-allowed">
+                                PROCEED TO CHECKOUT
+                            </div>
+                        </template>
+                        <template x-if="outOfStockIds.length === 0">
+                            <div>
+                                @auth('customer')
+                                    <a href="{{ route('checkout.index') }}" class="btn-checkout block text-center mb-3"
+                                       x-data="{ clicked: false }"
+                                       @click="clicked = true"
+                                       :class="clicked && 'btn-checkout-loading'">
+                                        <span x-show="!clicked">PROCEED TO CHECKOUT</span>
+                                        <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
+                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                            LOADING...
+                                        </span>
+                                    </a>
+                                @else
+                                    <a href="{{ route('customer.login', ['redirect' => 'checkout']) }}" class="btn-checkout block text-center mb-3"
+                                       x-data="{ clicked: false }"
+                                       @click="clicked = true"
+                                       :class="clicked && 'btn-checkout-loading'">
+                                        <span x-show="!clicked">PROCEED TO CHECKOUT</span>
+                                        <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
+                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                            LOADING...
+                                        </span>
+                                    </a>
+                                @endauth
+                            </div>
+                        </template>
                         <a href="{{ route('home') }}" class="block text-center text-sm text-[#555] hover:text-[var(--color-primary)] transition-colors">Continue Shopping</a>
                     </div>
                 </div>
