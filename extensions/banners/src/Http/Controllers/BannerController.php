@@ -30,10 +30,14 @@ class BannerController extends Controller
             'slug' => 'required|string|max:255|unique:banner_groups,slug',
             'autoplay' => 'boolean',
             'speed' => 'required|integer|min:1000|max:30000',
+            'height' => 'required|integer|min:100|max:2000',
+            'height_mobile' => 'required|integer|min:100|max:2000',
+            'full_width' => 'boolean',
             'is_active' => 'boolean',
         ]);
 
         $validated['autoplay'] = $request->boolean('autoplay');
+        $validated['full_width'] = $request->boolean('full_width', true);
         $validated['is_active'] = $request->boolean('is_active');
         $validated['slug'] = Str::slug($validated['slug']);
 
@@ -54,10 +58,14 @@ class BannerController extends Controller
             'slug' => 'required|string|max:255|unique:banner_groups,slug,' . $group->id,
             'autoplay' => 'boolean',
             'speed' => 'required|integer|min:1000|max:30000',
+            'height' => 'required|integer|min:100|max:2000',
+            'height_mobile' => 'required|integer|min:100|max:2000',
+            'full_width' => 'boolean',
             'is_active' => 'boolean',
         ]);
 
         $validated['autoplay'] = $request->boolean('autoplay');
+        $validated['full_width'] = $request->boolean('full_width', true);
         $validated['is_active'] = $request->boolean('is_active');
         $validated['slug'] = Str::slug($validated['slug']);
 
@@ -143,9 +151,6 @@ class BannerController extends Controller
             'link' => ['nullable', 'string', 'max:500'],
             'link_new_tab' => ['nullable', 'boolean'],
             'layers' => ['nullable', 'string'],
-            'height' => ['nullable', 'integer', 'min:100', 'max:2000'],
-            'height_mobile' => ['nullable', 'integer', 'min:100', 'max:2000'],
-            'full_width' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer'],
             'is_active' => ['nullable', 'boolean'],
             'starts_at' => ['nullable', 'date'],
@@ -154,10 +159,7 @@ class BannerController extends Controller
 
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['link_new_tab'] = $request->boolean('link_new_tab');
-        $validated['full_width'] = $request->boolean('full_width', true);
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $validated['height'] = $validated['height'] ?? 500;
-        $validated['height_mobile'] = $validated['height_mobile'] ?? 400;
         $validated['layers'] = json_decode($validated['layers'] ?? '[]', true);
         $validated['bg_image'] = $validated['bg_image'] ?: null;
         $validated['bg_image_mobile'] = $validated['bg_image_mobile'] ?: null;

@@ -16,14 +16,15 @@
                     $bgColor = $slide['bg_color'] ?? '#000';
                     $bgSize = $slide['bg_size'] ?? 'cover';
                     $slideHeight = $slide['height'] ?? 500;
+                    $isFullWidth = $slide['full_width'] ?? true;
                     $layers = $slide['layers'] ?? [];
+                    $widthStyle = !$isFullWidth ? ' max-width: 1280px; margin-left: auto; margin-right: auto;' : '';
                 @endphp
 
                 @if ($hasLayers)
-                    @php $isFullWidth = $slide['full_width'] ?? true; @endphp
                     {{-- Advanced banner slide with layers --}}
                     <div class="slide relative overflow-hidden banner-advanced-slide" :class="{ 'active': current === {{ $i }} }"
-                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ !$isFullWidth ? ' max-width: 1280px; margin-left: auto; margin-right: auto;' : '' }}">
+                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ $widthStyle }}">
 
                         @if (!empty($slide['url']))
                             <a href="{{ $slide['url'] }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
@@ -71,14 +72,11 @@
                         </div>
                     </div>
                 @else
-                    {{-- Simple banner slide (basic banner carousel) --}}
-                    <div class="slide" :class="{ 'active': current === {{ $i }} }">
+                    {{-- Simple banner slide (background image, no layers) --}}
+                    <div class="slide banner-advanced-slide" :class="{ 'active': current === {{ $i }} }"
+                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ $widthStyle }}">
                         @if (!empty($slide['url']))
-                            <a href="{{ $slide['url'] }}" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif>
-                                <img src="{{ $slide['image'] }}" alt="{{ $slide['alt'] ?? '' }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
-                            </a>
-                        @else
-                            <img src="{{ $slide['image'] ?? '' }}" alt="{{ $slide['alt'] ?? '' }}" loading="{{ $i === 0 ? 'eager' : 'lazy' }}">
+                            <a href="{{ $slide['url'] }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
                         @endif
                     </div>
                 @endif

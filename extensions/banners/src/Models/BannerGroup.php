@@ -8,13 +8,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class BannerGroup extends Model
 {
     protected $fillable = [
-        'name', 'slug', 'autoplay', 'speed', 'is_active',
+        'name', 'slug', 'autoplay', 'speed',
+        'height', 'height_mobile', 'full_width',
+        'is_active',
     ];
 
     protected function casts(): array
     {
         return [
             'autoplay' => 'boolean',
+            'full_width' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

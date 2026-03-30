@@ -11,7 +11,6 @@ class Banner extends Model
         'banner_group_id',
         'name', 'bg_image', 'bg_image_mobile', 'bg_color', 'bg_size',
         'link', 'link_new_tab', 'layers',
-        'height', 'height_mobile', 'full_width',
         'sort_order', 'is_active', 'starts_at', 'ends_at',
     ];
 
@@ -25,7 +24,6 @@ class Banner extends Model
         return [
             'layers' => 'array',
             'link_new_tab' => 'boolean',
-            'full_width' => 'boolean',
             'is_active' => 'boolean',
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',

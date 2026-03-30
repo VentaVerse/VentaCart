@@ -32,7 +32,10 @@ class BannerServiceProvider extends ServiceProvider
                 $bannerGroups[$slug] = [
                     'autoplay' => $group->autoplay,
                     'speed' => $group->speed,
-                    'slides' => $group->activeSlides->map(function ($banner) {
+                    'height' => $group->height,
+                    'height_mobile' => $group->height_mobile,
+                    'full_width' => $group->full_width,
+                    'slides' => $group->activeSlides->map(function ($banner) use ($group) {
                         return [
                             'image' => $banner->bg_image_url,
                             'image_mobile' => $banner->bg_image_mobile_url,
@@ -41,9 +44,9 @@ class BannerServiceProvider extends ServiceProvider
                             'alt' => $banner->name ?? '',
                             'bg_color' => $banner->bg_color,
                             'bg_size' => $banner->bg_size,
-                            'height' => $banner->height,
-                            'height_mobile' => $banner->height_mobile,
-                            'full_width' => $banner->full_width,
+                            'height' => $group->height,
+                            'height_mobile' => $group->height_mobile,
+                            'full_width' => $group->full_width,
                             'layers' => $banner->layers ?? [],
                         ];
                     })->toArray(),

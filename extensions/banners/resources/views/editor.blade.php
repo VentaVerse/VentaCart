@@ -129,16 +129,15 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Height</label>
                             <div class="flex items-center gap-1">
-                                <input type="number" name="height" x-model.number="height" min="100" max="2000" class="w-full rounded-lg border-gray-300 text-sm py-1.5">
-                                <span class="text-[10px] text-gray-400 shrink-0">px</span>
+                                <span class="text-sm text-gray-700" x-text="height + 'px'"></span>
                             </div>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">Mobile H.</label>
                             <div class="flex items-center gap-1">
-                                <input type="number" name="height_mobile" x-model.number="heightMobile" min="100" max="2000" class="w-full rounded-lg border-gray-300 text-sm py-1.5">
-                                <span class="text-[10px] text-gray-400 shrink-0">px</span>
+                                <span class="text-sm text-gray-700" x-text="heightMobile + 'px'"></span>
                             </div>
+                            <a href="{{ route('admin.banners.edit', $group) }}" class="text-[10px] text-indigo-500 hover:text-indigo-700">Change in group settings</a>
                         </div>
                     </div>
                 </div>
@@ -164,11 +163,7 @@
                                     <input type="checkbox" name="link_new_tab" value="1" {{ ($banner?->link_new_tab) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
                                     New tab
                                 </label>
-                                <label class="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-                                    <input type="hidden" name="full_width" value="0">
-                                    <input type="checkbox" name="full_width" value="1" x-model="isFullWidth" {{ ($banner?->full_width ?? true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
-                                    Full width
-                                </label>
+                                <span class="text-xs text-gray-400" x-text="isFullWidth ? 'Full width' : 'Contained'"></span>
                                 <label class="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
                                     <input type="hidden" name="is_active" value="0">
                                     <input type="checkbox" name="is_active" value="1" {{ ($banner?->is_active ?? true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
@@ -556,10 +551,10 @@
             bgColor: '{{ $banner?->bg_color ?? '#000000' }}',
             bgSize: '{{ $banner?->bg_size ?? 'cover' }}',
             bgImageUrl: '{{ $banner?->bg_image_url ?? '' }}',
-            height: {{ $banner?->height ?? 500 }},
-            heightMobile: {{ $banner?->height_mobile ?? 400 }},
+            height: {{ $group->height ?? 500 }},
+            heightMobile: {{ $group->height_mobile ?? 400 }},
             previewWidth: 0,
-            isFullWidth: {{ ($banner?->full_width ?? true) ? 'true' : 'false' }},
+            isFullWidth: {{ ($group->full_width ?? true) ? 'true' : 'false' }},
 
             dragging: null,
             resizing: null,
