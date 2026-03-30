@@ -178,17 +178,6 @@ class OrderController extends Controller
             ->with('success', 'Order deleted successfully.');
     }
 
-    public function updateFees(Request $request, Order $order)
-    {
-        $validated = $request->validate([
-            'fees' => ['required', 'numeric', 'min:0', 'max:9999999999'],
-        ]);
-
-        $order->update(['fees' => $validated['fees']]);
-
-        return response()->json(['success' => true, 'fees' => number_format($order->fees, 2)]);
-    }
-
     public function addHistory(Request $request, Order $order)
     {
         $validated = $request->validate([
