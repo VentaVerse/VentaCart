@@ -166,6 +166,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     // Orders
     Route::get('/orders/search-products', [OrderController::class, 'searchProducts'])->name('orders.search-products');
     Route::get('/orders/search-customers', [OrderController::class, 'searchCustomers'])->name('orders.search-customers');
+    Route::post('/orders/{order}/fees', [OrderController::class, 'updateFees'])->name('orders.update-fees');
     Route::post('/orders/{order}/history', [OrderController::class, 'addHistory'])->name('orders.history.store');
     Route::delete('/orders/{order}/history/{history}', [OrderController::class, 'deleteHistory'])->name('orders.history.destroy');
     Route::post('/orders/{order}/tracking', [OrderController::class, 'updateTracking'])->name('orders.update-tracking');

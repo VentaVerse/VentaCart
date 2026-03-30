@@ -195,6 +195,34 @@
                                 <span class="text-gray-500">Shipping</span>
                                 <span class="text-gray-700">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
                             </div>
+                            <div class="flex justify-between items-center text-sm" x-data="{ editing: false, fees: '{{ number_format($order->fees, 2) }}', saving: false }">
+                                <span class="text-gray-500">Fees</span>
+                                <div class="flex items-center gap-1">
+                                    <template x-if="!editing">
+                                        <span class="text-gray-700 cursor-pointer hover:text-indigo-600" @click="editing = true" title="Click to edit">
+                                            {{ $order->fees > 0 ? $currency . number_format($order->fees, 2) : '—' }}
+                                        </span>
+                                    </template>
+                                    <template x-if="editing">
+                                        <form class="flex items-center gap-1" @submit.prevent="
+                                            saving = true;
+                                            fetch('{{ route('admin.orders.update-fees', $order) }}', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content },
+                                                body: JSON.stringify({ fees: fees })
+                                            }).then(function(r) { return r.json(); }).then(function(d) {
+                                                if (d.success) { fees = d.fees; editing = false; location.reload(); }
+                                                saving = false;
+                                            });
+                                        ">
+                                            <span class="text-gray-400">{{ $currency }}</span>
+                                            <input type="number" x-model="fees" step="0.01" min="0" class="w-24 rounded border-gray-300 text-sm py-0.5 px-1.5 text-right" :disabled="saving">
+                                            <button type="submit" class="text-xs text-indigo-600 hover:text-indigo-800" :disabled="saving">Save</button>
+                                            <button type="button" @click="editing = false" class="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                                        </form>
+                                    </template>
+                                </div>
+                            </div>
                             <div class="flex justify-between text-sm font-bold pt-2 border-t border-gray-200">
                                 <span class="text-gray-800">Total</span>
                                 <span class="text-gray-900 text-base">{{ $currency }}{{ number_format($order->total, 2) }}</span>
