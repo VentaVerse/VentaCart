@@ -27,6 +27,11 @@
                     Addresses
                     <span class="ml-1 text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5" x-text="addresses.length"></span>
                 </button>
+                @if (isset($customer) && $customer->id)
+                    <button type="button" @click="activeTab = 'activity'"
+                        :class="activeTab === 'activity' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                        class="whitespace-nowrap px-5 py-3 border-b-2 text-sm font-medium transition-colors">Activity</button>
+                @endif
             </nav>
 
             {{-- ===================== GENERAL ===================== --}}
@@ -248,6 +253,27 @@
                     </template>
                 </div>
             </div>
+
+            {{-- ===================== ACTIVITY ===================== --}}
+            @if (isset($customer) && $customer->id)
+                <div x-show="activeTab === 'activity'" class="p-6">
+                    <div class="space-y-3">
+                        @forelse ($customer->activities->take(100) as $activity)
+                            <div class="flex items-start gap-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {{ $activity->color }}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $activity->icon }}"/></svg>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm text-gray-900">{{ $activity->description }}</p>
+                                    <p class="text-xs text-gray-400">{{ $activity->created_at->format('M d, Y H:i') }} &middot; {{ $activity->created_at->diffForHumans() }}</p>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-400 text-center py-8">No activity recorded yet.</p>
+                        @endforelse
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- Submit --}}

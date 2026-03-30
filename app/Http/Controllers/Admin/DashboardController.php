@@ -136,6 +136,11 @@ class DashboardController extends Controller
             ->limit(7)
             ->get();
 
+        $recentActivities = \App\Models\CustomerActivity::with('customer')
+            ->orderByDesc('created_at')
+            ->limit(15)
+            ->get();
+
         return view('admin.dashboard', compact(
             'revenueThisMonth', 'revenueLastMonth',
             'ordersThisMonth', 'ordersLastMonth',
@@ -145,7 +150,7 @@ class DashboardController extends Controller
             'statusBreakdown', 'paymentBreakdown',
             'inventoryHealth', 'topProducts',
             'pendingOrders', 'pendingReviews', 'waitingNotifications',
-            'lowStockProducts', 'recentOrders'
+            'lowStockProducts', 'recentOrders', 'recentActivities'
         ));
     }
 

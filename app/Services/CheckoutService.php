@@ -14,6 +14,7 @@ use App\Services\PaymentMethods\CodPayment;
 use App\Services\PaymentMethods\HitPayPayment;
 use App\Services\PaymentMethods\PaymentMethodInterface;
 use App\Services\PaymentMethods\PaymentResult;
+use App\Services\ActivityLogger;
 use App\Services\PaymentRestrictionService;
 use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\DB;
@@ -320,6 +321,15 @@ class CheckoutService
         }
 
         $order->load('products', 'status');
+
+        ActivityLogger::log(
+            $order->customer_id,
+            'order_placed',
+            "Placed order #{$order->id} for " . number_format($order->total, 2),
+            $order,
+            ['total' => $order->total]
+        );
+
         self::sendOrderConfirmationEmail($order);
         self::sendAdminOrderNotification($order);
     }

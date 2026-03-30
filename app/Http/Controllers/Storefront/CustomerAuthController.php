@@ -63,7 +63,10 @@ class CustomerAuthController extends Controller
 
         $request->session()->regenerate();
 
-        app(CartService::class)->migrateGuestCart($oldSessionId, Auth::guard('customer')->user());
+        $customer = Auth::guard('customer')->user();
+        app(CartService::class)->migrateGuestCart($oldSessionId, $customer);
+
+        \App\Services\ActivityLogger::log($customer->id, 'login', 'Logged in');
 
         if ($request->input('redirect') === 'checkout') {
             return redirect()->route('checkout.index');
@@ -113,6 +116,8 @@ class CustomerAuthController extends Controller
         $request->session()->regenerate();
 
         app(CartService::class)->migrateGuestCart($oldSessionId, $customer);
+
+        \App\Services\ActivityLogger::log($customer->id, 'registered', 'Account created');
 
         \App\Services\TemplateMailService::send('welcome', $customer->email, [
             'customer_name' => $customer->first_name . ' ' . $customer->last_name,

@@ -7,6 +7,7 @@ use App\Models\CartItem;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -132,10 +133,13 @@ class CartService
                 'variant_label' => $variantLabel,
                 'sku' => $sku,
             ]);
+
+            ActivityLogger::log($cart->customer_id, 'cart_add', "Added {$name} to cart", $product, ['quantity' => $quantity, 'variant' => $variantLabel]);
+
             return $existing->fresh();
         }
 
-        return $cart->items()->create([
+        $item = $cart->items()->create([
             'product_id' => $productId,
             'product_variant_id' => $variantId,
             'quantity' => $quantity,
@@ -144,6 +148,10 @@ class CartService
             'price' => $price,
             'sku' => $sku,
         ]);
+
+        ActivityLogger::log($cart->customer_id, 'cart_add', "Added {$name} to cart", $product, ['quantity' => $quantity, 'variant' => $variantLabel]);
+
+        return $item;
     }
 
     public function update(int $cartItemId, int $quantity): ?CartItem

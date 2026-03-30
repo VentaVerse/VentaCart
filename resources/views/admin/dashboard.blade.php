@@ -228,6 +228,35 @@
         </div>
     </div>
 
+    {{-- Row 4: Recent Customer Activity --}}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+            <h3 class="text-sm font-semibold text-gray-700">Recent Customer Activity</h3>
+        </div>
+        <div class="divide-y divide-gray-100 max-h-[400px] overflow-y-auto">
+            @forelse ($recentActivities as $activity)
+                <div class="flex items-start gap-3 px-6 py-3">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 {{ $activity->color }}">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $activity->icon }}"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm text-gray-900">
+                            @if ($activity->customer)
+                                <a href="{{ route('admin.customers.edit', $activity->customer) }}" class="font-medium text-indigo-600 hover:text-indigo-800">{{ $activity->customer->first_name }} {{ $activity->customer->last_name }}</a>
+                            @else
+                                <span class="text-gray-400">Deleted customer</span>
+                            @endif
+                            {{ lcfirst($activity->description) }}
+                        </p>
+                        <p class="text-xs text-gray-400">{{ $activity->created_at->diffForHumans() }}</p>
+                    </div>
+                </div>
+            @empty
+                <div class="px-6 py-10 text-center text-sm text-gray-400">No activity yet</div>
+            @endforelse
+        </div>
+    </div>
+
     @push('head')
         <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.49.0/dist/apexcharts.min.js"></script>
     @endpush

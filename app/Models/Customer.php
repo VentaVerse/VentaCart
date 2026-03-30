@@ -95,6 +95,11 @@ class Customer extends Authenticatable
         return $this->hasOne(Cart::class)->latest();
     }
 
+    public function activities(): HasMany
+    {
+        return $this->hasMany(CustomerActivity::class)->orderByDesc('created_at');
+    }
+
     public function defaultAddress()
     {
         return $this->addresses()->where('is_default', true)->first();

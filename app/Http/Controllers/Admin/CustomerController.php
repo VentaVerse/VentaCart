@@ -71,7 +71,7 @@ class CustomerController extends Controller
 
     public function edit(Customer $customer)
     {
-        $customer->load('addresses');
+        $customer->load('addresses', 'activities');
         $customerGroups = CustomerGroup::orderBy('name')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 

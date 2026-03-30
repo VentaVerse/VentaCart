@@ -44,6 +44,15 @@ class ReviewController extends Controller
             'body' => $validated['body'] ?? null,
         ]);
 
+        $review->loadMissing('product');
+        \App\Services\ActivityLogger::log(
+            $review->customer_id,
+            'review_submitted',
+            "Submitted review for {$review->product->name}",
+            $review,
+            ['rating' => $validated['rating']]
+        );
+
         // Handle image uploads
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
