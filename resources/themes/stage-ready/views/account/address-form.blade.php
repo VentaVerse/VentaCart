@@ -52,9 +52,14 @@
                             </div>
                         </div>
 
+                        {{-- Phone --}}
                         <div>
-                            <label class="account-label">Address <span class="text-[var(--color-secondary)]">*</span></label>
-                            <input type="text" name="address_1" value="{{ old('address_1', $address?->address_1) }}" required class="account-input w-full" placeholder="Street address, building, unit">
+                            <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
+                            <div class="flex gap-2">
+                                <span class="inline-flex items-center px-3 rounded-md bg-[#1A1A1A] border border-[#333] text-sm text-[#888]"
+                                    x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
+                                <input type="tel" name="phone" value="{{ old('phone', $address?->phone) }}" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                            </div>
                         </div>
 
                         {{-- Country --}}
@@ -134,14 +139,10 @@
                             <input type="text" name="city" x-model="city" class="account-input w-full">
                         </div>
 
-                        {{-- Phone --}}
+                        {{-- Address (after location dropdowns) --}}
                         <div>
-                            <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
-                            <div class="flex gap-2">
-                                <span class="inline-flex items-center px-3 rounded-md bg-[#1A1A1A] border border-[#333] text-sm text-[#888]"
-                                    x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
-                                <input type="tel" name="phone" value="{{ old('phone', $address?->phone) }}" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                            </div>
+                            <label class="account-label">Address <span class="text-[var(--color-secondary)]">*</span></label>
+                            <input type="text" name="address_1" value="{{ old('address_1', $address?->address_1) }}" required class="account-input w-full" placeholder="House/unit number, street, building">
                         </div>
 
                         {{-- Postcode --}}
