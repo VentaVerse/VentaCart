@@ -736,6 +736,56 @@
         @apply right-4;
     }
 
+    /* Advanced banner slide — responsive scaling */
+    .banner-advanced-slide {
+        height: var(--slide-height, 500px);
+    }
+
+    .banner-layers-stage {
+        position: absolute;
+        inset: 0;
+        margin: 0 auto;
+        left: 0;
+        right: 0;
+        transform-origin: top left;
+    }
+
+    @media (max-width: 1024px) {
+        .banner-advanced-slide {
+            height: calc(var(--slide-height, 500px) * 0.65);
+        }
+        .banner-layers-stage {
+            transform: scale(0.65);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .banner-advanced-slide {
+            height: calc(var(--slide-height, 500px) * 0.45);
+        }
+        .banner-layers-stage {
+            transform: scale(0.45);
+        }
+        .hero-slider .slider-arrow {
+            @apply w-8 h-8;
+        }
+        .hero-slider .slider-arrow.prev {
+            @apply left-2;
+        }
+        .hero-slider .slider-arrow.next {
+            @apply right-2;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .banner-advanced-slide {
+            height: calc(var(--slide-height, 500px) * 0.3);
+        }
+        .banner-layers-stage {
+            transform: scale(0.3);
+        }
+    }
+
     /* ============================================
        Banner Layer Animations
        ============================================ */

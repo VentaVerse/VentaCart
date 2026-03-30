@@ -22,15 +22,15 @@
                 @if ($hasLayers)
                     @php $isFullWidth = $slide['full_width'] ?? true; @endphp
                     {{-- Advanced banner slide with layers --}}
-                    <div class="slide relative overflow-hidden" :class="{ 'active': current === {{ $i }} }"
-                         style="height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ !$isFullWidth ? ' max-width: 1280px; margin-left: auto; margin-right: auto;' : '' }}">
+                    <div class="slide relative overflow-hidden banner-advanced-slide" :class="{ 'active': current === {{ $i }} }"
+                         style="--slide-height: {{ $slideHeight }}px; background-color: {{ $bgColor }}; background-size: {{ $bgSize }}; background-position: center; background-repeat: no-repeat;{{ $bgImage ? " background-image: url($bgImage);" : '' }}{{ !$isFullWidth ? ' max-width: 1280px; margin-left: auto; margin-right: auto;' : '' }}">
 
                         @if (!empty($slide['url']))
                             <a href="{{ $slide['url'] }}" class="absolute inset-0 z-0" @if (!empty($slide['new_tab'])) target="_blank" rel="noopener" @endif></a>
                         @endif
 
-                        {{-- Centered stage container for layers --}}
-                        <div style="position: absolute; inset: 0; max-width: 1280px; margin: 0 auto; left: 0; right: 0;">
+                        {{-- Centered stage container for layers — scales proportionally on mobile --}}
+                        <div class="banner-layers-stage" style="max-width: 1280px;">
                             @foreach ($layers as $li => $layer)
                                 @php
                                     $type = $layer['type'] ?? 'text';

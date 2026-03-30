@@ -156,7 +156,7 @@
             <div class="flex-1 lg:ml-64">
                 {{-- Top Bar --}}
                 <header class="bg-white/80 backdrop-blur-md border-b border-gray-200/80 h-14 flex items-center sticky top-0 z-20">
-                    <div class="w-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
+                    <div class="w-full max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center justify-between">
                         <div class="flex items-center gap-3">
                             <button @click="mobileMenu = true" class="lg:hidden text-gray-500 hover:text-gray-700 -ml-1">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
@@ -180,7 +180,7 @@
                 </header>
 
                 {{-- Flash Messages & Content --}}
-                <div class="max-w-7xl mx-auto px-4 sm:px-6">
+                <div class="max-w-[1600px] mx-auto px-4 sm:px-6">
                     @if (session('success'))
                         <div class="mt-4 px-4 py-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm flex items-center gap-2">
                             <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
