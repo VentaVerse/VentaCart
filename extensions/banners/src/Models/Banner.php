@@ -3,15 +3,22 @@
 namespace Extensions\Banners\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Banner extends Model
 {
     protected $fillable = [
+        'banner_group_id',
         'name', 'bg_image', 'bg_image_mobile', 'bg_color', 'bg_size',
         'link', 'link_new_tab', 'layers',
         'height', 'height_mobile', 'full_width',
         'sort_order', 'is_active', 'starts_at', 'ends_at',
     ];
+
+    public function group(): BelongsTo
+    {
+        return $this->belongsTo(BannerGroup::class, 'banner_group_id');
+    }
 
     protected function casts(): array
     {

@@ -684,6 +684,11 @@
         @apply right-4;
     }
 
+    .banner-layer-hidden {
+        opacity: 0 !important;
+        animation: none !important;
+    }
+
     /* Advanced banner slide — responsive scaling */
     .banner-advanced-slide {
         height: var(--slide-height, 500px);

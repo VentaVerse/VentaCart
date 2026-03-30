@@ -47,7 +47,11 @@
                                     $duration = $layer['duration'] ?? 800;
                                     $distance = $layer['distance'] ?? 30;
                                 @endphp
-                                <div class="absolute z-10 {{ $anim !== 'none' ? 'banner-anim banner-anim-' . $anim : '' }}"
+                                <div class="absolute z-10"
+                                     :class="{
+                                         '{{ $anim !== 'none' ? 'banner-anim banner-anim-' . $anim : '' }}': current === {{ $i }},
+                                         'banner-layer-hidden': current !== {{ $i }}
+                                     }"
                                      style="left: {{ $x }}; top: {{ $y }}; opacity: {{ $opacity }}; animation-duration: {{ $duration }}ms; --anim-dist: {{ $distance }}px;{{ $delay ? " animation-delay: {$delay}ms;" : '' }}">
 
                                     @if ($type === 'text')

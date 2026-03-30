@@ -1,13 +1,13 @@
 <x-admin-layout>
     <x-slot name="header">{{ $banner ? 'Edit Slide: ' . ($banner->name ?: '#'.$banner->id) : 'New Slide' }}</x-slot>
     <x-slot name="headerActions">
-        <a href="{{ route('admin.banners.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">
+        <a href="{{ route('admin.banners.slides', $group) }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">
             Back to Slides
         </a>
     </x-slot>
 
     <form method="POST"
-          action="{{ $banner ? route('admin.banners.update', $banner) : route('admin.banners.store') }}"
+          action="{{ $banner ? route('admin.banners.slides.update', [$group, $banner]) : route('admin.banners.slides.store', $group) }}"
           x-data="bannerEditor()"
           class="space-y-5">
         @csrf
