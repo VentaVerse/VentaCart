@@ -150,7 +150,7 @@ class LocalizationController extends Controller
                     $label .= ' (all zones)';
                 }
             } elseif ($entry->ph_region_id) {
-                $region = PhRegion::find($entry->ph_region_id);
+                $region = \App\Models\PhRegion::find($entry->ph_region_id);
                 $label = 'PH → ' . ($region ? $region->name : 'Unknown');
                 if ($entry->ph_province_id) {
                     $province = \App\Models\PhProvince::find($entry->ph_province_id);
