@@ -184,12 +184,39 @@ class OrderController extends Controller
             'order_status_id' => ['required', 'exists:order_statuses,id'],
             'comment' => ['nullable', 'string'],
             'notify_customer' => ['boolean'],
+            'shipping_courier_id' => ['nullable', 'exists:shipping_couriers,id'],
+            'tracking_number' => ['nullable', 'string', 'max:255'],
         ]);
 
         $oldStatus = $order->status?->name ?? 'Unknown';
         $validated['created_by'] = Auth::id();
         $validated['notify_customer'] = $request->has('notify_customer');
 
+        // Update courier/tracking on the order if provided
+        $courierChanged = false;
+        if ($request->filled('shipping_courier_id') || $request->filled('tracking_number')) {
+            $order->update([
+                'shipping_courier_id' => $validated['shipping_courier_id'] ?? $order->shipping_courier_id,
+                'tracking_number' => $validated['tracking_number'] ?? $order->tracking_number,
+            ]);
+            $order->refresh();
+            $courierChanged = true;
+        }
+
+        // Build comment with tracking link if tracking was provided
+        $comment = $validated['comment'] ?? '';
+        if ($courierChanged && !empty($order->tracking_number)) {
+            $courier = $order->shippingCourier;
+            $trackingLink = $courier?->getTrackingLink($order->tracking_number);
+            $trackingComment = $courier ? $courier->name . ': ' : '';
+            $trackingComment .= $trackingLink
+                ? '<a href="' . e($trackingLink) . '" target="_blank">' . e($order->tracking_number) . '</a>'
+                : $order->tracking_number;
+
+            $comment = $comment ? $comment . ' | ' . $trackingComment : $trackingComment;
+        }
+
+        $validated['comment'] = $comment ?: null;
         $order->histories()->create($validated);
         $order->update(['order_status_id' => $validated['order_status_id']]);
 
@@ -200,18 +227,31 @@ class OrderController extends Controller
 
         // Send email notification if requested
         if ($validated['notify_customer'] && $order->email) {
+            $emailComment = $validated['comment'] ?? '';
             \App\Services\TemplateMailService::send('order_status_update', $order->email, [
                 'customer_name' => $order->first_name . ' ' . $order->last_name,
                 'order_id' => $order->id,
                 'old_status' => $oldStatus,
                 'new_status' => $newStatus?->name ?? 'Unknown',
-                'comment' => $validated['comment'] ?? '',
+                'comment' => $emailComment,
                 'store_name' => config('app.name'),
             ]);
+
+            // Also send shipping notification if tracking was added
+            if ($courierChanged && !empty($order->tracking_number)) {
+                $courier = $order->shippingCourier;
+                \App\Services\TemplateMailService::send('shipping_notification', $order->email, [
+                    'customer_name' => $order->first_name . ' ' . $order->last_name,
+                    'order_id' => $order->id,
+                    'tracking_number' => $order->tracking_number,
+                    'carrier_name' => $courier?->name ?? $order->shipping_method ?? 'Courier',
+                    'store_name' => config('app.name'),
+                ]);
+            }
         }
 
         return redirect()->route('admin.orders.show', $order)
-            ->with('success', 'Order history added.');
+            ->with('success', 'Order updated.');
     }
 
     public function deleteHistory(Order $order, int $historyId)

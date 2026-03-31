@@ -284,35 +284,20 @@
                         @endif
 
                     @else
-                        <form method="POST" action="{{ route('admin.orders.update-tracking', $order) }}" class="space-y-4">
-                            @csrf
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Courier</label>
-                                    <select name="shipping_courier_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select courier...</option>
-                                        @foreach ($couriers as $courier)
-                                            <option value="{{ $courier->id }}" {{ $order->shipping_courier_id == $courier->id ? 'selected' : '' }}>{{ $courier->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Tracking Number</label>
-                                    <div class="flex gap-2">
-                                        <input type="text" name="tracking_number" value="{{ $order->tracking_number }}"
-                                            class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Enter tracking number">
-                                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors flex-shrink-0">Save</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-
-                        @if ($order->tracking_number && $order->shippingCourier)
-                            <div class="mt-4 flex items-center gap-2 bg-indigo-50 rounded-lg p-3 text-sm">
+                        @if ($order->tracking_number)
+                            <div class="flex items-center gap-2 bg-indigo-50 rounded-lg p-3 text-sm">
                                 <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                                <span class="font-medium text-indigo-800">{{ $order->shippingCourier->name }}</span>
-                                <span class="text-indigo-600">{{ $order->tracking_number }}</span>
+                                @if ($order->shippingCourier)
+                                    <span class="font-medium text-indigo-800">{{ $order->shippingCourier->name }}</span>
+                                @endif
+                                @if ($order->shippingCourier?->getTrackingLink($order->tracking_number))
+                                    <a href="{{ $order->shippingCourier->getTrackingLink($order->tracking_number) }}" target="_blank" class="text-indigo-600 hover:underline">{{ $order->tracking_number }}</a>
+                                @else
+                                    <span class="text-indigo-600">{{ $order->tracking_number }}</span>
+                                @endif
                             </div>
+                        @else
+                            <p class="text-sm text-gray-400">No tracking info yet. Use the Update Order form to add courier and tracking number.</p>
                         @endif
 
                         @if ($dphEnabled)
@@ -366,17 +351,36 @@
             {{-- UPDATE STATUS --}}
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Update Status</h3>
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Update Order</h3>
                 </div>
                 <form method="POST" action="{{ route('admin.orders.history.store', $order) }}" class="p-5 space-y-3">
                     @csrf
-                    <select name="order_status_id" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        @foreach ($statuses as $status)
-                            <option value="{{ $status->id }}" {{ $order->order_status_id == $status->id ? 'selected' : '' }}>{{ $status->name }}</option>
-                        @endforeach
-                    </select>
-                    <input type="text" name="comment" placeholder="Add a comment..."
-                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                        <select name="order_status_id" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            @foreach ($statuses as $status)
+                                <option value="{{ $status->id }}" {{ $order->order_status_id == $status->id ? 'selected' : '' }}>{{ $status->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Courier</label>
+                        <select name="shipping_courier_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="">Select courier...</option>
+                            @foreach ($couriers as $courier)
+                                <option value="{{ $courier->id }}" {{ $order->shipping_courier_id == $courier->id ? 'selected' : '' }}>{{ $courier->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Tracking Number</label>
+                        <input type="text" name="tracking_number" value="{{ $order->tracking_number }}"
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Enter tracking number">
+                    </div>
+                    <div>
+                        <input type="text" name="comment" placeholder="Add a comment..."
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    </div>
                     <div class="flex items-center justify-between pt-1">
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="notify_customer" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
@@ -413,17 +417,17 @@
                                                     @endif
                                                 </div>
                                                 @if ($history->comment)
-                                                    <p class="text-sm text-gray-600 mt-1">{{ $history->comment }}</p>
+                                                    <p class="text-sm text-gray-600 mt-1">{!! strip_tags($history->comment, '<a>') !!}</p>
                                                 @endif
                                                 <p class="text-[11px] text-gray-400 mt-1">
                                                     {{ $history->created_at->format('M d, Y g:i A') }}
                                                     @if ($history->createdByUser) &mdash; {{ $history->createdByUser->name }} @endif
                                                 </p>
                                             </div>
-                                            <form method="POST" action="{{ route('admin.orders.history.destroy', [$order, $history->id]) }}" onsubmit="return confirm('Delete?')">
+                                            <form method="POST" action="{{ route('admin.orders.history.destroy', [$order, $history->id]) }}" onsubmit="return confirm('Delete this history entry?')">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="text-gray-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                <button type="submit" class="text-gray-300 hover:text-red-600 hover:bg-red-50 rounded p-1 transition-colors ml-2" title="Delete">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
                                                 </button>
                                             </form>
                                         </div>
