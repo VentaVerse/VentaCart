@@ -185,11 +185,7 @@
                 @if ($theme->get('identity.logo'))
                     <img src="{{ asset('storage/' . $theme->get('identity.logo')) }}" alt="{{ $siteName }}">
                 @else
-                    <span class="text-logo">
-                        <span class="text-logo-new">New</span>
-                        <span class="text-logo-gear">Gear</span>
-                        <span class="text-logo-day">Day</span>
-                    </span>
+                    <span class="text-logo">{{ $siteName }}</span>
                 @endif
             </a>
 
