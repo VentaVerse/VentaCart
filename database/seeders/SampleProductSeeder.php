@@ -26,16 +26,16 @@ class SampleProductSeeder extends Seeder
         $effects = \App\Models\Category::create([
             'store_id' => $ngd->id, 'name' => 'Guitar Effects', 'slug' => 'guitar-effects',
             'description' => 'Guitar effect pedals and processors',
-            'is_active' => true, 'meta_title' => 'Guitar Effects Pedals | New Gear Day',
+            'is_active' => true, 'meta_title' => 'Guitar Effects Pedals | Venta',
         ]);
         $cables = \App\Models\Category::create([
             'store_id' => $ngd->id, 'name' => 'Cables', 'slug' => 'cables',
             'description' => 'Instrument and patch cables',
-            'is_active' => true, 'meta_title' => 'Guitar Cables | New Gear Day',
+            'is_active' => true, 'meta_title' => 'Guitar Cables | Venta',
         ]);
         $parts = \App\Models\Category::create([
             'store_id' => $ngd->id, 'name' => 'Parts & Accessories', 'slug' => 'parts-accessories',
-            'is_active' => true, 'meta_title' => 'Guitar Parts & Accessories | New Gear Day',
+            'is_active' => true, 'meta_title' => 'Guitar Parts & Accessories | Venta',
         ]);
 
         // Sub-categories
@@ -74,7 +74,7 @@ class SampleProductSeeder extends Seeder
             'weight' => 0.400,
             'has_variants' => false,
             'is_active' => true,
-            'meta_title' => 'Boss DS-1 Distortion Pedal | New Gear Day',
+            'meta_title' => 'Boss DS-1 Distortion Pedal | Venta',
             'meta_description' => 'Buy the Boss DS-1 Distortion Pedal. Classic hard-edged distortion for guitar.',
         ]);
         $pedal->categories()->attach([$effects->id]);
@@ -92,7 +92,7 @@ class SampleProductSeeder extends Seeder
             'weight' => 0.050,
             'has_variants' => true,
             'is_active' => true,
-            'meta_title' => 'Premium Patch Cable | New Gear Day',
+            'meta_title' => 'Premium Patch Cable | Venta',
         ]);
         $cable->categories()->attach([$cables->id, $patchCables->id]);
 

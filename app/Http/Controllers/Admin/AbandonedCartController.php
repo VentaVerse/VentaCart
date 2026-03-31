@@ -23,7 +23,7 @@ class AbandonedCartController extends Controller
         'cart_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
         'cart_total' => '4,599.00',
         'cart_url' => '#',
-        'store_name' => 'NewGearDay',
+        'store_name' => config('app.name'),
     ];
     public function index(Request $request)
     {

@@ -52,7 +52,7 @@ class StockNotificationMail extends Mailable
                 'body' => $this->renderedBody,
                 'productName' => $this->notification->product->name,
                 'productUrl' => route('product.show', $this->notification->product->slug),
-                'storeName' => app(\App\Services\ThemeService::class)->get('identity.site_name', 'NewGearDay'),
+                'storeName' => config('app.name'),
             ],
         );
     }

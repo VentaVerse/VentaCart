@@ -32,7 +32,7 @@ class EmailTemplateController extends Controller
         'comment' => 'Your order has been handed over to the courier.',
         'tracking_number' => 'PH123456789',
         'carrier_name' => 'J&T Express',
-        'store_name' => 'NewGearDay',
+        'store_name' => config('app.name'),
         'store_url' => '#',
         'reset_url' => '#',
         'product_name' => 'Boss DS-1 Distortion Pedal',

@@ -16,7 +16,7 @@ class ThemeSeeder extends Seeder
         // Settings
         $settings = [
             'identity' => [
-                'site_name' => 'New Gear Day',
+                'site_name' => 'Venta',
                 'logo' => null,
                 'favicon' => null,
             ],
