@@ -149,7 +149,7 @@
                 {{-- Brand --}}
                 @if (($settings['show_brand'] ?? true) && $product->brand)
                     <p class="text-sm text-[#666] mb-4">
-                        Brand: <span class="text-[#999]">{{ $product->brand->name }}</span>
+                        Brand: <a href="{{ route('brand.show', $product->brand) }}" class="text-[#999] hover:text-[var(--color-primary)] transition-colors">{{ $product->brand->name }}</a>
                     </p>
                 @endif
 
