@@ -65,6 +65,7 @@ Route::post('/notify-stock', [StorefrontStockNotificationController::class, 'sto
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 Route::get('/recently-viewed', [RecentlyViewedController::class, 'index'])->name('recently-viewed');
+Route::get('/brand', [StorefrontBrandController::class, 'index'])->name('brand.index');
 Route::get('/brand/{brand:slug}', [StorefrontBrandController::class, 'show'])->name('brand.show');
 Route::get('/category/{category:slug}', [StorefrontCategoryController::class, 'show'])->name('category.show');
 Route::get('/product/{product:slug}', [StorefrontProductController::class, 'show'])->name('product.show');

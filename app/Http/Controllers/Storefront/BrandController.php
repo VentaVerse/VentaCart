@@ -11,6 +11,17 @@ use Illuminate\Http\Request;
 
 class BrandController extends Controller
 {
+    public function index()
+    {
+        $brands = Brand::where('is_active', true)
+            ->withCount(['products' => fn($q) => $q->where('is_active', true)])
+            ->having('products_count', '>', 0)
+            ->orderBy('name')
+            ->get();
+
+        return view('brand.index', compact('brands'));
+    }
+
     public function show(Request $request, Brand $brand, ThemeService $theme)
     {
         if (!$brand->is_active) {
