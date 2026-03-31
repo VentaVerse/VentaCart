@@ -18,13 +18,16 @@ class AbandonedCartController extends Controller
 {
     private const ABANDONED_CART_PLACEHOLDERS = ['customer_name', 'cart_items', 'cart_total', 'cart_url', 'store_name'];
 
-    private const TEST_DATA = [
-        'customer_name' => 'John Doe',
-        'cart_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
-        'cart_total' => '4,599.00',
-        'cart_url' => '#',
-        'store_name' => config('app.name'),
-    ];
+    private static function testData(): array
+    {
+        return [
+            'customer_name' => 'John Doe',
+            'cart_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
+            'cart_total' => '4,599.00',
+            'cart_url' => '#',
+            'store_name' => config('app.name'),
+        ];
+    }
     public function index(Request $request)
     {
         $query = Cart::with(['customer', 'items.product'])
@@ -181,7 +184,7 @@ class AbandonedCartController extends Controller
     public function testTemplate(EmailTemplate $emailTemplate)
     {
         $adminEmail = Auth::user()->email;
-        $success = TemplateMailService::send($emailTemplate->slug, $adminEmail, self::TEST_DATA);
+        $success = TemplateMailService::send($emailTemplate->slug, $adminEmail, self::testData());
 
         return back()->with(
             $success ? 'success' : 'error',

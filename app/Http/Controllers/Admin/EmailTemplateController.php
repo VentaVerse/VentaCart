@@ -21,27 +21,30 @@ class EmailTemplateController extends Controller
         'low_stock_admin' => ['product_name', 'product_sku', 'current_qty', 'store_name'],
     ];
 
-    private const TEST_DATA = [
-        'customer_name' => 'John Doe',
-        'order_id' => '1001',
-        'order_total' => '4,599.00',
-        'order_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
-        'payment_method' => 'Bank Transfer',
-        'old_status' => 'Processing',
-        'new_status' => 'Shipped',
-        'comment' => 'Your order has been handed over to the courier.',
-        'tracking_number' => 'PH123456789',
-        'carrier_name' => 'J&T Express',
-        'store_name' => config('app.name'),
-        'store_url' => '#',
-        'reset_url' => '#',
-        'product_name' => 'Boss DS-1 Distortion Pedal',
-        'product_image' => '',
-        'review_url' => '#',
-        'customer_email' => 'john@example.com',
-        'product_sku' => 'BOSS-DS1',
-        'current_qty' => '2',
-    ];
+    private static function testData(): array
+    {
+        return [
+            'customer_name' => 'John Doe',
+            'order_id' => '1001',
+            'order_total' => '4,599.00',
+            'order_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
+            'payment_method' => 'Bank Transfer',
+            'old_status' => 'Processing',
+            'new_status' => 'Shipped',
+            'comment' => 'Your order has been handed over to the courier.',
+            'tracking_number' => 'PH123456789',
+            'carrier_name' => 'J&T Express',
+            'store_name' => config('app.name'),
+            'store_url' => '#',
+            'reset_url' => '#',
+            'product_name' => 'Boss DS-1 Distortion Pedal',
+            'product_image' => '',
+            'review_url' => '#',
+            'customer_email' => 'john@example.com',
+            'product_sku' => 'BOSS-DS1',
+            'current_qty' => '2',
+        ];
+    }
 
     public function index()
     {
@@ -83,7 +86,7 @@ class EmailTemplateController extends Controller
     public function sendTest(EmailTemplate $emailTemplate)
     {
         $user = Auth::user();
-        $result = TemplateMailService::send($emailTemplate->slug, $user->email, self::TEST_DATA);
+        $result = TemplateMailService::send($emailTemplate->slug, $user->email, self::testData());
 
         if ($result) {
             return back()->with('success', "Test email sent to {$user->email}.");
