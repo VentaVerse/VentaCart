@@ -196,7 +196,6 @@
 
 <div class="login-shell">
     <div class="brand">
-        <div class="brand-icon">NG</div>
         <div class="brand-text">{{ config('app.name') }}</div>
     </div>
 

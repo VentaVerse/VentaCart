@@ -29,8 +29,7 @@
                 {{-- Header --}}
                 <div class="h-14 flex items-center px-5 border-b border-white/[0.06]">
                     <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center font-bold text-xs tracking-wide flex-shrink-0">NG</div>
-                        <span class="font-semibold text-[15px] text-white/90">NewGearDay</span>
+                        <span class="font-semibold text-[15px] text-white/90">{{ config('app.name') }}</span>
                     </a>
                     <button @click="mobileMenu = false" class="lg:hidden ml-auto text-white/30 hover:text-white/70">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
