@@ -172,7 +172,7 @@
                     const countryCode = countries[countryId];
                     if (!countryCode) return;
 
-                    const res = await fetch(`/admin/address/zones?country_code=${countryCode}`);
+                    const res = await fetch(`{{ route('admin.address.zones') }}?country_code=${countryCode}`);
                     const zones = await res.json();
                     this.entries[idx].zones = zones;
 
