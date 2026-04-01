@@ -107,74 +107,80 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
-                                <select name="shipping_country_code" x-model="shipping.country_code" @change="onShippingCountryChange()"
+                                <select name="shipping_country_id" x-model="shipping.country_id" @change="onShippingCountryChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Country</option>
                                     @foreach ($countries as $country)
-                                        <option value="{{ $country->iso2 }}">{{ $country->name }}</option>
+                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
-                                <template x-if="shipping.country_code === 'PH'">
-                                    <select name="shipping_state" x-model="shipping.state" @change="onShippingProvinceChange()"
-                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select Province</option>
-                                        <template x-for="p in shippingPhProvinces" :key="p.id">
-                                            <option :value="p.name" x-text="p.name"></option>
-                                        </template>
-                                    </select>
-                                </template>
-                                <template x-if="shipping.country_code !== 'PH' && shippingZones.length > 0">
-                                    <select name="shipping_state" x-model="shipping.state"
-                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select State / Province</option>
-                                        <template x-for="z in shippingZones" :key="z.id">
-                                            <option :value="z.name" x-text="z.name"></option>
-                                        </template>
-                                    </select>
-                                </template>
-                                <template x-if="shipping.country_code !== 'PH' && shippingZones.length === 0">
-                                    <input type="text" name="shipping_state" x-model="shipping.state"
-                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                </template>
+                            {{-- Provider: Province --}}
+                            <div x-show="shippingDropdowns.hasProvider">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Province</label>
+                                <select name="shipping_state" x-model="shipping.state" @change="onShippingProvinceChange()"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select Province</option>
+                                    <template x-for="p in (shippingDropdowns.provinces || [])" :key="p.id">
+                                        <option :value="p.name" x-text="p.name"></option>
+                                    </template>
+                                </select>
                             </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">City</label>
-                                <template x-if="shipping.country_code === 'PH'">
-                                    <select name="shipping_city" x-model="shipping.city" @change="onShippingCityChange()"
-                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select City / Municipality</option>
-                                        <template x-for="c in shippingPhCities" :key="c.id">
-                                            <option :value="c.name" x-text="c.name"></option>
-                                        </template>
-                                    </select>
-                                </template>
-                                <template x-if="shipping.country_code !== 'PH'">
-                                    <input type="text" name="shipping_city" x-model="shipping.city"
-                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                </template>
+                            {{-- Provider: City --}}
+                            <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.cities || []).length > 0">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">City / Municipality</label>
+                                <select name="shipping_city" x-model="shipping.city" @change="onShippingCityChange()"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select City</option>
+                                    <template x-for="c in (shippingDropdowns.cities || [])" :key="c.id">
+                                        <option :value="c.name" x-text="c.name"></option>
+                                    </template>
+                                </select>
                             </div>
-                            <div x-show="shipping.country_code === 'PH' && shippingPhDistricts.length > 0">
+                            {{-- Provider: District --}}
+                            <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.districts || []).length > 0">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">District</label>
                                 <select name="shipping_district" x-model="shipping.district" @change="onShippingDistrictChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select District</option>
-                                    <template x-for="d in shippingPhDistricts" :key="d.id">
+                                    <template x-for="d in (shippingDropdowns.districts || [])" :key="d.id">
                                         <option :value="d.name" x-text="d.name"></option>
                                     </template>
                                 </select>
                             </div>
-                            <div x-show="shipping.country_code === 'PH'">
+                            {{-- Provider: Barangay --}}
+                            <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.barangays || []).length > 0">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Barangay</label>
                                 <select name="shipping_barangay" x-model="shipping.barangay"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Barangay</option>
-                                    <template x-for="b in shippingPhBarangays" :key="b.id">
+                                    <template x-for="b in (shippingDropdowns.barangays || [])" :key="b.id">
                                         <option :value="b.name" x-text="b.name"></option>
                                     </template>
                                 </select>
+                            </div>
+                            {{-- Core: State --}}
+                            <div x-show="!shippingDropdowns.hasProvider && shipping.country_id">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
+                                <template x-if="(shippingDropdowns.zones || []).length > 0">
+                                    <select name="shipping_state" x-model="shipping.state"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="">Select State / Province</option>
+                                        <template x-for="z in (shippingDropdowns.zones || [])" :key="z.id">
+                                            <option :value="z.name" x-text="z.name"></option>
+                                        </template>
+                                    </select>
+                                </template>
+                                <template x-if="(shippingDropdowns.zones || []).length === 0">
+                                    <input type="text" name="shipping_state" x-model="shipping.state"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </template>
+                            </div>
+                            {{-- Core: City --}}
+                            <div x-show="!shippingDropdowns.hasProvider && shipping.country_id">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">City</label>
+                                <input type="text" name="shipping_city" x-model="shipping.city"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Address Line 1</label>
@@ -216,30 +222,92 @@
                                 <input type="text" name="billing_last_name" x-model="billing.last_name"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                                <select name="billing_country_id" x-model="billing.country_id" @change="onBillingCountryChange()"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select Country</option>
+                                    @foreach ($countries as $country)
+                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            {{-- Provider: Province --}}
+                            <div x-show="billingDropdowns.hasProvider">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Province</label>
+                                <select name="billing_state" x-model="billing.state" @change="onBillingProvinceChange()"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select Province</option>
+                                    <template x-for="p in (billingDropdowns.provinces || [])" :key="p.id">
+                                        <option :value="p.name" x-text="p.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            {{-- Provider: City --}}
+                            <div x-show="billingDropdowns.hasProvider && (billingDropdowns.cities || []).length > 0">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">City / Municipality</label>
+                                <select name="billing_city" x-model="billing.city" @change="onBillingCityChange()"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select City</option>
+                                    <template x-for="c in (billingDropdowns.cities || [])" :key="c.id">
+                                        <option :value="c.name" x-text="c.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            {{-- Provider: District --}}
+                            <div x-show="billingDropdowns.hasProvider && (billingDropdowns.districts || []).length > 0">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">District</label>
+                                <select name="billing_district" x-model="billing.district" @change="onBillingDistrictChange()"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select District</option>
+                                    <template x-for="d in (billingDropdowns.districts || [])" :key="d.id">
+                                        <option :value="d.name" x-text="d.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            {{-- Provider: Barangay --}}
+                            <div x-show="billingDropdowns.hasProvider && (billingDropdowns.barangays || []).length > 0">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">Barangay</label>
+                                <select name="billing_barangay" x-model="billing.barangay"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <option value="">Select Barangay</option>
+                                    <template x-for="b in (billingDropdowns.barangays || [])" :key="b.id">
+                                        <option :value="b.name" x-text="b.name"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            {{-- Core: State --}}
+                            <div x-show="!billingDropdowns.hasProvider && billing.country_id">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
+                                <template x-if="(billingDropdowns.zones || []).length > 0">
+                                    <select name="billing_state" x-model="billing.state"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        <option value="">Select State / Province</option>
+                                        <template x-for="z in (billingDropdowns.zones || [])" :key="z.id">
+                                            <option :value="z.name" x-text="z.name"></option>
+                                        </template>
+                                    </select>
+                                </template>
+                                <template x-if="(billingDropdowns.zones || []).length === 0">
+                                    <input type="text" name="billing_state" x-model="billing.state"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                </template>
+                            </div>
+                            {{-- Core: City --}}
+                            <div x-show="!billingDropdowns.hasProvider && billing.country_id">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">City</label>
+                                <input type="text" name="billing_city" x-model="billing.city"
+                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            </div>
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Address Line 1</label>
                                 <input type="text" name="billing_address_1" x-model="billing.address_1"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">City</label>
-                                <input type="text" name="billing_city" x-model="billing.city"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
-                                <input type="text" name="billing_state" x-model="billing.state"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-                            <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Postcode</label>
                                 <input type="text" name="billing_postcode" x-model="billing.postcode"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
-                                <input type="text" name="billing_country_code" x-model="billing.country_code"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. PH">
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
@@ -481,7 +549,7 @@
                 shipping: {
                     first_name: '{{ old('shipping_first_name', $order?->shipping_first_name ?? '') }}',
                     last_name: '{{ old('shipping_last_name', $order?->shipping_last_name ?? '') }}',
-                    country_code: '{{ old('shipping_country_code', $order?->shipping_country_code ?? 'PH') }}',
+                    country_id: '{{ old('shipping_country_id', $order?->shipping_country_id ?? '') }}',
                     state: '{{ old('shipping_state', $order?->shipping_state ?? '') }}',
                     city: '{{ old('shipping_city', $order?->shipping_city ?? '') }}',
                     district: '{{ old('shipping_district', $order?->shipping_district ?? '') }}',
@@ -491,8 +559,8 @@
                     phone: '{{ old('shipping_phone', $order?->shipping_phone ?? '') }}',
                 },
 
-                phoneCode: @js($countries->firstWhere('iso2', old('shipping_country_code', $order?->shipping_country_code ?? 'PH'))?->phone_code ?? '63'),
-                countriesPhoneCodes: @js($countries->pluck('phone_code', 'iso2')),
+                phoneCode: @js($countries->find(old('shipping_country_id', $order?->shipping_country_id))?->phone_code ?? '63'),
+                countriesPhoneCodes: @js($countries->pluck('phone_code', 'id')),
 
                 // Billing address
                 differentBilling: {{ ($order?->billing_first_name) ? 'true' : 'false' }},
@@ -501,9 +569,11 @@
                     last_name: '{{ old('billing_last_name', $order?->billing_last_name ?? '') }}',
                     address_1: '{{ old('billing_address_1', $order?->billing_address_1 ?? '') }}',
                     city: '{{ old('billing_city', $order?->billing_city ?? '') }}',
+                    district: '{{ old('billing_district', $order?->billing_district ?? '') }}',
+                    barangay: '{{ old('billing_barangay', $order?->billing_barangay ?? '') }}',
                     state: '{{ old('billing_state', $order?->billing_state ?? '') }}',
                     postcode: '{{ old('billing_postcode', $order?->billing_postcode ?? '') }}',
-                    country_code: '{{ old('billing_country_code', $order?->billing_country_code ?? '') }}',
+                    country_id: '{{ old('billing_country_id', $order?->billing_country_id ?? '') }}',
                     phone: '{{ old('billing_phone', $order?->billing_phone ?? '') }}',
                 },
 
@@ -517,11 +587,9 @@
                 customerAddresses: [],
 
                 // Address dropdown data
-                shippingZones: [],
-                shippingPhProvinces: [],
-                shippingPhCities: [],
-                shippingPhDistricts: [],
-                shippingPhBarangays: [],
+                providers: @json(app(\App\Services\AddressProviderRegistry::class)->toFrontendManifest()),
+                shippingDropdowns: { zones: [], provinces: [], cities: [], districts: [], barangays: [], hasProvider: false },
+                billingDropdowns: { zones: [], provinces: [], cities: [], districts: [], barangays: [], hasProvider: false },
 
                 // Product search
                 productSearch: '',
@@ -571,7 +639,7 @@
                 applyAddress(addr) {
                     this.shipping.first_name = addr.first_name || '';
                     this.shipping.last_name = addr.last_name || '';
-                    this.shipping.country_code = addr.country_code || 'PH';
+                    this.shipping.country_id = String(addr.country_id || '');
                     this.shipping.state = addr.state || '';
                     this.shipping.city = addr.city || '';
                     this.shipping.district = addr.district || '';
@@ -579,7 +647,7 @@
                     this.shipping.address_1 = addr.address_1 || '';
                     this.shipping.postcode = addr.postcode || '';
                     this.shipping.phone = addr.phone || '';
-                    this.phoneCode = this.countriesPhoneCodes[addr.country_code] || '63';
+                    this.phoneCode = this.countriesPhoneCodes[addr.country_id] || '63';
                     this.onShippingCountryChange(true);
                 },
 
@@ -625,121 +693,105 @@
                     });
                 },
 
-                // Force x-model re-sync on <select> after async options load
-                async syncShippingSelect(prop) {
-                    const saved = this.shipping[prop];
+                // Generic sync helper
+                async syncSelect(obj, prop) {
+                    const saved = obj[prop];
                     if (!saved) return;
-                    this.shipping[prop] = '';
+                    obj[prop] = '';
                     await this.$nextTick();
-                    this.shipping[prop] = saved;
+                    obj[prop] = saved;
                 },
 
-                // Address cascading dropdown methods
-                async onShippingCountryChange(preserveValues) {
-                    this.phoneCode = this.countriesPhoneCodes[this.shipping.country_code] || '63';
-                    if (!preserveValues) {
-                        this.shipping.state = '';
-                        this.shipping.city = '';
-                        this.shipping.district = '';
-                        this.shipping.barangay = '';
-                    }
-                    this.shippingZones = [];
-                    this.shippingPhProvinces = [];
-                    this.shippingPhCities = [];
-                    this.shippingPhDistricts = [];
-                    this.shippingPhBarangays = [];
+                // ── Generic address handlers (work for both shipping and billing) ──
 
-                    if (!this.shipping.country_code) return;
+                async _onCountryChange(addr, dropdowns, preserve) {
+                    this.phoneCode = this.countriesPhoneCodes[addr.country_id] || '63';
+                    if (!preserve) { addr.state = ''; addr.city = ''; addr.district = ''; addr.barangay = ''; }
+                    Object.assign(dropdowns, { zones: [], provinces: [], cities: [], districts: [], barangays: [], hasProvider: false });
+                    if (!addr.country_id) return;
 
-                    if (this.shipping.country_code === 'PH') {
-                        const res = await fetch('{{ route('admin.address.ph-provinces') }}');
-                        this.shippingPhProvinces = await res.json();
-                        if (preserveValues && this.shipping.state) {
-                            await this.$nextTick();
-                            await this.syncShippingSelect('state');
-                            await this.onShippingProvinceChange(true);
+                    const provider = this.providers[addr.country_id];
+                    if (provider) {
+                        dropdowns.hasProvider = true;
+                        const rootField = provider.fields.find(f => !f.paramFrom);
+                        if (rootField) {
+                            const res = await fetch(rootField.endpoint);
+                            dropdowns.provinces = await res.json();
+                            if (preserve && addr.state) {
+                                await this.$nextTick();
+                                await this.syncSelect(addr, 'state');
+                                await this._onProvinceChange(addr, dropdowns, true);
+                            }
                         }
                     } else {
-                        const res = await fetch(`{{ route('admin.address.zones') }}?country_code=${this.shipping.country_code}`);
-                        this.shippingZones = await res.json();
-                        if (preserveValues && this.shipping.state) {
-                            await this.$nextTick();
-                            await this.syncShippingSelect('state');
-                        }
+                        const res = await fetch(`{{ route('admin.address.zones') }}?country_id=${addr.country_id}`);
+                        dropdowns.zones = await res.json();
+                        if (preserve && addr.state) { await this.$nextTick(); await this.syncSelect(addr, 'state'); }
                     }
                 },
 
-                async onShippingProvinceChange(preserveValues) {
-                    if (!preserveValues) {
-                        this.shipping.city = '';
-                        this.shipping.district = '';
-                        this.shipping.barangay = '';
-                    }
-                    this.shippingPhCities = [];
-                    this.shippingPhDistricts = [];
-                    this.shippingPhBarangays = [];
-
-                    const province = this.shippingPhProvinces.find(p => p.name === this.shipping.state);
+                async _onProvinceChange(addr, dropdowns, preserve) {
+                    if (!preserve) { addr.city = ''; addr.district = ''; addr.barangay = ''; }
+                    Object.assign(dropdowns, { cities: [], districts: [], barangays: [] });
+                    const province = (dropdowns.provinces || []).find(p => p.name === addr.state);
                     if (!province) return;
-
-                    const res = await fetch(`{{ route('admin.address.ph-cities') }}?province_id=${province.id}`);
-                    this.shippingPhCities = await res.json();
-                    if (preserveValues && this.shipping.city) {
-                        await this.$nextTick();
-                        await this.syncShippingSelect('city');
-                        await this.onShippingCityChange(true);
-                    }
+                    const provider = this.providers[addr.country_id];
+                    const cityField = provider?.fields.find(f => f.key === 'city');
+                    if (!cityField) return;
+                    const res = await fetch(`${cityField.endpoint}?${cityField.paramName}=${province.id}`);
+                    dropdowns.cities = await res.json();
+                    if (preserve && addr.city) { await this.$nextTick(); await this.syncSelect(addr, 'city'); await this._onCityChange(addr, dropdowns, true); }
                 },
 
-                async onShippingCityChange(preserveValues) {
-                    if (!preserveValues) {
-                        this.shipping.district = '';
-                        this.shipping.barangay = '';
-                    }
-                    this.shippingPhDistricts = [];
-                    this.shippingPhBarangays = [];
-
-                    const city = this.shippingPhCities.find(c => c.name === this.shipping.city);
+                async _onCityChange(addr, dropdowns, preserve) {
+                    if (!preserve) { addr.district = ''; addr.barangay = ''; }
+                    Object.assign(dropdowns, { districts: [], barangays: [] });
+                    const city = (dropdowns.cities || []).find(c => c.name === addr.city);
                     if (!city) return;
-
-                    const distRes = await fetch(`{{ route('admin.address.ph-districts') }}?city_id=${city.id}`);
-                    this.shippingPhDistricts = await distRes.json();
-
-                    if (this.shippingPhDistricts.length > 0) {
-                        if (preserveValues && this.shipping.district) {
-                            await this.$nextTick();
-                            await this.syncShippingSelect('district');
-                            await this.onShippingDistrictChange(true);
+                    const provider = this.providers[addr.country_id];
+                    const distField = provider?.fields.find(f => f.key === 'district');
+                    if (distField) {
+                        const distRes = await fetch(`${distField.endpoint}?${distField.paramName}=${city.id}`);
+                        dropdowns.districts = await distRes.json();
+                        if (dropdowns.districts.length > 0) {
+                            if (preserve && addr.district) { await this.$nextTick(); await this.syncSelect(addr, 'district'); await this._onDistrictChange(addr, dropdowns, true); }
+                            return;
                         }
-                    } else {
-                        const brgyRes = await fetch(`{{ route('admin.address.ph-barangays') }}?city_id=${city.id}`);
-                        this.shippingPhBarangays = await brgyRes.json();
-                        if (preserveValues && this.shipping.barangay) {
-                            await this.$nextTick();
-                            await this.syncShippingSelect('barangay');
-                        }
+                    }
+                    const brgyField = provider?.fields.find(f => f.key === 'barangay');
+                    if (brgyField) {
+                        const brgyRes = await fetch(`${brgyField.endpoint}?${brgyField.paramName}=${city.id}`);
+                        dropdowns.barangays = await brgyRes.json();
+                        if (preserve && addr.barangay) { await this.$nextTick(); await this.syncSelect(addr, 'barangay'); }
                     }
                 },
 
-                async onShippingDistrictChange(preserveValues) {
-                    if (!preserveValues) {
-                        this.shipping.barangay = '';
-                    }
-                    this.shippingPhBarangays = [];
-
-                    const district = this.shippingPhDistricts.find(d => d.name === this.shipping.district);
+                async _onDistrictChange(addr, dropdowns, preserve) {
+                    if (!preserve) { addr.barangay = ''; }
+                    dropdowns.barangays = [];
+                    const district = (dropdowns.districts || []).find(d => d.name === addr.district);
                     if (!district) return;
-
-                    const res = await fetch(`{{ route('admin.address.ph-barangays') }}?city_id=${district.id}`);
-                    this.shippingPhBarangays = await res.json();
-                    if (preserveValues && this.shipping.barangay) {
-                        await this.$nextTick();
-                        await this.syncShippingSelect('barangay');
-                    }
+                    const provider = this.providers[addr.country_id];
+                    const brgyField = provider?.fields.find(f => f.key === 'barangay');
+                    if (!brgyField) return;
+                    const res = await fetch(`${brgyField.endpoint}?${brgyField.paramName}=${district.id}`);
+                    dropdowns.barangays = await res.json();
+                    if (preserve && addr.barangay) { await this.$nextTick(); await this.syncSelect(addr, 'barangay'); }
                 },
+
+                // ── Shipping wrappers ──
+                onShippingCountryChange(preserve) { return this._onCountryChange(this.shipping, this.shippingDropdowns, preserve); },
+                onShippingProvinceChange(preserve) { return this._onProvinceChange(this.shipping, this.shippingDropdowns, preserve); },
+                onShippingCityChange(preserve) { return this._onCityChange(this.shipping, this.shippingDropdowns, preserve); },
+                onShippingDistrictChange(preserve) { return this._onDistrictChange(this.shipping, this.shippingDropdowns, preserve); },
+
+                // ── Billing wrappers ──
+                onBillingCountryChange(preserve) { return this._onCountryChange(this.billing, this.billingDropdowns, preserve); },
+                onBillingProvinceChange(preserve) { return this._onProvinceChange(this.billing, this.billingDropdowns, preserve); },
+                onBillingCityChange(preserve) { return this._onCityChange(this.billing, this.billingDropdowns, preserve); },
+                onBillingDistrictChange(preserve) { return this._onDistrictChange(this.billing, this.billingDropdowns, preserve); },
 
                 init() {
-                    // Resolve payment method: known keys stay, unknown → custom
                     const knownPayments = ['bank_transfer', 'hitpay', 'cod', ''];
                     const pm = this.paymentMethod;
                     if (pm && !knownPayments.includes(pm) && !pm.startsWith('bank_transfer')) {
@@ -749,7 +801,6 @@
                         this.paymentMethod = 'bank_transfer';
                     }
 
-                    // Resolve shipping method: known names stay, unknown → custom
                     const knownShipping = ['Free Shipping', 'Weight-Based', 'Flat Rate', 'Delivery PH', 'DHL Express', ''];
                     const sm = this.shippingMethod;
                     if (sm && !knownShipping.includes(sm)) {
@@ -757,10 +808,8 @@
                         this.shippingMethod = 'custom';
                     }
 
-                    // Load initial address dropdown data if editing
-                    if (this.shipping.country_code) {
-                        this.onShippingCountryChange(true);
-                    }
+                    if (this.shipping.country_id) { this.onShippingCountryChange(true); }
+                    if (this.billing.country_id) { this.onBillingCountryChange(true); }
                 }
             }
         }
