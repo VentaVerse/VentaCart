@@ -79,9 +79,9 @@
                 <div class="space-y-4">
                     @foreach ($regions as $region)
                         @php
-                            $regionZoneIds = $region->provinces->map(function ($p) use ($coreZones) {
+                            $regionZoneIds = $region->provinces->map(function ($p) use ($coreZones, $nameMap) {
                                 $coreName = $nameMap[$p->name] ?? $p->name;
-                            return $coreZones->get($coreName);
+                                return $coreZones->get($coreName);
                             })->filter()->values()->toArray();
                         @endphp
                         @if (!empty($regionZoneIds))
