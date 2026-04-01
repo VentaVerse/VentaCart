@@ -19,7 +19,7 @@ class LocalizationController extends Controller
 
         $selectedCountry = $request->input('country', Country::where('iso2', 'PH')->value('id'));
         $zones = Zone::where('country_id', $selectedCountry)->orderBy('name')->get();
-        $countryList = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'id');
+        $countryList = Country::orderBy('sort_order')->orderBy('name')->pluck('name', 'id');
 
         $geoZones = GeoZone::whereNull('source')->withCount('entries')->orderBy('sort_order')->get();
 
@@ -135,7 +135,7 @@ class LocalizationController extends Controller
 
     public function editGeoZone(GeoZone $geoZone)
     {
-        $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
+        $countries = Country::orderBy('sort_order')->orderBy('name')->get();
 
         // Load existing entries with labels
         $entries = $geoZone->entries()->get()->map(function ($entry) {
