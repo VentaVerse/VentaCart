@@ -28,7 +28,7 @@ class PhGeoZoneController extends Controller
     {
         $regions = PhRegion::with(['provinces' => function ($q) {
             $q->orderBy('name');
-        }])->orderBy('name')->get();
+        }])->orderBy('id')->get();
 
         return view('ph-address::geo-zones.form', [
             'geoZone' => null,
@@ -66,7 +66,7 @@ class PhGeoZoneController extends Controller
 
         $regions = PhRegion::with(['provinces' => function ($q) {
             $q->orderBy('name');
-        }])->orderBy('name')->get();
+        }])->orderBy('id')->get();
 
         $selectedZoneIds = $geoZone->entries()->whereNotNull('zone_id')->pluck('zone_id')->toArray();
 
