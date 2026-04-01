@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class GeoZoneEntry extends Model
 {
-    protected $fillable = ['geo_zone_id', 'country_id', 'zone_id', 'ph_region_id', 'ph_province_id', 'ph_city_id'];
+    protected $fillable = ['geo_zone_id', 'country_id', 'zone_id'];
 
     public function geoZone(): BelongsTo
     {

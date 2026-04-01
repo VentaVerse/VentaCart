@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
-use App\Models\PhBarangay;
-use App\Models\PhCity;
-use App\Models\PhProvince;
 use App\Models\Zone;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class AddressLookupController extends Controller
 {
@@ -34,45 +32,68 @@ class AddressLookupController extends Controller
         return response()->json($zones);
     }
 
+    // PH Address extension endpoints — these delegate to extension models
+    // via the service container bindings. Return empty if extension not installed.
+
     public function phProvinces()
     {
-        $provinces = PhProvince::orderBy('name')->get(['id', 'name']);
+        if (!Schema::hasTable('ph_provinces')) {
+            return response()->json([]);
+        }
 
-        return response()->json($provinces);
+        $model = app(\Extensions\PhilippineAddress\Models\PhProvince::class);
+        return response()->json($model->newQuery()->orderBy('name')->get(['id', 'name']));
     }
 
     public function phCities(Request $request)
     {
         $request->validate(['province_id' => 'required|integer']);
 
-        // Exclude districts (child cities) — they show via phDistricts endpoint
-        $cities = PhCity::where('ph_province_id', $request->province_id)
-            ->whereNull('parent_id')
-            ->orderBy('name')
-            ->get(['id', 'name', 'zip_code']);
+        if (!Schema::hasTable('ph_cities')) {
+            return response()->json([]);
+        }
 
-        return response()->json($cities);
+        $model = app(\Extensions\PhilippineAddress\Models\PhCity::class);
+        return response()->json(
+            $model->newQuery()
+                ->where('ph_province_id', $request->province_id)
+                ->whereNull('parent_id')
+                ->orderBy('name')
+                ->get(['id', 'name', 'zip_code'])
+        );
     }
 
     public function phDistricts(Request $request)
     {
         $request->validate(['city_id' => 'required|integer']);
 
-        $districts = PhCity::where('parent_id', $request->city_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        if (!Schema::hasTable('ph_cities')) {
+            return response()->json([]);
+        }
 
-        return response()->json($districts);
+        $model = app(\Extensions\PhilippineAddress\Models\PhCity::class);
+        return response()->json(
+            $model->newQuery()
+                ->where('parent_id', $request->city_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+        );
     }
 
     public function phBarangays(Request $request)
     {
         $request->validate(['city_id' => 'required|integer']);
 
-        $barangays = PhBarangay::where('ph_city_id', $request->city_id)
-            ->orderBy('name')
-            ->get(['id', 'name']);
+        if (!Schema::hasTable('ph_barangays')) {
+            return response()->json([]);
+        }
 
-        return response()->json($barangays);
+        $model = app(\Extensions\PhilippineAddress\Models\PhBarangay::class);
+        return response()->json(
+            $model->newQuery()
+                ->where('ph_city_id', $request->city_id)
+                ->orderBy('name')
+                ->get(['id', 'name'])
+        );
     }
 }

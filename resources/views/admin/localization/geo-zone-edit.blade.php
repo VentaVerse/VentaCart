@@ -69,9 +69,6 @@
                                     <td class="px-4 py-2.5">
                                         <input type="hidden" :name="'entries[' + idx + '][country_id]'" :value="entry.country_id || ''">
                                         <input type="hidden" :name="'entries[' + idx + '][zone_id]'" :value="entry.zone_id || ''">
-                                        <input type="hidden" :name="'entries[' + idx + '][ph_region_id]'" :value="entry.ph_region_id || ''">
-                                        <input type="hidden" :name="'entries[' + idx + '][ph_province_id]'" :value="entry.ph_province_id || ''">
-                                        <input type="hidden" :name="'entries[' + idx + '][ph_city_id]'" :value="entry.ph_city_id || ''">
 
                                         <select @change="onCountryChange(idx, $event.target.value)"
                                             class="w-full rounded-md border-gray-300 text-sm">
@@ -143,9 +140,6 @@
                 this.entries.push({
                     country_id: null,
                     zone_id: null,
-                    ph_region_id: null,
-                    ph_province_id: null,
-                    ph_city_id: null,
                     zones: [],
                     label: '',
                 });

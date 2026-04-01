@@ -2,9 +2,10 @@
 
 namespace App\Services\Shipping;
 
+use App\Models\Country;
 use App\Models\FreeShippingRule;
-use App\Models\PhProvince;
 use App\Models\GeoZoneEntry;
+use App\Models\Zone;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -177,17 +178,36 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
 
     private function resolveZoneId(array $address): ?int
     {
-        $province = $address['province'] ?? '';
-        if (!$province) {
+        $state = $address['state'] ?? $address['province'] ?? '';
+        $countryCode = $address['country_code'] ?? '';
+
+        if (!$countryCode) {
             return null;
         }
 
-        $phProvince = PhProvince::where('name', $province)->first();
-        if (!$phProvince) {
+        $country = Country::where('iso2', $countryCode)->first();
+        if (!$country) {
             return null;
         }
 
-        $entry = GeoZoneEntry::where('ph_region_id', $phProvince->ph_region_id)->first();
+        // Try zone-level match first
+        if ($state) {
+            $zone = Zone::where('country_code', $countryCode)->where('name', $state)->first();
+            if ($zone) {
+                $entry = GeoZoneEntry::where('country_id', $country->id)
+                    ->where('zone_id', $zone->id)
+                    ->first();
+                if ($entry) {
+                    return $entry->geo_zone_id;
+                }
+            }
+        }
+
+        // Fall back to country-level match
+        $entry = GeoZoneEntry::where('country_id', $country->id)
+            ->whereNull('zone_id')
+            ->first();
+
         return $entry?->geo_zone_id;
     }
 }

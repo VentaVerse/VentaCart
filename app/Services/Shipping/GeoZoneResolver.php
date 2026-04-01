@@ -2,19 +2,22 @@
 
 namespace App\Services\Shipping;
 
+use App\Models\Country;
 use App\Models\GeoZoneEntry;
-use App\Models\PhCity;
-use App\Models\PhProvince;
+use App\Models\Zone;
 
 class GeoZoneResolver
 {
     /**
      * Check if an address falls within a specific geo zone.
+     *
+     * Matching precedence (most specific wins):
+     * 1. Country + Zone match (e.g., PH + Metro Manila)
+     * 2. Country-only match (e.g., PH with no zone specified)
      */
     public static function matchesGeoZone(array $address, int $geoZoneId): bool
     {
-        $province = $address['province'] ?? '';
-        $city = $address['city'] ?? '';
+        $state = $address['state'] ?? $address['province'] ?? '';
         $countryCode = $address['country_code'] ?? '';
 
         $entries = GeoZoneEntry::where('geo_zone_id', $geoZoneId)->get();
@@ -22,32 +25,23 @@ class GeoZoneResolver
             return false;
         }
 
-        // Resolve PH address components
-        $phProvince = $province ? PhProvince::where('name', $province)->first() : null;
-        $phCity = ($phProvince && $city)
-            ? PhCity::where('ph_province_id', $phProvince->id)->where('name', $city)->first()
+        // Resolve country and zone from core tables
+        $country = $countryCode ? Country::where('iso2', $countryCode)->first() : null;
+        $zone = ($country && $state)
+            ? Zone::where('country_code', $countryCode)->where('name', $state)->first()
             : null;
 
         foreach ($entries as $entry) {
-            // City-level match (most specific)
-            if ($entry->ph_city_id && $phCity && $entry->ph_city_id === $phCity->id) {
-                return true;
+            // Zone-level match (most specific): country + zone
+            if ($entry->country_id && $entry->zone_id && $country && $zone) {
+                if ($entry->country_id === $country->id && $entry->zone_id === $zone->id) {
+                    return true;
+                }
             }
 
-            // Province-level match
-            if ($entry->ph_province_id && !$entry->ph_city_id && $phProvince && $entry->ph_province_id === $phProvince->id) {
-                return true;
-            }
-
-            // Region-level match
-            if ($entry->ph_region_id && !$entry->ph_province_id && !$entry->ph_city_id && $phProvince && $entry->ph_region_id === $phProvince->ph_region_id) {
-                return true;
-            }
-
-            // Country-level match
-            if ($entry->country_id && !$entry->ph_region_id && !$entry->ph_province_id && !$entry->ph_city_id) {
-                $countryMatch = \App\Models\Country::where('id', $entry->country_id)->where('iso2', $countryCode)->exists();
-                if ($countryMatch) {
+            // Country-level match: country only, no zone specified on entry
+            if ($entry->country_id && !$entry->zone_id && $country) {
+                if ($entry->country_id === $country->id) {
                     return true;
                 }
             }

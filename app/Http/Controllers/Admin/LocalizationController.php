@@ -137,7 +137,7 @@ class LocalizationController extends Controller
     {
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
-        // Load existing entries with their related models
+        // Load existing entries with labels
         $entries = $geoZone->entries()->get()->map(function ($entry) {
             $label = '';
             if ($entry->country_id) {
@@ -149,21 +149,11 @@ class LocalizationController extends Controller
                 } else {
                     $label .= ' (all zones)';
                 }
-            } elseif ($entry->ph_region_id) {
-                $region = \App\Models\PhRegion::find($entry->ph_region_id);
-                $label = 'PH → ' . ($region ? $region->name : 'Unknown');
-                if ($entry->ph_province_id) {
-                    $province = \App\Models\PhProvince::find($entry->ph_province_id);
-                    $label .= ' → ' . ($province ? $province->name : 'Unknown');
-                }
             }
             return [
                 'id' => $entry->id,
                 'country_id' => $entry->country_id,
                 'zone_id' => $entry->zone_id,
-                'ph_region_id' => $entry->ph_region_id,
-                'ph_province_id' => $entry->ph_province_id,
-                'ph_city_id' => $entry->ph_city_id,
                 'label' => $label,
             ];
         });
@@ -193,17 +183,13 @@ class LocalizationController extends Controller
             'entries' => ['present', 'array'],
             'entries.*.country_id' => ['nullable', 'integer'],
             'entries.*.zone_id' => ['nullable', 'integer'],
-            'entries.*.ph_region_id' => ['nullable', 'integer'],
-            'entries.*.ph_province_id' => ['nullable', 'integer'],
-            'entries.*.ph_city_id' => ['nullable', 'integer'],
         ]);
 
         $geoZone->entries()->delete();
 
         $entries = $request->input('entries', []);
         foreach ($entries as $entry) {
-            // Skip empty rows
-            if (empty($entry['country_id']) && empty($entry['ph_region_id'])) {
+            if (empty($entry['country_id'])) {
                 continue;
             }
 
@@ -211,9 +197,6 @@ class LocalizationController extends Controller
                 'geo_zone_id' => $geoZone->id,
                 'country_id' => $entry['country_id'] ?: null,
                 'zone_id' => $entry['zone_id'] ?: null,
-                'ph_region_id' => $entry['ph_region_id'] ?: null,
-                'ph_province_id' => $entry['ph_province_id'] ?: null,
-                'ph_city_id' => $entry['ph_city_id'] ?: null,
             ]);
         }
 
