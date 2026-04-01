@@ -41,8 +41,7 @@ class ProductController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%")
-                  ->orWhere('model', 'like', "%{$search}%");
+                  ->orWhere('sku', 'like', "%{$search}%");
             });
         }
 
@@ -271,7 +270,6 @@ class ProductController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:255', 'regex:/^[a-z0-9\-]*$/'],
             'sku' => ['nullable', 'string', 'max:100'],
-            'model' => ['nullable', 'string', 'max:100'],
             'brand_id' => ['nullable', 'exists:brands,id'],
             'description' => ['nullable', 'string'],
             'price' => ['nullable', 'numeric', 'min:0'],

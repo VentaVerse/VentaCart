@@ -11,7 +11,7 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
         <form method="GET" action="{{ route('admin.products.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name, SKU, model..."
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name, SKU..."
                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
             </div>
             <div>

@@ -66,7 +66,6 @@ class SampleProductSeeder extends Seeder
             'name' => 'Boss DS-1 Distortion Pedal',
             'slug' => 'boss-ds-1-distortion-pedal',
             'sku' => 'NGD-BOSS-DS1',
-            'model' => 'DS-1',
             'description' => 'The classic Boss DS-1 distortion pedal. Hard-edged distortion sound.',
             'price' => 3500.00,
             'cost' => 2200.00,

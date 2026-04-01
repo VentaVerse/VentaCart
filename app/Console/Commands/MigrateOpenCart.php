@@ -244,7 +244,6 @@ class MigrateOpenCart extends Command
                 'name' => $row['name'],
                 'slug' => $slug,
                 'sku' => $row['sku'] ?: null,
-                'model' => $row['model'] ?: null,
                 'brand_id' => $brandId,
                 'description' => $description ?: null,
                 'price' => round((float) $row['price'], 2),

@@ -135,7 +135,6 @@ class OrderController extends Controller
                 'product_variant_id' => $item->product_variant_id,
                 'name' => $item->name,
                 'sku' => $item->sku ?? '',
-                'model' => $item->model ?? '',
                 'variant_label' => $item->variant_label ?? '',
                 'price' => $item->price,
                 'quantity' => $item->quantity,
@@ -308,8 +307,7 @@ class OrderController extends Controller
             ->where('is_active', true)
             ->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%")
-                  ->orWhere('model', 'like', "%{$search}%");
+                  ->orWhere('sku', 'like', "%{$search}%");
             })
             ->with(['variants' => function ($q) {
                 $q->where('is_active', true);
@@ -326,7 +324,6 @@ class OrderController extends Controller
                         'product_variant_id' => $variant->id,
                         'name' => $product->name,
                         'sku' => $variant->sku,
-                        'model' => $product->model,
                         'variant_label' => $variant->name,
                         'price' => $variant->price,
                         'stock' => $variant->quantity,
@@ -475,7 +472,6 @@ class OrderController extends Controller
                 'product_variant_id' => $item['product_variant_id'] ?: null,
                 'name' => $item['name'],
                 'sku' => $item['sku'] ?? null,
-                'model' => $item['model'] ?? null,
                 'variant_label' => $item['variant_label'] ?? null,
                 'price' => $price,
                 'quantity' => $qty,

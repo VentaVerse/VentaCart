@@ -20,7 +20,6 @@ class SearchController extends Controller
             $products->where(function ($q) use ($query) {
                 $q->where('name', 'LIKE', "%{$query}%")
                   ->orWhere('sku', 'LIKE', "%{$query}%")
-                  ->orWhere('model', 'LIKE', "%{$query}%")
                   ->orWhere('description', 'LIKE', "%{$query}%");
             });
         }

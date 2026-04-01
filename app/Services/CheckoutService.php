@@ -267,7 +267,6 @@ class CheckoutService
                     'product_variant_id' => $item->product_variant_id,
                     'name' => $item->name,
                     'sku' => $item->sku,
-                    'model' => $item->product?->model,
                     'variant_label' => $item->variant_label,
                     'price' => $item->price,
                     'quantity' => $item->quantity,

@@ -2,7 +2,7 @@
     $errorTab = 'general';
     if ($errors->any()) {
         $tabFields = [
-            'general' => ['name', 'slug', 'sku', 'model', 'brand_id', 'description', 'date_available', 'price', 'quantity', 'weight', 'is_active', 'track_stock', 'minimum_quantity'],
+            'general' => ['name', 'slug', 'sku', 'brand_id', 'description', 'date_available', 'price', 'quantity', 'weight', 'is_active', 'track_stock', 'minimum_quantity'],
             'images' => ['images_json'],
             'pricing' => ['specials'],
             'links' => ['category_ids', 'tag_ids', 'customer_group_ids'],
@@ -92,13 +92,6 @@
                         <input type="text" name="sku" id="sku" value="{{ old('sku', $product?->sku) }}"
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         @error('sku') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="model" class="block text-sm font-medium text-gray-700 mb-1">Model</label>
-                        <input type="text" name="model" id="model" value="{{ old('model', $product?->model) }}"
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        @error('model') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
