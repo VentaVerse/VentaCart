@@ -27,9 +27,12 @@ class GeoZoneResolver
 
         // Resolve country and zone from core tables (only active countries)
         $country = $countryId ? Country::where('id', $countryId)->where('is_active', true)->first() : null;
-        $zone = ($country && $state)
-            ? Zone::where('country_id', $country->id)->where('name', $state)->first()
-            : null;
+        $zone = null;
+        if ($country && $state) {
+            // Exact match first, then contains match (handles "Metro Manila" vs "National Capital Region (Metro Manila)")
+            $zone = Zone::where('country_id', $country->id)->where('name', $state)->first()
+                ?? Zone::where('country_id', $country->id)->where('name', 'like', "%{$state}%")->first();
+        }
 
         foreach ($entries as $entry) {
             // Zone-level match (most specific): country + zone
