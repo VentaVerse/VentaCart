@@ -12,7 +12,7 @@
         ];
     })->values()->toJson();
     $countriesJson = $countries->toJson();
-    $phoneCodesJson = $countries->pluck('phone_code', 'iso2')->toJson();
+    $phoneCodesJson = $countries->pluck('phone_code', 'id')->toJson();
     $currencySymbol = $defaultCurrency?->symbol ?? '₱';
 @endphp
 
@@ -115,7 +115,7 @@
                     <template x-if="showNewAddressForm">
                     <div class="account-card mb-6"
                          x-data="addressForm({
-                            countryCode: newAddr.country_id,
+                            countryCode: String(newAddr.country_id || ''),
                             state: newAddr.state,
                             city: newAddr.city,
                             district: newAddr.district,
@@ -271,7 +271,7 @@
                     {{-- Billing Address Form --}}
                     <div x-show="differentBilling && !showNewAddressForm" x-transition:enter.opacity.duration.300ms class="account-card mb-6"
                          x-data="addressForm({
-                            countryCode: billing.country_id,
+                            countryCode: String(billing.country_id || ''),
                             state: billing.state,
                             city: billing.city,
                             district: billing.district,

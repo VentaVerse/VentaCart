@@ -1,6 +1,6 @@
 @php
     $addressData = $address ? [
-        'countryCode' => $address->country_id,
+        'countryCode' => (string) $address->country_id,
         'state' => $address->state ?? '',
         'city' => $address->city ?? '',
         'district' => $address->district ?? '',
