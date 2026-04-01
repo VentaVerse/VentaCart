@@ -2,7 +2,7 @@
     // Map PH extension provinces to core zone IDs
     $phCountry = \App\Models\Country::where('iso2', 'PH')->first();
     $coreZones = $phCountry
-        ? \App\Models\Zone::where('country_code', 'PH')->pluck('id', 'name')
+        ? \App\Models\Zone::where('country_id', $phCountry->id)->pluck('id', 'name')
         : collect();
 
     // Name mapping: PH extension province name → core zone name (where they differ)
