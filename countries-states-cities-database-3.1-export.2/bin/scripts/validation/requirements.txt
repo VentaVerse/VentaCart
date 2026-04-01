@@ -1,3 +1,0 @@
-# Wikipedia validation and enrichment requirements
-Wikipedia-API>=0.7.0
-timezonefinder>=6.5.0

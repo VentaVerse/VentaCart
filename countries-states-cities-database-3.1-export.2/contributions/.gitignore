@@ -1,3 +1,0 @@
-# This ensures all contribution files are tracked in Git
-# All JSON files in contributions/ directory should be committed
-!*.json
