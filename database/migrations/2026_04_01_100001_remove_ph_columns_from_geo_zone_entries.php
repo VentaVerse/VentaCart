@@ -25,13 +25,18 @@ return new class extends Migration
         }
 
         // Drop FK, drop old index, add new index, re-add FK
-        Schema::table('geo_zone_entries', function (Blueprint $table) {
-            $table->dropForeign(['geo_zone_id']);
-        });
+        try {
+            Schema::table('geo_zone_entries', function (Blueprint $table) {
+                $table->dropForeign(['geo_zone_id']);
+            });
+        } catch (\Throwable) {
+            // FK may already be dropped or have a different name
+        }
 
-        $hasIndex = DB::select("SHOW INDEX FROM geo_zone_entries WHERE Key_name = 'gze_location_index'");
+        $table = DB::getTablePrefix() . 'geo_zone_entries';
+        $hasIndex = DB::select("SHOW INDEX FROM `{$table}` WHERE Key_name = 'gze_location_index'");
         if (!empty($hasIndex)) {
-            DB::statement('DROP INDEX gze_location_index ON geo_zone_entries');
+            DB::statement("DROP INDEX gze_location_index ON `{$table}`");
         }
 
         Schema::table('geo_zone_entries', function (Blueprint $table) {

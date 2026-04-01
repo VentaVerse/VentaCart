@@ -13,9 +13,11 @@ return new class extends Migration
         $countryMap = DB::table('countries')->pluck('id', 'iso2')->toArray();
 
         // --- 1. ZONES: country_code (varchar) → country_id (bigint FK) ---
-        Schema::table('zones', function (Blueprint $table) {
-            $table->unsignedBigInteger('country_id')->nullable()->after('id');
-        });
+        if (!Schema::hasColumn('zones', 'country_id')) {
+            Schema::table('zones', function (Blueprint $table) {
+                $table->unsignedBigInteger('country_id')->nullable()->after('id');
+            });
+        }
 
         // Migrate data
         foreach ($countryMap as $iso2 => $countryId) {
@@ -23,10 +25,21 @@ return new class extends Migration
         }
 
         // Drop old FK and column
-        Schema::table('zones', function (Blueprint $table) {
-            $table->dropForeign(['country_code']);
-            $table->dropColumn('country_code');
-        });
+        if (Schema::hasColumn('zones', 'country_code')) {
+            try {
+                Schema::table('zones', function (Blueprint $table) {
+                    $table->dropForeign(['country_code']);
+                });
+            } catch (\Throwable) {
+                $prefix = DB::getTablePrefix();
+                try {
+                    DB::statement("ALTER TABLE `{$prefix}zones` DROP FOREIGN KEY `zones_country_code_foreign`");
+                } catch (\Throwable) {}
+            }
+            Schema::table('zones', function (Blueprint $table) {
+                $table->dropColumn('country_code');
+            });
+        }
 
         // Add proper FK
         Schema::table('zones', function (Blueprint $table) {
@@ -35,36 +48,57 @@ return new class extends Migration
         });
 
         // --- 2. CUSTOMER_ADDRESSES: country_code → country_id ---
-        Schema::table('customer_addresses', function (Blueprint $table) {
-            $table->unsignedBigInteger('country_id')->nullable()->after('country_code');
-        });
+        if (!Schema::hasColumn('customer_addresses', 'country_id')) {
+            Schema::table('customer_addresses', function (Blueprint $table) {
+                $table->unsignedBigInteger('country_id')->nullable()->after('country_code');
+            });
+        }
 
         foreach ($countryMap as $iso2 => $countryId) {
             DB::table('customer_addresses')->where('country_code', $iso2)->update(['country_id' => $countryId]);
         }
 
-        Schema::table('customer_addresses', function (Blueprint $table) {
-            $table->dropColumn('country_code');
-        });
+        if (Schema::hasColumn('customer_addresses', 'country_code')) {
+            Schema::table('customer_addresses', function (Blueprint $table) {
+                $table->dropColumn('country_code');
+            });
+        }
 
         // --- 3. ORDERS: shipping_country_code → shipping_country_id, billing_country_code → billing_country_id ---
-        Schema::table('orders', function (Blueprint $table) {
-            $table->unsignedBigInteger('shipping_country_id')->nullable()->after('shipping_country_code');
-            $table->unsignedBigInteger('billing_country_id')->nullable()->after('billing_country_code');
-        });
+        if (!Schema::hasColumn('orders', 'shipping_country_id')) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->unsignedBigInteger('shipping_country_id')->nullable()->after('shipping_country_code');
+                $table->unsignedBigInteger('billing_country_id')->nullable()->after('billing_country_code');
+            });
+        }
 
         foreach ($countryMap as $iso2 => $countryId) {
             DB::table('orders')->where('shipping_country_code', $iso2)->update(['shipping_country_id' => $countryId]);
             DB::table('orders')->where('billing_country_code', $iso2)->update(['billing_country_id' => $countryId]);
         }
 
-        Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn(['shipping_country_code', 'billing_country_code']);
-        });
+        $orderColsToDrop = array_filter(['shipping_country_code', 'billing_country_code'], fn($c) => Schema::hasColumn('orders', $c));
+        if (!empty($orderColsToDrop)) {
+            Schema::table('orders', function (Blueprint $table) use ($orderColsToDrop) {
+                $table->dropColumn($orderColsToDrop);
+            });
+        }
 
         // --- 4. Drop unique constraint on countries.iso2 ---
+        try {
+            Schema::table('countries', function (Blueprint $table) {
+                $table->dropUnique('countries_iso2_unique');
+            });
+        } catch (\Throwable) {
+            // Index name may differ with table prefix
+            $prefix = DB::getTablePrefix();
+            try {
+                DB::statement("ALTER TABLE `{$prefix}countries` DROP INDEX `{$prefix}countries_iso2_unique`");
+            } catch (\Throwable) {
+                // Already dropped or doesn't exist
+            }
+        }
         Schema::table('countries', function (Blueprint $table) {
-            $table->dropUnique('countries_iso2_unique');
             $table->index('iso2');
         });
     }
