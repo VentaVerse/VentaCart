@@ -890,6 +890,14 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
         }
     },
 
+    async removeCheckoutItem(item) {
+        if (!confirm('Remove ' + item.name + ' from cart?')) return;
+        await this.updateItemQty(item, 0);
+        if (this.items.length > 0) {
+            this.refreshShippingRates();
+        }
+    },
+
     submitOrder() {
         if (!this.selectedAddressId || !this.selectedPayment) return;
         this.showConfirmModal = true;

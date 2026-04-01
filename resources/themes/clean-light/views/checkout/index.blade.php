@@ -476,8 +476,12 @@
                                             class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-colors">+</button>
                                     </div>
                                 </div>
-                                <div class="text-sm text-gray-800 flex-shrink-0 font-medium">
-                                    {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                <div class="flex-shrink-0 text-right">
+                                    <div class="text-sm text-gray-800 font-medium">
+                                        {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                    </div>
+                                    <button type="button" @click="removeCheckoutItem(item)"
+                                        class="text-[10px] text-gray-400 hover:text-red-500 mt-1 transition-colors">Remove</button>
                                 </div>
                             </div>
                         </template>
