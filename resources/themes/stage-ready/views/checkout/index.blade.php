@@ -13,6 +13,7 @@
     })->values()->toJson();
     $countriesJson = $countries->toJson();
     $phoneCodesJson = $countries->pluck('phone_code', 'id')->toJson();
+    $countryNamesJson = $countries->pluck('name', 'id')->toJson();
     $currencySymbol = $defaultCurrency?->symbol ?? '₱';
 @endphp
 
@@ -89,11 +90,8 @@
                                     <template x-if="addr.district">
                                         <p class="text-[#999]" x-text="addr.district"></p>
                                     </template>
-                                    <p class="text-[#999]">
-                                        <span x-text="addr.city"></span><template x-if="addr.state">, <span x-text="addr.state"></span></template>
-                                        <template x-if="addr.postcode"> <span x-text="addr.postcode"></span></template>
-                                    </p>
-                                    <p class="text-[#777]" x-text="addr.country_id"></p>
+                                    <p class="text-[#999]" x-text="[addr.city, addr.state, addr.postcode].filter(Boolean).join(', ')"></p>
+                                    <p class="text-[#777]" x-text="({{ $countryNamesJson }})[addr.country_id] || ''"></p>
                                 </div>
 
                                 <button class="checkout-card-edit" @click.stop="editAddress(addr)">EDIT</button>
