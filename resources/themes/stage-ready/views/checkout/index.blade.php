@@ -379,6 +379,15 @@
                                 <label class="account-label">Postcode / ZIP</label>
                                 <input type="text" x-model="$data.billing.postcode" class="account-input w-full max-w-[200px]">
                             </div>
+
+                            {{-- Phone --}}
+                            <div>
+                                <label class="account-label">Mobile Number</label>
+                                <div class="flex gap-2">
+                                    <span class="inline-flex items-center px-3 rounded-md bg-[#1A1A1A] border border-[#333] text-sm text-[#888]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
+                                    <input type="tel" x-model="$data.billing.phone" class="account-input flex-1" placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
