@@ -138,15 +138,6 @@
                                 </div>
                             </div>
 
-                            {{-- Phone --}}
-                            <div>
-                                <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
-                                <div class="flex gap-2">
-                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-gray-500" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
-                                    <input type="tel" x-model="newAddr.phone" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                                </div>
-                            </div>
-
                             {{-- Country --}}
                             <div>
                                 <label class="account-label">Country <span class="text-[var(--color-secondary)]">*</span></label>
@@ -234,6 +225,15 @@
                             <div>
                                 <label class="account-label">Postcode / ZIP</label>
                                 <input type="text" x-model="newAddr.postcode" class="account-input w-full max-w-[200px]">
+                            </div>
+
+                            {{-- Phone --}}
+                            <div>
+                                <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
+                                <div class="flex gap-2">
+                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-gray-500" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
+                                    <input type="tel" x-model="newAddr.phone" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                </div>
                             </div>
 
                             {{-- Validation Errors --}}
