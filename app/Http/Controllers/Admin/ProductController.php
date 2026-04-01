@@ -212,17 +212,7 @@ class ProductController extends Controller
 
         $pimToken = (string) Str::uuid();
 
-        // Derive the brand folder from the product's first image path
-        $brandFolder = '';
-        if ($product->image && str_starts_with($product->image, 'catalog/')) {
-            $relative = substr($product->image, strlen('catalog/'));
-            $dir = dirname($relative);
-            if ($dir !== '.') {
-                $brandFolder = $dir;
-            }
-        }
-
-        return view('admin.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken', 'brandFolder'));
+        return view('admin.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken'));
     }
 
     public function update(Request $request, Product $product)

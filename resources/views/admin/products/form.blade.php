@@ -76,7 +76,6 @@
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
                         </div>
-                        <p class="mt-1 text-xs text-gray-400">Images are organized by brand folder.</p>
                         @error('brand_id') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
@@ -169,7 +168,6 @@
                 @include('admin.products.partials.image_manager', [
                     'existingImages' => $existingImages,
                     'pimToken' => $pimToken,
-                    'brandFolder' => $brandFolder ?? '',
                 ])
             </div>
 

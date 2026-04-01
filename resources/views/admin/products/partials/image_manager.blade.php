@@ -201,7 +201,6 @@ function imageManager() {
     return {
         items: @json($existingImages ?? []),
         pimToken: '{{ $pimToken ?? Str::uuid() }}',
-        brandFolder: '{{ $brandFolder ?? '' }}',
         showUrlInput: false,
         urlInput: '',
         importingUrl: false,
@@ -416,7 +415,7 @@ function imageManager() {
         // --- Image Manager Modal ---
         async openBrowser() {
             this.browserOpen = true;
-            const startPath = this.lastBrowsedPath ?? this.brandFolder ?? '';
+            const startPath = this.lastBrowsedPath ?? '';
             await this.browseDir(startPath);
         },
 
