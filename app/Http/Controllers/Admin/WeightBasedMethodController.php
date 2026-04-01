@@ -48,6 +48,29 @@ class WeightBasedMethodController extends Controller
             ->with('success', 'Weight-based method updated.');
     }
 
+    public function bulkUpdate(Request $request)
+    {
+        $methods = $request->input('methods', []);
+
+        foreach ($methods as $id => $data) {
+            $method = WeightBasedMethod::find($id);
+            if (!$method) continue;
+
+            $method->update([
+                'name' => $data['name'] ?? $method->name,
+                'geo_zone_id' => !empty($data['geo_zone_id']) ? $data['geo_zone_id'] : null,
+                'customer_group_id' => !empty($data['customer_group_id']) ? $data['customer_group_id'] : null,
+                'is_active' => isset($data['is_active']),
+                'sort_order' => $data['sort_order'] ?? 0,
+            ]);
+
+            $this->syncRates($method, $data['rates'] ?? []);
+        }
+
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
+            ->with('success', count($methods) . ' method(s) updated.');
+    }
+
     public function destroy(WeightBasedMethod $weightBasedMethod)
     {
         $weightBasedMethod->delete();

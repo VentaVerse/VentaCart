@@ -401,6 +401,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     // Weight-Based Method CRUD
     Route::get('weight-based-methods/create', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'create'])->name('weight-based-methods.create');
     Route::post('weight-based-methods', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'store'])->name('weight-based-methods.store');
+    Route::put('weight-based-methods/bulk', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'bulkUpdate'])->name('weight-based-methods.bulk-update');
     Route::get('weight-based-methods/{weightBasedMethod}/edit', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'edit'])->name('weight-based-methods.edit');
     Route::put('weight-based-methods/{weightBasedMethod}', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'update'])->name('weight-based-methods.update');
     Route::delete('weight-based-methods/{weightBasedMethod}', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'destroy'])->name('weight-based-methods.destroy');

@@ -124,39 +124,33 @@
                         </a>
                     </div>
                 </div>
-                <div class="divide-y divide-gray-100">
-                    @forelse ($weightMethods as $wm)
-                        <div x-data="{ open: false }">
-                            {{-- Method header row --}}
-                            <div class="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors" @click="open = !open">
-                                <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0" :class="open && 'rotate-90'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-                                <span class="w-2 h-2 rounded-full shrink-0 {{ $wm->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                                <span class="text-sm font-medium text-gray-900 flex-1">{{ $wm->name }}</span>
-                                <span class="text-xs text-gray-400">{{ $wm->geoZone?->name ?? 'All zones' }}</span>
-                                <span class="text-xs text-gray-400">{{ $wm->customerGroup?->name ?? 'All groups' }}</span>
-                                <span class="text-xs text-gray-400">{{ $wm->rates_count }} {{ Str::plural('tier', $wm->rates_count) }}</span>
-                            </div>
 
-                            {{-- Expanded edit form --}}
-                            <div x-show="open" x-transition class="px-5 pb-5 bg-gray-50/50 border-t border-gray-100">
-                                @php
-                                    $wmRatesData = $wm->rates->map(function($r) {
-                                        return ['weight_from' => $r->weight_from, 'weight_to' => $r->weight_to, 'cost' => $r->cost];
-                                    })->toArray();
-                                @endphp
-                                <form method="POST" action="{{ route('admin.weight-based-methods.update', $wm) }}"
-                                      x-data="{ rates: {{ json_encode($wmRatesData) }}, addRate() { const last = this.rates.length > 0 ? this.rates[this.rates.length - 1] : null; this.rates.push({ weight_from: last ? last.weight_to : '0.000', weight_to: last ? (parseFloat(last.weight_to) + 5).toFixed(3) : '5.000', cost: last ? last.cost : '0.00' }); } }">
-                                    @csrf @method('PUT')
+                <form method="POST" action="{{ route('admin.weight-based-methods.bulk-update') }}">
+                    @csrf @method('PUT')
+                    <div class="divide-y divide-gray-100">
+                        @forelse ($weightMethods as $wm)
+                            <div x-data="{ open: false, rates: {{ json_encode($wm->rates->map(fn($r) => ['weight_from' => $r->weight_from, 'weight_to' => $r->weight_to, 'cost' => $r->cost])) }}, addRate() { const last = this.rates.length > 0 ? this.rates[this.rates.length - 1] : null; this.rates.push({ weight_from: last ? last.weight_to : '0.000', weight_to: last ? (parseFloat(last.weight_to) + 5).toFixed(3) : '5.000', cost: last ? last.cost : '0.00' }); } }">
+                                {{-- Method header row --}}
+                                <div class="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors" @click="open = !open">
+                                    <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0" :class="open && 'rotate-90'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                                    <span class="w-2 h-2 rounded-full shrink-0 {{ $wm->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
+                                    <span class="text-sm font-medium text-gray-900 flex-1">{{ $wm->name }}</span>
+                                    <span class="text-xs text-gray-400">{{ $wm->geoZone?->name ?? 'All zones' }}</span>
+                                    <span class="text-xs text-gray-400">{{ $wm->customerGroup?->name ?? 'All groups' }}</span>
+                                    <span class="text-xs text-gray-400">{{ $wm->rates_count }} {{ Str::plural('tier', $wm->rates_count) }}</span>
+                                </div>
+
+                                {{-- Expanded edit --}}
+                                <div x-show="open" x-transition class="px-5 pb-5 bg-gray-50/50 border-t border-gray-100">
                                     <div class="pt-4 space-y-4">
-                                        {{-- Name + settings row --}}
                                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                             <div>
                                                 <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
-                                                <input type="text" name="name" value="{{ $wm->name }}" required class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                                <input type="text" name="methods[{{ $wm->id }}][name]" value="{{ $wm->name }}" required class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-gray-600 mb-1">Geo Zone</label>
-                                                <select name="geo_zone_id" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                                <select name="methods[{{ $wm->id }}][geo_zone_id]" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
                                                     <option value="">All zones</option>
                                                     @foreach ($geoZones as $zone)
                                                         <option value="{{ $zone->id }}" {{ $wm->geo_zone_id == $zone->id ? 'selected' : '' }}>{{ $zone->name }}</option>
@@ -165,7 +159,7 @@
                                             </div>
                                             <div>
                                                 <label class="block text-xs font-medium text-gray-600 mb-1">Customer Group</label>
-                                                <select name="customer_group_id" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
+                                                <select name="methods[{{ $wm->id }}][customer_group_id]" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
                                                     <option value="">All customers</option>
                                                     @foreach ($customerGroups as $group)
                                                         <option value="{{ $group->id }}" {{ $wm->customer_group_id == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
@@ -174,18 +168,17 @@
                                             </div>
                                             <div class="flex items-end gap-3">
                                                 <label class="flex items-center gap-2 text-sm pb-1.5">
-                                                    <input type="hidden" name="is_active" value="0">
-                                                    <input type="checkbox" name="is_active" value="1" {{ $wm->is_active ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
+                                                    <input type="checkbox" name="methods[{{ $wm->id }}][is_active]" value="1" {{ $wm->is_active ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
                                                     Active
                                                 </label>
                                                 <div class="flex items-center gap-1 pb-1.5">
                                                     <label class="text-xs text-gray-500">Sort</label>
-                                                    <input type="number" name="sort_order" value="{{ $wm->sort_order }}" class="w-14 rounded-md border-gray-300 text-sm py-1 text-center focus:border-indigo-500 focus:ring-indigo-500">
+                                                    <input type="number" name="methods[{{ $wm->id }}][sort_order]" value="{{ $wm->sort_order }}" class="w-14 rounded-md border-gray-300 text-sm py-1 text-center focus:border-indigo-500 focus:ring-indigo-500">
                                                 </div>
                                             </div>
                                         </div>
 
-                                        {{-- Weight tiers table --}}
+                                        {{-- Weight tiers --}}
                                         <div>
                                             <div class="flex items-center justify-between mb-2">
                                                 <label class="text-xs font-medium text-gray-600">Weight Tiers</label>
@@ -209,13 +202,13 @@
                                                             <template x-for="(rate, i) in rates" :key="i">
                                                                 <tr>
                                                                     <td class="px-3 py-1.5">
-                                                                        <input type="number" :name="'rates['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                                        <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
                                                                     </td>
                                                                     <td class="px-3 py-1.5">
-                                                                        <input type="number" :name="'rates['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                                        <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
                                                                     </td>
                                                                     <td class="px-3 py-1.5">
-                                                                        <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                                        <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
                                                                     </td>
                                                                     <td class="px-1 py-1.5 text-center">
                                                                         <button type="button" @click="rates.splice(i, 1)" class="p-0.5 text-gray-400 hover:text-red-600" title="Remove">
@@ -233,28 +226,35 @@
                                             </template>
                                         </div>
 
-                                        {{-- Save --}}
-                                        <div class="flex items-center justify-end pt-2">
-                                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                                        {{-- Delete --}}
+                                        <div class="flex justify-start pt-2 border-t border-gray-200">
+                                            <button type="button" onclick="if(confirm('Delete {{ addslashes($wm->name) }} and all its tiers?')) document.getElementById('delete-wm-{{ $wm->id }}').submit()"
+                                                class="text-red-500 hover:text-red-700 text-xs font-medium">Delete Method</button>
                                         </div>
                                     </div>
-                                </form>
-                                {{-- Delete (outside the update form to avoid nested form issue) --}}
-                                <div class="px-5 pb-4 flex justify-start">
-                                    <form method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" onsubmit="return confirm('Delete {{ addslashes($wm->name) }} and all its tiers?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete Method</button>
-                                    </form>
                                 </div>
                             </div>
+                        @empty
+                            <div class="px-5 py-12 text-center text-gray-400 text-sm">
+                                No weight-based methods configured.
+                                <a href="{{ route('admin.weight-based-methods.create') }}" class="text-indigo-600 hover:underline">Create your first one</a>.
+                            </div>
+                        @endforelse
+                    </div>
+
+                    @if ($weightMethods->isNotEmpty())
+                        <div class="p-5 border-t border-gray-200">
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save All Methods</button>
                         </div>
-                    @empty
-                        <div class="px-5 py-12 text-center text-gray-400 text-sm">
-                            No weight-based methods configured.
-                            <a href="{{ route('admin.weight-based-methods.create') }}" class="text-indigo-600 hover:underline">Create your first one</a>.
-                        </div>
-                    @endforelse
-                </div>
+                    @endif
+                </form>
+
+                {{-- Delete forms (outside the bulk form) --}}
+                @foreach ($weightMethods as $wm)
+                    <form id="delete-wm-{{ $wm->id }}" method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" class="hidden">
+                        @csrf @method('DELETE')
+                    </form>
+                @endforeach
             </div>
 
             {{-- ==================== FREE SHIPPING ==================== --}}
