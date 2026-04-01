@@ -130,7 +130,7 @@
             open: false, name: '', brandId: '', brandSearch: '', brandResults: [], saving: false, error: '',
             async searchBrands() {
                 if (this.brandSearch.length < 1) { this.brandResults = []; return; }
-                const res = await fetch('{{ route('admin.brands.search') }}?q=' + encodeURIComponent(this.brandSearch));
+                const res = await fetch('{{ route('admin.brands.search') }}?store_id={{ config('app.store_id', 1) }}&q=' + encodeURIComponent(this.brandSearch));
                 this.brandResults = await res.json();
             },
             selectBrand(brand) {
