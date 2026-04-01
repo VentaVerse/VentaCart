@@ -7,6 +7,7 @@ use App\Models\Country;
 use App\Models\Zone;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class WorldGeographicSeeder extends Seeder
 {
@@ -17,6 +18,9 @@ class WorldGeographicSeeder extends Seeder
      * Data files:
      *   database/data/countries-supplement.json  — countries missing from CountrySeeder
      *   database/data/zones-cities.json          — zones + nested city names keyed by ISO2
+     *
+     * Works for both fresh installs and existing databases.
+     * Uses country_id (post-decoupling schema).
      */
     public function run(): void
     {
@@ -66,8 +70,12 @@ class WorldGeographicSeeder extends Seeder
 
     protected function seedZonesAndCities(array $data): void
     {
-        // Build a lookup of existing countries by ISO2
-        $countryMap = Country::pluck('iso2', 'iso2')->toArray();
+        // Build iso2 → country_id mapping
+        $countryIdMap = Country::pluck('id', 'iso2')->toArray();
+
+        // Detect schema: does zones table have country_id or country_code?
+        $hasCountryId = Schema::hasColumn('zones', 'country_id');
+        $hasCountryCode = Schema::hasColumn('zones', 'country_code');
 
         $zonesAdded = 0;
         $zonesSkipped = 0;
@@ -79,52 +87,53 @@ class WorldGeographicSeeder extends Seeder
 
         try {
             foreach ($data as $countryCode => $zones) {
-                // Skip countries we don't have in our database
-                if (!isset($countryMap[$countryCode])) {
-                    continue;
-                }
+                $countryId = $countryIdMap[$countryCode] ?? null;
+                if (!$countryId) continue;
 
                 foreach ($zones as $zoneEntry) {
                     $zoneName = $zoneEntry['name'];
                     $zoneCode = $zoneEntry['code'] ?? null;
 
-                    // Truncate code to fit the column (max 10 chars)
                     if ($zoneCode && strlen($zoneCode) > 10) {
                         $zoneCode = substr($zoneCode, 0, 10);
                     }
 
-                    // Check if zone already exists
-                    $zone = Zone::where('country_code', $countryCode)
-                        ->where('name', $zoneName)
-                        ->first();
+                    // Check if zone already exists (support both schema versions)
+                    if ($hasCountryId) {
+                        $zone = Zone::where('country_id', $countryId)->where('name', $zoneName)->first();
+                    } else {
+                        $zone = Zone::where('country_code', $countryCode)->where('name', $zoneName)->first();
+                    }
 
                     if ($zone) {
-                        // Update code if it was missing
                         if (!$zone->code && $zoneCode) {
                             $zone->update(['code' => $zoneCode]);
                         }
                         $zonesSkipped++;
                     } else {
-                        $zone = Zone::create([
-                            'country_code' => $countryCode,
+                        $zoneData = [
                             'name' => $zoneName,
                             'code' => $zoneCode,
                             'is_active' => true,
-                        ]);
+                        ];
+
+                        if ($hasCountryId) {
+                            $zoneData['country_id'] = $countryId;
+                        }
+                        if ($hasCountryCode) {
+                            $zoneData['country_code'] = $countryCode;
+                        }
+
+                        $zone = Zone::create($zoneData);
                         $zonesAdded++;
                     }
 
                     // Add cities for this zone
                     $cities = $zoneEntry['cities'] ?? [];
-                    if (empty($cities)) {
-                        continue;
-                    }
+                    if (empty($cities)) continue;
 
-                    // Check if this zone already has cities
                     $existingCityCount = City::where('zone_id', $zone->id)->count();
-                    if ($existingCityCount > 0) {
-                        continue; // Skip — already seeded
-                    }
+                    if ($existingCityCount > 0) continue;
 
                     foreach ($cities as $cityName) {
                         $batch[] = [
@@ -142,7 +151,6 @@ class WorldGeographicSeeder extends Seeder
                 }
             }
 
-            // Insert remaining batch
             if (!empty($batch)) {
                 City::insert($batch);
                 $citiesAdded += count($batch);
