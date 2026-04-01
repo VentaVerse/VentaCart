@@ -18,20 +18,7 @@ class AddressLookupController extends Controller
             ->orderBy('name')
             ->get(['id', 'iso2', 'name', 'sort_order']);
 
-        // Merge extension-provided countries (e.g. PhilippineAddress provides 'PH')
-        foreach ($registry->all() as $provider) {
-            if (!$countries->contains('iso2', $provider->countryCode())) {
-                $countries->push((object) [
-                    'id' => null,
-                    'iso2' => $provider->countryCode(),
-                    'name' => $provider->countryName(),
-                    'sort_order' => 0,
-                ]);
-            }
-        }
-
-        // Sort by sort_order first (lowest first), then alphabetically
-        return response()->json($countries->sortBy([['sort_order', 'asc'], ['name', 'asc']])->values());
+        return response()->json($countries);
     }
 
     public function zones(Request $request): JsonResponse

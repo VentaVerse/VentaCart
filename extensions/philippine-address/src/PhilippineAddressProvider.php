@@ -3,9 +3,19 @@
 namespace Extensions\PhilippineAddress;
 
 use App\Contracts\AddressProvider;
+use App\Models\Setting;
 
 class PhilippineAddressProvider implements AddressProvider
 {
+    public function countryId(): ?int
+    {
+        $id = Setting::where('group', 'ph_address')
+            ->where('key', 'country_id')
+            ->value('value');
+
+        return $id ? (int) $id : null;
+    }
+
     public function countryCode(): string
     {
         return 'PH';

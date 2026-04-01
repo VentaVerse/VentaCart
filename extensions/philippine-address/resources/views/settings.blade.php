@@ -31,6 +31,24 @@
             @endif
         </div>
 
+        {{-- Link to Country --}}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-sm font-semibold text-gray-900">Link to Country</h3>
+            <p class="text-xs text-gray-500 mt-1 mb-4">Select which core country this extension provides address dropdowns for. When a customer selects this country at checkout, the PSGC Province → City → Barangay dropdowns will appear.</p>
+            <form method="POST" action="{{ route('admin.ph-address.link-country') }}" class="flex items-end gap-3">
+                @csrf
+                <div class="flex-1 max-w-xs">
+                    <select name="country_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="">— Not linked —</option>
+                        @foreach ($countries as $country)
+                            <option value="{{ $country->id }}" {{ (int) $linkedCountryId === $country->id ? 'selected' : '' }}>{{ $country->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors">Save</button>
+            </form>
+        </div>
+
         {{-- Geo Zones --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div class="flex items-center justify-between">

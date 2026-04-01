@@ -6,25 +6,27 @@ use App\Contracts\AddressProvider;
 
 class AddressProviderRegistry
 {
-    /** @var array<string, AddressProvider> keyed by ISO2 */
+    /** @var array<int, AddressProvider> keyed by country ID */
     protected array $providers = [];
 
     public function register(AddressProvider $provider): void
     {
-        $this->providers[$provider->countryCode()] = $provider;
+        if ($provider->countryId()) {
+            $this->providers[$provider->countryId()] = $provider;
+        }
     }
 
-    public function has(string $countryCode): bool
+    public function has(int $countryId): bool
     {
-        return isset($this->providers[$countryCode]);
+        return isset($this->providers[$countryId]);
     }
 
-    public function get(string $countryCode): ?AddressProvider
+    public function get(int $countryId): ?AddressProvider
     {
-        return $this->providers[$countryCode] ?? null;
+        return $this->providers[$countryId] ?? null;
     }
 
-    /** @return array<string, AddressProvider> */
+    /** @return array<int, AddressProvider> */
     public function all(): array
     {
         return $this->providers;
@@ -32,13 +34,14 @@ class AddressProviderRegistry
 
     /**
      * JSON-serializable manifest for the frontend.
-     * Keyed by country code.
+     * Keyed by country ID.
      */
     public function toFrontendManifest(): array
     {
         $manifest = [];
-        foreach ($this->providers as $code => $provider) {
-            $manifest[$code] = [
+        foreach ($this->providers as $countryId => $provider) {
+            $manifest[$countryId] = [
+                'countryId' => $countryId,
                 'countryCode' => $provider->countryCode(),
                 'countryName' => $provider->countryName(),
                 'phoneCode' => $provider->phoneCode(),

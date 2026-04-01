@@ -25,6 +25,7 @@ Route::middleware(['web', 'auth'])->prefix('admin/address')->name('admin.address
 Route::middleware(['web', 'auth'])->prefix('admin/ph-address')->name('admin.ph-address.')->group(function () {
     Route::get('/', [PhAddressSettingsController::class, 'index'])->name('settings');
     Route::post('/toggle', [PhAddressSettingsController::class, 'toggle'])->name('toggle');
+    Route::post('/link-country', [PhAddressSettingsController::class, 'linkCountry'])->name('link-country');
 
     // PH Geo Zones
     Route::get('/geo-zones', [PhGeoZoneController::class, 'index'])->name('geo-zones.index');

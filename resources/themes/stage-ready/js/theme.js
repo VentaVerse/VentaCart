@@ -561,7 +561,7 @@ Alpine.data('addressForm', (config = {}) => ({
     },
 
     get hasProvider() {
-        return !!this.providers[this.countryIso2];
+        return !!this.providers[this.countryCode];
     },
 
     init() {
@@ -592,7 +592,7 @@ Alpine.data('addressForm', (config = {}) => ({
 
         if (!this.countryCode) return;
 
-        const provider = this.providers[this.countryIso2];
+        const provider = this.providers[this.countryCode];
         if (provider) {
             this.providerFields = provider.fields;
             const root = provider.fields.find(f => !f.paramFrom);
@@ -616,7 +616,7 @@ Alpine.data('addressForm', (config = {}) => ({
 
     // Generic field change handler — works for any provider
     async onFieldChange(fieldKey, clear = true) {
-        const provider = this.providers[this.countryIso2];
+        const provider = this.providers[this.countryCode];
         if (!provider) return;
 
         // Clear downstream fields

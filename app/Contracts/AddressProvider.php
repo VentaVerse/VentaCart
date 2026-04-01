@@ -4,6 +4,9 @@ namespace App\Contracts;
 
 interface AddressProvider
 {
+    /** Core country ID this provider is linked to */
+    public function countryId(): ?int;
+
     /** ISO 3166-1 alpha-2 code, e.g. 'PH' */
     public function countryCode(): string;
 
@@ -16,14 +19,6 @@ interface AddressProvider
     /**
      * Return the address field hierarchy as a JSON-serializable array.
      * Each entry describes a cascading dropdown level.
-     *
-     * Keys map to database columns: 'state', 'city', 'district', 'barangay'
-     *
-     * Example:
-     * [
-     *     ['key' => 'state', 'label' => 'Province', 'required' => true, 'endpoint' => '/address-lookup/ph-provinces', 'paramFrom' => null, 'paramName' => null],
-     *     ['key' => 'city',  'label' => 'City',     'required' => true, 'endpoint' => '/address-lookup/ph-cities',    'paramFrom' => 'state', 'paramName' => 'province_id', 'resolveId' => true],
-     * ]
      */
     public function fields(): array;
 }

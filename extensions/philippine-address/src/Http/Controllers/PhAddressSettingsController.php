@@ -15,6 +15,12 @@ class PhAddressSettingsController extends Controller
             ->where('key', 'ph_address_enabled')
             ->value('value') !== '0';
 
+        $linkedCountryId = Setting::where('group', 'ph_address')
+            ->where('key', 'country_id')
+            ->value('value');
+
+        $countries = \App\Models\Country::orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
+
         $stats = [
             'regions' => DB::table('ph_regions')->count(),
             'provinces' => DB::table('ph_provinces')->count(),
@@ -22,7 +28,7 @@ class PhAddressSettingsController extends Controller
             'barangays' => DB::table('ph_barangays')->count(),
         ];
 
-        return view('ph-address::settings', compact('enabled', 'stats'));
+        return view('ph-address::settings', compact('enabled', 'linkedCountryId', 'countries', 'stats'));
     }
 
     public function toggle(Request $request)
@@ -36,5 +42,20 @@ class PhAddressSettingsController extends Controller
 
         return redirect()->route('admin.ph-address.settings')
             ->with('success', 'Philippine Address extension ' . ($enabled ? 'enabled' : 'disabled') . '.');
+    }
+
+    public function linkCountry(Request $request)
+    {
+        $validated = $request->validate([
+            'country_id' => 'nullable|integer|exists:countries,id',
+        ]);
+
+        Setting::updateOrCreate(
+            ['group' => 'ph_address', 'key' => 'country_id'],
+            ['value' => $validated['country_id'] ?: null]
+        );
+
+        return redirect()->route('admin.ph-address.settings')
+            ->with('success', 'Country link updated.');
     }
 }
