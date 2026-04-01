@@ -311,8 +311,13 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
-                                <input type="text" name="billing_phone" x-model="billing.phone"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <div class="flex gap-2">
+                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-xs text-gray-500"
+                                        x-text="countriesPhoneCodes[billing.country_id] ? '+' + countriesPhoneCodes[billing.country_id] : '—'"></span>
+                                    <input type="tel" name="billing_phone" x-model="billing.phone"
+                                        class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                </div>
                             </div>
                         </div>
                     </div>
