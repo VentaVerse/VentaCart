@@ -25,8 +25,8 @@ class GeoZoneResolver
             return false;
         }
 
-        // Resolve country and zone from core tables
-        $country = $countryCode ? Country::where('iso2', $countryCode)->first() : null;
+        // Resolve country and zone from core tables (only active countries)
+        $country = $countryCode ? Country::where('iso2', $countryCode)->where('is_active', true)->first() : null;
         $zone = ($country && $state)
             ? Zone::where('country_code', $countryCode)->where('name', $state)->first()
             : null;

@@ -185,7 +185,7 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
             return null;
         }
 
-        $country = Country::where('iso2', $countryCode)->first();
+        $country = Country::where('iso2', $countryCode)->where('is_active', true)->first();
         if (!$country) {
             return null;
         }
