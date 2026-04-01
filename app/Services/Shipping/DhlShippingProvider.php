@@ -40,8 +40,11 @@ class DhlShippingProvider implements ShippingProviderInterface
             'postal_code' => Setting::where('group', 'shipping')->where('key', 'dph_pickup_postal_code')->value('value') ?? '1800',
         ];
 
-        // Build destination from address
-        $destCountry = $address['country_code'] ?? 'PH';
+        // Build destination from address — resolve country_id to ISO code for DHL API
+        $destCountryId = $address['country_id'] ?? null;
+        $destCountry = $destCountryId
+            ? \App\Models\Country::where('id', $destCountryId)->value('iso2')
+            : 'PH';
         $destCity = $address['city'] ?? '';
         $destPostal = $address['postal_code'] ?? $address['postcode'] ?? '';
 

@@ -10,7 +10,7 @@ class Zone extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['country_code', 'name', 'code', 'is_active'];
+    protected $fillable = ['country_id', 'name', 'code', 'is_active'];
 
     protected function casts(): array
     {
@@ -21,7 +21,7 @@ class Zone extends Model
 
     public function country(): BelongsTo
     {
-        return $this->belongsTo(Country::class, 'country_code', 'iso2');
+        return $this->belongsTo(Country::class);
     }
 
     public function cities(): HasMany

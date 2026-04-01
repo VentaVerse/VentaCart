@@ -122,7 +122,7 @@ class AccountAddressController extends Controller
             'barangay' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
             'postcode' => ['nullable', 'string', 'max:20'],
-            'country_code' => ['required', 'string', 'size:2'],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
             'phone' => ['required', 'string', 'max:30'],
         ]);
     }

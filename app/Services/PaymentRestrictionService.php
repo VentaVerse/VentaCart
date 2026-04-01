@@ -173,7 +173,7 @@ class PaymentRestrictionService
         $resolverAddress = [
             'province' => $state,
             'city' => $city,
-            'country_code' => $address['country_code'] ?? 'PH',
+            'country_id' => $address['country_id'] ?? null,
         ];
 
         // Check each active geo zone for a match

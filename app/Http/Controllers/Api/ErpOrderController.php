@@ -89,7 +89,7 @@ class ErpOrderController extends Controller
                 'barangay' => $order->shipping_barangay,
                 'state' => $order->shipping_state,
                 'postcode' => $order->shipping_postcode,
-                'country_code' => $order->shipping_country_code,
+                'country_code' => $order->shippingCountry?->iso2,
             ],
             'billing_address' => $order->billing_first_name ? [
                 'first_name' => $order->billing_first_name,
@@ -100,7 +100,7 @@ class ErpOrderController extends Controller
                 'barangay' => $order->billing_barangay,
                 'state' => $order->billing_state,
                 'postcode' => $order->billing_postcode,
-                'country_code' => $order->billing_country_code,
+                'country_code' => $order->billingCountry?->iso2,
             ] : null,
             'items' => $order->products->map(function ($item) {
                 return [

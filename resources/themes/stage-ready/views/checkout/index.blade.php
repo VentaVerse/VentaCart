@@ -93,7 +93,7 @@
                                         <span x-text="addr.city"></span><template x-if="addr.state">, <span x-text="addr.state"></span></template>
                                         <template x-if="addr.postcode"> <span x-text="addr.postcode"></span></template>
                                     </p>
-                                    <p class="text-[#777]" x-text="addr.country_code"></p>
+                                    <p class="text-[#777]" x-text="addr.country_id"></p>
                                 </div>
 
                                 <button class="checkout-card-edit" @click.stop="editAddress(addr)">EDIT</button>
@@ -115,14 +115,14 @@
                     <template x-if="showNewAddressForm">
                     <div class="account-card mb-6"
                          x-data="addressForm({
-                            countryCode: newAddr.country_code,
+                            countryCode: newAddr.country_id,
                             state: newAddr.state,
                             city: newAddr.city,
                             district: newAddr.district,
                             barangay: newAddr.barangay,
                             phoneCodes: {{ $phoneCodesJson }},
                          })"
-                         x-effect="newAddr.country_code = countryCode; newAddr.state = state; newAddr.city = city; newAddr.district = district; newAddr.barangay = barangay;">
+                         x-effect="newAddr.country_id = countryCode; newAddr.state = state; newAddr.city = city; newAddr.district = district; newAddr.barangay = barangay;">
 
                         <h3 class="checkout-section-title" x-text="editingAddress ? 'EDIT ADDRESS' : 'NEW ADDRESS'"></h3>
 
@@ -144,7 +144,7 @@
                                 <select x-model="countryCode" @change="onCountryChange()" class="account-input w-full">
                                     <option value="">-- Select Country --</option>
                                     @foreach ($countries as $country)
-                                        <option value="{{ $country->iso2 }}">{{ $country->name }}</option>
+                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -271,14 +271,14 @@
                     {{-- Billing Address Form --}}
                     <div x-show="differentBilling && !showNewAddressForm" x-transition:enter.opacity.duration.300ms class="account-card mb-6"
                          x-data="addressForm({
-                            countryCode: billing.country_code,
+                            countryCode: billing.country_id,
                             state: billing.state,
                             city: billing.city,
                             district: billing.district,
                             barangay: billing.barangay,
                             phoneCodes: {{ $phoneCodesJson }},
                          })"
-                         x-effect="billing.country_code = countryCode; billing.state = state; billing.city = city; billing.district = district; billing.barangay = barangay;">
+                         x-effect="billing.country_id = countryCode; billing.state = state; billing.city = city; billing.district = district; billing.barangay = barangay;">
 
                         <h3 class="checkout-section-title">BILLING ADDRESS</h3>
 
@@ -305,7 +305,7 @@
                                 <select x-model="countryCode" @change="onCountryChange()" class="account-input w-full">
                                     <option value="">-- Select Country --</option>
                                     @foreach ($countries as $country)
-                                        <option value="{{ $country->iso2 }}">{{ $country->name }}</option>
+                                        <option value="{{ $country->id }}">{{ $country->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -565,7 +565,7 @@
             <input type="hidden" name="billing_barangay" :value="billing.barangay">
             <input type="hidden" name="billing_state" :value="billing.state">
             <input type="hidden" name="billing_postcode" :value="billing.postcode">
-            <input type="hidden" name="billing_country_code" :value="billing.country_code">
+            <input type="hidden" name="billing_country_id" :value="billing.country_id">
         </form>
 
         {{-- Checkout Confirmation Modal --}}

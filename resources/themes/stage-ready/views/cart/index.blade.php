@@ -87,8 +87,8 @@
                                 {{-- Country --}}
                                 <select x-model="countryCode" @change="onCountryChange()" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
                                     <option value="">Select Country</option>
-                                    <template x-for="c in countries" :key="c.iso2">
-                                        <option :value="c.iso2" x-text="c.name"></option>
+                                    <template x-for="c in countries" :key="c.id">
+                                        <option :value="c.id" x-text="c.name"></option>
                                     </template>
                                 </select>
 
@@ -275,7 +275,7 @@
                             .then(d => this.providerData[root.key] = d);
                     }
                 } else if (this.countryCode) {
-                    fetch('{{ route("storefront.address.zones") }}?country_code=' + this.countryCode)
+                    fetch('{{ route("storefront.address.zones") }}?country_id=' + this.countryCode)
                         .then(r => r.json())
                         .then(d => this.zones = d);
                 }
@@ -338,7 +338,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            country_code: this.countryCode,
+                            country_id: this.countryCode,
                             state: this.state,
                             city: this.city,
                         })

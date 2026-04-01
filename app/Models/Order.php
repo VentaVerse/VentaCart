@@ -13,13 +13,13 @@ class Order extends Model
         'first_name', 'last_name', 'email', 'phone',
         'shipping_first_name', 'shipping_last_name',
         'shipping_address_1', 'shipping_city', 'shipping_district', 'shipping_barangay',
-        'shipping_state', 'shipping_postcode', 'shipping_country_code', 'shipping_phone',
+        'shipping_state', 'shipping_postcode', 'shipping_country_id', 'shipping_phone',
         'payment_method', 'payment_reference', 'shipping_method', 'dph_courier_name',
         'subtotal', 'shipping_cost', 'total',
         'shipping_courier_id', 'tracking_number',
         'billing_first_name', 'billing_last_name', 'billing_address_1',
         'billing_city', 'billing_district', 'billing_barangay',
-        'billing_state', 'billing_postcode', 'billing_country_code', 'billing_phone',
+        'billing_state', 'billing_postcode', 'billing_country_id', 'billing_phone',
         'comment', 'stock_adjusted',
     ];
 
@@ -51,6 +51,16 @@ class Order extends Model
     public function createdByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function shippingCountry(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'shipping_country_id');
+    }
+
+    public function billingCountry(): BelongsTo
+    {
+        return $this->belongsTo(Country::class, 'billing_country_id');
     }
 
     public function products(): HasMany

@@ -22,9 +22,9 @@ class AddressLookupController extends Controller
 
     public function zones(Request $request)
     {
-        $request->validate(['country_code' => 'required|string|size:2']);
+        $request->validate(['country_id' => 'required|integer|exists:countries,id']);
 
-        $zones = Zone::where('country_code', $request->country_code)
+        $zones = Zone::where('country_id', $request->country_id)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'code']);

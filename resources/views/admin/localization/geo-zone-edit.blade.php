@@ -161,12 +161,9 @@
 
             async loadZones(idx, countryId, preselectedZoneId) {
                 try {
-                    // Find the country ISO2 code from the select option
-                    const countries = @json($countries->pluck('iso2', 'id'));
-                    const countryCode = countries[countryId];
-                    if (!countryCode) return;
+                    if (!countryId) return;
 
-                    const res = await fetch(`{{ route('admin.address.zones') }}?country_code=${countryCode}`);
+                    const res = await fetch(`{{ route('admin.address.zones') }}?country_id=${countryId}`);
                     const zones = await res.json();
                     this.entries[idx].zones = zones;
 

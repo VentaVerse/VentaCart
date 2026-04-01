@@ -82,11 +82,9 @@
         }
     </style>
     <script>
-        window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'iso2'));
+        window.__countryIso2Map = @json(\App\Models\Country::where('is_active', true)->pluck('iso2', 'id'));
+        window.__phoneCodes = @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'id'));
         window.__addressProviders = @json($addressProviders ?? []);
-        @foreach ($addressProviders ?? [] as $code => $provider)
-            window.__phoneCodes['{{ $code }}'] = '{{ $provider['phoneCode'] }}';
-        @endforeach
         window.storageUrl = function(path) {
             if (!path) return '';
             return '/storage/' + path.split('/').map(encodeURIComponent).join('/');

@@ -17,9 +17,9 @@ class LocalizationController extends Controller
 
         $countries = Country::withCount('zones')->orderBy('sort_order')->orderBy('name')->get();
 
-        $selectedCountry = $request->input('country', 'PH');
-        $zones = Zone::where('country_code', $selectedCountry)->orderBy('name')->get();
-        $countryList = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'iso2');
+        $selectedCountry = $request->input('country', Country::where('iso2', 'PH')->value('id'));
+        $zones = Zone::where('country_id', $selectedCountry)->orderBy('name')->get();
+        $countryList = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'id');
 
         $geoZones = GeoZone::whereNull('source')->withCount('entries')->orderBy('sort_order')->get();
 
@@ -85,7 +85,7 @@ class LocalizationController extends Controller
     public function storeZone(Request $request)
     {
         $validated = $request->validate([
-            'country_code' => ['required', 'string', 'size:2'],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
             'name' => ['required', 'string', 'max:255'],
             'code' => ['nullable', 'string', 'max:10'],
         ]);

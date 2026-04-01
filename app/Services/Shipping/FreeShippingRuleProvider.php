@@ -179,20 +179,20 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
     private function resolveZoneId(array $address): ?int
     {
         $state = $address['state'] ?? $address['province'] ?? '';
-        $countryCode = $address['country_code'] ?? '';
+        $countryId = $address['country_id'] ?? null;
 
-        if (!$countryCode) {
+        if (!$countryId) {
             return null;
         }
 
-        $country = Country::where('iso2', $countryCode)->where('is_active', true)->first();
+        $country = Country::where('id', $countryId)->where('is_active', true)->first();
         if (!$country) {
             return null;
         }
 
         // Try zone-level match first
         if ($state) {
-            $zone = Zone::where('country_code', $countryCode)->where('name', $state)->first();
+            $zone = Zone::where('country_id', $country->id)->where('name', $state)->first();
             if ($zone) {
                 $entry = GeoZoneEntry::where('country_id', $country->id)
                     ->where('zone_id', $zone->id)

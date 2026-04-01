@@ -1,6 +1,6 @@
 @php
     $addressData = $address ? [
-        'countryCode' => $address->country_code,
+        'countryCode' => $address->country_id,
         'state' => $address->state ?? '',
         'city' => $address->city ?? '',
         'district' => $address->district ?? '',
@@ -12,7 +12,7 @@
         'district' => '',
         'barangay' => '',
     ];
-    $addressData['phoneCodes'] = $countries->pluck('phone_code', 'iso2')->all();
+    $addressData['phoneCodes'] = $countries->pluck('phone_code', 'id')->all();
 @endphp
 
 <x-store-layout :title="$address ? 'Edit Address' : 'Add Address'">
@@ -56,10 +56,10 @@
                         {{-- Country --}}
                         <div>
                             <label class="account-label">Country <span class="text-[var(--color-secondary)]">*</span></label>
-                            <select name="country_code" x-model="countryCode" @change="onCountryChange()" class="account-input w-full">
+                            <select name="country_id" x-model="countryCode" @change="onCountryChange()" class="account-input w-full">
                                 <option value="">-- Select Country --</option>
                                 @foreach ($countries as $country)
-                                    <option value="{{ $country->iso2 }}">{{ $country->name }}</option>
+                                    <option value="{{ $country->id }}">{{ $country->name }}</option>
                                 @endforeach
                             </select>
                         </div>

@@ -39,7 +39,7 @@ class CheckoutController extends Controller
                 'province' => $defaultAddress->state,
                 'city' => $defaultAddress->city,
                 'barangay' => $defaultAddress->barangay,
-                'country_code' => $defaultAddress->country_code ?? 'PH',
+                'country_id' => $defaultAddress->country_id ?? null,
                 'postcode' => $defaultAddress->postcode ?? '',
             ], $items, $subtotal);
         } else {
@@ -49,7 +49,7 @@ class CheckoutController extends Controller
         $addressData = $defaultAddress ? [
             'state' => $defaultAddress->state,
             'city' => $defaultAddress->city,
-            'country_code' => $defaultAddress->country_code ?? 'PH',
+            'country_id' => $defaultAddress->country_id ?? null,
         ] : null;
 
         $paymentMethods = $this->checkoutService->getAvailablePaymentMethods($addressData, $subtotal, [
@@ -75,7 +75,7 @@ class CheckoutController extends Controller
             'barangay' => ['nullable', 'string', 'max:255'],
             'state' => ['nullable', 'string', 'max:255'],
             'postcode' => ['nullable', 'string', 'max:20'],
-            'country_code' => ['required', 'string', 'size:2'],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
             'phone' => ['required', 'string', 'max:30'],
             'is_default' => ['nullable', 'boolean'],
         ]);
@@ -117,7 +117,7 @@ class CheckoutController extends Controller
             'billing_barangay' => ['nullable', 'string', 'max:255'],
             'billing_state' => ['nullable', 'string', 'max:255'],
             'billing_postcode' => ['nullable', 'string', 'max:20'],
-            'billing_country_code' => ['required_if:different_billing,1', 'nullable', 'string', 'size:2'],
+            'billing_country_id' => ['required_if:different_billing,1', 'nullable', 'integer', 'exists:countries,id'],
             'comment' => ['nullable', 'string', 'max:2000'],
             'shipping_method_name' => ['nullable', 'string', 'max:255'],
             'shipping_cost' => ['nullable', 'numeric', 'min:0'],
@@ -138,7 +138,7 @@ class CheckoutController extends Controller
                 'barangay' => $validated['billing_barangay'] ?? null,
                 'state' => $validated['billing_state'] ?? null,
                 'postcode' => $validated['billing_postcode'] ?? null,
-                'country_code' => $validated['billing_country_code'],
+                'country_id' => $validated['billing_country_id'],
             ];
         }
 
@@ -189,7 +189,7 @@ class CheckoutController extends Controller
             'province' => $address->state,
             'city' => $address->city,
             'barangay' => $address->barangay,
-            'country_code' => $address->country_code ?? 'PH',
+            'country_id' => $address->country_id ?? null,
             'postcode' => $address->postcode ?? '',
         ], $items, $subtotal);
 

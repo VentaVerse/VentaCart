@@ -536,6 +536,7 @@ Alpine.data('addressForm', (config = {}) => ({
     district: config.district || '',
     barangay: config.barangay || '',
     phoneCodes: config.phoneCodes || window.__phoneCodes || {},
+    countryIso2Map: window.__countryIso2Map || {},
 
     // Provider system
     providers: window.__addressProviders || {},
@@ -555,8 +556,12 @@ Alpine.data('addressForm', (config = {}) => ({
     get loadingDistricts() { return this.providerLoading.district || false; },
     get loadingBarangays() { return this.providerLoading.barangay || false; },
 
+    get countryIso2() {
+        return this.countryIso2Map[this.countryCode] || '';
+    },
+
     get hasProvider() {
-        return !!this.providers[this.countryCode];
+        return !!this.providers[this.countryIso2];
     },
 
     init() {
@@ -587,7 +592,7 @@ Alpine.data('addressForm', (config = {}) => ({
 
         if (!this.countryCode) return;
 
-        const provider = this.providers[this.countryCode];
+        const provider = this.providers[this.countryIso2];
         if (provider) {
             this.providerFields = provider.fields;
             const root = provider.fields.find(f => !f.paramFrom);
@@ -597,7 +602,7 @@ Alpine.data('addressForm', (config = {}) => ({
         } else {
             this.loadingZones = true;
             try {
-                const resp = await fetch(`/address-lookup/zones?country_code=${this.countryCode}`);
+                const resp = await fetch(`/address-lookup/zones?country_id=${this.countryCode}`);
                 this.zones = await resp.json();
                 if (!clear && this.state) {
                     await this.$nextTick();
@@ -610,7 +615,7 @@ Alpine.data('addressForm', (config = {}) => ({
     },
 
     async onFieldChange(fieldKey, clear = true) {
-        const provider = this.providers[this.countryCode];
+        const provider = this.providers[this.countryIso2];
         if (!provider) return;
 
         const idx = provider.fields.findIndex(f => f.key === fieldKey);

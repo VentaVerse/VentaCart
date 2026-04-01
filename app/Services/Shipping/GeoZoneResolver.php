@@ -18,7 +18,7 @@ class GeoZoneResolver
     public static function matchesGeoZone(array $address, int $geoZoneId): bool
     {
         $state = $address['state'] ?? $address['province'] ?? '';
-        $countryCode = $address['country_code'] ?? '';
+        $countryId = $address['country_id'] ?? null;
 
         $entries = GeoZoneEntry::where('geo_zone_id', $geoZoneId)->get();
         if ($entries->isEmpty()) {
@@ -26,9 +26,9 @@ class GeoZoneResolver
         }
 
         // Resolve country and zone from core tables (only active countries)
-        $country = $countryCode ? Country::where('iso2', $countryCode)->where('is_active', true)->first() : null;
+        $country = $countryId ? Country::where('id', $countryId)->where('is_active', true)->first() : null;
         $zone = ($country && $state)
-            ? Zone::where('country_code', $countryCode)->where('name', $state)->first()
+            ? Zone::where('country_id', $country->id)->where('name', $state)->first()
             : null;
 
         foreach ($entries as $entry) {

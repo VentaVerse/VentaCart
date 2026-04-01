@@ -10,7 +10,7 @@ class CustomerAddress extends Model
     protected $fillable = [
         'customer_id', 'first_name', 'last_name',
         'address_1', 'city', 'district', 'barangay', 'state', 'postcode',
-        'country_code', 'phone', 'is_default',
+        'country_id', 'phone', 'is_default',
     ];
 
     protected function casts(): array

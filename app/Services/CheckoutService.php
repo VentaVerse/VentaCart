@@ -33,7 +33,7 @@ class CheckoutService
     /**
      * Get available payment methods, optionally filtered by restrictions.
      *
-     * @param array|null $address          Shipping address ['state'=>..., 'city'=>..., 'country_code'=>...]
+     * @param array|null $address          Shipping address ['state'=>..., 'city'=>..., 'country_id'=>...]
      * @param float|null $subtotal         Order subtotal
      * @param array      $restrictionContext  Extra context: weight, quantity, customer_group_id, category_ids, brand_ids, shipping_method_key
      */
@@ -151,7 +151,7 @@ class CheckoutService
         $addressData = [
             'state' => $shippingAddress->state,
             'city' => $shippingAddress->city,
-            'country_code' => $shippingAddress->country_code ?? 'PH',
+            'country_id' => $shippingAddress->country_id ?? null,
         ];
         $totalWeight = $items->sum(function ($item) {
             return ($item->product?->weight ?? 0) * $item->quantity;
@@ -175,7 +175,7 @@ class CheckoutService
             'province' => $shippingAddress->state,
             'city' => $shippingAddress->city,
             'barangay' => $shippingAddress->barangay,
-            'country_code' => $shippingAddress->country_code ?? 'PH',
+            'country_id' => $shippingAddress->country_id ?? null,
         ], $items, $subtotal);
 
         $matchedQuote = collect($liveQuotes)->firstWhere('key', $shippingMethodKey);
@@ -233,7 +233,7 @@ class CheckoutService
                 'shipping_barangay' => $shippingAddress->barangay,
                 'shipping_state' => $shippingAddress->state,
                 'shipping_postcode' => $shippingAddress->postcode,
-                'shipping_country_code' => $shippingAddress->country_code,
+                'shipping_country_id' => $shippingAddress->country_id,
                 'shipping_phone' => $shippingAddress->phone,
                 'payment_method' => $paymentMethodKey,
                 'shipping_method' => $shippingMethodName ?? $shippingMethod['name'],
@@ -254,7 +254,7 @@ class CheckoutService
                     'billing_barangay' => $billingAddress['barangay'] ?? null,
                     'billing_state' => $billingAddress['state'] ?? null,
                     'billing_postcode' => $billingAddress['postcode'] ?? null,
-                    'billing_country_code' => $billingAddress['country_code'],
+                    'billing_country_id' => $billingAddress['country_id'],
                 ]);
             }
 

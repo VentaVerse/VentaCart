@@ -20,6 +20,6 @@ class Country extends Model
 
     public function zones(): HasMany
     {
-        return $this->hasMany(Zone::class, 'country_code', 'iso2');
+        return $this->hasMany(Zone::class);
     }
 }

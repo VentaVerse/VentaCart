@@ -200,7 +200,7 @@
                     <h4 class="text-sm font-medium text-gray-700 mb-3">Add Zone</h4>
                     <form method="POST" action="{{ route('admin.localization.store-zone') }}" class="flex items-end gap-3">
                         @csrf
-                        <input type="hidden" name="country_code" value="{{ $selectedCountry }}">
+                        <input type="hidden" name="country_id" value="{{ $selectedCountry }}">
                         <div class="flex-1">
                             <label class="block text-xs text-gray-600 mb-1">Name</label>
                             <input type="text" name="name" required class="block w-full rounded-md border-gray-300 text-sm" placeholder="Zone name">

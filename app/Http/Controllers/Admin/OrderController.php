@@ -386,7 +386,7 @@ class OrderController extends Controller
                         'barangay' => $defaultAddr->barangay,
                         'state' => $defaultAddr->state,
                         'postcode' => $defaultAddr->postcode,
-                        'country_code' => $defaultAddr->country_code,
+                        'country_id' => $defaultAddr->country_id,
                     ] : null,
                     'addresses' => $c->addresses->map(function ($a) {
                         return [
@@ -400,7 +400,7 @@ class OrderController extends Controller
                             'barangay' => $a->barangay,
                             'state' => $a->state,
                             'postcode' => $a->postcode,
-                            'country_code' => $a->country_code,
+                            'country_id' => $a->country_id,
                             'phone' => $a->phone,
                             'is_default' => $a->is_default,
                         ];
@@ -432,7 +432,7 @@ class OrderController extends Controller
             'shipping_barangay' => ['nullable', 'string', 'max:255'],
             'shipping_state' => ['nullable', 'string', 'max:255'],
             'shipping_postcode' => ['nullable', 'string', 'max:50'],
-            'shipping_country_code' => [$r, 'string', 'max:3'],
+            'shipping_country_id' => [$r, 'integer', 'exists:countries,id'],
             'shipping_phone' => ['nullable', 'string', 'max:30'],
             'billing_first_name' => ['nullable', 'string', 'max:255'],
             'billing_last_name' => ['nullable', 'string', 'max:255'],
@@ -442,7 +442,7 @@ class OrderController extends Controller
             'billing_barangay' => ['nullable', 'string', 'max:255'],
             'billing_state' => ['nullable', 'string', 'max:255'],
             'billing_postcode' => ['nullable', 'string', 'max:50'],
-            'billing_country_code' => ['nullable', 'string', 'max:3'],
+            'billing_country_id' => ['nullable', 'integer', 'exists:countries,id'],
             'billing_phone' => ['nullable', 'string', 'max:30'],
             'payment_method' => [$r, 'string', 'max:255'],
             'shipping_method' => [$r, 'string', 'max:255'],
