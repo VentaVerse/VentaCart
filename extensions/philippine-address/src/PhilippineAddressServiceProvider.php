@@ -14,12 +14,6 @@ class PhilippineAddressServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Model aliases always available (admin needs them even when extension is disabled)
-        $this->app->bind(\App\Models\PhRegion::class, PhRegion::class);
-        $this->app->bind(\App\Models\PhProvince::class, Models\PhProvince::class);
-        $this->app->bind(\App\Models\PhCity::class, Models\PhCity::class);
-        $this->app->bind(\App\Models\PhBarangay::class, Models\PhBarangay::class);
-
         // Register as address provider only if enabled
         $this->app->booted(function () {
             if (!$this->isEnabled()) return;
