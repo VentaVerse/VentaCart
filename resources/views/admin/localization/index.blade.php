@@ -312,7 +312,7 @@
             async toggleCountry(id, row) {
                 row.toggling = true;
                 try {
-                    const res = await fetch(`/admin/localization/countries/${id}/toggle`, {
+                    const res = await fetch(`{{ route('admin.localization.toggle-country', ['country' => '__ID__']) }}`.replace('__ID__', id), {
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
                     });
@@ -329,7 +329,7 @@
             async toggleZone(id, row) {
                 row.toggling = true;
                 try {
-                    const res = await fetch(`/admin/localization/zones/${id}/toggle`, {
+                    const res = await fetch(`{{ route('admin.localization.toggle-zone', ['zone' => '__ID__']) }}`.replace('__ID__', id), {
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
                     });
@@ -345,7 +345,7 @@
             async toggleGeoZone(id, row) {
                 row.toggling = true;
                 try {
-                    const res = await fetch(`/admin/localization/geo-zones/${id}/toggle`, {
+                    const res = await fetch(`{{ route('admin.localization.toggle-geo-zone', ['geoZone' => '__ID__']) }}`.replace('__ID__', id), {
                         method: 'POST',
                         headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
                     });
