@@ -192,8 +192,7 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
 
         // Try zone-level match first
         if ($state) {
-            $zone = Zone::where('country_id', $country->id)->where('name', $state)->first()
-                ?? Zone::where('country_id', $country->id)->where('name', 'like', "%{$state}%")->first();
+            $zone = Zone::where('country_id', $country->id)->where('name', $state)->first();
             if ($zone) {
                 $entry = GeoZoneEntry::where('country_id', $country->id)
                     ->where('zone_id', $zone->id)

@@ -1,19 +1,9 @@
 @php
-    // Map PH extension provinces to core zone IDs
+    // Map PH extension provinces to core zone IDs (names now match exactly)
     $phCountry = \App\Models\Country::where('iso2', 'PH')->first();
     $coreZones = $phCountry
         ? \App\Models\Zone::where('country_id', $phCountry->id)->pluck('id', 'name')
         : collect();
-
-    // Name mapping: PH extension province name → core zone name (where they differ)
-    $nameMap = [
-        'Metro Manila' => 'National Capital Region (Metro Manila)',
-        'Samar (Western Samar)' => 'Western Samar',
-        'Compostela Valley' => 'Davao de Oro',
-        'North Cotabato' => 'Cotabato',
-        'Maguindanao' => 'Maguindanao del Norte',
-        'Tawi-tawi' => 'Tawi-Tawi',
-    ];
 @endphp
 
 <x-admin-layout>
@@ -79,9 +69,8 @@
                 <div class="space-y-4">
                     @foreach ($regions as $region)
                         @php
-                            $regionZoneIds = $region->provinces->map(function ($p) use ($coreZones, $nameMap) {
-                                $coreName = $nameMap[$p->name] ?? $p->name;
-                                return $coreZones->get($coreName);
+                            $regionZoneIds = $region->provinces->map(function ($p) use ($coreZones) {
+                                return $coreZones->get($p->name);
                             })->filter()->values()->toArray();
                         @endphp
                         @if (!empty($regionZoneIds))
@@ -93,7 +82,7 @@
                                 </div>
                                 <div class="px-4 py-3 grid grid-cols-2 md:grid-cols-3 gap-1.5">
                                     @foreach ($region->provinces as $province)
-                                        @php $zoneId = $coreZones->get($nameMap[$province->name] ?? $province->name); @endphp
+                                        @php $zoneId = $coreZones->get($province->name); @endphp
                                         @if ($zoneId)
                                             <label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-gray-900 py-0.5">
                                                 <input type="checkbox" value="{{ $zoneId }}"
