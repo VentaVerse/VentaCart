@@ -147,7 +147,7 @@
                         </button>
                     </template>
 
-                    <template x-for="folder in browserFolders" :key="folder.path">
+                    <template x-for="folder in filteredBrowserFolders" :key="folder.path">
                         <button type="button" @click="browseDir(folder.path)" class="flex flex-col items-center p-3 rounded-xl hover:bg-gray-100 transition-colors group">
                             <svg class="w-12 h-12 text-amber-500 group-hover:text-amber-600 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
                             <span class="text-xs text-gray-600 mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
@@ -228,6 +228,12 @@ function {{ $componentId }}() {
                 name: part,
                 path: parts.slice(0, i + 1).join('/'),
             }));
+        },
+
+        get filteredBrowserFolders() {
+            if (!this.browserSearch) return this.browserFolders;
+            const q = this.browserSearch.toLowerCase();
+            return this.browserFolders.filter(f => f.name.toLowerCase().includes(q));
         },
 
         get filteredBrowserFiles() {

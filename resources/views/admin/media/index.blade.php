@@ -93,7 +93,7 @@
                 </template>
 
                 {{-- Folders --}}
-                <template x-for="folder in folders" :key="folder.path">
+                <template x-for="folder in filteredFolders" :key="folder.path">
                     <button type="button" @click="browseDir(folder.path)" class="flex flex-col items-center p-3 rounded-xl hover:bg-gray-100 transition-colors group">
                         <svg class="w-14 h-14 text-amber-500 group-hover:text-amber-600 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
                         <span class="text-xs text-gray-600 mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
@@ -168,6 +168,12 @@
                 return parts.map(function(part, i) {
                     return { name: part, path: parts.slice(0, i + 1).join('/') };
                 });
+            },
+
+            get filteredFolders() {
+                if (!this.search) return this.folders;
+                const q = this.search.toLowerCase();
+                return this.folders.filter(function(f) { return f.name.toLowerCase().indexOf(q) !== -1; });
             },
 
             get filteredFiles() {
