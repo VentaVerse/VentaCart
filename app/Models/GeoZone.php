@@ -11,7 +11,7 @@ use App\Models\WeightBasedMethod;
 
 class GeoZone extends Model
 {
-    protected $fillable = ['name', 'description', 'is_active', 'sort_order'];
+    protected $fillable = ['name', 'description', 'is_active', 'sort_order', 'source'];
 
     protected static function booted(): void
     {

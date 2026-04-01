@@ -21,7 +21,7 @@ class LocalizationController extends Controller
         $zones = Zone::where('country_code', $selectedCountry)->orderBy('name')->get();
         $countryList = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->pluck('name', 'iso2');
 
-        $geoZones = GeoZone::withCount('entries')->orderBy('sort_order')->get();
+        $geoZones = GeoZone::whereNull('source')->withCount('entries')->orderBy('sort_order')->get();
 
         return view('admin.localization.index', compact(
             'tab', 'countries', 'zones', 'selectedCountry', 'countryList', 'geoZones'

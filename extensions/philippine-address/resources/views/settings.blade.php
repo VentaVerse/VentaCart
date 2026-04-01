@@ -31,6 +31,19 @@
             @endif
         </div>
 
+        {{-- Geo Zones --}}
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900">PH Geo Zones</h3>
+                    <p class="text-xs text-gray-500 mt-1">Create geo zones using Philippine provinces for shipping methods and payment restrictions.</p>
+                </div>
+                <a href="{{ route('admin.ph-address.geo-zones.index') }}" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                    Manage Geo Zones &rarr;
+                </a>
+            </div>
+        </div>
+
         {{-- PSGC Data Stats --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h3 class="text-sm font-semibold text-gray-900 mb-4">PSGC Data</h3>
