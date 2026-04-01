@@ -20,6 +20,7 @@
             <div class="relative">
                 <svg class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 <input type="text" x-model="search" placeholder="Filter..."
+                    @keydown.enter.prevent
                     class="w-40 pl-8 pr-3 py-1.5 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
             </div>
 

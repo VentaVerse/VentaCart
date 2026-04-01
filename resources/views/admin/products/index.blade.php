@@ -1,10 +1,10 @@
 <x-admin-layout>
     <x-slot name="header">Products</x-slot>
     <x-slot name="headerActions">
-        <a href="{{ route('admin.products.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+        <button type="button" @click="$dispatch('open-product-modal')" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Add Product
-        </a>
+        </button>
     </x-slot>
 
     {{-- Filters --}}
@@ -123,5 +123,68 @@
                 {{ $products->links() }}
             </div>
         @endif
+    </div>
+
+    {{-- Quick Create Product Modal --}}
+    <div x-data="{
+            open: false, name: '', brandId: '', brandSearch: '', brandResults: [], saving: false, error: '',
+            async searchBrands() {
+                if (this.brandSearch.length < 1) { this.brandResults = []; return; }
+                const res = await fetch('{{ route('admin.brands.search') }}?q=' + encodeURIComponent(this.brandSearch));
+                this.brandResults = await res.json();
+            },
+            selectBrand(brand) {
+                this.brandId = brand.id;
+                this.brandSearch = brand.name;
+                this.brandResults = [];
+            }
+         }"
+         @open-product-modal.window="open = true; name = ''; brandId = ''; brandSearch = ''; error = ''"
+         x-show="open" x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6" @click.outside="open = false" @keydown.escape.window="open = false">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">New Product</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
+                    <div class="relative">
+                        <input type="text" x-model="brandSearch" @input.debounce.300ms="searchBrands()" @keydown.enter.prevent
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search brand...">
+                        <div x-show="brandResults.length > 0" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                            <template x-for="brand in brandResults" :key="brand.id">
+                                <button type="button" @click="selectBrand(brand)" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50" x-text="brand.name"></button>
+                            </template>
+                        </div>
+                    </div>
+                    <p x-show="brandId" class="mt-1 text-xs text-emerald-600">Selected: <span x-text="brandSearch"></span></p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                    <input type="text" x-model="name"
+                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. Boss DS-1 Distortion Pedal">
+                </div>
+                <p x-show="error" x-text="error" class="text-sm text-red-600"></p>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button type="button" @click="open = false" class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                <button type="button" :disabled="saving || !name.trim() || !brandId"
+                    @click="
+                        saving = true; error = '';
+                        fetch('{{ route('admin.products.quick-create') }}', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            body: JSON.stringify({ name: name.trim(), brand_id: brandId })
+                        }).then(function(r) { return r.json(); }).then(function(d) {
+                            if (d.success) { window.location.href = d.redirect; }
+                            else { error = d.message || 'Failed to create product.'; saving = false; }
+                        }).catch(function() { error = 'Network error.'; saving = false; });
+                    "
+                    class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                    <span x-show="!saving">Create & Edit</span>
+                    <span x-show="saving">Creating...</span>
+                </button>
+            </div>
+        </div>
     </div>
 </x-admin-layout>

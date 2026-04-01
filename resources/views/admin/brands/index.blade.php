@@ -1,10 +1,10 @@
 <x-admin-layout>
     <x-slot name="header">Brands</x-slot>
     <x-slot name="headerActions">
-        <a href="{{ route('admin.brands.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+        <button type="button" @click="$dispatch('open-brand-modal')" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             Add Brand
-        </a>
+        </button>
     </x-slot>
 
     {{-- Filters --}}
@@ -78,5 +78,41 @@
                 {{ $brands->links() }}
             </div>
         @endif
+    </div>
+
+    {{-- Quick Create Brand Modal --}}
+    <div x-data="{ open: false, name: '', saving: false, error: '' }"
+         @open-brand-modal.window="open = true; name = ''; error = ''"
+         x-show="open" x-transition.opacity
+         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6" @click.outside="open = false" @keydown.escape.window="open = false">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">New Brand</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
+                <input type="text" x-model="name" @keydown.enter.prevent="$refs.saveBtn.click()" autofocus
+                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. Boss, Fender, Wampler">
+                <p x-show="error" x-text="error" class="mt-1 text-sm text-red-600"></p>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button type="button" @click="open = false" class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                <button type="button" x-ref="saveBtn" :disabled="saving || !name.trim()"
+                    @click="
+                        saving = true; error = '';
+                        fetch('{{ route('admin.brands.quick-create') }}', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            body: JSON.stringify({ name: name.trim() })
+                        }).then(function(r) { return r.json(); }).then(function(d) {
+                            if (d.success) { window.location.href = d.redirect; }
+                            else { error = d.message || 'Failed to create brand.'; saving = false; }
+                        }).catch(function() { error = 'Network error.'; saving = false; });
+                    "
+                    class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                    <span x-show="!saving">Create & Edit</span>
+                    <span x-show="saving">Creating...</span>
+                </button>
+            </div>
+        </div>
     </div>
 </x-admin-layout>

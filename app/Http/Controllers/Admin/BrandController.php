@@ -35,6 +35,28 @@ class BrandController extends Controller
         ]);
     }
 
+    public function quickCreate(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $storeId = (int) config('app.store_id', 1);
+        $brand = Brand::create([
+            'store_id' => $storeId,
+            'name' => $validated['name'],
+            'slug' => $this->generateUniqueSlug($validated['name'], $storeId),
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'brand' => $brand,
+            'redirect' => route('admin.brands.edit', $brand),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

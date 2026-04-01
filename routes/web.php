@@ -149,10 +149,12 @@ Route::prefix('account')->name('account.')->middleware('customer.auth')->group(f
 Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    Route::post('products/quick-create', [ProductController::class, 'quickCreate'])->name('products.quick-create');
     Route::resource('products', ProductController::class)->except(['show']);
     Route::resource('categories', CategoryController::class)->except(['show']);
     Route::post('categories/reorder', [CategoryController::class, 'reorder'])->name('categories.reorder');
     Route::get('/brands/search', [BrandController::class, 'search'])->name('brands.search');
+    Route::post('/brands/quick-create', [BrandController::class, 'quickCreate'])->name('brands.quick-create');
     Route::resource('brands', BrandController::class)->except(['show']);
     Route::resource('customers', CustomerController::class)->except(['show']);
     Route::get('/customers/{customer}/impersonate', [ImpersonationController::class, 'start'])->name('customers.impersonate');

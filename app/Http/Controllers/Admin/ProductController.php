@@ -70,6 +70,32 @@ class ProductController extends Controller
         ]);
     }
 
+    public function quickCreate(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'brand_id' => ['required', 'exists:brands,id'],
+        ]);
+
+        $storeId = (int) config('app.store_id', 1);
+        $product = Product::create([
+            'store_id' => $storeId,
+            'name' => $validated['name'],
+            'slug' => $this->generateUniqueSlug($validated['name'], $storeId),
+            'brand_id' => $validated['brand_id'],
+            'is_active' => false,
+            'price' => 0,
+            'quantity' => 0,
+            'sort_order' => 0,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'product' => $product,
+            'redirect' => route('admin.products.edit', $product),
+        ]);
+    }
+
     public function store(Request $request)
     {
         $validated = $this->validateProduct($request);
