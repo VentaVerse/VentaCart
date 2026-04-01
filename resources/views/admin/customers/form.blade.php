@@ -175,17 +175,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
-                                    <template x-if="addr.country_code === 'PH'">
-                                        <select x-model="addr.state" :name="'addresses['+aIndex+'][state]'"
-                                            @change="onAddrProvinceChange(aIndex)"
-                                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            <option value="">Select Province</option>
-                                            <template x-for="p in (addrDropdowns[aIndex]?.provinces || [])" :key="p.id">
-                                                <option :value="p.name" x-text="p.name"></option>
-                                            </template>
-                                        </select>
-                                    </template>
-                                    <template x-if="addr.country_code !== 'PH' && (addrDropdowns[aIndex]?.zones || []).length > 0">
+                                    <template x-if="(addrDropdowns[aIndex]?.zones || []).length > 0">
                                         <select x-model="addr.state" :name="'addresses['+aIndex+'][state]'"
                                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                             <option value="">Select State / Province</option>
@@ -194,49 +184,15 @@
                                             </template>
                                         </select>
                                     </template>
-                                    <template x-if="addr.country_code !== 'PH' && (addrDropdowns[aIndex]?.zones || []).length === 0">
+                                    <template x-if="(addrDropdowns[aIndex]?.zones || []).length === 0">
                                         <input type="text" x-model="addr.state" :name="'addresses['+aIndex+'][state]'"
                                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     </template>
                                 </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">City</label>
-                                    <template x-if="addr.country_code === 'PH'">
-                                        <select x-model="addr.city" :name="'addresses['+aIndex+'][city]'"
-                                            @change="onAddrCityChange(aIndex)"
-                                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            <option value="">Select City / Municipality</option>
-                                            <template x-for="c in (addrDropdowns[aIndex]?.cities || [])" :key="c.id">
-                                                <option :value="c.name" x-text="c.name"></option>
-                                            </template>
-                                        </select>
-                                    </template>
-                                    <template x-if="addr.country_code !== 'PH'">
-                                        <input type="text" x-model="addr.city" :name="'addresses['+aIndex+'][city]'" required
-                                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    </template>
-                                </div>
-                                <div x-show="addr.country_code === 'PH' && (addrDropdowns[aIndex]?.districts || []).length > 0">
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">District</label>
-                                    <select x-model="addr.district" :name="'addresses['+aIndex+'][district]'"
-                                        @change="onAddrDistrictChange(aIndex)"
+                                    <input type="text" x-model="addr.city" :name="'addresses['+aIndex+'][city]'" required
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select District</option>
-                                        <template x-for="d in (addrDropdowns[aIndex]?.districts || [])" :key="d.id">
-                                            <option :value="d.name" x-text="d.name"></option>
-                                        </template>
-                                    </select>
-                                    <input x-show="(addrDropdowns[aIndex]?.districts || []).length === 0" type="hidden" :name="'addresses['+aIndex+'][district]'" value="">
-                                </div>
-                                <div x-show="addr.country_code === 'PH'">
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Barangay</label>
-                                    <select x-model="addr.barangay" :name="'addresses['+aIndex+'][barangay]'"
-                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                        <option value="">Select Barangay</option>
-                                        <template x-for="b in (addrDropdowns[aIndex]?.barangays || [])" :key="b.id">
-                                            <option :value="b.name" x-text="b.name"></option>
-                                        </template>
-                                    </select>
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-xs font-medium text-gray-500 mb-1">Address Line 1</label>
@@ -343,96 +299,17 @@
                     if (clear !== false) {
                         this.addresses[idx].state = '';
                         this.addresses[idx].city = '';
-                        this.addresses[idx].district = '';
-                        this.addresses[idx].barangay = '';
                     }
-                    this.addrDropdowns[idx] = { provinces: [], cities: [], districts: [], barangays: [], zones: [] };
+                    this.addrDropdowns[idx] = { zones: [] };
 
                     const cc = this.addresses[idx].country_code;
                     if (!cc) return;
 
-                    if (cc === 'PH') {
-                        const res = await fetch('{{ route('admin.address.ph-provinces') }}');
-                        this.updateDropdown(idx, 'provinces', await res.json());
-                        if (clear === false && this.addresses[idx].state) {
-                            await this.$nextTick();
-                            await this.syncAddrSelect(idx, 'state');
-                            await this.onAddrProvinceChange(idx, false);
-                        }
-                    } else {
-                        const res = await fetch(`{{ route('admin.address.zones') }}?country_code=${cc}`);
-                        this.updateDropdown(idx, 'zones', await res.json());
-                        if (clear === false && this.addresses[idx].state) {
-                            await this.$nextTick();
-                            await this.syncAddrSelect(idx, 'state');
-                        }
-                    }
-                },
-
-                async onAddrProvinceChange(idx, clear) {
-                    if (clear !== false) {
-                        this.addresses[idx].city = '';
-                        this.addresses[idx].district = '';
-                        this.addresses[idx].barangay = '';
-                    }
-                    this.resetDropdowns(idx, ['cities', 'districts', 'barangays']);
-
-                    const province = (this.addrDropdowns[idx]?.provinces || []).find(p => p.name === this.addresses[idx].state);
-                    if (!province) return;
-
-                    const res = await fetch(`{{ route('admin.address.ph-cities') }}?province_id=${province.id}`);
-                    this.updateDropdown(idx, 'cities', await res.json());
-                    if (clear === false && this.addresses[idx].city) {
+                    const res = await fetch(`{{ route('admin.address.zones') }}?country_code=${cc}`);
+                    this.updateDropdown(idx, 'zones', await res.json());
+                    if (clear === false && this.addresses[idx].state) {
                         await this.$nextTick();
-                        await this.syncAddrSelect(idx, 'city');
-                        await this.onAddrCityChange(idx, false);
-                    }
-                },
-
-                async onAddrCityChange(idx, clear) {
-                    if (clear !== false) {
-                        this.addresses[idx].district = '';
-                        this.addresses[idx].barangay = '';
-                    }
-                    this.resetDropdowns(idx, ['districts', 'barangays']);
-
-                    const city = (this.addrDropdowns[idx]?.cities || []).find(c => c.name === this.addresses[idx].city);
-                    if (!city) return;
-
-                    const distRes = await fetch(`{{ route('admin.address.ph-districts') }}?city_id=${city.id}`);
-                    const districts = await distRes.json();
-                    this.updateDropdown(idx, 'districts', districts);
-
-                    if (districts.length > 0) {
-                        if (clear === false && this.addresses[idx].district) {
-                            await this.$nextTick();
-                            await this.syncAddrSelect(idx, 'district');
-                            await this.onAddrDistrictChange(idx, false);
-                        }
-                    } else {
-                        const brgyRes = await fetch(`{{ route('admin.address.ph-barangays') }}?city_id=${city.id}`);
-                        this.updateDropdown(idx, 'barangays', await brgyRes.json());
-                        if (clear === false && this.addresses[idx].barangay) {
-                            await this.$nextTick();
-                            await this.syncAddrSelect(idx, 'barangay');
-                        }
-                    }
-                },
-
-                async onAddrDistrictChange(idx, clear) {
-                    if (clear !== false) {
-                        this.addresses[idx].barangay = '';
-                    }
-                    this.resetDropdowns(idx, ['barangays']);
-
-                    const district = (this.addrDropdowns[idx]?.districts || []).find(d => d.name === this.addresses[idx].district);
-                    if (!district) return;
-
-                    const res = await fetch(`{{ route('admin.address.ph-barangays') }}?city_id=${district.id}`);
-                    this.updateDropdown(idx, 'barangays', await res.json());
-                    if (clear === false && this.addresses[idx].barangay) {
-                        await this.$nextTick();
-                        await this.syncAddrSelect(idx, 'barangay');
+                        await this.syncAddrSelect(idx, 'state');
                     }
                 },
 
