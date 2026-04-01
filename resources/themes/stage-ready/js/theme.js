@@ -716,8 +716,8 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     qrOpen: false,
     qrSrc: '',
     qrName: '',
-    billing: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' },
-    newAddr: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' },
+    billing: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_id: '', phone: '' },
+    newAddr: { first_name: customerName.firstName || '', last_name: customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_id: '', phone: '' },
 
     get selectedShippingMethod() {
         return this.shippingMethods.find(m => m.key === this.selectedShipping) || null;
@@ -784,7 +784,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
 
     openNewAddressForm() {
         this.editingAddress = null;
-        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' };
+        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_id: '', phone: '' };
         this.showNewAddressForm = true;
     },
 
@@ -799,7 +799,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
             barangay: addr.barangay || '',
             state: addr.state || '',
             postcode: addr.postcode || '',
-            country_code: addr.country_code || '',
+            country_id: String(addr.country_id || ''),
             phone: addr.phone || '',
         };
         this.showNewAddressForm = true;
@@ -808,7 +808,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     cancelAddressForm() {
         this.showNewAddressForm = false;
         this.editingAddress = null;
-        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' };
+        this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_id: '', phone: '' };
     },
 
     async saveNewAddress() {
@@ -854,7 +854,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
                 this.showNewAddressForm = false;
                 this.editingAddress = null;
                 this.addressErrors = [];
-                this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_code: '', phone: '' };
+                this.newAddr = { first_name: this.customerName.firstName || '', last_name: this.customerName.lastName || '', address_1: '', city: '', district: '', barangay: '', state: '', postcode: '', country_id: '', phone: '' };
                 this.refreshShippingRates();
             }
         } catch (e) {
