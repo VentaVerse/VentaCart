@@ -19,8 +19,7 @@ class DatabaseSeeder extends Seeder
             StoreSeeder::class,
             RolePermissionSeeder::class,
             OrderStatusSeeder::class,
-            CountrySeeder::class,
-            ZoneSeeder::class,
+            WorldGeographicSeeder::class,
             ThemeSeeder::class,
             EmailTemplateSeeder::class,
         ]);
