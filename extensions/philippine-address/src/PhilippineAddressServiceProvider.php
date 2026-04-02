@@ -25,10 +25,13 @@ class PhilippineAddressServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Routes and migrations always load (admin needs them)
+        // Routes, migrations, and views always load (admin needs them)
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'ph-address');
+
+        // Register seeder so db:seed picks it up automatically
+        $this->registerSeeder();
 
         // Sidebar link for PH Address settings
         View::composer('layouts.admin', function ($view) {
@@ -66,5 +69,12 @@ class PhilippineAddressServiceProvider extends ServiceProvider
         } catch (\Throwable) {
             return true; // Default enabled if settings table doesn't exist yet
         }
+    }
+
+    private function registerSeeder(): void
+    {
+        $seeders = config('venta.extension_seeders', []);
+        $seeders[] = \Extensions\PhilippineAddress\Database\Seeders\PhilippineGeographicSeeder::class;
+        config(['venta.extension_seeders' => $seeders]);
     }
 }

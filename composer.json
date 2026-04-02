@@ -30,6 +30,7 @@
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
             "Extensions\\PhilippineAddress\\": "extensions/philippine-address/src/",
+            "Extensions\\PhilippineAddress\\Database\\Seeders\\": "extensions/philippine-address/database/seeders/",
             "Extensions\\Banners\\": "extensions/banners/src/"
         }
     },

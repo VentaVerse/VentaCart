@@ -21,10 +21,14 @@ class DatabaseSeeder extends Seeder
             OrderStatusSeeder::class,
             CountrySeeder::class,
             ZoneSeeder::class,
-            PhilippineGeographicSeeder::class,
             ThemeSeeder::class,
             EmailTemplateSeeder::class,
         ]);
+
+        // Run seeders registered by extensions (e.g. PH Address)
+        foreach (config('venta.extension_seeders', []) as $seeder) {
+            $this->call($seeder);
+        }
 
         // Create super admin user
         $superAdmin = \App\Models\Role::where('slug', 'super-admin')->first();

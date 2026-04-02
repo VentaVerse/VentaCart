@@ -4,20 +4,21 @@ namespace Extensions\PhilippineAddress\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PhilippineGeographicSeeder extends Seeder
 {
     public function run(): void
     {
-        $basePath = '/tmp/psgc';
+        if (!Schema::hasTable('ph_regions')) {
+            $this->command->warn('PH address tables not found — run migrations first.');
+            return;
+        }
+
+        $basePath = __DIR__ . '/../data/psgc';
 
         if (!file_exists("$basePath/region.json")) {
-            $this->command->error('PSGC JSON files not found in /tmp/psgc/. Download them first:');
-            $this->command->info('mkdir -p /tmp/psgc && cd /tmp/psgc');
-            $this->command->info('curl -sLO https://raw.githubusercontent.com/jgngo/psgc-data/master/json/region.json');
-            $this->command->info('curl -sLO https://raw.githubusercontent.com/jgngo/psgc-data/master/json/province.json');
-            $this->command->info('curl -sLO https://raw.githubusercontent.com/jgngo/psgc-data/master/json/muncity.json');
-            $this->command->info('curl -sLO https://raw.githubusercontent.com/jgngo/psgc-data/master/json/barangay.json');
+            $this->command->error('PSGC data files missing from extensions/philippine-address/database/data/psgc/');
             return;
         }
 
