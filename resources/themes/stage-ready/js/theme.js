@@ -865,6 +865,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     },
 
     async updateItemQty(item, newQty) {
+        newQty = parseInt(newQty) || 0;
         if (newQty < 1) {
             if (!confirm('Remove this item from cart?')) return;
             newQty = 0;
@@ -888,7 +889,8 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
                     item.quantity = newQty;
                 }
                 this.subtotal = parseFloat(data.subtotal);
-                window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.count, subtotal: data.subtotal } }));
+                window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.count, subtotal: data.subtotal, silent: true } }));
+                this.refreshShippingRates();
             }
         } catch (e) {
             console.error('Failed to update quantity', e);
@@ -897,9 +899,6 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
 
     async removeCheckoutItem(item) {
         await this.updateItemQty(item, 0);
-        if (this.items.length > 0) {
-            this.refreshShippingRates();
-        }
     },
 
     submitOrder() {

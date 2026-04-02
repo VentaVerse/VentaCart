@@ -478,7 +478,9 @@
                                     <div class="flex items-center gap-2 mt-2">
                                         <button type="button" @click="updateItemQty(item, item.quantity - 1)"
                                             class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-colors">−</button>
-                                        <span class="text-sm text-gray-800 w-6 text-center font-medium" x-text="item.quantity"></span>
+                                        <input type="number" :value="item.quantity" min="1"
+                                            @change="updateItemQty(item, $event.target.value)"
+                                            class="w-12 h-7 text-center text-sm text-gray-800 bg-white border border-gray-300 rounded-md focus:border-blue-500 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         <button type="button" @click="updateItemQty(item, item.quantity + 1)"
                                             class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-colors">+</button>
                                     </div>
