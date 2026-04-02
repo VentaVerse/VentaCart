@@ -116,6 +116,7 @@ class SettingController extends Controller
         // Redirect to new admin URL after prefix change
         if ($group === 'security' && isset($data['admin_prefix'])) {
             $newPrefix = $data['admin_prefix'];
+            \Illuminate\Support\Facades\Artisan::call('route:clear');
             return redirect('/' . $newPrefix . '/settings?tab=security')->with('success', 'Admin URL changed to /' . $newPrefix);
         }
 
