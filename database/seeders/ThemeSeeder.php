@@ -13,6 +13,29 @@ class ThemeSeeder extends Seeder
 {
     public function run(): void
     {
+        // Load colors and fonts from active theme's theme.json
+        $activeTheme = Setting::where('group', 'theme')->where('key', 'active')->value('value') ?? 'stage-ready';
+        $themePath = resource_path("themes/{$activeTheme}/theme.json");
+        $themeJson = file_exists($themePath) ? json_decode(file_get_contents($themePath), true) : [];
+
+        $themeColors = $themeJson['colors'] ?? [
+            'primary' => '#F5A623',
+            'secondary' => '#E2293D',
+            'bg' => '#0D0D0D',
+            'text' => '#C8C8C8',
+            'text_heading' => '#E8E8E8',
+            'text_muted' => '#999999',
+            'card_bg' => '#1A1A1A',
+            'border' => '#2A2A2A',
+            'btn_text' => '#0D0D0D',
+            'nav_bg' => '#111111',
+            'nav_text' => '#E8E8E8',
+            'footer_bg' => '#080808',
+            'footer_text' => '#B0B0B0',
+            'announcement_bg' => '#F5A623',
+            'announcement_text' => '#0D0D0D',
+        ];
+
         // Settings
         $settings = [
             'identity' => [
@@ -20,16 +43,7 @@ class ThemeSeeder extends Seeder
                 'logo' => null,
                 'favicon' => null,
             ],
-            'colors' => [
-                'primary' => '#E2293D',
-                'secondary' => '#0F3A8D',
-                'nav_bg' => '#0F3A8D',
-                'nav_text' => '#FFFFFF',
-                'footer_bg' => '#1E293B',
-                'footer_text' => '#FFFFFF',
-                'announcement_bg' => '#E2293D',
-                'announcement_text' => '#FFFFFF',
-            ],
+            'colors' => $themeColors,
             'fonts' => [
                 'heading' => 'Oswald',
                 'body' => 'Roboto Slab',
@@ -96,10 +110,7 @@ class ThemeSeeder extends Seeder
                 'type' => 'banner',
                 'title' => 'Hero Slider',
                 'config' => [
-                    'width' => 'full',
-                    'autoplay' => true,
-                    'speed' => 5000,
-                    'slides' => [],
+                    'banner_group' => 'homepage-hero',
                 ],
                 'sort_order' => 1,
             ]);

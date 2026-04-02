@@ -1,26 +1,28 @@
 @php $config = $section->config ?? []; @endphp
 
 @if ($section->type === 'banner')
+    @php
+        $bannerGroups = class_exists(\Extensions\Banners\Models\BannerGroup::class)
+            ? \Extensions\Banners\Models\BannerGroup::orderBy('name')->get()
+            : collect();
+    @endphp
     <div class="space-y-3">
-        <div>
-            <label class="block text-xs text-gray-600 mb-1">Width</label>
-            <select name="config[width]" class="rounded-md border-gray-300 shadow-sm sm:text-sm">
-                <option value="full" {{ ($config['width'] ?? 'full') === 'full' ? 'selected' : '' }}>Full Width</option>
-                <option value="contained" {{ ($config['width'] ?? '') === 'contained' ? 'selected' : '' }}>Contained</option>
-            </select>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-            <div class="flex items-center gap-2">
-                <input type="hidden" name="config[autoplay]" value="0">
-                <input type="checkbox" name="config[autoplay]" value="1" {{ ($config['autoplay'] ?? false) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                <label class="text-sm text-gray-700">Autoplay</label>
-            </div>
+        @if ($bannerGroups->isNotEmpty())
             <div>
-                <label class="block text-xs text-gray-600 mb-1">Speed (ms)</label>
-                <input type="number" name="config[speed]" value="{{ $config['speed'] ?? 5000 }}" min="1000" step="500" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+                <label class="block text-xs text-gray-600 mb-1">Banner Group</label>
+                <select name="config[banner_group]" class="rounded-md border-gray-300 shadow-sm sm:text-sm">
+                    <option value="">— Select a banner group —</option>
+                    @foreach ($bannerGroups as $group)
+                        <option value="{{ $group->slug }}" {{ ($config['banner_group'] ?? '') === $group->slug ? 'selected' : '' }}>
+                            {{ $group->name }} ({{ $group->slides()->count() }} slides)
+                        </option>
+                    @endforeach
+                </select>
             </div>
-        </div>
-        <p class="text-xs text-gray-500">Slides are managed via the Media Manager. Upload banner images and configure them here after the storefront is built.</p>
+            <p class="text-xs text-gray-500">Slides, autoplay, and dimensions are configured in the Banner Group itself.</p>
+        @else
+            <p class="text-sm text-gray-500">Install the Banners extension to manage banner slides.</p>
+        @endif
     </div>
 
 @elseif ($section->type === 'products')

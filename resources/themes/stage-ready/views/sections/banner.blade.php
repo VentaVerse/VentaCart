@@ -1,9 +1,10 @@
 @php
     $config = $section->config ?? [];
-    $width = $config['width'] ?? 'full';
-    $autoplay = $config['autoplay'] ?? false;
-    $speed = $config['speed'] ?? 5000;
-    $slides = $bannerSlides ?? [];
+    $groupSlug = $config['banner_group'] ?? '';
+    $groupData = ($bannerGroups[$groupSlug] ?? null);
+    $slides = $groupData['slides'] ?? [];
+    $autoplay = $groupData['autoplay'] ?? false;
+    $speed = $groupData['speed'] ?? 5000;
 @endphp
 
 <div>

@@ -15,6 +15,9 @@ class BannerServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'banners');
 
+        // One-time: patch existing banner sections that don't have a banner_group slug
+        $this->patchLegacyBannerSections();
+
         // Inject banner groups into the homepage banner section
         View::composer('home', function ($view) {
             if (!Schema::hasTable('banner_groups')) {
@@ -54,17 +57,41 @@ class BannerServiceProvider extends ServiceProvider
             }
 
             $view->with('bannerGroups', $bannerGroups);
-
-            // Backward compat: provide bannerSlides from the homepage-hero group
-            $heroGroup = $groups->get('homepage-hero');
-            if ($heroGroup) {
-                $view->with('bannerSlides', $bannerGroups['homepage-hero']['slides'] ?? []);
-            }
         });
 
         // Sidebar link
         View::composer('layouts.admin', function ($view) {
             $view->with('bannersInstalled', true);
         });
+    }
+
+    /**
+     * Patch legacy HomepageSection banner configs that don't have a banner_group slug.
+     * Assigns the first active BannerGroup (typically 'homepage-hero') to any
+     * banner section missing the key. Runs once per deploy, skips if already patched.
+     */
+    protected function patchLegacyBannerSections(): void
+    {
+        try {
+            if (!Schema::hasTable('homepage_sections') || !Schema::hasTable('banner_groups')) {
+                return;
+            }
+
+            $sections = \App\Models\HomepageSection::where('type', 'banner')->get();
+            $defaultSlug = BannerGroup::where('is_active', true)->value('slug');
+
+            foreach ($sections as $section) {
+                $config = $section->config ?? [];
+                if (!empty($config['banner_group'])) {
+                    continue;
+                }
+
+                $config['banner_group'] = $defaultSlug ?? 'homepage-hero';
+                unset($config['width'], $config['autoplay'], $config['speed'], $config['slides']);
+                $section->update(['config' => $config]);
+            }
+        } catch (\Throwable) {
+            // Silent fail during early bootstrap (tables may not exist yet)
+        }
     }
 }
