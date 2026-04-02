@@ -34,8 +34,8 @@ class ProductImageController extends Controller
             $directory = "catalog/_tmp/{$pimToken}";
             $kind = 'temp';
         } else {
-            $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : 'unsorted';
-            $directory = "catalog/{$safeName}";
+            $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : '';
+            $directory = $safeName ? "catalog/{$safeName}" : 'catalog';
             $kind = 'final';
         }
 
@@ -91,8 +91,8 @@ class ProductImageController extends Controller
                 $directory = "catalog/_tmp/{$pimToken}";
                 $kind = 'temp';
             } else {
-                $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : 'unsorted';
-                $directory = "catalog/{$safeName}";
+                $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : '';
+                $directory = $safeName ? "catalog/{$safeName}" : 'catalog';
                 $kind = 'final';
             }
 

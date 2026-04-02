@@ -399,8 +399,8 @@ class ErpProductController extends Controller
             ]);
         }
 
-        $brandSlug = $product->brand?->slug ?? 'unsorted';
-        $storagePath = 'products/' . $brandSlug;
+        $brandSlug = $product->brand?->slug ?? '';
+        $storagePath = $brandSlug ? 'products/' . $brandSlug : 'products';
         $uploaded = [];
         $failed = [];
 
@@ -506,8 +506,8 @@ class ErpProductController extends Controller
         }
 
         $product->loadMissing('brand:id,slug');
-        $brandSlug = $product->brand?->slug ?? 'unsorted';
-        $storagePath = 'products/' . $brandSlug;
+        $brandSlug = $product->brand?->slug ?? '';
+        $storagePath = $brandSlug ? 'products/' . $brandSlug : 'products';
         $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
         $maxSize = 5 * 1024 * 1024;
         $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];

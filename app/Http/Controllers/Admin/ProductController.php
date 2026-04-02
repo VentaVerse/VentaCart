@@ -552,9 +552,9 @@ class ProductController extends Controller
     protected function getCatalogDir(Product $product): string
     {
         $brand = $product->brand;
-        $folder = $brand ? $brand->slug : 'unsorted';
+        $folder = $brand ? $brand->slug : '';
 
-        return "catalog/{$folder}";
+        return $folder ? "catalog/{$folder}" : 'catalog';
     }
 
     protected function moveImagesToDir(Product $product, string $catalogDir): void

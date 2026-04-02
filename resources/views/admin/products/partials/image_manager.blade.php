@@ -415,7 +415,28 @@ function imageManager() {
         // --- Image Manager Modal ---
         async openBrowser() {
             this.browserOpen = true;
-            const startPath = this.lastBrowsedPath ?? '';
+
+            let startPath = '';
+
+            if (this.lastBrowsedPath !== null) {
+                // User already browsed somewhere this session — return there
+                startPath = this.lastBrowsedPath;
+            } else if (this.items.length > 0 && this.items[0].path) {
+                // First open: navigate to the main image's folder
+                const mainPath = this.items[0].path;
+                const lastSlash = mainPath.lastIndexOf('/');
+                if (lastSlash > 0) {
+                    let folder = mainPath.substring(0, lastSlash);
+                    // Strip leading 'catalog/' prefix since browseDir expects relative path
+                    if (folder.startsWith('catalog/')) {
+                        folder = folder.substring(8);
+                    } else if (folder === 'catalog') {
+                        folder = '';
+                    }
+                    startPath = folder;
+                }
+            }
+
             await this.browseDir(startPath);
         },
 

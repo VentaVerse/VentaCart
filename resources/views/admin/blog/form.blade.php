@@ -307,10 +307,11 @@
                 selectedPath: @json(old('featured_image', $post?->featured_image ?? '')),
                 browserOpen: false,
                 loading: false,
-                currentPath: 'blog',
+                currentPath: '',
                 parentPath: '',
                 folders: [],
                 files: [],
+                lastBrowsedPath: null,
 
                 get previewUrl() {
                     if (!this.selectedPath) return '';
@@ -327,7 +328,27 @@
 
                 async openBrowser() {
                     this.browserOpen = true;
-                    await this.browseDir(this.currentPath);
+
+                    let startPath = '';
+
+                    if (this.lastBrowsedPath !== null) {
+                        startPath = this.lastBrowsedPath;
+                    } else if (this.selectedPath) {
+                        const lastSlash = this.selectedPath.lastIndexOf('/');
+                        if (lastSlash > 0) {
+                            let folder = this.selectedPath.substring(0, lastSlash);
+                            if (folder.startsWith('catalog/')) {
+                                folder = folder.substring(8);
+                            } else if (folder === 'catalog') {
+                                folder = '';
+                            }
+                            startPath = folder;
+                        }
+                    } else {
+                        startPath = 'blog';
+                    }
+
+                    await this.browseDir(startPath);
                 },
 
                 async browseDir(path) {
@@ -340,6 +361,7 @@
                         this.parentPath = data.parent ?? '';
                         this.folders = data.folders;
                         this.files = data.files;
+                        this.lastBrowsedPath = data.path;
                     }
                     this.loading = false;
                 },

@@ -217,7 +217,29 @@ function {{ $componentId }}() {
 
         async openBrowser() {
             this.browserOpen = true;
-            const startPath = this.lastBrowsedPath ?? this.defaultFolder;
+
+            let startPath = '';
+
+            if (this.lastBrowsedPath !== null) {
+                // User already browsed somewhere this session — return there
+                startPath = this.lastBrowsedPath;
+            } else if (this.imagePath) {
+                // First open with existing image: navigate to its folder
+                const lastSlash = this.imagePath.lastIndexOf('/');
+                if (lastSlash > 0) {
+                    let folder = this.imagePath.substring(0, lastSlash);
+                    if (folder.startsWith('catalog/')) {
+                        folder = folder.substring(8);
+                    } else if (folder === 'catalog') {
+                        folder = '';
+                    }
+                    startPath = folder;
+                }
+            } else {
+                // New entity, no image yet — use default folder
+                startPath = this.defaultFolder;
+            }
+
             await this.browseDir(startPath);
         },
 
