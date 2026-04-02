@@ -2,7 +2,7 @@
     <div class="container-store py-16">
         <div class="account-auth-card">
             <h1 class="account-auth-title text-center">FORGOT PASSWORD</h1>
-            <p class="text-sm text-[#777] text-center mb-6">Enter your email address and we'll send you a link to reset your password.</p>
+            <p class="text-sm text-[var(--color-text)] text-center mb-6">Enter your email address and we'll send you a link to reset your password.</p>
 
             @if (session('status'))
                 <div class="account-flash-success mb-6">
@@ -33,7 +33,7 @@
 
             <div class="divider-glow my-6"></div>
 
-            <p class="text-center text-sm text-[#777]">
+            <p class="text-center text-sm text-[var(--color-text)]">
                 Remember your password?
                 <a href="{{ route('customer.login') }}" class="text-[var(--color-primary)] hover:underline">Sign in</a>
             </p>

@@ -13,7 +13,7 @@
         <h2 class="section-title">{{ $section->title }}</h2>
     @endif
     @if (!empty($config['content']))
-        <div class="prose prose-invert max-w-none text-[#888]">
+        <div class="prose prose-invert max-w-none text-[var(--color-text-muted)]">
             {!! nl2br(e($config['content'])) !!}
         </div>
     @endif

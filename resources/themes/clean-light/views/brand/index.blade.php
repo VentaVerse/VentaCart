@@ -3,19 +3,19 @@
     {{-- Breadcrumbs --}}
     <div class="bg-gray-50 border-b border-gray-200">
         <div class="container-store py-3">
-            <nav class="flex items-center gap-2 text-xs text-gray-400">
+            <nav class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
                 <a href="{{ route('home') }}" class="hover:text-[var(--color-primary)]">Home</a>
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <span class="text-gray-700 font-medium">Brands</span>
+                <span class="text-[var(--color-text)] font-medium">Brands</span>
             </nav>
         </div>
     </div>
 
     <div class="container-store py-8">
-        <h1 class="text-3xl text-gray-900 mb-8 font-bold">Brands</h1>
+        <h1 class="text-3xl text-[var(--color-text-heading)] mb-8 font-bold">Brands</h1>
 
         @if ($brands->isEmpty())
-            <p class="text-gray-400 text-center py-12">No brands available.</p>
+            <p class="text-[var(--color-text-muted)] text-center py-12">No brands available.</p>
         @else
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 @foreach ($brands as $brand)
@@ -31,8 +31,8 @@
                             </div>
                         @endif
                         <div class="text-center">
-                            <p class="text-sm text-gray-900 font-medium group-hover:text-[var(--color-primary)] transition-colors">{{ $brand->name }}</p>
-                            <p class="text-xs text-gray-400 mt-0.5">{{ $brand->products_count }} product{{ $brand->products_count !== 1 ? 's' : '' }}</p>
+                            <p class="text-sm text-[var(--color-text-heading)] font-medium group-hover:text-[var(--color-primary)] transition-colors">{{ $brand->name }}</p>
+                            <p class="text-xs text-[var(--color-text-muted)] mt-0.5">{{ $brand->products_count }} product{{ $brand->products_count !== 1 ? 's' : '' }}</p>
                         </div>
                     </a>
                 @endforeach

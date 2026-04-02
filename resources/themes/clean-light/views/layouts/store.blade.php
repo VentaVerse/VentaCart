@@ -68,6 +68,7 @@
             --color-text-muted: {{ $theme->get('colors.text_muted', '#9CA3AF') }};
             --color-card-bg: {{ $theme->get('colors.card_bg', '#F9FAFB') }};
             --color-border: {{ $theme->get('colors.border', '#E5E7EB') }};
+            --color-content-text: {{ $theme->get('colors.content_text', '#4B5563') }};
             --color-btn-text: {{ $theme->get('colors.btn_text', '#FFFFFF') }};
             --color-nav-bg: {{ $theme->get('colors.nav_bg', '#FFFFFF') }};
             --color-nav-text: {{ $theme->get('colors.nav_text', '#374151') }};
@@ -148,7 +149,7 @@
                         </div>
                     </div>
                 @elseif ($defaultCurrency)
-                    <span class="text-xs text-gray-400">
+                    <span class="text-xs text-[var(--color-text-muted)]">
                         <span class="led led-green mr-1"></span>
                         {{ $defaultCurrency->code }}
                     </span>
@@ -174,7 +175,7 @@
     <header class="site-header">
         <div class="container-store flex items-center justify-between">
             {{-- Mobile menu toggle --}}
-            <button @click="toggle()" class="lg:hidden p-2 text-gray-500 hover:text-[var(--color-primary)] transition-colors">
+            <button @click="toggle()" class="lg:hidden p-2 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
 
@@ -225,7 +226,7 @@
                                             </div>
                                         </div>
                                         <div class="flex-1 min-w-0">
-                                            <div class="text-sm text-gray-700 truncate" x-text="item.name"></div>
+                                            <div class="text-sm text-[var(--color-text)] truncate" x-text="item.name"></div>
                                             <div class="text-sm font-bold" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;" x-text="'{{ $defaultCurrency?->symbol ?? '₱' }}' + item.price"></div>
                                         </div>
                                     </a>
@@ -233,7 +234,7 @@
                             </div>
                         </template>
                         <template x-if="!loading && results.length === 0 && searched">
-                            <div class="px-4 py-6 text-center text-sm text-gray-400">No products found</div>
+                            <div class="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">No products found</div>
                         </template>
                     </div>
                 </form>
@@ -305,8 +306,8 @@
                 <input type="text" name="q" placeholder="Search products..." value="{{ request('q') }}"
                     x-model="query" @input.debounce.300ms="search()" @focus="if (results.length) showResults = true" @keydown.escape="close()"
                     autocomplete="off"
-                    class="w-full bg-white border border-gray-200 rounded-lg text-sm text-gray-700 placeholder-gray-400 px-4 py-2.5 pr-10 focus:outline-none focus:border-[var(--color-primary)]">
-                <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    class="w-full bg-white border border-gray-200 rounded-lg text-sm text-[var(--color-text)] placeholder-[var(--color-text-muted)] px-4 py-2.5 pr-10 focus:outline-none focus:border-[var(--color-primary)]">
+                <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </button>
 
@@ -326,7 +327,7 @@
                                         <img :src="item.image || ''" :alt="item.name" x-show="item.image" loading="lazy">
                                     </div>
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-sm text-gray-700 truncate" x-text="item.name"></div>
+                                        <div class="text-sm text-[var(--color-text)] truncate" x-text="item.name"></div>
                                         <div class="text-sm font-bold" style="color: var(--color-primary);" x-text="'{{ $defaultCurrency?->symbol ?? '₱' }}' + item.price"></div>
                                     </div>
                                 </a>
@@ -334,7 +335,7 @@
                         </div>
                     </template>
                     <template x-if="!loading && results.length === 0 && searched">
-                        <div class="px-4 py-6 text-center text-sm text-gray-400">No products found</div>
+                        <div class="px-4 py-6 text-center text-sm text-[var(--color-text-muted)]">No products found</div>
                     </template>
                 </div>
             </form>
@@ -390,7 +391,7 @@
             <div class="mobile-nav" :class="open ? 'translate-x-0' : '-translate-x-full'">
                 <div class="flex items-center justify-between p-5 border-b border-gray-200">
                     <span class="text-[var(--color-primary)] text-lg font-bold" class="font-heading">MENU</span>
-                    <button @click="close()" class="text-gray-400 hover:text-[var(--color-primary)] transition-colors">
+                    <button @click="close()" class="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -465,17 +466,17 @@
                             <div class="payment-icons">
                                 @foreach ($column->config['icons'] ?? [] as $icon)
                                     @if (is_string($icon))
-                                        <span class="inline-block bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-500">{{ $icon }}</span>
+                                        <span class="inline-block bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-xs text-[var(--color-text-muted)]">{{ $icon }}</span>
                                     @elseif (($icon['type'] ?? '') === 'image' && !empty($icon['value']))
                                         <img src="{{ storage_url($icon['value']) }}" alt="" class="h-7 rounded">
                                     @elseif (!empty($icon['value']))
-                                        <span class="inline-block bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-500">{{ $icon['value'] }}</span>
+                                        <span class="inline-block bg-gray-100 border border-gray-200 rounded px-3 py-1.5 text-xs text-[var(--color-text-muted)]">{{ $icon['value'] }}</span>
                                     @endif
                                 @endforeach
                             </div>
 
                         @elseif ($column->type === 'text')
-                            <div class="text-sm text-gray-500">
+                            <div class="text-sm text-[var(--color-text-muted)]">
                                 {!! nl2br(e($column->config['content'] ?? '')) !!}
                             </div>
                         @endif
@@ -484,7 +485,7 @@
             </div>
 
             <hr class="divider-glow mb-6">
-            <div class="text-center text-xs text-gray-400" class="font-body">
+            <div class="text-center text-xs text-[var(--color-text-muted)]" class="font-body">
                 &copy; {{ date('Y') }} {{ $siteName }}. All rights reserved.
             </div>
         </div>

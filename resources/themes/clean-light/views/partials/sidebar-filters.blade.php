@@ -14,7 +14,7 @@
             <h3 class="text-sm font-semibold mb-3" class="font-heading">Price</h3>
             <div class="flex items-center gap-2">
                 <input type="number" name="min_price" value="{{ request('min_price') }}" placeholder="{{ number_format($priceRange->min_price ?? 0, 0) }}" min="0" class="w-full text-xs border-gray-300 rounded px-2 py-1.5">
-                <span class="text-gray-400">-</span>
+                <span class="text-[var(--color-text-muted)]">-</span>
                 <input type="number" name="max_price" value="{{ request('max_price') }}" placeholder="{{ number_format($priceRange->max_price ?? 0, 0) }}" min="0" class="w-full text-xs border-gray-300 rounded px-2 py-1.5">
             </div>
         </div>
@@ -78,7 +78,7 @@
     </button>
 
     @if (request()->hasAny(['min_price', 'max_price', 'brand', 'in_stock', 'on_sale', 'tag']))
-        <a href="{{ url()->current() }}{{ request('sort') ? '?sort=' . request('sort') : '' }}" class="block text-center text-xs text-gray-500 hover:text-gray-700 mt-2">
+        <a href="{{ url()->current() }}{{ request('sort') ? '?sort=' . request('sort') : '' }}" class="block text-center text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text)] mt-2">
             Clear Filters
         </a>
     @endif

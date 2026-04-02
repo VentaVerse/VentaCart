@@ -1,7 +1,7 @@
 <div class="account-sidebar">
     <div class="account-sidebar-user">
-        <div class="text-xs text-[#555] tracking-wider" class="font-heading">WELCOME BACK</div>
-        <div class="text-[#E8E8E8] text-sm mt-1">{{ auth('customer')->user()->full_name }}</div>
+        <div class="text-xs text-[var(--color-text)] tracking-wider" class="font-heading">WELCOME BACK</div>
+        <div class="text-[var(--color-text-heading)] text-sm mt-1">{{ auth('customer')->user()->full_name }}</div>
     </div>
     <nav class="account-sidebar-nav">
         <a href="{{ route('account.dashboard') }}" class="{{ request()->routeIs('account.dashboard') ? 'active' : '' }}">

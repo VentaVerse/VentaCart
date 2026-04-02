@@ -35,7 +35,7 @@
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <label class="flex items-center gap-2 text-sm text-[#777] cursor-pointer">
+                        <label class="flex items-center gap-2 text-sm text-[var(--color-text-muted)] cursor-pointer">
                             <input type="checkbox" name="remember" class="accent-[var(--color-primary)]">
                             Remember me
                         </label>
@@ -50,7 +50,7 @@
 
             <div class="divider-glow my-6"></div>
 
-            <p class="text-center text-sm text-[#777]">
+            <p class="text-center text-sm text-[var(--color-text-muted)]">
                 Don't have an account?
                 <a href="{{ route('customer.register', !empty($redirect) ? ['redirect' => $redirect] : []) }}" class="text-[var(--color-primary)] hover:underline">Create one</a>
             </p>
@@ -60,7 +60,7 @@
                 <div x-show="showResetModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.6)">
                     <div @click.outside="showResetModal = false" x-show="showResetModal" x-transition.scale
                          class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
-                        <button @click="showResetModal = false" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
+                        <button @click="showResetModal = false" class="absolute top-3 right-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
 
@@ -69,10 +69,10 @@
                                 <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
                                     <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
                                 </div>
-                                <h2 class="text-lg font-semibold text-gray-900">Welcome to our new platform!</h2>
-                                <p class="text-sm text-gray-600 mt-2">We've upgraded our store to a brand new system. For your security, you'll need to set a new password.</p>
-                                <p class="text-sm text-gray-600 mt-1">We'll send a password reset link to <strong x-text="email"></strong>.</p>
-                                <p class="text-sm text-gray-600 mt-2 font-semibold">Please check your spam or junk folder if you don't see it in your inbox.</p>
+                                <h2 class="text-lg font-semibold text-[var(--color-text-heading)]">Welcome to our new platform!</h2>
+                                <p class="text-sm text-[var(--color-text)] mt-2">We've upgraded our store to a brand new system. For your security, you'll need to set a new password.</p>
+                                <p class="text-sm text-[var(--color-text)] mt-1">We'll send a password reset link to <strong x-text="email"></strong>.</p>
+                                <p class="text-sm text-[var(--color-text)] mt-2 font-semibold">Please check your spam or junk folder if you don't see it in your inbox.</p>
                             </div>
                             <button @click="sendResetLink()" :disabled="resetLoading"
                                 class="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-colors"
@@ -87,9 +87,9 @@
                             <div class="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
                                 <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             </div>
-                            <h2 class="text-lg font-semibold text-gray-900">Check your email!</h2>
-                            <p class="text-sm text-gray-600 mt-2">A password reset link has been sent to <strong x-text="email"></strong>. Click the link in the email to set your new password.</p>
-                            <button @click="showResetModal = false" class="mt-4 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
+                            <h2 class="text-lg font-semibold text-[var(--color-text-heading)]">Check your email!</h2>
+                            <p class="text-sm text-[var(--color-text)] mt-2">A password reset link has been sent to <strong x-text="email"></strong>. Click the link in the email to set your new password.</p>
+                            <button @click="showResetModal = false" class="mt-4 px-4 py-2 text-sm font-medium text-[var(--color-text)] bg-gray-100 rounded-lg hover:bg-gray-200">Close</button>
                         </div>
                     </div>
                 </div>

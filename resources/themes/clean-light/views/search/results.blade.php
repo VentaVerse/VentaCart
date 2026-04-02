@@ -1,10 +1,10 @@
 <x-store-layout title="Search: {{ $query }}">
     <div class="bg-gray-50 border-b border-gray-200">
         <div class="container-store py-3">
-            <nav class="flex items-center gap-2 text-xs text-gray-500">
-                <a href="{{ route('home') }}" class="hover:text-gray-700">Home</a>
+            <nav class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                <a href="{{ route('home') }}" class="hover:text-[var(--color-text)]">Home</a>
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <span class="text-gray-800 font-medium">Search Results</span>
+                <span class="text-[var(--color-text-heading)] font-medium">Search Results</span>
             </nav>
         </div>
     </div>
@@ -20,7 +20,7 @@
 
         @if ($products->total() > 0)
             <div class="flex items-center justify-between mb-6">
-                <p class="text-sm text-[#888]">{{ $products->total() }} product{{ $products->total() !== 1 ? 's' : '' }} found</p>
+                <p class="text-sm text-[var(--color-text-muted)]">{{ $products->total() }} product{{ $products->total() !== 1 ? 's' : '' }} found</p>
                 <form method="GET" action="{{ route('search.results') }}" class="flex items-center gap-2">
                     <input type="hidden" name="q" value="{{ $query }}">
                     <select name="sort" onchange="this.form.submit()" class="search-sort-select">

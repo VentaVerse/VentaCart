@@ -8,8 +8,8 @@
             <div>
                 @if ($orders->isEmpty())
                     <div class="account-card text-center py-10 reveal">
-                        <svg class="w-16 h-16 mx-auto text-[#333] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                        <p class="text-[#555] mb-4">You haven't placed any orders yet.</p>
+                        <svg class="w-16 h-16 mx-auto text-[var(--color-text-heading)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <p class="text-[var(--color-text)] mb-4">You haven't placed any orders yet.</p>
                         <a href="{{ route('home') }}" class="account-btn-primary inline-block">START SHOPPING</a>
                     </div>
                 @else
@@ -29,7 +29,7 @@
                                 <tbody>
                                     @foreach ($orders as $order)
                                         <tr>
-                                            <td class="text-[#E8E8E8]">#{{ $order->id }}</td>
+                                            <td class="text-[var(--color-text-heading)]">#{{ $order->id }}</td>
                                             <td>{{ $order->created_at->format('M d, Y') }}</td>
                                             <td>{{ $order->products_count ?? $order->products()->count() }}</td>
                                             <td class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</td>

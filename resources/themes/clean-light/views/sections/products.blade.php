@@ -21,5 +21,5 @@
     </style>
     @endpush
 @else
-    <p class="text-center text-[#444] py-8" class="font-body">No products to display.</p>
+    <p class="text-center text-[var(--color-text)] py-8" class="font-body">No products to display.</p>
 @endif

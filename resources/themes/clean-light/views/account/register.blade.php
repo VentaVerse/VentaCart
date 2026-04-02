@@ -51,7 +51,7 @@
                                class="account-input w-full">
                     </div>
 
-                    <label class="flex items-center gap-2 text-sm text-[#777] cursor-pointer">
+                    <label class="flex items-center gap-2 text-sm text-[var(--color-text)] cursor-pointer">
                         <input type="checkbox" name="newsletter" value="1" {{ old('newsletter') ? 'checked' : '' }}
                                class="accent-[var(--color-primary)]">
                         Subscribe to newsletter
@@ -65,7 +65,7 @@
 
             <div class="divider-glow my-6"></div>
 
-            <p class="text-center text-sm text-[#777]">
+            <p class="text-center text-sm text-[var(--color-text)]">
                 Already have an account?
                 <a href="{{ route('customer.login', !empty($redirect) ? ['redirect' => $redirect] : []) }}" class="text-[var(--color-primary)] hover:underline">Sign in</a>
             </p>

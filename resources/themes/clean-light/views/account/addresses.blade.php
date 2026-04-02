@@ -17,7 +17,7 @@
 
                 @if ($addresses->isEmpty())
                     <div class="account-card text-center py-10 reveal">
-                        <p class="text-[#555] mb-4">You haven't added any addresses yet.</p>
+                        <p class="text-[var(--color-text)] mb-4">You haven't added any addresses yet.</p>
                         <a href="{{ route('account.addresses.create') }}" class="account-btn-primary inline-block">ADD YOUR FIRST ADDRESS</a>
                     </div>
                 @else
@@ -29,19 +29,19 @@
                                 @endif
 
                                 <div class="text-sm space-y-0.5 mb-4">
-                                    <p class="text-[#E8E8E8] font-medium">{{ $address->first_name }} {{ $address->last_name }}</p>
-                                    <p class="text-[#999]">{{ $address->address_1 }}</p>
+                                    <p class="text-[var(--color-text-heading)] font-medium">{{ $address->first_name }} {{ $address->last_name }}</p>
+                                    <p class="text-[var(--color-text-muted)]">{{ $address->address_1 }}</p>
                                     @if ($address->barangay)
-                                        <p class="text-[#999]">{{ $address->barangay }}</p>
+                                        <p class="text-[var(--color-text-muted)]">{{ $address->barangay }}</p>
                                     @endif
                                     @if ($address->district)
-                                        <p class="text-[#999]">{{ $address->district }}</p>
+                                        <p class="text-[var(--color-text-muted)]">{{ $address->district }}</p>
                                     @endif
-                                    <p class="text-[#999]">
+                                    <p class="text-[var(--color-text-muted)]">
                                         {{ $address->city }}@if ($address->state), {{ $address->state }}@endif
                                         @if ($address->postcode) {{ $address->postcode }}@endif
                                     </p>
-                                    <p class="text-[#777]">{{ $address->country_code }}</p>
+                                    <p class="text-[var(--color-text)]">{{ $address->country_code }}</p>
                                 </div>
 
                                 <div class="flex items-center gap-3 pt-3 border-t border-[#2A2A2A]">
@@ -55,15 +55,15 @@
                                     @endif
 
                                     <div class="ml-auto">
-                                        <button @click="confirmDelete = true" x-show="!confirmDelete" class="text-xs text-[#555] hover:text-[var(--color-secondary)] transition-colors">Delete</button>
+                                        <button @click="confirmDelete = true" x-show="!confirmDelete" class="text-xs text-[var(--color-text)] hover:text-[var(--color-secondary)] transition-colors">Delete</button>
                                         <div x-show="confirmDelete" class="flex items-center gap-2">
-                                            <span class="text-xs text-[#777]">Sure?</span>
+                                            <span class="text-xs text-[var(--color-text)]">Sure?</span>
                                             <form method="POST" action="{{ route('account.addresses.destroy', $address) }}">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="account-btn-danger text-xs">Yes</button>
                                             </form>
-                                            <button @click="confirmDelete = false" class="text-xs text-[#555]">No</button>
+                                            <button @click="confirmDelete = false" class="text-xs text-[var(--color-text)]">No</button>
                                         </div>
                                     </div>
                                 </div>

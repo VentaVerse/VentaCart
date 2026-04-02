@@ -46,6 +46,7 @@
                                 'text' => 'Body Text',
                                 'text_heading' => 'Heading Text',
                                 'text_muted' => 'Muted Text',
+                                'content_text' => 'Content Text',
                                 'card_bg' => 'Card Background',
                                 'border' => 'Borders',
                                 'btn_text' => 'Button Text',

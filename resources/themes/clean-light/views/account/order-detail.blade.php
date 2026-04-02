@@ -11,7 +11,7 @@
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                             <span class="account-label">Date</span>
-                            <p class="text-sm text-[#E8E8E8]">{{ $order->created_at->format('M d, Y') }}</p>
+                            <p class="text-sm text-[var(--color-text-heading)]">{{ $order->created_at->format('M d, Y') }}</p>
                         </div>
                         <div>
                             <span class="account-label">Status</span>
@@ -20,11 +20,11 @@
                         </div>
                         <div>
                             <span class="account-label">Payment</span>
-                            <p class="text-sm text-[#999]">{{ $order->payment_method_label ?: 'N/A' }}</p>
+                            <p class="text-sm text-[var(--color-text-muted)]">{{ $order->payment_method_label ?: 'N/A' }}</p>
                         </div>
                         <div>
                             <span class="account-label">Total</span>
-                            <p class="text-lg text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</p>
+                            <p class="text-lg text-[var(--color-text-heading)]" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</p>
                         </div>
                     </div>
                 </div>
@@ -37,8 +37,8 @@
                             @if ($order->shipping_address_1)
                                 <div>
                                     <h2 class="account-section-title">Ship To</h2>
-                                    <div class="text-sm text-[#999] space-y-0.5">
-                                        <p class="text-[#E8E8E8]">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
+                                    <div class="text-sm text-[var(--color-text-muted)] space-y-0.5">
+                                        <p class="text-[var(--color-text-heading)]">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
                                         <p>{{ $order->shipping_address_1 }}</p>
                                         @if ($order->shipping_barangay) <p>{{ $order->shipping_barangay }}</p> @endif
                                         @if ($order->shipping_district) <p>{{ $order->shipping_district }}</p> @endif
@@ -53,8 +53,8 @@
                             <div>
                                 <h2 class="account-section-title">Bill To</h2>
                                 @if ($order->billing_first_name)
-                                    <div class="text-sm text-[#999] space-y-0.5">
-                                        <p class="text-[#E8E8E8]">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
+                                    <div class="text-sm text-[var(--color-text-muted)] space-y-0.5">
+                                        <p class="text-[var(--color-text-heading)]">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
                                         <p>{{ $order->billing_address_1 }}</p>
                                         @if ($order->billing_barangay) <p>{{ $order->billing_barangay }}</p> @endif
                                         @if ($order->billing_district) <p>{{ $order->billing_district }}</p> @endif
@@ -63,7 +63,7 @@
                                         @if ($order->billing_phone) <p class="mt-1">{{ $order->billing_phone }}</p> @endif
                                     </div>
                                 @else
-                                    <p class="text-sm text-[#555] italic">Same as shipping</p>
+                                    <p class="text-sm text-[var(--color-text)] italic">Same as shipping</p>
                                 @endif
                             </div>
                         </div>
@@ -74,14 +74,14 @@
                 @if ($order->tracking_number)
                     <div class="account-card reveal">
                         <h2 class="account-section-title">Tracking</h2>
-                        <p class="text-sm text-[#999]">
+                        <p class="text-sm text-[var(--color-text-muted)]">
                             @if ($order->shippingCourier)
                                 {{ $order->shippingCourier->name }}:
                             @endif
                             @if ($order->tracking_link)
                                 <a href="{{ $order->tracking_link }}" target="_blank" class="text-[var(--color-primary)] hover:underline">{{ $order->tracking_number }}</a>
                             @else
-                                <span class="text-[#E8E8E8]">{{ $order->tracking_number }}</span>
+                                <span class="text-[var(--color-text-heading)]">{{ $order->tracking_number }}</span>
                             @endif
                         </p>
                     </div>
@@ -104,9 +104,9 @@
                                 @foreach ($order->products as $item)
                                     <tr>
                                         <td>
-                                            <span class="text-[#E8E8E8]">{{ $item->name }}</span>
+                                            <span class="text-[var(--color-text-heading)]">{{ $item->name }}</span>
                                             @if ($item->variant_label)
-                                                <span class="block text-xs text-[#555]">{{ $item->variant_label }}</span>
+                                                <span class="block text-xs text-[var(--color-text)]">{{ $item->variant_label }}</span>
                                             @endif
                                         </td>
                                         <td style="text-align: right;" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price, 2) }}</td>
@@ -120,18 +120,18 @@
 
                     <div class="mt-4 pt-4 border-t border-[#2A2A2A] space-y-2 text-sm text-right">
                         <div class="flex justify-end gap-8">
-                            <span class="text-[#777]">Subtotal</span>
-                            <span class="text-[#E8E8E8] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->subtotal, 2) }}</span>
+                            <span class="text-[var(--color-text)]">Subtotal</span>
+                            <span class="text-[var(--color-text-heading)] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->subtotal, 2) }}</span>
                         </div>
                         @if ($order->shipping_cost > 0)
                             <div class="flex justify-end gap-8">
-                                <span class="text-[#777]">Shipping</span>
-                                <span class="text-[#E8E8E8] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->shipping_cost, 2) }}</span>
+                                <span class="text-[var(--color-text)]">Shipping</span>
+                                <span class="text-[var(--color-text-heading)] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->shipping_cost, 2) }}</span>
                             </div>
                         @endif
                         <div class="flex justify-end gap-8 pt-2 border-t border-[#2A2A2A]">
-                            <span class="text-[#E8E8E8]" class="font-heading-wide">TOTAL</span>
-                            <span class="text-lg text-[#E8E8E8] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</span>
+                            <span class="text-[var(--color-text-heading)]" class="font-heading-wide">TOTAL</span>
+                            <span class="text-lg text-[var(--color-text-heading)] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -143,13 +143,13 @@
                         <div class="space-y-4">
                             @foreach ($order->histories->sortByDesc('created_at') as $history)
                                 <div class="flex items-start gap-3 text-sm">
-                                    <div class="text-[#555] whitespace-nowrap pt-0.5">{{ $history->created_at->format('M d, Y H:i') }}</div>
+                                    <div class="text-[var(--color-text)] whitespace-nowrap pt-0.5">{{ $history->created_at->format('M d, Y H:i') }}</div>
                                     <div>
                                         @if ($history->status)
-                                            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[#2A2A2A] text-[#C8C8C8]">{{ $history->status->name }}</span>
+                                            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[#2A2A2A] text-[var(--color-text-muted)]">{{ $history->status->name }}</span>
                                         @endif
                                         @if ($history->comment)
-                                            <p class="text-[#999] mt-0.5">{{ $history->comment }}</p>
+                                            <p class="text-[var(--color-text-muted)] mt-0.5">{{ $history->comment }}</p>
                                         @endif
                                     </div>
                                 </div>

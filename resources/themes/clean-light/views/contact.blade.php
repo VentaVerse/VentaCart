@@ -2,7 +2,7 @@
     <div class="container-store py-16">
         <div class="account-auth-card" style="max-width: 36rem;">
             <h1 class="account-auth-title text-center">CONTACT US</h1>
-            <p class="text-sm text-[#777] text-center mb-6">Have a question? We'd love to hear from you.</p>
+            <p class="text-sm text-[var(--color-text)] text-center mb-6">Have a question? We'd love to hear from you.</p>
 
             @if (session('success'))
                 <div class="account-flash-success mb-6">

@@ -9,7 +9,7 @@
                 {{-- Welcome --}}
                 <div class="account-card reveal">
                     <h2 class="account-section-title">Welcome, {{ $customer->first_name }}</h2>
-                    <p class="text-sm text-[#777]">From your account dashboard you can view your recent orders, manage your addresses, and edit your profile.</p>
+                    <p class="text-sm text-[var(--color-text)]">From your account dashboard you can view your recent orders, manage your addresses, and edit your profile.</p>
                 </div>
 
                 {{-- Default Address --}}
@@ -19,8 +19,8 @@
                             <h2 class="account-section-title mb-0">Default Address</h2>
                             <a href="{{ route('account.addresses') }}" class="text-xs text-[var(--color-primary)] hover:underline">Manage</a>
                         </div>
-                        <div class="text-sm text-[#999] space-y-0.5">
-                            <p class="text-[#E8E8E8]">{{ $defaultAddress->first_name }} {{ $defaultAddress->last_name }}</p>
+                        <div class="text-sm text-[var(--color-text-muted)] space-y-0.5">
+                            <p class="text-[var(--color-text-heading)]">{{ $defaultAddress->first_name }} {{ $defaultAddress->last_name }}</p>
                             <p>{{ $defaultAddress->address_1 }}</p>
                             @if ($defaultAddress->barangay)
                                 <p>{{ $defaultAddress->barangay }}</p>
@@ -42,7 +42,7 @@
                     </div>
 
                     @if ($recentOrders->isEmpty())
-                        <p class="text-sm text-[#555]">You haven't placed any orders yet.</p>
+                        <p class="text-sm text-[var(--color-text)]">You haven't placed any orders yet.</p>
                     @else
                         <div class="overflow-x-auto">
                             <table class="account-table w-full">
@@ -58,7 +58,7 @@
                                 <tbody>
                                     @foreach ($recentOrders as $order)
                                         <tr>
-                                            <td class="text-[#E8E8E8]">#{{ $order->id }}</td>
+                                            <td class="text-[var(--color-text-heading)]">#{{ $order->id }}</td>
                                             <td>{{ $order->created_at->format('M d, Y') }}</td>
                                             <td class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</td>
                                             <td>

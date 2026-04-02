@@ -35,7 +35,7 @@
                                                 {{ $post->title }}
                                             </a>
                                         </h2>
-                                        <div class="text-xs text-gray-400 mb-2">
+                                        <div class="text-xs text-[var(--color-text-muted)] mb-2">
                                             {{ $post->published_at->format('M d, Y') }}
                                             @if ($post->category)
                                                 &middot; {{ $post->category->name }}
@@ -45,7 +45,7 @@
                                             @endif
                                         </div>
                                         @if ($post->excerpt)
-                                            <p class="text-sm text-gray-600 line-clamp-2">{{ $post->excerpt }}</p>
+                                            <p class="text-sm text-[var(--color-text)] line-clamp-2">{{ $post->excerpt }}</p>
                                         @endif
                                     </div>
                                 </article>
@@ -62,7 +62,7 @@
                                         </div>
                                     @endif
                                     <div class="p-4">
-                                        <div class="text-xs text-gray-400 mb-2">
+                                        <div class="text-xs text-[var(--color-text-muted)] mb-2">
                                             {{ $post->published_at->format('M d, Y') }}
                                             @if ($post->category)
                                                 &middot; {{ $post->category->name }}
@@ -74,7 +74,7 @@
                                             </a>
                                         </h2>
                                         @if ($post->excerpt)
-                                            <p class="text-xs text-gray-600 line-clamp-3">{{ $post->excerpt }}</p>
+                                            <p class="text-xs text-[var(--color-text)] line-clamp-3">{{ $post->excerpt }}</p>
                                         @endif
                                     </div>
                                 </article>
@@ -86,7 +86,7 @@
                         {{ $posts->links() }}
                     </div>
                 @else
-                    <div class="text-center py-12 text-gray-400">
+                    <div class="text-center py-12 text-[var(--color-text-muted)]">
                         <p>No blog posts yet.</p>
                     </div>
                 @endif

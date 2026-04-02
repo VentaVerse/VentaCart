@@ -3,10 +3,10 @@
     {{-- Breadcrumbs --}}
     <div class="bg-gray-50 border-b border-gray-200">
         <div class="container-store py-3">
-            <nav class="flex items-center gap-2 text-xs text-gray-500">
-                <a href="{{ route('home') }}" class="hover:text-gray-700">Home</a>
+            <nav class="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
+                <a href="{{ route('home') }}" class="hover:text-[var(--color-text)]">Home</a>
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <span class="text-gray-800 font-medium">{{ $brand->name }}</span>
+                <span class="text-[var(--color-text-heading)] font-medium">{{ $brand->name }}</span>
             </nav>
         </div>
     </div>
@@ -20,8 +20,8 @@
                 </div>
             @endif
             <div>
-                <h1 class="text-3xl text-gray-900" class="font-heading-wide">{{ strtoupper($brand->name) }}</h1>
-                <p class="text-sm text-gray-500 mt-1">{{ $products->total() }} product{{ $products->total() !== 1 ? 's' : '' }}</p>
+                <h1 class="text-3xl text-[var(--color-text-heading)]" class="font-heading-wide">{{ strtoupper($brand->name) }}</h1>
+                <p class="text-sm text-[var(--color-text-muted)] mt-1">{{ $products->total() }} product{{ $products->total() !== 1 ? 's' : '' }}</p>
             </div>
         </div>
 
@@ -68,7 +68,7 @@
                         <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                         </svg>
-                        <p class="text-lg text-gray-400 mb-2">No products found for {{ $brand->name }}</p>
+                        <p class="text-lg text-[var(--color-text-muted)] mb-2">No products found for {{ $brand->name }}</p>
                     </div>
                 @endif
             </div>

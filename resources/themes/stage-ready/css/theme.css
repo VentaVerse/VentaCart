@@ -24,6 +24,7 @@
     --color-text-muted: #999;
     --color-card-bg: #1A1A1A;
     --color-border: #2A2A2A;
+    --color-content-text: #B0B0B0;
     --color-btn-text: #0D0D0D;
 }
 
@@ -1479,7 +1480,7 @@
 
     .product-description {
         @apply text-sm leading-relaxed;
-        color: var(--color-text-muted);
+        color: var(--color-content-text, var(--color-text));
     }
 
     .product-description *,

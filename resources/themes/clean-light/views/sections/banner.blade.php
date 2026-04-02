@@ -109,7 +109,7 @@
                 <h1 class="text-5xl md:text-7xl tracking-[0.15em] mb-3" style="font-family: var(--font-heading); color: var(--color-primary);">
                     NEW GEAR DAY
                 </h1>
-                <p class="text-sm md:text-base text-[#555] tracking-[0.3em] uppercase mb-8" class="font-body">
+                <p class="text-sm md:text-base text-[var(--color-text)] tracking-[0.3em] uppercase mb-8" class="font-body">
                     Guitar Effects &bull; Cables &bull; Parts
                 </p>
                 <a href="#" class="inline-block px-8 py-3 text-sm font-bold tracking-[0.2em] uppercase transition-all duration-300" style="font-family: var(--font-heading); background: var(--color-primary); color: #0D0D0D; box-shadow: 0 0 20px var(--glow-primary);">

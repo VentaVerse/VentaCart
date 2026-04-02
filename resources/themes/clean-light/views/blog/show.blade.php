@@ -22,7 +22,7 @@
             {{-- Header --}}
             <header class="mb-6">
                 <h1 class="text-3xl font-bold mb-3" class="font-heading">{{ $post->title }}</h1>
-                <div class="flex items-center gap-3 text-sm text-gray-500">
+                <div class="flex items-center gap-3 text-sm text-[var(--color-text-muted)]">
                     <time>{{ $post->published_at->format('F d, Y') }}</time>
                     @if ($post->category)
                         <span>&middot;</span>
@@ -54,7 +54,7 @@
                 <div class="mt-8 pt-4 border-t border-gray-200">
                     <div class="flex flex-wrap gap-1.5">
                         @foreach ($post->tags as $tag)
-                            <a href="{{ route('blog.index', ['tag' => $tag->slug]) }}" class="text-xs border border-gray-300 rounded-full px-2.5 py-0.5 text-gray-500 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
+                            <a href="{{ route('blog.index', ['tag' => $tag->slug]) }}" class="text-xs border border-gray-300 rounded-full px-2.5 py-0.5 text-[var(--color-text-muted)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors">
                                 {{ $tag->name }}
                             </a>
                         @endforeach
@@ -81,7 +81,7 @@
                                         {{ $related->title }}
                                     </a>
                                 </h3>
-                                <time class="text-xs text-gray-400">{{ $related->published_at->format('M d, Y') }}</time>
+                                <time class="text-xs text-[var(--color-text-muted)]">{{ $related->published_at->format('M d, Y') }}</time>
                             </div>
                         </article>
                     @endforeach

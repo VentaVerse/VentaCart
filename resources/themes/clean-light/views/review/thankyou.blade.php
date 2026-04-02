@@ -5,7 +5,7 @@
                 <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             </div>
             <h1 class="text-2xl mb-4" class="font-heading-wide">THANK YOU!</h1>
-            <p class="text-gray-500">Your review has been submitted and is pending approval.</p>
+            <p class="text-[var(--color-text-muted)]">Your review has been submitted and is pending approval.</p>
             <a href="{{ route('home') }}" class="inline-block mt-8 px-6 py-2 text-sm rounded transition-colors"
                 style="font-family: var(--font-heading); letter-spacing: 0.1em; background: var(--color-primary); color: #FFFFFF;">
                 CONTINUE SHOPPING

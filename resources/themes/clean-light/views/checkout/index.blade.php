@@ -82,16 +82,16 @@
                                 </template>
 
                                 <div class="text-sm space-y-0.5 mb-6">
-                                    <p class="text-[#E8E8E8] font-medium" x-text="addr.first_name + ' ' + addr.last_name"></p>
-                                    <p class="text-[#999]" x-text="addr.address_1"></p>
+                                    <p class="text-[var(--color-text-heading)] font-medium" x-text="addr.first_name + ' ' + addr.last_name"></p>
+                                    <p class="text-[var(--color-text-muted)]" x-text="addr.address_1"></p>
                                     <template x-if="addr.barangay">
-                                        <p class="text-[#999]" x-text="addr.barangay"></p>
+                                        <p class="text-[var(--color-text-muted)]" x-text="addr.barangay"></p>
                                     </template>
                                     <template x-if="addr.district">
-                                        <p class="text-[#999]" x-text="addr.district"></p>
+                                        <p class="text-[var(--color-text-muted)]" x-text="addr.district"></p>
                                     </template>
-                                    <p class="text-[#999]" x-text="[addr.city, addr.state, addr.postcode].filter(Boolean).join(', ')"></p>
-                                    <p class="text-[#777]" x-text="({{ $countryNamesJson }})[addr.country_id] || ''"></p>
+                                    <p class="text-[var(--color-text-muted)]" x-text="[addr.city, addr.state, addr.postcode].filter(Boolean).join(', ')"></p>
+                                    <p class="text-[var(--color-text)]" x-text="({{ $countryNamesJson }})[addr.country_id] || ''"></p>
                                 </div>
 
                                 <button class="checkout-card-edit" @click.stop="editAddress(addr)">EDIT</button>
@@ -101,10 +101,10 @@
                         {{-- Add New Address Card --}}
                         <div class="checkout-address-card add-new" @click="openNewAddressForm()">
                             <div class="text-center">
-                                <svg class="w-8 h-8 mx-auto mb-2 text-[#555]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-8 h-8 mx-auto mb-2 text-[var(--color-text)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4"/>
                                 </svg>
-                                <span class="text-sm text-[#555]" class="font-heading-wide">ADD NEW ADDRESS</span>
+                                <span class="text-sm text-[var(--color-text)]" class="font-heading-wide">ADD NEW ADDRESS</span>
                             </div>
                         </div>
                     </div>
@@ -229,7 +229,7 @@
                             <div>
                                 <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
                                 <div class="flex gap-2">
-                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-gray-500" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
+                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
                                     <input type="tel" x-model="newAddr.phone" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                             </div>
@@ -260,7 +260,7 @@
 
                     {{-- Different billing address --}}
                     <div class="mb-6" x-show="!showNewAddressForm">
-                        <label class="flex items-center gap-2 text-sm text-[#777] cursor-pointer">
+                        <label class="flex items-center gap-2 text-sm text-[var(--color-text)] cursor-pointer">
                             <input type="checkbox" x-model="differentBilling" class="accent-[var(--color-primary)]">
                             Use a different billing address
                         </label>
@@ -384,7 +384,7 @@
                             <div>
                                 <label class="account-label">Mobile Number</label>
                                 <div class="flex gap-2">
-                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-gray-500" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
+                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
                                     <input type="tel" x-model="$data.billing.phone" class="account-input flex-1" placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                             </div>
@@ -418,12 +418,12 @@
                                 <input type="radio" :value="method.key" x-model="selectedPayment"
                                        class="mt-0.5 accent-[var(--color-primary)]">
                                 <div class="flex-1">
-                                    <div class="text-sm text-gray-900" x-text="method.name"></div>
-                                    <div class="text-xs text-gray-500 mt-1" x-text="method.description"></div>
+                                    <div class="text-sm text-[var(--color-text-heading)]" x-text="method.name"></div>
+                                    <div class="text-xs text-[var(--color-text-muted)] mt-1" x-text="method.description"></div>
                                     <template x-if="method.image && selectedPayment === method.key">
                                         <div class="mt-3" @click.prevent.stop="qrSrc = method.image; qrName = method.name; qrOpen = true">
                                             <img :src="method.image" alt="QR Code" class="w-48 h-48 rounded-lg border border-gray-200 object-contain bg-white p-2 cursor-pointer hover:ring-2 hover:ring-[var(--color-primary)] transition-all">
-                                            <p class="text-[10px] text-gray-400 mt-1 cursor-pointer">Tap to enlarge</p>
+                                            <p class="text-[10px] text-[var(--color-text-muted)] mt-1 cursor-pointer">Tap to enlarge</p>
                                         </div>
                                     </template>
                                 </div>
@@ -433,7 +433,7 @@
 
                     {{-- Order Notes --}}
                     <div class="mb-8">
-                        <label class="account-label">Order Notes <span class="text-[#555]">(optional)</span></label>
+                        <label class="account-label">Order Notes <span class="text-[var(--color-text)]">(optional)</span></label>
                         <textarea x-model="comment" class="account-input w-full h-24 resize-none" placeholder="Special instructions or notes about your order..."></textarea>
                     </div>
 
@@ -456,7 +456,7 @@
                  ======================== --}}
             <div>
                 <div class="order-summary-box">
-                    <h3 class="text-lg tracking-[0.15em] mb-6 text-[#E8E8E8]" class="font-heading">ORDER SUMMARY</h3>
+                    <h3 class="text-lg tracking-[0.15em] mb-6 text-[var(--color-text-heading)]" class="font-heading">ORDER SUMMARY</h3>
 
                     {{-- Items --}}
                     <div class="checkout-items-scroll space-y-4 mb-4" style="max-height: 360px; overflow-y: auto;">
@@ -473,24 +473,24 @@
                                     </template>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="text-sm text-gray-800 leading-snug truncate" x-text="item.name"></div>
-                                    <div class="text-xs text-gray-400" x-show="item.variant_label" x-text="item.variant_label"></div>
+                                    <div class="text-sm text-[var(--color-text-heading)] leading-snug truncate" x-text="item.name"></div>
+                                    <div class="text-xs text-[var(--color-text-muted)]" x-show="item.variant_label" x-text="item.variant_label"></div>
                                     <div class="flex items-center gap-2 mt-2">
                                         <button type="button" @click="updateItemQty(item, item.quantity - 1)"
-                                            class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-colors">−</button>
+                                            class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-[var(--color-text)] text-sm font-medium transition-colors">−</button>
                                         <input type="number" :value="item.quantity" min="1"
                                             @change="updateItemQty(item, $event.target.value)"
-                                            class="w-12 h-7 text-center text-sm text-gray-800 bg-white border border-gray-300 rounded-md focus:border-blue-500 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                            class="w-12 h-7 text-center text-sm text-[var(--color-text-heading)] bg-white border border-gray-300 rounded-md focus:border-blue-500 focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         <button type="button" @click="updateItemQty(item, item.quantity + 1)"
-                                            class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-medium transition-colors">+</button>
+                                            class="w-7 h-7 flex items-center justify-center rounded-md bg-gray-100 hover:bg-gray-200 text-[var(--color-text)] text-sm font-medium transition-colors">+</button>
                                     </div>
                                 </div>
                                 <div class="flex-shrink-0 text-right">
-                                    <div class="text-sm text-gray-800 font-medium">
+                                    <div class="text-sm text-[var(--color-text-heading)] font-medium">
                                         {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
                                     </div>
                                     <button type="button" @click="removeCheckoutItem(item)"
-                                        class="text-[10px] text-gray-400 hover:text-red-500 mt-1 transition-colors">Remove</button>
+                                        class="text-[10px] text-[var(--color-text-muted)] hover:text-red-500 mt-1 transition-colors">Remove</button>
                                 </div>
                             </div>
                         </template>
@@ -500,15 +500,15 @@
 
                     {{-- Subtotal --}}
                     <div class="flex justify-between text-sm mb-3">
-                        <span class="text-[#888]">Subtotal</span>
-                        <span class="text-[#E8E8E8]" class="font-heading">{{ $currencySymbol }}<span x-text="subtotal.toFixed(2)"></span></span>
+                        <span class="text-[var(--color-text-muted)]">Subtotal</span>
+                        <span class="text-[var(--color-text-heading)]" class="font-heading">{{ $currencySymbol }}<span x-text="subtotal.toFixed(2)"></span></span>
                     </div>
 
                     {{-- Shipping Methods --}}
                     <div class="mb-3">
-                        <span class="text-sm text-[#888] block mb-2">Shipping</span>
+                        <span class="text-sm text-[var(--color-text-muted)] block mb-2">Shipping</span>
                         <template x-if="loadingShipping">
-                            <div class="flex items-center gap-2 py-3 text-sm text-[#888]">
+                            <div class="flex items-center gap-2 py-3 text-sm text-[var(--color-text-muted)]">
                                 <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
                                 Calculating shipping...
                             </div>
@@ -520,12 +520,12 @@
                                         <span class="flex items-center gap-2">
                                             <input type="radio" :value="sm.key" x-model="selectedShipping"
                                                    class="accent-[var(--color-primary)]">
-                                            <span class="text-[#999] group-hover:text-[#C8C8C8] transition-colors" x-text="sm.name"></span>
+                                            <span class="text-[var(--color-text-muted)] group-hover:text-[var(--color-text-muted)] transition-colors" x-text="sm.name"></span>
                                             <template x-if="sm.estimated_days">
-                                                <span class="text-[#666] text-xs" x-text="'~' + sm.estimated_days + ' days'"></span>
+                                                <span class="text-[var(--color-text)] text-xs" x-text="'~' + sm.estimated_days + ' days'"></span>
                                             </template>
                                         </span>
-                                        <span class="text-[#E8E8E8]" class="font-heading">
+                                        <span class="text-[var(--color-text-heading)]" class="font-heading">
                                             <template x-if="sm.cost === 0">
                                                 <span class="text-emerald-400">FREE</span>
                                             </template>
@@ -549,8 +549,8 @@
 
                     {{-- Total --}}
                     <div class="flex justify-between">
-                        <span class="text-[#E8E8E8]" class="font-heading-wide">TOTAL</span>
-                        <span class="text-xl text-[#E8E8E8]" class="font-heading">{{ $currencySymbol }}<span x-text="total.toFixed(2)"></span></span>
+                        <span class="text-[var(--color-text-heading)]" class="font-heading-wide">TOTAL</span>
+                        <span class="text-xl text-[var(--color-text-heading)]" class="font-heading">{{ $currencySymbol }}<span x-text="total.toFixed(2)"></span></span>
                     </div>
                 </div>
             </div>
@@ -687,10 +687,10 @@
         <div x-show="qrOpen" x-transition.opacity class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
              style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);" @click="qrOpen = false" @keydown.escape.window="qrOpen = false" x-cloak>
             <div class="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full" @click.stop>
-                <h3 class="text-center text-sm font-semibold text-gray-900 mb-3" x-text="qrName"></h3>
+                <h3 class="text-center text-sm font-semibold text-[var(--color-text-heading)] mb-3" x-text="qrName"></h3>
                 <img :src="qrSrc" alt="QR Code" class="w-full rounded-lg">
-                <p class="text-center text-xs text-gray-500 mt-3">Scan with your banking app</p>
-                <button @click="qrOpen = false" class="mt-4 w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors">Close</button>
+                <p class="text-center text-xs text-[var(--color-text-muted)] mt-3">Scan with your banking app</p>
+                <button @click="qrOpen = false" class="mt-4 w-full py-2 bg-gray-100 hover:bg-gray-200 text-[var(--color-text)] text-sm font-medium rounded-lg transition-colors">Close</button>
             </div>
         </div>
     </div>

@@ -68,6 +68,7 @@
             --color-text-muted: {{ $theme->get('colors.text_muted', '#999') }};
             --color-card-bg: {{ $theme->get('colors.card_bg', '#1A1A1A') }};
             --color-border: {{ $theme->get('colors.border', '#2A2A2A') }};
+            --color-content-text: {{ $theme->get('colors.content_text', '#B0B0B0') }};
             --color-btn-text: {{ $theme->get('colors.btn_text', '#0D0D0D') }};
             --color-nav-bg: {{ $theme->get('colors.nav_bg', '#111111') }};
             --color-nav-text: {{ $theme->get('colors.nav_text', '#E8E8E8') }};

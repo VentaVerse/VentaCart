@@ -42,11 +42,11 @@
             <nav>
                 <a href="{{ route('home') }}">Home</a>
                 @foreach ($breadcrumbs as $crumb)
-                    <svg class="w-3 h-3 text-[#333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    <svg class="w-3 h-3 text-[var(--color-text-heading)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     <a href="{{ route('category.show', $crumb->slug) }}">{{ $crumb->name }}</a>
                 @endforeach
-                <svg class="w-3 h-3 text-[#333]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                <span class="text-[#999] truncate">{{ $product->name }}</span>
+                <svg class="w-3 h-3 text-[var(--color-text-heading)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                <span class="text-[var(--color-text-muted)] truncate">{{ $product->name }}</span>
             </nav>
         </div>
     </div>
@@ -87,7 +87,7 @@
                         <div class="{{ $thumbPosition === 'bottom' ? 'order-2' : 'order-1 w-16 flex-shrink-0' }} relative" x-data="{ thumbContainer: null }" x-init="thumbContainer = $refs.thumbScroll">
                             @if ($thumbPosition !== 'bottom' && $images->count() > 6)
                                 <button @click="thumbContainer.scrollBy({ top: -200, behavior: 'smooth' })"
-                                    class="absolute -top-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-b from-white to-transparent z-10 text-gray-400 hover:text-gray-700">
+                                    class="absolute -top-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-b from-white to-transparent z-10 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
                                 </button>
                             @endif
@@ -103,7 +103,7 @@
                             </div>
                             @if ($thumbPosition !== 'bottom' && $images->count() > 6)
                                 <button @click="thumbContainer.scrollBy({ top: 200, behavior: 'smooth' })"
-                                    class="absolute -bottom-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-t from-white to-transparent z-10 text-gray-400 hover:text-gray-700">
+                                    class="absolute -bottom-1 left-0 w-full h-6 flex items-center justify-center bg-gradient-to-t from-white to-transparent z-10 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
                                 </button>
                             @endif
@@ -118,7 +118,7 @@
                             </div>
                         @endforeach
                         @if ($images->isEmpty())
-                            <div class="aspect-square flex items-center justify-center text-[#333]">
+                            <div class="aspect-square flex items-center justify-center text-[var(--color-text-heading)]">
                                 <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                             </div>
                         @endif
@@ -142,14 +142,14 @@
                                 @endif
                             @endfor
                         </div>
-                        <a href="#reviews" class="text-sm text-gray-500 hover:text-[var(--color-primary)] transition-colors">({{ $reviewCount }} {{ Str::plural('review', $reviewCount) }})</a>
+                        <a href="#reviews" class="text-sm text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">({{ $reviewCount }} {{ Str::plural('review', $reviewCount) }})</a>
                     </div>
                 @endif
 
                 {{-- Brand --}}
                 @if (($settings['show_brand'] ?? true) && $product->brand)
-                    <p class="text-sm text-[#666] mb-4">
-                        Brand: <a href="{{ route('brand.show', $product->brand) }}" class="text-[#999] hover:text-[var(--color-primary)] transition-colors">{{ $product->brand->name }}</a>
+                    <p class="text-sm text-[var(--color-text)] mb-4">
+                        Brand: <a href="{{ route('brand.show', $product->brand) }}" class="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] transition-colors">{{ $product->brand->name }}</a>
                     </p>
                 @endif
 
@@ -167,7 +167,7 @@
                                 <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
                                     {{ $currencySymbol }}{{ number_format($activeSpecial->price, 2) }}
                                 </span>
-                                <span class="text-lg text-[#555] line-through">
+                                <span class="text-lg text-[var(--color-text)] line-through">
                                     {{ $currencySymbol }}{{ number_format($product->price, 2) }}
                                 </span>
                                 @php $pct = round((1 - $activeSpecial->price / $product->price) * 100); @endphp
@@ -215,7 +215,7 @@
                             <span class="led led-green"></span>
                             <span class="in-stock">In Stock</span>
                             @if ($product->track_stock)
-                                <span class="text-[#555]">({{ $product->quantity }} available)</span>
+                                <span class="text-[var(--color-text)]">({{ $product->quantity }} available)</span>
                             @endif
                         @else
                             <span class="led led-red"></span>
@@ -229,10 +229,10 @@
                 {{-- Variants --}}
                 @if ($product->has_variants && $product->variantTypes->isNotEmpty())
                     <div class="space-y-4 mb-5">
-                        <h3 class="text-sm tracking-[0.15em] text-[#999]" class="font-heading">AVAILABLE OPTIONS</h3>
+                        <h3 class="text-sm tracking-[0.15em] text-[var(--color-text-muted)]" class="font-heading">AVAILABLE OPTIONS</h3>
                         @foreach ($product->variantTypes as $type)
                             <div>
-                                <label class="block text-sm text-[#777] mb-1.5">{{ $type->name }} <span class="text-[var(--color-secondary)]">*</span></label>
+                                <label class="block text-sm text-[var(--color-text)] mb-1.5">{{ $type->name }} <span class="text-[var(--color-secondary)]">*</span></label>
                                 <select class="product-variant-select"
                                         @change="selectValue({{ $type->id }}, $event.target.value)">
                                     <option value="">-- Please Select --</option>
@@ -294,9 +294,9 @@
                 <div x-show="notifyModal" x-cloak class="checkout-modal-overlay" @click.self="notifyModal = false">
                     <div class="checkout-modal" @click.stop>
                         <h2 class="checkout-modal-title">NOTIFY ME WHEN IN STOCK</h2>
-                        <p class="text-sm text-gray-500 mb-4">
+                        <p class="text-sm text-[var(--color-text-muted)] mb-4">
                             We'll email you when
-                            <strong class="text-gray-800" x-text="(hasVariants && activeVariant) ? activeVariant.name : '{{ addslashes($product->name) }}'"></strong>
+                            <strong class="text-[var(--color-text-heading)]" x-text="(hasVariants && activeVariant) ? activeVariant.name : '{{ addslashes($product->name) }}'"></strong>
                             is back in stock.
                         </p>
                         <div class="space-y-4">
@@ -355,7 +355,7 @@
                                     <div class="flex items-start justify-between mb-2">
                                         <div>
                                             <div class="flex items-center gap-2 mb-1">
-                                                <span class="text-sm font-medium text-gray-900">{{ $review->name }}</span>
+                                                <span class="text-sm font-medium text-[var(--color-text-heading)]">{{ $review->name }}</span>
                                             </div>
                                             <div class="star-rating">
                                                 @for ($i = 1; $i <= 5; $i++)
@@ -367,13 +367,13 @@
                                                 @endfor
                                             </div>
                                         </div>
-                                        <span class="text-xs text-gray-400">{{ $review->published_at?->format('M j, Y') }}</span>
+                                        <span class="text-xs text-[var(--color-text-muted)]">{{ $review->published_at?->format('M j, Y') }}</span>
                                     </div>
                                     @if ($review->title)
-                                        <h4 class="text-sm font-semibold text-gray-800 mb-1">{{ $review->title }}</h4>
+                                        <h4 class="text-sm font-semibold text-[var(--color-text-heading)] mb-1">{{ $review->title }}</h4>
                                     @endif
                                     @if ($review->body)
-                                        <p class="text-sm text-gray-600 whitespace-pre-wrap">{{ $review->body }}</p>
+                                        <p class="text-sm text-[var(--color-text)] whitespace-pre-wrap">{{ $review->body }}</p>
                                     @endif
                                     @if ($review->images->isNotEmpty())
                                         <div class="flex gap-2 mt-3">
@@ -408,7 +408,7 @@
                             </div>
                         @endif
                     @else
-                        <p class="text-gray-400 text-sm">No reviews yet.</p>
+                        <p class="text-[var(--color-text-muted)] text-sm">No reviews yet.</p>
                     @endif
                 </div>
             </div>
