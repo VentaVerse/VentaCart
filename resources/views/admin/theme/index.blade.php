@@ -299,6 +299,7 @@
                                     <option value="banner">Banner/Slider</option>
                                     <option value="products">Products Carousel</option>
                                     <option value="brands">Brands Carousel</option>
+                                    <option value="recently_viewed">Recently Viewed</option>
                                     <option value="category_tabs">Category Tabs</option>
                                     <option value="text_block">Text Block</option>
                                     <option value="blog_posts">Blog Posts</option>

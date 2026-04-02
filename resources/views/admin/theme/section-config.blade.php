@@ -33,7 +33,6 @@
                 <option value="new" {{ ($config['filter'] ?? '') === 'new' ? 'selected' : '' }}>New Arrivals</option>
                 <option value="featured" {{ ($config['filter'] ?? '') === 'featured' ? 'selected' : '' }}>Featured</option>
                 <option value="specials" {{ ($config['filter'] ?? '') === 'specials' ? 'selected' : '' }}>On Sale / Specials</option>
-                <option value="recent" {{ ($config['filter'] ?? '') === 'recent' ? 'selected' : '' }}>Recently Viewed</option>
                 <option value="category" {{ ($config['filter'] ?? '') === 'category' ? 'selected' : '' }}>By Category</option>
                 <option value="brand" {{ ($config['filter'] ?? '') === 'brand' ? 'selected' : '' }}>By Brand</option>
                 <option value="best_sellers" {{ ($config['filter'] ?? '') === 'best_sellers' ? 'selected' : '' }}>Best Sellers</option>
@@ -137,5 +136,10 @@
                 <input type="number" name="config[columns_desktop]" value="{{ $config['columns_desktop'] ?? 4 }}" min="3" max="8" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
             </div>
         </div>
+    </div>
+
+@elseif ($section->type === 'recently_viewed')
+    <div>
+        <p class="text-xs text-gray-500">Shows products the visitor has recently browsed. Data comes from the browser — no configuration needed. The section only appears when the visitor has viewed at least one product.</p>
     </div>
 @endif

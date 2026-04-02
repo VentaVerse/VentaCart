@@ -12,7 +12,7 @@ class HomepageSectionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'type' => 'required|in:banner,products,brands,category_tabs,text_block,blog_posts',
+            'type' => 'required|in:banner,products,brands,recently_viewed,category_tabs,text_block,blog_posts',
             'title' => 'required|string|max:255',
         ]);
 
@@ -82,6 +82,7 @@ class HomepageSectionController extends Controller
             'category_tabs' => ['categories' => [], 'limit' => 6, 'columns_mobile' => 2, 'columns_tablet' => 3, 'columns_desktop' => 6],
             'text_block' => ['content' => '', 'alignment' => 'center'],
             'blog_posts' => ['limit' => 4, 'columns_mobile' => 2, 'columns_tablet' => 3, 'columns_desktop' => 4],
+            'recently_viewed' => [],
             default => [],
         };
     }
