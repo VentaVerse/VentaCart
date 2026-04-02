@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Country;
 use App\Models\Zone;
 use Illuminate\Database\Seeder;
 
@@ -9,6 +10,9 @@ class ZoneSeeder extends Seeder
 {
     public function run(): void
     {
+        // Build country_code => country_id lookup
+        $countryIds = Country::pluck('id', 'iso2')->toArray();
+
         $zones = [
             // United States
             ['country_code' => 'US', 'name' => 'Alabama', 'code' => 'AL'],
@@ -163,9 +167,16 @@ class ZoneSeeder extends Seeder
         ];
 
         foreach ($zones as $zone) {
+            $countryId = $countryIds[$zone['country_code']] ?? null;
+            if (!$countryId) continue;
+
             Zone::updateOrCreate(
-                ['country_code' => $zone['country_code'], 'code' => $zone['code']],
-                $zone
+                ['country_id' => $countryId, 'code' => $zone['code']],
+                [
+                    'country_id' => $countryId,
+                    'name' => $zone['name'],
+                    'code' => $zone['code'],
+                ]
             );
         }
     }
