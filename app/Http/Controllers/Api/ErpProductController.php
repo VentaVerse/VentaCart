@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -164,9 +165,19 @@ class ErpProductController extends Controller
             'meta_description' => 'nullable|string|max:500',
             'images' => 'nullable|array|max:20',
             'images.*' => 'required|url|max:2048',
+            'variants' => 'nullable|array',
+            'variants.*.sku' => 'required|string|max:100',
+            'variants.*.name' => 'required|string|max:100',
+            'variants.*.option_name' => 'required|string|max:100',
+            'variants.*.price' => 'required|numeric|min:0',
+            'variants.*.cost' => 'nullable|numeric|min:0',
+            'variants.*.quantity' => 'nullable|integer|min:0',
+            'variants.*.weight' => 'nullable|numeric|min:0',
+            'variants.*.status' => 'nullable|boolean',
         ]);
 
         $storeId = (int) config('app.store_id', 1);
+        $hasVariants = !empty($validated['variants']);
 
         // Resolve brand: brand_id takes priority, then brand_name (find-or-create)
         $brandId = $validated['brand_id'] ?? null;
@@ -187,28 +198,37 @@ class ErpProductController extends Controller
             $slug = $originalSlug . '-' . $counter++;
         }
 
-        $product = Product::create([
-            'store_id' => $storeId,
-            'name' => $validated['name'],
-            'sku' => $validated['sku'],
-            'slug' => $slug,
-            'price' => $validated['price'],
-            'description' => $validated['description'] ?? null,
-            'brand_id' => $brandId,
-            'quantity' => $validated['quantity'] ?? 0,
-            'weight' => $validated['weight'] ?? 0,
-            'length' => $validated['length'] ?? null,
-            'width' => $validated['width'] ?? null,
-            'height' => $validated['height'] ?? null,
-            'cost' => $validated['cost'] ?? 0,
-            'is_active' => $validated['status'] ?? true,
-            'meta_title' => $validated['meta_title'] ?? null,
-            'meta_description' => $validated['meta_description'] ?? null,
-        ]);
+        $product = DB::transaction(function () use ($validated, $storeId, $brandId, $slug, $categoryIds, $hasVariants) {
+            $product = Product::create([
+                'store_id' => $storeId,
+                'name' => $validated['name'],
+                'sku' => $validated['sku'],
+                'slug' => $slug,
+                'price' => $validated['price'],
+                'description' => $validated['description'] ?? null,
+                'brand_id' => $brandId,
+                'quantity' => $validated['quantity'] ?? 0,
+                'weight' => $validated['weight'] ?? 0,
+                'length' => $validated['length'] ?? null,
+                'width' => $validated['width'] ?? null,
+                'height' => $validated['height'] ?? null,
+                'cost' => $validated['cost'] ?? 0,
+                'is_active' => $validated['status'] ?? true,
+                'has_variants' => $hasVariants,
+                'meta_title' => $validated['meta_title'] ?? null,
+                'meta_description' => $validated['meta_description'] ?? null,
+            ]);
 
-        if (!empty($categoryIds)) {
-            $product->categories()->sync($categoryIds);
-        }
+            if (!empty($categoryIds)) {
+                $product->categories()->sync($categoryIds);
+            }
+
+            if ($hasVariants) {
+                $this->syncVariantsFromErp($product, $validated['variants']);
+            }
+
+            return $product;
+        });
 
         // Download and attach images from URLs
         $imageResult = $this->downloadAndAttachImages($product, $validated['images'] ?? []);
@@ -221,10 +241,27 @@ class ErpProductController extends Controller
             'name' => $product->name,
             'slug' => $product->slug,
             'price' => $product->price,
+            'quantity' => $product->quantity,
+            'has_variants' => $product->has_variants,
             'status' => $product->is_active,
             'images' => $imageResult['uploaded'],
             'created_at' => $product->created_at?->toIso8601String(),
         ];
+
+        if ($product->has_variants) {
+            $product->load('variants.values');
+            $data['variants'] = $product->variants->map(function ($v) {
+                return [
+                    'id' => $v->id,
+                    'sku' => $v->sku,
+                    'price' => $v->price,
+                    'cost' => $v->cost,
+                    'quantity' => $v->quantity,
+                    'weight' => $v->weight,
+                    'options' => $v->values->map(fn($val) => $val->value)->implode(' / '),
+                ];
+            });
+        }
 
         if (!empty($imageResult['failed'])) {
             $data['images_failed'] = $imageResult['failed'];
@@ -263,63 +300,89 @@ class ErpProductController extends Controller
             'meta_description' => 'nullable|string|max:500',
             'images' => 'nullable|array|max:20',
             'images.*' => 'required|url|max:2048',
+            'variants' => 'nullable|array',
+            'variants.*.sku' => 'required|string|max:100',
+            'variants.*.name' => 'required|string|max:100',
+            'variants.*.option_name' => 'required|string|max:100',
+            'variants.*.price' => 'required|numeric|min:0',
+            'variants.*.cost' => 'nullable|numeric|min:0',
+            'variants.*.quantity' => 'nullable|integer|min:0',
+            'variants.*.weight' => 'nullable|numeric|min:0',
+            'variants.*.status' => 'nullable|boolean',
         ]);
 
         $storeId = (int) config('app.store_id', 1);
 
-        // Resolve brand_name to brand_id if provided
-        if (!$request->has('brand_id') && !empty($validated['brand_name'])) {
-            $validated['brand_id'] = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
-        }
-
-        $fillable = [];
-        $fieldMap = [
-            'name' => 'name',
-            'sku' => 'sku',
-            'price' => 'price',
-            'description' => 'description',
-            'brand_id' => 'brand_id',
-            'quantity' => 'quantity',
-            'weight' => 'weight',
-            'length' => 'length',
-            'width' => 'width',
-            'height' => 'height',
-            'cost' => 'cost',
-            'meta_title' => 'meta_title',
-            'meta_description' => 'meta_description',
-        ];
-
-        foreach ($fieldMap as $input => $column) {
-            if ($request->has($input) || ($input === 'brand_id' && !empty($validated['brand_name']))) {
-                $fillable[$column] = $validated[$input] ?? null;
+        DB::transaction(function () use ($request, $product, &$validated, $storeId) {
+            // Resolve brand_name to brand_id if provided
+            if (!$request->has('brand_id') && !empty($validated['brand_name'])) {
+                $validated['brand_id'] = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
             }
-        }
 
-        if ($request->has('status')) {
-            $fillable['is_active'] = $validated['status'];
-        }
+            $fillable = [];
+            $fieldMap = [
+                'name' => 'name',
+                'sku' => 'sku',
+                'price' => 'price',
+                'description' => 'description',
+                'brand_id' => 'brand_id',
+                'quantity' => 'quantity',
+                'weight' => 'weight',
+                'length' => 'length',
+                'width' => 'width',
+                'height' => 'height',
+                'cost' => 'cost',
+                'meta_title' => 'meta_title',
+                'meta_description' => 'meta_description',
+            ];
 
-        if (isset($fillable['name']) && !$request->has('slug')) {
-            $slug = Str::slug($fillable['name']);
-            $originalSlug = $slug;
-            $counter = 1;
-            while (Product::where('slug', $slug)->where('id', '!=', $product->id)->exists()) {
-                $slug = $originalSlug . '-' . $counter++;
+            foreach ($fieldMap as $input => $column) {
+                if ($request->has($input) || ($input === 'brand_id' && !empty($validated['brand_name']))) {
+                    $fillable[$column] = $validated[$input] ?? null;
+                }
             }
-            $fillable['slug'] = $slug;
-        }
 
-        $product->update($fillable);
-
-        // Resolve category_names to category_ids if provided
-        if (!$request->has('category_ids') && !empty($validated['category_names'])) {
-            $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
-            if (!empty($categoryIds)) {
-                $product->categories()->sync($categoryIds);
+            if ($request->has('status')) {
+                $fillable['is_active'] = $validated['status'];
             }
-        } elseif ($request->has('category_ids')) {
-            $product->categories()->sync($validated['category_ids'] ?? []);
-        }
+
+            if (isset($fillable['name']) && !$request->has('slug')) {
+                $slug = Str::slug($fillable['name']);
+                $originalSlug = $slug;
+                $counter = 1;
+                while (Product::where('slug', $slug)->where('id', '!=', $product->id)->exists()) {
+                    $slug = $originalSlug . '-' . $counter++;
+                }
+                $fillable['slug'] = $slug;
+            }
+
+            // Handle variants
+            if ($request->has('variants')) {
+                if (!empty($validated['variants'])) {
+                    $fillable['has_variants'] = true;
+                    $product->update($fillable);
+                    $this->syncVariantsFromErp($product, $validated['variants']);
+                } else {
+                    // Empty variants array = remove all variants
+                    $product->variants()->delete();
+                    $product->variantTypes()->delete();
+                    $fillable['has_variants'] = false;
+                    $product->update($fillable);
+                }
+            } else {
+                $product->update($fillable);
+            }
+
+            // Resolve category_names to category_ids if provided
+            if (!$request->has('category_ids') && !empty($validated['category_names'])) {
+                $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
+                if (!empty($categoryIds)) {
+                    $product->categories()->sync($categoryIds);
+                }
+            } elseif ($request->has('category_ids')) {
+                $product->categories()->sync($validated['category_ids'] ?? []);
+            }
+        });
 
         // Download and attach images from URLs (appends to existing)
         $imageResult = $this->downloadAndAttachImages($product, $validated['images'] ?? []);
@@ -333,9 +396,25 @@ class ErpProductController extends Controller
             'slug' => $product->slug,
             'price' => $product->price,
             'quantity' => $product->quantity,
+            'has_variants' => $product->has_variants,
             'status' => $product->is_active,
             'updated_at' => $product->updated_at?->toIso8601String(),
         ];
+
+        if ($product->has_variants) {
+            $product->load('variants.values');
+            $data['variants'] = $product->variants->map(function ($v) {
+                return [
+                    'id' => $v->id,
+                    'sku' => $v->sku,
+                    'price' => $v->price,
+                    'cost' => $v->cost,
+                    'quantity' => $v->quantity,
+                    'weight' => $v->weight,
+                    'options' => $v->values->map(fn($val) => $val->value)->implode(' / '),
+                ];
+            });
+        }
 
         if (!empty($imageResult['uploaded'])) {
             $data['images'] = $imageResult['uploaded'];
@@ -491,6 +570,76 @@ class ErpProductController extends Controller
         }
 
         return $this->logAndRespond($request, $response, 200, $sku);
+    }
+
+    /**
+     * Sync variants from ERP flat format.
+     *
+     * Input: [{sku, name, option_name, price, cost, quantity, weight, status}]
+     *
+     * Groups by option_name to auto-build variant types, creates variants,
+     * attaches values, and syncs product quantity.
+     */
+    private function syncVariantsFromErp(Product $product, array $variants): void
+    {
+        // Delete existing variants and types
+        $product->variants()->delete();
+        $product->variantTypes()->delete();
+
+        // Group by option_name to build variant types
+        // e.g. "Color" => ["Red", "Blue"], "Size" => ["S", "M"]
+        $typeGroups = [];
+        foreach ($variants as $v) {
+            $optionName = $v['option_name'];
+            $value = $v['name'];
+            if (!isset($typeGroups[$optionName])) {
+                $typeGroups[$optionName] = [];
+            }
+            if (!in_array($value, $typeGroups[$optionName])) {
+                $typeGroups[$optionName][] = $value;
+            }
+        }
+
+        // Create variant types and values, build lookup map
+        $valueIdMap = []; // "option_name:value" => variant_type_value.id
+        $sortOrder = 0;
+        foreach ($typeGroups as $typeName => $values) {
+            $variantType = $product->variantTypes()->create([
+                'name' => $typeName,
+                'sort_order' => $sortOrder++,
+            ]);
+
+            foreach ($values as $valueIndex => $valueText) {
+                $typeValue = $variantType->values()->create([
+                    'value' => $valueText,
+                    'sort_order' => $valueIndex,
+                ]);
+                $valueIdMap["{$typeName}:{$valueText}"] = $typeValue->id;
+            }
+        }
+
+        // Create each variant and attach its type values
+        foreach ($variants as $v) {
+            $variant = $product->variants()->create([
+                'sku' => $v['sku'],
+                'price' => $v['price'],
+                'cost' => $v['cost'] ?? null,
+                'quantity' => $v['quantity'] ?? 0,
+                'weight' => $v['weight'] ?? null,
+                'is_active' => $v['status'] ?? true,
+            ]);
+
+            $valueKey = "{$v['option_name']}:{$v['name']}";
+            if (isset($valueIdMap[$valueKey])) {
+                $variant->values()->attach($valueIdMap[$valueKey]);
+            }
+        }
+
+        // Sync product quantity and flag
+        $product->update([
+            'has_variants' => true,
+            'quantity' => $product->variants()->sum('quantity'),
+        ]);
     }
 
     /**
