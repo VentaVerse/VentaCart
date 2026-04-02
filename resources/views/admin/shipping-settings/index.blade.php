@@ -249,10 +249,15 @@
                                             </template>
                                         </div>
 
-                                        {{-- Delete --}}
-                                        <div class="flex justify-start pt-2 border-t border-gray-200">
-                                            <button type="button" onclick="if(confirm('Delete {{ addslashes($wm->name) }} and all its tiers?')) document.getElementById('delete-wm-{{ $wm->id }}').submit()"
+                                        {{-- Actions --}}
+                                        <div class="flex items-center justify-between pt-2 border-t border-gray-200">
+                                            <button type="button" onclick="if(confirm('Delete {{ addslashes($wm->admin_name ?: $wm->name) }} and all its tiers?')) document.getElementById('delete-wm-{{ $wm->id }}').submit()"
                                                 class="text-red-500 hover:text-red-700 text-xs font-medium">Delete Method</button>
+                                            <button type="button" onclick="document.getElementById('duplicate-wm-{{ $wm->id }}').submit()"
+                                                class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-xs font-medium">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2"/></svg>
+                                                Duplicate
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -272,10 +277,13 @@
                     @endif
                 </form>
 
-                {{-- Delete forms (outside the bulk form) --}}
+                {{-- Delete & Duplicate forms (outside the bulk form) --}}
                 @foreach ($weightMethods as $wm)
                     <form id="delete-wm-{{ $wm->id }}" method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" class="hidden">
                         @csrf @method('DELETE')
+                    </form>
+                    <form id="duplicate-wm-{{ $wm->id }}" method="POST" action="{{ route('admin.weight-based-methods.duplicate', $wm) }}" class="hidden">
+                        @csrf
                     </form>
                 @endforeach
             </div>

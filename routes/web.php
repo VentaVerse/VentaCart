@@ -406,6 +406,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::put('weight-based-methods/bulk', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'bulkUpdate'])->name('weight-based-methods.bulk-update');
     Route::get('weight-based-methods/{weightBasedMethod}/edit', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'edit'])->name('weight-based-methods.edit');
     Route::put('weight-based-methods/{weightBasedMethod}', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'update'])->name('weight-based-methods.update');
+    Route::post('weight-based-methods/{weightBasedMethod}/duplicate', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'duplicate'])->name('weight-based-methods.duplicate');
     Route::delete('weight-based-methods/{weightBasedMethod}', [\App\Http\Controllers\Admin\WeightBasedMethodController::class, 'destroy'])->name('weight-based-methods.destroy');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

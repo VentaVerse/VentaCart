@@ -76,6 +76,23 @@ class WeightBasedMethodController extends Controller
             ->with('success', count($methods) . ' method(s) updated.');
     }
 
+    public function duplicate(WeightBasedMethod $weightBasedMethod)
+    {
+        $copy = $weightBasedMethod->replicate();
+        $copy->admin_name = ($weightBasedMethod->admin_name ?: $weightBasedMethod->name) . ' (Copy)';
+        $copy->save();
+
+        $copy->geoZones()->sync($weightBasedMethod->geoZones->pluck('id'));
+        $copy->customerGroups()->sync($weightBasedMethod->customerGroups->pluck('id'));
+
+        foreach ($weightBasedMethod->rates as $rate) {
+            $copy->rates()->create($rate->only(['weight_from', 'weight_to', 'cost']));
+        }
+
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
+            ->with('success', 'Method duplicated as "' . $copy->admin_name . '".');
+    }
+
     public function destroy(WeightBasedMethod $weightBasedMethod)
     {
         $weightBasedMethod->delete();
