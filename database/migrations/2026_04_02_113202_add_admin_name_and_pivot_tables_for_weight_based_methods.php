@@ -57,11 +57,22 @@ return new class extends Migration
         }
 
         // Drop old single FK columns
-        Schema::table('weight_based_methods', function (Blueprint $table) {
-            $table->dropForeign(['geo_zone_id']);
-            $table->dropForeign(['customer_group_id']);
-            $table->dropColumn(['geo_zone_id', 'customer_group_id']);
-        });
+        $prefix = DB::getTablePrefix();
+        foreach (['geo_zone_id', 'customer_group_id'] as $col) {
+            if (Schema::hasColumn('weight_based_methods', $col)) {
+                try {
+                    Schema::table('weight_based_methods', fn (Blueprint $table) => $table->dropForeign([$col]));
+                } catch (\Throwable) {
+                    try {
+                        DB::statement("ALTER TABLE `{$prefix}weight_based_methods` DROP FOREIGN KEY `weight_based_methods_{$col}_foreign`");
+                    } catch (\Throwable) {}
+                }
+            }
+        }
+        $colsToDrop = array_filter(['geo_zone_id', 'customer_group_id'], fn($c) => Schema::hasColumn('weight_based_methods', $c));
+        if (!empty($colsToDrop)) {
+            Schema::table('weight_based_methods', fn (Blueprint $table) => $table->dropColumn($colsToDrop));
+        }
     }
 
     public function down(): void
