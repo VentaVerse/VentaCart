@@ -143,6 +143,16 @@ class ErpProductController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        // Check if SKU exists as a soft-deleted product — restore and update instead
+        $trashed = Product::onlyTrashed()->where('sku', $request->input('sku'))->first();
+        if ($trashed) {
+            $trashed->restore();
+            $response = $this->update($request, $trashed->sku);
+            $data = json_decode($response->getContent(), true);
+            $data['status'] = 'restored';
+            return $this->logAndRespond($request, $data, 200, $trashed->sku);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'sku' => 'required|string|max:100|unique:products,sku',
@@ -570,6 +580,26 @@ class ErpProductController extends Controller
         }
 
         return $this->logAndRespond($request, $response, 200, $sku);
+    }
+
+    public function destroy(Request $request, string $sku): JsonResponse
+    {
+        $product = Product::withTrashed()->where('sku', $sku)->first();
+
+        if (!$product) {
+            return $this->logAndRespond($request, ['error' => 'Product not found'], 404, $sku);
+        }
+
+        DB::transaction(function () use ($product) {
+            $product->variants()->delete();
+            $product->variantTypes()->delete();
+            $product->images()->delete();
+            $product->categories()->detach();
+            $product->tags()->detach();
+            $product->forceDelete();
+        });
+
+        return $this->logAndRespond($request, ['status' => 'deleted', 'sku' => $sku], 200, $sku);
     }
 
     /**

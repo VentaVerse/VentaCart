@@ -18,6 +18,7 @@ Route::prefix('v1')->middleware('erp.auth')->group(function () {
     Route::get('/products/{sku}', [ErpProductController::class, 'show']);
     Route::post('/products', [ErpProductController::class, 'store']);
     Route::put('/products/{sku}', [ErpProductController::class, 'update']);
+    Route::delete('/products/{sku}', [ErpProductController::class, 'destroy']);
     Route::put('/products/{sku}/qty', [ErpProductController::class, 'updateQuantity']);
     Route::post('/products/{sku}/images', [ErpProductController::class, 'uploadImages']);
 
