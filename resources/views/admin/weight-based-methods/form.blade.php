@@ -13,12 +13,20 @@
         <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
             {{-- Left --}}
             <div class="space-y-6">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
                     <div>
-                        <label for="name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Method Name</label>
+                        <label for="admin_name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin Reference Name</label>
+                        <input type="text" name="admin_name" id="admin_name" value="{{ old('admin_name', $method?->admin_name) }}"
+                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            placeholder="e.g. WB - Metro Manila Default, WB - Provincial Resellers">
+                        <p class="text-[11px] text-gray-400 mt-1">Internal label for admin — not shown to customers. Leave blank to copy from Method Name.</p>
+                        @error('admin_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label for="name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Method Name <span class="text-red-400">*</span></label>
                         <input type="text" name="name" id="name" required value="{{ old('name', $method?->name) }}"
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="e.g. Metro Manila Standard, Provincial Courier">
+                            placeholder="e.g. Standard Shipping, Express Courier">
                         <p class="text-[11px] text-gray-400 mt-1">This name appears in checkout exactly as you type it</p>
                         @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
@@ -81,27 +89,41 @@
             {{-- Right --}}
             <div class="space-y-6">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Conditions</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="geo_zone_id" class="block text-sm text-gray-700 mb-1">Geo Zone</label>
-                            <select name="geo_zone_id" id="geo_zone_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All zones</option>
-                                @foreach ($geoZones as $zone)
-                                    <option value="{{ $zone->id }}" {{ old('geo_zone_id', $method?->geo_zone_id) == $zone->id ? 'selected' : '' }}>{{ $zone->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label for="customer_group_id" class="block text-sm text-gray-700 mb-1">Customer Group</label>
-                            <select name="customer_group_id" id="customer_group_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All customers</option>
-                                @foreach ($customerGroups as $group)
-                                    <option value="{{ $group->id }}" {{ old('customer_group_id', $method?->customer_group_id) == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Geo Zones</h3>
+                    <p class="text-[11px] text-gray-400 mb-3">Select which geo zones this method applies to. Leave all unchecked for all zones.</p>
+                    @php $selectedGeoZones = old('geo_zone_ids', $method?->geoZones?->pluck('id')->toArray() ?? []); @endphp
+                    <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                        @foreach ($geoZones as $zone)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
+                                <input type="checkbox" name="geo_zone_ids[]" value="{{ $zone->id }}"
+                                    {{ in_array($zone->id, $selectedGeoZones) ? 'checked' : '' }}
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ $zone->name }}
+                            </label>
+                        @endforeach
                     </div>
+                    @if ($geoZones->isEmpty())
+                        <p class="text-xs text-gray-400">No geo zones configured.</p>
+                    @endif
+                </div>
+
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
+                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Customer Groups</h3>
+                    <p class="text-[11px] text-gray-400 mb-3">Restrict to specific customer groups. Leave all unchecked for all customers.</p>
+                    @php $selectedGroups = old('customer_group_ids', $method?->customerGroups?->pluck('id')->toArray() ?? []); @endphp
+                    <div class="space-y-1.5 max-h-48 overflow-y-auto">
+                        @foreach ($customerGroups as $group)
+                            <label class="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
+                                <input type="checkbox" name="customer_group_ids[]" value="{{ $group->id }}"
+                                    {{ in_array($group->id, $selectedGroups) ? 'checked' : '' }}
+                                    class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                {{ $group->name }}
+                            </label>
+                        @endforeach
+                    </div>
+                    @if ($customerGroups->isEmpty())
+                        <p class="text-xs text-gray-400">No customer groups configured.</p>
+                    @endif
                 </div>
 
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">

@@ -23,6 +23,8 @@ class WeightBasedMethodController extends Controller
     {
         $validated = $this->validateMethod($request);
         $method = WeightBasedMethod::create($validated);
+        $method->geoZones()->sync($request->input('geo_zone_ids', []));
+        $method->customerGroups()->sync($request->input('customer_group_ids', []));
         $this->syncRates($method, $request->input('rates', []));
 
         return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
@@ -32,7 +34,7 @@ class WeightBasedMethodController extends Controller
     public function edit(WeightBasedMethod $weightBasedMethod)
     {
         return view('admin.weight-based-methods.form', [
-            'method' => $weightBasedMethod->load('rates'),
+            'method' => $weightBasedMethod->load(['rates', 'geoZones', 'customerGroups']),
             'geoZones' => GeoZone::where('is_active', true)->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
         ]);
@@ -42,6 +44,8 @@ class WeightBasedMethodController extends Controller
     {
         $validated = $this->validateMethod($request);
         $weightBasedMethod->update($validated);
+        $weightBasedMethod->geoZones()->sync($request->input('geo_zone_ids', []));
+        $weightBasedMethod->customerGroups()->sync($request->input('customer_group_ids', []));
         $this->syncRates($weightBasedMethod, $request->input('rates', []));
 
         return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
@@ -58,12 +62,13 @@ class WeightBasedMethodController extends Controller
 
             $method->update([
                 'name' => $data['name'] ?? $method->name,
-                'geo_zone_id' => !empty($data['geo_zone_id']) ? $data['geo_zone_id'] : null,
-                'customer_group_id' => !empty($data['customer_group_id']) ? $data['customer_group_id'] : null,
+                'admin_name' => $data['admin_name'] ?? $method->admin_name,
                 'is_active' => isset($data['is_active']),
                 'sort_order' => $data['sort_order'] ?? 0,
             ]);
 
+            $method->geoZones()->sync($data['geo_zone_ids'] ?? []);
+            $method->customerGroups()->sync($data['customer_group_ids'] ?? []);
             $this->syncRates($method, $data['rates'] ?? []);
         }
 
@@ -83,16 +88,21 @@ class WeightBasedMethodController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'geo_zone_id' => ['nullable', 'exists:geo_zones,id'],
-            'customer_group_id' => ['nullable', 'exists:customer_groups,id'],
+            'admin_name' => ['nullable', 'string', 'max:255'],
+            'geo_zone_ids' => ['nullable', 'array'],
+            'geo_zone_ids.*' => ['exists:geo_zones,id'],
+            'customer_group_ids' => ['nullable', 'array'],
+            'customer_group_ids.*' => ['exists:customer_groups,id'],
             'is_active' => ['nullable'],
             'sort_order' => ['nullable', 'integer'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active', true);
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $validated['geo_zone_id'] = $validated['geo_zone_id'] ?: null;
-        $validated['customer_group_id'] = $validated['customer_group_id'] ?: null;
+        $validated['admin_name'] = $validated['admin_name'] ?: $validated['name'];
+
+        // Remove pivot fields from fillable data
+        unset($validated['geo_zone_ids'], $validated['customer_group_ids']);
 
         return $validated;
     }

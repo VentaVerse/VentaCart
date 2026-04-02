@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WeightBasedMethod extends Model
 {
     protected $fillable = [
-        'name', 'geo_zone_id', 'customer_group_id', 'is_active', 'sort_order',
+        'name', 'admin_name', 'is_active', 'sort_order',
     ];
 
     protected function casts(): array
@@ -22,14 +22,14 @@ class WeightBasedMethod extends Model
         return $query->where('is_active', true)->orderBy('sort_order');
     }
 
-    public function geoZone(): BelongsTo
+    public function geoZones(): BelongsToMany
     {
-        return $this->belongsTo(GeoZone::class);
+        return $this->belongsToMany(GeoZone::class, 'weight_based_method_geo_zone');
     }
 
-    public function customerGroup(): BelongsTo
+    public function customerGroups(): BelongsToMany
     {
-        return $this->belongsTo(CustomerGroup::class);
+        return $this->belongsToMany(CustomerGroup::class, 'weight_based_method_customer_group');
     }
 
     public function rates(): HasMany

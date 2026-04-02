@@ -134,9 +134,9 @@
                                 <div class="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors" @click="open = !open">
                                     <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0" :class="open && 'rotate-90'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
                                     <span class="w-2 h-2 rounded-full shrink-0 {{ $wm->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                                    <span class="text-sm font-medium text-gray-900 flex-1">{{ $wm->name }}</span>
-                                    <span class="text-xs text-gray-400">{{ $wm->geoZone?->name ?? 'All zones' }}</span>
-                                    <span class="text-xs text-gray-400">{{ $wm->customerGroup?->name ?? 'All groups' }}</span>
+                                    <span class="text-sm font-medium text-gray-900 flex-1">{{ $wm->admin_name ?: $wm->name }}</span>
+                                    <span class="text-xs text-gray-400">{{ $wm->geoZones->isNotEmpty() ? $wm->geoZones->pluck('name')->implode(', ') : 'All zones' }}</span>
+                                    <span class="text-xs text-gray-400">{{ $wm->customerGroups->isNotEmpty() ? $wm->customerGroups->pluck('name')->implode(', ') : 'All groups' }}</span>
                                     <span class="text-xs text-gray-400">{{ $wm->rates_count }} {{ Str::plural('tier', $wm->rates_count) }}</span>
                                 </div>
 
@@ -145,26 +145,12 @@
                                     <div class="pt-4 space-y-4">
                                         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                                             <div>
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Admin Name</label>
+                                                <input type="text" name="methods[{{ $wm->id }}][admin_name]" value="{{ $wm->admin_name }}" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Internal reference">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Checkout Name</label>
                                                 <input type="text" name="methods[{{ $wm->id }}][name]" value="{{ $wm->name }}" required class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Geo Zone</label>
-                                                <select name="methods[{{ $wm->id }}][geo_zone_id]" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
-                                                    <option value="">All zones</option>
-                                                    @foreach ($geoZones as $zone)
-                                                        <option value="{{ $zone->id }}" {{ $wm->geo_zone_id == $zone->id ? 'selected' : '' }}>{{ $zone->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Customer Group</label>
-                                                <select name="methods[{{ $wm->id }}][customer_group_id]" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
-                                                    <option value="">All customers</option>
-                                                    @foreach ($customerGroups as $group)
-                                                        <option value="{{ $group->id }}" {{ $wm->customer_group_id == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
-                                                    @endforeach
-                                                </select>
                                             </div>
                                             <div class="flex items-end gap-3">
                                                 <label class="flex items-center gap-2 text-sm pb-1.5">
@@ -175,6 +161,43 @@
                                                     <label class="text-xs text-gray-500">Sort</label>
                                                     <input type="number" name="methods[{{ $wm->id }}][sort_order]" value="{{ $wm->sort_order }}" class="w-14 rounded-md border-gray-300 text-sm py-1 text-center focus:border-indigo-500 focus:ring-indigo-500">
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Geo Zones</label>
+                                                <div class="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
+                                                    @foreach ($geoZones as $zone)
+                                                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                                            <input type="checkbox" name="methods[{{ $wm->id }}][geo_zone_ids][]" value="{{ $zone->id }}"
+                                                                {{ $wm->geoZones->contains('id', $zone->id) ? 'checked' : '' }}
+                                                                class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
+                                                            {{ $zone->name }}
+                                                        </label>
+                                                    @endforeach
+                                                    @if ($geoZones->isEmpty())
+                                                        <p class="text-xs text-gray-400">No geo zones</p>
+                                                    @endif
+                                                </div>
+                                                <p class="text-[10px] text-gray-400 mt-1">None = all zones</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-gray-600 mb-1">Customer Groups</label>
+                                                <div class="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
+                                                    @foreach ($customerGroups as $group)
+                                                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                                                            <input type="checkbox" name="methods[{{ $wm->id }}][customer_group_ids][]" value="{{ $group->id }}"
+                                                                {{ $wm->customerGroups->contains('id', $group->id) ? 'checked' : '' }}
+                                                                class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
+                                                            {{ $group->name }}
+                                                        </label>
+                                                    @endforeach
+                                                    @if ($customerGroups->isEmpty())
+                                                        <p class="text-xs text-gray-400">No groups</p>
+                                                    @endif
+                                                </div>
+                                                <p class="text-[10px] text-gray-400 mt-1">None = all customers</p>
                                             </div>
                                         </div>
 

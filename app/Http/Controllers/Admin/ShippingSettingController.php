@@ -40,7 +40,7 @@ class ShippingSettingController extends Controller
         }
 
         $flatRates = FlatShippingRate::with('geoZone', 'customerGroup')->orderBy('sort_order')->get();
-        $weightMethods = WeightBasedMethod::with('geoZone', 'customerGroup', 'rates')->withCount('rates')->orderBy('sort_order')->get();
+        $weightMethods = WeightBasedMethod::with('geoZones', 'customerGroups', 'rates')->withCount('rates')->orderBy('sort_order')->get();
         $geoZones = \App\Models\GeoZone::where('is_active', true)->orderBy('name')->get();
         $customerGroups = \App\Models\CustomerGroup::orderBy('name')->get();
 

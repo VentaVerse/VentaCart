@@ -29,19 +29,28 @@ class WeightBasedShippingProvider implements ShippingProviderInterface
     public function getRates(array $address, array $dimensions, float $weight, float $subtotal): array
     {
         try {
-            $methods = WeightBasedMethod::active()->with('rates')->get();
+            $methods = WeightBasedMethod::active()->with(['rates', 'geoZones', 'customerGroups'])->get();
             $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
             $quotes = [];
 
             foreach ($methods as $method) {
-                // Customer group check
-                if ($method->customer_group_id && $method->customer_group_id !== $customerGroupId) {
-                    continue;
+                // Customer group check: if groups are assigned, customer must be in one of them
+                if ($method->customerGroups->isNotEmpty()) {
+                    if (!$customerGroupId || !$method->customerGroups->contains('id', $customerGroupId)) {
+                        continue;
+                    }
                 }
 
-                // Geo zone check
-                if ($method->geo_zone_id) {
-                    if (!GeoZoneResolver::matchesGeoZone($address, $method->geo_zone_id)) {
+                // Geo zone check: if zones are assigned, address must match at least one
+                if ($method->geoZones->isNotEmpty()) {
+                    $matchesAny = false;
+                    foreach ($method->geoZones as $geoZone) {
+                        if (GeoZoneResolver::matchesGeoZone($address, $geoZone->id)) {
+                            $matchesAny = true;
+                            break;
+                        }
+                    }
+                    if (!$matchesAny) {
                         continue;
                     }
                 }
