@@ -12,11 +12,20 @@
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #1a1a1a; border-radius: 8px; overflow: hidden;">
 
                     {{-- Header --}}
+                    @php
+                        $storeNameSetting = \App\Models\Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name', 'Venta');
+                        $storeLogo = \App\Models\Setting::where('group', 'identity')->where('key', 'logo')->value('value');
+                        $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#BE3144';
+                    @endphp
                     <tr>
-                        <td style="background-color: #1a1a1a; border-bottom: 2px solid #F5A623; padding: 32px 40px; text-align: center;">
-                            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">
-                                <span style="color: #F5A623;">New</span><span style="color: #ffffff;">Gear</span><span style="color: #F5A623;">Day</span>
-                            </h1>
+                        <td style="background-color: #1a1a1a; border-bottom: 2px solid {{ $primaryColor }}; padding: 32px 40px; text-align: center;">
+                            @if ($storeLogo)
+                                <img src="{{ url('/storage/' . $storeLogo) }}" alt="{{ $storeNameSetting }}" style="max-height: 48px; max-width: 240px; margin-bottom: 8px;">
+                            @else
+                                <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700; letter-spacing: 1px; color: #ffffff;">
+                                    {{ $storeNameSetting }}
+                                </h1>
+                            @endif
                             <p style="margin: 0; font-size: 16px; color: #bbbbbb; text-transform: uppercase; letter-spacing: 2px;">
                                 Back In Stock
                             </p>
@@ -37,8 +46,8 @@
                         <td style="padding: 0 40px 32px 40px;" align="center">
                             <table role="presentation" cellpadding="0" cellspacing="0">
                                 <tr>
-                                    <td style="background-color: #F5A623; border-radius: 6px;">
-                                        <a href="{{ $productUrl }}" target="_blank" style="display: inline-block; padding: 14px 40px; font-size: 16px; font-weight: 700; color: #0D0D0D; text-decoration: none; text-transform: uppercase; letter-spacing: 1px;">
+                                    <td style="background-color: {{ $primaryColor }}; border-radius: 6px;">
+                                        <a href="{{ $productUrl }}" target="_blank" style="display: inline-block; padding: 14px 40px; font-size: 16px; font-weight: 700; color: #ffffff; text-decoration: none; text-transform: uppercase; letter-spacing: 1px;">
                                             SHOP NOW
                                         </a>
                                     </td>

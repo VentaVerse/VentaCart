@@ -1,0 +1,45 @@
+{
+    "name": "Crimson Dusk",
+    "version": "1.0",
+    "author": "Venta",
+    "description": "Deep midnight navy with warm crimson and coral accents — sophisticated and dramatic",
+    "thumbnail": "preview.png",
+    "colors": {
+        "primary": "#BE3144",
+        "secondary": "#E17564",
+        "bg": "#09122C",
+        "text": "#C4C9D4",
+        "text_heading": "#F0F2F7",
+        "text_muted": "#7A8299",
+        "card_bg": "#0E1835",
+        "border": "#1A2548",
+        "btn_text": "#FFFFFF",
+        "nav_bg": "#070E22",
+        "nav_text": "#D4D8E2",
+        "footer_bg": "#050B1C",
+        "footer_text": "#8891A8",
+        "announcement_bg": "#E17564",
+        "announcement_text": "#09122C"
+    },
+    "fonts": {
+        "url": "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap"
+    },
+    "settings": {
+        "glow_intensity": {
+            "type": "select",
+            "label": "Glow Intensity",
+            "options": ["low", "medium", "high"],
+            "default": "medium"
+        },
+        "noise_texture": {
+            "type": "toggle",
+            "label": "Noise Texture Overlay",
+            "default": false
+        },
+        "scroll_reveal": {
+            "type": "toggle",
+            "label": "Scroll Reveal Animations",
+            "default": true
+        }
+    }
+}

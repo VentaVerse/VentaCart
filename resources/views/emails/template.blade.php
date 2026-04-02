@@ -12,11 +12,20 @@
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #1a1a1a; border-radius: 8px; overflow: hidden;">
 
                     {{-- Header --}}
+                    @php
+                        $storeName = \App\Models\Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name', 'Venta');
+                        $storeLogo = \App\Models\Setting::where('group', 'identity')->where('key', 'logo')->value('value');
+                        $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#BE3144';
+                    @endphp
                     <tr>
-                        <td style="background-color: #1a1a1a; border-bottom: 2px solid #F5A623; padding: 32px 40px; text-align: center;">
-                            <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">
-                                <span style="color: #F5A623;">New</span><span style="color: #ffffff;">Gear</span><span style="color: #F5A623;">Day</span>
-                            </h1>
+                        <td style="background-color: #1a1a1a; border-bottom: 2px solid {{ $primaryColor }}; padding: 32px 40px; text-align: center;">
+                            @if ($storeLogo)
+                                <img src="{{ url('/storage/' . $storeLogo) }}" alt="{{ $storeName }}" style="max-height: 48px; max-width: 240px;">
+                            @else
+                                <h1 style="margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 1px; color: #ffffff;">
+                                    {{ $storeName }}
+                                </h1>
+                            @endif
                         </td>
                     </tr>
 
@@ -34,7 +43,7 @@
                                 If you have any questions, please reply to this email or contact our support team.
                             </p>
                             <p style="margin: 0; font-size: 12px; color: #555555;">
-                                &copy; {{ date('Y') }} NewGearDay. All rights reserved.
+                                &copy; {{ date('Y') }} {{ $storeName }}. All rights reserved.
                             </p>
                         </td>
                     </tr>

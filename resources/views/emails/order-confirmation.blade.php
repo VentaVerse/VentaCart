@@ -12,11 +12,20 @@
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #1a1a1a; border-radius: 8px; overflow: hidden;">
 
                     {{-- Header --}}
+                    @php
+                        $storeName = \App\Models\Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name', 'Venta');
+                        $storeLogo = \App\Models\Setting::where('group', 'identity')->where('key', 'logo')->value('value');
+                        $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#BE3144';
+                    @endphp
                     <tr>
-                        <td style="background-color: #1a1a1a; border-bottom: 2px solid #F5A623; padding: 32px 40px; text-align: center;">
-                            <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700; letter-spacing: 1px;">
-                                <span style="color: #F5A623;">New</span><span style="color: #ffffff;">Gear</span><span style="color: #F5A623;">Day</span>
-                            </h1>
+                        <td style="background-color: #1a1a1a; border-bottom: 2px solid {{ $primaryColor }}; padding: 32px 40px; text-align: center;">
+                            @if ($storeLogo)
+                                <img src="{{ url('/storage/' . $storeLogo) }}" alt="{{ $storeName }}" style="max-height: 48px; max-width: 240px; margin-bottom: 8px;">
+                            @else
+                                <h1 style="margin: 0 0 8px 0; font-size: 28px; font-weight: 700; letter-spacing: 1px; color: #ffffff;">
+                                    {{ $storeName }}
+                                </h1>
+                            @endif
                             <p style="margin: 0; font-size: 16px; color: #bbbbbb; text-transform: uppercase; letter-spacing: 2px;">
                                 Order Confirmation
                             </p>
@@ -29,7 +38,7 @@
                             <p style="margin: 0 0 4px 0; font-size: 14px; color: #999999;">
                                 Order Number
                             </p>
-                            <p style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #F5A623;">
+                            <p style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: {{ $primaryColor }};">
                                 #{{ $order->id }}
                             </p>
                             <p style="margin: 0; font-size: 14px; color: #999999;">
@@ -115,10 +124,10 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 12px 12px 8px 12px; font-size: 18px; font-weight: 700; color: #F5A623; text-align: right; border-top: 2px solid #333333;">
+                                    <td style="padding: 12px 12px 8px 12px; font-size: 18px; font-weight: 700; color: {{ $primaryColor }}; text-align: right; border-top: 2px solid #333333;">
                                         Total
                                     </td>
-                                    <td style="padding: 12px 12px 8px 12px; font-size: 18px; font-weight: 700; color: #F5A623; text-align: right; width: 100px; border-top: 2px solid #333333;">
+                                    <td style="padding: 12px 12px 8px 12px; font-size: 18px; font-weight: 700; color: {{ $primaryColor }}; text-align: right; width: 100px; border-top: 2px solid #333333;">
                                         {{ number_format($order->total, 2) }}
                                     </td>
                                 </tr>
@@ -185,10 +194,10 @@
                     @if ($bankInstructions)
                     <tr>
                         <td style="padding: 0 40px 16px 40px;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #2a2211; border: 1px solid #F5A623; border-radius: 6px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #2a2211; border: 1px solid {{ $primaryColor }}; border-radius: 6px;">
                                 <tr>
                                     <td style="padding: 20px 24px;">
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #F5A623; text-transform: uppercase; letter-spacing: 1px;">
+                                        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: {{ $primaryColor }}; text-transform: uppercase; letter-spacing: 1px;">
                                             Bank Transfer Instructions
                                         </p>
                                         <div style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">
@@ -204,7 +213,7 @@
                     {{-- Footer --}}
                     <tr>
                         <td style="padding: 24px 40px 32px 40px; border-top: 1px solid #333333; text-align: center;">
-                            <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: #F5A623;">
+                            <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700; color: {{ $primaryColor }};">
                                 Thank you for your order!
                             </p>
                             <p style="margin: 0; font-size: 13px; color: #777777;">
