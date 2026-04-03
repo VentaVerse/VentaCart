@@ -37,42 +37,83 @@
                 <form method="POST" action="{{ route('admin.theme.settings.update') }}">
                     @csrf
                     <input type="hidden" name="group" value="colors">
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl">
-                        @php
-                            $colorFields = [
+
+                    @php
+                        $colorGroups = [
+                            'Storefront' => [
                                 'primary' => 'Buttons & Links',
                                 'secondary' => 'Sale Badges & Accents',
                                 'btn_text' => 'Text on Buttons',
                                 'price' => 'Product Prices',
+                            ],
+                            'Product Cards' => [
+                                'badge_new' => '"New" Badge',
+                                'badge_hot' => '"Hot" Badge',
+                                'badge_free_shipping' => '"Free Shipping" Badge',
+                                'star_rating' => 'Star Ratings',
+                                'sale_price' => 'Sale Price',
+                                'card_hover' => 'Card Hover Effect',
+                            ],
+                            'Page' => [
                                 'bg' => 'Page Background',
                                 'card_bg' => 'Product Card Background',
                                 'border' => 'Lines & Dividers',
+                                'input_bg' => 'Form Field Background',
+                                'input_border' => 'Form Field Borders',
+                                'breadcrumb_bg' => 'Breadcrumb Bar',
+                                'dropdown_bg' => 'Dropdown & Popup Background',
+                                'sidebar_bg' => 'Sidebar Background',
+                                'success' => 'Success / In Stock',
+                                'error' => 'Error / Out of Stock',
+                            ],
+                            'Checkout' => [
+                                'checkout_option_bg' => 'Payment & Shipping Cards',
+                                'review_bg' => 'Review Cards',
+                            ],
+                            'Text' => [
                                 'text' => 'Paragraph Text',
                                 'text_heading' => 'Titles & Headings',
                                 'text_muted' => 'Hints & Small Descriptions',
                                 'content_text' => 'Product Description Text',
-                                'nav_bg' => 'Top Bar Background',
-                                'nav_text' => 'Top Bar Text',
-                                'footer_bg' => 'Footer Background',
-                                'footer_text' => 'Footer Links & Text',
-                                'footer_heading' => 'Footer Section Titles',
-                                'announcement_bg' => 'Announcement Bar Background',
-                                'announcement_text' => 'Announcement Bar Text',
-                            ];
-                        @endphp
-                        @foreach ($colorFields as $key => $label)
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">{{ $label }}</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="color" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="h-10 w-14 rounded border border-gray-300 cursor-pointer"
-                                        oninput="this.nextElementSibling.value = this.value">
-                                    <input type="text" name="settings[{{ $key }}]" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="w-24 text-xs font-mono border-gray-300 rounded"
-                                        oninput="this.previousElementSibling.value = this.value"
-                                        placeholder="#000000">
+                            ],
+                            'Header' => [
+                                'nav_bg' => 'Background',
+                                'nav_text' => 'Cart, Menu & Account Text',
+                                'search_bg' => 'Search Bar',
+                                'announcement_bg' => 'Announcement Background',
+                                'announcement_text' => 'Announcement Text',
+                                'logo_text' => 'Logo / Store Name',
+                            ],
+                            'Footer' => [
+                                'footer_bg' => 'Background',
+                                'footer_text' => 'Links & Text',
+                                'footer_heading' => 'Section Titles',
+                            ],
+                        ];
+                    @endphp
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        @foreach ($colorGroups as $groupLabel => $fields)
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">{{ $groupLabel }}</h4>
+                                <div class="space-y-3">
+                                    @foreach ($fields as $key => $label)
+                                        <div class="flex items-center justify-between gap-3">
+                                            <label class="text-sm text-gray-700 min-w-0">{{ $label }}</label>
+                                            <div class="flex items-center gap-1.5 shrink-0">
+                                                <input type="color" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="h-8 w-10 rounded border border-gray-300 cursor-pointer"
+                                                    oninput="this.nextElementSibling.value = this.value">
+                                                <input type="text" name="settings[{{ $key }}]" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="w-20 text-xs font-mono border-gray-300 rounded py-1"
+                                                    oninput="this.previousElementSibling.value = this.value"
+                                                    placeholder="#000000">
+                                            </div>
+                                        </div>
+                                    @endforeach
                                 </div>
                             </div>
                         @endforeach
                     </div>
+
                     <div class="mt-6 flex items-center justify-between">
                         <button type="button" onclick="if(confirm('Revert all colors and fonts to theme defaults?')) document.getElementById('revert-colors-form').submit()"
                             class="text-xs text-gray-500 hover:text-red-600 font-medium">Revert to Default</button>
@@ -85,31 +126,95 @@
             </div>
 
             {{-- ==================== FONTS ==================== --}}
-            <div x-show="activeTab === 'fonts'" class="p-6">
+            <div x-show="activeTab === 'fonts'" class="p-6" x-data="{
+                headingFont: '{{ $settings['fonts']['heading'] ?? 'Oswald' }}',
+                bodyFont: '{{ $settings['fonts']['body'] ?? 'Roboto' }}',
+                loadPreviewFont(font) {
+                    if (!document.querySelector('link[data-font=\'' + font + '\']')) {
+                        const link = document.createElement('link');
+                        link.rel = 'stylesheet';
+                        link.dataset.font = font;
+                        link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(font) + ':wght@400;600;700&display=swap';
+                        document.head.appendChild(link);
+                    }
+                }
+            }">
                 <form method="POST" action="{{ route('admin.theme.settings.update') }}">
                     @csrf
                     <input type="hidden" name="group" value="fonts">
-                    <div class="space-y-4 max-w-md">
-                        @php
-                            $fontOptions = ['Bebas Neue','Bitter','Cormorant Garamond','DM Sans','DM Serif Display','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Lato','Libre Baskerville','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Source Sans 3','Space Grotesk','Space Mono','Ubuntu','Work Sans'];
-                        @endphp
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Heading Font</label>
-                            <select name="settings[heading]" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                @foreach ($fontOptions as $font)
-                                    <option value="{{ $font }}" {{ ($settings['fonts']['heading'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
+                    @php
+                        $fontOptions = ['Barlow','Bebas Neue','Bitter','Cormorant Garamond','DM Sans','DM Serif Display','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Lato','Libre Baskerville','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Source Sans 3','Space Grotesk','Space Mono','Ubuntu','Work Sans'];
+                    @endphp
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {{-- Font Selection --}}
+                        <div class="space-y-6">
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Font Family</h4>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Heading Font</label>
+                                <select name="settings[heading]" x-model="headingFont" @change="loadPreviewFont(headingFont)"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    @foreach ($fontOptions as $font)
+                                        <option value="{{ $font }}" {{ ($settings['fonts']['heading'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Body Font</label>
+                                <select name="settings[body]" x-model="bodyFont" @change="loadPreviewFont(bodyFont)"
+                                    class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                    @foreach ($fontOptions as $font)
+                                        <option value="{{ $font }}" {{ ($settings['fonts']['body'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider pt-4">Font Sizes</h4>
+                            @php
+                                $sizeFields = [
+                                    'size_logo' => ['label' => 'Logo / Store Name', 'default' => '32', 'min' => 18, 'max' => 60],
+                                    'size_section_title' => ['label' => 'Section Titles', 'default' => '24', 'min' => 16, 'max' => 48],
+                                    'size_product_name' => ['label' => 'Product Name (card)', 'default' => '14', 'min' => 11, 'max' => 20],
+                                    'size_price' => ['label' => 'Product Price', 'default' => '16', 'min' => 12, 'max' => 24],
+                                    'size_body' => ['label' => 'Body Text', 'default' => '14', 'min' => 12, 'max' => 20],
+                                    'size_nav' => ['label' => 'Navigation Menu', 'default' => '14', 'min' => 11, 'max' => 20],
+                                ];
+                            @endphp
+                            <div class="space-y-3">
+                                @foreach ($sizeFields as $key => $cfg)
+                                    <div class="flex items-center justify-between gap-3">
+                                        <label class="text-sm text-gray-700">{{ $cfg['label'] }}</label>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <input type="number" name="settings[{{ $key }}]"
+                                                value="{{ $settings['fonts'][$key] ?? $cfg['default'] }}"
+                                                min="{{ $cfg['min'] }}" max="{{ $cfg['max'] }}"
+                                                class="w-16 text-center text-sm border-gray-300 rounded-md py-1">
+                                            <span class="text-xs text-gray-400">px</span>
+                                        </div>
+                                    </div>
                                 @endforeach
-                            </select>
+                            </div>
                         </div>
+
+                        {{-- Live Preview --}}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Body Font</label>
-                            <select name="settings[body]" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                @foreach ($fontOptions as $font)
-                                    <option value="{{ $font }}" {{ ($settings['fonts']['body'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
-                                @endforeach
-                            </select>
+                            <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Preview</h4>
+                            <div class="bg-gray-50 rounded-lg p-6 border border-gray-200 space-y-4">
+                                <div :style="'font-family: \'' + headingFont + '\', sans-serif'" class="space-y-2">
+                                    <div class="text-3xl font-bold text-gray-900" x-text="headingFont">Heading Font</div>
+                                    <div class="text-xl font-semibold text-gray-700">Section Title Example</div>
+                                    <div class="text-lg font-bold text-indigo-600">₱12,990.00</div>
+                                </div>
+                                <hr class="border-gray-200">
+                                <div :style="'font-family: \'' + bodyFont + '\', sans-serif'" class="space-y-2">
+                                    <div class="text-sm text-gray-800" x-text="bodyFont + ' — Body Font'">Body Font</div>
+                                    <p class="text-sm text-gray-600 leading-relaxed">This is how your product descriptions, paragraphs, and general content will look on the storefront. The quick brown fox jumps over the lazy dog.</p>
+                                    <p class="text-xs text-gray-400">Hints and small descriptions appear like this.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                     <div class="mt-6 flex justify-end">
                         <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Fonts</button>
                     </div>

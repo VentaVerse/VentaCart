@@ -138,7 +138,6 @@ class ThemeController extends Controller
 
         // Save current colors under the old theme's key
         $currentColors = Setting::where('group', 'colors')->pluck('value', 'key')->all();
-        $currentFontsUrl = Setting::where('group', 'fonts')->where('key', 'google_fonts_url')->value('value');
         if (!empty($currentColors)) {
             foreach ($currentColors as $key => $value) {
                 Setting::updateOrCreate(
@@ -147,33 +146,39 @@ class ThemeController extends Controller
                 );
             }
         }
-        if ($currentFontsUrl) {
+        $currentFonts = Setting::where('group', 'fonts')->pluck('value', 'key')->all();
+        foreach ($currentFonts as $fKey => $fVal) {
             Setting::updateOrCreate(
-                ['group' => "fonts__{$oldTheme}", 'key' => 'google_fonts_url'],
-                ['value' => $currentFontsUrl]
+                ['group' => "fonts__{$oldTheme}", 'key' => $fKey],
+                ['value' => $fVal]
             );
         }
 
         // Load saved colors for the new theme, or fall back to theme.json defaults
         $themeJson = json_decode(file_get_contents($themePath), true);
         $savedColors = Setting::where('group', "colors__{$newTheme}")->pluck('value', 'key')->all();
-        $savedFontsUrl = Setting::where('group', "fonts__{$newTheme}")->where('key', 'google_fonts_url')->value('value');
 
-        $colors = !empty($savedColors) ? $savedColors : ($themeJson['colors'] ?? []);
-        $fontsUrl = $savedFontsUrl ?: ($themeJson['fonts']['url'] ?? null);
+        // Merge: theme.json provides all defaults, saved colors override what exists
+        $jsonColors = $themeJson['colors'] ?? [];
+        $colors = array_merge($jsonColors, $savedColors);
+        $fontsUrl = $themeJson['fonts']['url'] ?? null;
 
+        // Clear all existing colors and write the full set
+        Setting::where('group', 'colors')->delete();
         foreach ($colors as $key => $value) {
-            Setting::updateOrCreate(
-                ['group' => 'colors', 'key' => $key],
-                ['value' => $value]
-            );
+            Setting::create(['group' => 'colors', 'key' => $key, 'value' => $value]);
         }
 
-        if ($fontsUrl) {
-            Setting::updateOrCreate(
-                ['group' => 'fonts', 'key' => 'google_fonts_url'],
-                ['value' => $fontsUrl]
-            );
+        // Restore fonts: saved per-theme fonts, or parse from theme.json
+        $savedFonts = Setting::where('group', "fonts__{$newTheme}")->pluck('value', 'key')->all();
+        if (!empty($savedFonts)) {
+            foreach ($savedFonts as $fKey => $fVal) {
+                Setting::updateOrCreate(['group' => 'fonts', 'key' => $fKey], ['value' => $fVal]);
+            }
+        } else {
+            if ($fontsUrl) {
+                Setting::updateOrCreate(['group' => 'fonts', 'key' => 'google_fonts_url'], ['value' => $fontsUrl]);
+            }
         }
 
         $themeService->set('identity', 'active_theme', $newTheme);
@@ -195,18 +200,13 @@ class ThemeController extends Controller
         $themeJson = json_decode(file_get_contents($themePath), true);
 
         if (!empty($themeJson['colors'])) {
+            // Clear and rewrite — removes orphan keys from old color systems
+            Setting::where('group', 'colors')->delete();
+            Setting::where('group', "colors__{$activeTheme}")->delete();
+
             foreach ($themeJson['colors'] as $key => $value) {
-                Setting::updateOrCreate(
-                    ['group' => 'colors', 'key' => $key],
-                    ['value' => $value]
-                );
-            }
-            // Also update the saved copy
-            foreach ($themeJson['colors'] as $key => $value) {
-                Setting::updateOrCreate(
-                    ['group' => "colors__{$activeTheme}", 'key' => $key],
-                    ['value' => $value]
-                );
+                Setting::create(['group' => 'colors', 'key' => $key, 'value' => $value]);
+                Setting::create(['group' => "colors__{$activeTheme}", 'key' => $key, 'value' => $value]);
             }
         }
 

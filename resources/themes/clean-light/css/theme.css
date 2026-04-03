@@ -24,6 +24,29 @@
  --color-btn-text: #FFFFFF;
  --color-footer-heading: #111827;
  --color-price: #111827;
+ --color-input-bg: #FFFFFF;
+ --color-input-border: #D1D5DB;
+ --color-breadcrumb-bg: #F9FAFB;
+ --color-search-bg: #F3F4F6;
+ --color-badge-new: #16a34a;
+ --color-badge-hot: #f59e0b;
+ --color-star-rating: #f59e0b;
+ --color-sale-price: #DC2626;
+ --color-logo-text: #111827;
+ --color-badge-free-shipping: #16a34a;
+ --color-card-hover: #2563EB;
+ --color-dropdown-bg: #FFFFFF;
+ --color-sidebar-bg: #F9FAFB;
+ --color-checkout-option-bg: #F9FAFB;
+ --color-review-bg: #F9FAFB;
+ --color-success: #16a34a;
+ --color-error: #dc2626;
+ --size-logo: 32px;
+ --size-section-title: 24px;
+ --size-product-name: 14px;
+ --size-price: 16px;
+ --size-body: 14px;
+ --size-nav: 14px;
  --font-heading: 'Inter', sans-serif;
  --font-body: 'Inter', sans-serif;
 }
@@ -34,6 +57,7 @@
 @layer base {
  body {
  font-family: var(--font-body);
+ font-size: var(--size-body);
         background-color: var(--color-bg); color: var(--color-text); @apply antialiased;
  }
 
@@ -45,6 +69,22 @@
  ::selection {
  background: var(--color-primary);
  color: #fff;
+ }
+
+ input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="tel"], input[type="search"], textarea, select {
+ background-color: var(--color-input-bg);
+ border-color: var(--color-input-border);
+ color: var(--color-text);
+ }
+ input:focus, textarea:focus, select:focus {
+ border-color: var(--color-primary);
+ box-shadow: 0 0 0 1px var(--color-primary);
+ }
+ input[type="checkbox"], input[type="radio"] {
+ accent-color: var(--color-primary);
+ }
+ input::placeholder, textarea::placeholder {
+ color: var(--color-text-muted);
  }
 
     ::-webkit-scrollbar {
@@ -110,13 +150,14 @@
  Top Bar
  ============================================ */
  .topbar {
- background-color: var(--color-announcement-bg);
- color: var(--color-announcement-text);
- @apply bg-gray-50 border-b border-gray-200 text-xs py-2;
+ background-color: var(--color-nav-bg);
+ color: var(--color-nav-text);
+ @apply border-b border-gray-200 text-xs py-2;
  }
 
  .topbar a {
-        color: var(--color-text-muted); @apply hover:text-[var(--color-primary)] transition-colors duration-200;
+ color: var(--color-nav-text);
+ @apply hover:text-[var(--color-primary)] transition-colors duration-200 opacity-70 hover:opacity-100;
  }
 
  /* ============================================
@@ -133,7 +174,8 @@
 
  .text-logo {
  font-family: var(--font-heading);
- @apply text-3xl md:text-4xl tracking-tight leading-none select-none font-bold;
+ font-size: var(--size-logo);
+ @apply tracking-tight leading-none select-none font-bold;
  }
 
  .text-logo-new {
@@ -141,7 +183,7 @@
  }
 
  .text-logo-gear {
-        color: var(--color-text-heading);
+        color: var(--color-logo-text);
  }
 
  .text-logo-day {
@@ -153,7 +195,8 @@
  }
 
  .site-header .search-bar input {
- @apply w-full bg-gray-50 border border-gray-300 rounded-l-md py-2.5 px-4 text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors;
+ background-color: var(--color-search-bg);
+ @apply w-full border border-gray-300 rounded-l-md py-2.5 px-4 text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] transition-colors;
  }
 
  .site-header .search-bar button {
@@ -162,13 +205,14 @@
  }
 
  .site-header .cart-btn {
+ color: var(--color-nav-text);
  @apply flex items-center gap-2 text-sm hover:text-[var(--color-primary)] transition-colors;
  }
 
  /* Mini Cart Dropdown */
  .mini-cart-dropdown {
  @apply absolute right-0 top-full mt-2 w-80 rounded-lg z-50;
- background: var(--color-bg);
+ background: var(--color-dropdown-bg);
  border: 1px solid var(--color-border);
  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
  }
@@ -247,7 +291,7 @@
         color: var(--color-text-muted);
  }
  .mini-cart-item-remove:hover {
- color: var(--color-secondary);
+ color: var(--color-error);
  }
 
  .mini-cart-footer {
@@ -304,8 +348,9 @@
  .nav-bar > div > a,
  .nav-bar .nav-dropdown-trigger {
  font-family: var(--font-heading);
+ font-size: var(--size-nav);
  color: var(--color-nav-text);
- @apply text-sm font-medium py-3.5 px-5 transition-all duration-200 relative;
+ @apply font-medium py-3.5 px-5 transition-all duration-200 relative;
  display: inline-flex;
  align-items: center;
  }
@@ -487,7 +532,8 @@
  ============================================ */
  .section-title {
  font-family: var(--font-heading);
- @apply text-3xl md:text-4xl text-center mb-8 relative pb-4 font-bold; color: var(--color-text-heading);
+ font-size: var(--size-section-title);
+ @apply text-center mb-8 relative pb-4 font-bold; color: var(--color-text-heading);
  }
 
  .section-title::after {
@@ -511,8 +557,8 @@
  }
 
  .product-card:hover {
- @apply border-gray-300;
- box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+ border-color: color-mix(in srgb, var(--color-card-hover) 40%, transparent);
+ box-shadow: 0 4px 16px color-mix(in srgb, var(--color-card-hover) 10%, transparent);
  transform: translateY(-2px);
  }
 
@@ -533,7 +579,8 @@
  }
 
  .product-card .product-name {
- @apply text-sm leading-snug mb-2 line-clamp-2 min-h-[2.5rem]; color: var(--color-text);
+ font-size: var(--size-product-name);
+ @apply leading-snug mb-2 line-clamp-2 min-h-[2.5rem]; color: var(--color-text);
  font-family: var(--font-body);
  }
 
@@ -550,11 +597,11 @@
  }
 
  .product-card .star-full {
- color: #F5A623;
+ color: var(--color-star-rating);
  }
 
  .product-card .star-half {
- color: #F5A623;
+ color: var(--color-star-rating);
  }
 
  .product-card .star-empty {
@@ -567,7 +614,8 @@
 
  .product-card .product-price {
  font-family: var(--font-heading);
- @apply text-xl font-bold; color: var(--color-price);
+ font-size: var(--size-price);
+ @apply font-bold; color: var(--color-price);
  }
 
  .product-card .product-price-old {
@@ -576,7 +624,7 @@
  }
 
  .product-card .product-price-sale {
- color: var(--color-secondary);
+ color: var(--color-sale-price);
  }
 
  /* ============================================
@@ -588,17 +636,22 @@
  }
 
  .badge-new {
- @apply bg-emerald-500 top-3 left-3;
+ background-color: var(--color-badge-new);
+ @apply top-3 left-3;
  }
 
  .badge-hot {
- background-color: var(--color-primary);
+ background-color: var(--color-badge-hot);
  @apply text-white top-3 right-3;
  }
 
  .badge-sale {
  background-color: var(--color-secondary);
  @apply top-3 right-3;
+ }
+
+ .badge-free-shipping {
+ background-color: var(--color-badge-free-shipping);
  }
 
  .product-card .product-free-shipping {
@@ -1017,7 +1070,8 @@
  Search Autocomplete Dropdown
  ============================================ */
  .search-dropdown {
- @apply absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden;
+ @apply absolute top-full left-0 right-0 mt-1 border border-gray-200 rounded-md shadow-lg z-50 overflow-hidden;
+ background-color: var(--color-dropdown-bg);
  max-height: 400px;
  overflow-y: auto;
  }
@@ -1220,7 +1274,7 @@
  Breadcrumbs (shared across all pages)
  ============================================ */
  .page-breadcrumbs {
- @apply bg-gray-50 border-b border-gray-200 overflow-hidden;
+ background-color: var(--color-breadcrumb-bg); @apply border-b border-gray-200 overflow-hidden;
  }
 
  .page-breadcrumbs nav {
@@ -1240,7 +1294,7 @@
  color: var(--color-text);
  }
 
- .product-page-breadcrumbs { @apply bg-gray-50 border-b border-gray-200 overflow-hidden; }
+ .product-page-breadcrumbs { background-color: var(--color-breadcrumb-bg); @apply border-b border-gray-200 overflow-hidden; }
  .product-page-breadcrumbs nav {
  @apply flex items-center gap-1.5 text-xs overflow-x-auto whitespace-nowrap py-3 px-4;
  color: var(--color-text-muted);
@@ -1250,6 +1304,13 @@
  .product-page-breadcrumbs nav::-webkit-scrollbar { display: none; }
  .product-page-breadcrumbs a { @apply hover:text-[var(--color-primary)] transition-colors shrink-0; }
  .product-page-breadcrumbs span:last-child { @apply truncate min-w-0; color: var(--color-text); }
+
+ /* ============================================
+ Sidebar Filters
+ ============================================ */
+ .sidebar-filters {
+ background-color: var(--color-sidebar-bg);
+ }
 
  /* ============================================
  Blog
@@ -1305,11 +1366,11 @@
  }
 
  .product-detail-stock .in-stock {
- @apply text-emerald-600;
+ color: var(--color-success);
  }
 
  .product-detail-stock .out-of-stock {
- @apply text-[var(--color-secondary)];
+ color: var(--color-error);
  }
 
  .product-variant-select {
@@ -1718,7 +1779,7 @@
  .checkout-payment-option {
  @apply flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-all;
  border: 1px solid var(--color-border);
- background: var(--color-bg);
+ background: var(--color-checkout-option-bg);
  }
 
  .checkout-payment-option:hover {
@@ -1973,7 +2034,7 @@
  .star-rating {
  display: inline-flex;
  gap: 0.125rem;
- color: #F59E0B;
+ color: var(--color-star-rating);
  font-size: 0.875rem;
  }
 
@@ -1984,7 +2045,7 @@
  /* Review Card */
  .review-card {
  padding: 1rem 1.25rem;
- background: var(--color-bg);
+ background: var(--color-review-bg);
  border: 1px solid var(--color-border);
  border-radius: 0.5rem;
  }

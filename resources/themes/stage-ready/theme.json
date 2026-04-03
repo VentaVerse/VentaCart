@@ -20,8 +20,25 @@
         "footer_text": "#B0B0B0",
         "footer_heading": "#E8E8E8",
         "price": "#E8E8E8",
+        "input_bg": "#141414",
+        "input_border": "#2A2A2A",
+        "breadcrumb_bg": "#0A0A0A",
+        "search_bg": "#111111",
+        "badge_new": "#16a34a",
+        "badge_hot": "#f59e0b",
+        "star_rating": "#f59e0b",
+        "sale_price": "#E2293D",
         "announcement_bg": "#F5A623",
-        "announcement_text": "#0D0D0D"
+        "announcement_text": "#0D0D0D",
+        "logo_text": "#FFFFFF",
+        "badge_free_shipping": "#16a34a",
+        "card_hover": "#F5A623",
+        "dropdown_bg": "#141414",
+        "sidebar_bg": "#111111",
+        "checkout_option_bg": "#141414",
+        "review_bg": "#141414",
+        "success": "#16a34a",
+        "error": "#dc2626"
     },
     "fonts": {
         "url": "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap"

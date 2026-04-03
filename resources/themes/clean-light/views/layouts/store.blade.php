@@ -76,10 +76,33 @@
             --color-footer-text: {{ $theme->get('colors.footer_text', '#6B7280') }};
             --color-footer-heading: {{ $theme->get('colors.footer_heading', '#111827') }};
             --color-price: {{ $theme->get('colors.price', '#111827') }};
+            --color-input-bg: {{ $theme->get('colors.input_bg', '#FFFFFF') }};
+            --color-input-border: {{ $theme->get('colors.input_border', '#D1D5DB') }};
+            --color-breadcrumb-bg: {{ $theme->get('colors.breadcrumb_bg', '#F9FAFB') }};
+            --color-search-bg: {{ $theme->get('colors.search_bg', '#F3F4F6') }};
+            --color-badge-new: {{ $theme->get('colors.badge_new', '#16a34a') }};
+            --color-badge-hot: {{ $theme->get('colors.badge_hot', '#f59e0b') }};
+            --color-star-rating: {{ $theme->get('colors.star_rating', '#f59e0b') }};
+            --color-sale-price: {{ $theme->get('colors.sale_price', '#DC2626') }};
             --color-announcement-bg: {{ $theme->get('colors.announcement_bg', '#2563EB') }};
             --color-announcement-text: {{ $theme->get('colors.announcement_text', '#FFFFFF') }};
+            --color-logo-text: {{ $theme->get('colors.logo_text', '#111827') }};
+            --color-badge-free-shipping: {{ $theme->get('colors.badge_free_shipping', '#16a34a') }};
+            --color-card-hover: {{ $theme->get('colors.card_hover', '#2563EB') }};
+            --color-dropdown-bg: {{ $theme->get('colors.dropdown_bg', '#FFFFFF') }};
+            --color-sidebar-bg: {{ $theme->get('colors.sidebar_bg', '#F9FAFB') }};
+            --color-checkout-option-bg: {{ $theme->get('colors.checkout_option_bg', '#F9FAFB') }};
+            --color-review-bg: {{ $theme->get('colors.review_bg', '#F9FAFB') }};
+            --color-success: {{ $theme->get('colors.success', '#16a34a') }};
+            --color-error: {{ $theme->get('colors.error', '#dc2626') }};
             --font-heading: '{{ $headingFont }}', sans-serif;
             --font-body: '{{ $bodyFont }}', sans-serif;
+            --size-logo: {{ $theme->get('fonts.size_logo', '32') }}px;
+            --size-section-title: {{ $theme->get('fonts.size_section_title', '24') }}px;
+            --size-product-name: {{ $theme->get('fonts.size_product_name', '14') }}px;
+            --size-price: {{ $theme->get('fonts.size_price', '16') }}px;
+            --size-body: {{ $theme->get('fonts.size_body', '14') }}px;
+            --size-nav: {{ $theme->get('fonts.size_nav', '14') }}px;
         }
     </style>
     <script>

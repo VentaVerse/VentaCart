@@ -76,10 +76,33 @@
             --color-footer-text: {{ $theme->get('colors.footer_text', '#8891A8') }};
             --color-footer-heading: {{ $theme->get('colors.footer_heading', '#F0F2F7') }};
             --color-price: {{ $theme->get('colors.price', '#F0F2F7') }};
+            --color-input-bg: {{ $theme->get('colors.input_bg', '#0E1835') }};
+            --color-input-border: {{ $theme->get('colors.input_border', '#1A2548') }};
+            --color-breadcrumb-bg: {{ $theme->get('colors.breadcrumb_bg', '#070E22') }};
+            --color-search-bg: {{ $theme->get('colors.search_bg', '#0E1835') }};
+            --color-badge-new: {{ $theme->get('colors.badge_new', '#16a34a') }};
+            --color-badge-hot: {{ $theme->get('colors.badge_hot', '#f59e0b') }};
+            --color-star-rating: {{ $theme->get('colors.star_rating', '#E17564') }};
+            --color-sale-price: {{ $theme->get('colors.sale_price', '#E17564') }};
             --color-announcement-bg: {{ $theme->get('colors.announcement_bg', '#E17564') }};
             --color-announcement-text: {{ $theme->get('colors.announcement_text', '#09122C') }};
+            --color-logo-text: {{ $theme->get('colors.logo_text', '#F0F2F7') }};
+            --color-badge-free-shipping: {{ $theme->get('colors.badge_free_shipping', '#16a34a') }};
+            --color-card-hover: {{ $theme->get('colors.card_hover', '#BE3144') }};
+            --color-dropdown-bg: {{ $theme->get('colors.dropdown_bg', '#0E1835') }};
+            --color-sidebar-bg: {{ $theme->get('colors.sidebar_bg', '#070E22') }};
+            --color-checkout-option-bg: {{ $theme->get('colors.checkout_option_bg', '#0E1835') }};
+            --color-review-bg: {{ $theme->get('colors.review_bg', '#0E1835') }};
+            --color-success: {{ $theme->get('colors.success', '#16a34a') }};
+            --color-error: {{ $theme->get('colors.error', '#dc2626') }};
             --font-heading: '{{ $headingFont }}', serif;
             --font-body: '{{ $bodyFont }}', sans-serif;
+            --size-logo: {{ $theme->get('fonts.size_logo', '32') }}px;
+            --size-section-title: {{ $theme->get('fonts.size_section_title', '24') }}px;
+            --size-product-name: {{ $theme->get('fonts.size_product_name', '14') }}px;
+            --size-price: {{ $theme->get('fonts.size_price', '16') }}px;
+            --size-body: {{ $theme->get('fonts.size_body', '14') }}px;
+            --size-nav: {{ $theme->get('fonts.size_nav', '14') }}px;
             --glow-primary: {{ $theme->get('colors.primary', '#BE3144') }}40;
             --glow-secondary: {{ $theme->get('colors.secondary', '#E17564') }}4D;
         }
@@ -153,7 +176,7 @@
                         </div>
                     </div>
                 @elseif ($defaultCurrency)
-                    <span class="text-xs text-[#7A8299]">
+                    <span class="text-xs opacity-70">
                         <span class="led led-green mr-1"></span>
                         {{ $defaultCurrency->code }}
                     </span>
