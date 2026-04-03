@@ -78,13 +78,45 @@ class CartController extends Controller
             abort(403);
         }
 
-        $this->cartService->update($cartItem->id, $request->integer('quantity'));
+        $newQty = $request->integer('quantity');
+        $blockOutOfStock = \App\Models\Setting::where('group', 'checkout')
+            ->where('key', 'block_out_of_stock')
+            ->value('value') ?? '1';
 
-        return response()->json([
+        // Check stock if blocking is enabled
+        $stockWarning = null;
+        $availableStock = null;
+        if ($blockOutOfStock === '1' && $newQty > 0) {
+            $cartItem->loadMissing(['product', 'productVariant']);
+            $product = $cartItem->product;
+
+            if ($product && $product->track_stock) {
+                $availableStock = $cartItem->productVariant
+                    ? $cartItem->productVariant->quantity
+                    : $product->quantity;
+
+                if ($newQty > $availableStock) {
+                    $stockWarning = "Only {$availableStock} available in stock.";
+                    $newQty = $availableStock > 0 ? $availableStock : 1;
+                }
+            }
+        }
+
+        $this->cartService->update($cartItem->id, $newQty);
+
+        $response = [
             'success' => true,
             'count' => $this->cartService->getCount(),
             'subtotal' => $this->cartService->getSubtotal(),
-        ]);
+            'quantity' => $newQty,
+        ];
+
+        if ($stockWarning) {
+            $response['stock_warning'] = $stockWarning;
+            $response['available_stock'] = $availableStock;
+        }
+
+        return response()->json($response);
     }
 
     public function remove(CartItem $cartItem): JsonResponse

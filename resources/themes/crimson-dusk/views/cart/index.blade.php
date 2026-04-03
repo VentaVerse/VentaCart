@@ -4,8 +4,8 @@
 
         @if ($items->isEmpty())
             <div class="cart-empty-state reveal">
-                <svg class="w-20 h-20 mx-auto text-[#3A4566] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
-                <p class="text-[#7A8299] text-lg mb-6" class="font-heading-wide">YOUR CART IS EMPTY</p>
+                <svg class="w-20 h-20 mx-auto text-[#333] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
+                <p class="text-[#555] text-lg mb-6" class="font-heading-wide">YOUR CART IS EMPTY</p>
                 <a href="{{ route('home') }}" class="btn-checkout inline-block">CONTINUE SHOPPING</a>
             </div>
         @else
@@ -18,6 +18,9 @@
         <div x-data="cartPage({{ $items->toJson() }}, {{ $subtotal }}, {{ json_encode($outOfStockIds) }})" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {{-- Items List --}}
                 <div class="lg:col-span-2">
+                    {{-- Stock Warning --}}
+                    <div x-show="stockWarning" x-transition.opacity class="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-4 text-red-300 text-sm" x-text="stockWarning"></div>
+
                     <div class="cart-table">
                         <template x-for="item in items" :key="item.id">
                             <div class="cart-item" x-show="!item._removed" x-transition.opacity>
@@ -26,7 +29,7 @@
                                         <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" loading="lazy">
                                     </template>
                                     <template x-if="!item.product || !item.product.images || !item.product.images.length">
-                                        <div class="w-full h-full flex items-center justify-center text-[#3A4566]">
+                                        <div class="w-full h-full flex items-center justify-center text-[#333]">
                                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         </div>
                                     </template>
@@ -66,17 +69,17 @@
                 {{-- Order Summary --}}
                 <div>
                     <div class="order-summary-box">
-                        <h3 class="text-lg tracking-[0.15em] mb-6 text-[#E8ECF2]" class="font-heading">ORDER SUMMARY</h3>
+                        <h3 class="text-lg tracking-[0.15em] mb-6 text-[#E8E8E8]" class="font-heading">ORDER SUMMARY</h3>
 
                         <div class="flex justify-between text-sm mb-3">
-                            <span class="text-[#7A8299]">Subtotal</span>
-                            <span class="text-[#E8ECF2]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                            <span class="text-[#888]">Subtotal</span>
+                            <span class="text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
                         {{-- Shipping Estimate --}}
                         <div class="mb-3" x-data="shippingEstimate()">
                             <div class="flex justify-between text-sm mb-2">
-                                <span class="text-[#7A8299]">Shipping</span>
+                                <span class="text-[#888]">Shipping</span>
                                 <button type="button" @click="expanded = !expanded" class="text-[var(--color-primary)] text-xs hover:underline">
                                     <span x-show="!expanded">Estimate Shipping</span>
                                     <span x-show="expanded">Hide</span>
@@ -85,7 +88,7 @@
 
                             <div x-show="expanded" x-transition.duration.200ms class="space-y-3 mb-3">
                                 {{-- Country --}}
-                                <select x-model="countryCode" @change="onCountryChange()" class="w-full rounded-lg bg-[#0F1A38] border-[#1A2548] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                <select x-model="countryCode" @change="onCountryChange()" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
                                     <option value="">Select Country</option>
                                     <template x-for="c in countries" :key="c.id">
                                         <option :value="c.id" x-text="c.name"></option>
@@ -96,7 +99,7 @@
                                 <template x-for="field in providerFields" :key="field.key">
                                     <div x-show="field.conditional ? (providerData[field.key] || []).length > 0 : true">
                                         <select x-model="fieldValues[field.key]" @change="onProviderFieldChange(field.key)"
-                                            class="w-full rounded-lg bg-[#0F1A38] border-[#1A2548] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                            class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
                                             <option value="" x-text="'Select ' + field.label"></option>
                                             <template x-for="item in (providerData[field.key] || [])" :key="item.id">
                                                 <option :value="item.name" x-text="item.name"></option>
@@ -108,7 +111,7 @@
                                 {{-- Generic: State/Region (non-provider countries) --}}
                                 <div x-show="countryCode && !hasProvider">
                                     <template x-if="zones.length > 0">
-                                        <select x-model="state" class="w-full rounded-lg bg-[#0F1A38] border-[#1A2548] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                        <select x-model="state" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
                                             <option value="">Select State / Region</option>
                                             <template x-for="z in zones" :key="z.id">
                                                 <option :value="z.name" x-text="z.name"></option>
@@ -116,18 +119,18 @@
                                         </select>
                                     </template>
                                     <template x-if="zones.length === 0 && countryCode">
-                                        <input type="text" x-model="state" placeholder="State / Region" class="w-full rounded-lg bg-[#0F1A38] border-[#1A2548] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                        <input type="text" x-model="state" placeholder="State / Region" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
                                     </template>
                                 </div>
 
                                 {{-- Generic: City (non-provider countries) --}}
                                 <div x-show="countryCode && !hasProvider">
-                                    <input type="text" x-model="city" placeholder="City" class="w-full rounded-lg bg-[#0F1A38] border-[#1A2548] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
+                                    <input type="text" x-model="city" placeholder="City" class="w-full rounded-lg bg-[#1A1A1A] border-[#333] text-sm text-[#CCC] focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)] py-2">
                                 </div>
 
                                 <button type="button" @click="getEstimate()" :disabled="!canEstimate || loading"
                                     class="w-full py-2 rounded-lg text-sm font-medium transition-colors"
-                                    :class="!canEstimate || loading ? 'bg-[#1A2548] text-[#7A8299] cursor-not-allowed' : 'bg-[var(--color-primary)] text-black hover:brightness-110'">
+                                    :class="!canEstimate || loading ? 'bg-[#333] text-[#666] cursor-not-allowed' : 'bg-[var(--color-primary)] text-black hover:brightness-110'">
                                     <span x-show="!loading">Get Estimate</span>
                                     <span x-show="loading">Loading...</span>
                                 </button>
@@ -136,13 +139,13 @@
                                     <div class="space-y-2">
                                         <template x-for="m in methods" :key="m.key">
                                             <div class="flex justify-between text-sm py-1">
-                                                <span class="text-[#7A8299]">
+                                                <span class="text-[#999]">
                                                     <span x-text="m.name"></span>
                                                     <template x-if="m.estimated_days">
-                                                        <span class="text-[#7A8299] text-xs" x-text="'~' + m.estimated_days + ' days'"></span>
+                                                        <span class="text-[#666] text-xs" x-text="'~' + m.estimated_days + ' days'"></span>
                                                     </template>
                                                 </span>
-                                                <span class="text-[#E8ECF2]" class="font-heading">
+                                                <span class="text-[#E8E8E8]" class="font-heading">
                                                     <template x-if="m.cost === 0">
                                                         <span class="text-emerald-400">FREE</span>
                                                     </template>
@@ -156,14 +159,14 @@
                                 </template>
 
                                 <template x-if="noResults">
-                                    <p class="text-xs text-[#7A8299]">No shipping options available for this location.</p>
+                                    <p class="text-xs text-[#666]">No shipping options available for this location.</p>
                                 </template>
                             </div>
 
                             <template x-if="!expanded && methods.length === 0">
                                 <div class="flex justify-between text-sm">
                                     <span></span>
-                                    <span class="text-[#7A8299]">Calculated at checkout</span>
+                                    <span class="text-[#555]">Calculated at checkout</span>
                                 </div>
                             </template>
                         </div>
@@ -171,8 +174,8 @@
                         <hr class="divider-glow my-4">
 
                         <div class="flex justify-between mb-6">
-                            <span class="text-[#E8ECF2]" class="font-heading-wide">TOTAL</span>
-                            <span class="text-xl text-[#E8ECF2]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                            <span class="text-[#E8E8E8]" class="font-heading-wide">TOTAL</span>
+                            <span class="text-xl text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
                         <template x-if="outOfStockIds.length > 0">
@@ -207,7 +210,7 @@
                                 @endauth
                             </div>
                         </template>
-                        <a href="{{ route('home') }}" class="block text-center text-sm text-[#7A8299] hover:text-[var(--color-primary)] transition-colors">Continue Shopping</a>
+                        <a href="{{ route('home') }}" class="block text-center text-sm text-[#555] hover:text-[var(--color-primary)] transition-colors">Continue Shopping</a>
                     </div>
                 </div>
             </div>

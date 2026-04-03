@@ -456,6 +456,7 @@ Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds) =>
     items: initialItems || [],
     subtotal: initialSubtotal || 0,
     outOfStockIds: initialOutOfStockIds || [],
+    stockWarning: '',
 
     recalcSubtotal() {
         this.subtotal = this.items
@@ -484,6 +485,7 @@ Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds) =>
     },
 
     async syncQty(item) {
+        this.stockWarning = '';
         const resp = await fetch(`/cart/${item.id}`, {
             method: 'PATCH',
             headers: {
@@ -495,6 +497,13 @@ Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds) =>
         });
         const data = await resp.json();
         if (data.success) {
+            if (data.stock_warning) {
+                this.stockWarning = data.stock_warning;
+                item.quantity = data.quantity;
+                this.recalcSubtotal();
+                setTimeout(() => { this.stockWarning = ''; }, 5000);
+            }
+            this.subtotal = parseFloat(data.subtotal);
             window.dispatchEvent(new CustomEvent('cart-updated', {
                 detail: { count: data.count, subtotal: data.subtotal }
             }));
@@ -708,6 +717,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     placing: false,
     showConfirmModal: false,
     comment: '',
+    stockWarning: '',
     qrOpen: false,
     qrSrc: '',
     qrName: '',
@@ -875,6 +885,11 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
             });
             const data = await res.json();
             if (data.success) {
+                if (data.stock_warning) {
+                    this.stockWarning = data.stock_warning;
+                    newQty = data.quantity;
+                    setTimeout(() => { this.stockWarning = ''; }, 5000);
+                }
                 if (newQty === 0) {
                     this.items = this.items.filter(function(i) { return i.id !== item.id; });
                     if (this.items.length === 0) {

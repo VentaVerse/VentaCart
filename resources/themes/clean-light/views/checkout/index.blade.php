@@ -458,6 +458,9 @@
                 <div class="order-summary-box">
                     <h3 class="text-lg tracking-[0.15em] mb-6 text-[var(--color-text-heading)]" class="font-heading">ORDER SUMMARY</h3>
 
+                    {{-- Stock Warning --}}
+                    <div x-show="stockWarning" x-transition.opacity class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-xs text-red-700" x-text="stockWarning"></div>
+
                     {{-- Items --}}
                     <div class="checkout-items-scroll space-y-4 mb-4" style="max-height: 360px; overflow-y: auto;">
                         <template x-for="item in items" :key="item.id">

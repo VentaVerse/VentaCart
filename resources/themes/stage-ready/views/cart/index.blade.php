@@ -18,6 +18,9 @@
         <div x-data="cartPage({{ $items->toJson() }}, {{ $subtotal }}, {{ json_encode($outOfStockIds) }})" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {{-- Items List --}}
                 <div class="lg:col-span-2">
+                    {{-- Stock Warning --}}
+                    <div x-show="stockWarning" x-transition.opacity class="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-4 text-red-300 text-sm" x-text="stockWarning"></div>
+
                     <div class="cart-table">
                         <template x-for="item in items" :key="item.id">
                             <div class="cart-item" x-show="!item._removed" x-transition.opacity>
