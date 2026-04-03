@@ -277,10 +277,12 @@ class DeliveryPhService
             'deliveryDetails' => $deliveryDetails,
         ];
 
+        Log::info('DPH createPost request', ['partnerId' => $partnerId, 'body' => $body]);
+
         $result = $this->apiRequest('POST', '/v3/createPost', $body, ['partnerId' => $partnerId]);
 
         if (!($result['success'] ?? false)) {
-            Log::error('DPH createPost failed', ['result' => $result, 'partnerId' => $partnerId]);
+            Log::error('DPH createPost failed', ['result' => $result, 'partnerId' => $partnerId, 'body' => $body]);
             throw new \RuntimeException('DPH booking failed: ' . json_encode($result['results'] ?? $result['message'] ?? 'unknown'));
         }
 
