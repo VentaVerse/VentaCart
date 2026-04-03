@@ -154,7 +154,7 @@
                 <table class="min-w-full">
                     <thead>
                         <tr class="border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                            <th class="px-6 py-3 text-left">Item</th>
+                            <th class="px-6 py-3 text-left" colspan="2">Item</th>
                             <th class="px-4 py-3 text-right w-24">Price</th>
                             <th class="px-4 py-3 text-center w-16">Qty</th>
                             <th class="px-6 py-3 text-right w-28">Total</th>
@@ -163,7 +163,16 @@
                     <tbody class="divide-y divide-gray-50">
                         @foreach ($order->products as $item)
                             <tr class="hover:bg-gray-50/50">
-                                <td class="px-6 py-3">
+                                <td class="pl-6 py-3 w-14">
+                                    @if ($item->product?->image)
+                                        <img src="{{ storage_url($item->product->image) }}" alt="{{ $item->name }}" class="w-10 h-10 rounded object-cover border border-gray-200">
+                                    @else
+                                        <div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="px-3 py-3">
                                     <p class="text-sm font-medium text-gray-900">{{ $item->name }}</p>
                                     <div class="flex items-center gap-2 mt-0.5">
                                         @if ($item->variant_label)

@@ -66,7 +66,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['customer', 'status', 'products', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
+        $order->load(['customer', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
         $order->load('shipment.events');
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
@@ -121,14 +121,51 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
-        $order->load(['customer', 'status', 'products', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
+        $order->load(['customer', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
         $order->load('shipment.events');
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
         $dphEnabled = \App\Services\DeliveryPhService::isEnabled();
 
-        $existingItems = $order->products->map(function ($item) {
+        $customerGroupId = $order->customer?->customer_group_id;
+
+        $now = now();
+        $existingItems = $order->products->map(function ($item) use ($customerGroupId, $now) {
+            $image = $item->product?->image ? storage_url($item->product->image) : null;
+            $groupPrice = null;
+
+            if ($customerGroupId && $item->product) {
+                // Check variant group prices
+                if ($item->product_variant_id) {
+                    $gp = \App\Models\ProductVariantGroupPrice::where('product_variant_id', $item->product_variant_id)
+                        ->where('customer_group_id', $customerGroupId)
+                        ->value('price');
+                    if ($gp !== null) {
+                        $groupPrice = (float) $gp;
+                    }
+                }
+
+                // Check product_specials (overrides if lower)
+                $item->product->loadMissing('specials');
+                $bestSpecial = $item->product->specials
+                    ->filter(function ($s) use ($now, $customerGroupId) {
+                        if ($s->date_start && $s->date_start > $now) return false;
+                        if ($s->date_end && $s->date_end < $now) return false;
+                        if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                        return true;
+                    })
+                    ->sortBy([['priority', 'asc'], ['price', 'asc']])
+                    ->first();
+
+                if ($bestSpecial) {
+                    $specialPrice = (float) $bestSpecial->price;
+                    if ($groupPrice === null || $specialPrice < $groupPrice) {
+                        $groupPrice = $specialPrice;
+                    }
+                }
+            }
+
             return [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
@@ -139,23 +176,34 @@ class OrderController extends Controller
                 'price' => $item->price,
                 'quantity' => $item->quantity,
                 'is_custom' => $item->is_custom,
+                'image' => $image,
+                'group_price' => $groupPrice,
             ];
         })->toArray();
 
-        return view('admin.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'dphEnabled'));
+        return view('admin.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'dphEnabled', 'customerGroupId'));
     }
 
     public function update(Request $request, Order $order)
     {
         $validated = $this->validateOrder($request, $order->id);
 
-        DB::transaction(function () use ($request, $order, $validated) {
+        $productsChanged = false;
+
+        DB::transaction(function () use ($request, $order, $validated, &$productsChanged) {
             $statusChanged = (int) $order->order_status_id !== (int) $validated['order_status_id'];
+
+            // Detect if products changed before sync
+            $oldProducts = $order->products->map(fn($p) => $p->product_id . '-' . $p->product_variant_id . '-' . $p->quantity . '-' . $p->price)->sort()->values()->toJson();
 
             $order->update($validated);
 
             $this->syncProducts($order, $request);
             $this->recalculateTotals($order);
+
+            $order->load('products');
+            $newProducts = $order->products->map(fn($p) => $p->product_id . '-' . $p->product_variant_id . '-' . $p->quantity . '-' . $p->price)->sort()->values()->toJson();
+            $productsChanged = $oldProducts !== $newProducts;
 
             if ($statusChanged) {
                 $newStatus = OrderStatus::find($validated['order_status_id']);
@@ -165,8 +213,14 @@ class OrderController extends Controller
             }
         });
 
+        // Resend order confirmation if products changed
+        if ($productsChanged && $order->email) {
+            $order->load('products');
+            \App\Services\CheckoutService::sendOrderConfirmationEmail($order);
+        }
+
         return redirect()->route('admin.orders.edit', $order)
-            ->with('success', 'Order updated successfully.');
+            ->with('success', 'Order updated successfully.' . ($productsChanged ? ' Confirmation email resent.' : ''));
     }
 
     public function destroy(Order $order)
@@ -303,6 +357,8 @@ class OrderController extends Controller
         $search = $request->input('q');
         $storeId = $request->input('store_id');
 
+        $customerGroupId = $request->input('customer_group_id');
+
         $products = Product::where('store_id', $storeId)
             ->where('is_active', true)
             ->where(function ($q) use ($search) {
@@ -310,35 +366,84 @@ class OrderController extends Controller
                   ->orWhere('sku', 'like', "%{$search}%");
             })
             ->with(['variants' => function ($q) {
-                $q->where('is_active', true);
-            }, 'brand'])
+                $q->where('is_active', true)->with('groupPrices');
+            }, 'brand', 'specials'])
             ->limit(15)
             ->get();
 
+        $now = now();
         $results = [];
         foreach ($products as $product) {
+            $image = $product->image ? storage_url($product->image) : null;
+
+            // Resolve best price from product_specials for this customer group
+            $resolvedSpecialPrice = null;
+            if ($customerGroupId) {
+                $bestSpecial = $product->specials
+                    ->filter(function ($s) use ($now, $customerGroupId) {
+                        if ($s->date_start && $s->date_start > $now) return false;
+                        if ($s->date_end && $s->date_end < $now) return false;
+                        if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                        return true;
+                    })
+                    ->sortBy([['priority', 'asc'], ['price', 'asc']])
+                    ->first();
+
+                if ($bestSpecial) {
+                    $resolvedSpecialPrice = (float) $bestSpecial->price;
+                }
+            }
+
             if ($product->has_variants) {
                 foreach ($product->variants as $variant) {
+                    $basePrice = (float) $variant->price;
+                    $groupPrice = null;
+                    $price = $basePrice;
+
+                    // Check variant group price first
+                    if ($customerGroupId) {
+                        $gp = $variant->groupPrices->where('customer_group_id', $customerGroupId)->first();
+                        if ($gp) {
+                            $groupPrice = (float) $gp->price;
+                            $price = $groupPrice;
+                        }
+                    }
+
+                    // product_specials override (applies to all variants of the product)
+                    if ($resolvedSpecialPrice !== null && ($groupPrice === null || $resolvedSpecialPrice < $groupPrice)) {
+                        $groupPrice = $resolvedSpecialPrice;
+                        $price = $resolvedSpecialPrice;
+                    }
+
                     $results[] = [
                         'product_id' => $product->id,
                         'product_variant_id' => $variant->id,
                         'name' => $product->name,
                         'sku' => $variant->sku,
                         'variant_label' => $variant->name,
-                        'price' => $variant->price,
+                        'price' => $price,
+                        'base_price' => $basePrice,
+                        'group_price' => $groupPrice,
                         'stock' => $variant->quantity,
+                        'image' => $image,
                     ];
                 }
             } else {
+                $basePrice = (float) $product->price;
+                $groupPrice = $resolvedSpecialPrice;
+                $price = $groupPrice ?? $basePrice;
+
                 $results[] = [
                     'product_id' => $product->id,
                     'product_variant_id' => null,
                     'name' => $product->name,
                     'sku' => $product->sku,
-                    'model' => $product->model,
                     'variant_label' => null,
-                    'price' => $product->price,
+                    'price' => $price,
+                    'base_price' => $basePrice,
+                    'group_price' => $groupPrice,
                     'stock' => $product->quantity,
+                    'image' => $image,
                 ];
             }
         }
@@ -374,6 +479,7 @@ class OrderController extends Controller
                     'phone' => $c->phone,
                     'first_name' => $c->first_name,
                     'last_name' => $c->last_name,
+                    'customer_group_id' => $c->customer_group_id,
                     'address' => $defaultAddr ? [
                         'first_name' => $defaultAddr->first_name,
                         'last_name' => $defaultAddr->last_name,

@@ -27,19 +27,9 @@
                 </div>
             @endif
 
-            {{-- Tab Navigation --}}
+            {{-- ===================== CUSTOMER & ADDRESS ===================== --}}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <nav class="flex border-b border-gray-200 overflow-x-auto">
-                    <template x-for="t in tabs" :key="t.id">
-                        <button type="button" @click="activeTab = t.id"
-                            :class="activeTab === t.id ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                            class="whitespace-nowrap px-5 py-3 border-b-2 text-sm font-medium transition-colors"
-                            x-text="t.label"></button>
-                    </template>
-                </nav>
-
-                {{-- ===================== DETAILS ===================== --}}
-                <div x-show="activeTab === 'details'" class="p-6 space-y-6">
+                <div class="p-6 space-y-6">
                     <input type="hidden" name="store_id" value="1">
 
                     {{-- Customer --}}
@@ -322,88 +312,25 @@
                         </div>
                     </div>
 
-                    {{-- Payment & Shipping Method --}}
-                    <div class="border-t border-gray-200 pt-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                                <input type="hidden" name="payment_method" :value="paymentMethod === 'custom' ? paymentMethodCustom : paymentMethod">
-                                <select x-model="paymentMethod"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">Select...</option>
-                                    <option value="bank_transfer">Bank Transfer</option>
-                                    <option value="hitpay">HitPay</option>
-                                    <option value="cod">Cash on Delivery</option>
-                                    <option value="custom">Other (type below)</option>
-                                </select>
-                                <input x-show="paymentMethod === 'custom'" type="text" x-model="paymentMethodCustom"
-                                    class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom payment method...">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Method</label>
-                                <input type="hidden" name="shipping_method" :value="shippingMethod === 'custom' ? shippingMethodCustom : shippingMethod">
-                                <select x-model="shippingMethod"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">Select...</option>
-                                    <option value="Free Shipping">Free Shipping</option>
-                                    <option value="Weight-Based">Weight-Based</option>
-                                    <option value="Flat Rate">Flat Rate</option>
-                                    <option value="Delivery PH">Delivery PH</option>
-                                    <option value="DHL Express">DHL Express</option>
-                                    <option value="custom">Other (type below)</option>
-                                </select>
-                                <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom"
-                                    class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom shipping method...">
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Order Status --}}
-                    <div class="border-t border-gray-200 pt-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="order_status_id" class="block text-sm font-medium text-gray-700 mb-1">Order Status</label>
-                                <select name="order_status_id" id="order_status_id" required
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    @foreach ($statuses as $status)
-                                        <option value="{{ $status->id }}"
-                                            {{ old('order_status_id', $order?->order_status_id) == $status->id ? 'selected' : '' }}>
-                                            {{ $status->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Comment --}}
-                    <div class="border-t border-gray-200 pt-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Order Comment</label>
-                        <textarea name="comment" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment', $order?->comment) }}</textarea>
-                    </div>
-
-                    {{-- Notifications --}}
-                    <div class="border-t border-gray-200 pt-4">
-                        <div class="flex items-center gap-6">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" name="notify_customer" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                <span class="text-sm text-gray-700">Send order confirmation to customer</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" name="notify_admin" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                                <span class="text-sm text-gray-700">Send notification to admin</span>
-                            </label>
-                        </div>
-                    </div>
                 </div>
+            </div>
 
-                {{-- ===================== PRODUCTS ===================== --}}
-                <div x-show="activeTab === 'products'" class="p-6">
+            {{-- ===================== PRODUCTS ===================== --}}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-sm font-semibold text-gray-700">Products</h3>
+                </div>
+                <div class="p-6">
+                    {{-- No customer warning --}}
+                    <div x-show="!customerId" class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                        Select a customer above before adding products.
+                    </div>
+
                     {{-- Product Search --}}
-                    <div class="flex items-center gap-3 mb-4">
+                    <div x-show="customerId" class="flex items-center gap-3 mb-4">
                         <div class="relative flex-1">
                             <input type="text" x-model="productSearch" @input.debounce.300ms="searchProducts()" @focus="productDropdownOpen = true" @click.away="productDropdownOpen = false"
-                                placeholder="Search products by name, SKU, or model..." autocomplete="off"
+                                placeholder="Search products by name or SKU..." autocomplete="off"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             <div x-show="productDropdownOpen && productResults.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                                 <template x-for="p in productResults" :key="(p.product_id || '') + '-' + (p.product_variant_id || '')">
@@ -436,9 +363,10 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase" colspan="2">Product</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase" x-show="hasGroupPricing" x-cloak>Group Price</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                                     <th class="px-3 py-2 w-10"></th>
@@ -447,7 +375,17 @@
                             <tbody class="divide-y divide-gray-200">
                                 <template x-for="(item, iIndex) in items" :key="iIndex">
                                     <tr>
-                                        <td class="px-3 py-2">
+                                        <td class="pl-3 py-2 w-12">
+                                            <template x-if="item.image">
+                                                <img :src="item.image" :alt="item.name" class="w-10 h-10 rounded object-cover border border-gray-200">
+                                            </template>
+                                            <template x-if="!item.image">
+                                                <div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                                                    <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                </div>
+                                            </template>
+                                        </td>
+                                        <td class="px-2 py-2">
                                             <template x-if="item.is_custom">
                                                 <input type="text" x-model="item.name" :name="'items['+iIndex+'][name]'" placeholder="Product name"
                                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -461,7 +399,6 @@
                                             </template>
                                             <input type="hidden" :name="'items['+iIndex+'][product_id]'" :value="item.product_id || ''">
                                             <input type="hidden" :name="'items['+iIndex+'][product_variant_id]'" :value="item.product_variant_id || ''">
-                                            <input type="hidden" :name="'items['+iIndex+'][model]'" :value="item.model || ''">
                                             <input type="hidden" :name="'items['+iIndex+'][variant_label]'" :value="item.variant_label || ''">
                                             <input type="hidden" :name="'items['+iIndex+'][is_custom]'" :value="item.is_custom ? '1' : '0'">
                                         </td>
@@ -473,6 +410,14 @@
                                         <td class="px-3 py-2">
                                             <input type="number" x-model="item.price" :name="'items['+iIndex+'][price]'" step="0.01" min="0"
                                                 class="w-28 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                        </td>
+                                        <td class="px-3 py-2" x-show="hasGroupPricing" x-cloak>
+                                            <template x-if="item.group_price !== null && item.group_price !== undefined">
+                                                <span class="text-sm text-emerald-600 font-medium" x-text="parseFloat(item.group_price).toFixed(2)"></span>
+                                            </template>
+                                            <template x-if="item.group_price === null || item.group_price === undefined">
+                                                <span class="text-xs text-gray-400">—</span>
+                                            </template>
                                         </td>
                                         <td class="px-3 py-2">
                                             <input type="number" x-model.number="item.quantity" :name="'items['+iIndex+'][quantity]'" min="1"
@@ -513,7 +458,73 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
+            {{-- ===================== PAYMENT, STATUS & NOTES ===================== --}}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-sm font-semibold text-gray-700">Payment & Status</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                            <input type="hidden" name="payment_method" :value="paymentMethod === 'custom' ? paymentMethodCustom : paymentMethod">
+                            <select x-model="paymentMethod"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Select...</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="hitpay">HitPay</option>
+                                <option value="cod">Cash on Delivery</option>
+                                <option value="custom">Other (type below)</option>
+                            </select>
+                            <input x-show="paymentMethod === 'custom'" type="text" x-model="paymentMethodCustom"
+                                class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom payment method...">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Method</label>
+                            <input type="hidden" name="shipping_method" :value="shippingMethod === 'custom' ? shippingMethodCustom : shippingMethod">
+                            <select x-model="shippingMethod"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Select...</option>
+                                <option value="Free Shipping">Free Shipping</option>
+                                <option value="Weight-Based">Weight-Based</option>
+                                <option value="Flat Rate">Flat Rate</option>
+                                <option value="Delivery PH">Delivery PH</option>
+                                <option value="DHL Express">DHL Express</option>
+                                <option value="custom">Other (type below)</option>
+                            </select>
+                            <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom"
+                                class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom shipping method...">
+                        </div>
+                        <div>
+                            <label for="order_status_id" class="block text-sm font-medium text-gray-700 mb-1">Order Status</label>
+                            <select name="order_status_id" id="order_status_id" required
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                @foreach ($statuses as $status)
+                                    <option value="{{ $status->id }}"
+                                        {{ old('order_status_id', $order?->order_status_id) == $status->id ? 'selected' : '' }}>
+                                        {{ $status->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Order Comment</label>
+                        <textarea name="comment" rows="2" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment', $order?->comment) }}</textarea>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="notify_customer" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm text-gray-700">Send order confirmation to customer</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="notify_admin" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <span class="text-sm text-gray-700">Send notification to admin</span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             {{-- Submit --}}
@@ -527,17 +538,40 @@
 
     </div>
 
+    @php
+        $formItems = $existingItems ?? [];
+        if (old('items')) {
+            $formItems = collect(old('items'))->map(function ($i) {
+                $image = null;
+                $productId = $i['product_id'] ?? null;
+                if ($productId) {
+                    $product = \App\Models\Product::find($productId);
+                    if ($product?->image) {
+                        $image = storage_url($product->image);
+                    }
+                }
+                return [
+                    'product_id' => $productId ?? '',
+                    'product_variant_id' => $i['product_variant_id'] ?? '',
+                    'name' => $i['name'] ?? '',
+                    'sku' => $i['sku'] ?? '',
+                    'variant_label' => $i['variant_label'] ?? '',
+                    'price' => $i['price'] ?? 0,
+                    'quantity' => $i['quantity'] ?? 1,
+                    'is_custom' => !empty($i['is_custom']),
+                    'image' => $image,
+                    'group_price' => null,
+                ];
+            })->toArray();
+        }
+    @endphp
+
     @push('scripts')
     <script>
         function orderForm() {
             return {
-                activeTab: 'details',
-                tabs: [
-                    { id: 'details', label: 'Details' },
-                    { id: 'products', label: 'Products' },
-                ],
                 storeId: '1',
-                items: @json($existingItems ?? []),
+                items: @json($formItems),
                 shippingCost: {{ old('shipping_cost', $order?->shipping_cost ?? 0) }},
 
                 // Customer
@@ -600,6 +634,8 @@
                 productSearch: '',
                 productResults: [],
                 productDropdownOpen: false,
+                customerGroupId: {{ json_encode($customerGroupId ?? null) }},
+                get hasGroupPricing() { return this.items.some(function(i) { return i.group_price !== null && i.group_price !== undefined; }); },
 
                 get subtotal() {
                     return this.items.reduce((sum, i) => sum + (parseFloat(i.price || 0) * (i.quantity || 1)), 0);
@@ -628,6 +664,7 @@
                     this.customerSearch = c.name;
                     this.customerDropdownOpen = false;
                     this.customerAddresses = c.addresses || [];
+                    this.customerGroupId = c.customer_group_id || null;
 
                     if (c.address) {
                         this.applyAddress(c.address);
@@ -661,7 +698,11 @@
                         this.productResults = [];
                         return;
                     }
-                    const res = await fetch(`{{ route('admin.orders.search-products') }}?store_id=${this.storeId}&q=${encodeURIComponent(this.productSearch)}`);
+                    let url = `{{ route('admin.orders.search-products') }}?store_id=${this.storeId}&q=${encodeURIComponent(this.productSearch)}`;
+                    if (this.customerGroupId) {
+                        url += `&customer_group_id=${this.customerGroupId}`;
+                    }
+                    const res = await fetch(url);
                     this.productResults = await res.json();
                     this.productDropdownOpen = true;
                 },
@@ -672,12 +713,13 @@
                         product_variant_id: p.product_variant_id,
                         name: p.name,
                         sku: p.sku || '',
-                        model: p.model || '',
                         variant_label: p.variant_label || '',
                         price: p.price,
                         quantity: 1,
                         stock: p.stock ?? 0,
                         is_custom: false,
+                        image: p.image || null,
+                        group_price: p.group_price ?? null,
                     });
                     this.productSearch = '';
                     this.productResults = [];
@@ -690,11 +732,12 @@
                         product_variant_id: '',
                         name: '',
                         sku: '',
-                        model: '',
                         variant_label: '',
                         price: 0,
                         quantity: 1,
                         is_custom: true,
+                        image: null,
+                        group_price: null,
                     });
                 },
 
