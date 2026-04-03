@@ -225,7 +225,7 @@ class CheckoutService
 
         $order = DB::transaction(function () use (
             $customer, $shippingAddress, $billingAddress, $paymentMethodKey,
-            $shippingMethod, $shippingMethodKey, $shippingMethodName, $items, $subtotal, $shippingCost, $total,
+            $shippingMethod, $shippingMethodKey, $shippingMethodName, $shippingMeta, $items, $subtotal, $shippingCost, $total,
             $comment, $cart
         ) {
             $orderData = [
