@@ -222,6 +222,14 @@ class OrderController extends Controller
                 }
             }
 
+            // Resolve base price and display mode
+            $basePrice = $item->product_variant_id
+                ? ((float) (\App\Models\ProductVariant::find($item->product_variant_id)?->price ?? $item->price))
+                : ((float) ($item->product?->price ?? $item->price));
+
+            $displayMode = $item->product ? $this->resolveDisplayMode($item->product, $customerGroupId) : null;
+            $groupPriceMode = ($groupPrice !== null && $groupPrice < $basePrice) ? ($displayMode ?? 'override') : 'regular';
+
             return [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
@@ -233,7 +241,9 @@ class OrderController extends Controller
                 'quantity' => $item->quantity,
                 'is_custom' => $item->is_custom,
                 'image' => $image,
-                'group_price' => $groupPrice,
+                'group_price' => $groupPrice ?? $basePrice,
+                'group_price_mode' => $groupPriceMode,
+                'base_price' => $basePrice,
             ];
         })->toArray();
 
@@ -448,7 +458,8 @@ class OrderController extends Controller
                         }
                     }
 
-                    $groupPrice = $resolvedPrice < $basePrice ? $resolvedPrice : null;
+                    // Determine display mode from the matching special
+                    $displayMode = $this->resolveDisplayMode($product, $customerGroupId);
 
                     $results[] = [
                         'product_id' => $product->id,
@@ -458,7 +469,8 @@ class OrderController extends Controller
                         'variant_label' => $variant->name,
                         'price' => $resolvedPrice,
                         'base_price' => $basePrice,
-                        'group_price' => $groupPrice,
+                        'group_price' => $resolvedPrice,
+                        'group_price_mode' => $resolvedPrice < $basePrice ? ($displayMode ?? 'override') : 'regular',
                         'stock' => $variant->quantity,
                         'image' => $image,
                     ];
@@ -466,7 +478,7 @@ class OrderController extends Controller
             } else {
                 $basePrice = (float) $product->price;
                 $resolvedPrice = \App\Services\CartService::resolvePrice($product, $basePrice, 1, $customerGroupId);
-                $groupPrice = $resolvedPrice < $basePrice ? $resolvedPrice : null;
+                $displayMode = $this->resolveDisplayMode($product, $customerGroupId);
 
                 $results[] = [
                     'product_id' => $product->id,
@@ -476,7 +488,8 @@ class OrderController extends Controller
                     'variant_label' => null,
                     'price' => $resolvedPrice,
                     'base_price' => $basePrice,
-                    'group_price' => $groupPrice,
+                    'group_price' => $resolvedPrice,
+                    'group_price_mode' => $resolvedPrice < $basePrice ? ($displayMode ?? 'override') : 'regular',
                     'stock' => $product->quantity,
                     'image' => $image,
                 ];
@@ -525,6 +538,7 @@ class OrderController extends Controller
                         'state' => $defaultAddr->state,
                         'postcode' => $defaultAddr->postcode,
                         'country_id' => $defaultAddr->country_id,
+                        'phone' => $defaultAddr->phone,
                     ] : null,
                     'addresses' => $c->addresses->map(function ($a) {
                         return [
@@ -560,9 +574,18 @@ class OrderController extends Controller
             'postcode' => $request->input('postcode', ''),
         ];
 
-        $items = collect($request->input('items', []))->map(function ($item) {
-            $product = \App\Models\Product::find($item['product_id'] ?? null);
-            $variant = $item['product_variant_id'] ? \App\Models\ProductVariant::find($item['product_variant_id']) : null;
+        $customerGroupId = $request->input('customer_group_id');
+        $brandIds = [];
+        $categoryIds = [];
+
+        $items = collect($request->input('items', []))->map(function ($item) use (&$brandIds, &$categoryIds) {
+            $product = \App\Models\Product::with('categories')->find($item['product_id'] ?? null);
+            $variant = !empty($item['product_variant_id']) ? \App\Models\ProductVariant::find($item['product_variant_id']) : null;
+
+            if ($product) {
+                if ($product->brand_id) $brandIds[] = $product->brand_id;
+                $categoryIds = array_merge($categoryIds, $product->categories->pluck('id')->all());
+            }
 
             return (object) [
                 'product_id' => $item['product_id'] ?? null,
@@ -578,7 +601,12 @@ class OrderController extends Controller
         $subtotal = $items->sum(fn($i) => $i->price * $i->quantity);
 
         $quoteService = app(\App\Services\Shipping\ShippingQuoteService::class);
-        $quotes = $quoteService->getQuotes($address, $items, $subtotal);
+        $quotes = $quoteService->getQuotes($address, $items, $subtotal, [
+            'customer_group_id' => $customerGroupId ? (int) $customerGroupId : null,
+            'brand_ids' => array_values(array_unique($brandIds)),
+            'category_ids' => array_values(array_unique($categoryIds)),
+            'items' => $items,
+        ]);
 
         return response()->json(['methods' => $quotes]);
     }
@@ -666,6 +694,22 @@ class OrderController extends Controller
             'items.*.price' => ['required', 'numeric', 'min:0'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ]);
+    }
+
+    private function resolveDisplayMode(Product $product, ?int $customerGroupId): ?string
+    {
+        $now = now();
+        $best = $product->specials
+            ->filter(function ($s) use ($now, $customerGroupId) {
+                if ($s->date_start && $s->date_start > $now) return false;
+                if ($s->date_end && $s->date_end < $now) return false;
+                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                return true;
+            })
+            ->sortBy([['priority', 'asc'], ['price', 'asc']])
+            ->first();
+
+        return $best?->display_mode;
     }
 
     protected function syncProducts(Order $order, Request $request): void

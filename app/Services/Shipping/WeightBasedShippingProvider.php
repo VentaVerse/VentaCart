@@ -30,7 +30,8 @@ class WeightBasedShippingProvider implements ShippingProviderInterface
     {
         try {
             $methods = WeightBasedMethod::active()->with(['rates', 'geoZones', 'customerGroups'])->get();
-            $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+            $context = ShippingQuoteService::getContext();
+            $customerGroupId = $context['customer_group_id'] ?? Auth::guard('customer')->user()?->customer_group_id;
             $quotes = [];
 
             foreach ($methods as $method) {

@@ -255,6 +255,16 @@
                                     <input type="text" x-model="addr.postcode" :name="'addresses['+aIndex+'][postcode]'"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                                    <div class="flex gap-2">
+                                        <span class="inline-flex items-center px-3 rounded-lg border border-gray-300 bg-gray-50 text-sm text-gray-500"
+                                            x-text="phoneCodes[addr.country_id] ? '+' + phoneCodes[addr.country_id] : '—'"></span>
+                                        <input type="text" x-model="addr.phone" :name="'addresses['+aIndex+'][phone]'"
+                                            class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                            placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -306,6 +316,7 @@
                 activeTab: 'general',
                 addresses: @json($customer?->addresses ?? []),
                 addrDropdowns: {},
+                phoneCodes: @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'id')),
 
                 addAddress() {
                     this.addresses.push({
@@ -318,6 +329,7 @@
                         barangay: '',
                         state: '',
                         postcode: '',
+                        phone: '',
                         country_id: '{{ \App\Models\Country::where("iso2", "PH")->value("id") ?? "" }}',
                         is_default: this.addresses.length === 0,
                     });

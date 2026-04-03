@@ -34,22 +34,25 @@
 
                     {{-- Customer --}}
                     <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-sm font-semibold text-gray-700">Customer</h3>
-                            <div class="flex items-center gap-3" x-show="!customerId">
-                                <button type="button" @click="isNewCustomer = false" :class="!isNewCustomer ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'" class="px-3 py-1 text-xs font-medium rounded-lg transition-colors">Existing</button>
-                                <button type="button" @click="isNewCustomer = true" :class="isNewCustomer ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'" class="px-3 py-1 text-xs font-medium rounded-lg transition-colors">New Customer</button>
-                            </div>
-                            <button type="button" x-show="customerId" @click="clearCustomer()" class="text-xs text-red-500 hover:text-red-700">Change Customer</button>
-                        </div>
+                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Customer</h3>
                         <div class="max-w-xl">
                             <input type="hidden" name="customer_id" :value="customerId">
                             <input type="hidden" name="is_new_customer" :value="isNewCustomer && !customerId ? '1' : '0'">
                             <input type="hidden" name="phone" :value="customerPhone">
 
-                            {{-- Existing Customer Search --}}
-                            <div x-show="!isNewCustomer && !customerId">
-                                <div class="relative mb-3">
+                            {{-- Search or New — unified input area --}}
+                            <div x-show="!customerId" class="mb-3">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+                                        <button type="button" @click="isNewCustomer = false"
+                                            :class="!isNewCustomer ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+                                            class="px-3 py-1.5 font-medium transition-colors">Existing</button>
+                                        <button type="button" @click="isNewCustomer = true"
+                                            :class="isNewCustomer ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+                                            class="px-3 py-1.5 font-medium transition-colors border-l border-gray-300">New Customer</button>
+                                    </div>
+                                </div>
+                                <div x-show="!isNewCustomer" class="relative">
                                     <input type="text" x-model="customerSearch" @input.debounce.300ms="searchCustomers()" @focus="customerDropdownOpen = true" @click.away="customerDropdownOpen = false"
                                         placeholder="Search customer by name or email..." autocomplete="off"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -66,9 +69,12 @@
 
                             {{-- Selected Customer or New Customer Fields --}}
                             <div x-show="customerId || isNewCustomer" class="grid grid-cols-2 gap-3">
-                                <div x-show="customerId" class="col-span-2 flex items-center gap-2 bg-indigo-50 rounded-lg px-3 py-2 mb-1">
-                                    <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                    <span class="text-sm text-indigo-700 font-medium" x-text="customerFirstName + ' ' + customerLastName + ' (' + customerEmail + ')'"></span>
+                                <div x-show="customerId" class="col-span-2 flex items-center justify-between bg-indigo-50 rounded-lg px-3 py-2 mb-1">
+                                    <div class="flex items-center gap-2">
+                                        <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                        <span class="text-sm text-indigo-700 font-medium" x-text="customerFirstName + ' ' + customerLastName + ' (' + customerEmail + ')'"></span>
+                                    </div>
+                                    <button type="button" @click="clearCustomer()" class="text-xs text-red-500 hover:text-red-700 font-medium shrink-0">Change</button>
                                 </div>
                                 <div x-show="isNewCustomer && !customerId" class="col-span-2 flex items-center gap-2 bg-emerald-50 rounded-lg px-3 py-2 mb-1">
                                     <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
@@ -174,7 +180,7 @@
                             <div x-show="!shippingDropdowns.hasProvider && shipping.country_id">
                                 <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
                                 <template x-if="(shippingDropdowns.zones || []).length > 0">
-                                    <select name="shipping_state" x-model="shipping.state"
+                                    <select name="shipping_state" x-model="shipping.state" @change="$nextTick(() => refreshMethods())"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         <option value="">Select State / Province</option>
                                         <template x-for="z in (shippingDropdowns.zones || [])" :key="z.id">
@@ -183,7 +189,7 @@
                                     </select>
                                 </template>
                                 <template x-if="(shippingDropdowns.zones || []).length === 0">
-                                    <input type="text" name="shipping_state" x-model="shipping.state"
+                                    <input type="text" name="shipping_state" x-model="shipping.state" @change="$nextTick(() => refreshMethods())"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </template>
                             </div>
@@ -387,7 +393,7 @@
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase" colspan="2">Product</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase" x-show="hasGroupPricing" x-cloak>Group Price</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Customer Price</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
                                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
                                     <th class="px-3 py-2 w-10"></th>
@@ -432,12 +438,18 @@
                                             <input type="number" x-model="item.price" :name="'items['+iIndex+'][price]'" step="0.01" min="0"
                                                 class="w-28 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         </td>
-                                        <td class="px-3 py-2" x-show="hasGroupPricing" x-cloak>
-                                            <template x-if="item.group_price !== null && item.group_price !== undefined">
+                                        <td class="px-3 py-2">
+                                            <template x-if="item.group_price_mode === 'sale'">
+                                                <div>
+                                                    <span class="text-xs text-gray-400 line-through" x-text="parseFloat(item.base_price || 0).toFixed(2)"></span>
+                                                    <span class="text-sm text-red-600 font-medium ml-1" x-text="parseFloat(item.group_price).toFixed(2)"></span>
+                                                </div>
+                                            </template>
+                                            <template x-if="item.group_price_mode === 'override'">
                                                 <span class="text-sm text-emerald-600 font-medium" x-text="parseFloat(item.group_price).toFixed(2)"></span>
                                             </template>
-                                            <template x-if="item.group_price === null || item.group_price === undefined">
-                                                <span class="text-xs text-gray-400">—</span>
+                                            <template x-if="!item.group_price_mode || item.group_price_mode === 'regular'">
+                                                <span class="text-sm text-gray-400" x-text="parseFloat(item.group_price || item.base_price || 0).toFixed(2)"></span>
                                             </template>
                                         </td>
                                         <td class="px-3 py-2">
@@ -467,15 +479,53 @@
                                 <span class="text-gray-500">Subtotal</span>
                                 <span class="font-medium" x-text="subtotal.toFixed(2)"></span>
                             </div>
-                            <div class="flex justify-between text-sm items-center">
-                                <span class="text-gray-500">Shipping</span>
-                                <input type="number" name="shipping_cost" x-model.number="shippingCost" step="0.01" min="0"
-                                    class="w-28 rounded-lg border-gray-300 text-sm text-right focus:border-indigo-500 focus:ring-indigo-500">
+                            <div class="flex justify-between text-sm text-gray-400">
+                                <span>Shipping</span>
+                                <span x-text="(shippingCost || 0).toFixed(2)"></span>
                             </div>
                             <div class="flex justify-between text-sm font-bold border-t border-gray-200 pt-2">
                                 <span>Total</span>
                                 <span x-text="orderTotal.toFixed(2)"></span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- ===================== SHIPPING ===================== --}}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-sm font-semibold text-gray-700">Shipping</h3>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div class="mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Shipping Method</label>
+                            </div>
+                            <input type="hidden" name="shipping_method" :value="shippingMethod === 'custom' ? shippingMethodCustom : shippingMethod">
+                            <div x-show="loadingShipping" class="flex items-center gap-2 py-2 text-sm text-gray-400">
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Loading...
+                            </div>
+                            <select x-show="!loadingShipping" x-model="shippingMethod" @change="onShippingMethodChange()"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Select...</option>
+                                <template x-for="sm in availableShippingMethods" :key="sm.key">
+                                    <option :value="sm.name" x-text="sm.name + ' — ₱' + parseFloat(sm.cost).toFixed(2)"></option>
+                                </template>
+                                <option value="custom">Other (type below)</option>
+                            </select>
+                            <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom"
+                                class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom shipping method...">
+                            <p x-show="!loadingShipping && availableShippingMethods.length === 0 && items.length > 0 && shipping.country_id" class="text-xs text-amber-500 mt-1">No shipping methods available for this address. Use "Other" to set manually.</p>
+                        </div>
+                        <div>
+                            <div class="mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Shipping Cost</label>
+                            </div>
+                            <input type="number" name="shipping_cost" x-model.number="shippingCost" step="0.01" min="0"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                     </div>
                 </div>
@@ -489,33 +539,8 @@
                 <div class="p-6 space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <label class="block text-sm font-medium text-gray-700">Shipping Method</label>
-                                <button type="button" @click="fetchShippingMethods()" x-show="items.length > 0 && shipping.country_id"
-                                    class="text-xs text-indigo-600 hover:text-indigo-800">Refresh</button>
-                            </div>
-                            <input type="hidden" name="shipping_method" :value="shippingMethod === 'custom' ? shippingMethodCustom : shippingMethod">
-                            <div x-show="loadingShipping" class="flex items-center gap-2 py-2 text-sm text-gray-400">
-                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                Loading...
-                            </div>
-                            <select x-show="!loadingShipping" x-model="shippingMethod" @change="fetchPaymentMethods()"
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">Select...</option>
-                                <template x-for="sm in availableShippingMethods" :key="sm.key">
-                                    <option :value="sm.name" x-text="sm.name + ' — ₱' + parseFloat(sm.cost).toFixed(2)"></option>
-                                </template>
-                                <option value="custom">Other (type below)</option>
-                            </select>
-                            <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom"
-                                class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom shipping method...">
-                            <p x-show="!loadingShipping && availableShippingMethods.length === 0 && items.length > 0 && shipping.country_id" class="text-xs text-amber-500 mt-1">No shipping methods available for this address. Use "Other" to set manually.</p>
-                        </div>
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
+                            <div class="mb-1">
                                 <label class="block text-sm font-medium text-gray-700">Payment Method</label>
-                                <button type="button" @click="fetchPaymentMethods()" x-show="items.length > 0"
-                                    class="text-xs text-indigo-600 hover:text-indigo-800">Refresh</button>
                             </div>
                             <input type="hidden" name="payment_method" :value="paymentMethod === 'custom' ? paymentMethodCustom : paymentMethod">
                             <div x-show="loadingPayments" class="flex items-center gap-2 py-2 text-sm text-gray-400">
@@ -676,7 +701,6 @@
                 productResults: [],
                 productDropdownOpen: false,
                 customerGroupId: {{ json_encode($customerGroupId ?? null) }},
-                get hasGroupPricing() { return this.items.some(function(i) { return i.group_price !== null && i.group_price !== undefined; }); },
 
                 get subtotal() {
                     return this.items.reduce((sum, i) => sum + (parseFloat(i.price || 0) * (i.quantity || 1)), 0);
@@ -711,6 +735,9 @@
                     this.availablePaymentMethods = [];
                     this.shippingMethod = '';
                     this.paymentMethod = '';
+                    this.shipping = { first_name: '', last_name: '', country_id: '', state: '', city: '', district: '', barangay: '', address_1: '', postcode: '', phone: '' };
+                    this.shippingDropdowns = { zones: [], provinces: [], cities: [], districts: [], barangays: [], hasProvider: false };
+                    this.phoneCode = '63';
                 },
 
                 selectCustomer(c) {
@@ -725,9 +752,6 @@
                     this.customerGroupId = c.customer_group_id || null;
                     this.isNewCustomer = false;
 
-                    if (c.address) {
-                        this.applyAddress(c.address);
-                    }
                 },
 
                 loadCustomerAddress(addrId) {
@@ -779,10 +803,13 @@
                         is_custom: false,
                         image: p.image || null,
                         group_price: p.group_price ?? null,
+                        group_price_mode: p.group_price_mode || 'regular',
+                        base_price: p.base_price || p.price,
                     });
                     this.productSearch = '';
                     this.productResults = [];
                     this.productDropdownOpen = false;
+                    this.refreshMethods();
                 },
 
                 addCustomItem() {
@@ -797,6 +824,8 @@
                         is_custom: true,
                         image: null,
                         group_price: null,
+                        group_price_mode: 'regular',
+                        base_price: 0,
                     });
                 },
 
@@ -887,9 +916,9 @@
                 },
 
                 // ── Shipping wrappers ──
-                onShippingCountryChange(preserve) { return this._onCountryChange(this.shipping, this.shippingDropdowns, preserve); },
-                onShippingProvinceChange(preserve) { return this._onProvinceChange(this.shipping, this.shippingDropdowns, preserve); },
-                onShippingCityChange(preserve) { return this._onCityChange(this.shipping, this.shippingDropdowns, preserve); },
+                onShippingCountryChange(preserve) { this._onCountryChange(this.shipping, this.shippingDropdowns, preserve); this.$nextTick(() => this.refreshMethods()); },
+                onShippingProvinceChange(preserve) { this._onProvinceChange(this.shipping, this.shippingDropdowns, preserve); this.$nextTick(() => this.refreshMethods()); },
+                onShippingCityChange(preserve) { this._onCityChange(this.shipping, this.shippingDropdowns, preserve); this.$nextTick(() => this.refreshMethods()); },
                 onShippingDistrictChange(preserve) { return this._onDistrictChange(this.shipping, this.shippingDropdowns, preserve); },
 
                 // ── Billing wrappers ──
@@ -897,6 +926,20 @@
                 onBillingProvinceChange(preserve) { return this._onProvinceChange(this.billing, this.billingDropdowns, preserve); },
                 onBillingCityChange(preserve) { return this._onCityChange(this.billing, this.billingDropdowns, preserve); },
                 onBillingDistrictChange(preserve) { return this._onDistrictChange(this.billing, this.billingDropdowns, preserve); },
+
+                onShippingMethodChange() {
+                    const selected = this.availableShippingMethods.find(sm => sm.name === this.shippingMethod);
+                    if (selected) {
+                        this.shippingCost = parseFloat(selected.cost) || 0;
+                    }
+                    this.fetchPaymentMethods();
+                },
+
+                refreshMethods() {
+                    if (this.items.length > 0 && this.shipping.country_id) {
+                        this.fetchShippingMethods().then(() => this.fetchPaymentMethods());
+                    }
+                },
 
                 async fetchShippingMethods() {
                     if (!this.shipping.country_id || this.items.length === 0) {
@@ -916,6 +959,7 @@
                                 barangay: this.shipping.barangay,
                                 postcode: this.shipping.postcode,
                                 items: this.items.map(function(i) { return { product_id: i.product_id, product_variant_id: i.product_variant_id, quantity: i.quantity, price: i.price }; }),
+                                customer_group_id: this.customerGroupId,
                             }),
                         });
                         const data = await res.json();
@@ -977,12 +1021,7 @@
                     if (this.billing.country_id) { this.onBillingCountryChange(true); }
 
                     // Auto-fetch methods if editing an existing order with items
-                    if (this.items.length > 0 && this.shipping.country_id) {
-                        this.$nextTick(() => {
-                            this.fetchShippingMethods();
-                            this.fetchPaymentMethods();
-                        });
-                    }
+                    this.$nextTick(() => this.refreshMethods());
                 }
             }
         }

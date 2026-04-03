@@ -7,6 +7,17 @@ use Illuminate\Support\Facades\Log;
 
 class ShippingQuoteService
 {
+    /**
+     * Shared context for providers that need customer/cart info.
+     * Set via getQuotes() $context parameter. Providers access via static getter.
+     */
+    private static array $context = [];
+
+    public static function getContext(): array
+    {
+        return static::$context;
+    }
+
     private function getProviders(): array
     {
         return [
@@ -21,9 +32,12 @@ class ShippingQuoteService
     /**
      * Get shipping quotes from enabled providers.
      * If free shipping qualifies (service_type=free_shipping), it overrides all paid methods.
+     *
+     * @param array $context Optional context: customer_group_id, brand_ids, category_ids, items (for admin order entry)
      */
-    public function getQuotes(array $deliveryAddress, Collection $cartItems, float $subtotal): array
+    public function getQuotes(array $deliveryAddress, Collection $cartItems, float $subtotal, array $context = []): array
     {
+        static::$context = $context;
         $dimensions = $this->aggregateDimensions($cartItems);
         $quotes = [];
 
@@ -46,6 +60,8 @@ class ShippingQuoteService
                 ]);
             }
         }
+
+        static::$context = [];
 
         // Only free shipping RULES override other methods — not custom methods priced at ₱0
         $freeShippingQuotes = array_filter($quotes, fn ($q) => ($q['service_type'] ?? '') === 'free_shipping');

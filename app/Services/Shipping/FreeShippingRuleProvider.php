@@ -34,18 +34,26 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
                 return [];
             }
 
-            $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
-            $cartItems = $this->getCartItems();
+            $context = ShippingQuoteService::getContext();
+            $customerGroupId = $context['customer_group_id'] ?? Auth::guard('customer')->user()?->customer_group_id;
 
-            if ($cartItems->isEmpty()) {
-                return [];
+            // Use context items (admin order entry) or session cart items (storefront)
+            if (!empty($context['items'])) {
+                $cartItems = collect($context['items']);
+                $cartBrandIds = $context['brand_ids'] ?? [];
+                $cartCategoryIds = $context['category_ids'] ?? [];
+                $cartQuantity = $cartItems->sum(fn($i) => $i->quantity ?? 1);
+            } else {
+                $cartItems = $this->getCartItems();
+                if ($cartItems->isEmpty()) {
+                    return [];
+                }
+                $cartBrandIds = $cartItems->pluck('product.brand_id')->filter()->unique()->values()->all();
+                $cartCategoryIds = $cartItems->flatMap(function ($item) {
+                    return $item->product?->categories?->pluck('id') ?? collect();
+                })->unique()->values()->all();
+                $cartQuantity = $cartItems->sum('quantity');
             }
-
-            $cartBrandIds = $cartItems->pluck('product.brand_id')->filter()->unique()->values()->all();
-            $cartCategoryIds = $cartItems->flatMap(function ($item) {
-                return $item->product?->categories?->pluck('id') ?? collect();
-            })->unique()->values()->all();
-            $cartQuantity = $cartItems->sum('quantity');
             $zoneId = $this->resolveZoneId($address);
 
             foreach ($rules as $rule) {

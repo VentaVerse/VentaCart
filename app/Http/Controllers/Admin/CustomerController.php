@@ -151,6 +151,7 @@ class CustomerController extends Controller
                 'barangay' => $data['barangay'] ?? null,
                 'state' => $data['state'] ?? null,
                 'postcode' => $data['postcode'] ?? null,
+                'phone' => $data['phone'] ?? null,
                 'country_id' => $data['country_id'] ?? null,
                 'is_default' => !empty($data['is_default']),
             ];
