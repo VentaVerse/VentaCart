@@ -104,6 +104,23 @@ class OrderController extends Controller
                 ]);
 
                 $validated['customer_id'] = $customer->id;
+
+                // Save shipping address to customer profile
+                if (!empty($validated['shipping_address_1'])) {
+                    $customer->addresses()->create([
+                        'first_name' => $validated['shipping_first_name'] ?? $validated['first_name'],
+                        'last_name' => $validated['shipping_last_name'] ?? $validated['last_name'],
+                        'address_1' => $validated['shipping_address_1'],
+                        'city' => $validated['shipping_city'] ?? '',
+                        'district' => $validated['shipping_district'] ?? null,
+                        'barangay' => $validated['shipping_barangay'] ?? null,
+                        'state' => $validated['shipping_state'] ?? '',
+                        'postcode' => $validated['shipping_postcode'] ?? '',
+                        'country_id' => $validated['shipping_country_id'] ?? null,
+                        'phone' => $validated['shipping_phone'] ?? null,
+                        'is_default' => true,
+                    ]);
+                }
             }
 
             $order = Order::create($validated);
