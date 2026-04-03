@@ -1218,26 +1218,36 @@
  Breadcrumbs (shared across all pages)
  ============================================ */
  .page-breadcrumbs {
- @apply bg-gray-50 border-b border-gray-200;
+ @apply bg-gray-50 border-b border-gray-200 overflow-hidden;
  }
 
  .page-breadcrumbs nav {
- @apply flex items-center gap-2 text-xs ; color: var(--color-text-muted);
+ @apply flex items-center gap-1.5 text-xs overflow-x-auto whitespace-nowrap py-3 px-4;
+ color: var(--color-text-muted);
+ scrollbar-width: none;
+ -ms-overflow-style: none;
  }
+ .page-breadcrumbs nav::-webkit-scrollbar { display: none; }
 
  .page-breadcrumbs a {
- @apply hover:text-[var(--color-primary)] transition-colors;
+ @apply hover:text-[var(--color-primary)] transition-colors shrink-0;
  }
 
  .page-breadcrumbs span:last-child {
-        color: var(--color-text) truncate;
+ @apply truncate min-w-0;
+ color: var(--color-text);
  }
 
- /* backward compat alias */
- .product-page-breadcrumbs { @apply bg-gray-50 border-b border-gray-200; }
- .product-page-breadcrumbs nav { @apply flex items-center gap-2 text-xs ; }; color: var(--color-text-muted);
- .product-page-breadcrumbs a { @apply hover:text-[var(--color-primary)] transition-colors; }
- .product-page-breadcrumbs span:last-child { @apply truncate; }; color: var(--color-text);
+ .product-page-breadcrumbs { @apply bg-gray-50 border-b border-gray-200 overflow-hidden; }
+ .product-page-breadcrumbs nav {
+ @apply flex items-center gap-1.5 text-xs overflow-x-auto whitespace-nowrap py-3 px-4;
+ color: var(--color-text-muted);
+ scrollbar-width: none;
+ -ms-overflow-style: none;
+ }
+ .product-page-breadcrumbs nav::-webkit-scrollbar { display: none; }
+ .product-page-breadcrumbs a { @apply hover:text-[var(--color-primary)] transition-colors shrink-0; }
+ .product-page-breadcrumbs span:last-child { @apply truncate min-w-0; color: var(--color-text); }
 
  /* ============================================
  Blog
@@ -1390,7 +1400,14 @@
  }
 
  .product-description img {
- @apply rounded-lg my-4;
+ @apply rounded-lg my-4 max-w-full h-auto;
+ }
+
+ .product-description iframe {
+ @apply w-full my-4 rounded-lg;
+ aspect-ratio: 16 / 9;
+ height: auto;
+ max-width: 100%;
  }
 
  /* Add-to-cart message */
