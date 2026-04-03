@@ -67,15 +67,25 @@ class ShippingQuoteService
         $maxHeight = 0;
 
         foreach ($cartItems as $item) {
-            $product = $item->product;
-            if (!$product) continue;
+            // Support both Eloquent CartItem models and plain objects (admin order entry)
+            if (isset($item->weight)) {
+                // Plain object with pre-calculated dimensions
+                $totalWeight += ($item->weight ?: 0) * ($item->quantity ?? 1);
+                $maxLength = max($maxLength, $item->length ?? 0);
+                $maxWidth = max($maxWidth, $item->width ?? 0);
+                $maxHeight = max($maxHeight, $item->height ?? 0);
+            } else {
+                // Eloquent model with product/variant relationships
+                $product = $item->product;
+                if (!$product) continue;
 
-            $itemWeight = $item->productVariant?->weight ?: $product->weight;
-            $totalWeight += ($itemWeight ?: 0) * $item->quantity;
+                $itemWeight = $item->productVariant?->weight ?: $product->weight;
+                $totalWeight += ($itemWeight ?: 0) * $item->quantity;
 
-            $maxLength = max($maxLength, $product->length ?: 0);
-            $maxWidth = max($maxWidth, $product->width ?: 0);
-            $maxHeight = max($maxHeight, $product->height ?: 0);
+                $maxLength = max($maxLength, $product->length ?: 0);
+                $maxWidth = max($maxWidth, $product->width ?: 0);
+                $maxHeight = max($maxHeight, $product->height ?: 0);
+            }
         }
 
         return [

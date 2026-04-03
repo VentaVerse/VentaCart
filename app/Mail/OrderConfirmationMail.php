@@ -30,6 +30,8 @@ class OrderConfirmationMail extends Mailable
             $bankInstructions = BankTransferPayment::getInstructionsForOrder($this->order);
         }
 
+        $this->order->loadMissing('products.product');
+
         return new Content(
             view: 'emails.order-confirmation',
             with: ['order' => $this->order, 'bankInstructions' => $bankInstructions],

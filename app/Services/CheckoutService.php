@@ -335,17 +335,29 @@ class CheckoutService
 
     public static function sendOrderConfirmationEmail(Order $order): void
     {
-        $order->loadMissing('products');
+        $order->loadMissing('products.product');
         $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
 
         $itemsHtml = '';
         foreach ($order->products as $item) {
-            $itemsHtml .= '<p style="margin: 2px 0; font-size: 13px; color: #ccc;">'
-                . e($item->name)
+            $image = $item->product?->image;
+            $imgHtml = '';
+            if ($image && !str_starts_with($image, 'catalog/')) {
+                $imgUrl = url('/storage/' . $image);
+                $imgHtml = '<td style="width: 50px; padding: 4px 8px 4px 0; vertical-align: middle;">'
+                    . '<img src="' . e($imgUrl) . '" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">'
+                    . '</td>';
+            }
+
+            $textHtml = e($item->name)
                 . ($item->variant_label ? ' — ' . e($item->variant_label) : '')
-                . ' × ' . $item->quantity
-                . ' = ' . $currency . number_format($item->total, 2)
-                . '</p>';
+                . ' &times; ' . $item->quantity
+                . ' = ' . $currency . number_format($item->total, 2);
+
+            $itemsHtml .= '<table cellpadding="0" cellspacing="0" border="0" style="margin: 2px 0; width: 100%;"><tr>'
+                . $imgHtml
+                . '<td style="font-size: 13px; color: #ccc; vertical-align: middle;">' . $textHtml . '</td>'
+                . '</tr></table>';
         }
 
         $sent = TemplateMailService::send('order_confirmation', $order->email, [
@@ -372,17 +384,29 @@ class CheckoutService
         $adminEmail = \App\Models\Setting::where('group', 'mail')->where('key', 'from_address')->value('value');
         if (!$adminEmail) return;
 
-        $order->loadMissing('products');
+        $order->loadMissing('products.product');
         $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
 
         $itemsHtml = '';
         foreach ($order->products as $item) {
-            $itemsHtml .= '<p style="margin: 2px 0; font-size: 13px; color: #ccc;">'
-                . e($item->name)
+            $image = $item->product?->image;
+            $imgHtml = '';
+            if ($image && !str_starts_with($image, 'catalog/')) {
+                $imgUrl = url('/storage/' . $image);
+                $imgHtml = '<td style="width: 50px; padding: 4px 8px 4px 0; vertical-align: middle;">'
+                    . '<img src="' . e($imgUrl) . '" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">'
+                    . '</td>';
+            }
+
+            $textHtml = e($item->name)
                 . ($item->variant_label ? ' — ' . e($item->variant_label) : '')
-                . ' × ' . $item->quantity
-                . ' = ' . $currency . number_format($item->total, 2)
-                . '</p>';
+                . ' &times; ' . $item->quantity
+                . ' = ' . $currency . number_format($item->total, 2);
+
+            $itemsHtml .= '<table cellpadding="0" cellspacing="0" border="0" style="margin: 2px 0; width: 100%;"><tr>'
+                . $imgHtml
+                . '<td style="font-size: 13px; color: #ccc; vertical-align: middle;">' . $textHtml . '</td>'
+                . '</tr></table>';
         }
 
         TemplateMailService::send('new_order_admin', $adminEmail, [

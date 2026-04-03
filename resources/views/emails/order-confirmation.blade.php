@@ -62,6 +62,8 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
                                 {{-- Table Header --}}
                                 <tr>
+                                    <td style="padding: 10px 8px; border-bottom: 1px solid #333333; width: 58px;">
+                                    </td>
                                     <td style="padding: 10px 12px; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333333;">
                                         Item
                                     </td>
@@ -78,6 +80,11 @@
                                 {{-- Items --}}
                                 @foreach ($order->products as $item)
                                 <tr>
+                                    <td style="padding: 8px; border-bottom: 1px solid #2a2a2a; width: 58px; vertical-align: middle;">
+                                        @if ($item->product?->image && !str_starts_with($item->product->image, 'catalog/'))
+                                            <img src="{{ url('/storage/' . $item->product->image) }}" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">
+                                        @endif
+                                    </td>
                                     <td style="padding: 12px; font-size: 14px; color: #e8e8e8; border-bottom: 1px solid #2a2a2a;">
                                         {{ $item->name }}
                                         @if ($item->variant_label)

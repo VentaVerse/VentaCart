@@ -276,10 +276,12 @@ class CartService
      * 4. Sort by priority ASC (lower = higher precedence), then price ASC
      * 5. Return the lowest priced match, or the base price if none qualify
      */
-    public static function resolvePrice(Product $product, float $basePrice, int $qty = 1): float
+    public static function resolvePrice(Product $product, float $basePrice, int $qty = 1, ?int $customerGroupId = null): float
     {
-        $customer = Auth::guard('customer')->user();
-        $customerGroupId = $customer?->customer_group_id;
+        if ($customerGroupId === null) {
+            $customer = Auth::guard('customer')->user();
+            $customerGroupId = $customer?->customer_group_id;
+        }
         $now = now();
 
         $bestPrice = $basePrice;

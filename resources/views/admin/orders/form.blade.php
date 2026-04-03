@@ -489,34 +489,49 @@
                 <div class="p-6 space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                            <input type="hidden" name="payment_method" :value="paymentMethod === 'custom' ? paymentMethodCustom : paymentMethod">
-                            <select x-model="paymentMethod"
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">Select...</option>
-                                <option value="bank_transfer">Bank Transfer</option>
-                                <option value="hitpay">HitPay</option>
-                                <option value="cod">Cash on Delivery</option>
-                                <option value="custom">Other (type below)</option>
-                            </select>
-                            <input x-show="paymentMethod === 'custom'" type="text" x-model="paymentMethodCustom"
-                                class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom payment method...">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Method</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Shipping Method</label>
+                                <button type="button" @click="fetchShippingMethods()" x-show="items.length > 0 && shipping.country_id"
+                                    class="text-xs text-indigo-600 hover:text-indigo-800">Refresh</button>
+                            </div>
                             <input type="hidden" name="shipping_method" :value="shippingMethod === 'custom' ? shippingMethodCustom : shippingMethod">
-                            <select x-model="shippingMethod"
+                            <div x-show="loadingShipping" class="flex items-center gap-2 py-2 text-sm text-gray-400">
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Loading...
+                            </div>
+                            <select x-show="!loadingShipping" x-model="shippingMethod" @change="fetchPaymentMethods()"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">Select...</option>
-                                <option value="Free Shipping">Free Shipping</option>
-                                <option value="Weight-Based">Weight-Based</option>
-                                <option value="Flat Rate">Flat Rate</option>
-                                <option value="Delivery PH">Delivery PH</option>
-                                <option value="DHL Express">DHL Express</option>
+                                <template x-for="sm in availableShippingMethods" :key="sm.key">
+                                    <option :value="sm.name" x-text="sm.name + ' — ₱' + parseFloat(sm.cost).toFixed(2)"></option>
+                                </template>
                                 <option value="custom">Other (type below)</option>
                             </select>
                             <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom"
                                 class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom shipping method...">
+                            <p x-show="!loadingShipping && availableShippingMethods.length === 0 && items.length > 0 && shipping.country_id" class="text-xs text-amber-500 mt-1">No shipping methods available for this address. Use "Other" to set manually.</p>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Payment Method</label>
+                                <button type="button" @click="fetchPaymentMethods()" x-show="items.length > 0"
+                                    class="text-xs text-indigo-600 hover:text-indigo-800">Refresh</button>
+                            </div>
+                            <input type="hidden" name="payment_method" :value="paymentMethod === 'custom' ? paymentMethodCustom : paymentMethod">
+                            <div x-show="loadingPayments" class="flex items-center gap-2 py-2 text-sm text-gray-400">
+                                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Loading...
+                            </div>
+                            <select x-show="!loadingPayments" x-model="paymentMethod"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="">Select...</option>
+                                <template x-for="pm in availablePaymentMethods" :key="pm.key">
+                                    <option :value="pm.key" x-text="pm.name"></option>
+                                </template>
+                                <option value="custom">Other (type below)</option>
+                            </select>
+                            <input x-show="paymentMethod === 'custom'" type="text" x-model="paymentMethodCustom"
+                                class="mt-2 w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Custom payment method...">
                         </div>
                         <div>
                             <label for="order_status_id" class="block text-sm font-medium text-gray-700 mb-1">Order Status</label>
@@ -643,6 +658,10 @@
                 paymentMethodCustom: '',
                 shippingMethod: @js(old('shipping_method', $order?->shipping_method ?? '')),
                 shippingMethodCustom: '',
+                availableShippingMethods: [],
+                availablePaymentMethods: [],
+                loadingShipping: false,
+                loadingPayments: false,
 
                 // Customer addresses (for picker)
                 customerAddresses: [],
@@ -688,6 +707,10 @@
                     this.customerGroupId = null;
                     this.isNewCustomer = false;
                     this.items = [];
+                    this.availableShippingMethods = [];
+                    this.availablePaymentMethods = [];
+                    this.shippingMethod = '';
+                    this.paymentMethod = '';
                 },
 
                 selectCustomer(c) {
@@ -875,25 +898,91 @@
                 onBillingCityChange(preserve) { return this._onCityChange(this.billing, this.billingDropdowns, preserve); },
                 onBillingDistrictChange(preserve) { return this._onDistrictChange(this.billing, this.billingDropdowns, preserve); },
 
-                init() {
-                    const knownPayments = ['bank_transfer', 'hitpay', 'cod', ''];
-                    const pm = this.paymentMethod;
-                    if (pm && !knownPayments.includes(pm) && !pm.startsWith('bank_transfer')) {
-                        this.paymentMethodCustom = pm;
-                        this.paymentMethod = 'custom';
-                    } else if (pm && pm.startsWith('bank_transfer')) {
-                        this.paymentMethod = 'bank_transfer';
+                async fetchShippingMethods() {
+                    if (!this.shipping.country_id || this.items.length === 0) {
+                        this.availableShippingMethods = [];
+                        return;
                     }
+                    this.loadingShipping = true;
+                    try {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                        const res = await fetch('{{ route("admin.orders.available-shipping") }}', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                country_id: this.shipping.country_id,
+                                state: this.shipping.state,
+                                city: this.shipping.city,
+                                barangay: this.shipping.barangay,
+                                postcode: this.shipping.postcode,
+                                items: this.items.map(function(i) { return { product_id: i.product_id, product_variant_id: i.product_variant_id, quantity: i.quantity, price: i.price }; }),
+                            }),
+                        });
+                        const data = await res.json();
+                        this.availableShippingMethods = data.methods || [];
+                    } catch (e) {
+                        console.error('Failed to fetch shipping methods', e);
+                        this.availableShippingMethods = [];
+                    }
+                    this.loadingShipping = false;
+                },
 
-                    const knownShipping = ['Free Shipping', 'Weight-Based', 'Flat Rate', 'Delivery PH', 'DHL Express', ''];
+                async fetchPaymentMethods() {
+                    if (this.items.length === 0) {
+                        this.availablePaymentMethods = [];
+                        return;
+                    }
+                    this.loadingPayments = true;
+                    try {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                        const totalWeight = this.items.reduce(function(sum, i) { return sum + (parseFloat(i.weight) || 0) * (i.quantity || 1); }, 0);
+                        const totalQty = this.items.reduce(function(sum, i) { return sum + (i.quantity || 1); }, 0);
+                        const res = await fetch('{{ route("admin.orders.available-payments") }}', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                country_id: this.shipping.country_id,
+                                state: this.shipping.state,
+                                city: this.shipping.city,
+                                barangay: this.shipping.barangay,
+                                postcode: this.shipping.postcode,
+                                subtotal: this.subtotal,
+                                weight: totalWeight,
+                                quantity: totalQty,
+                                customer_group_id: this.customerGroupId,
+                                shipping_method_key: this.shippingMethod !== 'custom' ? this.shippingMethod : null,
+                            }),
+                        });
+                        const data = await res.json();
+                        this.availablePaymentMethods = data.methods || [];
+                    } catch (e) {
+                        console.error('Failed to fetch payment methods', e);
+                        this.availablePaymentMethods = [];
+                    }
+                    this.loadingPayments = false;
+                },
+
+                init() {
+                    // Handle existing order values that may not match dynamic options
+                    const pm = this.paymentMethod;
+                    if (pm && pm !== 'custom') {
+                        // Keep as-is for now; dynamic fetch will validate
+                    }
                     const sm = this.shippingMethod;
-                    if (sm && !knownShipping.includes(sm)) {
-                        this.shippingMethodCustom = sm;
-                        this.shippingMethod = 'custom';
+                    if (sm && sm !== 'custom') {
+                        // Keep as-is
                     }
 
                     if (this.shipping.country_id) { this.onShippingCountryChange(true); }
                     if (this.billing.country_id) { this.onBillingCountryChange(true); }
+
+                    // Auto-fetch methods if editing an existing order with items
+                    if (this.items.length > 0 && this.shipping.country_id) {
+                        this.$nextTick(() => {
+                            this.fetchShippingMethods();
+                            this.fetchPaymentMethods();
+                        });
+                    }
                 }
             }
         }

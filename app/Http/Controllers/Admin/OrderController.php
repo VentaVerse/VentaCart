@@ -415,6 +415,8 @@ class OrderController extends Controller
 
         $customerGroupId = $request->input('customer_group_id');
 
+        $customerGroupId = $customerGroupId ? (int) $customerGroupId : null;
+
         $products = Product::where('store_id', $storeId)
             ->where('is_active', true)
             ->where(function ($q) use ($search) {
@@ -427,49 +429,26 @@ class OrderController extends Controller
             ->limit(15)
             ->get();
 
-        $now = now();
         $results = [];
         foreach ($products as $product) {
             $image = $product->image ? storage_url($product->image) : null;
 
-            // Resolve best price from product_specials for this customer group
-            $resolvedSpecialPrice = null;
-            if ($customerGroupId) {
-                $bestSpecial = $product->specials
-                    ->filter(function ($s) use ($now, $customerGroupId) {
-                        if ($s->date_start && $s->date_start > $now) return false;
-                        if ($s->date_end && $s->date_end < $now) return false;
-                        if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-                        return true;
-                    })
-                    ->sortBy([['priority', 'asc'], ['price', 'asc']])
-                    ->first();
-
-                if ($bestSpecial) {
-                    $resolvedSpecialPrice = (float) $bestSpecial->price;
-                }
-            }
-
             if ($product->has_variants) {
                 foreach ($product->variants as $variant) {
                     $basePrice = (float) $variant->price;
-                    $groupPrice = null;
-                    $price = $basePrice;
 
-                    // Check variant group price first
+                    // Resolve via CartService (handles specials + date + quantity + group)
+                    $resolvedPrice = \App\Services\CartService::resolvePrice($product, $basePrice, 1, $customerGroupId);
+
+                    // Also check variant-specific group price
                     if ($customerGroupId) {
                         $gp = $variant->groupPrices->where('customer_group_id', $customerGroupId)->first();
-                        if ($gp) {
-                            $groupPrice = (float) $gp->price;
-                            $price = $groupPrice;
+                        if ($gp && (float) $gp->price < $resolvedPrice) {
+                            $resolvedPrice = (float) $gp->price;
                         }
                     }
 
-                    // product_specials override (applies to all variants of the product)
-                    if ($resolvedSpecialPrice !== null && ($groupPrice === null || $resolvedSpecialPrice < $groupPrice)) {
-                        $groupPrice = $resolvedSpecialPrice;
-                        $price = $resolvedSpecialPrice;
-                    }
+                    $groupPrice = $resolvedPrice < $basePrice ? $resolvedPrice : null;
 
                     $results[] = [
                         'product_id' => $product->id,
@@ -477,7 +456,7 @@ class OrderController extends Controller
                         'name' => $product->name,
                         'sku' => $variant->sku,
                         'variant_label' => $variant->name,
-                        'price' => $price,
+                        'price' => $resolvedPrice,
                         'base_price' => $basePrice,
                         'group_price' => $groupPrice,
                         'stock' => $variant->quantity,
@@ -486,8 +465,8 @@ class OrderController extends Controller
                 }
             } else {
                 $basePrice = (float) $product->price;
-                $groupPrice = $resolvedSpecialPrice;
-                $price = $groupPrice ?? $basePrice;
+                $resolvedPrice = \App\Services\CartService::resolvePrice($product, $basePrice, 1, $customerGroupId);
+                $groupPrice = $resolvedPrice < $basePrice ? $resolvedPrice : null;
 
                 $results[] = [
                     'product_id' => $product->id,
@@ -495,7 +474,7 @@ class OrderController extends Controller
                     'name' => $product->name,
                     'sku' => $product->sku,
                     'variant_label' => null,
-                    'price' => $price,
+                    'price' => $resolvedPrice,
                     'base_price' => $basePrice,
                     'group_price' => $groupPrice,
                     'stock' => $product->quantity,
@@ -568,6 +547,79 @@ class OrderController extends Controller
             });
 
         return response()->json($customers);
+    }
+
+    public function availableShipping(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $address = [
+            'country_id' => $request->input('country_id'),
+            'province' => $request->input('state', ''),
+            'state' => $request->input('state', ''),
+            'city' => $request->input('city', ''),
+            'barangay' => $request->input('barangay', ''),
+            'postcode' => $request->input('postcode', ''),
+        ];
+
+        $items = collect($request->input('items', []))->map(function ($item) {
+            $product = \App\Models\Product::find($item['product_id'] ?? null);
+            $variant = $item['product_variant_id'] ? \App\Models\ProductVariant::find($item['product_variant_id']) : null;
+
+            return (object) [
+                'product_id' => $item['product_id'] ?? null,
+                'quantity' => (int) ($item['quantity'] ?? 1),
+                'price' => (float) ($item['price'] ?? 0),
+                'weight' => (float) ($variant?->weight ?? $product?->weight ?? 0),
+                'length' => (float) ($product?->length ?? 0),
+                'width' => (float) ($product?->width ?? 0),
+                'height' => (float) ($product?->height ?? 0),
+            ];
+        });
+
+        $subtotal = $items->sum(fn($i) => $i->price * $i->quantity);
+
+        $quoteService = app(\App\Services\Shipping\ShippingQuoteService::class);
+        $quotes = $quoteService->getQuotes($address, $items, $subtotal);
+
+        return response()->json(['methods' => $quotes]);
+    }
+
+    public function availablePayments(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $address = [
+            'country_id' => $request->input('country_id'),
+            'state' => $request->input('state', ''),
+            'city' => $request->input('city', ''),
+            'barangay' => $request->input('barangay', ''),
+            'postcode' => $request->input('postcode', ''),
+        ];
+
+        $subtotal = (float) $request->input('subtotal', 0);
+        $weight = (float) $request->input('weight', 0);
+        $quantity = (int) $request->input('quantity', 0);
+        $customerGroupId = $request->input('customer_group_id');
+        $categoryIds = $request->input('category_ids', []);
+        $brandIds = $request->input('brand_ids', []);
+        $shippingMethodKey = $request->input('shipping_method_key');
+
+        $checkoutService = app(\App\Services\CheckoutService::class);
+        $methods = $checkoutService->getAvailablePaymentMethods($address, $subtotal, [
+            'weight' => $weight,
+            'quantity' => $quantity,
+            'customer_group_id' => $customerGroupId,
+            'category_ids' => $categoryIds,
+            'brand_ids' => $brandIds,
+            'shipping_method_key' => $shippingMethodKey,
+        ]);
+
+        $result = collect($methods)->map(function ($m) {
+            return [
+                'key' => $m->getKey(),
+                'name' => $m->getName(),
+                'description' => $m->getDescription(),
+            ];
+        })->values();
+
+        return response()->json(['methods' => $result]);
     }
 
     protected function validateOrder(Request $request, ?int $orderId = null): array
