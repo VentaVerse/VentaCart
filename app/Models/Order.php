@@ -14,7 +14,7 @@ class Order extends Model
         'shipping_first_name', 'shipping_last_name',
         'shipping_address_1', 'shipping_city', 'shipping_district', 'shipping_barangay',
         'shipping_state', 'shipping_postcode', 'shipping_country_id', 'shipping_phone',
-        'payment_method', 'payment_reference', 'shipping_method', 'dph_courier_name',
+        'payment_method', 'payment_reference', 'shipping_method', 'shipping_meta', 'dph_courier_name',
         'subtotal', 'shipping_cost', 'total',
         'shipping_courier_id', 'tracking_number',
         'billing_first_name', 'billing_last_name', 'billing_address_1',
@@ -30,6 +30,7 @@ class Order extends Model
             'shipping_cost' => 'decimal:2',
             'total' => 'decimal:2',
             'stock_adjusted' => 'boolean',
+            'shipping_meta' => 'array',
         ];
     }
 

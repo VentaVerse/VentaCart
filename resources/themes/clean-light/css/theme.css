@@ -552,7 +552,9 @@
  Product Card
  ============================================ */
  .product-card {
- @apply bg-white border border-gray-200 rounded-lg overflow-hidden transition-all duration-300;
+ background-color: var(--color-card-bg);
+ border-color: var(--color-border);
+ @apply border rounded-lg overflow-hidden transition-all duration-300;
  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
  }
 

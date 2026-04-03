@@ -218,4 +218,9 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
 
         return $entry?->geo_zone_id;
     }
+
+    public function buildShippingMeta(string $quoteKey, array $quoteData): ?array
+    {
+        return null;
+    }
 }

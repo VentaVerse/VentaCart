@@ -193,6 +193,17 @@ class CheckoutService
         }
         $total = $subtotal + $shippingCost;
 
+        // Build shipping meta from the matched provider
+        $shippingMeta = null;
+        if ($matchedQuote) {
+            foreach ($quoteService->getProviders() as $provider) {
+                if (str_starts_with($shippingMethodKey, $provider->getKey() . '_') || $shippingMethodKey === $provider->getKey()) {
+                    $shippingMeta = $provider->buildShippingMeta($shippingMethodKey, $matchedQuote);
+                    break;
+                }
+            }
+        }
+
         // Resolve initial order status based on payment method
         $statusSettingKey = match (preg_replace('/_\d+$/', '', $paymentMethodKey)) {
             'bank_transfer' => 'bank_transfer_success_status_id',
@@ -237,6 +248,7 @@ class CheckoutService
                 'shipping_phone' => $shippingAddress->phone,
                 'payment_method' => $paymentMethodKey,
                 'shipping_method' => $shippingMethodName ?? $shippingMethod['name'],
+                'shipping_meta' => $shippingMeta,
                 'dph_courier_name' => str_starts_with($shippingMethodKey, 'dph_') ? ($shippingMethodName ?? $shippingMethod['name']) : null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,

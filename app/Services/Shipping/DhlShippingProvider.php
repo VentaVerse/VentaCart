@@ -87,4 +87,9 @@ class DhlShippingProvider implements ShippingProviderInterface
             return [];
         }
     }
+
+    public function buildShippingMeta(string $quoteKey, array $quoteData): ?array
+    {
+        return null;
+    }
 }

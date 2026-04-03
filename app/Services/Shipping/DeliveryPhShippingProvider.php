@@ -74,6 +74,18 @@ class DeliveryPhShippingProvider implements ShippingProviderInterface
         }
     }
 
+    public function buildShippingMeta(string $quoteKey, array $quoteData): ?array
+    {
+        return [
+            'provider' => 'dph',
+            'partner_id' => $quoteData['partner_id'] ?? null,
+            'partner_name' => $quoteData['name'] ?? null,
+            'service_type' => $quoteData['service_type'] ?? 'scheduled',
+            'product_size' => $quoteData['product_size'] ?? null,
+            'quote_key' => $quoteKey,
+        ];
+    }
+
     /**
      * Convert PSGC city names to DPH-friendly format.
      * e.g. "City Of Antipolo (Capital)" → "Antipolo City"

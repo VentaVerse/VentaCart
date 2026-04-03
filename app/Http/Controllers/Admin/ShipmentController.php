@@ -60,16 +60,20 @@ class ShipmentController extends Controller
 
     public function book(Request $request, Order $order)
     {
-        $request->validate([
-            'partner_id' => 'required|string',
-            'partner_name' => 'required|string',
-            'service_type' => 'required|string|in:scheduled,onDemand',
-            'product_size' => 'nullable|string',
-            'approximate_fee' => 'required|numeric|min:0',
-        ]);
-
         if ($order->shipment) {
             return response()->json(['error' => 'Order already has a shipment booked.'], 400);
+        }
+
+        // Use stored shipping_meta from checkout if available, allow request override
+        $meta = $order->shipping_meta;
+        $partnerId = $request->input('partner_id', $meta['partner_id'] ?? null);
+        $partnerName = $request->input('partner_name', $meta['partner_name'] ?? $order->dph_courier_name ?? '');
+        $serviceType = $request->input('service_type', $meta['service_type'] ?? 'scheduled');
+        $productSize = $request->input('product_size', $meta['product_size'] ?? '');
+        $approximateFee = $request->input('approximate_fee', $order->shipping_cost ?? 0);
+
+        if (!$partnerId) {
+            return response()->json(['error' => 'No courier partner ID available. Please select a courier from the rates.'], 422);
         }
 
         try {
@@ -106,7 +110,7 @@ class ShipmentController extends Controller
                 'barangay' => $order->shipping_barangay ?? '',
                 'postalCode' => $order->shipping_postcode ?? '',
                 'itemDescription' => 'Order #' . $order->id,
-                'productSize' => $request->input('product_size', ''),
+                'productSize' => $productSize,
                 'length' => DeliveryPhService::cmToInches($dimensions['length']),
                 'width' => DeliveryPhService::cmToInches($dimensions['width']),
                 'height' => DeliveryPhService::cmToInches($dimensions['height']),
@@ -115,39 +119,42 @@ class ShipmentController extends Controller
             ];
 
             $refNo = 'ORD-' . $order->id;
-            $result = $dph->createPost($pickupDetails, $deliveryDetails, $request->input('partner_id'), $refNo);
+            $result = $dph->createPost($pickupDetails, $deliveryDetails, $partnerId, $refNo);
 
             $postId = $result['postId'] ?? $result['id'] ?? null;
 
             $shipment = Shipment::create([
                 'order_id' => $order->id,
                 'dph_post_id' => $postId,
-                'dph_partner_id' => $request->input('partner_id'),
-                'dph_partner_name' => $request->input('partner_name'),
-                'dph_service_type' => $request->input('service_type'),
+                'dph_partner_id' => $partnerId,
+                'dph_partner_name' => $partnerName,
+                'dph_service_type' => $serviceType,
                 'dph_status' => 'ASSIGNED',
-                'approximate_fee' => $request->input('approximate_fee'),
+                'approximate_fee' => (float) $approximateFee,
                 'booked_at' => now(),
                 'meta' => $result,
             ]);
 
-            $bookedStatus = OrderStatus::where('store_id', $order->store_id)
-                ->where('name', 'Booked')
+            // Set to Processing — aligns with ASSIGNED webhook mapping
+            $processingStatus = OrderStatus::where('store_id', $order->store_id)
+                ->where('name', 'Processing')
                 ->first();
 
-            if ($bookedStatus) {
+            if ($processingStatus && (int) $order->order_status_id !== (int) $processingStatus->id) {
                 $order->update([
-                    'order_status_id' => $bookedStatus->id,
-                    'dph_courier_name' => $request->input('partner_name'),
+                    'order_status_id' => $processingStatus->id,
+                    'dph_courier_name' => $partnerName,
                 ]);
 
                 OrderHistory::create([
                     'order_id' => $order->id,
-                    'order_status_id' => $bookedStatus->id,
-                    'comment' => 'Shipment booked via DPH — ' . $request->input('partner_name'),
+                    'order_status_id' => $processingStatus->id,
+                    'comment' => 'Shipment booked via DPH — ' . $partnerName,
                 ]);
 
-                StockService::adjustForStatusChange($order, $bookedStatus);
+                StockService::adjustForStatusChange($order, $processingStatus);
+            } else {
+                $order->update(['dph_courier_name' => $partnerName]);
             }
 
             return response()->json([

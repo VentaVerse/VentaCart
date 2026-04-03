@@ -18,7 +18,7 @@ class ShippingQuoteService
         return static::$context;
     }
 
-    private function getProviders(): array
+    public function getProviders(): array
     {
         return [
             new FreeShippingRuleProvider(),
