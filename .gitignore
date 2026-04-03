@@ -30,3 +30,4 @@ CLAUDE.md
 *.sql
 *.jpeg
 countries-states-cities-database-3.1-export.2/
+/public/sitemap.xml
