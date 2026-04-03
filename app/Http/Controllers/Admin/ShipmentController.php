@@ -99,16 +99,28 @@ class ShipmentController extends Controller
                 $pickupDetails['long'] = (float) $pickupAddress['lng'];
             }
 
+            // Resolve postal code if missing (lookup from PH city data)
+            $postalCode = $order->shipping_postcode ?? '';
+            if (empty($postalCode) && $order->shipping_city) {
+                try {
+                    $postalCode = \Illuminate\Support\Facades\DB::table('ph_cities')
+                        ->where('name', $order->shipping_city)
+                        ->value('zip_code') ?? '';
+                } catch (\Throwable) {
+                    // PH extension may not be installed
+                }
+            }
+
             $deliveryDetails = [
                 'recipientName' => trim($order->shipping_first_name . ' ' . $order->shipping_last_name),
-                'contactNumber' => $order->phone ?? '',
+                'contactNumber' => $order->shipping_phone ?? $order->phone ?? '',
                 'emailAddress' => $order->email ?? '',
                 'deliveryDateTime' => now()->addDays(3)->format('Y-m-d\TH:i'),
                 'deliveryAddress' => $order->shipping_address_1 ?? '',
                 'deliveryCity' => $order->shipping_city ?? '',
                 'province' => $order->shipping_state ?? '',
                 'barangay' => $order->shipping_barangay ?? '',
-                'postalCode' => $order->shipping_postcode ?? '',
+                'postalCode' => $postalCode,
                 'itemDescription' => 'Order #' . $order->id,
                 'productSize' => $productSize,
                 'length' => DeliveryPhService::cmToInches($dimensions['length']),
