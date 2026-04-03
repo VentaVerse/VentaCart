@@ -167,6 +167,33 @@ class EmailTemplateSeeder extends Seeder
 <p>Please restock this product as soon as possible.</p>
 <p>{store_name}</p>',
             ],
+            [
+                'store_id' => 1,
+                'slug' => 'account_created_by_admin',
+                'name' => 'Account Created by Admin',
+                'subject' => 'Your account at {store_name}',
+                'type' => 'customer',
+                'body' => '<p>Hi {customer_name},</p>
+<p>An account has been created for you at <strong>{store_name}</strong>.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+<tr>
+<td style="padding: 16px; background-color: #222222; border-radius: 6px;">
+<p style="margin: 0 0 8px 0; font-size: 12px; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Your Login Details</p>
+<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Email:</strong> {email}</p>
+<p style="margin: 0; font-size: 14px; color: #e8e8e8;"><strong>Password:</strong> <span style="font-family: monospace; background: #333; padding: 2px 8px; border-radius: 3px;">{password}</span></p>
+</td>
+</tr>
+</table>
+<p>Please change your password after your first login.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin: 24px 0;">
+<tr>
+<td style="background-color: #F5A623; border-radius: 6px; padding: 12px 28px;">
+<a href="{login_url}" style="color: #111111; font-size: 15px; font-weight: 700; text-decoration: none; display: inline-block;">Log In to Your Account</a>
+</td>
+</tr>
+</table>
+<p>Thank you,<br>{store_name}</p>',
+            ],
         ];
 
         foreach ($templates as $template) {

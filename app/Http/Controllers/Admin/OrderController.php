@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use App\Services\StockService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
@@ -79,9 +80,31 @@ class OrderController extends Controller
     {
         $validated = $this->validateOrder($request);
 
-        $order = DB::transaction(function () use ($request, $validated) {
+        $newCustomerPassword = null;
+
+        $order = DB::transaction(function () use ($request, $validated, &$newCustomerPassword) {
             $validated['created_by'] = Auth::id();
             $validated['subtotal'] = 0;
+
+            // Create new customer if requested
+            if ($request->boolean('is_new_customer') && empty($validated['customer_id'])) {
+                $storeId = (int) config('app.store_id', 1);
+                $newCustomerPassword = Str::random(12);
+
+                $defaultGroup = \App\Models\CustomerGroup::where('is_default', true)->first();
+
+                $customer = Customer::create([
+                    'store_id' => $storeId,
+                    'customer_group_id' => $defaultGroup?->id,
+                    'first_name' => $validated['first_name'],
+                    'last_name' => $validated['last_name'],
+                    'email' => $validated['email'],
+                    'password' => $newCustomerPassword,
+                    'is_active' => true,
+                ]);
+
+                $validated['customer_id'] = $customer->id;
+            }
 
             $order = Order::create($validated);
 
@@ -115,8 +138,24 @@ class OrderController extends Controller
             \App\Services\CheckoutService::sendAdminOrderNotification($order);
         }
 
+        // Send account creation email to new customer
+        if ($newCustomerPassword) {
+            \App\Services\TemplateMailService::send('account_created_by_admin', $order->email, [
+                'customer_name' => $order->first_name . ' ' . $order->last_name,
+                'email' => $order->email,
+                'password' => $newCustomerPassword,
+                'store_name' => config('app.name'),
+                'login_url' => route('customer.login'),
+            ]);
+        }
+
+        $message = 'Order created successfully.';
+        if ($newCustomerPassword) {
+            $message .= ' New customer account created and credentials emailed.';
+        }
+
         return redirect()->route('admin.orders.index')
-            ->with('success', 'Order created successfully.');
+            ->with('success', $message);
     }
 
     public function edit(Order $order)
@@ -521,7 +560,7 @@ class OrderController extends Controller
 
         return $request->validate([
             'store_id' => ['required', 'exists:stores,id'],
-            'customer_id' => [$r, 'exists:customers,id'],
+            'customer_id' => ['nullable', 'exists:customers,id'],
             'order_status_id' => ['required', 'exists:order_statuses,id'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],

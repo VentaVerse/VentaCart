@@ -34,24 +34,46 @@
 
                     {{-- Customer --}}
                     <div>
-                        <h3 class="text-sm font-semibold text-gray-700 mb-3">Customer</h3>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-semibold text-gray-700">Customer</h3>
+                            <div class="flex items-center gap-3" x-show="!customerId">
+                                <button type="button" @click="isNewCustomer = false" :class="!isNewCustomer ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'" class="px-3 py-1 text-xs font-medium rounded-lg transition-colors">Existing</button>
+                                <button type="button" @click="isNewCustomer = true" :class="isNewCustomer ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600'" class="px-3 py-1 text-xs font-medium rounded-lg transition-colors">New Customer</button>
+                            </div>
+                            <button type="button" x-show="customerId" @click="clearCustomer()" class="text-xs text-red-500 hover:text-red-700">Change Customer</button>
+                        </div>
                         <div class="max-w-xl">
-                            <div class="relative mb-3">
-                                <input type="text" x-model="customerSearch" @input.debounce.300ms="searchCustomers()" @focus="customerDropdownOpen = true" @click.away="customerDropdownOpen = false"
-                                    placeholder="Search customer by name or email..." autocomplete="off"
-                                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <div x-show="customerDropdownOpen && customerResults.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                    <template x-for="c in customerResults" :key="c.id">
-                                        <button type="button" @click="selectCustomer(c)" class="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors">
-                                            <span class="font-medium" x-text="c.name"></span>
-                                            <span class="text-gray-400 ml-1" x-text="c.email"></span>
-                                        </button>
-                                    </template>
+                            <input type="hidden" name="customer_id" :value="customerId">
+                            <input type="hidden" name="is_new_customer" :value="isNewCustomer && !customerId ? '1' : '0'">
+                            <input type="hidden" name="phone" :value="customerPhone">
+
+                            {{-- Existing Customer Search --}}
+                            <div x-show="!isNewCustomer && !customerId">
+                                <div class="relative mb-3">
+                                    <input type="text" x-model="customerSearch" @input.debounce.300ms="searchCustomers()" @focus="customerDropdownOpen = true" @click.away="customerDropdownOpen = false"
+                                        placeholder="Search customer by name or email..." autocomplete="off"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <div x-show="customerDropdownOpen && customerResults.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        <template x-for="c in customerResults" :key="c.id">
+                                            <button type="button" @click="selectCustomer(c)" class="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors">
+                                                <span class="font-medium" x-text="c.name"></span>
+                                                <span class="text-gray-400 ml-1" x-text="c.email"></span>
+                                            </button>
+                                        </template>
+                                    </div>
                                 </div>
                             </div>
-                            <input type="hidden" name="customer_id" :value="customerId">
-                            <input type="hidden" name="phone" :value="customerPhone">
-                            <div class="grid grid-cols-2 gap-3" x-show="customerId">
+
+                            {{-- Selected Customer or New Customer Fields --}}
+                            <div x-show="customerId || isNewCustomer" class="grid grid-cols-2 gap-3">
+                                <div x-show="customerId" class="col-span-2 flex items-center gap-2 bg-indigo-50 rounded-lg px-3 py-2 mb-1">
+                                    <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                    <span class="text-sm text-indigo-700 font-medium" x-text="customerFirstName + ' ' + customerLastName + ' (' + customerEmail + ')'"></span>
+                                </div>
+                                <div x-show="isNewCustomer && !customerId" class="col-span-2 flex items-center gap-2 bg-emerald-50 rounded-lg px-3 py-2 mb-1">
+                                    <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                                    <span class="text-sm text-emerald-700 font-medium">New customer — account will be created on save</span>
+                                </div>
                                 <div>
                                     <label class="block text-xs font-medium text-gray-500 mb-1">First Name</label>
                                     <input type="text" name="first_name" required x-model="customerFirstName"
@@ -76,7 +98,6 @@
                                         </template>
                                     </select>
                                 </div>
-                                <p x-show="customerAddresses.length === 0" class="col-span-2 text-xs text-gray-400">Customer has no saved addresses. Fill shipping details manually below.</p>
                             </div>
                         </div>
                     </div>
@@ -322,12 +343,12 @@
                 </div>
                 <div class="p-6">
                     {{-- No customer warning --}}
-                    <div x-show="!customerId" class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                        Select a customer above before adding products.
+                    <div x-show="!customerId && !isNewCustomer" class="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                        Select or create a customer above before adding products.
                     </div>
 
                     {{-- Product Search --}}
-                    <div x-show="customerId" class="flex items-center gap-3 mb-4">
+                    <div x-show="customerId || isNewCustomer" class="flex items-center gap-3 mb-4">
                         <div class="relative flex-1">
                             <input type="text" x-model="productSearch" @input.debounce.300ms="searchProducts()" @focus="productDropdownOpen = true" @click.away="productDropdownOpen = false"
                                 placeholder="Search products by name or SKU..." autocomplete="off"
@@ -583,6 +604,7 @@
                 customerSearch: '',
                 customerResults: [],
                 customerDropdownOpen: false,
+                isNewCustomer: {{ old('is_new_customer') ? 'true' : 'false' }},
 
                 // Shipping address
                 shipping: {
@@ -655,6 +677,19 @@
                     this.customerDropdownOpen = true;
                 },
 
+                clearCustomer() {
+                    this.customerId = '';
+                    this.customerFirstName = '';
+                    this.customerLastName = '';
+                    this.customerEmail = '';
+                    this.customerPhone = '';
+                    this.customerSearch = '';
+                    this.customerAddresses = [];
+                    this.customerGroupId = null;
+                    this.isNewCustomer = false;
+                    this.items = [];
+                },
+
                 selectCustomer(c) {
                     this.customerId = c.id;
                     this.customerFirstName = c.first_name;
@@ -665,6 +700,7 @@
                     this.customerDropdownOpen = false;
                     this.customerAddresses = c.addresses || [];
                     this.customerGroupId = c.customer_group_id || null;
+                    this.isNewCustomer = false;
 
                     if (c.address) {
                         this.applyAddress(c.address);
