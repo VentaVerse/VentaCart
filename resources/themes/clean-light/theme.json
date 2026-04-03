@@ -18,6 +18,8 @@
         "nav_text": "#374151",
         "footer_bg": "#F9FAFB",
         "footer_text": "#6B7280",
+        "footer_heading": "#111827",
+        "price": "#111827",
         "announcement_bg": "#2563EB",
         "announcement_text": "#FFFFFF"
     },

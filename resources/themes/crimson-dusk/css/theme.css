@@ -26,6 +26,8 @@
     --color-border: #1A2548;
     --color-content-text: #A0A8BE;
     --color-btn-text: #FFFFFF;
+    --color-footer-heading: #F0F2F7;
+    --color-price: #F0F2F7;
 }
 
 /* ============================================
@@ -575,7 +577,7 @@
     }
 
     .product-card .product-name {
-        color: var(--color-footer-text);
+        color: var(--color-text-heading);
         @apply text-sm leading-snug mb-2 line-clamp-2 min-h-[2.5rem];
         font-family: var(--font-body);
     }
@@ -610,7 +612,7 @@
 
     .product-card .product-price {
         font-family: var(--font-heading);
-        color: var(--color-text-heading);
+        color: var(--color-price);
         @apply text-xl tracking-wider;
     }
 
@@ -894,7 +896,7 @@
 
     .site-footer h4 {
         font-family: var(--font-heading);
-        color: var(--color-text-heading);
+        color: var(--color-footer-heading);
         @apply text-base tracking-[0.2em] mb-5;
     }
 

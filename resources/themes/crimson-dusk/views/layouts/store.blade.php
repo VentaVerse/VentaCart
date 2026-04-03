@@ -74,6 +74,8 @@
             --color-nav-text: {{ $theme->get('colors.nav_text', '#D4D8E2') }};
             --color-footer-bg: {{ $theme->get('colors.footer_bg', '#050B1C') }};
             --color-footer-text: {{ $theme->get('colors.footer_text', '#8891A8') }};
+            --color-footer-heading: {{ $theme->get('colors.footer_heading', '#F0F2F7') }};
+            --color-price: {{ $theme->get('colors.price', '#F0F2F7') }};
             --color-announcement-bg: {{ $theme->get('colors.announcement_bg', '#E17564') }};
             --color-announcement-text: {{ $theme->get('colors.announcement_text', '#09122C') }};
             --font-heading: '{{ $headingFont }}', serif;

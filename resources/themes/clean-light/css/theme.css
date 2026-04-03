@@ -22,6 +22,8 @@
  --color-border: #E5E7EB;
  --color-content-text: #4B5563;
  --color-btn-text: #FFFFFF;
+ --color-footer-heading: #111827;
+ --color-price: #111827;
  --font-heading: 'Inter', sans-serif;
  --font-body: 'Inter', sans-serif;
 }
@@ -565,7 +567,7 @@
 
  .product-card .product-price {
  font-family: var(--font-heading);
- @apply text-xl font-bold; color: var(--color-text-heading);
+ @apply text-xl font-bold; color: var(--color-price);
  }
 
  .product-card .product-price-old {
@@ -840,7 +842,7 @@
 
  .site-footer h4 {
  font-family: var(--font-heading);
- @apply text-sm font-semibold mb-5 ; color: var(--color-text-heading);
+ @apply text-sm font-semibold mb-5 ; color: var(--color-footer-heading);
  }
 
  .site-footer .footer-links {
