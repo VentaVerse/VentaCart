@@ -111,9 +111,11 @@ class ShipmentController extends Controller
                 }
             }
 
+            $contactNumber = $this->normalizePhoneNumber($order->shipping_phone ?? $order->phone ?? '');
+
             $deliveryDetails = [
                 'recipientName' => trim($order->shipping_first_name . ' ' . $order->shipping_last_name),
-                'contactNumber' => $order->shipping_phone ?? $order->phone ?? '',
+                'contactNumber' => $contactNumber,
                 'emailAddress' => $order->email ?? '',
                 'deliveryDateTime' => now()->addDays(3)->format('Y-m-d\TH:i'),
                 'deliveryAddress' => $order->shipping_address_1 ?? '',
@@ -284,5 +286,32 @@ class ShipmentController extends Controller
         }
 
         return $total ?: 0.5;
+    }
+
+    /**
+     * Normalize a phone number to PH format (09XXXXXXXXX).
+     * Handles: +639XX, 639XX, 9XX, 09XX formats.
+     */
+    private function normalizePhoneNumber(string $phone): string
+    {
+        $digits = preg_replace('/[^0-9]/', '', $phone);
+
+        // +639XXXXXXXXX or 639XXXXXXXXX → 09XXXXXXXXX
+        if (str_starts_with($digits, '63') && strlen($digits) >= 12) {
+            $digits = '0' . substr($digits, 2);
+        }
+
+        // 9XXXXXXXXX → 09XXXXXXXXX
+        if (str_starts_with($digits, '9') && strlen($digits) === 10) {
+            $digits = '0' . $digits;
+        }
+
+        // Must be 11 digits starting with 09
+        if (str_starts_with($digits, '09') && strlen($digits) === 11) {
+            return $digits;
+        }
+
+        // Return as-is if we can't normalize (let DPH validate)
+        return $phone;
     }
 }
