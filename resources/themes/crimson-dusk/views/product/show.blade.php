@@ -102,9 +102,10 @@
                     endDrag() {
                         if (!this.dragging) return;
                         this.dragging = false;
-                        if (this.dragDelta < -800 && this.imageCount > 1) {
+                        const threshold = window.innerWidth < 768 ? 200 : 750;
+                        if (this.dragDelta < -threshold && this.imageCount > 1) {
                             this.activeImage = (this.activeImage + 1) % this.imageCount;
-                        } else if (this.dragDelta > 800 && this.imageCount > 1) {
+                        } else if (this.dragDelta > threshold && this.imageCount > 1) {
                             this.activeImage = (this.activeImage - 1 + this.imageCount) % this.imageCount;
                         }
                         this.dragDelta = 0;
