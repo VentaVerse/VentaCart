@@ -1351,7 +1351,12 @@
  ============================================ */
 
  .product-gallery-main {
- @apply border border-gray-200 rounded-lg overflow-hidden bg-gray-50;
+ @apply border border-gray-200 rounded-lg overflow-hidden bg-gray-50 cursor-zoom-in;
+ }
+
+ .product-gallery-zoom {
+ transition: transform 0.15s ease-out;
+ will-change: transform;
  }
 
  .product-gallery-thumb {

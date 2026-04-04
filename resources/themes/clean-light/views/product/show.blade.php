@@ -80,7 +80,7 @@
              })">
 
             {{-- Image Gallery --}}
-            <div class="lg:w-1/2" x-data="{ activeImage: 0 }">
+            <div class="lg:w-1/2" x-data="{ activeImage: 0, zooming: false, zoomX: 50, zoomY: 50 }">
                 <div class="flex {{ $thumbPosition === 'bottom' ? 'flex-col' : 'flex-row' }} gap-3">
                     {{-- Thumbnails --}}
                     @if ($images->count() > 1)
@@ -111,10 +111,15 @@
                     @endif
 
                     {{-- Main Image --}}
-                    <div class="flex-1 {{ $thumbPosition === 'bottom' ? 'order-1' : 'order-2' }} product-gallery-main">
+                    <div class="flex-1 {{ $thumbPosition === 'bottom' ? 'order-1' : 'order-2' }} product-gallery-main relative"
+                         @mouseenter="zooming = true"
+                         @mouseleave="zooming = false"
+                         @mousemove="const r = $el.getBoundingClientRect(); zoomX = ((event.clientX - r.left) / r.width) * 100; zoomY = ((event.clientY - r.top) / r.height) * 100">
+                        <div class="aspect-square"></div>
                         @foreach ($images as $i => $img)
-                            <div x-show="activeImage === {{ $i }}" class="aspect-square flex items-center justify-center p-4">
-                                <img src="{{ storage_url($img->path) }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain">
+                            <div x-show="activeImage === {{ $i }}" class="absolute inset-0 flex items-center justify-center product-gallery-zoom"
+                                 :style="zooming ? 'transform: scale(2); transform-origin: ' + zoomX + '% ' + zoomY + '%' : ''">
+                                <img src="{{ storage_url($img->path) }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain p-4">
                             </div>
                         @endforeach
                         @if ($images->isEmpty())

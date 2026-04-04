@@ -1454,7 +1454,12 @@
 
     .product-gallery-main {
         border: 1px solid var(--color-border);
-        @apply rounded-lg overflow-hidden bg-white;
+        @apply rounded-lg overflow-hidden bg-white cursor-zoom-in;
+    }
+
+    .product-gallery-zoom {
+        transition: transform 0.15s ease-out;
+        will-change: transform;
     }
 
     .product-gallery-thumb {
