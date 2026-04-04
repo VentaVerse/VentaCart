@@ -356,15 +356,6 @@ class CheckoutService
             ? $currency . number_format($order->shipping_cost, 2)
             : '<span style="color: #4ade80;">FREE</span>';
 
-        $commentHtml = '';
-        if ($order->comment) {
-            $commentHtml = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;">'
-                . '<tr><td style="padding: 16px 20px;">'
-                . '<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">Your Note</p>'
-                . '<p style="margin: 0; font-size: 13px; color: #e8e8e8; line-height: 1.5; font-style: italic;">' . e($order->comment) . '</p>'
-                . '</td></tr></table>';
-        }
-
         $sent = TemplateMailService::send('order_confirmation', $order->email, [
             'customer_name' => $order->first_name . ' ' . $order->last_name,
             'order_id' => $order->id,
@@ -375,7 +366,7 @@ class CheckoutService
             'order_items' => $itemsHtml,
             'shipping_address' => $addressHtml,
             'payment_method' => $order->payment_method_label,
-            'comment' => $commentHtml,
+            'comment' => self::buildCommentHtml($order, 'Your Note'),
             'store_name' => config('app.name'),
         ]);
 
@@ -414,8 +405,21 @@ class CheckoutService
             'order_total' => $currency . number_format($order->total, 2),
             'order_items' => $itemsHtml,
             'shipping_address' => $addressHtml,
-            'comment' => $order->comment ? e($order->comment) : '',
+            'comment' => self::buildCommentHtml($order, 'Customer Note'),
         ]);
+    }
+
+    private static function buildCommentHtml(Order $order, string $heading = 'Order Note'): string
+    {
+        $noteText = $order->comment
+            ? nl2br(e($order->comment))
+            : '<span style="color: #666;">—</span>';
+
+        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;">'
+            . '<tr><td style="padding: 16px 20px;">'
+            . '<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">' . e($heading) . '</p>'
+            . '<p style="margin: 0; font-size: 13px; color: #e8e8e8; line-height: 1.5;">' . $noteText . '</p>'
+            . '</td></tr></table>';
     }
 
     private static function buildOrderItemsHtml(Order $order, string $currency): string

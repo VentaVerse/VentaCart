@@ -43,7 +43,7 @@ class EmailTemplateSeeder extends Seeder
 {order_items}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border-top: 1px solid #333333;">
 <tr><td style="padding: 8px 0 2px 0; font-size: 13px; color: #999;">Subtotal</td><td style="padding: 8px 0 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{subtotal}</td></tr>
-<tr><td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Shipping</td><td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{shipping_cost}</td></tr>
+<tr><td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Shipping ({shipping_method})</td><td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{shipping_cost}</td></tr>
 <tr><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; border-top: 1px solid #333333;">Total</td><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; text-align: right; border-top: 1px solid #333333;">{order_total}</td></tr>
 </table>
 </td></tr>
@@ -160,7 +160,6 @@ class EmailTemplateSeeder extends Seeder
 <p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Customer:</strong> {customer_name}</p>
 <p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Email:</strong> {customer_email}</p>
 <p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Payment:</strong> {payment_method}</p>
-<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Shipping:</strong> {shipping_method} &mdash; {shipping_cost}</p>
 </td></tr>
 </table>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0;">
@@ -169,13 +168,14 @@ class EmailTemplateSeeder extends Seeder
 <p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">{shipping_address}</p>
 </td></tr>
 </table>
+{comment}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0; border-collapse: collapse;">
 <tr><td style="padding: 12px 16px; background-color: #222222; border-radius: 6px;">
 <p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Items</p>
 {order_items}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border-top: 1px solid #333333;">
 <tr><td style="padding: 8px 0 2px 0; font-size: 13px; color: #999;">Subtotal</td><td style="padding: 8px 0 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{subtotal}</td></tr>
-<tr><td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Shipping</td><td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{shipping_cost}</td></tr>
+<tr><td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Shipping ({shipping_method})</td><td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{shipping_cost}</td></tr>
 <tr><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; border-top: 1px solid #333333;">Total</td><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; text-align: right; border-top: 1px solid #333333;">{order_total}</td></tr>
 </table>
 </td></tr>

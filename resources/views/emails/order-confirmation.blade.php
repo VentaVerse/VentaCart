@@ -135,25 +135,27 @@
                         </td>
                     </tr>
 
-                    {{-- Customer Note --}}
-                    @if ($order->comment)
+                    {{-- Order Note --}}
                     <tr>
                         <td style="padding: 8px 40px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #222222; border-radius: 6px;">
                                 <tr>
                                     <td style="padding: 20px 24px;">
                                         <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
-                                            Your Note
+                                            Order Note
                                         </p>
-                                        <p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6; font-style: italic;">
-                                            {{ $order->comment }}
+                                        <p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">
+                                            @if ($order->comment)
+                                                {!! nl2br(e($order->comment)) !!}
+                                            @else
+                                                <span style="color: #666;">—</span>
+                                            @endif
                                         </p>
                                     </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
-                    @endif
 
                     {{-- Items Table --}}
                     <tr>
@@ -222,7 +224,7 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #999999; text-align: right;">
-                                        Shipping
+                                        Shipping ({{ $order->shipping_method ?: 'Standard' }})
                                     </td>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #e8e8e8; text-align: right; width: 100px;">
                                         @if ($order->shipping_cost > 0)
