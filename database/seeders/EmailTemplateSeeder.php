@@ -18,16 +18,36 @@ class EmailTemplateSeeder extends Seeder
                 'type' => 'customer',
                 'body' => '<p>Hi {customer_name},</p>
 <p>Thank you for your order! We\'re happy to confirm that your order <strong style="color: #F5A623;">#{order_id}</strong> has been received and is being processed.</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0; border-collapse: collapse;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+<tr><td style="padding: 16px 20px; background-color: #222222; border-radius: 6px;">
+<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Shipping Address</p>
+<p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">{shipping_address}</p>
+</td></tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0;">
 <tr>
-<td style="padding: 12px 16px; background-color: #222222; border-radius: 6px;">
-<p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Order Summary</p>
-{order_items}
-<p style="margin: 12px 0 0 0; padding-top: 12px; border-top: 1px solid #333333; font-size: 16px; font-weight: 700; color: #F5A623;">Total: {order_total}</p>
+<td style="width: 50%; padding: 16px 20px; background-color: #222222; border-radius: 6px 0 0 6px; vertical-align: top;">
+<p style="margin: 0 0 4px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Shipping Method</p>
+<p style="margin: 0; font-size: 14px; color: #e8e8e8;">{shipping_method} &mdash; {shipping_cost}</p>
+</td>
+<td style="width: 50%; padding: 16px 20px; background-color: #222222; border-radius: 0 6px 6px 0; vertical-align: top;">
+<p style="margin: 0 0 4px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Payment Method</p>
+<p style="margin: 0; font-size: 14px; color: #e8e8e8;">{payment_method}</p>
 </td>
 </tr>
 </table>
-<p><strong style="color: #e8e8e8;">Payment Method:</strong> {payment_method}</p>
+{comment}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0; border-collapse: collapse;">
+<tr><td style="padding: 12px 16px; background-color: #222222; border-radius: 6px;">
+<p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Order Summary</p>
+{order_items}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border-top: 1px solid #333333;">
+<tr><td style="padding: 8px 0 2px 0; font-size: 13px; color: #999;">Subtotal</td><td style="padding: 8px 0 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{subtotal}</td></tr>
+<tr><td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Shipping</td><td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{shipping_cost}</td></tr>
+<tr><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; border-top: 1px solid #333333;">Total</td><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; text-align: right; border-top: 1px solid #333333;">{order_total}</td></tr>
+</table>
+</td></tr>
+</table>
 <p>We\'ll send you another email when your order ships.</p>
 <p>Thank you,<br>{store_name}</p>',
             ],
@@ -133,18 +153,32 @@ class EmailTemplateSeeder extends Seeder
                 'subject' => 'New Order #{order_id} — {customer_name}',
                 'type' => 'admin',
                 'body' => '<p>A new order has been placed.</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
-<tr>
-<td style="padding: 16px; background-color: #222222; border-radius: 6px;">
-<p style="margin: 0 0 8px 0; font-size: 12px; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Order Details</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+<tr><td style="padding: 16px 20px; background-color: #222222; border-radius: 6px;">
+<p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Order Details</p>
 <p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Order ID:</strong> <span style="color: #F5A623;">#{order_id}</span></p>
 <p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Customer:</strong> {customer_name}</p>
 <p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Email:</strong> {customer_email}</p>
 <p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Payment:</strong> {payment_method}</p>
-<p style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700; color: #F5A623;">Total: {order_total}</p>
+<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Shipping:</strong> {shipping_method} &mdash; {shipping_cost}</p>
+</td></tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0;">
+<tr><td style="padding: 16px 20px; background-color: #222222; border-radius: 6px;">
+<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Shipping Address</p>
+<p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">{shipping_address}</p>
+</td></tr>
+</table>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0; border-collapse: collapse;">
+<tr><td style="padding: 12px 16px; background-color: #222222; border-radius: 6px;">
+<p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Items</p>
 {order_items}
-</td>
-</tr>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border-top: 1px solid #333333;">
+<tr><td style="padding: 8px 0 2px 0; font-size: 13px; color: #999;">Subtotal</td><td style="padding: 8px 0 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{subtotal}</td></tr>
+<tr><td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Shipping</td><td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{shipping_cost}</td></tr>
+<tr><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; border-top: 1px solid #333333;">Total</td><td style="padding: 10px 0 0 0; font-size: 16px; font-weight: 700; color: #F5A623; text-align: right; border-top: 1px solid #333333;">{order_total}</td></tr>
+</table>
+</td></tr>
 </table>',
             ],
             [

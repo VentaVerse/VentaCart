@@ -350,34 +350,32 @@ class CheckoutService
         $order->loadMissing('products.product');
         $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
 
-        $itemsHtml = '';
-        foreach ($order->products as $item) {
-            $image = $item->product?->image;
-            $imgHtml = '';
-            if ($image) {
-                $imgUrl = url('/storage/' . $image);
-                $imgHtml = '<td style="width: 50px; padding: 4px 8px 4px 0; vertical-align: middle;">'
-                    . '<img src="' . e($imgUrl) . '" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">'
-                    . '</td>';
-            }
+        $itemsHtml = self::buildOrderItemsHtml($order, $currency);
+        $addressHtml = self::buildShippingAddressHtml($order);
+        $shippingCostLabel = $order->shipping_cost > 0
+            ? $currency . number_format($order->shipping_cost, 2)
+            : '<span style="color: #4ade80;">FREE</span>';
 
-            $textHtml = e($item->name)
-                . ($item->variant_label ? ' — ' . e($item->variant_label) : '')
-                . ' &times; ' . $item->quantity
-                . ' = ' . $currency . number_format($item->total, 2);
-
-            $itemsHtml .= '<table cellpadding="0" cellspacing="0" border="0" style="margin: 2px 0; width: 100%;"><tr>'
-                . $imgHtml
-                . '<td style="font-size: 13px; color: #ccc; vertical-align: middle;">' . $textHtml . '</td>'
-                . '</tr></table>';
+        $commentHtml = '';
+        if ($order->comment) {
+            $commentHtml = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;">'
+                . '<tr><td style="padding: 16px 20px;">'
+                . '<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">Your Note</p>'
+                . '<p style="margin: 0; font-size: 13px; color: #e8e8e8; line-height: 1.5; font-style: italic;">' . e($order->comment) . '</p>'
+                . '</td></tr></table>';
         }
 
         $sent = TemplateMailService::send('order_confirmation', $order->email, [
             'customer_name' => $order->first_name . ' ' . $order->last_name,
             'order_id' => $order->id,
+            'subtotal' => $currency . number_format($order->subtotal, 2),
+            'shipping_method' => $order->shipping_method ?: 'Standard',
+            'shipping_cost' => $shippingCostLabel,
             'order_total' => $currency . number_format($order->total, 2),
             'order_items' => $itemsHtml,
+            'shipping_address' => $addressHtml,
             'payment_method' => $order->payment_method_label,
+            'comment' => $commentHtml,
             'store_name' => config('app.name'),
         ]);
 
@@ -399,7 +397,30 @@ class CheckoutService
         $order->loadMissing('products.product');
         $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
 
-        $itemsHtml = '';
+        $itemsHtml = self::buildOrderItemsHtml($order, $currency);
+        $addressHtml = self::buildShippingAddressHtml($order);
+        $shippingCostLabel = $order->shipping_cost > 0
+            ? $currency . number_format($order->shipping_cost, 2)
+            : '<span style="color: #4ade80;">FREE</span>';
+
+        TemplateMailService::send('new_order_admin', $adminEmail, [
+            'order_id' => $order->id,
+            'customer_name' => $order->first_name . ' ' . $order->last_name,
+            'customer_email' => $order->email,
+            'payment_method' => $order->payment_method_label,
+            'subtotal' => $currency . number_format($order->subtotal, 2),
+            'shipping_method' => $order->shipping_method ?: 'Standard',
+            'shipping_cost' => $shippingCostLabel,
+            'order_total' => $currency . number_format($order->total, 2),
+            'order_items' => $itemsHtml,
+            'shipping_address' => $addressHtml,
+            'comment' => $order->comment ? e($order->comment) : '',
+        ]);
+    }
+
+    private static function buildOrderItemsHtml(Order $order, string $currency): string
+    {
+        $html = '';
         foreach ($order->products as $item) {
             $image = $item->product?->image;
             $imgHtml = '';
@@ -415,19 +436,52 @@ class CheckoutService
                 . ' &times; ' . $item->quantity
                 . ' = ' . $currency . number_format($item->total, 2);
 
-            $itemsHtml .= '<table cellpadding="0" cellspacing="0" border="0" style="margin: 2px 0; width: 100%;"><tr>'
+            $html .= '<table cellpadding="0" cellspacing="0" border="0" style="margin: 2px 0; width: 100%;"><tr>'
                 . $imgHtml
                 . '<td style="font-size: 13px; color: #ccc; vertical-align: middle;">' . $textHtml . '</td>'
                 . '</tr></table>';
         }
+        return $html;
+    }
 
-        TemplateMailService::send('new_order_admin', $adminEmail, [
-            'order_id' => $order->id,
-            'customer_name' => $order->first_name . ' ' . $order->last_name,
-            'customer_email' => $order->email,
-            'payment_method' => $order->payment_method_label,
-            'order_total' => $currency . number_format($order->total, 2),
-            'order_items' => $itemsHtml,
-        ]);
+    private static function buildShippingAddressHtml(Order $order): string
+    {
+        $lines = [];
+        $lines[] = e($order->shipping_first_name . ' ' . $order->shipping_last_name);
+        if ($order->shipping_address_1) {
+            $lines[] = e($order->shipping_address_1);
+        }
+        // Extension fields (e.g. PH address) — rendered only if populated
+        if ($order->shipping_barangay) {
+            $lines[] = e($order->shipping_barangay);
+        }
+        $cityLine = '';
+        if ($order->shipping_district) {
+            $cityLine = e($order->shipping_district) . ', ';
+        }
+        $cityLine .= e($order->shipping_city ?? '');
+        if ($cityLine) {
+            $lines[] = $cityLine;
+        }
+        $stateLine = '';
+        if ($order->shipping_state) {
+            $stateLine .= e($order->shipping_state);
+        }
+        if ($order->shipping_postcode) {
+            $stateLine .= ($stateLine ? ' ' : '') . e($order->shipping_postcode);
+        }
+        if ($stateLine) {
+            $lines[] = $stateLine;
+        }
+        if ($order->shipping_country_id) {
+            $country = \App\Models\Country::find($order->shipping_country_id);
+            if ($country) {
+                $lines[] = e($country->name);
+            }
+        }
+        if ($order->shipping_phone) {
+            $lines[] = 'Phone: ' . e($order->shipping_phone);
+        }
+        return implode('<br>', $lines);
     }
 }

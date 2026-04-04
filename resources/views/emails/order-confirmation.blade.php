@@ -16,6 +16,7 @@
                         $storeName = \App\Models\Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name', 'Venta');
                         $storeLogo = \App\Models\Setting::where('group', 'identity')->where('key', 'logo')->value('value');
                         $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#BE3144';
+                        $country = $order->shipping_country_id ? \App\Models\Country::find($order->shipping_country_id) : null;
                     @endphp
                     <tr>
                         <td style="background-color: #1a1a1a; border-bottom: 2px solid {{ $primaryColor }}; padding: 32px 40px; text-align: center;">
@@ -56,9 +57,110 @@
                         </td>
                     </tr>
 
+                    {{-- Shipping Address --}}
+                    <tr>
+                        <td style="padding: 16px 40px 8px 40px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #222222; border-radius: 6px;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
+                                            Shipping Address
+                                        </p>
+                                        <p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">
+                                            {{ $order->shipping_first_name }} {{ $order->shipping_last_name }}<br>
+                                            {{ $order->shipping_address_1 }}
+                                            @if ($order->shipping_barangay)<br>{{ $order->shipping_barangay }}@endif
+                                            @if ($order->shipping_district)<br>{{ $order->shipping_district }}, {{ $order->shipping_city }}@else<br>{{ $order->shipping_city }}@endif
+                                            @if ($order->shipping_state), {{ $order->shipping_state }}@endif
+                                            @if ($order->shipping_postcode) {{ $order->shipping_postcode }}@endif
+                                            @if ($country)<br>{{ $country->name }}@endif
+                                        </p>
+                                        @if ($order->shipping_phone)
+                                            <p style="margin: 8px 0 0 0; font-size: 13px; color: #bbbbbb;">
+                                                Phone: {{ $order->shipping_phone }}
+                                            </p>
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    {{-- Shipping Method + Payment Method --}}
+                    <tr>
+                        <td style="padding: 8px 40px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #222222; border-radius: 6px;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td style="width: 50%; vertical-align: top; padding-right: 12px;">
+                                                    <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
+                                                        Shipping Method
+                                                    </p>
+                                                    <p style="margin: 0; font-size: 14px; color: #e8e8e8;">
+                                                        {{ $order->shipping_method ?: 'N/A' }}
+                                                        @if ($order->shipping_cost > 0)
+                                                            — {{ number_format($order->shipping_cost, 2) }}
+                                                        @else
+                                                            — <span style="color: #4ade80;">FREE</span>
+                                                        @endif
+                                                    </p>
+                                                </td>
+                                                <td style="width: 50%; vertical-align: top; padding-left: 12px;">
+                                                    <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
+                                                        Payment Method
+                                                    </p>
+                                                    <p style="margin: 0; font-size: 14px; color: #e8e8e8;">
+                                                        @if (str_starts_with($order->payment_method, 'bank_transfer'))
+                                                            @php
+                                                                $bankAcct = null;
+                                                                if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
+                                                                    $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
+                                                                }
+                                                            @endphp
+                                                            {{ $bankAcct ? 'Bank Transfer — ' . $bankAcct->bank_name : 'Bank Transfer' }}
+                                                        @elseif ($order->payment_method === 'cod')
+                                                            Cash on Delivery
+                                                        @else
+                                                            {{ ucwords(str_replace('_', ' ', $order->payment_method)) }}
+                                                        @endif
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    {{-- Customer Note --}}
+                    @if ($order->comment)
+                    <tr>
+                        <td style="padding: 8px 40px;">
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #222222; border-radius: 6px;">
+                                <tr>
+                                    <td style="padding: 20px 24px;">
+                                        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
+                                            Your Note
+                                        </p>
+                                        <p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6; font-style: italic;">
+                                            {{ $order->comment }}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    @endif
+
                     {{-- Items Table --}}
                     <tr>
                         <td style="padding: 16px 40px;">
+                            <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
+                                Items Ordered
+                            </p>
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
                                 {{-- Table Header --}}
                                 <tr>
@@ -136,61 +238,6 @@
                                     </td>
                                     <td style="padding: 12px 12px 8px 12px; font-size: 18px; font-weight: 700; color: {{ $primaryColor }}; text-align: right; width: 100px; border-top: 2px solid #333333;">
                                         {{ number_format($order->total, 2) }}
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    {{-- Shipping Address --}}
-                    <tr>
-                        <td style="padding: 16px 40px;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #222222; border-radius: 6px;">
-                                <tr>
-                                    <td style="padding: 20px 24px;">
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
-                                            Shipping Address
-                                        </p>
-                                        <p style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">
-                                            {{ $order->shipping_first_name }} {{ $order->shipping_last_name }}<br>
-                                            {{ $order->shipping_address_1 }}<br>
-                                            @if ($order->shipping_barangay){{ $order->shipping_barangay }}<br>@endif
-                                            @if ($order->shipping_district){{ $order->shipping_district }}, @endif
-                                            {{ $order->shipping_city }}
-                                            @if ($order->shipping_state), {{ $order->shipping_state }}@endif
-                                            @if ($order->shipping_postcode) {{ $order->shipping_postcode }}@endif
-                                            <br>{{ $order->shipping_country_code }}
-                                        </p>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    {{-- Payment Method --}}
-                    <tr>
-                        <td style="padding: 8px 40px 16px 40px;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #222222; border-radius: 6px;">
-                                <tr>
-                                    <td style="padding: 20px 24px;">
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
-                                            Payment Method
-                                        </p>
-                                        <p style="margin: 0; font-size: 14px; color: #e8e8e8;">
-                                            @if (str_starts_with($order->payment_method, 'bank_transfer'))
-                                                @php
-                                                    $bankAcct = null;
-                                                    if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
-                                                        $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
-                                                    }
-                                                @endphp
-                                                {{ $bankAcct ? 'Bank Transfer — ' . $bankAcct->bank_name : 'Bank Transfer' }}
-                                            @elseif ($order->payment_method === 'cod')
-                                                Cash on Delivery
-                                            @else
-                                                {{ ucwords(str_replace('_', ' ', $order->payment_method)) }}
-                                            @endif
-                                        </p>
                                     </td>
                                 </tr>
                             </table>
