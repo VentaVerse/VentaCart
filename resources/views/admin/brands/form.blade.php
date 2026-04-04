@@ -17,7 +17,7 @@
             <div class="space-y-6">
                 {{-- Name --}}
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <label for="name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Brand Name</label>
+                    <label for="name" class="block text-sm font-semibold text-gray-700 mb-4">Brand Name</label>
                     <input type="text" name="name" id="name" required value="{{ old('name', $brand?->name) }}"
                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="e.g. Wampler, Boss, Friedman">
@@ -26,7 +26,7 @@
 
                 {{-- Image --}}
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Logo / Image</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-4">Logo / Image</label>
                     @include('admin.partials.single_image_picker', [
                         'fieldName' => 'image',
                         'currentImage' => $brand?->image,
@@ -38,7 +38,7 @@
 
                 {{-- Description --}}
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <label for="description" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Description</label>
+                    <label for="description" class="block text-sm font-semibold text-gray-700 mb-4">Description</label>
                     <textarea name="description" id="description" rows="4"
                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                         placeholder="Brief description of the brand (shown on brand page)">{{ old('description', $brand?->description) }}</textarea>
@@ -47,7 +47,7 @@
 
                 {{-- SEO --}}
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">SEO</label>
+                    <label class="block text-sm font-semibold text-gray-700 mb-4">SEO</label>
                     <div class="space-y-4">
                         <div>
                             <label for="slug" class="block text-sm text-gray-600 mb-1">Slug</label>
@@ -57,7 +57,7 @@
                                     class="flex-1 rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="auto-generated-from-name">
                             </div>
-                            <p class="text-[11px] text-gray-400 mt-1">Leave blank to auto-generate from name</p>
+                            <p class="text-xs text-gray-400 mt-1">Leave blank to auto-generate from name</p>
                             @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div>
@@ -65,14 +65,14 @@
                             <input type="text" name="meta_title" id="meta_title" value="{{ old('meta_title', $brand?->meta_title) }}"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 placeholder="Leave blank to use brand name">
-                            <p class="text-[11px] text-gray-400 mt-1">Recommended: 50-60 characters</p>
+                            <p class="text-xs text-gray-400 mt-1">Recommended: 50-60 characters</p>
                         </div>
                         <div>
                             <label for="meta_description" class="block text-sm text-gray-600 mb-1">Meta Description</label>
                             <textarea name="meta_description" id="meta_description" rows="2"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 placeholder="Brief summary for search engine results">{{ old('meta_description', $brand?->meta_description) }}</textarea>
-                            <p class="text-[11px] text-gray-400 mt-1">Recommended: 120-160 characters</p>
+                            <p class="text-xs text-gray-400 mt-1">Recommended: 120-160 characters</p>
                         </div>
                         <div>
                             <label for="meta_keywords" class="block text-sm text-gray-600 mb-1">Meta Keywords</label>
@@ -166,7 +166,7 @@
             {{-- Right: Settings --}}
             <div class="space-y-6">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Settings</h3>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-4">Settings</h3>
                     <div class="space-y-4">
                         {{-- Status --}}
                         <div>
@@ -176,7 +176,7 @@
                                 <input type="checkbox" name="is_active" value="1" {{ old('is_active', $brand?->is_active ?? true) ? 'checked' : '' }}
                                     class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4">
                             </label>
-                            <p class="text-[11px] text-gray-400 mt-1">Inactive brands are hidden from the storefront</p>
+                            <p class="text-xs text-gray-400 mt-1">Inactive brands are hidden from the storefront</p>
                         </div>
 
                         <hr class="border-gray-100">
@@ -186,7 +186,7 @@
                             <label for="sort_order" class="block text-sm text-gray-700 mb-1">Sort Order</label>
                             <input type="number" name="sort_order" id="sort_order" min="0" value="{{ old('sort_order', $brand?->sort_order ?? 0) }}"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <p class="text-[11px] text-gray-400 mt-1">Lower numbers appear first</p>
+                            <p class="text-xs text-gray-400 mt-1">Lower numbers appear first</p>
                         </div>
                     </div>
                 </div>
@@ -194,7 +194,7 @@
                 {{-- Stats (edit only) --}}
                 @if ($brand)
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Info</h3>
+                        <h3 class="text-sm font-semibold text-gray-700 mb-4">Info</h3>
                         <dl class="space-y-2 text-sm">
                             <div class="flex justify-between">
                                 <dt class="text-gray-500">Products</dt>

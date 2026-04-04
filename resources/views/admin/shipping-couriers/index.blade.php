@@ -2,13 +2,13 @@
     <x-slot name="header">Shipping Couriers</x-slot>
 
     @if (session('success'))
-        <div class="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
+        <div class="mb-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>
     @endif
     @if (session('error'))
         <div class="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>
     @endif
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
             <p class="text-xs text-gray-500">Manual couriers for tracking shipments. Use <code class="bg-gray-200 px-1 rounded text-[11px]">{tracking_number}</code> in the URL template where the tracking code should be inserted.</p>
         </div>
@@ -39,9 +39,9 @@
                         <template x-if="editing !== {{ $courier->id }}">
                             <td class="px-6 py-3 text-center">
                                 @if ($courier->is_active)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Active</span>
                                 @else
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500">Inactive</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">Inactive</span>
                                 @endif
                             </td>
                         </template>

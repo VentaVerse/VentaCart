@@ -134,7 +134,7 @@
                     <input type="hidden" name="tab" value="{{ $tab }}">
                     <input type="text" name="search" value="{{ $search }}" placeholder="Search by product, customer, or title..."
                         class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Search</button>
+                    <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700">Search</button>
                     @if ($search)
                         <a href="{{ route('admin.reviews.index', ['tab' => $tab]) }}" class="text-sm text-gray-500 hover:text-gray-700">Clear</a>
                     @endif
@@ -146,28 +146,28 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rating</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse ($reviews as $review)
                             <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3 text-sm text-gray-900">
+                                <td class="px-6 py-4 text-sm text-gray-900">
                                     {{ $review->product->name ?? 'Deleted product' }}
                                     @if ($review->is_verified_purchase)
                                         <span class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">Verified</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-600">
+                                <td class="px-6 py-4 text-sm text-gray-600">
                                     <div>{{ $review->name }}</div>
                                     <div class="text-xs text-gray-400">{{ $review->email }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-sm">
+                                <td class="px-6 py-4 text-sm">
                                     <div class="flex gap-0.5 text-amber-400">
                                         @for ($i = 1; $i <= 5; $i++)
                                             @if ($i <= $review->rating)
@@ -178,9 +178,9 @@
                                         @endfor
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-600">{{ Str::limit($review->title, 40) ?: '-' }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $review->created_at->format('M j, Y') }}</td>
-                                <td class="px-4 py-3 text-sm text-right">
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ Str::limit($review->title, 40) ?: '-' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">{{ $review->created_at->format('M j, Y') }}</td>
+                                <td class="px-6 py-4 text-sm text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <a href="{{ route('admin.reviews.show', $review) }}" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">View</a>
                                         @if ($tab === 'pending')
@@ -211,7 +211,7 @@
             </div>
 
             @if ($reviews->hasPages())
-                <div class="p-4 border-t border-gray-200">
+                <div class="px-6 py-4 border-t border-gray-200">
                     {{ $reviews->links() }}
                 </div>
             @endif

@@ -125,7 +125,7 @@
                         <h3 class="checkout-section-title" x-text="editingAddress ? 'EDIT ADDRESS' : 'NEW ADDRESS'"></h3>
 
                         <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="account-label">First Name <span class="text-[var(--color-secondary)]">*</span></label>
                                     <input type="text" x-model="newAddr.first_name" required class="account-input w-full">
@@ -281,7 +281,7 @@
                         <h3 class="checkout-section-title">BILLING ADDRESS</h3>
 
                         <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="account-label">First Name <span class="text-[var(--color-secondary)]">*</span></label>
                                     <input type="text" x-model="$data.billing.first_name" required class="account-input w-full">

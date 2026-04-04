@@ -245,7 +245,7 @@
 
     /* Mini Cart Dropdown */
     .mini-cart-dropdown {
-        @apply absolute right-0 top-full mt-2 w-80 rounded z-50;
+        @apply absolute right-0 top-full mt-2 w-72 sm:w-80 rounded z-50;
         background: var(--color-dropdown-bg);
         border: 1px solid var(--color-border);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px var(--glow-primary);
@@ -1027,7 +1027,7 @@
     .mobile-nav {
         background-color: var(--color-bg);
         border-right: 1px solid var(--color-border);
-        @apply fixed top-0 left-0 bottom-0 w-80 z-50 overflow-y-auto transform transition-transform;
+        @apply fixed top-0 left-0 bottom-0 w-[85vw] max-w-80 z-50 overflow-y-auto transform transition-transform;
     }
 
     .mobile-nav > a,
@@ -1315,7 +1315,7 @@
 
     .cart-item-price {
         color: var(--color-footer-text);
-        @apply text-sm w-28 text-right;
+        @apply text-sm w-20 sm:w-28 text-right;
     }
 
     .cart-item-qty {
@@ -1325,14 +1325,14 @@
 
     .qty-btn {
         font-family: var(--font-heading);
-        @apply w-9 h-9 flex items-center justify-center text-lg text-[#777] hover:text-[var(--color-primary)] hover:bg-[#222] transition-colors;
+        @apply w-10 h-10 flex items-center justify-center text-lg text-[#777] hover:text-[var(--color-primary)] hover:bg-[#222] transition-colors;
     }
 
     .qty-input {
         border-left: 1px solid var(--color-border);
         border-right: 1px solid var(--color-border);
         color: var(--color-text-heading);
-        @apply w-12 h-9 text-center bg-transparent text-sm focus:outline-none;
+        @apply w-12 h-10 text-center bg-transparent text-sm focus:outline-none;
         font-family: var(--font-heading);
         -moz-appearance: textfield;
     }
@@ -1345,7 +1345,7 @@
 
     .cart-item-total {
         color: var(--color-text-heading);
-        @apply text-base w-28 text-right tracking-wider;
+        @apply text-base w-20 sm:w-28 text-right tracking-wider;
     }
 
     .cart-item-remove {
@@ -2057,7 +2057,13 @@
         width: 100%;
         max-height: 90vh;
         overflow-y: auto;
-        padding: 1.5rem;
+        padding: 1rem;
+    }
+
+    @media (min-width: 640px) {
+        .checkout-modal {
+            padding: 1.5rem;
+        }
     }
 
     .checkout-modal-title {

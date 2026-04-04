@@ -41,7 +41,7 @@
                     @endif
 
                     <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="account-label">First Name <span class="text-[var(--color-secondary)]">*</span></label>
                                 <input type="text" name="first_name" value="{{ old('first_name', $address?->first_name ?? Auth::guard('customer')->user()->first_name) }}" required class="account-input w-full">

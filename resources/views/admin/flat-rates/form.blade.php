@@ -14,7 +14,7 @@
                 <input type="text" name="name" id="name" required value="{{ old('name', $rate?->name) }}"
                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                     placeholder="e.g. Pickup from Warehouse, Metro Manila Flat">
-                <p class="text-[11px] text-gray-400 mt-1">This name appears in checkout exactly as you type it</p>
+                <p class="text-xs text-gray-400 mt-1">This name appears in checkout exactly as you type it</p>
                 @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
@@ -22,7 +22,7 @@
                 <label for="cost" class="block text-sm font-medium text-gray-700 mb-1">Cost (₱)</label>
                 <input type="number" name="cost" id="cost" step="0.01" min="0" required value="{{ old('cost', $rate?->cost ?? '0.00') }}"
                     class="w-40 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                <p class="text-[11px] text-gray-400 mt-1">Set to 0 for free pickup or promotional methods</p>
+                <p class="text-xs text-gray-400 mt-1">Set to 0 for free pickup or promotional methods</p>
             </div>
 
             <div class="grid grid-cols-2 gap-4">

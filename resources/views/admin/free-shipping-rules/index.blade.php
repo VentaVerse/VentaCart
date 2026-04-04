@@ -8,7 +8,7 @@
     </x-slot>
 
     <div class="mb-4">
-        <a href="{{ route('admin.shipping-settings.index', ['tab' => 'free-shipping']) }}" class="text-sm text-indigo-600 hover:text-indigo-800">&larr; Back to Shipping</a>
+        <a href="{{ route('admin.shipping-settings.index', ['tab' => 'free-shipping']) }}" class="text-sm text-indigo-600 hover:text-indigo-800">Back to Shipping</a>
     </div>
 
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -35,7 +35,7 @@
                         <td class="px-6 py-4">
                             <form method="POST" action="{{ route('admin.free-shipping-rules.toggle', $rule) }}" class="inline">
                                 @csrf
-                                <button type="submit" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $rule->is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500' }}">
+                                <button type="submit" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $rule->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
                                     {{ $rule->is_active ? 'Active' : 'Disabled' }}
                                 </button>
                             </form>

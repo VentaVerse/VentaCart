@@ -117,7 +117,7 @@
             </table>
 
             @if ($carts->hasPages())
-                <div class="px-6 py-3 border-t border-gray-200">
+                <div class="px-6 py-4 border-t border-gray-200">
                     {{ $carts->links() }}
                 </div>
             @endif

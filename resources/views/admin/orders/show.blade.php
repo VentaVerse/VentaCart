@@ -28,7 +28,7 @@
             Edit
         </a>
         <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-            Back
+            Back to Orders
         </a>
     </x-slot>
 

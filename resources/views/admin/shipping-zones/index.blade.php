@@ -31,7 +31,7 @@
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $zone->entries->count() }}</td>
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $zone->rates_count }}</td>
                         <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $zone->is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500' }}">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $zone->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
                                 {{ $zone->is_active ? 'Active' : 'Disabled' }}
                             </span>
                         </td>

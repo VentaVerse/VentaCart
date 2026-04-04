@@ -21,7 +21,7 @@
                 </select>
             </div>
             <div class="flex gap-2">
-                <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 border border-gray-300">Filter</button>
+                <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700">Filter</button>
                 <a href="{{ route('admin.pages.index') }}" class="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Clear</a>
             </div>
         </form>
@@ -70,7 +70,7 @@
         </table>
 
         @if ($pages->hasPages())
-            <div class="px-6 py-3 border-t border-gray-200">
+            <div class="px-6 py-4 border-t border-gray-200">
                 {{ $pages->links() }}
             </div>
         @endif

@@ -15,21 +15,21 @@
                         <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
                         <input type="text" name="title" id="title" value="{{ old('title', $post?->title) }}" required
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        @error('title') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        @error('title') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">Slug <span class="text-gray-400 font-normal">(auto-generated if empty)</span></label>
                         <input type="text" name="slug" id="slug" value="{{ old('slug', $post?->slug) }}"
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        @error('slug') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="content" class="block text-sm font-medium text-gray-700 mb-1">Content</label>
                         <textarea name="content" id="content" rows="16"
                             class="tinymce-editor w-full rounded-lg border-gray-300 text-sm">{{ old('content', $post?->content) }}</textarea>
-                        @error('content') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        @error('content') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div>

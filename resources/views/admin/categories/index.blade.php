@@ -32,11 +32,11 @@
                             <span class="text-xs text-gray-400 ml-2">/{{ $parent->slug }}</span>
                         </div>
                         <span class="text-xs text-gray-400 whitespace-nowrap">{{ $parent->products_count }} products</span>
-                        <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $parent->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                        <a href="{{ route('admin.categories.edit', $parent) }}" class="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 whitespace-nowrap">Edit</a>
+                        <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $parent->is_active ? 'bg-green-500' : 'bg-gray-300' }}"></span>
+                        <a href="{{ route('admin.categories.edit', $parent) }}" class="text-indigo-600 hover:text-indigo-900 text-xs font-medium whitespace-nowrap">Edit</a>
                         <form method="POST" action="{{ route('admin.categories.destroy', $parent) }}" class="inline" onsubmit="return confirm('Delete? Children move up.')">
                             @csrf @method('DELETE')
-                            <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 whitespace-nowrap">Delete</button>
+                            <button type="submit" class="text-red-600 hover:text-red-900 text-xs font-medium whitespace-nowrap">Delete</button>
                         </form>
                     </div>
 
@@ -55,11 +55,11 @@
                                         <span class="text-xs text-gray-400 ml-2">/{{ $child->slug }}</span>
                                     </div>
                                     <span class="text-xs text-gray-400 whitespace-nowrap">{{ $child->products_count }}</span>
-                                    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $child->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                                    <a href="{{ route('admin.categories.edit', $child) }}" class="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 whitespace-nowrap">Edit</a>
+                                    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ $child->is_active ? 'bg-green-500' : 'bg-gray-300' }}"></span>
+                                    <a href="{{ route('admin.categories.edit', $child) }}" class="text-indigo-600 hover:text-indigo-900 text-xs font-medium whitespace-nowrap">Edit</a>
                                     <form method="POST" action="{{ route('admin.categories.destroy', $child) }}" class="inline" onsubmit="return confirm('Delete?')">
                                         @csrf @method('DELETE')
-                                        <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 whitespace-nowrap">Delete</button>
+                                        <button type="submit" class="text-red-600 hover:text-red-900 text-xs font-medium whitespace-nowrap">Delete</button>
                                     </form>
                                 </div>
                             @endforeach

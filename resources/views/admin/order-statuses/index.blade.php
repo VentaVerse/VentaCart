@@ -2,13 +2,13 @@
     <x-slot name="header">Order Statuses</x-slot>
 
     @if (session('success'))
-        <div class="mb-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm text-emerald-700">{{ session('success') }}</div>
+        <div class="mb-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>
     @endif
     @if (session('error'))
         <div class="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>
     @endif
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
             <p class="text-xs text-gray-500">Manage the lifecycle stages of an order. <strong>Stock Action</strong> controls inventory: <em>Decrement</em> reduces stock, <em>Increment</em> restores it (for cancellations/returns).</p>
         </div>
@@ -47,7 +47,7 @@
                         <template x-if="editing !== {{ $status->id }}">
                             <td class="px-6 py-3 text-center">
                                 @if ($status->is_default)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Default</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Default</span>
                                 @endif
                             </td>
                         </template>

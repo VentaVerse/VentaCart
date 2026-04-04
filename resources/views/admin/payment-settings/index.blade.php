@@ -14,9 +14,9 @@
         hitpayMode: '{{ $settings['payment']['hitpay_mode'] ?? 'sandbox' }}',
         editField: {},
         toggleEdit(field) { this.editField[field] = !this.editField[field]; }
-    }" class="flex gap-6">
+    }" class="flex flex-col lg:flex-row gap-6">
         {{-- Left sidebar --}}
-        <nav class="w-52 shrink-0">
+        <nav class="w-full lg:w-52 lg:shrink-0">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-4 py-3 border-b border-gray-100">
                     <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Extensions</h3>

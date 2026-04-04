@@ -27,7 +27,7 @@
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Endpoint or SKU..."
                     class="rounded-md border-gray-300 text-sm py-1.5 w-48">
             </div>
-            <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Filter</button>
+            <button type="submit" class="px-3 py-1.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700">Filter</button>
             @if (request()->hasAny(['method', 'status', 'search']))
                 <a href="{{ route('admin.api-sync-logs.index') }}" class="text-sm text-gray-500 hover:text-gray-700">Clear</a>
             @endif
@@ -43,19 +43,19 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Endpoint</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Endpoint</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">IP</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse ($logs as $log)
                         <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 @php
                                     $methodColor = match($log->method) {
                                         'GET' => 'bg-green-100 text-green-700',
@@ -67,9 +67,9 @@
                                 @endphp
                                 <span class="px-2 py-0.5 rounded text-xs font-semibold {{ $methodColor }}">{{ $log->method }}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-700 font-mono">{{ $log->endpoint }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 font-mono">{{ $log->sku ?? '-' }}</td>
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-6 py-4 text-sm text-gray-700 font-mono">{{ $log->endpoint }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500 font-mono">{{ $log->sku ?? '-' }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 @php
                                     $statusColor = match(true) {
                                         $log->status_code >= 500 => 'text-red-600 font-semibold',
@@ -80,9 +80,9 @@
                                 @endphp
                                 <span class="text-sm {{ $statusColor }}">{{ $log->status_code }}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500">{{ $log->response_time_ms }}ms</td>
-                            <td class="px-4 py-3 text-sm text-gray-400 font-mono">{{ $log->ip_address }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{{ $log->created_at?->format('M d, Y H:i:s') }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">{{ $log->response_time_ms }}ms</td>
+                            <td class="px-6 py-4 text-sm text-gray-400 font-mono">{{ $log->ip_address }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">{{ $log->created_at?->format('M d, Y H:i:s') }}</td>
                         </tr>
                     @empty
                         <tr>
@@ -94,7 +94,7 @@
         </div>
 
         @if ($logs->hasPages())
-            <div class="px-4 py-3 border-t border-gray-200">
+            <div class="px-6 py-4 border-t border-gray-200">
                 {{ $logs->links() }}
             </div>
         @endif

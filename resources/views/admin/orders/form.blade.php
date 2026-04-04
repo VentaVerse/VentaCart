@@ -81,22 +81,22 @@
                                     <span class="text-sm text-emerald-700 font-medium">New customer — account will be created on save</span>
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">First Name</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                                     <input type="text" name="first_name" required x-model="customerFirstName"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                                     <input type="text" name="last_name" required x-model="customerLastName"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </div>
                                 <div class="col-span-2">
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                     <input type="email" name="email" required x-model="customerEmail"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 </div>
                                 <div class="col-span-2" x-show="customerAddresses.length > 0">
-                                    <label class="block text-xs font-medium text-gray-500 mb-1">Delivery Address</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Address</label>
                                     <select @change="loadCustomerAddress($event.target.value)" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         <option value="">Select address...</option>
                                         <template x-for="a in customerAddresses" :key="a.id">
@@ -113,17 +113,17 @@
                         <h3 class="text-sm font-semibold text-gray-700 mb-3">Shipping Address</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">First Name</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                                 <input type="text" name="shipping_first_name" x-model="shipping.first_name"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                                 <input type="text" name="shipping_last_name" x-model="shipping.last_name"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
                                 <select name="shipping_country_id" x-model="shipping.country_id" @change="onShippingCountryChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Country</option>
@@ -134,7 +134,7 @@
                             </div>
                             {{-- Provider: Province --}}
                             <div x-show="shippingDropdowns.hasProvider">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Province</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Province</label>
                                 <select name="shipping_state" x-model="shipping.state" @change="onShippingProvinceChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Province</option>
@@ -145,7 +145,7 @@
                             </div>
                             {{-- Provider: City --}}
                             <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.cities || []).length > 0">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">City / Municipality</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City / Municipality</label>
                                 <select name="shipping_city" x-model="shipping.city" @change="onShippingCityChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select City</option>
@@ -156,7 +156,7 @@
                             </div>
                             {{-- Provider: District --}}
                             <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.districts || []).length > 0">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">District</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">District</label>
                                 <select name="shipping_district" x-model="shipping.district" @change="onShippingDistrictChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select District</option>
@@ -167,7 +167,7 @@
                             </div>
                             {{-- Provider: Barangay --}}
                             <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.barangays || []).length > 0">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Barangay</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Barangay</label>
                                 <select name="shipping_barangay" x-model="shipping.barangay"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Barangay</option>
@@ -178,7 +178,7 @@
                             </div>
                             {{-- Core: State --}}
                             <div x-show="!shippingDropdowns.hasProvider && shipping.country_id">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">State / Province</label>
                                 <template x-if="(shippingDropdowns.zones || []).length > 0">
                                     <select name="shipping_state" x-model="shipping.state" @change="$nextTick(() => refreshMethods())"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -195,22 +195,22 @@
                             </div>
                             {{-- Core: City --}}
                             <div x-show="!shippingDropdowns.hasProvider && shipping.country_id">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">City</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
                                 <input type="text" name="shipping_city" x-model="shipping.city"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Address Line 1</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
                                 <input type="text" name="shipping_address_1" x-model="shipping.address_1"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Postcode</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
                                 <input type="text" name="shipping_postcode" x-model="shipping.postcode"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                 <div class="flex gap-2">
                                     <span class="inline-flex items-center px-3 rounded-lg border border-gray-300 bg-gray-50 text-sm text-gray-500" x-text="'+' + (phoneCode || '63')"></span>
                                     <input type="text" name="shipping_phone" x-model="shipping.phone"
@@ -230,17 +230,17 @@
 
                         <div x-show="differentBilling" x-transition class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">First Name</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                                 <input type="text" name="billing_first_name" x-model="billing.first_name"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                                 <input type="text" name="billing_last_name" x-model="billing.last_name"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Country</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
                                 <select name="billing_country_id" x-model="billing.country_id" @change="onBillingCountryChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Country</option>
@@ -251,7 +251,7 @@
                             </div>
                             {{-- Provider: Province --}}
                             <div x-show="billingDropdowns.hasProvider">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Province</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Province</label>
                                 <select name="billing_state" x-model="billing.state" @change="onBillingProvinceChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Province</option>
@@ -262,7 +262,7 @@
                             </div>
                             {{-- Provider: City --}}
                             <div x-show="billingDropdowns.hasProvider && (billingDropdowns.cities || []).length > 0">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">City / Municipality</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City / Municipality</label>
                                 <select name="billing_city" x-model="billing.city" @change="onBillingCityChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select City</option>
@@ -273,7 +273,7 @@
                             </div>
                             {{-- Provider: District --}}
                             <div x-show="billingDropdowns.hasProvider && (billingDropdowns.districts || []).length > 0">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">District</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">District</label>
                                 <select name="billing_district" x-model="billing.district" @change="onBillingDistrictChange()"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select District</option>
@@ -284,7 +284,7 @@
                             </div>
                             {{-- Provider: Barangay --}}
                             <div x-show="billingDropdowns.hasProvider && (billingDropdowns.barangays || []).length > 0">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Barangay</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Barangay</label>
                                 <select name="billing_barangay" x-model="billing.barangay"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <option value="">Select Barangay</option>
@@ -295,7 +295,7 @@
                             </div>
                             {{-- Core: State --}}
                             <div x-show="!billingDropdowns.hasProvider && billing.country_id">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">State / Province</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">State / Province</label>
                                 <template x-if="(billingDropdowns.zones || []).length > 0">
                                     <select name="billing_state" x-model="billing.state"
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -312,22 +312,22 @@
                             </div>
                             {{-- Core: City --}}
                             <div x-show="!billingDropdowns.hasProvider && billing.country_id">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">City</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
                                 <input type="text" name="billing_city" x-model="billing.city"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Address Line 1</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
                                 <input type="text" name="billing_address_1" x-model="billing.address_1"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Postcode</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
                                 <input type="text" name="billing_postcode" x-model="billing.postcode"
                                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                 <div class="flex gap-2">
                                     <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-xs text-gray-500"
                                         x-text="countriesPhoneCodes[billing.country_id] ? '+' + countriesPhoneCodes[billing.country_id] : '—'"></span>

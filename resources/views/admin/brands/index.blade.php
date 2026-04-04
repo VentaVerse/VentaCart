@@ -22,7 +22,7 @@
     </div>
 
     {{-- Brands Table --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
@@ -50,7 +50,7 @@
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $brand->products_count }}</td>
                         <td class="px-6 py-4 text-sm text-gray-500">{{ $brand->sort_order }}</td>
                         <td class="px-6 py-4 text-center">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $brand->is_active ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500' }}">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $brand->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600' }}">
                                 {{ $brand->is_active ? 'Active' : 'Inactive' }}
                             </span>
                         </td>

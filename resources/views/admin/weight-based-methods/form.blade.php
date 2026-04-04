@@ -15,19 +15,19 @@
             <div class="space-y-6">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 space-y-4">
                     <div>
-                        <label for="admin_name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Admin Reference Name</label>
+                        <label for="admin_name" class="block text-sm font-semibold text-gray-700 mb-4">Admin Reference Name</label>
                         <input type="text" name="admin_name" id="admin_name" value="{{ old('admin_name', $method?->admin_name) }}"
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                             placeholder="e.g. WB - Metro Manila Default, WB - Provincial Resellers">
-                        <p class="text-[11px] text-gray-400 mt-1">Internal label for admin — not shown to customers. Leave blank to copy from Method Name.</p>
+                        <p class="text-xs text-gray-400 mt-1">Internal label for admin — not shown to customers. Leave blank to copy from Method Name.</p>
                         @error('admin_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label for="name" class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Method Name <span class="text-red-400">*</span></label>
+                        <label for="name" class="block text-sm font-semibold text-gray-700 mb-4">Method Name <span class="text-red-400">*</span></label>
                         <input type="text" name="name" id="name" required value="{{ old('name', $method?->name) }}"
                             class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                             placeholder="e.g. Standard Shipping, Express Courier">
-                        <p class="text-[11px] text-gray-400 mt-1">This name appears in checkout exactly as you type it</p>
+                        <p class="text-xs text-gray-400 mt-1">This name appears in checkout exactly as you type it</p>
                         @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -35,7 +35,7 @@
                 {{-- Weight Tiers --}}
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <div class="flex items-center justify-between mb-4">
-                        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Weight Tiers</label>
+                        <label class="text-sm font-semibold text-gray-700">Weight Tiers</label>
                         <button type="button" @click="addRate()" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 font-medium">
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
                             Add Tier
@@ -89,8 +89,8 @@
             {{-- Right --}}
             <div class="space-y-6">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Geo Zones</h3>
-                    <p class="text-[11px] text-gray-400 mb-3">Select which geo zones this method applies to. Leave all unchecked for all zones.</p>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-4">Geo Zones</h3>
+                    <p class="text-xs text-gray-400 mb-3">Select which geo zones this method applies to. Leave all unchecked for all zones.</p>
                     @php $selectedGeoZones = old('geo_zone_ids', $method?->geoZones?->pluck('id')->toArray() ?? []); @endphp
                     <div class="space-y-1.5 max-h-48 overflow-y-auto">
                         @foreach ($geoZones as $zone)
@@ -108,8 +108,8 @@
                 </div>
 
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Customer Groups</h3>
-                    <p class="text-[11px] text-gray-400 mb-3">Restrict to specific customer groups. Leave all unchecked for all customers.</p>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-4">Customer Groups</h3>
+                    <p class="text-xs text-gray-400 mb-3">Restrict to specific customer groups. Leave all unchecked for all customers.</p>
                     @php $selectedGroups = old('customer_group_ids', $method?->customerGroups?->pluck('id')->toArray() ?? []); @endphp
                     <div class="space-y-1.5 max-h-48 overflow-y-auto">
                         @foreach ($customerGroups as $group)
@@ -127,7 +127,7 @@
                 </div>
 
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Settings</h3>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-4">Settings</h3>
                     <div class="space-y-4">
                         <label class="flex items-center justify-between cursor-pointer">
                             <span class="text-sm text-gray-700">Active</span>

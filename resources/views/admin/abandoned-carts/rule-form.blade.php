@@ -60,7 +60,7 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors">
                     {{ $rule ? 'Update Rule' : 'Create Rule' }}
                 </button>
                 <a href="{{ route('admin.abandoned-carts.rules') }}" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">Cancel</a>

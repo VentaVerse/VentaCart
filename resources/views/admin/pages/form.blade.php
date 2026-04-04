@@ -2,7 +2,7 @@
     <x-slot name="header">{{ $page ? 'Edit Page' : 'New Page' }}</x-slot>
     <x-slot name="headerActions">
         <a href="{{ route('admin.pages.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-            Back
+            Back to Pages
         </a>
     </x-slot>
 
