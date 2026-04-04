@@ -206,7 +206,7 @@
                     <div class="flex items-center gap-3">
                         <span class="text-sm text-gray-600">
                             <span class="font-semibold text-emerald-600" x-text="selectedFiles.length"></span>
-                            image<span x-show="selectedFiles.length !== 1">s</span> selected
+                            <span x-text="selectedFiles.length === 1 ? 'image' : 'images'"></span> selected
                         </span>
                         <button type="button" @click="selectedFiles = []"
                             class="text-xs text-gray-400 hover:text-gray-600 underline transition-colors">
@@ -216,7 +216,7 @@
                     <button type="button" @click="addSelectedFiles()"
                         class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                        Add <span x-text="selectedFiles.length"></span> Image<span x-show="selectedFiles.length !== 1">s</span>
+                        <span x-text="'Add ' + selectedFiles.length + (selectedFiles.length === 1 ? ' Image' : ' Images')"></span>
                     </button>
                 </div>
             </div>
