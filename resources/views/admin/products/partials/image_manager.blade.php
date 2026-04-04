@@ -162,17 +162,26 @@
                         {{-- Files --}}
                         <template x-for="file in filteredBrowserFiles" :key="file.path">
                             <div class="relative group">
-                                <button type="button" @click="selectServerFile(file)"
-                                    class="flex flex-col items-center p-2 rounded-xl hover:bg-gray-100 transition-colors w-full"
-                                    :class="items.find(i => i.path === file.path) ? 'ring-2 ring-indigo-500 bg-indigo-50' : ''">
+                                <button type="button" @click="toggleFileSelection(file)"
+                                    class="flex flex-col items-center p-2 rounded-xl transition-colors w-full"
+                                    :class="isAlreadyAdded(file.path)
+                                        ? 'ring-2 ring-indigo-500 bg-indigo-50 opacity-60 cursor-default'
+                                        : isSelected(file.path)
+                                            ? 'ring-2 ring-emerald-500 bg-emerald-50'
+                                            : 'hover:bg-gray-100'">
                                     <div class="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                                         <img :src="file.url" :alt="file.name" class="w-full h-full object-cover" loading="lazy">
                                     </div>
                                     <span class="text-[11px] text-gray-500 mt-1.5 truncate w-full text-center leading-tight" x-text="file.name"></span>
                                 </button>
                                 {{-- Already-added indicator --}}
-                                <div x-show="items.find(i => i.path === file.path)"
+                                <div x-show="isAlreadyAdded(file.path)"
                                      class="absolute top-3 left-3 w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center pointer-events-none shadow-sm">
+                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                {{-- Selection indicator --}}
+                                <div x-show="isSelected(file.path)"
+                                     class="absolute top-3 left-3 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center pointer-events-none shadow-sm">
                                     <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                                 </div>
                                 <button type="button" @click="deleteServerFile(file)"
@@ -189,6 +198,26 @@
                         <p class="text-sm text-gray-500 font-medium">Empty folder</p>
                         <p class="text-xs text-gray-400 mt-1">Drop files here or use Upload Here above</p>
                     </div>
+                </div>
+
+                {{-- Selection Footer --}}
+                <div x-show="selectedFiles.length > 0" x-transition
+                     class="flex items-center justify-between px-5 py-3 border-t border-gray-200 bg-white">
+                    <div class="flex items-center gap-3">
+                        <span class="text-sm text-gray-600">
+                            <span class="font-semibold text-emerald-600" x-text="selectedFiles.length"></span>
+                            image<span x-show="selectedFiles.length !== 1">s</span> selected
+                        </span>
+                        <button type="button" @click="selectedFiles = []"
+                            class="text-xs text-gray-400 hover:text-gray-600 underline transition-colors">
+                            Clear
+                        </button>
+                    </div>
+                    <button type="button" @click="addSelectedFiles()"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                        Add <span x-text="selectedFiles.length"></span> Image<span x-show="selectedFiles.length !== 1">s</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -217,6 +246,9 @@ function imageManager() {
         browserSearch: '',
         browserSort: 'date',
         lastBrowsedPath: null,
+
+        // Selection state for browser
+        selectedFiles: [],
 
         // Drag & drop in modal
         browserDragover: false,
@@ -415,6 +447,7 @@ function imageManager() {
         // --- Image Manager Modal ---
         async openBrowser() {
             this.browserOpen = true;
+            this.selectedFiles = [];
 
             let startPath = '';
 
@@ -486,15 +519,39 @@ function imageManager() {
             this.browserLoading = false;
         },
 
-        selectServerFile(file) {
-            const already = this.items.find(i => i.path === file.path);
-            if (already) {
-                this.showToast('Image already added.', 'error');
-                return;
+        isAlreadyAdded(path) {
+            return this.items.some(i => i.path === path);
+        },
+
+        isSelected(path) {
+            return this.selectedFiles.some(f => f.path === path);
+        },
+
+        toggleFileSelection(file) {
+            if (this.isAlreadyAdded(file.path)) return;
+
+            const idx = this.selectedFiles.findIndex(f => f.path === file.path);
+            if (idx !== -1) {
+                this.selectedFiles.splice(idx, 1);
+            } else {
+                this.selectedFiles.push({ path: file.path, url: file.url });
             }
-            this.items.push({ path: file.path, url: file.url });
+        },
+
+        addSelectedFiles() {
+            let added = 0;
+            for (const file of this.selectedFiles) {
+                if (!this.isAlreadyAdded(file.path)) {
+                    this.items.push({ path: file.path, url: file.url });
+                    added++;
+                }
+            }
+            this.selectedFiles = [];
             this.$nextTick(() => this.renderGrid());
-            this.showToast('Image added.');
+            if (added > 0) {
+                this.showToast(added + ' image' + (added !== 1 ? 's' : '') + ' added.');
+            }
+            this.browserOpen = false;
         },
 
         async deleteServerFile(file) {
