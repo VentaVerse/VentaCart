@@ -144,7 +144,7 @@
                 <div x-show="lightbox" x-transition.opacity.duration.200ms
                      class="fixed inset-0 z-[9999] flex items-center justify-center"
                      style="background: rgba(0,0,0,0.92);"
-                     @click.self="lightbox = false">
+                     @mousedown.self="lightbox = false">
 
                     {{-- Close --}}
                     <button @click="lightbox = false"

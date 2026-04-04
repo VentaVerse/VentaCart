@@ -145,7 +145,7 @@
                 <div x-show="lightbox" x-transition.opacity.duration.200ms
                      class="fixed inset-0 z-[9999] flex items-center justify-center"
                      style="background: rgba(0,0,0,0.92);"
-                     @click.self="lightbox = false">
+                     @mousedown.self="lightbox = false">
 
                     <button @click="lightbox = false"
                         class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
