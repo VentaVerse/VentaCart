@@ -149,19 +149,19 @@
                     {{-- Prev --}}
                     @if ($images->count() > 1)
                         <button @click.stop="activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}"
-                            class="absolute left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                            class="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                         </button>
 
                         {{-- Next --}}
                         <button @click.stop="activeImage = (activeImage + 1) % {{ $images->count() }}"
-                            class="absolute right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                            class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                         </button>
                     @endif
 
                     {{-- Image (draggable) --}}
-                    <div class="max-w-[90vw] max-h-[90vh] flex items-center justify-center select-none"
+                    <div class="max-w-[90vw] max-h-[90vh] flex items-center justify-center select-none bg-white rounded-lg"
                          :class="dragging ? 'cursor-grabbing' : 'cursor-grab'"
                          @click.stop
                          @mousedown.prevent="dragging = true; dragStartX = event.clientX; dragDelta = 0"
