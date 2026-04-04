@@ -84,8 +84,30 @@
             <div class="lg:w-1/2" x-data="{
                     activeImage: 0, zooming: false, zoomX: 50, zoomY: 50,
                     lightbox: false, dragStartX: 0, dragDelta: 0, dragging: false,
+                    imageCount: {{ $images->count() }},
                     init() {
-                        this.$watch('lightbox', function(open) { if (!open) { this.dragging = false; this.dragDelta = 0; } }.bind(this));
+                        this.$watch('lightbox', (open) => {
+                            if (!open) { this.dragging = false; this.dragDelta = 0; }
+                        });
+                    },
+                    startDrag(x) {
+                        this.dragging = true;
+                        this.dragStartX = x;
+                        this.dragDelta = 0;
+                    },
+                    onDrag(x) {
+                        if (!this.dragging || !this.lightbox) return;
+                        this.dragDelta = x - this.dragStartX;
+                    },
+                    endDrag() {
+                        if (!this.dragging) return;
+                        this.dragging = false;
+                        if (this.dragDelta < -100 && this.imageCount > 1) {
+                            this.activeImage = (this.activeImage + 1) % this.imageCount;
+                        } else if (this.dragDelta > 100 && this.imageCount > 1) {
+                            this.activeImage = (this.activeImage - 1 + this.imageCount) % this.imageCount;
+                        }
+                        this.dragDelta = 0;
                     }
                  }"
                  @keydown.escape.window="lightbox = false"
@@ -166,12 +188,12 @@
                     <div class="max-w-[90vw] max-h-[90vh] flex items-center justify-center select-none bg-white rounded-lg"
                          :class="dragging ? 'cursor-grabbing' : 'cursor-grab'"
                          @click.stop
-                         @mousedown.prevent="dragging = true; dragStartX = event.clientX; dragDelta = 0"
-                         @mousemove.window="if (dragging && lightbox) dragDelta = event.clientX - dragStartX"
-                         @mouseup.window="if (dragging && lightbox) { dragging = false; if (dragDelta < -100) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 100) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
-                         @touchstart="dragStartX = event.touches[0].clientX; dragDelta = 0; dragging = true"
-                         @touchmove.prevent="if (dragging) dragDelta = event.touches[0].clientX - dragStartX"
-                         @touchend="if (dragging) { dragging = false; if (dragDelta < -100) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 100) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
+                         @mousedown.prevent="startDrag(event.clientX)"
+                         @mousemove.window="onDrag(event.clientX)"
+                         @mouseup.window="endDrag()"
+                         @touchstart="startDrag(event.touches[0].clientX)"
+                         @touchmove.prevent="onDrag(event.touches[0].clientX)"
+                         @touchend="endDrag()"
                          :style="{ transform: 'translateX(' + dragDelta + 'px)', transition: dragging ? 'none' : 'transform 0.3s ease' }">
                         @foreach ($images as $i => $img)
                             <img x-show="activeImage === {{ $i }}"
