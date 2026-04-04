@@ -359,11 +359,18 @@ class OrderController extends Controller
             // Also send shipping notification if tracking was added
             if ($courierChanged && !empty($order->tracking_number)) {
                 $courier = $order->shippingCourier;
+                $trackingUrl = '';
+                if ($courier?->tracking_url && $order->tracking_number) {
+                    $trackingUrl = str_replace('{tracking_number}', $order->tracking_number, $courier->tracking_url);
+                }
                 \App\Services\TemplateMailService::send('shipping_notification', $order->email, [
                     'customer_name' => $order->first_name . ' ' . $order->last_name,
                     'order_id' => $order->id,
-                    'tracking_number' => $order->tracking_number,
+                    'tracking_number' => $trackingUrl
+                        ? '<a href="' . e($trackingUrl) . '" style="color: #F5A623; text-decoration: underline;">' . e($order->tracking_number) . '</a>'
+                        : $order->tracking_number,
                     'carrier_name' => $courier?->name ?? $order->shipping_method ?? 'Courier',
+                    'tracking_url' => $trackingUrl,
                     'store_name' => config('app.name'),
                 ]);
             }
@@ -400,11 +407,18 @@ class OrderController extends Controller
         // Send shipping notification if new tracking number and notify is checked
         if ($notify && !empty($validated['tracking_number']) && $order->email) {
             $courier = $order->shippingCourier;
+            $trackingUrl = '';
+            if ($courier?->tracking_url && !empty($validated['tracking_number'])) {
+                $trackingUrl = str_replace('{tracking_number}', $validated['tracking_number'], $courier->tracking_url);
+            }
             \App\Services\TemplateMailService::send('shipping_notification', $order->email, [
                 'customer_name' => $order->first_name . ' ' . $order->last_name,
                 'order_id' => $order->id,
-                'tracking_number' => $validated['tracking_number'],
+                'tracking_number' => $trackingUrl
+                    ? '<a href="' . e($trackingUrl) . '" style="color: #F5A623; text-decoration: underline;">' . e($validated['tracking_number']) . '</a>'
+                    : $validated['tracking_number'],
                 'carrier_name' => $courier?->name ?? $order->shipping_method ?? 'Courier',
+                'tracking_url' => $trackingUrl,
                 'store_name' => config('app.name'),
             ]);
         }
