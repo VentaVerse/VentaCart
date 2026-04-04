@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 class EmailTemplateController extends Controller
 {
     private const PLACEHOLDER_MAP = [
-        'order_confirmation' => ['customer_name', 'order_id', 'subtotal', 'shipping_method', 'shipping_cost', 'order_total', 'order_items', 'shipping_address', 'payment_method', 'comment', 'store_name'],
+        'order_confirmation' => ['customer_name', 'order_id', 'subtotal', 'shipping_method', 'shipping_cost', 'order_total', 'order_items', 'shipping_address', 'payment_method', 'payment_details', 'comment', 'store_name'],
         'order_status_update' => ['customer_name', 'order_id', 'old_status', 'new_status', 'comment', 'store_name'],
         'shipping_notification' => ['customer_name', 'order_id', 'tracking_number', 'carrier_name', 'store_name'],
         'welcome' => ['customer_name', 'store_name', 'store_url'],
@@ -33,6 +33,7 @@ class EmailTemplateController extends Controller
             'shipping_cost' => '₱150.00',
             'shipping_address' => 'John Doe<br>123 Sample Street<br>Makati City<br>Metro Manila 1200<br>Philippines<br>Phone: 09171234567',
             'payment_method' => 'Bank Transfer',
+            'payment_details' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0;"><tr><td style="padding: 16px 20px; background-color: #222222; border-radius: 6px;"><p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">Payment Method</p><p style="margin: 0; font-size: 14px; color: #e8e8e8;">Bank Transfer — Maya</p></td></tr></table>',
             'comment' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;"><tr><td style="padding: 16px 20px;"><p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">Order Note</p><p style="margin: 0; font-size: 13px; color: #e8e8e8; line-height: 1.5;">Please deliver between 9am-5pm. Leave with building guard if not home.</p></td></tr></table>',
             'old_status' => 'Processing',
             'new_status' => 'Shipped',

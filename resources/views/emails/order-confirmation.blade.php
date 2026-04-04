@@ -77,7 +77,7 @@
                                         </p>
                                         @if ($order->shipping_phone)
                                             <p style="margin: 8px 0 0 0; font-size: 13px; color: #bbbbbb;">
-                                                Phone: {{ $order->shipping_phone }}
+                                                Phone: {{ $country && $country->phone_code ? '+' . $country->phone_code . ' ' : '' }}{{ $order->shipping_phone }}
                                             </p>
                                         @endif
                                     </td>
@@ -86,49 +86,31 @@
                         </td>
                     </tr>
 
-                    {{-- Shipping Method + Payment Method --}}
+                    {{-- Payment Method --}}
                     <tr>
                         <td style="padding: 8px 40px;">
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #222222; border-radius: 6px;">
                                 <tr>
                                     <td style="padding: 20px 24px;">
-                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                                            <tr>
-                                                <td style="width: 50%; vertical-align: top; padding-right: 12px;">
-                                                    <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
-                                                        Shipping Method
-                                                    </p>
-                                                    <p style="margin: 0; font-size: 14px; color: #e8e8e8;">
-                                                        {{ $order->shipping_method ?: 'N/A' }}
-                                                        @if ($order->shipping_cost > 0)
-                                                            — {{ number_format($order->shipping_cost, 2) }}
-                                                        @else
-                                                            — <span style="color: #4ade80;">FREE</span>
-                                                        @endif
-                                                    </p>
-                                                </td>
-                                                <td style="width: 50%; vertical-align: top; padding-left: 12px;">
-                                                    <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
-                                                        Payment Method
-                                                    </p>
-                                                    <p style="margin: 0; font-size: 14px; color: #e8e8e8;">
-                                                        @if (str_starts_with($order->payment_method, 'bank_transfer'))
-                                                            @php
-                                                                $bankAcct = null;
-                                                                if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
-                                                                    $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
-                                                                }
-                                                            @endphp
-                                                            {{ $bankAcct ? 'Bank Transfer — ' . $bankAcct->bank_name : 'Bank Transfer' }}
-                                                        @elseif ($order->payment_method === 'cod')
-                                                            Cash on Delivery
-                                                        @else
-                                                            {{ ucwords(str_replace('_', ' ', $order->payment_method)) }}
-                                                        @endif
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
+                                        <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">
+                                            Payment Method
+                                        </p>
+                                        <p style="margin: 0; font-size: 14px; color: #e8e8e8;">
+                                            {{ $order->payment_method_label }}
+                                        </p>
+                                        @if (str_starts_with($order->payment_method, 'bank_transfer'))
+                                            @php
+                                                $bankAcct = null;
+                                                if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
+                                                    $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
+                                                }
+                                            @endphp
+                                            @if ($bankAcct && $bankAcct->qr_image)
+                                                <div style="margin-top: 12px; text-align: center;">
+                                                    <img src="{{ url('/storage/' . $bankAcct->qr_image) }}" alt="QR Code" width="180" height="180" style="width: 180px; height: 180px; border-radius: 6px; display: inline-block;">
+                                                </div>
+                                            @endif
+                                        @endif
                                     </td>
                                 </tr>
                             </table>
@@ -216,7 +198,7 @@
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #999999; text-align: right;">
-                                        Subtotal
+                                        Subtotal:
                                     </td>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #e8e8e8; text-align: right; width: 100px;">
                                         {{ number_format($order->subtotal, 2) }}
@@ -224,7 +206,7 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #999999; text-align: right;">
-                                        Shipping ({{ $order->shipping_method ?: 'Standard' }})
+                                        Shipping ({{ $order->shipping_method ?: 'Standard' }}):
                                     </td>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #e8e8e8; text-align: right; width: 100px;">
                                         @if ($order->shipping_cost > 0)

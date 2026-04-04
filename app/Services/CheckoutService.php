@@ -366,7 +366,8 @@ class CheckoutService
             'order_items' => $itemsHtml,
             'shipping_address' => $addressHtml,
             'payment_method' => $order->payment_method_label,
-            'comment' => self::buildCommentHtml($order, 'Your Note'),
+            'payment_details' => self::buildPaymentDetailsHtml($order),
+            'comment' => self::buildCommentHtml($order, 'Order Note'),
             'store_name' => config('app.name'),
         ]);
 
@@ -407,6 +408,32 @@ class CheckoutService
             'shipping_address' => $addressHtml,
             'comment' => self::buildCommentHtml($order, 'Customer Note'),
         ]);
+    }
+
+    private static function buildPaymentDetailsHtml(Order $order): string
+    {
+        $label = $order->payment_method_label;
+        $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 16px 0;">'
+            . '<tr><td style="padding: 16px 20px; background-color: #222222; border-radius: 6px;">'
+            . '<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">Payment Method</p>'
+            . '<p style="margin: 0; font-size: 14px; color: #e8e8e8;">' . e($label) . '</p>';
+
+        // Add QR code for bank transfer
+        if (str_starts_with($order->payment_method, 'bank_transfer')) {
+            $bankAcct = null;
+            if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
+                $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
+            }
+            if ($bankAcct && $bankAcct->qr_image) {
+                $qrUrl = url('/storage/' . $bankAcct->qr_image);
+                $html .= '<div style="margin-top: 12px; text-align: center;">'
+                    . '<img src="' . e($qrUrl) . '" alt="QR Code" width="180" height="180" style="width: 180px; height: 180px; border-radius: 6px; display: inline-block;">'
+                    . '</div>';
+            }
+        }
+
+        $html .= '</td></tr></table>';
+        return $html;
     }
 
     private static function buildCommentHtml(Order $order, string $heading = 'Order Note'): string
@@ -484,7 +511,14 @@ class CheckoutService
             }
         }
         if ($order->shipping_phone) {
-            $lines[] = 'Phone: ' . e($order->shipping_phone);
+            $phoneCode = '';
+            if ($order->shipping_country_id) {
+                $countryForPhone = $country ?? \App\Models\Country::find($order->shipping_country_id);
+                if ($countryForPhone && $countryForPhone->phone_code) {
+                    $phoneCode = '+' . $countryForPhone->phone_code . ' ';
+                }
+            }
+            $lines[] = 'Phone: ' . $phoneCode . e($order->shipping_phone);
         }
         return implode('<br>', $lines);
     }
