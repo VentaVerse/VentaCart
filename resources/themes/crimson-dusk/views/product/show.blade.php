@@ -81,7 +81,7 @@
              })">
 
             {{-- Image Gallery --}}
-            <div class="lg:w-1/2" x-data="{ activeImage: 0, zooming: false, zoomX: 50, zoomY: 50, lightbox: false }"
+            <div class="lg:w-1/2" x-data="{ activeImage: 0, zooming: false, zoomX: 50, zoomY: 50, lightbox: false, dragStartX: 0, dragDelta: 0, dragging: false }"
                  @keydown.escape.window="lightbox = false"
                  @keydown.left.window="if (lightbox) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}"
                  @keydown.right.window="if (lightbox) activeImage = (activeImage + 1) % {{ $images->count() }}">
@@ -157,11 +157,20 @@
                         </button>
                     @endif
 
-                    <div class="max-w-[90vw] max-h-[90vh] flex items-center justify-center" @click.stop>
+                    <div class="max-w-[90vw] max-h-[90vh] flex items-center justify-center select-none"
+                         :class="dragging ? 'cursor-grabbing' : 'cursor-grab'"
+                         @click.stop
+                         @mousedown.prevent="dragging = true; dragStartX = event.clientX; dragDelta = 0"
+                         @mousemove.window="if (dragging && lightbox) dragDelta = event.clientX - dragStartX"
+                         @mouseup.window="if (dragging && lightbox) { dragging = false; if (dragDelta < -80) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 80) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
+                         @touchstart="dragStartX = event.touches[0].clientX; dragDelta = 0; dragging = true"
+                         @touchmove.prevent="if (dragging) dragDelta = event.touches[0].clientX - dragStartX"
+                         @touchend="if (dragging) { dragging = false; if (dragDelta < -80) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 80) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
+                         :style="{ transform: 'translateX(' + dragDelta + 'px)', transition: dragging ? 'none' : 'transform 0.3s ease' }">
                         @foreach ($images as $i => $img)
-                            <img x-show="activeImage === {{ $i }}" x-transition.opacity.duration.150ms
+                            <img x-show="activeImage === {{ $i }}"
                                  src="{{ storage_url($img->path) }}" alt="{{ $product->name }}"
-                                 class="max-w-full max-h-[90vh] object-contain">
+                                 class="max-w-full max-h-[90vh] object-contain pointer-events-none">
                         @endforeach
                     </div>
 
