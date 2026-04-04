@@ -105,10 +105,38 @@
                                                     $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
                                                 }
                                             @endphp
-                                            @if ($bankAcct && $bankAcct->qr_image)
-                                                <div style="margin-top: 12px; text-align: center;">
-                                                    <img src="{{ url('/storage/' . $bankAcct->qr_image) }}" alt="QR Code" width="180" height="180" style="width: 180px; height: 180px; border-radius: 6px; display: inline-block;">
-                                                </div>
+                                            @if ($bankAcct)
+                                                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border-top: 1px solid #333;">
+                                                    <tr>
+                                                        <td style="padding: 8px 0 2px 0; font-size: 13px; color: #999;">Bank:</td>
+                                                        <td style="padding: 8px 0 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{{ $bankAcct->bank_name }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 2px 0; font-size: 13px; color: #999;">Account Name:</td>
+                                                        <td style="padding: 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{{ $bankAcct->account_name }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Account Number:</td>
+                                                        <td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">{{ $bankAcct->account_number }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="2" style="padding: 8px 0 0 0; font-size: 13px; color: #999; border-top: 1px solid #333;">Instructions:</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td colspan="2" style="padding: 4px 0 0 0; font-size: 13px; color: #e8e8e8; line-height: 1.5;">
+                                                            @if ($bankAcct->instructions)
+                                                                {!! nl2br(e($bankAcct->instructions)) !!}
+                                                            @else
+                                                                <span style="color: #666;">—</span>
+                                                            @endif
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                @if ($bankAcct->qr_image)
+                                                    <div style="margin-top: 12px; text-align: center;">
+                                                        <img src="{{ url('/storage/' . $bankAcct->qr_image) }}" alt="QR Code" width="180" height="180" style="width: 180px; height: 180px; border-radius: 6px; display: inline-block;">
+                                                    </div>
+                                                @endif
                                             @endif
                                         @endif
                                     </td>
@@ -227,26 +255,6 @@
                             </table>
                         </td>
                     </tr>
-
-                    {{-- Bank Transfer Instructions --}}
-                    @if ($bankInstructions)
-                    <tr>
-                        <td style="padding: 0 40px 16px 40px;">
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #2a2211; border: 1px solid {{ $primaryColor }}; border-radius: 6px;">
-                                <tr>
-                                    <td style="padding: 20px 24px;">
-                                        <p style="margin: 0 0 8px 0; font-size: 12px; font-weight: 700; color: {{ $primaryColor }}; text-transform: uppercase; letter-spacing: 1px;">
-                                            Bank Transfer Instructions
-                                        </p>
-                                        <div style="margin: 0; font-size: 14px; color: #e8e8e8; line-height: 1.6;">
-                                            {!! nl2br(e($bankInstructions)) !!}
-                                        </div>
-                                    </td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    @endif
 
                     {{-- Footer --}}
                     <tr>

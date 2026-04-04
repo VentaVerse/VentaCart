@@ -418,17 +418,30 @@ class CheckoutService
             . '<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">Payment Method</p>'
             . '<p style="margin: 0; font-size: 14px; color: #e8e8e8;">' . e($label) . '</p>';
 
-        // Add QR code for bank transfer
         if (str_starts_with($order->payment_method, 'bank_transfer')) {
             $bankAcct = null;
             if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
                 $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
             }
-            if ($bankAcct && $bankAcct->qr_image) {
-                $qrUrl = url('/storage/' . $bankAcct->qr_image);
-                $html .= '<div style="margin-top: 12px; text-align: center;">'
-                    . '<img src="' . e($qrUrl) . '" alt="QR Code" width="180" height="180" style="width: 180px; height: 180px; border-radius: 6px; display: inline-block;">'
-                    . '</div>';
+            if ($bankAcct) {
+                $html .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border-top: 1px solid #333;">'
+                    . '<tr><td style="padding: 8px 0 2px 0; font-size: 13px; color: #999;">Bank:</td>'
+                    . '<td style="padding: 8px 0 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">' . e($bankAcct->bank_name) . '</td></tr>'
+                    . '<tr><td style="padding: 2px 0; font-size: 13px; color: #999;">Account Name:</td>'
+                    . '<td style="padding: 2px 0; font-size: 13px; color: #e8e8e8; text-align: right;">' . e($bankAcct->account_name) . '</td></tr>'
+                    . '<tr><td style="padding: 2px 0 8px 0; font-size: 13px; color: #999;">Account Number:</td>'
+                    . '<td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">' . e($bankAcct->account_number) . '</td></tr>'
+                    . '<tr><td colspan="2" style="padding: 8px 0 0 0; font-size: 13px; color: #999; border-top: 1px solid #333;">Instructions:</td></tr>'
+                    . '<tr><td colspan="2" style="padding: 4px 0 0 0; font-size: 13px; color: #e8e8e8; line-height: 1.5;">'
+                    . ($bankAcct->instructions ? nl2br(e($bankAcct->instructions)) : '<span style="color: #666;">—</span>')
+                    . '</td></tr></table>';
+
+                if ($bankAcct->qr_image) {
+                    $qrUrl = url('/storage/' . $bankAcct->qr_image);
+                    $html .= '<div style="margin-top: 12px; text-align: center;">'
+                        . '<img src="' . e($qrUrl) . '" alt="QR Code" width="180" height="180" style="width: 180px; height: 180px; border-radius: 6px; display: inline-block;">'
+                        . '</div>';
+                }
             }
         }
 
