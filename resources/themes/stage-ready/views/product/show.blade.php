@@ -81,7 +81,13 @@
              })">
 
             {{-- Image Gallery --}}
-            <div class="lg:w-1/2" x-data="{ activeImage: 0, zooming: false, zoomX: 50, zoomY: 50, lightbox: false, dragStartX: 0, dragDelta: 0, dragging: false }"
+            <div class="lg:w-1/2" x-data="{
+                    activeImage: 0, zooming: false, zoomX: 50, zoomY: 50,
+                    lightbox: false, dragStartX: 0, dragDelta: 0, dragging: false,
+                    init() {
+                        this.$watch('lightbox', function(open) { if (!open) { this.dragging = false; this.dragDelta = 0; } }.bind(this));
+                    }
+                 }"
                  @keydown.escape.window="lightbox = false"
                  @keydown.left.window="if (lightbox) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}"
                  @keydown.right.window="if (lightbox) activeImage = (activeImage + 1) % {{ $images->count() }}">
@@ -162,10 +168,10 @@
                          @click.stop
                          @mousedown.prevent="dragging = true; dragStartX = event.clientX; dragDelta = 0"
                          @mousemove.window="if (dragging && lightbox) dragDelta = event.clientX - dragStartX"
-                         @mouseup.window="if (dragging && lightbox) { dragging = false; if (dragDelta < -200) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 200) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
+                         @mouseup.window="if (dragging && lightbox) { dragging = false; if (dragDelta < -100) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 100) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
                          @touchstart="dragStartX = event.touches[0].clientX; dragDelta = 0; dragging = true"
                          @touchmove.prevent="if (dragging) dragDelta = event.touches[0].clientX - dragStartX"
-                         @touchend="if (dragging) { dragging = false; if (dragDelta < -200) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 200) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
+                         @touchend="if (dragging) { dragging = false; if (dragDelta < -100) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 100) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
                          :style="{ transform: 'translateX(' + dragDelta + 'px)', transition: dragging ? 'none' : 'transform 0.3s ease' }">
                         @foreach ($images as $i => $img)
                             <img x-show="activeImage === {{ $i }}"
