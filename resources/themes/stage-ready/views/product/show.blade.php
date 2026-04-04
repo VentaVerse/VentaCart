@@ -81,7 +81,10 @@
              })">
 
             {{-- Image Gallery --}}
-            <div class="lg:w-1/2" x-data="{ activeImage: 0, zooming: false, zoomX: 50, zoomY: 50 }">
+            <div class="lg:w-1/2" x-data="{ activeImage: 0, zooming: false, zoomX: 50, zoomY: 50, lightbox: false }"
+                 @keydown.escape.window="lightbox = false"
+                 @keydown.left.window="if (lightbox) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}"
+                 @keydown.right.window="if (lightbox) activeImage = (activeImage + 1) % {{ $images->count() }}">
                 <div class="flex {{ $thumbPosition === 'bottom' ? 'flex-col' : 'flex-row' }} gap-3">
                     {{-- Thumbnails --}}
                     @if ($images->count() > 1)
@@ -115,7 +118,8 @@
                     <div class="flex-1 {{ $thumbPosition === 'bottom' ? 'order-1' : 'order-2' }} product-gallery-main relative"
                          @mouseenter="zooming = true"
                          @mouseleave="zooming = false"
-                         @mousemove="const r = $el.getBoundingClientRect(); zoomX = ((event.clientX - r.left) / r.width) * 100; zoomY = ((event.clientY - r.top) / r.height) * 100">
+                         @mousemove="const r = $el.getBoundingClientRect(); zoomX = ((event.clientX - r.left) / r.width) * 100; zoomY = ((event.clientY - r.top) / r.height) * 100"
+                         @click="lightbox = true; zooming = false">
                         <div class="aspect-square"></div>
                         @foreach ($images as $i => $img)
                             <div x-show="activeImage === {{ $i }}" class="absolute inset-0 flex items-center justify-center product-gallery-zoom"
@@ -129,6 +133,43 @@
                             </div>
                         @endif
                     </div>
+                </div>
+
+                {{-- Lightbox Modal --}}
+                <div x-show="lightbox" x-transition.opacity.duration.200ms
+                     class="fixed inset-0 z-[9999] flex items-center justify-center"
+                     style="background: rgba(0,0,0,0.92);"
+                     @click.self="lightbox = false">
+
+                    <button @click="lightbox = false"
+                        class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+
+                    @if ($images->count() > 1)
+                        <button @click.stop="activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}"
+                            class="absolute left-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
+                        <button @click.stop="activeImage = (activeImage + 1) % {{ $images->count() }}"
+                            class="absolute right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    @endif
+
+                    <div class="max-w-[90vw] max-h-[90vh] flex items-center justify-center" @click.stop>
+                        @foreach ($images as $i => $img)
+                            <img x-show="activeImage === {{ $i }}" x-transition.opacity.duration.150ms
+                                 src="{{ storage_url($img->path) }}" alt="{{ $product->name }}"
+                                 class="max-w-full max-h-[90vh] object-contain">
+                        @endforeach
+                    </div>
+
+                    @if ($images->count() > 1)
+                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
+                            <span x-text="activeImage + 1"></span> / {{ $images->count() }}
+                        </div>
+                    @endif
                 </div>
             </div>
 
