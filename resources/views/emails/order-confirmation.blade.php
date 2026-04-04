@@ -81,7 +81,7 @@
                                 @foreach ($order->products as $item)
                                 <tr>
                                     <td style="padding: 8px; border-bottom: 1px solid #2a2a2a; width: 58px; vertical-align: middle;">
-                                        @if ($item->product?->image && !str_starts_with($item->product->image, 'catalog/'))
+                                        @if ($item->product?->image)
                                             <img src="{{ url('/storage/' . $item->product->image) }}" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">
                                         @endif
                                     </td>

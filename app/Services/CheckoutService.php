@@ -354,7 +354,7 @@ class CheckoutService
         foreach ($order->products as $item) {
             $image = $item->product?->image;
             $imgHtml = '';
-            if ($image && !str_starts_with($image, 'catalog/')) {
+            if ($image) {
                 $imgUrl = url('/storage/' . $image);
                 $imgHtml = '<td style="width: 50px; padding: 4px 8px 4px 0; vertical-align: middle;">'
                     . '<img src="' . e($imgUrl) . '" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">'
@@ -403,7 +403,7 @@ class CheckoutService
         foreach ($order->products as $item) {
             $image = $item->product?->image;
             $imgHtml = '';
-            if ($image && !str_starts_with($image, 'catalog/')) {
+            if ($image) {
                 $imgUrl = url('/storage/' . $image);
                 $imgHtml = '<td style="width: 50px; padding: 4px 8px 4px 0; vertical-align: middle;">'
                     . '<img src="' . e($imgUrl) . '" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">'
