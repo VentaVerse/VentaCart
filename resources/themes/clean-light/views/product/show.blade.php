@@ -166,10 +166,10 @@
                          @click.stop
                          @mousedown.prevent="dragging = true; dragStartX = event.clientX; dragDelta = 0"
                          @mousemove.window="if (dragging && lightbox) dragDelta = event.clientX - dragStartX"
-                         @mouseup.window="if (dragging && lightbox) { dragging = false; if (dragDelta < -120) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 120) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
+                         @mouseup.window="if (dragging && lightbox) { dragging = false; if (dragDelta < -200) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 200) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
                          @touchstart="dragStartX = event.touches[0].clientX; dragDelta = 0; dragging = true"
                          @touchmove.prevent="if (dragging) dragDelta = event.touches[0].clientX - dragStartX"
-                         @touchend="if (dragging) { dragging = false; if (dragDelta < -120) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 120) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
+                         @touchend="if (dragging) { dragging = false; if (dragDelta < -200) activeImage = (activeImage + 1) % {{ $images->count() }}; else if (dragDelta > 200) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}; dragDelta = 0; }"
                          :style="{ transform: 'translateX(' + dragDelta + 'px)', transition: dragging ? 'none' : 'transform 0.3s ease' }">
                         @foreach ($images as $i => $img)
                             <img x-show="activeImage === {{ $i }}"
