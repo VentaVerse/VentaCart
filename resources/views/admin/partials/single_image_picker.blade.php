@@ -63,7 +63,10 @@
                     </div>
                     <span class="text-gray-300">|</span>
                     <nav class="flex items-center gap-0.5 text-sm min-w-0 overflow-x-auto">
-                        <button type="button" @click="browseDir('')" class="text-indigo-600 hover:text-indigo-800 transition-colors shrink-0 font-medium">catalog</button>
+                        <button type="button" @click="browseDir('')" class="text-indigo-600 hover:text-indigo-800 transition-colors shrink-0 font-medium flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>
+                            Files
+                        </button>
                         <template x-for="(crumb, i) in browserBreadcrumbs" :key="i">
                             <span class="flex items-center gap-0.5 shrink-0">
                                 <span class="text-gray-400">/</span>
@@ -227,13 +230,7 @@ function {{ $componentId }}() {
                 // First open with existing image: navigate to its folder
                 const lastSlash = this.imagePath.lastIndexOf('/');
                 if (lastSlash > 0) {
-                    let folder = this.imagePath.substring(0, lastSlash);
-                    if (folder.startsWith('catalog/')) {
-                        folder = folder.substring(8);
-                    } else if (folder === 'catalog') {
-                        folder = '';
-                    }
-                    startPath = folder;
+                    startPath = this.imagePath.substring(0, lastSlash);
                 }
             } else {
                 // New entity, no image yet — use default folder

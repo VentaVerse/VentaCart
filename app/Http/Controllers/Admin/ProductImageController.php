@@ -123,26 +123,28 @@ class ProductImageController extends Controller
     {
         $relativePath = $request->input('path', '');
 
-        $basePath = 'catalog';
-        $currentPath = $relativePath ? "{$basePath}/{$relativePath}" : $basePath;
-
-        // Prevent path traversal (string-based to avoid open_basedir with symlinks)
-        if (!$this->isWithinBase($basePath, $currentPath)) {
+        // Prevent path traversal
+        $normalized = str_replace('\\', '/', $relativePath);
+        if (str_contains($normalized, '..') || str_contains($normalized, './')) {
             return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
         }
+
+        $currentPath = $relativePath ?: '';
 
         $directories = Storage::disk('public')->directories($currentPath);
         $files = Storage::disk('public')->files($currentPath);
 
+        // Directories to hide from browsing
+        $hiddenDirs = ['_tmp'];
+
         $folders = collect($directories)
-            ->reject(function ($dir) {
-                // Hide temp upload directory from browser
-                return basename($dir) === '_tmp';
+            ->reject(function ($dir) use ($hiddenDirs) {
+                return in_array(basename($dir), $hiddenDirs);
             })
-            ->map(function ($dir) use ($basePath) {
+            ->map(function ($dir) {
                 return [
                     'name' => basename($dir),
-                    'path' => str_replace($basePath . '/', '', $dir),
+                    'path' => $dir,
                 ];
             })->values();
 
@@ -187,13 +189,11 @@ class ProductImageController extends Controller
         ]);
 
         $file = $request->file('file');
-        $catalogPath = $request->input('catalog_path', '');
+        $directory = $request->input('catalog_path', '') ?: '';
 
-        $basePath = 'catalog';
-        $directory = $catalogPath ? "{$basePath}/{$catalogPath}" : $basePath;
-
-        // Prevent path traversal (string-based to avoid open_basedir with symlinks)
-        if (!$this->isWithinBase($basePath, $directory)) {
+        // Prevent path traversal
+        $normalized = str_replace('\\', '/', $directory);
+        if (str_contains($normalized, '..') || str_contains($normalized, './')) {
             return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
         }
 
@@ -223,13 +223,9 @@ class ProductImageController extends Controller
 
         $path = $request->input('path');
 
-        // Ensure path is within the catalog directory
-        if (!str_starts_with($path, 'catalog/')) {
-            return response()->json(['ok' => false, 'message' => 'Unauthorized.'], 403);
-        }
-
-        // Prevent deleting from _tmp of other sessions, etc. (string-based to avoid open_basedir with symlinks)
-        if (!$this->isWithinBase('catalog', $path)) {
+        // Prevent path traversal
+        $normalized = str_replace('\\', '/', $path);
+        if (str_contains($normalized, '..') || str_contains($normalized, './') || $normalized === '') {
             return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
         }
 
