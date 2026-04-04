@@ -119,7 +119,7 @@
                         <div class="aspect-square"></div>
                         @foreach ($images as $i => $img)
                             <div x-show="activeImage === {{ $i }}" class="absolute inset-0 flex items-center justify-center product-gallery-zoom"
-                                 :style="zooming ? 'transform: scale(2); transform-origin: ' + zoomX + '% ' + zoomY + '%' : ''">
+                                 :style="zooming && activeImage === {{ $i }} ? { transform: 'scale(2)', transformOrigin: zoomX + '% ' + zoomY + '%' } : {}"
                                 <img src="{{ storage_url($img->path) }}" alt="{{ $product->name }}" class="max-w-full max-h-full object-contain p-4">
                             </div>
                         @endforeach
