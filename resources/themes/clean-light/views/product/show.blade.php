@@ -101,9 +101,9 @@
                     endDrag() {
                         if (!this.dragging) return;
                         this.dragging = false;
-                        if (this.dragDelta < -100 && this.imageCount > 1) {
+                        if (this.dragDelta < -800 && this.imageCount > 1) {
                             this.activeImage = (this.activeImage + 1) % this.imageCount;
-                        } else if (this.dragDelta > 100 && this.imageCount > 1) {
+                        } else if (this.dragDelta > 800 && this.imageCount > 1) {
                             this.activeImage = (this.activeImage - 1 + this.imageCount) % this.imageCount;
                         }
                         this.dragDelta = 0;
@@ -206,7 +206,7 @@
                         @endforeach
                     </div>
 
-                    {{-- Counter --}}
+                    {{-- Counter + Debug --}}
                     @if ($images->count() > 1)
                         <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
                             <span x-text="activeImage + 1"></span> / {{ $images->count() }}
