@@ -134,7 +134,7 @@
                                                 </table>
                                                 @if ($bankAcct->qr_image)
                                                     <div style="margin-top: 12px; text-align: center;">
-                                                        <img src="{{ url('/storage/' . $bankAcct->qr_image) }}" alt="QR Code" width="180" height="180" style="width: 180px; height: 180px; border-radius: 6px; display: inline-block;">
+                                                        <img src="{{ url('/storage/' . $bankAcct->qr_image) }}" alt="QR Code" style="width: 100%; max-width: 240px; height: auto; border-radius: 6px; display: inline-block;">
                                                     </div>
                                                 @endif
                                             @endif
