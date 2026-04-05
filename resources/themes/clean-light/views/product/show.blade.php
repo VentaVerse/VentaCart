@@ -171,59 +171,71 @@
 
                 {{-- Lightbox Modal --}}
                 <div x-show="lightbox" x-transition.opacity.duration.200ms
-                     class="fixed inset-0 z-[9999] flex items-center justify-center"
-                     style="background: rgba(0,0,0,0.92);"
-                     @mousedown.self="lightbox = false">
+                     class="fixed inset-0 z-[9999] flex flex-col bg-white">
 
-                    {{-- Close --}}
-                    <button @click="lightbox = false"
-                        class="absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-
-                    {{-- Prev --}}
-                    @if ($images->count() > 1)
-                        <button @click.stop="goTo(activeImage - 1)"
-                            class="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm"
-                            :class="activeImage === 0 ? 'opacity-30 pointer-events-none' : ''">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                    {{-- Toolbar --}}
+                    <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 shrink-0">
+                        @if ($images->count() > 1)
+                            <span class="text-sm text-gray-500" x-text="(activeImage + 1) + ' / {{ $images->count() }}'"></span>
+                        @else
+                            <span></span>
+                        @endif
+                        <button @click="lightbox = false"
+                            class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
+                    </div>
 
-                        {{-- Next --}}
-                        <button @click.stop="goTo(activeImage + 1)"
-                            class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm"
-                            :class="activeImage === imageCount - 1 ? 'opacity-30 pointer-events-none' : ''">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                        </button>
-                    @endif
+                    {{-- Carousel area --}}
+                    <div class="flex-1 relative overflow-hidden"
+                         @mousedown.self="lightbox = false">
 
-                    {{-- Carousel strip --}}
-                    <div class="w-full h-full overflow-hidden flex items-center"
-                         @click.stop
-                         @mousedown.prevent="startDrag(event.clientX)"
-                         @mousemove.window="onDrag(event.clientX)"
-                         @mouseup.window="endDrag()"
-                         @touchstart="startDrag(event.touches[0].clientX)"
-                         @touchmove.prevent="onDrag(event.touches[0].clientX)"
-                         @touchend="endDrag()"
-                         :class="dragging ? 'cursor-grabbing' : 'cursor-grab'">
-                        <div x-ref="lbStrip" class="flex h-full select-none"
-                             :style="{ transform: 'translateX(' + stripOffset + 'px)', transition: dragging ? 'none' : 'transform 0.3s ease' }">
-                            @foreach ($images as $i => $img)
-                                <div class="flex items-center justify-center p-4 sm:p-10 shrink-0 w-screen">
-                                    <div class="bg-white rounded-lg flex items-center justify-center max-h-[85vh] overflow-hidden">
+                        {{-- Prev --}}
+                        @if ($images->count() > 1)
+                            <button @click.stop="goTo(activeImage - 1)"
+                                class="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shadow-sm"
+                                :class="activeImage === 0 ? 'opacity-30 pointer-events-none' : ''">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                            </button>
+                            <button @click.stop="goTo(activeImage + 1)"
+                                class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors shadow-sm"
+                                :class="activeImage === imageCount - 1 ? 'opacity-30 pointer-events-none' : ''">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        @endif
+
+                        {{-- Image strip --}}
+                        <div class="w-full h-full flex items-center"
+                             @mousedown.prevent="startDrag(event.clientX)"
+                             @mousemove.window="onDrag(event.clientX)"
+                             @mouseup.window="endDrag()"
+                             @touchstart="startDrag(event.touches[0].clientX)"
+                             @touchmove.prevent="onDrag(event.touches[0].clientX)"
+                             @touchend="endDrag()"
+                             :class="dragging ? 'cursor-grabbing' : 'cursor-grab'">
+                            <div x-ref="lbStrip" class="flex h-full select-none"
+                                 :style="{ transform: 'translateX(' + stripOffset + 'px)', transition: dragging ? 'none' : 'transform 0.4s ease' }">
+                                @foreach ($images as $i => $img)
+                                    <div class="flex items-center justify-center shrink-0 w-screen p-6 sm:p-12">
                                         <img src="{{ storage_url($img->path) }}" alt="{{ $product->name }}"
-                                             class="max-w-full max-h-[85vh] object-contain pointer-events-none">
+                                             class="max-w-full max-h-full object-contain pointer-events-none">
                                     </div>
-                                </div>
-                            @endforeach
+                                @endforeach
+                            </div>
                         </div>
                     </div>
 
-                    {{-- Counter + Debug --}}
+                    {{-- Thumbnail strip --}}
                     @if ($images->count() > 1)
-                        <div class="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
-                            <span x-text="activeImage + 1"></span> / {{ $images->count() }}
+                        <div class="shrink-0 border-t border-gray-200 bg-gray-50 px-4 py-3">
+                            <div class="flex items-center justify-center gap-2 overflow-x-auto" style="scrollbar-width: none;">
+                                @foreach ($images as $i => $img)
+                                    <button @click="goTo({{ $i }})" class="shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors"
+                                            :class="activeImage === {{ $i }} ? 'border-gray-800' : 'border-transparent hover:border-gray-300'">
+                                        <img src="{{ storage_url($img->path) }}" alt="" class="w-full h-full object-contain p-1" loading="lazy">
+                                    </button>
+                                @endforeach
+                            </div>
                         </div>
                     @endif
                 </div>
