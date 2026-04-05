@@ -89,7 +89,7 @@
                     init() {
                         this.$watch('lightbox', (open) => {
                             if (!open) { this.dragging = false; this.dragDelta = 0; }
-                            else { this.$nextTick(() => { this.slideWidth = window.innerWidth; }); }
+                            else { this.$nextTick(() => { this.slideWidth = this.$refs.lbStrip ? this.$refs.lbStrip.parentElement.offsetWidth : window.innerWidth; }); }
                         });
                     },
                     startDrag(x) {
@@ -212,7 +212,7 @@
                             <div x-ref="lbStrip" class="flex h-full select-none"
                                  :style="{ transform: 'translateX(' + stripOffset + 'px)', transition: dragging ? 'none' : 'transform 0.4s ease' }">
                                 @foreach ($images as $i => $img)
-                                    <div class="flex items-center justify-center shrink-0 w-screen p-6 sm:p-12">
+                                    <div class="flex items-center justify-center shrink-0 p-6 sm:p-12" :style="{ width: slideWidth + 'px' }">
                                         <img src="{{ storage_url($img->path) }}" alt="{{ $product->name }}"
                                              class="max-w-full max-h-full object-contain pointer-events-none">
                                     </div>
