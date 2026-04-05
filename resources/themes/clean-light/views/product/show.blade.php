@@ -89,7 +89,9 @@
                             if (!open) { this.dragging = false; this.dragDelta = 0; }
                         });
                     },
+                    sliding: false,
                     startDrag(x) {
+                        if (this.sliding) return;
                         this.dragging = true;
                         this.dragStartX = x;
                         this.dragDelta = 0;
@@ -103,16 +105,38 @@
                         this.dragging = false;
                         const threshold = window.innerWidth < 768 ? 200 : 750;
                         if (this.dragDelta < -threshold && this.imageCount > 1) {
-                            this.activeImage = (this.activeImage + 1) % this.imageCount;
+                            this.slideToImage(1);
                         } else if (this.dragDelta > threshold && this.imageCount > 1) {
-                            this.activeImage = (this.activeImage - 1 + this.imageCount) % this.imageCount;
+                            this.slideToImage(-1);
+                        } else {
+                            this.dragDelta = 0;
                         }
-                        this.dragDelta = 0;
+                    },
+                    slideToImage(direction) {
+                        if (this.sliding || this.imageCount <= 1) return;
+                        this.sliding = true;
+                        this.dragging = false;
+                        const w = window.innerWidth;
+                        this.dragDelta = direction > 0 ? -w : w;
+                        setTimeout(() => {
+                            this.dragging = true;
+                            this.activeImage = direction > 0
+                                ? (this.activeImage + 1) % this.imageCount
+                                : (this.activeImage - 1 + this.imageCount) % this.imageCount;
+                            this.dragDelta = direction > 0 ? w : -w;
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    this.dragging = false;
+                                    this.dragDelta = 0;
+                                    setTimeout(() => { this.sliding = false; }, 300);
+                                });
+                            });
+                        }, 300);
                     }
                  }"
                  @keydown.escape.window="lightbox = false"
-                 @keydown.left.window="if (lightbox) activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}"
-                 @keydown.right.window="if (lightbox) activeImage = (activeImage + 1) % {{ $images->count() }}">
+                 @keydown.left.window="if (lightbox) slideToImage(-1)"
+                 @keydown.right.window="if (lightbox) slideToImage(1)">
                 <div class="flex {{ $thumbPosition === 'bottom' ? 'flex-col' : 'flex-row' }} gap-3">
                     {{-- Thumbnails --}}
                     @if ($images->count() > 1)
@@ -177,13 +201,13 @@
 
                     {{-- Prev --}}
                     @if ($images->count() > 1)
-                        <button @click.stop="activeImage = (activeImage - 1 + {{ $images->count() }}) % {{ $images->count() }}"
+                        <button @click.stop="slideToImage(-1)"
                             class="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                         </button>
 
                         {{-- Next --}}
-                        <button @click.stop="activeImage = (activeImage + 1) % {{ $images->count() }}"
+                        <button @click.stop="slideToImage(1)"
                             class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                         </button>
