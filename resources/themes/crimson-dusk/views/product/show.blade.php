@@ -85,14 +85,14 @@
                     activeImage: 0, zooming: false, zoomX: 50, zoomY: 50,
                     lightbox: false, dragStartX: 0, dragDelta: 0, dragging: false,
                     imageCount: {{ $images->count() }},
+                    slideWidth: 0,
                     init() {
                         this.$watch('lightbox', (open) => {
                             if (!open) { this.dragging = false; this.dragDelta = 0; }
+                            else { this.$nextTick(() => { this.slideWidth = this.$refs.lbStrip ? this.$refs.lbStrip.parentElement.offsetWidth : window.innerWidth; }); }
                         });
                     },
-                    sliding: false,
                     startDrag(x) {
-                        if (this.sliding) return;
                         this.dragging = true;
                         this.dragStartX = x;
                         this.dragDelta = 0;
@@ -104,40 +104,22 @@
                     endDrag() {
                         if (!this.dragging) return;
                         this.dragging = false;
-                        const threshold = window.innerWidth < 768 ? 200 : 750;
-                        if (this.dragDelta < -threshold && this.imageCount > 1) {
-                            this.slideToImage(1);
-                        } else if (this.dragDelta > threshold && this.imageCount > 1) {
-                            this.slideToImage(-1);
-                        } else {
-                            this.dragDelta = 0;
-                        }
+                        const offset = -(this.activeImage * this.slideWidth) + this.dragDelta;
+                        const nearest = Math.round(-offset / this.slideWidth);
+                        this.activeImage = Math.max(0, Math.min(nearest, this.imageCount - 1));
+                        this.dragDelta = 0;
                     },
-                    slideToImage(direction) {
-                        if (this.sliding || this.imageCount <= 1) return;
-                        this.sliding = true;
-                        this.dragging = false;
-                        const w = window.innerWidth;
-                        this.dragDelta = direction > 0 ? -w : w;
-                        setTimeout(() => {
-                            this.dragging = true;
-                            this.activeImage = direction > 0
-                                ? (this.activeImage + 1) % this.imageCount
-                                : (this.activeImage - 1 + this.imageCount) % this.imageCount;
-                            this.dragDelta = direction > 0 ? w : -w;
-                            requestAnimationFrame(() => {
-                                requestAnimationFrame(() => {
-                                    this.dragging = false;
-                                    this.dragDelta = 0;
-                                    setTimeout(() => { this.sliding = false; }, 300);
-                                });
-                            });
-                        }, 300);
+                    goTo(index) {
+                        this.activeImage = Math.max(0, Math.min(index, this.imageCount - 1));
+                        this.dragDelta = 0;
+                    },
+                    get stripOffset() {
+                        return -(this.activeImage * this.slideWidth) + this.dragDelta;
                     }
                  }"
                  @keydown.escape.window="lightbox = false"
-                 @keydown.left.window="if (lightbox) slideToImage(-1)"
-                 @keydown.right.window="if (lightbox) slideToImage(1)">
+                 @keydown.left.window="if (lightbox) goTo(activeImage - 1)"
+                 @keydown.right.window="if (lightbox) goTo(activeImage + 1)">
                 <div class="flex {{ $thumbPosition === 'bottom' ? 'flex-col' : 'flex-row' }} gap-3">
                     {{-- Thumbnails --}}
                     @if ($images->count() > 1)
@@ -200,18 +182,19 @@
                     </button>
 
                     @if ($images->count() > 1)
-                        <button @click.stop="slideToImage(-1)"
-                            class="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm">
+                        <button @click.stop="goTo(activeImage - 1)"
+                            class="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm"
+                            :class="activeImage === 0 ? 'opacity-30 pointer-events-none' : ''">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
                         </button>
-                        <button @click.stop="slideToImage(1)"
-                            class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm">
+                        <button @click.stop="goTo(activeImage + 1)"
+                            class="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors backdrop-blur-sm"
+                            :class="activeImage === imageCount - 1 ? 'opacity-30 pointer-events-none' : ''">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                         </button>
                     @endif
 
-                    <div class="max-w-[90vw] max-h-[90vh] flex items-center justify-center select-none bg-white rounded-lg"
-                         :class="dragging ? 'cursor-grabbing' : 'cursor-grab'"
+                    <div class="w-full h-full overflow-hidden flex items-center"
                          @click.stop
                          @mousedown.prevent="startDrag(event.clientX)"
                          @mousemove.window="onDrag(event.clientX)"
@@ -219,12 +202,18 @@
                          @touchstart="startDrag(event.touches[0].clientX)"
                          @touchmove.prevent="onDrag(event.touches[0].clientX)"
                          @touchend="endDrag()"
-                         :style="{ transform: 'translateX(' + dragDelta + 'px)', transition: dragging ? 'none' : 'transform 0.3s ease' }">
-                        @foreach ($images as $i => $img)
-                            <img x-show="activeImage === {{ $i }}"
-                                 src="{{ storage_url($img->path) }}" alt="{{ $product->name }}"
-                                 class="max-w-full max-h-[90vh] object-contain pointer-events-none">
-                        @endforeach
+                         :class="dragging ? 'cursor-grabbing' : 'cursor-grab'">
+                        <div x-ref="lbStrip" class="flex h-full select-none"
+                             :style="{ transform: 'translateX(' + stripOffset + 'px)', transition: dragging ? 'none' : 'transform 0.3s ease', width: (imageCount * 100) + '%' }">
+                            @foreach ($images as $i => $img)
+                                <div class="flex items-center justify-center p-4 sm:p-10 shrink-0" style="width: {{ 100 / $images->count() }}%;">
+                                    <div class="bg-white rounded-lg flex items-center justify-center max-h-[85vh] overflow-hidden">
+                                        <img src="{{ storage_url($img->path) }}" alt="{{ $product->name }}"
+                                             class="max-w-full max-h-[85vh] object-contain pointer-events-none">
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
 
                     @if ($images->count() > 1)
