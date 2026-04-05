@@ -104,9 +104,12 @@
                     endDrag() {
                         if (!this.dragging) return;
                         this.dragging = false;
-                        const offset = -(this.activeImage * this.slideWidth) + this.dragDelta;
-                        const nearest = Math.round(-offset / this.slideWidth);
-                        this.activeImage = Math.max(0, Math.min(nearest, this.imageCount - 1));
+                        const pct = Math.abs(this.dragDelta) / this.slideWidth * 100;
+                        if (pct > 10 && this.imageCount > 1) {
+                            const direction = this.dragDelta < 0 ? 1 : -1;
+                            const next = this.activeImage + direction;
+                            this.activeImage = Math.max(0, Math.min(next, this.imageCount - 1));
+                        }
                         this.dragDelta = 0;
                     },
                     goTo(index) {
