@@ -160,6 +160,40 @@ class DeliveryPhService
             'duration_ms' => $duration,
         ]);
 
+        // Persist to database for admin visibility
+        try {
+            $success = $result['success'] ?? false;
+            $errorMsg = null;
+            if (!$success) {
+                $errorMsg = $result['message'] ?? ($result['results'] ?? null);
+                if (is_array($errorMsg)) {
+                    $errorMsg = json_encode($errorMsg);
+                }
+                $errorMsg = $errorMsg ? mb_substr((string) $errorMsg, 0, 255) : null;
+            }
+
+            // Extract order ID from refNo if present
+            $orderId = null;
+            $refNo = $data['refNo'] ?? ($query['refNo'] ?? null);
+            if ($refNo && preg_match('/ORD-(\d+)/', $refNo, $m)) {
+                $orderId = $m[1];
+            }
+
+            \App\Models\DphApiLog::create([
+                'method' => $method,
+                'endpoint' => $endpoint,
+                'order_id' => $orderId,
+                'status_code' => $success ? 200 : 400,
+                'response_time_ms' => $duration,
+                'request_body' => array_merge($data, $query ? ['_query' => $query] : []),
+                'response_body' => $result,
+                'success' => $success,
+                'error_message' => $errorMsg,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to persist DPH API log', ['error' => $e->getMessage()]);
+        }
+
         return $result;
     }
 

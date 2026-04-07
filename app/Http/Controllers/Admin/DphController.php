@@ -99,6 +99,27 @@ class DphController extends Controller
         return response()->json(['logs' => self::formatLogEntries($content)]);
     }
 
+    public function apiLogs(Request $request)
+    {
+        $query = \App\Models\DphApiLog::query()->latest('created_at');
+
+        if ($request->filled('endpoint')) {
+            $query->where('endpoint', 'LIKE', '%' . $request->input('endpoint') . '%');
+        }
+
+        if ($request->filled('order_id')) {
+            $query->where('order_id', $request->input('order_id'));
+        }
+
+        if ($request->filled('success')) {
+            $query->where('success', $request->input('success') === '1');
+        }
+
+        $logs = $query->paginate(25)->withQueryString();
+
+        return response()->json($logs);
+    }
+
     private function doLogin(DeliveryPhService $dph): array
     {
         Cache::forget('dph_auth');

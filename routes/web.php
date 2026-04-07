@@ -354,6 +354,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::post('/dph/mapping', [DphController::class, 'updateMapping'])->name('dph.update-mapping');
     Route::post('/dph/execute', [DphController::class, 'execute'])->name('dph.execute');
     Route::get('/dph/logs', [DphController::class, 'logs'])->name('dph.logs');
+    Route::get('/dph/api-logs', [DphController::class, 'apiLogs'])->name('dph.api-logs');
 
     // Users
     Route::resource('users', UserController::class)->except(['show']);

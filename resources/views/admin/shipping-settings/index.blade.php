@@ -363,7 +363,7 @@
 
                 {{-- DPH Sub-tabs --}}
                 <nav class="flex border-b border-gray-200 px-5">
-                    @foreach ([['id' => 'settings', 'label' => 'Settings'], ['id' => 'pickup', 'label' => 'Pickup Address'], ['id' => 'mapping', 'label' => 'Status Mapping'], ['id' => 'explorer', 'label' => 'API Explorer']] as $dt)
+                    @foreach ([['id' => 'settings', 'label' => 'Settings'], ['id' => 'pickup', 'label' => 'Pickup Address'], ['id' => 'mapping', 'label' => 'Status Mapping'], ['id' => 'explorer', 'label' => 'API Explorer'], ['id' => 'api-logs', 'label' => 'API Logs']] as $dt)
                         <button type="button" @click="dphTab = '{{ $dt['id'] }}'"
                             :class="dphTab === '{{ $dt['id'] }}' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                             class="whitespace-nowrap px-4 py-2.5 border-b-2 text-xs font-medium transition-colors">{{ $dt['label'] }}</button>
@@ -613,6 +613,108 @@
                             <button @click="refreshLogs()" class="px-3 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 text-gray-700">Refresh</button>
                         </div>
                         <pre class="dph-log-output" x-text="logContent"></pre>
+                    </div>
+                </div>
+
+                {{-- DPH > API Logs --}}
+                <div x-show="dphTab === 'api-logs'" x-cloak class="p-5"
+                     x-data="{
+                        logs: [], loading: false, pagination: null,
+                        filters: { endpoint: '', order_id: '', success: '' },
+                        async fetchLogs(page = 1) {
+                            this.loading = true;
+                            const params = new URLSearchParams({ page });
+                            if (this.filters.endpoint) params.set('endpoint', this.filters.endpoint);
+                            if (this.filters.order_id) params.set('order_id', this.filters.order_id);
+                            if (this.filters.success !== '') params.set('success', this.filters.success);
+                            const res = await fetch('{{ route('admin.dph.api-logs') }}?' + params);
+                            const data = await res.json();
+                            this.logs = data.data;
+                            this.pagination = { current: data.current_page, last: data.last_page, total: data.total };
+                            this.loading = false;
+                        },
+                        init() { this.$watch('dphTab', (v) => { if (v === 'api-logs' && !this.logs.length) this.fetchLogs(); }); }
+                     }"
+                     x-init="if (dphTab === 'api-logs') fetchLogs()">
+
+                    {{-- Filters --}}
+                    <div class="flex flex-wrap items-end gap-3 mb-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Endpoint</label>
+                            <input type="text" x-model="filters.endpoint" placeholder="e.g. createPost"
+                                class="w-40 rounded-lg border-gray-300 text-sm py-1.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Order #</label>
+                            <input type="text" x-model="filters.order_id" placeholder="e.g. 29802"
+                                class="w-28 rounded-lg border-gray-300 text-sm py-1.5">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                            <select x-model="filters.success" class="rounded-lg border-gray-300 text-sm py-1.5">
+                                <option value="">All</option>
+                                <option value="1">Success</option>
+                                <option value="0">Failed</option>
+                            </select>
+                        </div>
+                        <button @click="fetchLogs(1)" class="px-4 py-1.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700">Filter</button>
+                        <button @click="filters = { endpoint: '', order_id: '', success: '' }; fetchLogs(1)" class="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700">Clear</button>
+                        <div class="ml-auto text-xs text-gray-400" x-show="pagination" x-text="pagination ? pagination.total + ' entries' : ''"></div>
+                    </div>
+
+                    {{-- Loading --}}
+                    <div x-show="loading" class="flex items-center justify-center py-12">
+                        <svg class="w-5 h-5 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    </div>
+
+                    {{-- Log entries --}}
+                    <div x-show="!loading" class="space-y-0 border border-gray-200 rounded-lg overflow-hidden divide-y divide-gray-200">
+                        <template x-for="log in logs" :key="log.id">
+                            <div>
+                                {{-- Summary row --}}
+                                <div class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer text-sm" @click="log._open = !log._open">
+                                    <span class="text-xs text-gray-400 w-36 shrink-0" x-text="new Date(log.created_at).toLocaleString()"></span>
+                                    <span class="px-1.5 py-0.5 rounded text-xs font-mono font-medium shrink-0"
+                                          :class="log.method === 'POST' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'"
+                                          x-text="log.method"></span>
+                                    <span class="font-mono text-xs text-gray-700 truncate" x-text="log.endpoint"></span>
+                                    <span class="text-xs text-gray-400 shrink-0" x-show="log.order_id" x-text="'#' + log.order_id"></span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium shrink-0 ml-auto"
+                                          :class="log.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                                          x-text="log.success ? 'OK' : (log.error_message ? log.error_message.substring(0, 40) : 'Failed')"></span>
+                                    <span class="text-xs text-gray-400 shrink-0 w-14 text-right" x-text="log.response_time_ms + 'ms'"></span>
+                                    <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0" :class="log._open ? 'rotate-180' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                </div>
+                                {{-- Detail panel --}}
+                                <div x-show="log._open" x-transition class="bg-gray-50 px-4 py-3 border-t border-gray-100">
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                        <div>
+                                            <h5 class="text-xs font-semibold text-gray-500 uppercase mb-1">Request Payload</h5>
+                                            <pre class="text-xs bg-white border border-gray-200 rounded-lg p-3 overflow-auto max-h-64 whitespace-pre-wrap break-words" x-text="JSON.stringify(log.request_body, null, 2)"></pre>
+                                        </div>
+                                        <div>
+                                            <h5 class="text-xs font-semibold text-gray-500 uppercase mb-1">Response</h5>
+                                            <pre class="text-xs bg-white border border-gray-200 rounded-lg p-3 overflow-auto max-h-64 whitespace-pre-wrap break-words" x-text="JSON.stringify(log.response_body, null, 2)"></pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                        {{-- Empty --}}
+                        <div x-show="!loading && logs.length === 0" class="text-center py-12 text-gray-400 text-sm">
+                            No API logs found. Logs are created when DPH API calls are made (bookings, rate lookups, etc).
+                        </div>
+                    </div>
+
+                    {{-- Pagination --}}
+                    <div x-show="pagination && pagination.last > 1" class="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
+                        <button @click="fetchLogs(pagination.current - 1)" :disabled="pagination.current <= 1"
+                            class="px-3 py-1.5 text-xs rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Prev</button>
+                        <span class="text-xs text-gray-500" x-text="'Page ' + pagination.current + ' of ' + pagination.last"></span>
+                        <button @click="fetchLogs(pagination.current + 1)" :disabled="pagination.current >= pagination.last"
+                            class="px-3 py-1.5 text-xs rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed">Next</button>
                     </div>
                 </div>
             </div>
