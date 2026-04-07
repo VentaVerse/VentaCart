@@ -296,14 +296,12 @@ class DeliveryPhService
             'delivery_postal_code' => $deliveryDetails['postalCode'] ?? '',
         ];
 
-        // Add time slots from settings if configured (required by some couriers like NinjaVan)
+        // Add time slots (required by some couriers like NinjaVan)
+        // Delivery is always full day — couriers don't enforce it anyway
+        $deliveryDetails['metaFields']['deliveryTimeSlot'] = '09:00-22:00';
         $pickupTimeSlot = \App\Models\Setting::where('group', 'shipping')->where('key', 'dph_pickup_time_slot')->value('value');
-        $deliveryTimeSlot = \App\Models\Setting::where('group', 'shipping')->where('key', 'dph_delivery_time_slot')->value('value');
         if ($pickupTimeSlot) {
             $deliveryDetails['metaFields']['pickupTimeSlot'] = $pickupTimeSlot;
-        }
-        if ($deliveryTimeSlot) {
-            $deliveryDetails['metaFields']['deliveryTimeSlot'] = $deliveryTimeSlot;
         }
 
         // Sandbox requires additional test metaFields
