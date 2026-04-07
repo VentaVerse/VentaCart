@@ -92,6 +92,9 @@
                                     </template>
                                     <p class="text-[var(--color-text-muted)]" x-text="[addr.city, addr.state, addr.postcode].filter(Boolean).join(', ')"></p>
                                     <p class="text-[var(--color-text)]" x-text="({{ $countryNamesJson }})[addr.country_id] || ''"></p>
+                                    <template x-if="addr.phone">
+                                        <p class="text-[var(--color-text-muted)]" x-text="addr.phone"></p>
+                                    </template>
                                 </div>
 
                                 <button class="checkout-card-edit" @click.stop="editAddress(addr)">EDIT</button>
