@@ -410,6 +410,33 @@
                                 <input type="text" name="settings[dph_production_url]" value="{{ $settings['shipping']['dph_production_url'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
                             </div>
                         </div>
+
+                        {{-- Time Slot Settings --}}
+                        <div class="border-t border-gray-200 mt-6 pt-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Default Time Slots</h4>
+                            <p class="text-xs text-gray-500 mb-3">Required by some couriers (e.g. NinjaVan). Leave empty if not needed — couriers that don't require it will ignore this.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Pickup Time Slot</label>
+                                    <select name="settings[dph_pickup_time_slot]" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                        <option value="">Not set</option>
+                                        @foreach (['09:00-12:00', '09:00-18:00', '09:00-22:00', '12:00-15:00', '15:00-18:00', '18:00-22:00'] as $slot)
+                                            <option value="{{ $slot }}" {{ ($settings['shipping']['dph_pickup_time_slot'] ?? '') === $slot ? 'selected' : '' }}>{{ $slot }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Delivery Time Slot</label>
+                                    <select name="settings[dph_delivery_time_slot]" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
+                                        <option value="">Not set</option>
+                                        @foreach (['09:00-12:00', '09:00-18:00', '09:00-22:00', '12:00-15:00', '15:00-18:00', '18:00-22:00'] as $slot)
+                                            <option value="{{ $slot }}" {{ ($settings['shipping']['dph_delivery_time_slot'] ?? '') === $slot ? 'selected' : '' }}>{{ $slot }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mt-6">
                             <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
                         </div>
