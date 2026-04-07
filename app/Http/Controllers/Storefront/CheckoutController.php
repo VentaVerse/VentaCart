@@ -29,7 +29,7 @@ class CheckoutController extends Controller
         $addresses = $customer->addresses()->latest()->get();
         $defaultAddress = $customer->addresses()->where('is_default', true)->first()
             ?? $addresses->first();
-        $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'iso2', 'name']);
+        $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'iso2', 'name', 'phone_code']);
 
         $subtotal = $this->cartService->getSubtotal();
 
