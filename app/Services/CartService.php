@@ -186,9 +186,52 @@ class CartService
 
     public function getItems(): Collection
     {
-        return $this->getCart()->items()
-            ->with(['product.images', 'productVariant'])
+        $items = $this->getCart()->items()
+            ->with(['product.images', 'product.specials', 'productVariant.groupPrices'])
             ->get();
+
+        $this->refreshPrices($items);
+
+        return $items;
+    }
+
+    /**
+     * Recalculate prices for all cart items based on current pricing rules.
+     * Catches: guest→login group pricing, expired/new specials, admin price changes, group changes.
+     */
+    protected function refreshPrices(Collection $items): void
+    {
+        $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+
+        foreach ($items as $item) {
+            $product = $item->product;
+            if (!$product) {
+                continue;
+            }
+
+            // Start with base product or variant price
+            $basePrice = $product->price;
+            if ($item->productVariant) {
+                $basePrice = $item->productVariant->price;
+
+                // Check variant group price
+                if ($customerGroupId) {
+                    $groupPrice = $item->productVariant->groupPrices
+                        ->where('customer_group_id', $customerGroupId)
+                        ->first();
+                    if ($groupPrice) {
+                        $basePrice = (float) $groupPrice->price;
+                    }
+                }
+            }
+
+            $correctPrice = self::resolvePrice($product, $basePrice, $item->quantity, $customerGroupId);
+
+            if ((float) $item->price !== $correctPrice) {
+                $item->update(['price' => $correctPrice]);
+                $item->price = $correctPrice;
+            }
+        }
     }
 
     public function getCount(): int
