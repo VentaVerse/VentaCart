@@ -33,8 +33,10 @@ class ShipmentController extends Controller
             );
 
             $options = [];
+            $returnedPartnerIds = [];
             foreach ($rates as $rate) {
                 $partnerId = $rate['id'] ?? '';
+                $returnedPartnerIds[] = $partnerId;
                 $products = $rate['products'] ?? [];
                 $estimatedDays = $rate['estimatedDeliveryDays'] ?? null;
 
@@ -49,6 +51,29 @@ class ShipmentController extends Controller
                         'estimated_days' => $estimatedDays,
                     ];
                 }
+            }
+
+            // POC: Include authorized partners not returned by getAvailablePartners
+            // so they can still be booked manually. TODO: revert once DPH sandbox
+            // returns NinjaVan in rate responses properly.
+            try {
+                $authorizedPartners = $dph->getPartners();
+                foreach ($authorizedPartners as $ap) {
+                    $apId = $ap['id'] ?? '';
+                    if ($apId && !in_array($apId, $returnedPartnerIds) && ($ap['serviceType'] ?? '') === 'scheduled') {
+                        $options[] = [
+                            'partner_id' => $apId,
+                            'partner_name' => ($ap['name'] ?? $apId) . ' (manual)',
+                            'service_type' => $ap['serviceType'] ?? 'scheduled',
+                            'size' => 'L',
+                            'price' => 0,
+                            'max_weight' => null,
+                            'estimated_days' => null,
+                        ];
+                    }
+                }
+            } catch (\Throwable) {
+                // Silent — authorized partners are a bonus, not critical
             }
 
             return response()->json(['success' => true, 'rates' => $options]);
