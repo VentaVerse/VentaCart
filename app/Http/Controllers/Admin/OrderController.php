@@ -427,6 +427,33 @@ class OrderController extends Controller
             ->with('success', 'Tracking information updated.');
     }
 
+    public function validateCoupon(Request $request)
+    {
+        $request->validate(['code' => 'required|string', 'subtotal' => 'required|numeric']);
+
+        $code = $request->input('code');
+        $subtotal = (float) $request->input('subtotal');
+        $shippingCost = (float) $request->input('shipping_cost', 0);
+        $customerId = $request->input('customer_id');
+
+        $customer = $customerId ? Customer::find($customerId) : null;
+
+        $couponService = app(\App\Services\CouponService::class);
+        $result = $couponService->validate($code, $customer, collect(), $subtotal, $shippingCost);
+
+        if ($result->success) {
+            return response()->json([
+                'success' => true,
+                'coupon_code' => $result->coupon->code,
+                'discount' => $result->discount,
+                'free_shipping' => $result->freeShipping,
+                'message' => $result->message,
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => $result->message], 422);
+    }
+
     public function searchProducts(Request $request)
     {
         $request->validate([
@@ -703,6 +730,8 @@ class OrderController extends Controller
             'shipping_courier_id' => ['nullable', 'exists:shipping_couriers,id'],
             'tracking_number' => ['nullable', 'string', 'max:255'],
             'comment' => ['nullable', 'string'],
+            'coupon_code' => ['nullable', 'string', 'max:32'],
+            'coupon_discount' => ['nullable', 'numeric', 'min:0'],
             'items' => $isCreate ? ['required', 'array', 'min:1'] : ['nullable', 'array'],
             'items.*.name' => ['required', 'string'],
             'items.*.price' => ['required', 'numeric', 'min:0'],
@@ -756,9 +785,10 @@ class OrderController extends Controller
     protected function recalculateTotals(Order $order): void
     {
         $subtotal = $order->products()->sum('total');
+        $couponDiscount = (float) ($order->coupon_discount ?? 0);
         $order->update([
             'subtotal' => $subtotal,
-            'total' => $subtotal + ($order->shipping_cost ?? 0),
+            'total' => max(0, $subtotal + ($order->shipping_cost ?? 0) - $couponDiscount),
         ]);
     }
 }

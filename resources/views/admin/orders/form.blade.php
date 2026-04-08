@@ -472,6 +472,37 @@
                         </table>
                     </div>
 
+                    {{-- Coupon --}}
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Coupon Code</label>
+                        <input type="hidden" name="coupon_code" :value="couponCode">
+                        <input type="hidden" name="coupon_discount" :value="couponDiscount">
+                        <template x-if="!couponCode">
+                            <div>
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="couponInput" placeholder="Enter coupon code"
+                                        @keydown.enter.prevent="applyCoupon()"
+                                        class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <button type="button" @click="applyCoupon()" :disabled="couponLoading || !couponInput.trim()"
+                                        class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                                        <span x-show="!couponLoading">Apply</span>
+                                        <span x-show="couponLoading">...</span>
+                                    </button>
+                                </div>
+                                <p x-show="couponError" class="text-xs text-red-500 mt-1" x-text="couponError"></p>
+                            </div>
+                        </template>
+                        <template x-if="couponCode">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-sm font-mono font-medium text-indigo-600" x-text="couponCode"></span>
+                                    <span class="text-sm text-green-600 ml-2">-<span x-text="couponDiscount.toFixed(2)"></span></span>
+                                </div>
+                                <button type="button" @click="removeCoupon()" class="text-xs text-red-500 hover:text-red-700 transition-colors">Remove</button>
+                            </div>
+                        </template>
+                    </div>
+
                     {{-- Totals --}}
                     <div class="mt-6 flex justify-end">
                         <div class="w-64 space-y-2">
@@ -482,6 +513,10 @@
                             <div class="flex justify-between text-sm text-gray-400">
                                 <span>Shipping</span>
                                 <span x-text="(shippingCost || 0).toFixed(2)"></span>
+                            </div>
+                            <div x-show="couponDiscount > 0" class="flex justify-between text-sm text-green-600">
+                                <span>Coupon (<span x-text="couponCode"></span>)</span>
+                                <span>-<span x-text="couponDiscount.toFixed(2)"></span></span>
                             </div>
                             <div class="flex justify-between text-sm font-bold border-t border-gray-200 pt-2">
                                 <span>Total</span>
@@ -702,12 +737,19 @@
                 productDropdownOpen: false,
                 customerGroupId: {{ json_encode($customerGroupId ?? null) }},
 
+                // Coupon
+                couponCode: '{{ old('coupon_code', $order?->coupon_code ?? '') }}',
+                couponDiscount: {{ old('coupon_discount', $order?->coupon_discount ?? 0) }},
+                couponInput: '',
+                couponLoading: false,
+                couponError: '',
+
                 get subtotal() {
                     return this.items.reduce((sum, i) => sum + (parseFloat(i.price || 0) * (i.quantity || 1)), 0);
                 },
 
                 get orderTotal() {
-                    return this.subtotal + (this.shippingCost || 0);
+                    return Math.max(0, this.subtotal + (this.shippingCost || 0) - (this.couponDiscount || 0));
                 },
 
                 async searchCustomers() {
@@ -1004,6 +1046,45 @@
                         this.availablePaymentMethods = [];
                     }
                     this.loadingPayments = false;
+                },
+
+                async applyCoupon() {
+                    const code = this.couponInput.trim();
+                    if (!code) return;
+                    this.couponLoading = true;
+                    this.couponError = '';
+                    try {
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+                        const res = await fetch('{{ route("admin.orders.validate-coupon") }}', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                code: code,
+                                subtotal: this.subtotal,
+                                shipping_cost: this.shippingCost || 0,
+                                customer_id: this.customerId || null,
+                            }),
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.couponCode = data.coupon_code;
+                            this.couponDiscount = data.discount;
+                            this.couponInput = '';
+                            this.couponError = '';
+                        } else {
+                            this.couponError = data.message || 'Invalid coupon.';
+                        }
+                    } catch (e) {
+                        this.couponError = 'Failed to validate coupon.';
+                    }
+                    this.couponLoading = false;
+                },
+
+                removeCoupon() {
+                    this.couponCode = '';
+                    this.couponDiscount = 0;
+                    this.couponInput = '';
+                    this.couponError = '';
                 },
 
                 init() {
