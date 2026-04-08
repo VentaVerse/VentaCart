@@ -51,7 +51,7 @@ class CouponController extends Controller
         return view('admin.coupons.form', [
             'coupon' => null,
             'customerGroups' => $customerGroups,
-            'restrictions' => ['product' => [], 'category' => [], 'brand' => []],
+            'restrictions' => ['product' => [], 'category' => [], 'brand' => []],  // Arrays of {id, label} objects
         ]);
     }
 
@@ -76,10 +76,18 @@ class CouponController extends Controller
     {
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
+        // Load restrictions with names for the dual-list UI
+        $productIds = $coupon->restrictions()->where('restriction_type', 'product')->pluck('restriction_id');
+        $categoryIds = $coupon->restrictions()->where('restriction_type', 'category')->pluck('restriction_id');
+        $brandIds = $coupon->restrictions()->where('restriction_type', 'brand')->pluck('restriction_id');
+
         $restrictions = [
-            'product' => $coupon->restrictions()->where('restriction_type', 'product')->pluck('restriction_id')->toArray(),
-            'category' => $coupon->restrictions()->where('restriction_type', 'category')->pluck('restriction_id')->toArray(),
-            'brand' => $coupon->restrictions()->where('restriction_type', 'brand')->pluck('restriction_id')->toArray(),
+            'product' => \App\Models\Product::whereIn('id', $productIds)->get(['id', 'name', 'sku'])
+                ->map(fn($p) => ['id' => $p->id, 'label' => $p->name . ($p->sku ? " ({$p->sku})" : '')])->values()->toArray(),
+            'category' => \App\Models\Category::whereIn('id', $categoryIds)->get(['id', 'name'])
+                ->map(fn($c) => ['id' => $c->id, 'label' => $c->name])->values()->toArray(),
+            'brand' => \App\Models\Brand::whereIn('id', $brandIds)->get(['id', 'name'])
+                ->map(fn($b) => ['id' => $b->id, 'label' => $b->name])->values()->toArray(),
         ];
 
         return view('admin.coupons.form', compact('coupon', 'customerGroups', 'restrictions'));
@@ -110,6 +118,37 @@ class CouponController extends Controller
             ->with('success', 'Coupon deleted successfully.');
     }
 
+    public function searchProducts(Request $request)
+    {
+        $q = $request->input('q', '');
+        $products = \App\Models\Product::where('name', 'like', "%{$q}%")
+            ->orWhere('sku', 'like', "%{$q}%")
+            ->limit(15)
+            ->get(['id', 'name', 'sku']);
+
+        return response()->json($products->map(fn($p) => ['id' => $p->id, 'label' => $p->name . ($p->sku ? " ({$p->sku})" : '')]));
+    }
+
+    public function searchCategories(Request $request)
+    {
+        $q = $request->input('q', '');
+        $categories = \App\Models\Category::where('name', 'like', "%{$q}%")
+            ->limit(15)
+            ->get(['id', 'name']);
+
+        return response()->json($categories->map(fn($c) => ['id' => $c->id, 'label' => $c->name]));
+    }
+
+    public function searchBrands(Request $request)
+    {
+        $q = $request->input('q', '');
+        $brands = \App\Models\Brand::where('name', 'like', "%{$q}%")
+            ->limit(15)
+            ->get(['id', 'name']);
+
+        return response()->json($brands->map(fn($b) => ['id' => $b->id, 'label' => $b->name]));
+    }
+
     protected function syncRestrictions(Coupon $coupon, Request $request): void
     {
         $coupon->restrictions()->delete();
@@ -124,18 +163,25 @@ class CouponController extends Controller
                 continue;
             }
 
-            $ids = collect(explode(',', $raw))
-                ->map(fn ($v) => trim($v))
-                ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
-                ->unique()
-                ->values();
+            // Accept JSON array or comma-separated IDs
+            $ids = json_decode($raw, true);
+            if (!is_array($ids)) {
+                $ids = collect(explode(',', $raw))
+                    ->map(fn ($v) => trim($v))
+                    ->filter(fn ($v) => is_numeric($v) && (int) $v > 0)
+                    ->unique()
+                    ->values()
+                    ->toArray();
+            }
 
             foreach ($ids as $id) {
-                CouponRestriction::create([
-                    'coupon_id' => $coupon->id,
-                    'restriction_type' => $type,
-                    'restriction_id' => (int) $id,
-                ]);
+                if ((int) $id > 0) {
+                    CouponRestriction::create([
+                        'coupon_id' => $coupon->id,
+                        'restriction_type' => $type,
+                        'restriction_id' => (int) $id,
+                    ]);
+                }
             }
         }
     }

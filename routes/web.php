@@ -321,6 +321,9 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
 
     // Coupons
     Route::resource('coupons', CouponController::class)->except(['show']);
+    Route::get('/coupons/search/products', [CouponController::class, 'searchProducts'])->name('coupons.search-products');
+    Route::get('/coupons/search/categories', [CouponController::class, 'searchCategories'])->name('coupons.search-categories');
+    Route::get('/coupons/search/brands', [CouponController::class, 'searchBrands'])->name('coupons.search-brands');
 
     // Email Templates
     Route::get('/email-templates', [EmailTemplateController::class, 'index'])->name('email-templates.index');

@@ -100,32 +100,79 @@
                 {{-- Restrictions --}}
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5">
                     <h3 class="text-sm font-semibold text-gray-700 mb-4">Restrictions</h3>
-                    <p class="text-xs text-gray-400 mb-4">Leave blank to apply to all. Enter comma-separated IDs to restrict to specific items.</p>
-                    <div class="space-y-4">
-                        <div>
-                            <label for="restriction_products" class="block text-sm text-gray-600 mb-1">Product IDs</label>
-                            <input type="text" name="restriction_products" id="restriction_products"
-                                value="{{ old('restriction_products', implode(', ', $restrictions['product'])) }}"
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="e.g. 12, 45, 78">
-                            @error('restriction_products') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label for="restriction_categories" class="block text-sm text-gray-600 mb-1">Category IDs</label>
-                            <input type="text" name="restriction_categories" id="restriction_categories"
-                                value="{{ old('restriction_categories', implode(', ', $restrictions['category'])) }}"
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="e.g. 3, 7">
-                            @error('restriction_categories') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label for="restriction_brands" class="block text-sm text-gray-600 mb-1">Brand IDs</label>
-                            <input type="text" name="restriction_brands" id="restriction_brands"
-                                value="{{ old('restriction_brands', implode(', ', $restrictions['brand'])) }}"
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="e.g. 1, 5">
-                            @error('restriction_brands') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
+                    <p class="text-xs text-gray-400 mb-4">Leave blank to apply to all products. Add specific items to restrict this coupon.</p>
+                    <div class="space-y-5">
+                        @foreach ([
+                            ['type' => 'product', 'label' => 'Products', 'url' => route('admin.coupons.search-products'), 'placeholder' => 'Search products by name or SKU...'],
+                            ['type' => 'category', 'label' => 'Categories', 'url' => route('admin.coupons.search-categories'), 'placeholder' => 'Search categories...'],
+                            ['type' => 'brand', 'label' => 'Brands', 'url' => route('admin.coupons.search-brands'), 'placeholder' => 'Search brands...'],
+                        ] as $r)
+                            <div x-data="{
+                                items: {{ json_encode($restrictions[$r['type']] ?? []) }},
+                                query: '',
+                                results: [],
+                                loading: false,
+                                open: false,
+                                async search() {
+                                    if (this.query.length < 2) { this.results = []; return; }
+                                    this.loading = true;
+                                    const res = await fetch('{{ $r['url'] }}?q=' + encodeURIComponent(this.query));
+                                    this.results = await res.json();
+                                    this.open = true;
+                                    this.loading = false;
+                                },
+                                add(item) {
+                                    if (!this.items.find(i => i.id === item.id)) {
+                                        this.items.push(item);
+                                    }
+                                    this.query = '';
+                                    this.results = [];
+                                    this.open = false;
+                                },
+                                remove(id) {
+                                    this.items = this.items.filter(i => i.id !== id);
+                                }
+                            }">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">{{ $r['label'] }}</label>
+                                <input type="hidden" name="restriction_{{ $r['type'] }}s" :value="JSON.stringify(items.map(i => i.id))">
+
+                                {{-- Search input --}}
+                                <div class="relative">
+                                    <input type="text" x-model="query" @input.debounce.300ms="search()" @focus="if (results.length) open = true" @click.outside="open = false"
+                                        placeholder="{{ $r['placeholder'] }}"
+                                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <div x-show="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <svg class="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                    </div>
+
+                                    {{-- Dropdown results --}}
+                                    <div x-show="open && results.length > 0" x-transition
+                                         class="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                        <template x-for="result in results" :key="result.id">
+                                            <button type="button" @click="add(result)"
+                                                class="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between"
+                                                :class="items.find(i => i.id === result.id) ? 'opacity-40 pointer-events-none' : ''">
+                                                <span x-text="result.label"></span>
+                                                <span class="text-xs text-gray-400" x-text="'#' + result.id"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+
+                                {{-- Selected items --}}
+                                <div class="flex flex-wrap gap-2 mt-2" x-show="items.length > 0">
+                                    <template x-for="item in items" :key="item.id">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-lg">
+                                            <span x-text="item.label"></span>
+                                            <button type="button" @click="remove(item.id)" class="text-indigo-400 hover:text-indigo-600">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            </button>
+                                        </span>
+                                    </template>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1" x-show="items.length === 0">No restrictions — applies to all {{ strtolower($r['label']) }}.</p>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
