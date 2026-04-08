@@ -23,3 +23,6 @@ Schedule::command('sitemap:generate')->dailyAt('04:00');
 
 // Check low stock products and send admin alerts daily at 8am
 Schedule::command('stock:check-low')->dailyAt('08:00');
+
+// Poll DPH for shipment status updates every minute
+Schedule::command('dph:fetch-statuses')->everyMinute();

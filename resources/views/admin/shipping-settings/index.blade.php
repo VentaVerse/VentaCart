@@ -465,6 +465,21 @@
                                 <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 border border-gray-300">{{ ($settings['shipping']['dph_webhook_secret'] ?? '') ? 'Regenerate' : 'Generate' }} Secret</button>
                             </form>
                         </div>
+
+                        {{-- Cron Job --}}
+                        <div class="border-t border-gray-200 mt-6 pt-4">
+                            <h4 class="text-sm font-semibold text-gray-700 mb-2">Status Polling (Cron Job)</h4>
+                            <p class="text-xs text-gray-500 mb-3">Polls DPH every minute for shipment status updates. Runs as a fallback alongside webhooks. Add this to your server's crontab:</p>
+                            <div class="relative" x-data="{ cronCopied: false }">
+                                <pre class="text-xs bg-gray-900 text-green-400 rounded-lg p-3 font-mono overflow-x-auto">* * * * * cd {{ base_path() }} && php artisan schedule:run >> /dev/null 2>&1</pre>
+                                <button type="button" @click="
+                                    navigator.clipboard.writeText('* * * * * cd {{ base_path() }} && php artisan schedule:run >> /dev/null 2>&1');
+                                    cronCopied = true; setTimeout(() => cronCopied = false, 2000);
+                                " class="absolute top-2 right-2 px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded hover:bg-gray-600"
+                                   x-text="cronCopied ? 'Copied!' : 'Copy'"></button>
+                            </div>
+                            <p class="text-xs text-gray-400 mt-2">Command: <code class="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600">php artisan dph:fetch-statuses</code> — checks all active shipments (excludes DONE, CANCEL, RETURNED).</p>
+                        </div>
                     </div>
                 </div>
 
