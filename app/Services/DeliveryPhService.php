@@ -203,11 +203,34 @@ class DeliveryPhService
     }
 
     /**
+     * Normalize city names for DPH's PSGC format.
+     * Our DB stores "Makati" but DPH expects "Makati City" for Metro Manila cities.
+     */
+    protected static function normalizeCityForDph(string $city, string $province): string
+    {
+        $metroManila = ['Metro Manila', 'NCR', 'National Capital Region'];
+        if (!in_array($province, $metroManila, true)) {
+            return $city;
+        }
+
+        // These already have the correct format or are municipalities
+        $skip = ['Quezon City', 'Pateros'];
+        if (in_array($city, $skip, true) || str_ends_with($city, ' City')) {
+            return $city;
+        }
+
+        return $city . ' City';
+    }
+
+    /**
      * Get available scheduled courier rates.
      * Used for provincial / outside Metro Manila deliveries.
      */
     public function getScheduledRates(array $pickup, array $delivery, ?array $dimensions = null, ?float $weight = null): array
     {
+        $pickup['city'] = self::normalizeCityForDph($pickup['city'] ?? '', $pickup['province'] ?? '');
+        $delivery['city'] = self::normalizeCityForDph($delivery['city'] ?? '', $delivery['province'] ?? '');
+
         $body = [
             'serviceType' => 'scheduled',
             'pickup' => $pickup,
@@ -287,6 +310,10 @@ class DeliveryPhService
      */
     public function createPost(array $pickupDetails, array $deliveryDetails, string $partnerId, string $refNo, bool $isPsgc = true): array
     {
+        // Normalize city names for DPH PSGC format
+        $pickupDetails['pickupCity'] = self::normalizeCityForDph($pickupDetails['pickupCity'] ?? '', $pickupDetails['province'] ?? '');
+        $deliveryDetails['deliveryCity'] = self::normalizeCityForDph($deliveryDetails['deliveryCity'] ?? '', $deliveryDetails['province'] ?? '');
+
         // Auto-populate metaFields with postal codes if not already set
         if (!isset($deliveryDetails['metaFields'])) {
             $deliveryDetails['metaFields'] = [];
