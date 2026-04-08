@@ -205,9 +205,13 @@ class DeliveryPhService
     /**
      * Normalize city names for DPH's PSGC format.
      * Our DB stores "Makati" but DPH expects "Makati City" for Metro Manila cities.
+     * Our DB also appends "(Capital)" to some HUCs which DPH rejects.
      */
     protected static function normalizeCityForDph(string $city, string $province): string
     {
+        // Strip "(Capital)" suffix — our HUC import adds it but DPH rejects it
+        $city = preg_replace('/\s*\(Capital\)$/i', '', $city);
+
         $metroManila = ['Metro Manila', 'NCR', 'National Capital Region'];
         if (!in_array($province, $metroManila, true)) {
             return $city;
