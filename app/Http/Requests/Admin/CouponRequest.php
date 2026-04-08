@@ -31,7 +31,7 @@ class CouponRequest extends FormRequest
             'customer_eligibility' => ['required', Rule::in(['all', 'logged_in', 'guest'])],
             'customer_group_id' => ['nullable', 'exists:customer_groups,id'],
             'usage_limit' => ['nullable', 'integer', 'min:1'],
-            'usage_per_customer' => ['required', 'integer', 'min:1'],
+            'usage_per_customer' => ['nullable', 'integer', 'min:1'],
             'date_start' => ['nullable', 'date'],
             'date_end' => ['nullable', 'date', 'after_or_equal:date_start'],
             'is_active' => ['nullable'],

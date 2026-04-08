@@ -64,8 +64,8 @@ class CouponService
             return CouponResult::fail('This coupon has reached its usage limit.');
         }
 
-        // Per-customer usage limit
-        if ($customer && $coupon->usage_per_customer > 0) {
+        // Per-customer usage limit (null = unlimited)
+        if ($customer && $coupon->usage_per_customer !== null) {
             $customerUsage = CouponUsage::where('coupon_id', $coupon->id)
                 ->where('customer_id', $customer->id)
                 ->count();

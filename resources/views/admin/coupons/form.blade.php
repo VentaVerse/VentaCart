@@ -245,9 +245,11 @@
                         </div>
                         <div>
                             <label for="usage_per_customer" class="block text-sm text-gray-600 mb-1">Per Customer Limit</label>
-                            <input type="number" name="usage_per_customer" id="usage_per_customer" min="1" required
-                                value="{{ old('usage_per_customer', $coupon?->usage_per_customer ?? 1) }}"
+                            <input type="number" name="usage_per_customer" id="usage_per_customer" min="1"
+                                value="{{ old('usage_per_customer', $coupon?->usage_per_customer) }}"
+                                placeholder="Unlimited"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <p class="text-xs text-gray-400 mt-1">Leave blank for unlimited.</p>
                         </div>
                     </div>
                 </div>

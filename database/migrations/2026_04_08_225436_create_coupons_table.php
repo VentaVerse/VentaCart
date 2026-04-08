@@ -23,7 +23,7 @@ return new class extends Migration
             $table->enum('customer_eligibility', ['all', 'logged_in', 'guest'])->default('all');
             $table->unsignedBigInteger('customer_group_id')->nullable();
             $table->unsignedInteger('usage_limit')->nullable();
-            $table->unsignedInteger('usage_per_customer')->default(1);
+            $table->unsignedInteger('usage_per_customer')->nullable();
             $table->unsignedInteger('times_used')->default(0);
             $table->date('date_start')->nullable();
             $table->date('date_end')->nullable();
