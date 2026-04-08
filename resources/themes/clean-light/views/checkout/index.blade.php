@@ -15,6 +15,9 @@
     $phoneCodesJson = $countries->pluck('phone_code', 'id')->toJson();
     $countryNamesJson = $countries->pluck('name', 'id')->toJson();
     $currencySymbol = $defaultCurrency?->symbol ?? '₱';
+    $couponCodeJson = json_encode($couponCode ?? '');
+    $couponDiscountVal = $couponDiscount ?? 0;
+    $couponFreeShippingJson = json_encode($couponFreeShipping ?? false);
 @endphp
 
 <x-store-layout title="Checkout">
@@ -28,7 +31,8 @@
             {{ $paymentMethodsData }},
             {{ $countriesJson }},
             { firstName: {{ json_encode($customer->first_name) }}, lastName: {{ json_encode($customer->last_name) }} }
-         )">
+         )"
+         x-init="couponCode = {{ $couponCodeJson }}; couponDiscount = {{ $couponDiscountVal }}; couponFreeShipping = {{ $couponFreeShippingJson }}">
 
         <h1 class="section-title reveal">CHECKOUT</h1>
 
@@ -551,6 +555,41 @@
                         </template>
                     </div>
 
+                    {{-- Coupon --}}
+                    <div class="mb-3">
+                        @if (!empty($couponError))
+                            <div class="text-xs text-red-500 mb-2">{{ $couponError }}</div>
+                        @endif
+                        <template x-if="!couponCode">
+                            <div>
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="couponInput" placeholder="Coupon code"
+                                           class="account-input flex-1 text-sm py-1.5"
+                                           @keydown.enter.prevent="applyCoupon()">
+                                    <button @click="applyCoupon()"
+                                            :disabled="couponLoading || !couponInput.trim()"
+                                            class="px-3 py-1.5 text-xs tracking-wider bg-[var(--color-primary)] text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-40">
+                                        <span x-show="!couponLoading">APPLY</span>
+                                        <span x-show="couponLoading">...</span>
+                                    </button>
+                                </div>
+                                <div x-show="couponError" class="text-xs text-red-500 mt-1" x-text="couponError"></div>
+                            </div>
+                        </template>
+                        <template x-if="couponCode">
+                            <div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-[var(--color-text-muted)]">Coupon <span class="font-medium text-[var(--color-text-heading)]" x-text="couponCode"></span></span>
+                                    <span class="text-emerald-500">-{{ $currencySymbol }}<span x-text="couponDiscount.toFixed(2)"></span></span>
+                                </div>
+                                <template x-if="couponFreeShipping">
+                                    <div class="text-xs text-emerald-500 mt-0.5">+ Free shipping</div>
+                                </template>
+                                <button @click="removeCoupon()" class="text-[10px] text-[var(--color-text-muted)] hover:text-red-500 mt-1 transition-colors">Remove coupon</button>
+                            </div>
+                        </template>
+                    </div>
+
                     <hr class="divider-glow my-4">
 
                     {{-- Total --}}
@@ -665,14 +704,20 @@
                     <div class="flex justify-between text-sm">
                         <span>Shipping</span>
                         <span>
-                            <template x-if="selectedShippingMethod && selectedShippingMethod.cost === 0">
+                            <template x-if="effectiveShippingCost === 0">
                                 <span class="text-emerald-500">FREE</span>
                             </template>
-                            <template x-if="selectedShippingMethod && selectedShippingMethod.cost > 0">
-                                <span>{{ $currencySymbol }}<span x-text="selectedShippingMethod.cost.toFixed(2)"></span></span>
+                            <template x-if="effectiveShippingCost > 0">
+                                <span>{{ $currencySymbol }}<span x-text="effectiveShippingCost.toFixed(2)"></span></span>
                             </template>
                         </span>
                     </div>
+                    <template x-if="couponCode">
+                        <div class="flex justify-between text-sm text-emerald-500">
+                            <span>Coupon (<span x-text="couponCode"></span>)</span>
+                            <span>-{{ $currencySymbol }}<span x-text="couponDiscount.toFixed(2)"></span></span>
+                        </div>
+                    </template>
                     <div class="checkout-modal-total-line">
                         <span>Total</span>
                         <span class="text-lg font-bold">{{ $currencySymbol }}<span x-text="total.toFixed(2)"></span></span>

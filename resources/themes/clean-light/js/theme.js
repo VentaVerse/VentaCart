@@ -718,6 +718,12 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     showConfirmModal: false,
     comment: '',
     stockWarning: '',
+    couponCode: '',
+    couponDiscount: 0,
+    couponFreeShipping: false,
+    couponInput: '',
+    couponLoading: false,
+    couponError: '',
     qrOpen: false,
     qrSrc: '',
     qrName: '',
@@ -741,8 +747,13 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
         return method ? method.cost : 0;
     },
 
+    get effectiveShippingCost() {
+        if (this.couponFreeShipping) return 0;
+        return this.shippingCost;
+    },
+
     get total() {
-        return this.subtotal + this.shippingCost;
+        return Math.max(0, this.subtotal + this.effectiveShippingCost - this.couponDiscount);
     },
 
     loadingShipping: false,
@@ -910,6 +921,58 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
 
     async removeCheckoutItem(item) {
         await this.updateItemQty(item, 0);
+    },
+
+    async applyCoupon() {
+        const code = this.couponInput.trim();
+        if (!code) return;
+        this.couponLoading = true;
+        this.couponError = '';
+        try {
+            const res = await fetch('/checkout/coupon/apply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ code }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                this.couponCode = data.coupon_code;
+                this.couponDiscount = parseFloat(data.discount);
+                this.couponFreeShipping = data.free_shipping || false;
+                this.couponInput = '';
+                this.couponError = '';
+                this.refreshShippingRates();
+            } else {
+                this.couponError = data.message || 'Invalid coupon code.';
+            }
+        } catch (e) {
+            this.couponError = 'Something went wrong. Please try again.';
+            console.error('Apply coupon failed:', e);
+        }
+        this.couponLoading = false;
+    },
+
+    async removeCoupon() {
+        try {
+            await fetch('/checkout/coupon/remove', {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+            });
+        } catch (e) {
+            console.error('Remove coupon failed:', e);
+        }
+        this.couponCode = '';
+        this.couponDiscount = 0;
+        this.couponFreeShipping = false;
+        this.couponError = '';
+        this.refreshShippingRates();
     },
 
     submitOrder() {

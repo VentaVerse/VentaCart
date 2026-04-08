@@ -7,6 +7,7 @@ use App\Models\Country;
 use App\Models\CustomerAddress;
 use App\Services\CartService;
 use App\Services\CheckoutService;
+use App\Services\CouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,6 +16,7 @@ class CheckoutController extends Controller
     public function __construct(
         private CartService $cartService,
         private CheckoutService $checkoutService,
+        private CouponService $couponService,
     ) {}
 
     public function index()
@@ -56,9 +58,37 @@ class CheckoutController extends Controller
             'customer_group_id' => $customer->customer_group_id,
         ]);
 
+        // Coupon validation
+        $couponCode = null;
+        $couponDiscount = 0;
+        $couponFreeShipping = false;
+        $couponError = null;
+
+        $cart = $this->cartService->getCart();
+        if ($cart->coupon_code) {
+            $cartItems = $cart->items()->with(['product.categories', 'productVariant'])->get();
+            $couponResult = $this->couponService->validate(
+                $cart->coupon_code,
+                $customer,
+                $cartItems,
+                $subtotal
+            );
+
+            if ($couponResult->success) {
+                $couponCode = $couponResult->coupon->code;
+                $couponDiscount = $couponResult->discount;
+                $couponFreeShipping = $couponResult->freeShipping;
+            } else {
+                // Coupon no longer valid — clear it from cart
+                $this->couponService->remove($cart);
+                $couponError = $couponResult->message;
+            }
+        }
+
         return view('checkout.index', compact(
             'customer', 'items', 'addresses', 'defaultAddress', 'countries',
-            'subtotal', 'shippingMethods', 'paymentMethods'
+            'subtotal', 'shippingMethods', 'paymentMethods',
+            'couponCode', 'couponDiscount', 'couponFreeShipping', 'couponError'
         ));
     }
 

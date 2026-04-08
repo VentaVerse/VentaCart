@@ -21,6 +21,7 @@ class Order extends Model
         'billing_city', 'billing_district', 'billing_barangay',
         'billing_state', 'billing_postcode', 'billing_country_id', 'billing_phone',
         'comment', 'stock_adjusted',
+        'coupon_code', 'coupon_discount',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class Order extends Model
             'shipping_cost' => 'decimal:2',
             'total' => 'decimal:2',
             'stock_adjusted' => 'boolean',
+            'coupon_discount' => 'decimal:2',
             'shipping_meta' => 'array',
         ];
     }

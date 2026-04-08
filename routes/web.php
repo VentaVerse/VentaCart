@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\RolePermissionController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\ShippingSettingController;
 use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\ShippingZoneController;
 use App\Http\Controllers\Admin\StockNotificationController as AdminStockNotificationController;
 use App\Http\Controllers\Admin\MediaController;
@@ -47,6 +48,7 @@ use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\AccountAddressController;
 use App\Http\Controllers\Storefront\OrderHistoryController;
 use App\Http\Controllers\Storefront\CheckoutController as StorefrontCheckoutController;
+use App\Http\Controllers\Storefront\CouponController as StorefrontCouponController;
 use App\Http\Controllers\Storefront\HitPayWebhookController;
 use App\Http\Controllers\Storefront\DphWebhookController;
 use App\Http\Controllers\Storefront\AddressLookupController as StorefrontAddressLookupController;
@@ -103,6 +105,8 @@ Route::middleware('customer.auth')->group(function () {
     Route::post('/checkout/place', [StorefrontCheckoutController::class, 'placeOrder'])->name('checkout.place');
     Route::get('/checkout/confirmation/{order}', [StorefrontCheckoutController::class, 'confirmation'])->name('checkout.confirmation');
     Route::get('/checkout/hitpay/return', [StorefrontCheckoutController::class, 'hitpayReturn'])->name('checkout.hitpay.return');
+    Route::post('/checkout/coupon/apply', [StorefrontCouponController::class, 'apply'])->name('checkout.coupon.apply');
+    Route::delete('/checkout/coupon/remove', [StorefrontCouponController::class, 'remove'])->name('checkout.coupon.remove');
 });
 
 // Customer Auth (public)
@@ -314,6 +318,9 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
     Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
     Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+
+    // Coupons
+    Route::resource('coupons', CouponController::class)->except(['show']);
 
     // Email Templates
     Route::get('/email-templates', [EmailTemplateController::class, 'index'])->name('email-templates.index');

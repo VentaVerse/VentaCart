@@ -204,6 +204,12 @@
                                 <span class="text-gray-500">Shipping</span>
                                 <span class="text-gray-700">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
                             </div>
+                            @if ($order->coupon_code)
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Coupon ({{ $order->coupon_code }})</span>
+                                <span class="text-emerald-600">-{{ $currency }}{{ number_format($order->coupon_discount, 2) }}</span>
+                            </div>
+                            @endif
                             <div class="flex justify-between text-sm font-bold pt-2 border-t border-gray-200">
                                 <span class="text-gray-800">Total</span>
                                 <span class="text-gray-900 text-base">{{ $currency }}{{ number_format($order->total, 2) }}</span>
