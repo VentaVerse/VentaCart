@@ -123,10 +123,16 @@
                             <span class="text-[#777]">Subtotal</span>
                             <span class="text-[#E8E8E8] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->subtotal, 2) }}</span>
                         </div>
-                        @if ($order->shipping_cost > 0)
+                        @if ($order->shipping_cost > 0 || $order->courier_label)
                             <div class="flex justify-end gap-8">
-                                <span class="text-[#777]">Shipping</span>
-                                <span class="text-[#E8E8E8] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->shipping_cost, 2) }}</span>
+                                <span class="text-[#777]">Shipping @if ($order->courier_label)<span class="text-[#555]">({{ $order->courier_label }})</span>@endif</span>
+                                <span class="text-[#E8E8E8] w-28" class="font-heading">
+                                    @if ($order->shipping_cost > 0)
+                                        {{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->shipping_cost, 2) }}
+                                    @else
+                                        <span class="text-emerald-400">FREE</span>
+                                    @endif
+                                </span>
                             </div>
                         @endif
                         <div class="flex justify-end gap-8 pt-2 border-t border-[#2A2A2A]">

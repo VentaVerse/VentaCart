@@ -15,19 +15,7 @@
         'Expired' => 'bg-gray-200 text-gray-600 ring-gray-300',
     ];
     $statusClass = $statusColors[$order->status?->name] ?? 'bg-gray-100 text-gray-700 ring-gray-300';
-
-    // Resolve courier_label: what the customer saw at checkout.
-    // Prefer shipping_meta.courier_label (new standard). For legacy DPH orders, strip the
-    // " (size)" suffix off partner_name. Note: dph_courier_name is NOT used here — that
-    // field tracks post-checkout admin rebooking, not the original customer selection.
-    $meta = $order->shipping_meta ?? [];
-    if (!empty($meta['courier_label'])) {
-        $shippingCourierLabel = $meta['courier_label'];
-    } elseif (!empty($meta['partner_name'])) {
-        $shippingCourierLabel = preg_replace('/\s*\([^)]*\)\s*$/', '', $meta['partner_name']) ?: $meta['partner_name'];
-    } else {
-        $shippingCourierLabel = $order->shipping_method ?: null;
-    }
+    $shippingCourierLabel = $order->courier_label;
 @endphp
 
 <x-admin-layout>

@@ -234,7 +234,7 @@
                                 </tr>
                                 <tr>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #999999; text-align: right;">
-                                        Shipping ({{ $order->shipping_method ?: 'Standard' }}):
+                                        Shipping @if ($order->courier_label)({{ $order->courier_label }})@endif:
                                     </td>
                                     <td style="padding: 8px 12px; font-size: 14px; color: #e8e8e8; text-align: right; width: 100px;">
                                         @if ($order->shipping_cost > 0)

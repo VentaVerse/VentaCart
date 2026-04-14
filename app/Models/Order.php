@@ -36,6 +36,34 @@ class Order extends Model
         ];
     }
 
+    /**
+     * Customer-facing shipping label (courier/rate/method name).
+     * Accessed via $order->courier_label.
+     *
+     * Source priority:
+     *  1. shipping_meta.courier_label (new standardized key set by providers)
+     *  2. shipping_meta.partner_name — legacy DPH orders, strip " (size)" suffix
+     *  3. shipping_method — any other legacy order (weight-based, flat rate, etc.)
+     *
+     * Note: dph_courier_name is intentionally NOT used — that field reflects
+     * post-checkout admin rebooking, not the original customer selection.
+     */
+    public function getCourierLabelAttribute(): ?string
+    {
+        $meta = $this->shipping_meta ?? [];
+
+        if (!empty($meta['courier_label'])) {
+            return $meta['courier_label'];
+        }
+
+        if (!empty($meta['partner_name'])) {
+            $trimmed = preg_replace('/\s*\([^)]*\)\s*$/', '', $meta['partner_name']);
+            return $trimmed !== '' ? $trimmed : $meta['partner_name'];
+        }
+
+        return $this->shipping_method ?: null;
+    }
+
     public function store(): BelongsTo
     {
         return $this->belongsTo(Store::class);

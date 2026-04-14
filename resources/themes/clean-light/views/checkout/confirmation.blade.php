@@ -44,7 +44,7 @@
                         <span class="text-[var(--color-text-heading)]" class="font-heading">₱{{ number_format($order->subtotal, 2) }}</span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-[var(--color-text-muted)]">Shipping ({{ $order->shipping_method }})</span>
+                        <span class="text-[var(--color-text-muted)]">Shipping @if ($order->courier_label)({{ $order->courier_label }})@endif</span>
                         <span class="font-heading">
                             @if ($order->shipping_cost > 0)
                                 <span class="text-[var(--color-text-heading)]">₱{{ number_format($order->shipping_cost, 2) }}</span>
@@ -106,10 +106,10 @@
                             <span class="text-[var(--color-text-muted)]">Payment</span>
                             <span class="text-[var(--color-text-heading)] font-medium">{{ $order->payment_method_label }}</span>
                         </div>
-                        @if ($order->shipping_method)
+                        @if ($order->courier_label)
                             <div class="flex justify-between py-1.5">
                                 <span class="text-[var(--color-text-muted)]">Shipping</span>
-                                <span class="text-[var(--color-text-heading)]">{{ $order->shipping_method }}</span>
+                                <span class="text-[var(--color-text-heading)]">{{ $order->courier_label }}</span>
                             </div>
                         @endif
                     </div>
