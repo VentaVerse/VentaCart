@@ -208,13 +208,13 @@
                 </table>
                 <div class="border-t border-gray-200 bg-gray-50/70 px-6 py-3">
                     <div class="flex justify-end">
-                        <div class="w-64 space-y-1.5">
+                        <div class="w-full sm:max-w-md space-y-1.5">
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-500">Subtotal</span>
                                 <span class="text-gray-700">{{ $currency }}{{ number_format($order->subtotal, 2) }}</span>
                             </div>
-                            <div class="flex justify-between text-sm gap-3">
-                                <span class="text-gray-500 truncate">Shipping @if ($shippingCourierLabel)<span class="text-gray-400">({{ $shippingCourierLabel }})</span>@endif</span>
+                            <div class="flex justify-between items-start text-sm gap-3">
+                                <span class="text-gray-500 break-words">Shipping @if ($shippingCourierLabel)<span class="text-gray-400">({{ $shippingCourierLabel }})</span>@endif</span>
                                 <span class="text-gray-700 whitespace-nowrap">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
                             </div>
                             @if ($order->coupon_code)
