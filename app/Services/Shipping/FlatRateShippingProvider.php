@@ -72,6 +72,11 @@ class FlatRateShippingProvider implements ShippingProviderInterface
 
     public function buildShippingMeta(string $quoteKey, array $quoteData): ?array
     {
-        return null;
+        return [
+            'provider' => 'flat_rate',
+            'provider_label' => 'Flat Rate',
+            'courier_label' => 'Flat Rate',
+            'quote_key' => $quoteKey,
+        ];
     }
 }

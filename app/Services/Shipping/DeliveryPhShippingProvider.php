@@ -53,13 +53,15 @@ class DeliveryPhShippingProvider implements ShippingProviderInterface
 
                 $cheapest = collect($products)->sortBy('price')->first();
                 if ($cheapest) {
+                    $courierName = $rate['name'] ?? $partnerId;
                     $quotes[] = [
                         'key' => "dph_scheduled_{$partnerId}_{$cheapest['size']}",
-                        'name' => ($rate['name'] ?? $partnerId) . ' (' . ($cheapest['size'] ?? '') . ')',
+                        'name' => $courierName . ' (' . ($cheapest['size'] ?? '') . ')',
                         'cost' => (float) $cheapest['price'],
                         'estimated_days' => $estimatedDays,
                         'service_type' => 'scheduled',
                         'partner_id' => $partnerId,
+                        'courier_name' => $courierName,
                         'product_size' => $cheapest['size'] ?? '',
                     ];
                 }
@@ -78,6 +80,8 @@ class DeliveryPhShippingProvider implements ShippingProviderInterface
     {
         return [
             'provider' => 'dph',
+            'provider_label' => 'Delivery PH',
+            'courier_label' => $quoteData['courier_name'] ?? $quoteData['name'] ?? ($quoteData['partner_id'] ?? 'DPH'),
             'partner_id' => $quoteData['partner_id'] ?? null,
             'partner_name' => $quoteData['name'] ?? null,
             'service_type' => $quoteData['service_type'] ?? 'scheduled',

@@ -90,6 +90,11 @@ class DhlShippingProvider implements ShippingProviderInterface
 
     public function buildShippingMeta(string $quoteKey, array $quoteData): ?array
     {
-        return null;
+        return [
+            'provider' => 'dhl_express',
+            'provider_label' => 'DHL Express',
+            'courier_label' => $quoteData['name'] ?? 'DHL Express',
+            'quote_key' => $quoteKey,
+        ];
     }
 }

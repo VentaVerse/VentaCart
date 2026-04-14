@@ -33,6 +33,7 @@ class FreeShippingRuleController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'checkout_name' => ['nullable', 'string', 'max:255'],
             'min_order_total' => ['nullable', 'numeric', 'min:0'],
             'min_quantity' => ['nullable', 'integer', 'min:1'],
             'brand_ids' => ['nullable', 'array'],
@@ -81,6 +82,7 @@ class FreeShippingRuleController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'checkout_name' => ['nullable', 'string', 'max:255'],
             'min_order_total' => ['nullable', 'numeric', 'min:0'],
             'min_quantity' => ['nullable', 'integer', 'min:1'],
             'brand_ids' => ['nullable', 'array'],

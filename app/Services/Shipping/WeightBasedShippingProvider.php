@@ -84,6 +84,11 @@ class WeightBasedShippingProvider implements ShippingProviderInterface
 
     public function buildShippingMeta(string $quoteKey, array $quoteData): ?array
     {
-        return null;
+        return [
+            'provider' => 'weight_based',
+            'provider_label' => 'Weight Based',
+            'courier_label' => $quoteData['name'] ?? 'Weight Based',
+            'quote_key' => $quoteKey,
+        ];
     }
 }

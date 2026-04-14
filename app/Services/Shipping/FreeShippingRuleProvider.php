@@ -58,12 +58,15 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
 
             foreach ($rules as $rule) {
                 if ($this->ruleMatches($rule, $subtotal, $cartQuantity, $cartBrandIds, $cartCategoryIds, $customerGroupId, $zoneId)) {
+                    $checkoutName = $rule->checkout_name ?: ($rule->name ?: 'Free Shipping');
                     return [[
                         'key' => 'free_shipping',
-                        'name' => $rule->name ?: 'Free Shipping',
+                        'name' => $checkoutName,
                         'cost' => 0,
                         'estimated_days' => null,
                         'service_type' => 'free_shipping',
+                        'rule_id' => $rule->id,
+                        'rule_name' => $rule->name,
                     ]];
                 }
             }
@@ -221,6 +224,13 @@ class FreeShippingRuleProvider implements ShippingProviderInterface
 
     public function buildShippingMeta(string $quoteKey, array $quoteData): ?array
     {
-        return null;
+        return [
+            'provider' => 'free_shipping',
+            'provider_label' => 'Free Shipping',
+            'courier_label' => $quoteData['name'] ?? 'Free Shipping',
+            'rule_id' => $quoteData['rule_id'] ?? null,
+            'rule_name' => $quoteData['rule_name'] ?? null,
+            'quote_key' => $quoteKey,
+        ];
     }
 }

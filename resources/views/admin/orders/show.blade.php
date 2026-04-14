@@ -15,6 +15,19 @@
         'Expired' => 'bg-gray-200 text-gray-600 ring-gray-300',
     ];
     $statusClass = $statusColors[$order->status?->name] ?? 'bg-gray-100 text-gray-700 ring-gray-300';
+
+    // Resolve courier_label: what the customer saw at checkout.
+    // Prefer shipping_meta.courier_label (new standard). For legacy DPH orders, strip the
+    // " (size)" suffix off partner_name. Note: dph_courier_name is NOT used here — that
+    // field tracks post-checkout admin rebooking, not the original customer selection.
+    $meta = $order->shipping_meta ?? [];
+    if (!empty($meta['courier_label'])) {
+        $shippingCourierLabel = $meta['courier_label'];
+    } elseif (!empty($meta['partner_name'])) {
+        $shippingCourierLabel = preg_replace('/\s*\([^)]*\)\s*$/', '', $meta['partner_name']) ?: $meta['partner_name'];
+    } else {
+        $shippingCourierLabel = $order->shipping_method ?: null;
+    }
 @endphp
 
 <x-admin-layout>
@@ -58,7 +71,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                        <span>{{ $order->shipping_method ?? '—' }}</span>
+                        <span>Shipping @if ($shippingCourierLabel)<span class="text-gray-500">({{ $shippingCourierLabel }})</span>@endif</span>
                     </div>
                     @if ($order->payment_reference)
                         <div class="flex items-center gap-2">
@@ -200,9 +213,9 @@
                                 <span class="text-gray-500">Subtotal</span>
                                 <span class="text-gray-700">{{ $currency }}{{ number_format($order->subtotal, 2) }}</span>
                             </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-500">Shipping</span>
-                                <span class="text-gray-700">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
+                            <div class="flex justify-between text-sm gap-3">
+                                <span class="text-gray-500 truncate">Shipping @if ($shippingCourierLabel)<span class="text-gray-400">({{ $shippingCourierLabel }})</span>@endif</span>
+                                <span class="text-gray-700 whitespace-nowrap">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
                             </div>
                             @if ($order->coupon_code)
                             <div class="flex justify-between text-sm">

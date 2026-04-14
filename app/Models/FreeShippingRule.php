@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class FreeShippingRule extends Model
 {
     protected $fillable = [
-        'name', 'min_order_total', 'min_quantity',
+        'name', 'checkout_name', 'min_order_total', 'min_quantity',
         'brand_ids', 'category_ids', 'customer_group_ids', 'shipping_zone_ids',
         'exclude_brand_ids', 'exclude_category_ids', 'exclude_customer_group_ids',
         'apply_whole_cart', 'show_badge', 'sort_order', 'is_active',

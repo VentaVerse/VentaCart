@@ -32,10 +32,16 @@
             <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">General</h3>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Rule Name <span class="text-xs font-normal text-gray-400">(admin reference)</span></label>
                     <input type="text" name="name" value="{{ old('name', $rule?->name) }}" required
                         class="w-full rounded-lg border-gray-300 text-sm" placeholder="e.g. Free Shipping over ₱5,000">
                     @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Checkout Name <span class="text-xs font-normal text-gray-400">(shown to customer; falls back to Rule Name)</span></label>
+                    <input type="text" name="checkout_name" value="{{ old('checkout_name', $rule?->checkout_name) }}"
+                        class="w-full rounded-lg border-gray-300 text-sm" placeholder="e.g. Free Shipping">
+                    @error('checkout_name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                 </div>
                 <div class="grid grid-cols-3 gap-4">
                     <div>
