@@ -177,7 +177,7 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
-        $order->load(['customer', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
+        $order->load(['customer.customerGroup', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
         $order->load('shipment.events');
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
@@ -185,6 +185,7 @@ class OrderController extends Controller
         $dphEnabled = \App\Services\DeliveryPhService::isEnabled();
 
         $customerGroupId = $order->customer?->customer_group_id;
+        $customerGroupName = $order->customer?->customerGroup?->name;
 
         $now = now();
         $existingItems = $order->products->map(function ($item) use ($customerGroupId, $now) {
@@ -247,7 +248,7 @@ class OrderController extends Controller
             ];
         })->toArray();
 
-        return view('admin.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'dphEnabled', 'customerGroupId'));
+        return view('admin.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'dphEnabled', 'customerGroupId', 'customerGroupName'));
     }
 
     public function update(Request $request, Order $order)
@@ -556,7 +557,7 @@ class OrderController extends Controller
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
             })
-            ->with('addresses')
+            ->with(['addresses', 'customerGroup'])
             ->limit(10)
             ->get()
             ->map(function ($c) {
@@ -569,6 +570,7 @@ class OrderController extends Controller
                     'first_name' => $c->first_name,
                     'last_name' => $c->last_name,
                     'customer_group_id' => $c->customer_group_id,
+                    'customer_group_name' => $c->customerGroup?->name,
                     'address' => $defaultAddr ? [
                         'first_name' => $defaultAddr->first_name,
                         'last_name' => $defaultAddr->last_name,

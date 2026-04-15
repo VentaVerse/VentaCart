@@ -58,9 +58,14 @@
                                         class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                     <div x-show="customerDropdownOpen && customerResults.length > 0" x-cloak class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                         <template x-for="c in customerResults" :key="c.id">
-                                            <button type="button" @click="selectCustomer(c)" class="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors">
-                                                <span class="font-medium" x-text="c.name"></span>
-                                                <span class="text-gray-400 ml-1" x-text="c.email"></span>
+                                            <button type="button" @click="selectCustomer(c)" class="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between gap-2">
+                                                <span class="min-w-0 truncate">
+                                                    <span class="font-medium" x-text="c.name"></span>
+                                                    <span class="text-gray-400 ml-1" x-text="c.email"></span>
+                                                </span>
+                                                <span x-show="c.customer_group_name"
+                                                      x-text="c.customer_group_name"
+                                                      class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200"></span>
                                             </button>
                                         </template>
                                     </div>
@@ -69,10 +74,13 @@
 
                             {{-- Selected Customer or New Customer Fields --}}
                             <div x-show="customerId || isNewCustomer" class="grid grid-cols-2 gap-3">
-                                <div x-show="customerId" class="col-span-2 flex items-center justify-between bg-indigo-50 rounded-lg px-3 py-2 mb-1">
-                                    <div class="flex items-center gap-2">
+                                <div x-show="customerId" class="col-span-2 flex items-center justify-between bg-indigo-50 rounded-lg px-3 py-2 mb-1 gap-2">
+                                    <div class="flex items-center gap-2 min-w-0 flex-1">
                                         <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                        <span class="text-sm text-indigo-700 font-medium" x-text="customerFirstName + ' ' + customerLastName + ' (' + customerEmail + ')'"></span>
+                                        <span class="text-sm text-indigo-700 font-medium truncate" x-text="customerFirstName + ' ' + customerLastName + ' (' + customerEmail + ')'"></span>
+                                        <span x-show="customerGroupName"
+                                              x-text="customerGroupName"
+                                              class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide bg-white text-indigo-700 ring-1 ring-inset ring-indigo-200"></span>
                                     </div>
                                     <button type="button" @click="clearCustomer()" class="text-xs text-red-500 hover:text-red-700 font-medium shrink-0">Change</button>
                                 </div>
@@ -736,6 +744,7 @@
                 productResults: [],
                 productDropdownOpen: false,
                 customerGroupId: {{ json_encode($customerGroupId ?? null) }},
+                customerGroupName: @js($customerGroupName ?? null),
 
                 // Coupon
                 couponCode: '{{ old('coupon_code', $order?->coupon_code ?? '') }}',
@@ -771,6 +780,7 @@
                     this.customerSearch = '';
                     this.customerAddresses = [];
                     this.customerGroupId = null;
+                    this.customerGroupName = null;
                     this.isNewCustomer = false;
                     this.items = [];
                     this.availableShippingMethods = [];
@@ -792,6 +802,7 @@
                     this.customerDropdownOpen = false;
                     this.customerAddresses = c.addresses || [];
                     this.customerGroupId = c.customer_group_id || null;
+                    this.customerGroupName = c.customer_group_name || null;
                     this.isNewCustomer = false;
 
                 },
