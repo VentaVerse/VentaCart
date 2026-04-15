@@ -730,6 +730,10 @@
                 availablePaymentMethods: [],
                 loadingShipping: false,
                 loadingPayments: false,
+                // Initial saved values — re-asserted after async lists load so the
+                // select doesn't get clobbered by x-model syncing "" from an empty option.
+                initialShippingMethod: @js(old('shipping_method', $order?->shipping_method ?? '')),
+                initialPaymentMethod: @js(old('payment_method', $order?->payment_method ?? '')),
 
                 // Customer addresses (for picker)
                 customerAddresses: [],
@@ -1017,6 +1021,13 @@
                         });
                         const data = await res.json();
                         this.availableShippingMethods = data.methods || [];
+                        if (this.initialShippingMethod) {
+                            const match = this.availableShippingMethods.find(sm => sm.name === this.initialShippingMethod);
+                            if (match) {
+                                this.shippingMethod = match.name;
+                            }
+                            this.initialShippingMethod = '';
+                        }
                     } catch (e) {
                         console.error('Failed to fetch shipping methods', e);
                         this.availableShippingMethods = [];
@@ -1052,6 +1063,13 @@
                         });
                         const data = await res.json();
                         this.availablePaymentMethods = data.methods || [];
+                        if (this.initialPaymentMethod) {
+                            const match = this.availablePaymentMethods.find(pm => pm.key === this.initialPaymentMethod);
+                            if (match) {
+                                this.paymentMethod = match.key;
+                            }
+                            this.initialPaymentMethod = '';
+                        }
                     } catch (e) {
                         console.error('Failed to fetch payment methods', e);
                         this.availablePaymentMethods = [];
