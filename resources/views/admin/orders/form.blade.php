@@ -721,17 +721,16 @@
                     phone: '{{ old('billing_phone', $order?->billing_phone ?? '') }}',
                 },
 
-                // Payment & shipping method
-                paymentMethod: @js(old('payment_method', $order?->payment_method ?? '')),
+                // Payment & shipping method — start empty so the select shows "Select..."
+                // while options load. After fetch, we set these to the saved values.
+                paymentMethod: '',
                 paymentMethodCustom: '',
-                shippingMethod: @js(old('shipping_method', $order?->shipping_method ?? '')),
+                shippingMethod: '',
                 shippingMethodCustom: '',
                 availableShippingMethods: [],
                 availablePaymentMethods: [],
                 loadingShipping: false,
                 loadingPayments: false,
-                // Initial saved values — re-asserted after async lists load so the
-                // select doesn't get clobbered by x-model syncing "" from an empty option.
                 initialShippingMethod: @js(old('shipping_method', $order?->shipping_method ?? '')),
                 initialPaymentMethod: @js(old('payment_method', $order?->payment_method ?? '')),
 
@@ -1022,11 +1021,12 @@
                         const data = await res.json();
                         this.availableShippingMethods = data.methods || [];
                         if (this.initialShippingMethod) {
-                            const match = this.availableShippingMethods.find(sm => sm.name === this.initialShippingMethod);
-                            if (match) {
-                                this.shippingMethod = match.name;
-                            }
+                            const saved = this.initialShippingMethod;
                             this.initialShippingMethod = '';
+                            const match = this.availableShippingMethods.find(sm => sm.name === saved);
+                            this.$nextTick(() => {
+                                this.shippingMethod = match ? match.name : saved;
+                            });
                         }
                     } catch (e) {
                         console.error('Failed to fetch shipping methods', e);
@@ -1064,11 +1064,12 @@
                         const data = await res.json();
                         this.availablePaymentMethods = data.methods || [];
                         if (this.initialPaymentMethod) {
-                            const match = this.availablePaymentMethods.find(pm => pm.key === this.initialPaymentMethod);
-                            if (match) {
-                                this.paymentMethod = match.key;
-                            }
+                            const saved = this.initialPaymentMethod;
                             this.initialPaymentMethod = '';
+                            const match = this.availablePaymentMethods.find(pm => pm.key === saved);
+                            this.$nextTick(() => {
+                                this.paymentMethod = match ? match.key : saved;
+                            });
                         }
                     } catch (e) {
                         console.error('Failed to fetch payment methods', e);
