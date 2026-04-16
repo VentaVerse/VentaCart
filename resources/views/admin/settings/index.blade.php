@@ -1,23 +1,56 @@
 <x-admin-layout>
     <x-slot name="header">Settings</x-slot>
 
-    <div x-data="{ activeTab: '{{ request('tab', session('tab', 'general')) }}' }">
+    @php
+        $tabs = [
+            ['id' => 'general', 'label' => 'General'],
+            ['id' => 'currency', 'label' => 'Currency'],
+            ['id' => 'checkout', 'label' => 'Checkout'],
+            ['id' => 'mail', 'label' => 'Mail'],
+            ['id' => 'api', 'label' => 'API'],
+            ['id' => 'security', 'label' => 'Security'],
+            ['id' => 'automations', 'label' => 'Automations'],
+        ];
+        $validTabIds = array_map(fn ($t) => $t['id'], $tabs);
+        $initialTab = request('tab', session('tab', 'general'));
+        if (!in_array($initialTab, $validTabIds, true)) {
+            $initialTab = 'general';
+        }
+    @endphp
+
+    <div x-data="{
+            activeTab: '{{ $initialTab }}',
+            validTabs: @js($validTabIds),
+            setTab(id) {
+                if (!this.validTabs.includes(id) || this.activeTab === id) return;
+                this.activeTab = id;
+                // Keep URL in sync so refresh / save / deep-linking all land on the same tab.
+                // replaceState (not pushState) — tabs are view state, not history entries.
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', id);
+                window.history.replaceState({ tab: id }, '', url.toString());
+            },
+            init() {
+                // Browser back/forward: if user navigates history, sync activeTab to the URL.
+                window.addEventListener('popstate', () => {
+                    const tab = new URL(window.location.href).searchParams.get('tab');
+                    if (tab && this.validTabs.includes(tab)) {
+                        this.activeTab = tab;
+                    }
+                });
+                // Ensure URL reflects the initial tab on first load (even when landing without ?tab=).
+                if (!new URL(window.location.href).searchParams.has('tab')) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('tab', this.activeTab);
+                    window.history.replaceState({ tab: this.activeTab }, '', url.toString());
+                }
+            }
+        }">
         {{-- Tab Navigation --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <nav class="flex border-b border-gray-200 overflow-x-auto">
-                @php
-                    $tabs = [
-                        ['id' => 'general', 'label' => 'General'],
-                        ['id' => 'currency', 'label' => 'Currency'],
-                        ['id' => 'checkout', 'label' => 'Checkout'],
-                        ['id' => 'mail', 'label' => 'Mail'],
-                        ['id' => 'api', 'label' => 'API'],
-                        ['id' => 'security', 'label' => 'Security'],
-                        ['id' => 'automations', 'label' => 'Automations'],
-                    ];
-                @endphp
                 @foreach ($tabs as $t)
-                    <button type="button" @click="activeTab = '{{ $t['id'] }}'"
+                    <button type="button" @click="setTab('{{ $t['id'] }}')"
                         :class="activeTab === '{{ $t['id'] }}' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                         class="whitespace-nowrap px-5 py-3 border-b-2 text-sm font-medium transition-colors">{{ $t['label'] }}</button>
                 @endforeach
