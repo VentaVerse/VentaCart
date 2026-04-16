@@ -36,28 +36,19 @@
             </div>
         </form>
 
-        {{-- Cron Job --}}
+        {{-- Scheduling --}}
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-sm font-medium text-gray-900 mb-1">Cron Job</h3>
-            <p class="text-sm text-gray-500 mb-4">Add this command to your server's crontab to send abandoned cart notifications. Adjust the schedule to your preference.</p>
+            <h3 class="text-sm font-medium text-gray-900 mb-1">Scheduling</h3>
+            <p class="text-sm text-gray-500 mb-3">Abandoned cart notifications run automatically via the Venta scheduler. Change how often they fire — or run them manually — in the Automations panel.</p>
 
-            <div class="flex items-center gap-2">
-                <code class="flex-1 block px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 text-sm font-mono text-gray-700" id="cron-cmd">/usr/bin/php {{ base_path() }}/artisan cart:notify >> /dev/null 2>&1</code>
-                <button type="button" onclick="copyCron('cron-cmd')" class="px-3 py-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">Copy</button>
+            <a href="{{ route('admin.settings.index', ['tab' => 'automations']) }}" class="inline-flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Manage in Settings → Automations
+            </a>
+
+            <div class="mt-4 p-3 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="bg-amber-100 px-1 rounded">cart:notify</code> directly, remove it — the command now fires through the universal scheduler and the old line will cause duplicate runs.
             </div>
-
-            <p class="text-xs text-gray-400 mt-4">Add a cron schedule of your choice (e.g. <code class="bg-gray-100 px-1 rounded">0 */8 * * *</code> for every 8 hours). The command only runs when the module is enabled and at least one active rule exists.</p>
         </div>
     </div>
-
-    <script>
-        function copyCron(id) {
-            var el = document.getElementById(id);
-            navigator.clipboard.writeText(el.textContent.trim()).then(function() {
-                var btn = el.nextElementSibling;
-                btn.textContent = 'Copied!';
-                setTimeout(function() { btn.textContent = 'Copy'; }, 1500);
-            });
-        }
-    </script>
 </x-admin-layout>

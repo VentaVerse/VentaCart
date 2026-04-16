@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ApiSyncLogController;
+use App\Http\Controllers\Admin\AutomationController;
 use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\DphController;
 use App\Http\Controllers\Admin\EmailTemplateController;
@@ -269,6 +270,12 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::post('/settings/generate-dph-secret', [SettingController::class, 'generateDphWebhookSecret'])->name('settings.generate-dph-secret');
     Route::post('/settings/generate-erp-token', [SettingController::class, 'generateErpToken'])->name('settings.generate-erp-token');
     Route::post('/settings/upload-gsc-credentials', [SettingController::class, 'uploadGscCredentials'])->name('settings.upload-gsc-credentials');
+
+    // Automations (Settings > Automations tab — DB-managed scheduled tasks)
+    Route::get('/automations', [AutomationController::class, 'index'])->name('automations.index');
+    Route::patch('/automations/{automation}', [AutomationController::class, 'update'])->name('automations.update');
+    Route::post('/automations/{automation}/toggle', [AutomationController::class, 'toggle'])->name('automations.toggle');
+    Route::post('/automations/{automation}/run', [AutomationController::class, 'runNow'])->name('automations.runNow');
 
     // API Sync Logs
     Route::get('/api-sync-logs', [ApiSyncLogController::class, 'index'])->name('api-sync-logs.index');

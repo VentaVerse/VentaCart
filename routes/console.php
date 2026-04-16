@@ -1,28 +1,49 @@
 <?php
 
+use App\Models\Automation;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Update currency exchange rates daily at 4pm (ECB publishes ~2:15pm CET)
-Schedule::command('currency:update')->dailyAt('16:00');
+// ==========================================================================
+// Default Venta automations — managed in admin UI (Settings > Automations).
+// Each enabled row registers its command with the scheduler using the
+// cron_expression stored in DB. Admins edit schedule and enabled flag
+// through the admin UI; routes/console.php stays untouched.
+//
+// The try/catch is deliberate: on a fresh install, Artisan boots this file
+// before `php artisan migrate` creates the automations table. Without the
+// guard, every artisan command would crash. When the table is missing we
+// silently register nothing and let the admin finish installation.
+// ==========================================================================
+try {
+    Automation::enabled()->get()->each(function (Automation $automation) {
+        $outputLog = storage_path("logs/automations/{$automation->key}.log");
+        @mkdir(dirname($outputLog), 0775, true);
 
-// Send back-in-stock email notifications every 15 minutes
-Schedule::command('stock:notify')->everyFifteenMinutes();
+        Schedule::command($automation->command)
+            ->cron($automation->cron_expression)
+            ->withoutOverlapping()
+            ->sendOutputTo($outputLog)
+            ->onSuccess(function () use ($automation, $outputLog) {
+                $automation->recordRun('success', @file_get_contents($outputLog) ?: null);
+            })
+            ->onFailure(function () use ($automation, $outputLog) {
+                $automation->recordRun('failed', @file_get_contents($outputLog) ?: null);
+            });
+    });
+} catch (\Throwable $e) {
+    Log::error('Automation scheduler registration failed', ['error' => $e->getMessage()]);
+}
 
-// Send review request emails daily at 10am
-Schedule::command('review:send')->dailyAt('10:00');
-
-
-// Generate sitemap daily at 4am
-Schedule::command('sitemap:generate')->dailyAt('04:00');
-
-// Check low stock products and send admin alerts daily at 8am
-Schedule::command('stock:check-low')->dailyAt('08:00');
-
-// Poll DPH for shipment status updates every minute
-Schedule::command('dph:fetch-statuses')->everyMinute();
+// ==========================================================================
+// Site-specific module registrations (NOT default Venta features).
+// DPH shipment polling runs as its own raw crontab line — see INSTALL.md.
+// Keeping it out of Schedule::command means a Venta install without the DPH
+// module has zero dead scheduler entries.
+// ==========================================================================

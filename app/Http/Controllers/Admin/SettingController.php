@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Automation;
 use App\Models\Currency;
 use App\Models\Setting;
 use App\Services\ThemeService;
@@ -51,7 +52,9 @@ class SettingController extends Controller
             }
         }
 
-        return view('admin.settings.index', compact('settings', 'currencies', 'maskedKeys'));
+        $automations = Automation::orderBy('id')->get();
+
+        return view('admin.settings.index', compact('settings', 'currencies', 'maskedKeys', 'automations'));
     }
 
     private const RESERVED_PREFIXES = [

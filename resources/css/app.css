@@ -4,6 +4,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Alpine.js x-cloak: hide cloaked elements until Alpine hydrates,
+   preventing the brief flash of modal/toast/tab content on page load. */
+[x-cloak] { display: none !important; }
+
 @layer components {
     .dph-response-output {
         background-color: #111827;

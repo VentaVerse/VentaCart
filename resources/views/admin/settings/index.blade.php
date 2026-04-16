@@ -13,7 +13,7 @@
                         ['id' => 'mail', 'label' => 'Mail'],
                         ['id' => 'api', 'label' => 'API'],
                         ['id' => 'security', 'label' => 'Security'],
-                        ['id' => 'cron', 'label' => 'Cron Jobs'],
+                        ['id' => 'automations', 'label' => 'Automations'],
                     ];
                 @endphp
                 @foreach ($tabs as $t)
@@ -517,50 +517,9 @@
                 </div>
             </div>
 
-            {{-- ==================== CRON JOBS ==================== --}}
-            <div x-show="activeTab === 'cron'" x-cloak class="p-6">
-                <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Scheduled Tasks</h3>
-                <p class="text-xs text-gray-500 mb-4">These tasks run automatically via Laravel's scheduler. Add this to your server's crontab:<br>
-                    <code class="inline-block mt-1 bg-gray-100 px-2 py-1 rounded text-xs font-mono text-gray-700">* * * * * cd {{ base_path() }} && php artisan schedule:run >> /dev/null 2>&1</code>
-                </p>
-                <div class="overflow-hidden rounded-lg border border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Task</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Command</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Schedule</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @php
-                                $cronJobs = [
-                                    ['name' => 'Currency Exchange Rates', 'command' => 'currency:update', 'schedule' => 'Daily at 4:00 PM', 'enabled' => true],
-                                    ['name' => 'Back-in-Stock Notifications', 'command' => 'stock:notify', 'schedule' => 'Every 15 minutes', 'enabled' => true],
-                                    ['name' => 'Review Request Emails', 'command' => 'review:send', 'schedule' => 'Daily at 10:00 AM', 'enabled' => ($settings['reviews']['enabled'] ?? '0') === '1'],
-                                    ['name' => 'SEO Suggestions (Claude AI)', 'command' => 'seo:generate', 'schedule' => 'Monthly on 1st at 3:00 AM', 'enabled' => !empty($settings['seo']['claude_api_key'] ?? '')],
-                                    ['name' => 'Sitemap Generation', 'command' => 'sitemap:generate', 'schedule' => 'Daily at 4:00 AM', 'enabled' => true],
-                                    ['name' => 'Low Stock Alerts', 'command' => 'stock:check-low', 'schedule' => 'Daily at 8:00 AM', 'enabled' => ($settings['stock']['low_stock_alert_enabled'] ?? '0') === '1'],
-                                ];
-                            @endphp
-                            @foreach ($cronJobs as $job)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 text-sm text-gray-900">{{ $job['name'] }}</td>
-                                    <td class="px-4 py-3"><code class="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">{{ $job['command'] }}</code></td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $job['schedule'] }}</td>
-                                    <td class="px-4 py-3">
-                                        @if ($job['enabled'])
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">Active</span>
-                                        @else
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Disabled</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+            {{-- ==================== AUTOMATIONS ==================== --}}
+            <div x-show="activeTab === 'automations'" x-cloak>
+                @include('admin.settings._automations_tab', ['automations' => $automations])
             </div>
 
         </div>

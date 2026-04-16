@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             WorldGeographicSeeder::class,
             ThemeSeeder::class,
             EmailTemplateSeeder::class,
+            AutomationSeeder::class,
         ]);
 
         // Run seeders registered by extensions (e.g. PH Address)

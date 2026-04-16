@@ -229,19 +229,19 @@
         <input type="file" name="gsc_credentials" accept=".json" onchange="this.form.submit()">
     </form>
 
-    {{-- ==================== Cron Job ==================== --}}
+    {{-- ==================== Scheduling ==================== --}}
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Cron Job</h3>
-        <div class="max-w-2xl" x-data="{ copied: false }">
-            <p class="text-xs text-gray-500 mb-3">Add this command to your hosting panel's cron scheduler. The rules above control what gets processed each run.</p>
-            <div class="flex items-center gap-2">
-                <code class="block flex-1 bg-gray-100 rounded-md px-4 py-3 text-sm text-gray-800 font-mono select-all border border-gray-200">/usr/bin/php {{ base_path() }}/artisan seo:generate >> /dev/null 2>&1</code>
-                <button type="button"
-                    @click="navigator.clipboard.writeText('/usr/bin/php {{ base_path() }}/artisan seo:generate >> /dev/null 2>&1'); copied = true; setTimeout(() => copied = false, 2000)"
-                    class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 border border-gray-300 transition-colors"
-                    x-text="copied ? 'Copied!' : 'Copy'">
-                    Copy
-                </button>
+        <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Scheduling</h3>
+        <div class="max-w-2xl">
+            <p class="text-xs text-gray-500 mb-3">SEO suggestions run automatically via the Venta scheduler. Change the cadence or trigger a run manually from the Automations panel.</p>
+
+            <a href="{{ route('admin.settings.index', ['tab' => 'automations']) }}" class="inline-flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Manage in Settings → Automations
+            </a>
+
+            <div class="mt-4 p-3 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="bg-amber-100 px-1 rounded">seo:generate</code> directly, remove it — the command now fires through the universal scheduler and the old line will cause duplicate runs.
             </div>
         </div>
     </div>
