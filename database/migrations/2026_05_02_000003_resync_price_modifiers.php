@@ -31,12 +31,16 @@ return new class extends Migration {
             return;
         }
 
-        DB::statement('
-            UPDATE product_variants pv
-            JOIN products p ON pv.product_id = p.id
+        // Raw UPDATE must apply the configured table prefix manually — the
+        // query builder and Schema facade do this automatically, but
+        // DB::statement() goes straight to MySQL with the literal name.
+        $prefix = DB::getTablePrefix();
+        DB::statement("
+            UPDATE {$prefix}product_variants pv
+            JOIN {$prefix}products p ON pv.product_id = p.id
             SET pv.price_modifier = pv.price - p.price
             WHERE pv.price IS NOT NULL AND p.price IS NOT NULL
-        ');
+        ");
 
         $total = DB::table('product_variants')->count();
         $nonzero = DB::table('product_variants')->where('price_modifier', '!=', 0)->count();

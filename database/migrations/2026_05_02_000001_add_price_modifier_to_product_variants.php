@@ -23,15 +23,25 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::table('product_variants', function (Blueprint $table) {
-            $table->decimal('price_modifier', 12, 2)->default(0)->after('price');
-        });
+        // Idempotent column add — survives a partial re-run where MariaDB
+        // auto-committed the DDL on the first attempt but the migration row
+        // never made it into the migrations table because the backfill below
+        // crashed.
+        if (! Schema::hasColumn('product_variants', 'price_modifier')) {
+            Schema::table('product_variants', function (Blueprint $table) {
+                $table->decimal('price_modifier', 12, 2)->default(0)->after('price');
+            });
+        }
 
-        DB::statement('
-            UPDATE product_variants pv
-            JOIN products p ON pv.product_id = p.id
+        // Raw UPDATE must apply the configured table prefix manually — the
+        // query builder and Schema facade do this automatically, but
+        // DB::statement() goes straight to MySQL with the literal name.
+        $prefix = DB::getTablePrefix();
+        DB::statement("
+            UPDATE {$prefix}product_variants pv
+            JOIN {$prefix}products p ON pv.product_id = p.id
             SET pv.price_modifier = pv.price - p.price
-        ');
+        ");
     }
 
     public function down(): void
