@@ -73,7 +73,7 @@ class ErpProductController extends Controller
     public function show(Request $request, string $sku): JsonResponse
     {
         $product = Product::where('sku', $sku)
-            ->with(['brand:id,name,slug', 'categories:id,name,slug', 'images', 'variants.values', 'variants.groupPrices', 'variantTypes.values'])
+            ->with(['brand:id,name,slug', 'categories:id,name,slug', 'images', 'variants.values', 'variantTypes.values'])
             ->first();
 
         if (!$product) {
@@ -121,12 +121,6 @@ class ErpProductController extends Controller
                     'is_active' => $variant->is_active,
                     'option_values' => $variant->values->map(function ($val) {
                         return ['id' => $val->id, 'value' => $val->value];
-                    }),
-                    'group_prices' => $variant->groupPrices->map(function ($gp) {
-                        return [
-                            'customer_group_id' => $gp->customer_group_id,
-                            'price' => $gp->price,
-                        ];
                     }),
                 ];
             }),
@@ -380,7 +374,19 @@ class ErpProductController extends Controller
                     $product->update($fillable);
                 }
             } else {
+                // Variants stay decoupled from a base-price-only update: their
+                // absolute prices don't move, but their modifier deltas need to
+                // refresh against the new base so the admin "+/-" widget reads
+                // truthful values.
+                $basePriceChanged = isset($fillable['price'])
+                    && (float) $fillable['price'] !== (float) $product->price;
                 $product->update($fillable);
+                if ($basePriceChanged && $product->has_variants) {
+                    foreach ($product->variants as $v) {
+                        $v->price_modifier = round((float) $v->price - (float) $product->price, 2);
+                        $v->save();
+                    }
+                }
             }
 
             // Resolve category_names to category_ids if provided

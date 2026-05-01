@@ -20,7 +20,7 @@ class ErpVariantController extends Controller
     public function index(Request $request, string $sku): JsonResponse
     {
         $product = Product::where('sku', $sku)
-            ->with(['variantTypes.values', 'variants.values', 'variants.groupPrices'])
+            ->with(['variantTypes.values', 'variants.values'])
             ->first();
 
         if (!$product) {
@@ -54,7 +54,7 @@ class ErpVariantController extends Controller
     public function show(Request $request, string $sku): JsonResponse
     {
         $variant = ProductVariant::where('sku', $sku)
-            ->with(['product:id,name,sku,slug', 'values', 'groupPrices'])
+            ->with(['product:id,name,sku,slug', 'values'])
             ->first();
 
         if (!$variant) {
@@ -90,9 +90,6 @@ class ErpVariantController extends Controller
             'cost' => 'nullable|numeric|min:0',
             'weight' => 'nullable|numeric|min:0',
             'status' => 'sometimes|boolean',
-            'group_prices' => 'nullable|array',
-            'group_prices.*.customer_group_id' => 'required|integer|exists:customer_groups,id',
-            'group_prices.*.price' => 'required|numeric|min:0',
         ]);
 
         $fillable = [];
@@ -104,24 +101,13 @@ class ErpVariantController extends Controller
 
         $variant->update($fillable);
 
-        // Sync group prices if provided
-        if ($request->has('group_prices')) {
-            $variant->groupPrices()->delete();
-            foreach ($validated['group_prices'] as $gp) {
-                $variant->groupPrices()->create([
-                    'customer_group_id' => $gp['customer_group_id'],
-                    'price' => $gp['price'],
-                ]);
-            }
-        }
-
         // Sync parent product quantity
         $product = $variant->product;
         if ($product->has_variants) {
             $product->update(['quantity' => $product->variants()->sum('quantity')]);
         }
 
-        $variant->load(['product:id,name,sku', 'values', 'groupPrices']);
+        $variant->load(['product:id,name,sku', 'values']);
 
         $data = $this->formatVariant($variant);
         $data['product_sku'] = $variant->product->sku;
@@ -156,9 +142,6 @@ class ErpVariantController extends Controller
             'variants.*.status' => 'nullable|boolean',
             'variants.*.value_keys' => 'required|array',
             'variants.*.value_keys.*' => 'required|string',
-            'variants.*.group_prices' => 'nullable|array',
-            'variants.*.group_prices.*.customer_group_id' => 'required|integer|exists:customer_groups,id',
-            'variants.*.group_prices.*.price' => 'required|numeric|min:0',
         ]);
 
         // Delete existing variant types and variants
@@ -203,16 +186,6 @@ class ErpVariantController extends Controller
             }
             $variant->values()->attach($valueIds);
 
-            // Group prices
-            if (!empty($variantData['group_prices'])) {
-                foreach ($variantData['group_prices'] as $gp) {
-                    $variant->groupPrices()->create([
-                        'customer_group_id' => $gp['customer_group_id'],
-                        'price' => $gp['price'],
-                    ]);
-                }
-            }
-
             $created[] = [
                 'id' => $variant->id,
                 'sku' => $variant->sku,
@@ -248,12 +221,6 @@ class ErpVariantController extends Controller
             'is_active' => $variant->is_active,
             'option_values' => $variant->values->map(function ($val) {
                 return ['id' => $val->id, 'value' => $val->value];
-            }),
-            'group_prices' => $variant->groupPrices->map(function ($gp) {
-                return [
-                    'customer_group_id' => $gp->customer_group_id,
-                    'price' => $gp->price,
-                ];
             }),
             'updated_at' => $variant->updated_at?->toIso8601String(),
         ];

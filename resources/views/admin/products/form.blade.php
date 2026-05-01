@@ -118,7 +118,7 @@
                     <p class="text-xs text-gray-400 mb-4" x-show="!hasVariants">
                         The price customers see for this product. Sales applied here override it during the active window.
                     </p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price (₱)</label>
                             <input type="number" name="price" id="price" step="0.01" min="0" required
@@ -131,7 +131,25 @@
                             <input type="number" name="cost" id="cost" step="0.01" min="0"
                                 value="{{ old('cost', $product?->cost ?? '0.00') }}"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <p class="mt-1 text-xs text-gray-400">Internal cost for margin reporting. Not shown on storefront.</p>
+                        </div>
+                        <div>
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                                Quantity
+                                <span x-show="hasVariants && totalVariantQty === 0" class="text-red-500 font-normal">(Out of Stock)</span>
+                            </label>
+                            <input type="number" name="quantity" id="quantity" min="0"
+                                :value="hasVariants ? totalVariantQty : '{{ old('quantity', $product?->quantity ?? 0) }}'"
+                                :readonly="hasVariants"
+                                :class="hasVariants ? 'bg-gray-100 text-gray-500' : ''"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <p x-show="hasVariants" class="mt-1 text-xs text-gray-400">Sum of variant quantities.</p>
+                            @error('quantity') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="minimum_quantity" class="block text-sm font-medium text-gray-700 mb-1">Min order qty</label>
+                            <input type="number" name="minimum_quantity" id="minimum_quantity" min="1"
+                                value="{{ old('minimum_quantity', $product?->minimum_quantity ?? 1) }}"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                     </div>
                 </div>
@@ -200,40 +218,6 @@
 
             {{-- ===================== PRICING ===================== --}}
             <div x-show="activeTab === 'pricing'" class="p-6 space-y-6">
-                {{-- Quick reference back to General-tab base + variants --}}
-                <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex items-start gap-3">
-                    <svg class="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
-                    </svg>
-                    <div class="flex-1 text-sm">
-                        <p class="text-slate-700"><span class="font-medium">Base price</span> lives on the <button type="button" @click="activeTab = 'general'" class="text-indigo-600 hover:text-indigo-800 underline">General tab</button>.
-                        <span x-show="hasVariants">Per-variant modifiers live on the <button type="button" @click="activeTab = 'variants'" class="text-indigo-600 hover:text-indigo-800 underline">Variants tab</button>.</span></p>
-                        <p class="text-xs text-slate-500 mt-0.5">Specials below apply to the base price; variant prices ripple via their modifiers.</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
-                            Quantity
-                            <span x-show="hasVariants && totalVariantQty === 0" class="text-red-500 font-normal">(Out of Stock)</span>
-                        </label>
-                        <input type="number" name="quantity" id="quantity" min="0"
-                            :value="hasVariants ? totalVariantQty : '{{ old('quantity', $product?->quantity ?? 0) }}'"
-                            :readonly="hasVariants"
-                            :class="hasVariants ? 'bg-gray-100 text-gray-500' : ''"
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <p x-show="hasVariants" class="mt-1 text-xs text-gray-400">Computed from variant quantities</p>
-                        @error('quantity') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="minimum_quantity" class="block text-sm font-medium text-gray-700 mb-1">Min Order Qty</label>
-                        <input type="number" name="minimum_quantity" id="minimum_quantity" min="1" value="{{ old('minimum_quantity', $product?->minimum_quantity ?? 1) }}"
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                </div>
-
                 {{-- Special Pricing --}}
                 <div class="border-t border-gray-200 pt-6">
                     <div class="flex items-center justify-between mb-4">
@@ -504,10 +488,10 @@
                         {{-- Header --}}
                         <div class="flex bg-gray-50 border-b border-gray-200">
                             <div class="w-32 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Variant</div>
-                            <div class="flex-1 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">SKU</div>
-                            <div class="w-56 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Price modifier (₱)</div>
-                            <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Stock</div>
-                            <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Weight</div>
+                            <div class="flex-1 min-w-[14rem] px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">SKU</div>
+                            <div class="w-72 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Price modifier (₱)</div>
+                            <div class="w-24 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Stock</div>
+                            <div class="w-24 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Weight</div>
                             <div class="w-10 shrink-0 px-2 py-2.5 text-xs font-medium text-gray-500 uppercase text-center">On</div>
                         </div>
 
@@ -522,32 +506,32 @@
                                             <input type="hidden" :name="'variants['+vIndex+'][value_keys]['+kIndex+']'" :value="key">
                                         </template>
                                     </div>
-                                    <div class="flex-1 px-2 py-1.5">
+                                    <div class="flex-1 min-w-[14rem] px-2 py-1.5">
                                         <input type="text" x-model="variant.sku" :name="'variants['+vIndex+'][sku]'"
                                             :class="isSkuDuplicate(variant.sku, vIndex) ? 'ring-1 ring-red-500 border-red-400' : 'border-gray-300'"
                                             class="w-full rounded-md text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="SKU">
                                     </div>
-                                    <div class="w-56 shrink-0 px-2 py-1.5">
-                                        <div class="flex items-center gap-1">
+                                    <div class="w-72 shrink-0 px-2 py-1.5">
+                                        <div class="flex items-center gap-2">
                                             <select x-model="variant.modifier_sign" :name="'variants['+vIndex+'][modifier_sign]'"
-                                                class="w-12 rounded-md border-gray-300 text-sm py-1 px-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                class="w-14 shrink-0 rounded-md border-gray-300 text-sm py-1 px-1 focus:border-indigo-500 focus:ring-indigo-500">
                                                 <option value="+">+</option>
                                                 <option value="-">−</option>
                                             </select>
                                             <input type="number" x-model="variant.modifier_amount" :name="'variants['+vIndex+'][modifier_amount]'" step="0.01" min="0"
                                                 placeholder="0.00"
-                                                class="w-20 rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                            <span class="text-xs text-gray-400">=</span>
-                                            <span class="text-sm font-medium text-gray-700 tabular-nums" x-text="'₱' + variantTotalPrice(variant).toFixed(2)"></span>
+                                                class="flex-1 min-w-0 rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <span class="text-xs text-gray-400 shrink-0">=</span>
+                                            <span class="text-sm font-medium text-gray-700 tabular-nums shrink-0" x-text="'₱' + variantTotalPrice(variant).toFixed(2)"></span>
                                             {{-- Hidden price field — server keeps the absolute value in `price` for API/ERP compat --}}
                                             <input type="hidden" :name="'variants['+vIndex+'][price]'" :value="variantTotalPrice(variant).toFixed(2)">
                                         </div>
                                     </div>
-                                    <div class="w-20 shrink-0 px-2 py-1.5">
+                                    <div class="w-24 shrink-0 px-2 py-1.5">
                                         <input type="number" x-model.number="variant.quantity" :name="'variants['+vIndex+'][quantity]'" min="0"
                                             class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
                                     </div>
-                                    <div class="w-20 shrink-0 px-2 py-1.5">
+                                    <div class="w-24 shrink-0 px-2 py-1.5">
                                         <input type="number" x-model="variant.weight" :name="'variants['+vIndex+'][weight]'" step="0.001" min="0"
                                             class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="kg">
                                     </div>
@@ -883,10 +867,11 @@
                             value_keys: combo.map(c => c.key),
                             sku: existing?.sku || '',
                             price: existing?.price || 0,
+                            modifier_sign: existing?.modifier_sign || '+',
+                            modifier_amount: existing?.modifier_amount ?? '0.00',
                             quantity: existing?.quantity || 0,
                             weight: existing?.weight || '',
                             is_active: existing?.is_active ?? true,
-                            group_prices: existing?.group_prices || {},
                         };
                     });
                 },

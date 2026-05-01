@@ -100,18 +100,8 @@ class CartService
                 ->where('is_active', true)
                 ->firstOrFail();
 
-            $variant->load('values', 'groupPrices');
+            $variant->load('values');
             $price = $variant->price;
-
-            // Check for customer group-specific variant price
-            $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
-            if ($customerGroupId) {
-                $groupPrice = $variant->groupPrices->where('customer_group_id', $customerGroupId)->first();
-                if ($groupPrice) {
-                    $price = (float) $groupPrice->price;
-                }
-            }
-
             $sku = $variant->sku ?: $product->sku;
             $variantLabel = $variant->name;
         }
@@ -232,7 +222,7 @@ class CartService
         }
 
         $items = $cart->items()
-            ->with(['product.images', 'product.specials', 'productVariant.groupPrices'])
+            ->with(['product.images', 'product.specials', 'productVariant'])
             ->get();
 
         $this->refreshPrices($items);
@@ -255,20 +245,9 @@ class CartService
             }
 
             // Start with base product or variant price
-            $basePrice = $product->price;
-            if ($item->productVariant) {
-                $basePrice = $item->productVariant->price;
-
-                // Check variant group price
-                if ($customerGroupId) {
-                    $groupPrice = $item->productVariant->groupPrices
-                        ->where('customer_group_id', $customerGroupId)
-                        ->first();
-                    if ($groupPrice) {
-                        $basePrice = (float) $groupPrice->price;
-                    }
-                }
-            }
+            $basePrice = $item->productVariant
+                ? (float) $item->productVariant->price
+                : (float) $product->price;
 
             $correctPrice = self::resolvePrice($product, $basePrice, $item->quantity, $customerGroupId);
 

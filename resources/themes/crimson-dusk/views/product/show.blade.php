@@ -268,9 +268,25 @@
 
                 {{-- Price --}}
                 <div class="mb-5">
-                    {{-- Dynamic price: unit price × quantity --}}
+                    @if ($activeSpecial)
+                    {{-- Variant + sale: show slashed regular variant price --}}
+                    <div class="flex items-baseline gap-3"
+                         x-show="hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price">
+                        <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
+                            {{ $currencySymbol }}<span x-text="(displayPrice * quantity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                        </span>
+                        <span class="text-lg text-[#7A8299] line-through">
+                            {{ $currencySymbol }}<span x-text="((activeVariant?.regular_price ?? 0) * quantity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                        </span>
+                        <span class="text-xs font-bold text-white px-2 py-0.5 rounded"
+                              style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;"
+                              x-text="'-' + Math.round((1 - activeVariant.price / activeVariant.regular_price) * 100) + '%'"></span>
+                    </div>
+                    @endif
+
+                    {{-- Dynamic price: unit price × quantity (override mode, no sale on variant, or qty>1 stack view) --}}
                     <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;"
-                          :style="quantity > 1 || (hasVariants && activeVariant) ? '' : 'display:none'">
+                          :style="(quantity > 1 || (hasVariants && activeVariant)) @if ($activeSpecial)&& !(hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price)@endif ? '' : 'display:none'">
                         {{ $currencySymbol }}<span x-text="(displayPrice * quantity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
                     </span>
 

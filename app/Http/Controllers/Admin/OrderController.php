@@ -189,17 +189,7 @@ class OrderController extends Controller
             $groupPrice = null;
 
             if ($customerGroupId && $item->product) {
-                // Check variant group prices
-                if ($item->product_variant_id) {
-                    $gp = \App\Models\ProductVariantGroupPrice::where('product_variant_id', $item->product_variant_id)
-                        ->where('customer_group_id', $customerGroupId)
-                        ->value('price');
-                    if ($gp !== null) {
-                        $groupPrice = (float) $gp;
-                    }
-                }
-
-                // Check product_specials (overrides if lower)
+                // Customer-group pricing flows through product_specials
                 $item->product->loadMissing('specials');
                 $bestSpecial = $item->product->specials
                     ->filter(function ($s) use ($now, $customerGroupId) {
@@ -212,10 +202,7 @@ class OrderController extends Controller
                     ->first();
 
                 if ($bestSpecial) {
-                    $specialPrice = (float) $bestSpecial->price;
-                    if ($groupPrice === null || $specialPrice < $groupPrice) {
-                        $groupPrice = $specialPrice;
-                    }
+                    $groupPrice = (float) $bestSpecial->price;
                 }
             }
 
@@ -472,7 +459,7 @@ class OrderController extends Controller
                   ->orWhere('sku', 'like', "%{$search}%");
             })
             ->with(['variants' => function ($q) {
-                $q->where('is_active', true)->with('groupPrices');
+                $q->where('is_active', true);
             }, 'brand', 'specials'])
             ->limit(15)
             ->get();
@@ -487,14 +474,6 @@ class OrderController extends Controller
 
                     // Resolve via CartService (handles specials + date + quantity + group)
                     $resolvedPrice = \App\Services\CartService::resolvePrice($product, $basePrice, 1, $customerGroupId);
-
-                    // Also check variant-specific group price
-                    if ($customerGroupId) {
-                        $gp = $variant->groupPrices->where('customer_group_id', $customerGroupId)->first();
-                        if ($gp && (float) $gp->price < $resolvedPrice) {
-                            $resolvedPrice = (float) $gp->price;
-                        }
-                    }
 
                     // Determine display mode from the matching special
                     $displayMode = $this->resolveDisplayMode($product, $customerGroupId);

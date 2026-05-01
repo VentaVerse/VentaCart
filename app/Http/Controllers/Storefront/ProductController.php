@@ -23,15 +23,23 @@ class ProductController extends Controller
             'tags',
             'specials',
             'variantTypes.values',
-            'variants.groupPrices',
+            'variants',
             'approvedReviews.images',
         ]);
 
         // Increment views
         $product->increment('views');
 
-        // Active special (sale or override pricing)
-        $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+        // Active special (sale or override pricing).
+        // Guests are treated as the default customer group so Default-targeted
+        // specials apply on the storefront (PHP's loose 1 != null is true,
+        // which would otherwise filter them out for guests).
+        $customerGroupId = Auth::guard('customer')->user()?->customer_group_id
+            ?? \Illuminate\Support\Facades\Cache::remember(
+                'default_customer_group_id',
+                3600,
+                fn () => \App\Models\CustomerGroup::where('is_default', true)->value('id')
+            );
 
         $activeSpecial = $product->specials
             ->where('display_mode', 'sale')
@@ -126,26 +134,28 @@ class ProductController extends Controller
                 $valueIds = $variant->values->pluck('id')->sort()->values();
                 $key = $valueIds->implode('_');
 
-                // Determine variant price: group price > special > variant default
-                $variantPrice = $variant->price ?? $product->price;
+                // Variant price = its own absolute (already includes the modifier).
+                $regularVariantPrice = (float) ($variant->price ?? $product->price);
+                $variantPrice = $regularVariantPrice;
 
-                // Check customer group-specific variant price
-                if ($customerGroupId) {
-                    $groupPrice = $variant->groupPrices->where('customer_group_id', $customerGroupId)->first();
-                    if ($groupPrice) {
-                        $variantPrice = (float) $groupPrice->price;
+                // Sale or override at product scope ripples through the variant's modifier:
+                //   effective_variant = special.price + (variant.price − product.price)
+                // So a 720→500 product-level sale on variants priced 720/1000/1280
+                // yields 500/780/1060 — not a flat 500 across all variants.
+                $rippleSpecial = $activeSpecial ?: $overrideSpecial;
+                if ($rippleSpecial) {
+                    $modifier = $regularVariantPrice - (float) $product->price;
+                    $effectiveVariant = (float) $rippleSpecial->price + $modifier;
+                    if ($effectiveVariant >= 0 && $effectiveVariant < $regularVariantPrice) {
+                        $variantPrice = $effectiveVariant;
                     }
-                }
-
-                // Sale special overrides if lower
-                if ($activeSpecial && $activeSpecial->price < $variantPrice) {
-                    $variantPrice = $activeSpecial->price;
                 }
 
                 $variantMatrix[$key] = [
                     'variant_id' => $variant->id,
                     'sku' => $variant->sku,
                     'price' => (float) $variantPrice,
+                    'regular_price' => (float) $regularVariantPrice,
                     'quantity' => $variant->quantity,
                     'label' => $variant->values->pluck('value')->implode(' / '),
                 ];

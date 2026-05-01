@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductVariant extends Model
 {
@@ -25,6 +24,24 @@ class ProductVariant extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        // Keep `price_modifier` in sync with `price` whenever a variant is saved
+        // through the API (or any code path that writes only `price`). The admin
+        // form sets both columns explicitly — when both are dirty we trust the
+        // caller and skip the recompute.
+        static::saving(function (ProductVariant $variant) {
+            if ($variant->isDirty('price') && !$variant->isDirty('price_modifier')) {
+                $product = $variant->relationLoaded('product')
+                    ? $variant->product
+                    : Product::find($variant->product_id);
+                if ($product) {
+                    $variant->price_modifier = round((float) $variant->price - (float) $product->price, 2);
+                }
+            }
+        });
+    }
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
@@ -33,11 +50,6 @@ class ProductVariant extends Model
     public function values(): BelongsToMany
     {
         return $this->belongsToMany(VariantTypeValue::class, 'product_variant_values');
-    }
-
-    public function groupPrices(): HasMany
-    {
-        return $this->hasMany(ProductVariantGroupPrice::class);
     }
 
     // Helper to get a readable name like "Red / Large"

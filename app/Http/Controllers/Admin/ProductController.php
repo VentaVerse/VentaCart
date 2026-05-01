@@ -132,7 +132,7 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        $product->load(['brand', 'categories', 'customerGroups', 'tags', 'specials', 'images', 'variantTypes.values', 'variants.values', 'variants.groupPrices']);
+        $product->load(['brand', 'categories', 'customerGroups', 'tags', 'specials', 'images', 'variantTypes.values', 'variants.values']);
         $categories = Category::where('store_id', $product->store_id)->orderBy('name')->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
         $tags = Tag::orderBy('name')->get();
@@ -157,11 +157,6 @@ class ProductController extends Controller
                 return $valueKeyMap[$val->id] ?? '';
             })->filter()->values()->toArray();
 
-            $groupPrices = [];
-            foreach ($v->groupPrices as $gp) {
-                $groupPrices[$gp->customer_group_id] = (float) $gp->price;
-            }
-
             $modifier = (float) $v->price_modifier;
             return [
                 'sku' => $v->sku,
@@ -173,7 +168,6 @@ class ProductController extends Controller
                 'is_active' => $v->is_active,
                 'label' => $v->name,
                 'value_keys' => $keys,
-                'group_prices' => $groupPrices,
             ];
         })->toArray();
 
@@ -463,16 +457,6 @@ class ProductController extends Controller
                 }
             }
             $variant->values()->attach($valueIds);
-
-            // Save group prices
-            foreach ($variantData['group_prices'] ?? [] as $groupId => $groupPrice) {
-                if ($groupPrice !== null && $groupPrice !== '') {
-                    $variant->groupPrices()->create([
-                        'customer_group_id' => $groupId,
-                        'price' => $groupPrice,
-                    ]);
-                }
-            }
         }
 
         $product->update(['has_variants' => $product->variants()->count() > 0]);
