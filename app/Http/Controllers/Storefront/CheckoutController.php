@@ -64,8 +64,8 @@ class CheckoutController extends Controller
         $couponFreeShipping = false;
         $couponError = null;
 
-        $cart = $this->cartService->getCart();
-        if ($cart->coupon_code) {
+        $cart = $this->cartService->findCart();
+        if ($cart && $cart->coupon_code) {
             $cartItems = $cart->items()->with(['product.categories', 'productVariant'])->get();
             $couponResult = $this->couponService->validate(
                 $cart->coupon_code,
@@ -127,10 +127,10 @@ class CheckoutController extends Controller
     public function placeOrder(Request $request)
     {
         $customer = Auth::guard('customer')->user();
-        $cart = $this->cartService->getCart();
-        $items = $cart->items()->with(['product', 'productVariant'])->get();
+        $cart = $this->cartService->findCart();
+        $items = $cart ? $cart->items()->with(['product', 'productVariant'])->get() : collect();
 
-        if ($items->isEmpty()) {
+        if (!$cart || $items->isEmpty()) {
             return redirect()->route('cart.index')->with('error', 'Your cart is empty.');
         }
 

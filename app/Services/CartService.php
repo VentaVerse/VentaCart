@@ -22,6 +22,37 @@ class CartService
         $this->storeId = (int) config('app.store_id', 1);
     }
 
+    /**
+     * Read-only lookup. Returns null if the visitor has no cart yet.
+     * Use this on read paths (cart page, mini cart, checkout, coupon view) so
+     * crawlers and curl-style requests don't manufacture empty cart rows.
+     */
+    public function findCart(): ?Cart
+    {
+        if ($this->cart) {
+            return $this->cart;
+        }
+
+        $customer = Auth::guard('customer')->user();
+
+        if ($customer) {
+            $this->cart = Cart::where('customer_id', $customer->id)
+                ->where('store_id', $this->storeId)
+                ->first();
+        } else {
+            $this->cart = Cart::where('session_id', session()->getId())
+                ->where('store_id', $this->storeId)
+                ->whereNull('customer_id')
+                ->first();
+        }
+
+        return $this->cart;
+    }
+
+    /**
+     * Get-or-create. Use only on write paths (add to cart, apply coupon
+     * to an existing cart, migrate guest cart on login).
+     */
     public function getCart(): Cart
     {
         if ($this->cart) {
@@ -156,7 +187,11 @@ class CartService
 
     public function update(int $cartItemId, int $quantity): ?CartItem
     {
-        $cart = $this->getCart();
+        $cart = $this->findCart();
+        if (!$cart) {
+            return null;
+        }
+
         $item = $cart->items()->with('product.specials')->findOrFail($cartItemId);
 
         if ($quantity <= 0) {
@@ -164,7 +199,6 @@ class CartService
             return null;
         }
 
-        // Recalculate price based on new quantity
         $basePrice = $item->productVariant?->price ?? $item->product->price;
         $price = self::resolvePrice($item->product, $basePrice, $quantity);
 
@@ -174,19 +208,30 @@ class CartService
 
     public function remove(int $cartItemId): void
     {
-        $cart = $this->getCart();
+        $cart = $this->findCart();
+        if (!$cart) {
+            return;
+        }
         $cart->items()->where('id', $cartItemId)->delete();
     }
 
     public function clear(): void
     {
-        $cart = $this->getCart();
+        $cart = $this->findCart();
+        if (!$cart) {
+            return;
+        }
         $cart->items()->delete();
     }
 
     public function getItems(): Collection
     {
-        $items = $this->getCart()->items()
+        $cart = $this->findCart();
+        if (!$cart) {
+            return new Collection();
+        }
+
+        $items = $cart->items()
             ->with(['product.images', 'product.specials', 'productVariant.groupPrices'])
             ->get();
 

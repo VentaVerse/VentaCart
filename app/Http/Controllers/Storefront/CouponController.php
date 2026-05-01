@@ -23,10 +23,10 @@ class CouponController extends Controller
         ]);
 
         $customer = Auth::guard('customer')->user();
-        $cart = $this->cartService->getCart();
-        $items = $cart->items()->with(['product.categories', 'productVariant'])->get();
+        $cart = $this->cartService->findCart();
+        $items = $cart ? $cart->items()->with(['product.categories', 'productVariant'])->get() : collect();
 
-        if ($items->isEmpty()) {
+        if (!$cart || $items->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Your cart is empty.',
@@ -61,8 +61,10 @@ class CouponController extends Controller
 
     public function remove(Request $request): JsonResponse
     {
-        $cart = $this->cartService->getCart();
-        $this->couponService->remove($cart);
+        $cart = $this->cartService->findCart();
+        if ($cart) {
+            $this->couponService->remove($cart);
+        }
 
         return response()->json([
             'success' => true,

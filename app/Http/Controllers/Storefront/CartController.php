@@ -73,8 +73,8 @@ class CartController extends Controller
             'quantity' => 'required|integer|min:0',
         ]);
 
-        $cart = $this->cartService->getCart();
-        if ($cartItem->cart_id !== $cart->id) {
+        $cart = $this->cartService->findCart();
+        if (!$cart || $cartItem->cart_id !== $cart->id) {
             abort(403);
         }
 
@@ -121,8 +121,8 @@ class CartController extends Controller
 
     public function remove(CartItem $cartItem): JsonResponse
     {
-        $cart = $this->cartService->getCart();
-        if ($cartItem->cart_id !== $cart->id) {
+        $cart = $this->cartService->findCart();
+        if (!$cart || $cartItem->cart_id !== $cart->id) {
             abort(403);
         }
 

@@ -92,6 +92,15 @@ class AutomationSeeder extends Seeder
                 'schedule_params' => ['minute' => 0],
                 'enabled' => true,
             ],
+            [
+                'key' => 'cart_prune_empty',
+                'name' => 'Prune Empty Guest Carts',
+                'command' => 'cart:prune-empty',
+                'description' => 'Deletes guest carts with no items that have been untouched for over 24 hours. Safety net for the cart leak fix.',
+                'schedule_preset' => 'daily',
+                'schedule_params' => ['hour' => 3, 'minute' => 0],
+                'enabled' => true,
+            ],
         ];
     }
 }
