@@ -474,7 +474,7 @@
                         <div class="flex bg-gray-50 border-b border-gray-200">
                             <div class="w-32 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Variant</div>
                             <div class="flex-1 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">SKU</div>
-                            <div class="w-28 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Price (₱)</div>
+                            <div class="w-56 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Price modifier (₱)</div>
                             <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Stock</div>
                             <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Weight</div>
                             <div class="w-10 shrink-0 px-2 py-2.5 text-xs font-medium text-gray-500 uppercase text-center">On</div>
@@ -504,9 +504,21 @@
                                             :class="isSkuDuplicate(variant.sku, vIndex) ? 'ring-1 ring-red-500 border-red-400' : 'border-gray-300'"
                                             class="w-full rounded-md text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="SKU">
                                     </div>
-                                    <div class="w-28 shrink-0 px-2 py-1.5">
-                                        <input type="number" x-model="variant.price" :name="'variants['+vIndex+'][price]'" step="0.01" min="0"
-                                            class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                    <div class="w-56 shrink-0 px-2 py-1.5">
+                                        <div class="flex items-center gap-1">
+                                            <select x-model="variant.modifier_sign" :name="'variants['+vIndex+'][modifier_sign]'"
+                                                class="w-12 rounded-md border-gray-300 text-sm py-1 px-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                                <option value="+">+</option>
+                                                <option value="-">−</option>
+                                            </select>
+                                            <input type="number" x-model="variant.modifier_amount" :name="'variants['+vIndex+'][modifier_amount]'" step="0.01" min="0"
+                                                placeholder="0.00"
+                                                class="w-20 rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                            <span class="text-xs text-gray-400">=</span>
+                                            <span class="text-sm font-medium text-gray-700 tabular-nums" x-text="'₱' + variantTotalPrice(variant).toFixed(2)"></span>
+                                            {{-- Hidden price field — server keeps the absolute value in `price` for API/ERP compat --}}
+                                            <input type="hidden" :name="'variants['+vIndex+'][price]'" :value="variantTotalPrice(variant).toFixed(2)">
+                                        </div>
                                     </div>
                                     <div class="w-20 shrink-0 px-2 py-1.5">
                                         <input type="number" x-model.number="variant.quantity" :name="'variants['+vIndex+'][quantity]'" min="0"
@@ -800,8 +812,8 @@
                     { id: 'general', label: 'General' },
                     { id: 'images', label: 'Images' },
                     { id: 'links', label: 'Links' },
-                    { id: 'pricing', label: 'Pricing' },
                     { id: 'variants', label: 'Variants' },
+                    { id: 'pricing', label: 'Pricing' },
                     { id: 'seo', label: 'SEO' },
                 ],
                 variantTypes: existingTypes,
@@ -893,10 +905,31 @@
                     return this.variants.some((v, i) => i !== currentIndex && v.sku && v.sku === sku);
                 },
 
+                // Variant price = product base + signed modifier. Recomputed live as
+                // the admin edits either the General-tab base price or this row.
+                productBasePrice() {
+                    const el = document.getElementById('price');
+                    return parseFloat(el?.value) || 0;
+                },
+
+                variantTotalPrice(variant) {
+                    const base = this.productBasePrice();
+                    const sign = variant.modifier_sign === '-' ? -1 : 1;
+                    const amount = parseFloat(variant.modifier_amount) || 0;
+                    const total = base + (sign * amount);
+                    return Math.max(0, total);
+                },
+
                 init() {
                     if (this.variantTypes.length > 0) {
                         this.generateCombinations();
                     }
+                    // Default sign/amount on any variant rows that lack them
+                    // (newly-generated variants from the matrix builder).
+                    this.variants.forEach(v => {
+                        if (v.modifier_sign === undefined) v.modifier_sign = '+';
+                        if (v.modifier_amount === undefined) v.modifier_amount = '0.00';
+                    });
                 }
             }
         }

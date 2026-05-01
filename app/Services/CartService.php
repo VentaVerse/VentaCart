@@ -355,14 +355,18 @@ class CartService
     }
 
     /**
-     * Resolve the best price for a product considering customer group, quantity, and date.
+     * Resolve the best price for a product/variant considering specials.
      *
-     * Logic (mirrors OpenCart):
-     * 1. Filter specials by date validity
-     * 2. Filter by customer group (matching OR null = all groups)
-     * 3. Filter by quantity threshold (quantity <= $qty)
-     * 4. Sort by priority ASC (lower = higher precedence), then price ASC
-     * 5. Return the lowest priced match, or the base price if none qualify
+     * Specials are stored against product.price (the base). When the cart item
+     * is a variant, $basePrice is variant.price (= product.price + modifier).
+     * The special's price is treated as a *new base*, and the variant's modifier
+     * carries over on top — so a sale of 720→500 on product P with variants at
+     * +0/+280/+560 yields 500/780/1060, not a flat 500 across all variants.
+     *
+     * Math:
+     *   modifier = basePrice − product.price   (0 for non-variant items)
+     *   effective_variant_price = special.price + modifier
+     *   final = min(basePrice, effective_variant_price)
      */
     public static function resolvePrice(Product $product, float $basePrice, int $qty = 1, ?int $customerGroupId = null): float
     {
@@ -373,28 +377,26 @@ class CartService
         $now = now();
 
         $bestPrice = $basePrice;
+        $modifier = $basePrice - (float) $product->price;
 
         $applicableSpecials = $product->specials
             ->filter(function ($s) use ($now, $customerGroupId, $qty) {
-                // Date check
                 if ($s->date_start && $s->date_start > $now) return false;
                 if ($s->date_end && $s->date_end < $now) return false;
-
-                // Customer group: null = all groups, otherwise must match
                 if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
-
-                // Quantity threshold: price applies when buying >= this quantity
                 if ($s->quantity > $qty) return false;
-
                 return true;
             })
             ->sortBy([['priority', 'asc'], ['price', 'asc']]);
 
         $best = $applicableSpecials->first();
-        if ($best && $best->price < $bestPrice) {
-            $bestPrice = (float) $best->price;
+        if ($best) {
+            $effectiveVariantPrice = (float) $best->price + $modifier;
+            if ($effectiveVariantPrice < $bestPrice) {
+                $bestPrice = $effectiveVariantPrice;
+            }
         }
 
-        return $bestPrice;
+        return max(0.0, $bestPrice);
     }
 }

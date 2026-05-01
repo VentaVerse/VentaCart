@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ProductVariant extends Model
 {
     protected $fillable = [
-        'product_id', 'sku', 'price', 'cost', 'quantity',
+        'product_id', 'sku', 'price', 'price_modifier', 'cost', 'quantity',
         'weight', 'image', 'is_active', 'legacy_oc_id',
     ];
 
@@ -18,6 +18,7 @@ class ProductVariant extends Model
     {
         return [
             'price' => 'decimal:2',
+            'price_modifier' => 'decimal:2',
             'cost' => 'decimal:2',
             'weight' => 'decimal:3',
             'is_active' => 'boolean',
