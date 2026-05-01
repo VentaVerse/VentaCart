@@ -513,19 +513,11 @@
 
                         {{-- Rows --}}
                         <template x-for="(variant, vIndex) in variants" :key="vIndex">
-                            <div x-data="{ showGroups: false }" class="border-b border-gray-100 last:border-b-0">
+                            <div class="border-b border-gray-100 last:border-b-0">
                                 {{-- Main row --}}
                                 <div class="flex items-center hover:bg-gray-50">
                                     <div class="w-32 shrink-0 px-3 py-2">
-                                        <div class="flex items-center gap-1.5">
-                                            <button type="button" @click="showGroups = !showGroups"
-                                                class="shrink-0 w-5 h-5 rounded flex items-center justify-center transition-colors"
-                                                :class="showGroups ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-indigo-600 hover:bg-gray-100'"
-                                                title="Group prices">
-                                                <svg class="w-3 h-3 transition-transform" :class="showGroups && 'rotate-90'" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-                                            </button>
-                                            <span class="text-sm font-medium text-gray-900" x-text="variant.label"></span>
-                                        </div>
+                                        <span class="text-sm font-medium text-gray-900" x-text="variant.label"></span>
                                         <template x-for="(key, kIndex) in variant.value_keys" :key="kIndex">
                                             <input type="hidden" :name="'variants['+vIndex+'][value_keys]['+kIndex+']'" :value="key">
                                         </template>
@@ -565,24 +557,6 @@
                                     </div>
                                 </div>
 
-                                {{-- Group prices (expandable) --}}
-                                <div x-show="showGroups" x-transition class="px-3 py-3 bg-gray-50 border-t border-gray-100">
-                                    <div class="flex items-start gap-4 ml-7">
-                                        <span class="text-[10px] text-gray-400 uppercase tracking-wider pt-1 shrink-0">Group Prices</span>
-                                        <div class="flex flex-wrap gap-x-4 gap-y-2">
-                                            @foreach ($customerGroups as $cg)
-                                                <div class="flex items-center gap-1.5">
-                                                    <label class="text-xs text-gray-500 whitespace-nowrap">{{ $cg->name }}</label>
-                                                    <input type="number"
-                                                        :name="'variants['+vIndex+'][group_prices][{{ $cg->id }}]'"
-                                                        :value="variant.group_prices?.['{{ $cg->id }}'] || ''"
-                                                        step="0.01" min="0" placeholder="—"
-                                                        class="w-24 rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </template>
                     </div>
