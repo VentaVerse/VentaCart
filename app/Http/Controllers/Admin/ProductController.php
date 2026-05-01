@@ -162,12 +162,10 @@ class ProductController extends Controller
                 $groupPrices[$gp->customer_group_id] = (float) $gp->price;
             }
 
-            $modifier = (float) $v->price_modifier;
             return [
                 'sku' => $v->sku,
                 'price' => $v->price,
-                'modifier_sign' => $modifier < 0 ? '-' : '+',
-                'modifier_amount' => number_format(abs($modifier), 2, '.', ''),
+                'modifier_signed' => (float) $v->price_modifier,
                 'quantity' => $v->quantity,
                 'weight' => $v->weight,
                 'is_active' => $v->is_active,
@@ -438,12 +436,9 @@ class ProductController extends Controller
             $weight = !empty($variantData['weight']) ? $variantData['weight'] : null;
 
             // Compute the absolute price from product base + signed modifier.
-            // The modifier_sign / modifier_amount fields are the source of truth
-            // in the admin form; `price` is kept populated for ERP/API consumers
-            // that read the absolute total.
-            $sign = ($variantData['modifier_sign'] ?? '+') === '-' ? -1 : 1;
-            $amount = (float) ($variantData['modifier_amount'] ?? 0);
-            $modifier = round($sign * $amount, 2);
+            // `modifier_signed` is the source of truth in the admin form (Pricing tab);
+            // `price` is kept populated for ERP/API consumers that read the absolute total.
+            $modifier = round((float) ($variantData['modifier_signed'] ?? 0), 2);
             $absolute = max(0, round((float) $product->price + $modifier, 2));
 
             $variant = $product->variants()->create([

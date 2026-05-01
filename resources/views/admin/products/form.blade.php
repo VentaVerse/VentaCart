@@ -118,7 +118,7 @@
                     <p class="text-xs text-gray-400 mb-4" x-show="!hasVariants">
                         The price customers see for this product. Sales applied here override it during the active window.
                     </p>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price (₱)</label>
                             <input type="number" name="price" id="price" step="0.01" min="0" required
@@ -131,7 +131,25 @@
                             <input type="number" name="cost" id="cost" step="0.01" min="0"
                                 value="{{ old('cost', $product?->cost ?? '0.00') }}"
                                 class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <p class="mt-1 text-xs text-gray-400">Internal cost for margin reporting. Not shown on storefront.</p>
+                        </div>
+                        <div>
+                            <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                                Quantity
+                                <span x-show="hasVariants && totalVariantQty === 0" class="text-red-500 font-normal">(Out of Stock)</span>
+                            </label>
+                            <input type="number" name="quantity" id="quantity" min="0"
+                                :value="hasVariants ? totalVariantQty : '{{ old('quantity', $product?->quantity ?? 0) }}'"
+                                :readonly="hasVariants"
+                                :class="hasVariants ? 'bg-gray-100 text-gray-500' : ''"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <p x-show="hasVariants" class="mt-1 text-xs text-gray-400">Sum of variant quantities.</p>
+                            @error('quantity') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="minimum_quantity" class="block text-sm font-medium text-gray-700 mb-1">Min order qty</label>
+                            <input type="number" name="minimum_quantity" id="minimum_quantity" min="1"
+                                value="{{ old('minimum_quantity', $product?->minimum_quantity ?? 1) }}"
+                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                     </div>
                 </div>
@@ -200,38 +218,39 @@
 
             {{-- ===================== PRICING ===================== --}}
             <div x-show="activeTab === 'pricing'" class="p-6 space-y-6">
-                {{-- Quick reference back to General-tab base + variants --}}
-                <div class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 flex items-start gap-3">
-                    <svg class="w-5 h-5 text-slate-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/>
-                    </svg>
-                    <div class="flex-1 text-sm">
-                        <p class="text-slate-700"><span class="font-medium">Base price</span> lives on the <button type="button" @click="activeTab = 'general'" class="text-indigo-600 hover:text-indigo-800 underline">General tab</button>.
-                        <span x-show="hasVariants">Per-variant modifiers live on the <button type="button" @click="activeTab = 'variants'" class="text-indigo-600 hover:text-indigo-800 underline">Variants tab</button>.</span></p>
-                        <p class="text-xs text-slate-500 mt-0.5">Specials below apply to the base price; variant prices ripple via their modifiers.</p>
+                {{-- Per-variant pricing modifiers (only when product has variants) --}}
+                <div x-show="hasVariants">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-1">Variant pricing</h3>
+                    <p class="text-xs text-gray-400 mb-4">
+                        Each row's price = base price <span class="font-mono">(₱<span x-text="(basePrice || 0).toFixed(2)"></span>)</span> + modifier. Type a positive number to add, a negative to subtract. Sales applied below ripple through every variant via these modifiers.
+                    </p>
+                    <div class="rounded-lg border border-gray-200 overflow-hidden">
+                        <div class="flex bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase">
+                            <div class="w-40 shrink-0 px-3 py-2.5">Variant</div>
+                            <div class="flex-1 px-3 py-2.5">SKU</div>
+                            <div class="w-32 shrink-0 px-3 py-2.5">Modifier (₱)</div>
+                            <div class="w-32 shrink-0 px-3 py-2.5 text-right">Total price</div>
+                        </div>
+                        <template x-for="(variant, vIndex) in variants" :key="vIndex">
+                            <div class="flex items-center border-b border-gray-100 last:border-b-0 hover:bg-gray-50">
+                                <div class="w-40 shrink-0 px-3 py-2.5 text-sm font-medium text-gray-900" x-text="variant.label"></div>
+                                <div class="flex-1 px-3 py-2.5 text-sm text-gray-500 font-mono" x-text="variant.sku || '—'"></div>
+                                <div class="w-32 shrink-0 px-3 py-2">
+                                    <input type="number" step="0.01" x-model.number="variant.modifier_signed"
+                                        @input="syncModifier(variant)"
+                                        placeholder="0.00"
+                                        class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
+                                </div>
+                                <div class="w-32 shrink-0 px-3 py-2.5 text-sm font-medium text-gray-700 text-right tabular-nums"
+                                     x-text="'₱' + variantTotalPrice(variant).toFixed(2)"></div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">
-                            Quantity
-                            <span x-show="hasVariants && totalVariantQty === 0" class="text-red-500 font-normal">(Out of Stock)</span>
-                        </label>
-                        <input type="number" name="quantity" id="quantity" min="0"
-                            :value="hasVariants ? totalVariantQty : '{{ old('quantity', $product?->quantity ?? 0) }}'"
-                            :readonly="hasVariants"
-                            :class="hasVariants ? 'bg-gray-100 text-gray-500' : ''"
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <p x-show="hasVariants" class="mt-1 text-xs text-gray-400">Computed from variant quantities</p>
-                        @error('quantity') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="minimum_quantity" class="block text-sm font-medium text-gray-700 mb-1">Min Order Qty</label>
-                        <input type="number" name="minimum_quantity" id="minimum_quantity" min="1" value="{{ old('minimum_quantity', $product?->minimum_quantity ?? 1) }}"
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
+                {{-- Standalone price reminder for non-variant products --}}
+                <div x-show="!hasVariants" class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-600">
+                    This product has no variants. Its price is set on the <button type="button" @click="activeTab = 'general'" class="text-indigo-600 hover:text-indigo-800 underline font-medium">General tab</button>.
                 </div>
 
                 {{-- Special Pricing --}}
@@ -505,7 +524,6 @@
                         <div class="flex bg-gray-50 border-b border-gray-200">
                             <div class="w-32 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Variant</div>
                             <div class="flex-1 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">SKU</div>
-                            <div class="w-56 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Price modifier (₱)</div>
                             <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Stock</div>
                             <div class="w-20 shrink-0 px-3 py-2.5 text-xs font-medium text-gray-500 uppercase">Weight</div>
                             <div class="w-10 shrink-0 px-2 py-2.5 text-xs font-medium text-gray-500 uppercase text-center">On</div>
@@ -535,22 +553,10 @@
                                             :class="isSkuDuplicate(variant.sku, vIndex) ? 'ring-1 ring-red-500 border-red-400' : 'border-gray-300'"
                                             class="w-full rounded-md text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500" placeholder="SKU">
                                     </div>
-                                    <div class="w-56 shrink-0 px-2 py-1.5">
-                                        <div class="flex items-center gap-1">
-                                            <select x-model="variant.modifier_sign" :name="'variants['+vIndex+'][modifier_sign]'"
-                                                class="w-12 rounded-md border-gray-300 text-sm py-1 px-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                                <option value="+">+</option>
-                                                <option value="-">−</option>
-                                            </select>
-                                            <input type="number" x-model="variant.modifier_amount" :name="'variants['+vIndex+'][modifier_amount]'" step="0.01" min="0"
-                                                placeholder="0.00"
-                                                class="w-20 rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                            <span class="text-xs text-gray-400">=</span>
-                                            <span class="text-sm font-medium text-gray-700 tabular-nums" x-text="'₱' + variantTotalPrice(variant).toFixed(2)"></span>
-                                            {{-- Hidden price field — server keeps the absolute value in `price` for API/ERP compat --}}
-                                            <input type="hidden" :name="'variants['+vIndex+'][price]'" :value="variantTotalPrice(variant).toFixed(2)">
-                                        </div>
-                                    </div>
+                                    {{-- Hidden inputs that carry the modifier + computed absolute price for the form POST.
+                                         Editing of these values lives on the Pricing tab. --}}
+                                    <input type="hidden" :name="'variants['+vIndex+'][modifier_signed]'" :value="variant.modifier_signed ?? 0">
+                                    <input type="hidden" :name="'variants['+vIndex+'][price]'" :value="variantTotalPrice(variant).toFixed(2)">
                                     <div class="w-20 shrink-0 px-2 py-1.5">
                                         <input type="number" x-model.number="variant.quantity" :name="'variants['+vIndex+'][quantity]'" min="0"
                                             class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
@@ -939,23 +945,30 @@
 
                 // Variant price = base + signed modifier. basePrice is reactive
                 // (x-model.number on the General-tab Price input), so the read-only
-                // totals on the Variants tab tick live as the admin types.
+                // totals tick live on the Pricing tab as the admin types.
                 variantTotalPrice(variant) {
-                    const sign = variant.modifier_sign === '-' ? -1 : 1;
-                    const amount = parseFloat(variant.modifier_amount) || 0;
-                    const total = (this.basePrice || 0) + (sign * amount);
+                    const modifier = parseFloat(variant.modifier_signed) || 0;
+                    const total = (this.basePrice || 0) + modifier;
                     return Math.max(0, total);
+                },
+
+                // Coerce blank input back to 0 so the hidden field always posts a number.
+                syncModifier(variant) {
+                    if (variant.modifier_signed === '' || variant.modifier_signed === null) {
+                        variant.modifier_signed = 0;
+                    }
                 },
 
                 init() {
                     if (this.variantTypes.length > 0) {
                         this.generateCombinations();
                     }
-                    // Default sign/amount on any variant rows that lack them
+                    // Default modifier on any variant rows that lack it
                     // (newly-generated variants from the matrix builder).
                     this.variants.forEach(v => {
-                        if (v.modifier_sign === undefined) v.modifier_sign = '+';
-                        if (v.modifier_amount === undefined) v.modifier_amount = '0.00';
+                        if (v.modifier_signed === undefined || v.modifier_signed === null) {
+                            v.modifier_signed = 0;
+                        }
                     });
                 }
             }
