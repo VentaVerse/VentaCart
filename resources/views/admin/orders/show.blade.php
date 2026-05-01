@@ -232,130 +232,20 @@
                     <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Shipping & Tracking</h3>
                 </div>
                 <div class="p-6">
-                    @if ($order->shipment)
-                        @php $shipment = $order->shipment; @endphp
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-5">
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <span class="text-[11px] font-semibold text-gray-400 uppercase block mb-1">Courier</span>
-                                <span class="font-medium text-gray-900">{{ $shipment->dph_partner_name }}</span>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <span class="text-[11px] font-semibold text-gray-400 uppercase block mb-1">Status</span>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                                    {{ $shipment->dph_status === 'DONE' ? 'bg-emerald-100 text-emerald-800' : '' }}
-                                    {{ in_array($shipment->dph_status, ['CANCEL', 'FAILED_PICKUP', 'FAILED_DELIVERY']) ? 'bg-red-100 text-red-800' : '' }}
-                                    {{ !in_array($shipment->dph_status, ['DONE', 'CANCEL', 'FAILED_PICKUP', 'FAILED_DELIVERY']) ? 'bg-blue-100 text-blue-800' : '' }}
-                                ">{{ $shipment->dph_status ?? 'PENDING' }}</span>
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <span class="text-[11px] font-semibold text-gray-400 uppercase block mb-1">Tracking</span>
-                                @if ($shipment->tracking_number)
-                                    @if ($shipment->tracking_url)
-                                        <a href="{{ $shipment->tracking_url }}" target="_blank" class="text-indigo-600 hover:underline font-medium text-sm">{{ $shipment->tracking_number }}</a>
-                                    @else
-                                        <span class="font-medium">{{ $shipment->tracking_number }}</span>
-                                    @endif
-                                @else
-                                    <span class="text-gray-400 text-xs">Awaiting</span>
-                                @endif
-                            </div>
-                            <div class="bg-gray-50 rounded-lg p-3">
-                                <span class="text-[11px] font-semibold text-gray-400 uppercase block mb-1">Fee</span>
-                                <span class="font-medium text-gray-900">{{ $currency }}{{ number_format($shipment->final_fee ?: $shipment->approximate_fee, 2) }}</span>
-                            </div>
+                    @if ($order->tracking_number)
+                        <div class="flex items-center gap-2 bg-indigo-50 rounded-lg p-3 text-sm">
+                            <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            @if ($order->shippingCourier)
+                                <span class="font-medium text-indigo-800">{{ $order->shippingCourier->name }}</span>
+                            @endif
+                            @if ($order->shippingCourier?->getTrackingLink($order->tracking_number))
+                                <a href="{{ $order->shippingCourier->getTrackingLink($order->tracking_number) }}" target="_blank" class="text-indigo-600 hover:underline">{{ $order->tracking_number }}</a>
+                            @else
+                                <span class="text-indigo-600">{{ $order->tracking_number }}</span>
+                            @endif
                         </div>
-
-                        @if ($shipment->shareable_link)
-                            <div class="p-3 bg-indigo-50 rounded-lg mb-4 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                <a href="{{ $shipment->shareable_link }}" target="_blank" class="text-sm text-indigo-600 hover:underline truncate">{{ $shipment->shareable_link }}</a>
-                            </div>
-                        @endif
-
-                        @if ($shipment->events->isNotEmpty())
-                            <div class="space-y-2 mt-4">
-                                @foreach ($shipment->events as $event)
-                                    <div class="flex items-start gap-3 text-sm pl-2">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 flex-shrink-0"></div>
-                                        <div>
-                                            <span class="font-medium">{{ $event->status }}</span>
-                                            @if ($event->sub_status) <span class="text-gray-400">({{ $event->sub_status }})</span> @endif
-                                            @if ($event->remarks) <span class="text-gray-500">— {{ $event->remarks }}</span> @endif
-                                            <span class="text-gray-400 text-xs block">{{ $event->created_at->format('M d, Y g:i A') }}</span>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-
-                        @if (!in_array($shipment->dph_status, ['DONE_PICKUP', 'ARRIVED_AT_HUB', 'START_DELIVERY', 'DONE', 'CANCEL', 'RETURNED']))
-                            <div class="mt-5 pt-4 border-t border-gray-100" x-data="{ cancelling: false }">
-                                <button type="button" @click="if(confirm('Cancel this shipment?')) { cancelling = true; fetch('{{ route('admin.orders.shipment.cancel', $order) }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json', 'Content-Type': 'application/json' } }).then(r => r.json()).then(d => { if(d.success) location.reload(); else { alert(d.error || 'Failed'); cancelling = false; } }).catch(() => { alert('Request failed'); cancelling = false; }); }"
-                                    :disabled="cancelling"
-                                    class="px-4 py-2 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 border border-red-200 disabled:opacity-50 transition-colors">
-                                    <span x-show="!cancelling">Cancel Shipment</span>
-                                    <span x-show="cancelling">Cancelling...</span>
-                                </button>
-                            </div>
-                        @endif
-
                     @else
-                        @if ($order->tracking_number)
-                            <div class="flex items-center gap-2 bg-indigo-50 rounded-lg p-3 text-sm">
-                                <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                                @if ($order->shippingCourier)
-                                    <span class="font-medium text-indigo-800">{{ $order->shippingCourier->name }}</span>
-                                @endif
-                                @if ($order->shippingCourier?->getTrackingLink($order->tracking_number))
-                                    <a href="{{ $order->shippingCourier->getTrackingLink($order->tracking_number) }}" target="_blank" class="text-indigo-600 hover:underline">{{ $order->tracking_number }}</a>
-                                @else
-                                    <span class="text-indigo-600">{{ $order->tracking_number }}</span>
-                                @endif
-                            </div>
-                        @else
-                            <p class="text-sm text-gray-400">No tracking info yet. Use the Update Order form to add courier and tracking number.</p>
-                        @endif
-
-                        @if ($dphEnabled)
-                            <div class="mt-6 pt-5 border-t border-gray-100" x-data="dphBooking()">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h4 class="text-sm font-semibold text-gray-700">Book via Deliveries PH</h4>
-                                    <button type="button" @click="fetchRates()" :disabled="loading"
-                                        class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                                        <span x-show="!loading">Fetch Rates</span>
-                                        <span x-show="loading">Loading...</span>
-                                    </button>
-                                </div>
-                                <div x-show="error" class="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700" x-text="error"></div>
-                                <template x-if="rates.length > 0">
-                                    <div>
-                                        <div class="space-y-2 mb-4">
-                                            <template x-for="(rate, idx) in rates" :key="idx">
-                                                <label class="flex items-center justify-between p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                                                    :class="selectedIdx === idx ? 'border-indigo-500 bg-indigo-50 shadow-sm' : 'border-gray-200'">
-                                                    <span class="flex items-center gap-3">
-                                                        <input type="radio" :value="idx" x-model.number="selectedIdx" class="text-indigo-600">
-                                                        <span>
-                                                            <span class="font-medium text-sm" x-text="rate.partner_name"></span>
-                                                            <span class="text-gray-400 text-xs" x-text="'(' + rate.size + ')'"></span>
-                                                            <template x-if="rate.estimated_days">
-                                                                <span class="text-gray-400 text-xs ml-1" x-text="'~' + rate.estimated_days + 'd'"></span>
-                                                            </template>
-                                                        </span>
-                                                    </span>
-                                                    <span class="font-semibold text-sm" x-text="'{{ $currency }}' + rate.price.toFixed(2)"></span>
-                                                </label>
-                                            </template>
-                                        </div>
-                                        <button type="button" @click="bookShipment()" :disabled="selectedIdx === null || booking"
-                                            class="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors">
-                                            <span x-show="!booking">Confirm Booking</span>
-                                            <span x-show="booking">Booking...</span>
-                                        </button>
-                                    </div>
-                                </template>
-                            </div>
-                        @endif
+                        <p class="text-sm text-gray-400">No tracking info yet. Use the Update Order form to add courier and tracking number.</p>
                     @endif
                 </div>
             </div>
@@ -459,40 +349,4 @@
         </div>
     </div>
 
-    @if ($dphEnabled && !$order->shipment)
-        @push('scripts')
-        <script>
-            function dphBooking() {
-                return {
-                    rates: [], selectedIdx: null, loading: false, booking: false, error: '',
-                    async fetchRates() {
-                        this.loading = true; this.error = ''; this.rates = []; this.selectedIdx = null;
-                        try {
-                            const res = await fetch('{{ route("admin.orders.shipment.rates", $order) }}', { headers: { 'Accept': 'application/json' } });
-                            const data = await res.json();
-                            if (data.success) { this.rates = data.rates; if (!this.rates.length) this.error = 'No couriers available.'; }
-                            else { this.error = data.error || 'Failed to fetch rates.'; }
-                        } catch (e) { this.error = 'Network error.'; }
-                        this.loading = false;
-                    },
-                    async bookShipment() {
-                        if (this.selectedIdx === null) return;
-                        this.booking = true; this.error = '';
-                        const rate = this.rates[this.selectedIdx];
-                        try {
-                            const res = await fetch('{{ route("admin.orders.shipment.book", $order) }}', {
-                                method: 'POST',
-                                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json', 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ partner_id: rate.partner_id, partner_name: rate.partner_name, service_type: rate.service_type, product_size: rate.size, approximate_fee: rate.price })
-                            });
-                            const data = await res.json();
-                            if (data.success) location.reload(); else this.error = data.error || 'Booking failed.';
-                        } catch (e) { this.error = 'Network error.'; }
-                        this.booking = false;
-                    }
-                };
-            }
-        </script>
-        @endpush
-    @endif
 </x-admin-layout>

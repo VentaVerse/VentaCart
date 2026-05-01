@@ -118,14 +118,6 @@ return [
             'replace_placeholders' => true,
         ],
 
-        'dph' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/dph.log'),
-            'level' => 'debug',
-            'days' => 30,
-            'replace_placeholders' => true,
-        ],
-
         'dhl' => [
             'driver' => 'daily',
             'path' => storage_path('logs/dhl.log'),

@@ -282,7 +282,6 @@ class CheckoutService
                 'payment_method' => $paymentMethodKey,
                 'shipping_method' => $shippingMethodName ?? $shippingMethod['name'],
                 'shipping_meta' => $shippingMeta,
-                'dph_courier_name' => str_starts_with($shippingMethodKey, 'dph_') ? ($shippingMethodName ?? $shippingMethod['name']) : null,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'total' => $total,

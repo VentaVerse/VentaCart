@@ -33,11 +33,10 @@ class DhlShippingProvider implements ShippingProviderInterface
             return [];
         }
 
-        // Build origin from settings (same pickup address as DPH)
         $origin = [
             'country_code' => 'PH',
-            'city' => Setting::where('group', 'shipping')->where('key', 'dph_pickup_city')->value('value') ?? 'Manila',
-            'postal_code' => Setting::where('group', 'shipping')->where('key', 'dph_pickup_postal_code')->value('value') ?? '1800',
+            'city' => Setting::where('group', 'shipping')->where('key', 'pickup_city')->value('value') ?? 'Manila',
+            'postal_code' => Setting::where('group', 'shipping')->where('key', 'pickup_postal_code')->value('value') ?? '1800',
         ];
 
         // Build destination from address — resolve country_id to ISO code for DHL API

@@ -14,7 +14,7 @@ class Order extends Model
         'shipping_first_name', 'shipping_last_name',
         'shipping_address_1', 'shipping_city', 'shipping_district', 'shipping_barangay',
         'shipping_state', 'shipping_postcode', 'shipping_country_id', 'shipping_phone',
-        'payment_method', 'payment_reference', 'shipping_method', 'shipping_meta', 'dph_courier_name',
+        'payment_method', 'payment_reference', 'shipping_method', 'shipping_meta',
         'subtotal', 'shipping_cost', 'total',
         'shipping_courier_id', 'tracking_number',
         'billing_first_name', 'billing_last_name', 'billing_address_1',
@@ -37,16 +37,9 @@ class Order extends Model
     }
 
     /**
-     * Customer-facing shipping label (courier/rate/method name).
-     * Accessed via $order->courier_label.
-     *
-     * Source priority:
-     *  1. shipping_meta.courier_label (new standardized key set by providers)
-     *  2. shipping_meta.partner_name — legacy DPH orders, strip " (size)" suffix
-     *  3. shipping_method — any other legacy order (weight-based, flat rate, etc.)
-     *
-     * Note: dph_courier_name is intentionally NOT used — that field reflects
-     * post-checkout admin rebooking, not the original customer selection.
+     * Customer-facing shipping label, accessed via $order->courier_label.
+     * Falls back through shipping_meta keys before the raw shipping_method
+     * column for legacy orders that pre-date the standardized meta shape.
      */
     public function getCourierLabelAttribute(): ?string
     {
@@ -107,11 +100,6 @@ class Order extends Model
     public function shippingCourier(): BelongsTo
     {
         return $this->belongsTo(ShippingCourier::class);
-    }
-
-    public function shipment(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(Shipment::class);
     }
 
     public function getFullNameAttribute(): string

@@ -159,7 +159,6 @@ class PaymentRestrictionController extends Controller
                 ['key' => 'free_shipping', 'name' => 'Free Shipping'],
                 ['key' => 'weight_based', 'name' => 'Weight-Based'],
                 ['key' => 'flat_rate', 'name' => 'Flat Rate'],
-                ['key' => 'dph', 'name' => 'Delivery PH'],
                 ['key' => 'dhl', 'name' => 'DHL Express'],
             ],
         ];

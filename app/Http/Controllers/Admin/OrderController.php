@@ -68,12 +68,10 @@ class OrderController extends Controller
     public function show(Order $order)
     {
         $order->load(['customer', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
-        $order->load('shipment.events');
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
-        $dphEnabled = \App\Services\DeliveryPhService::isEnabled();
 
-        return view('admin.orders.show', compact('order', 'statuses', 'couriers', 'dphEnabled'));
+        return view('admin.orders.show', compact('order', 'statuses', 'couriers'));
     }
 
     public function store(Request $request)
@@ -178,11 +176,9 @@ class OrderController extends Controller
     public function edit(Order $order)
     {
         $order->load(['customer.customerGroup', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
-        $order->load('shipment.events');
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
-        $dphEnabled = \App\Services\DeliveryPhService::isEnabled();
 
         $customerGroupId = $order->customer?->customer_group_id;
         $customerGroupName = $order->customer?->customerGroup?->name;
@@ -248,7 +244,7 @@ class OrderController extends Controller
             ];
         })->toArray();
 
-        return view('admin.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'dphEnabled', 'customerGroupId', 'customerGroupName'));
+        return view('admin.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'customerGroupId', 'customerGroupName'));
     }
 
     public function update(Request $request, Order $order)

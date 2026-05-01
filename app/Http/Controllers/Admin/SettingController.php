@@ -19,8 +19,6 @@ class SettingController extends Controller
         'hitpay_sandbox_salt',
         'hitpay_production_api_key',
         'hitpay_production_salt',
-        'dph_email',
-        'dph_password',
         'dhl_site_id',
         'dhl_password',
         'claude_api_key',
@@ -161,21 +159,6 @@ class SettingController extends Controller
         }
     }
 
-    public function testDphConnection()
-    {
-        try {
-            // Force a fresh login (clear any cached token so we actually test credentials)
-            \Illuminate\Support\Facades\Cache::forget('dph_auth');
-
-            $dph = app(\App\Services\DeliveryPhService::class);
-            $dph->login();
-
-            return back()->with('success', 'DPH connection successful! Credentials are valid.')->with('tab', 'dph');
-        } catch (\Throwable $e) {
-            return back()->with('error', 'DPH connection failed: ' . $e->getMessage())->with('tab', 'dph');
-        }
-    }
-
     public function generateErpToken()
     {
         $token = bin2hex(random_bytes(32));
@@ -225,15 +208,4 @@ class SettingController extends Controller
         }
     }
 
-    public function generateDphWebhookSecret()
-    {
-        $secret = bin2hex(random_bytes(32));
-
-        \App\Models\Setting::updateOrCreate(
-            ['group' => 'shipping', 'key' => 'dph_webhook_secret'],
-            ['value' => $secret]
-        );
-
-        return back()->with('success', 'Webhook secret generated.')->with('tab', 'dph');
-    }
 }

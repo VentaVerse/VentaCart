@@ -14,7 +14,6 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ApiSyncLogController;
 use App\Http\Controllers\Admin\AutomationController;
 use App\Http\Controllers\Admin\SeoController;
-use App\Http\Controllers\Admin\DphController;
 use App\Http\Controllers\Admin\EmailTemplateController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\FooterColumnController;
@@ -24,7 +23,6 @@ use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\PaymentSettingController;
 use App\Http\Controllers\Admin\RolePermissionController;
-use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\ShippingSettingController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CouponController;
@@ -51,7 +49,6 @@ use App\Http\Controllers\Storefront\OrderHistoryController;
 use App\Http\Controllers\Storefront\CheckoutController as StorefrontCheckoutController;
 use App\Http\Controllers\Storefront\CouponController as StorefrontCouponController;
 use App\Http\Controllers\Storefront\HitPayWebhookController;
-use App\Http\Controllers\Storefront\DphWebhookController;
 use App\Http\Controllers\Storefront\AddressLookupController as StorefrontAddressLookupController;
 use App\Http\Controllers\Storefront\BrandController as StorefrontBrandController;
 use App\Http\Controllers\Storefront\RecentlyViewedController;
@@ -92,11 +89,6 @@ Route::post('/cart/shipping-estimate', [StorefrontCartController::class, 'estima
 Route::post('/hitpay/webhook', HitPayWebhookController::class)
     ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class)
     ->name('hitpay.webhook');
-
-// DPH webhook (no CSRF, no auth — secret-validated via query param)
-Route::match(['get', 'post'], '/dph/webhook', DphWebhookController::class)
-    ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class)
-    ->name('dph.webhook');
 
 // Checkout (authenticated customers)
 Route::middleware('customer.auth')->group(function () {
@@ -194,11 +186,6 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::put('/shipping-couriers/{shippingCourier}', [\App\Http\Controllers\Admin\ShippingCourierController::class, 'update'])->name('shipping-couriers.update');
     Route::delete('/shipping-couriers/{shippingCourier}', [\App\Http\Controllers\Admin\ShippingCourierController::class, 'destroy'])->name('shipping-couriers.destroy');
 
-    // Shipments (DPH)
-    Route::get('/orders/{order}/shipment/rates', [ShipmentController::class, 'getAvailableRates'])->name('orders.shipment.rates');
-    Route::post('/orders/{order}/shipment/book', [ShipmentController::class, 'book'])->name('orders.shipment.book');
-    Route::post('/orders/{order}/shipment/cancel', [ShipmentController::class, 'cancel'])->name('orders.shipment.cancel');
-
     // Product Image Manager
     Route::post('/products/images/upload', [ProductImageController::class, 'upload'])->name('products.images.upload');
     Route::post('/products/images/import-url', [ProductImageController::class, 'importUrl'])->name('products.images.import-url');
@@ -265,9 +252,7 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
     Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::post('/settings/test-mail', [SettingController::class, 'testMail'])->name('settings.test-mail');
-    Route::post('/settings/test-dph', [SettingController::class, 'testDphConnection'])->name('settings.test-dph');
     Route::post('/settings/test-dhl', [SettingController::class, 'testDhl'])->name('settings.test-dhl');
-    Route::post('/settings/generate-dph-secret', [SettingController::class, 'generateDphWebhookSecret'])->name('settings.generate-dph-secret');
     Route::post('/settings/generate-erp-token', [SettingController::class, 'generateErpToken'])->name('settings.generate-erp-token');
     Route::post('/settings/upload-gsc-credentials', [SettingController::class, 'uploadGscCredentials'])->name('settings.upload-gsc-credentials');
 
@@ -368,11 +353,6 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
         Route::post('/suggestions/bulk-accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'bulkAccept'])->name('bulk-accept');
         Route::get('/{type}', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'entities'])->name('entities')->where('type', 'products|categories|brands|blog|pages');
     });
-
-    Route::post('/dph/mapping', [DphController::class, 'updateMapping'])->name('dph.update-mapping');
-    Route::post('/dph/execute', [DphController::class, 'execute'])->name('dph.execute');
-    Route::get('/dph/logs', [DphController::class, 'logs'])->name('dph.logs');
-    Route::get('/dph/api-logs', [DphController::class, 'apiLogs'])->name('dph.api-logs');
 
     // Users
     Route::resource('users', UserController::class)->except(['show']);

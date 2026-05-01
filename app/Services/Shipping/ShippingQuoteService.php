@@ -22,7 +22,6 @@ class ShippingQuoteService
     {
         return [
             new FreeShippingRuleProvider(),
-            new DeliveryPhShippingProvider(),
             new WeightBasedShippingProvider(),
             new FlatRateShippingProvider(),
             new DhlShippingProvider(),

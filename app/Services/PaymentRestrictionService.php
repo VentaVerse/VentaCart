@@ -78,18 +78,8 @@ class PaymentRestrictionService
             }
         }
 
-        // Shipping method check
         if (!empty($restriction->shipping_method_keys) && $shippingMethodKey !== null) {
-            // Normalise DPH keys: dph_flash => dph
-            $normalisedShipping = preg_replace('/^(dph)_.*/', '$1', $shippingMethodKey);
-            $allowed = false;
-            foreach ($restriction->shipping_method_keys as $allowedKey) {
-                if ($allowedKey === $shippingMethodKey || $allowedKey === $normalisedShipping) {
-                    $allowed = true;
-                    break;
-                }
-            }
-            if (!$allowed) {
+            if (!in_array($shippingMethodKey, $restriction->shipping_method_keys, true)) {
                 return false;
             }
         }
