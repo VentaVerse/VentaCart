@@ -435,3 +435,12 @@ require __DIR__.'/auth.php';
 Route::get('/{slug}', [\App\Http\Controllers\Storefront\PageController::class, 'show'])
     ->name('page.show')
     ->where('slug', '^(?!' . config('admin.prefix', 'admin') . ')[a-z0-9][a-z0-9-]*$');
+
+// Final fallback — matches any request no other route claimed (including
+// multi-segment paths the /{slug} rule rejects). Putting it inside the web
+// group lets HandleRedirects look up the path *before* we 404, and lets
+// LogNotFound record the miss *after*. Without this, multi-segment URLs
+// (e.g. /brands/foo, /guitars/bar) would skip both middlewares entirely
+// because Laravel throws NotFoundHttpException out of the router itself
+// before any route's middleware can run.
+Route::fallback(fn () => abort(404));
