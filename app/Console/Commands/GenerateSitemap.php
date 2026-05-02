@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Page;
 use App\Models\Product;
 use Illuminate\Console\Command;
 
@@ -84,6 +85,24 @@ class GenerateSitemap extends Command
                 'priority' => '0.5',
             ];
         }
+
+        // CMS Pages (about-us, privacy-policy, payment-and-delivery, etc.)
+        $pages = Page::where('is_active', true)->get(['slug', 'updated_at']);
+        foreach ($pages as $page) {
+            $urls[] = [
+                'loc' => $baseUrl . '/' . $page->slug,
+                'lastmod' => $page->updated_at?->toW3cString(),
+                'changefreq' => 'monthly',
+                'priority' => '0.4',
+            ];
+        }
+
+        // Contact page (statically routed)
+        $urls[] = [
+            'loc' => $baseUrl . '/contact',
+            'changefreq' => 'monthly',
+            'priority' => '0.3',
+        ];
 
         // Build XML
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";

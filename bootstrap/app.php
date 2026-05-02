@@ -18,6 +18,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'noindex' => \App\Http\Middleware\NoIndexResponse::class,
         ]);
 
+        // Web requests go through the redirect lookup first (early exit on
+        // 301/410) and then through the 404 logger (records misses for the
+        // admin's not-found monitor).
+        $middleware->web(prepend: [
+            \App\Http\Middleware\HandleRedirects::class,
+        ]);
+        $middleware->web(append: [
+            \App\Http\Middleware\LogNotFound::class,
+        ]);
+
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {

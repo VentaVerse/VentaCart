@@ -9,6 +9,8 @@
         ['route' => 'admin.extensions.seo.review', 'label' => 'Review', 'pattern' => 'admin.extensions.seo.review'],
         ['route' => 'admin.extensions.seo.slugs', 'label' => 'Slugs', 'pattern' => 'admin.extensions.seo.slugs'],
         ['route' => 'admin.extensions.seo.search-console', 'label' => 'Search Console', 'pattern' => 'admin.extensions.seo.search-console'],
+        ['route' => 'admin.extensions.seo.redirects.index', 'label' => 'Redirects', 'pattern' => 'admin.extensions.seo.redirects.*'],
+        ['route' => 'admin.extensions.seo.not-found.index', 'label' => '404s', 'pattern' => 'admin.extensions.seo.not-found.*'],
         ['route' => 'admin.extensions.seo.strategy', 'label' => 'Strategy', 'pattern' => 'admin.extensions.seo.strategy'],
         ['route' => 'admin.extensions.seo.settings', 'label' => 'Settings', 'pattern' => 'admin.extensions.seo.settings'],
     ];

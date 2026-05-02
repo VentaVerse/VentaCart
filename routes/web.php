@@ -351,6 +351,18 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
         Route::post('/suggestions/{suggestion}/accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'accept'])->name('accept');
         Route::post('/suggestions/{suggestion}/reject', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'reject'])->name('reject');
         Route::post('/suggestions/bulk-accept', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'bulkAccept'])->name('bulk-accept');
+
+        // Redirect manager — admin-managed source→destination 301/302/410 rules
+        Route::get('/redirects', [\App\Http\Controllers\Admin\SeoRedirectController::class, 'index'])->name('redirects.index');
+        Route::post('/redirects', [\App\Http\Controllers\Admin\SeoRedirectController::class, 'store'])->name('redirects.store');
+        Route::put('/redirects/{redirect}', [\App\Http\Controllers\Admin\SeoRedirectController::class, 'update'])->name('redirects.update');
+        Route::delete('/redirects/{redirect}', [\App\Http\Controllers\Admin\SeoRedirectController::class, 'destroy'])->name('redirects.destroy');
+
+        // 404 monitor — recently-seen missing URLs with quick-redirect action
+        Route::get('/not-found', [\App\Http\Controllers\Admin\SeoNotFoundController::class, 'index'])->name('not-found.index');
+        Route::delete('/not-found/{log}', [\App\Http\Controllers\Admin\SeoNotFoundController::class, 'destroy'])->name('not-found.destroy');
+        Route::post('/not-found/clear', [\App\Http\Controllers\Admin\SeoNotFoundController::class, 'clear'])->name('not-found.clear');
+
         Route::get('/{type}', [\App\Http\Controllers\Admin\Extensions\SeoExtensionController::class, 'entities'])->name('entities')->where('type', 'products|categories|brands|blog|pages');
     });
 
