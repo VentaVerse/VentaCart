@@ -37,7 +37,6 @@
 
     {{-- OpenGraph --}}
     <meta property="og:site_name" content="{{ $siteName }}">
-    <meta property="og:locale" content="en_PH">
     @hasSection('og_title')
         <meta property="og:title" content="@yield('og_title')">
     @else

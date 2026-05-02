@@ -351,11 +351,11 @@
                         </template>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">From Address</label>
-                            <input type="email" name="settings[from_address]" value="{{ $settings['mail']['from_address'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" placeholder="noreply@newgearday.com">
+                            <input type="email" name="settings[from_address]" value="{{ $settings['mail']['from_address'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" placeholder="noreply@example.com">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700">From Name</label>
-                            <input type="text" name="settings[from_name]" value="{{ $settings['mail']['from_name'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" placeholder="New Gear Day">
+                            <input type="text" name="settings[from_name]" value="{{ $settings['mail']['from_name'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm" placeholder="Your Store">
                         </div>
                     </div>
                     <div class="mt-6 flex justify-end">

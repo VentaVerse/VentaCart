@@ -220,12 +220,26 @@ class ThemeSeeder extends Seeder
             ]);
         }
 
-        // Default Currency
+        // Default Currency — generic platform default. Sites that operate in
+        // a different currency override STORE_CURRENCY in .env before seeding,
+        // or add their own currency in admin and disable USD afterwards.
         if (Currency::count() === 0) {
+            $currencyDefaults = [
+                'USD' => ['name' => 'US Dollar',        'symbol' => '$'],
+                'EUR' => ['name' => 'Euro',             'symbol' => '€'],
+                'GBP' => ['name' => 'British Pound',    'symbol' => '£'],
+                'PHP' => ['name' => 'Philippine Peso',  'symbol' => '₱'],
+                'JPY' => ['name' => 'Japanese Yen',     'symbol' => '¥'],
+                'AUD' => ['name' => 'Australian Dollar','symbol' => 'A$'],
+                'CAD' => ['name' => 'Canadian Dollar',  'symbol' => 'C$'],
+            ];
+            $code = strtoupper(env('STORE_CURRENCY', 'USD'));
+            $info = $currencyDefaults[$code] ?? ['name' => $code, 'symbol' => $code];
+
             Currency::create([
-                'code' => 'PHP',
-                'name' => 'Philippine Peso',
-                'symbol' => '₱',
+                'code' => $code,
+                'name' => $info['name'],
+                'symbol' => $info['symbol'],
                 'rate' => 1.000000,
                 'is_default' => true,
                 'is_enabled' => true,
