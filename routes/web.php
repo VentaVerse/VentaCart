@@ -417,27 +417,6 @@ Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.
 
 Route::get('/sitemap', [\App\Http\Controllers\Storefront\SitemapController::class, 'index'])->name('sitemap');
 
-// Dynamic robots.txt — only hit when no static public/robots.txt exists.
-// Web server serves the static file first if present, so live installations
-// keep their hand-edited copy until they delete it to opt in.
-Route::get('/robots.txt', function () {
-    $base = request()->getSchemeAndHttpHost();
-    $body = <<<TXT
-User-agent: *
-Allow: /
-Disallow: /admin
-Disallow: /cart
-Disallow: /checkout
-Disallow: /account
-Disallow: /login
-Disallow: /register
-Disallow: /password
-
-Sitemap: {$base}/sitemap.xml
-TXT;
-    return response($body, 200)->header('Content-Type', 'text/plain');
-})->name('robots');
-
 require __DIR__.'/auth.php';
 
 // CMS Pages (catch-all — must be absolutely last, after auth routes)

@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /login
+Disallow: /register
+Disallow: /password
+
+# Replace YOUR-DOMAIN.com with the actual host this site serves on.
+Sitemap: https://YOUR-DOMAIN.com/sitemap.xml
