@@ -41,6 +41,9 @@ class BlogController extends Controller
 
         $view = $request->input('view', $settings['default_view'] ?? 'grid');
 
+        $page = (int) request()->query('page', 1);
+        view()->share('canonical', route('blog.index') . ($page > 1 ? '?page=' . $page : ''));
+
         return view('blog.index', compact('posts', 'categories', 'tags', 'view', 'settings'));
     }
 
@@ -74,6 +77,8 @@ class BlogController extends Controller
 
         $ogTitle = $post->og_title ?: null;
         $ogDescription = $post->og_description ?: null;
+
+        view()->share('canonical', route('blog.show', $post->slug));
 
         return view('blog.show', compact('post', 'relatedPosts', 'settings', 'ogTitle', 'ogDescription'));
     }

@@ -14,6 +14,7 @@ class ContactController extends Controller
 {
     public function show()
     {
+        view()->share('canonical', route('contact'));
         return view('contact');
     }
 

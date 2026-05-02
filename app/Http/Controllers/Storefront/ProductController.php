@@ -184,6 +184,8 @@ class ProductController extends Controller
         $ogTitle = $product->og_title ?: null;
         $ogDescription = $product->og_description ?: null;
 
+        view()->share('canonical', route('product.show', $product->slug));
+
         return view('product.show', compact(
             'product', 'activeSpecial', 'overrideSpecial', 'settings',
             'relatedProducts', 'sameBrandProducts',

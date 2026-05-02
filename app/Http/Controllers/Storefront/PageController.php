@@ -11,6 +11,8 @@ class PageController extends Controller
     {
         $page = Page::where('slug', $slug)->active()->firstOrFail();
 
+        view()->share('canonical', route('page.show', $page->slug));
+
         return view('page.show', compact('page'));
     }
 }

@@ -19,6 +19,8 @@ class BrandController extends Controller
             ->orderBy('name')
             ->get();
 
+        view()->share('canonical', route('brand.index'));
+
         return view('brand.index', compact('brands'));
     }
 
@@ -104,6 +106,9 @@ class BrandController extends Controller
 
         $ogTitle = $brand->og_title ?: null;
         $ogDescription = $brand->og_description ?: null;
+
+        $page = (int) request()->query('page', 1);
+        view()->share('canonical', route('brand.show', $brand->slug) . ($page > 1 ? '?page=' . $page : ''));
 
         return view('brand.show', compact(
             'brand', 'products', 'sort', 'settings',

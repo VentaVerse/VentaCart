@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'customer.auth' => \App\Http\Middleware\CustomerAuthenticated::class,
             'erp.auth' => \App\Http\Middleware\ErpApiAuth::class,
+            'noindex' => \App\Http\Middleware\NoIndexResponse::class,
         ]);
 
         $middleware->redirectGuestsTo(fn () => route('login'));

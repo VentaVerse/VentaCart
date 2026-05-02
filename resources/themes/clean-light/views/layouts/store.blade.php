@@ -19,7 +19,21 @@
         <meta name="google-site-verification" content="{{ $googleSiteVerification }}">
     @endif
 
-    <link rel="canonical" href="{{ url()->current() }}">
+    @php
+        // Canonical: prefer the controller's explicit value. Fallback strips
+        // noise query params (sort, order, limit, etc.) so listings indexed
+        // with different sort options canonicalize back to one URL. Keep
+        // `page` because paginated pages have distinct content.
+        $__canonical = $canonical ?? (function () {
+            $allowed = collect(request()->query())->only(['page'])->filter();
+            $base = url()->current();
+            return $allowed->isEmpty() ? $base : $base . '?' . http_build_query($allowed->all());
+        })();
+    @endphp
+    <link rel="canonical" href="{{ $__canonical }}">
+    @isset($robotsMeta)
+        <meta name="robots" content="{{ $robotsMeta }}">
+    @endisset
 
     {{-- OpenGraph --}}
     <meta property="og:site_name" content="{{ $siteName }}">

@@ -60,11 +60,11 @@ use Illuminate\Support\Facades\Route;
 // Storefront
 Route::get('/', [StorefrontHomeController::class, 'index'])->name('home');
 Route::get('/search/autocomplete', [StorefrontSearchController::class, 'autocomplete'])->name('search.autocomplete');
-Route::get('/search', [StorefrontSearchController::class, 'results'])->name('search.results');
+Route::get('/search', [StorefrontSearchController::class, 'results'])->middleware('noindex:follow')->name('search.results');
 Route::post('/notify-stock', [StorefrontStockNotificationController::class, 'store'])->name('notify-stock.store');
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
-Route::get('/recently-viewed', [RecentlyViewedController::class, 'index'])->name('recently-viewed');
+Route::get('/recently-viewed', [RecentlyViewedController::class, 'index'])->middleware('noindex')->name('recently-viewed');
 Route::get('/brand', [StorefrontBrandController::class, 'index'])->name('brand.index');
 Route::get('/brand/{brand:slug}', [StorefrontBrandController::class, 'show'])->name('brand.show');
 Route::get('/category/{category:slug}', [StorefrontCategoryController::class, 'show'])->name('category.show');
@@ -77,7 +77,7 @@ Route::get('/review/{token}', [StorefrontReviewController::class, 'show'])->name
 Route::post('/review/{token}', [StorefrontReviewController::class, 'store'])->name('review.store');
 
 // Cart
-Route::get('/cart', [StorefrontCartController::class, 'index'])->name('cart.index');
+Route::get('/cart', [StorefrontCartController::class, 'index'])->middleware('noindex')->name('cart.index');
 Route::get('/cart/mini', [StorefrontCartController::class, 'mini'])->name('cart.mini');
 Route::post('/cart/add', [StorefrontCartController::class, 'add'])->name('cart.add');
 Route::patch('/cart/{cartItem}', [StorefrontCartController::class, 'update'])->name('cart.update');
@@ -91,7 +91,7 @@ Route::post('/hitpay/webhook', HitPayWebhookController::class)
     ->name('hitpay.webhook');
 
 // Checkout (authenticated customers)
-Route::middleware('customer.auth')->group(function () {
+Route::middleware(['customer.auth', 'noindex'])->group(function () {
     Route::get('/checkout', [StorefrontCheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout/address', [StorefrontCheckoutController::class, 'saveAddress'])->name('checkout.address.save');
     Route::post('/checkout/shipping-rates', [StorefrontCheckoutController::class, 'getShippingRates'])->name('checkout.shipping-rates');
@@ -103,7 +103,7 @@ Route::middleware('customer.auth')->group(function () {
 });
 
 // Customer Auth (public)
-Route::prefix('account')->name('customer.')->group(function () {
+Route::prefix('account')->name('customer.')->middleware('noindex')->group(function () {
     Route::get('/login', [CustomerAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [CustomerAuthController::class, 'login'])->name('login.submit');
     Route::get('/register', [CustomerAuthController::class, 'showRegister'])->name('register');
@@ -125,7 +125,7 @@ Route::prefix('address-lookup')->name('storefront.address.')->group(function () 
 });
 
 // Customer Account (authenticated)
-Route::prefix('account')->name('account.')->middleware('customer.auth')->group(function () {
+Route::prefix('account')->name('account.')->middleware(['customer.auth', 'noindex'])->group(function () {
     Route::get('/', [AccountController::class, 'dashboard'])->name('dashboard');
     Route::get('/profile', [AccountController::class, 'editProfile'])->name('profile');
     Route::post('/profile', [AccountController::class, 'updateProfile'])->name('profile.update');

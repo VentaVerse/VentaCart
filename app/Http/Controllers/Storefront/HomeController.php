@@ -35,6 +35,8 @@ class HomeController extends Controller
             $sectionData[] = $data;
         }
 
+        view()->share('canonical', route('home'));
+
         return view('home', compact('sectionData'));
     }
 

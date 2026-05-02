@@ -110,6 +110,9 @@ class CategoryController extends Controller
         $ogTitle = $category->og_title ?: null;
         $ogDescription = $category->og_description ?: null;
 
+        $page = (int) request()->query('page', 1);
+        view()->share('canonical', route('category.show', $category->slug) . ($page > 1 ? '?page=' . $page : ''));
+
         return view('category.index', compact(
             'category', 'products', 'availableBrands', 'priceRange',
             'availableTags', 'subcategories', 'breadcrumbs', 'sort', 'settings',
