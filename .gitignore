@@ -29,7 +29,13 @@ CLAUDE.md
 /delivery_ph
 .playwright-mcp/
 *.sql
+*.sql.gz
+*.sql.bz2
+*.sql.zip
+*.dump
+/storage/backups/
 *.jpeg
+/Screenshot*.png
 countries-states-cities-database-3.1-export.2/
 /public/sitemap.xml
 /public/robots.txt

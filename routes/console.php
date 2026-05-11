@@ -40,10 +40,3 @@ try {
 } catch (\Throwable $e) {
     Log::error('Automation scheduler registration failed', ['error' => $e->getMessage()]);
 }
-
-// ==========================================================================
-// Site-specific module registrations (NOT default Venta features).
-// DPH shipment polling runs as its own raw crontab line — see INSTALL.md.
-// Keeping it out of Schedule::command means a Venta install without the DPH
-// module has zero dead scheduler entries.
-// ==========================================================================

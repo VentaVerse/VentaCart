@@ -9,41 +9,6 @@
 [x-cloak] { display: none !important; }
 
 @layer components {
-    .dph-response-output {
-        background-color: #111827;
-        color: #4ade80;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        overflow: auto;
-        max-height: 500px;
-        font-size: 0.75rem;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        white-space: pre-wrap;
-    }
-
-    .dph-log-output {
-        background-color: #111827;
-        color: #d1d5db;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        overflow: auto;
-        max-height: 400px;
-        font-size: 0.75rem;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        white-space: pre-wrap;
-    }
-
-    .dph-error-output {
-        background-color: #fef2f2;
-        border: 1px solid #fecaca;
-        border-radius: 0.375rem;
-        padding: 1rem;
-        color: #b91c1c;
-        font-size: 0.875rem;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        white-space: pre-wrap;
-    }
-
     /* TinyMCE dialog fix — Tailwind Preflight strips borders from inputs.
        TinyMCE skin uses high specificity, so we must match or exceed it. */
     .tox.tox-tinymce-aux .tox-textfield,
