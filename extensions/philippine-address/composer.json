@@ -1,5 +1,5 @@
 {
-    "name": "ngd/philippine-address",
+    "name": "venta/philippine-address",
     "description": "Philippine address hierarchy (PSGC): Regions, Provinces, Cities, Barangays",
     "type": "library",
     "autoload": {
