@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('stores', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('code')->unique(); // e.g., 'ngd', 'ds'
+            $table->string('code')->unique();
             $table->string('domain')->nullable();
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
