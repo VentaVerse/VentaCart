@@ -26,9 +26,17 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund --prefer-offline
 
-COPY resources/ ./resources/
-COPY public/ ./public/
-COPY vite.config.js ./
+# Source + build config. tailwind.config.js's content array scans both
+# resources/themes/**/*.blade.php and extensions/**/*.blade.php — so the
+# extensions directory must be present even though it's a Composer-managed
+# vendor surface, otherwise Tailwind purges away every utility class used
+# inside the bundled extensions (banners, philippine-address).
+COPY resources/        ./resources/
+COPY public/           ./public/
+COPY extensions/       ./extensions/
+COPY vite.config.js    ./
+COPY tailwind.config.js ./
+COPY postcss.config.js ./
 
 RUN npm run build
 
