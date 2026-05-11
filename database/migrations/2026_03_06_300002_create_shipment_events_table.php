@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // dropIfExists guards fresh-install replays where some other code path
+        // left the table behind; this migration is the only intended creator.
+        Schema::dropIfExists('shipment_events');
+
         Schema::create('shipment_events', function (Blueprint $table) {
             $table->id();
             $table->foreignId('shipment_id')->constrained()->cascadeOnDelete();
