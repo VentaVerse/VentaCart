@@ -1,0 +1,76 @@
+# Keep the Docker build context small and reproducible.
+# Anything that would invalidate the build cache or leak local state belongs here.
+
+# Git metadata
+.git
+.gitignore
+.gitattributes
+
+# Local dependencies (rebuilt inside the image)
+/vendor
+/node_modules
+/public/build
+/public/hot
+
+# Local environment + secrets
+.env
+.env.*
+!.env.example
+
+# Build artifacts + logs
+/storage/logs/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/framework/testing/*
+/storage/app/public/*
+!/storage/app/public/.gitkeep
+/storage/backups
+/bootstrap/cache/*.php
+
+# Editor / IDE
+.idea
+.vscode
+.fleet
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Tests, docs, dev tooling — not needed in the production image
+/tests
+/docs
+/.github/ISSUE_TEMPLATE
+/phpunit.xml
+/phpunit.xml.dist
+/.phpunit.cache
+/.phpunit.result.cache
+/.editorconfig
+/.eslintrc.*
+/.prettierrc*
+/.styleci.yml
+/.scrutinizer.yml
+/CHANGELOG.md
+/CONTRIBUTING.md
+
+# Local screenshots and one-off debug captures from past sessions
+*.png
+*.jpg
+*.jpeg
+*.gif
+!resources/**/*.png
+!resources/**/*.jpg
+!resources/**/*.svg
+!public/img/**
+
+# SQL dumps (must never end up baked into an image)
+*.sql
+*.sql.gz
+
+# Docker bits — the image is built FROM these, no need to copy them INTO themselves
+/docker-compose*.yml
+
+# Misc local artifacts
+/.husky
+/coverage
+/tmp
