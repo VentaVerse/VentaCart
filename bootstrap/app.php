@@ -12,6 +12,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust X-Forwarded-* headers from any proxy. Required when Venta runs
+        // behind a reverse proxy (Traefik on Coolify, Cloudflare, nginx, etc.)
+        // — without this, request()->isSecure() returns false even on HTTPS,
+        // and Laravel generates http:// URLs for assets, which browsers block
+        // as mixed content on an HTTPS page. The container should only ever
+        // be reachable via its proxy, so trusting all forwarded headers is safe.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'customer.auth' => \App\Http\Middleware\CustomerAuthenticated::class,
             'erp.auth' => \App\Http\Middleware\ErpApiAuth::class,
