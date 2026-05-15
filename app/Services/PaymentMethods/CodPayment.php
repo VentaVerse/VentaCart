@@ -14,7 +14,8 @@ class CodPayment implements PaymentMethodInterface
 
     public function getName(): string
     {
-        return 'Cash on Delivery';
+        $custom = Setting::where('group', 'payment')->where('key', 'cod_display_name')->value('value');
+        return !empty($custom) ? $custom : 'Cash on Delivery';
     }
 
     public function getDescription(): string

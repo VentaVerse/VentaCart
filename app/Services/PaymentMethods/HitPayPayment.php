@@ -20,7 +20,8 @@ class HitPayPayment implements PaymentMethodInterface
 
     public function getName(): string
     {
-        return 'HitPay (Card / GCash / GrabPay / Maya)';
+        $custom = $this->getSetting('hitpay_display_name');
+        return !empty($custom) ? $custom : 'HitPay (Card / GCash / GrabPay / Maya)';
     }
 
     public function getDescription(): string

@@ -29,10 +29,19 @@ class BankTransferPayment implements PaymentMethodInterface
 
     public function getName(): string
     {
+        $prefix = $this->getDisplayPrefix();
         if ($this->bankAccount) {
-            return 'Bank Transfer — ' . $this->bankAccount->bank_name;
+            return $prefix . ' — ' . $this->bankAccount->bank_name;
         }
-        return 'Bank Transfer';
+        return $prefix;
+    }
+
+    private function getDisplayPrefix(): string
+    {
+        $custom = \App\Models\Setting::where('group', 'payment')
+            ->where('key', 'bank_transfer_display_name')
+            ->value('value');
+        return !empty($custom) ? $custom : 'Bank Transfer';
     }
 
     public function getDescription(): string

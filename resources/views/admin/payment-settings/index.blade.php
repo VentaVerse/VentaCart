@@ -67,6 +67,18 @@
                         <input type="hidden" name="group" value="payment">
                         <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="bank-transfer">
+                        <label class="text-sm text-gray-700 whitespace-nowrap">Checkout Label</label>
+                        <input type="text" name="settings[bank_transfer_display_name]" value="{{ $settings['payment']['bank_transfer_display_name'] ?? '' }}" placeholder="Bank Transfer" class="flex-1 max-w-md rounded-lg border-gray-300 text-sm">
+                        <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">Save</button>
+                    </form>
+                    <p class="text-xs text-gray-400 mt-1">Shown at checkout. Bank name (e.g. "— BDO") is appended automatically per account. Leave blank for default.</p>
+                </div>
+                <div class="px-5 py-3 border-b border-gray-100">
+                    <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
+                        @csrf
+                        <input type="hidden" name="group" value="payment">
+                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
+                        <input type="hidden" name="_tab" value="bank-transfer">
                         <label class="text-sm text-gray-700">Order Status on Checkout</label>
                         <select name="settings[bank_transfer_success_status_id]" class="rounded-lg border-gray-300 text-sm" onchange="this.form.submit()">
                             <option value="">Default (Pending)</option>
@@ -197,6 +209,11 @@
                         <input type="hidden" name="_tab" value="hitpay">
                         <div class="space-y-4 max-w-lg">
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Checkout Label</label>
+                                <input type="text" name="settings[hitpay_display_name]" value="{{ $settings['payment']['hitpay_display_name'] ?? '' }}" placeholder="HitPay (Card / GCash / GrabPay / Maya)" class="block w-full rounded-md border-gray-300 text-sm">
+                                <p class="text-xs text-gray-400 mt-1">Shown at checkout. Leave blank for default.</p>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Mode</label>
                                 <select name="settings[hitpay_mode]" x-model="hitpayMode" class="block w-48 rounded-md border-gray-300 text-sm">
                                     <option value="sandbox">Sandbox</option>
@@ -324,6 +341,11 @@
                         <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
                         <input type="hidden" name="_tab" value="cod">
                         <div class="space-y-4 max-w-lg">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Checkout Label</label>
+                                <input type="text" name="settings[cod_display_name]" value="{{ $settings['payment']['cod_display_name'] ?? '' }}" placeholder="Cash on Delivery" class="block w-full rounded-md border-gray-300 text-sm">
+                                <p class="text-xs text-gray-400 mt-1">Shown at checkout. Leave blank for default.</p>
+                            </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Sort Order</label>
                                 <input type="number" name="settings[cod_sort_order]" value="{{ $settings['payment']['cod_sort_order'] ?? '0' }}" min="0" class="mt-1 block w-24 rounded-md border-gray-300 text-sm">
