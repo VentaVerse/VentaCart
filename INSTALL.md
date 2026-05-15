@@ -66,16 +66,6 @@ Add to your server's crontab for scheduled tasks (currency updates, stock alerts
 
 All default Venta automations (currency updates, back-in-stock notifications, review requests, SEO suggestions, sitemap, low-stock alerts, abandoned-cart reminders) run through this single `schedule:run` heartbeat. Edit their cadence, toggle them on/off, or trigger them manually from the admin at **Settings → Automations**.
 
-### 7. Optional modules — DeliveryPH (DPH) shipment polling
-
-Only needed if the DPH shipping module is active on this site. DPH status polling is **not** managed through the admin Automations UI because it's a site-specific module, not a default Venta feature. Add this line to the crontab alongside the `schedule:run` entry:
-
-```cron
-* * * * * /usr/bin/php /path/to/venta/artisan dph:fetch-statuses >> /dev/null 2>&1
-```
-
-If you don't use DPH, skip this — no dead scheduler entries will clutter `schedule:list`.
-
 ## Upgrading
 
 Pull updates and run:
@@ -101,8 +91,6 @@ If your crontab has **independent lines for `cart:notify` or `seo:generate`** (t
 crontab -e
 # Delete any lines containing `cart:notify` or `seo:generate`. Save.
 ```
-
-If you used the DPH shipping module and want to keep polling, follow step 7 above to add the `dph:fetch-statuses` line. That one replaces the scheduler-registered entry that existed in pre-Automations versions.
 
 ## License
 
