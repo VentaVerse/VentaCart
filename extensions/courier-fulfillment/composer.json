@@ -1,0 +1,17 @@
+{
+    "name": "venta/courier-fulfillment",
+    "description": "Courier fulfillment: book confirmed orders with shipping couriers (QuadX, and future providers) from a dedicated admin page. Generic provider contract — checkout is never touched.",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Extensions\\CourierFulfillment\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Extensions\\CourierFulfillment\\CourierFulfillmentServiceProvider"
+            ]
+        }
+    }
+}

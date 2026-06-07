@@ -31,7 +31,8 @@
             "Database\\Seeders\\": "database/seeders/",
             "Extensions\\PhilippineAddress\\": "extensions/philippine-address/src/",
             "Extensions\\PhilippineAddress\\Database\\Seeders\\": "extensions/philippine-address/database/seeders/",
-            "Extensions\\Banners\\": "extensions/banners/src/"
+            "Extensions\\Banners\\": "extensions/banners/src/",
+            "Extensions\\CourierFulfillment\\": "extensions/courier-fulfillment/src/"
         }
     },
     "autoload-dev": {
