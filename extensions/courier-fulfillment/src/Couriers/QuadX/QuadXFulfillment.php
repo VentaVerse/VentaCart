@@ -58,12 +58,19 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         ];
     }
 
+    /**
+     * Real QuadX API capability: seller_payment_method = cash | gcash | null.
+     * The API does NOT distinguish GCash "Scan QR" vs "Wallet" (both are just
+     * gcash) — that split exists only in QuadX's own dashboard. "Receiver pays
+     * the fee" (COD shipping on top of item value) is a separate mechanism
+     * (a shipping line item added to the total) and isn't offered here yet.
+     */
     public function getShippingPaymentOptions(): array
     {
         return [
-            ['value' => 'net_off', 'label' => 'Deduct from remittance / bill me'],
-            ['value' => 'cash',    'label' => 'Pay cash at pickup'],
-            ['value' => 'gcash',   'label' => 'Pay via GCash at pickup'],
+            ['value' => 'cash',    'label' => "I'll shoulder it — Cash on pickup"],
+            ['value' => 'gcash',   'label' => "I'll shoulder it — GCash at pickup"],
+            ['value' => 'net_off', 'label' => "I'll shoulder it — Deduct from my remittance / bill me"],
         ];
     }
 
@@ -154,15 +161,8 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'pickup_address'   => $this->pickupAddress(),
             'contact_number'   => $order->shipping_phone ?: ($order->phone ?: ''),
             'buyer_name'       => trim($order->shipping_first_name . ' ' . $order->shipping_last_name),
-            'parcel'           => [
-                'dimensions' => [
-                    'width'  => (float) ($opts['width_cm'] ?? 10),
-                    'length' => (float) ($opts['length_cm'] ?? 10),
-                    'height' => (float) ($opts['height_cm'] ?? 10),
-                    'uom'    => 'cm',
-                ],
-                'weight' => ['value' => (float) ($opts['weight_kg'] ?? 1), 'uom' => 'kg'],
-            ],
+            // QuadX prices by parcel category (shipment), not by weight/dimensions —
+            // it accepts orders with no parcel object, so we don't collect or send them.
             'payment_provider' => 'other',
             'payment_method'   => $buyerPayment === 'cod' ? 'cod' : 'other',
             'items'            => $this->items($order),

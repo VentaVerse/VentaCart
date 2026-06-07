@@ -49,10 +49,6 @@ class FulfillmentController extends Controller
             'courier'          => 'required|string',
             'service'          => 'required|string',
             'parcel'           => 'required|string',
-            'weight_kg'        => 'required|numeric|min:0.01',
-            'length_cm'        => 'nullable|numeric|min:0',
-            'width_cm'         => 'nullable|numeric|min:0',
-            'height_cm'        => 'nullable|numeric|min:0',
             'buyer_payment'    => 'required|in:cod,prepaid',
             'shipping_payment' => 'required|string',
         ]);

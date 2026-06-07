@@ -111,24 +111,6 @@
                             </select>
                         </div>
                     </div>
-                    <div class="grid grid-cols-4 gap-3">
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">Weight (kg)</label>
-                            <input type="number" step="0.01" min="0.01" name="weight_kg" value="1" class="w-full rounded-lg border-gray-300 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">L (cm)</label>
-                            <input type="number" step="0.1" min="0" name="length_cm" value="10" class="w-full rounded-lg border-gray-300 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">W (cm)</label>
-                            <input type="number" step="0.1" min="0" name="width_cm" value="10" class="w-full rounded-lg border-gray-300 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-gray-500 mb-1">H (cm)</label>
-                            <input type="number" step="0.1" min="0" name="height_cm" value="10" class="w-full rounded-lg border-gray-300 text-sm">
-                        </div>
-                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-500 mb-1">Buyer pays for goods</label>
