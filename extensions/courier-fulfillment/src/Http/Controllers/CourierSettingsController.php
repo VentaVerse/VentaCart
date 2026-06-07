@@ -23,6 +23,23 @@ class CourierSettingsController extends Controller
         'quadx_production_secret_key',
     ];
 
+    /**
+     * The ONLY keys writable via this form. Anything else in the request is
+     * ignored — prevents arbitrary writes into the 'courier' settings group
+     * (e.g. overwriting the server-generated quadx_webhook_token, which is
+     * deliberately absent here).
+     */
+    private const ALLOWED_KEYS = [
+        'quadx_enabled',
+        'quadx_mode',
+        'quadx_default_service',
+        'quadx_default_parcel',
+        'quadx_staging_api_key',
+        'quadx_staging_secret_key',
+        'quadx_production_api_key',
+        'quadx_production_secret_key',
+    ];
+
     public function index()
     {
         $settings = Setting::where('group', 'courier')->pluck('value', 'key')->toArray();
@@ -59,6 +76,9 @@ class CourierSettingsController extends Controller
     public function update(Request $request)
     {
         $data = $request->input('settings', []);
+
+        // Restrict to an explicit allowlist — never persist arbitrary request keys.
+        $data = array_intersect_key($data, array_flip(self::ALLOWED_KEYS));
 
         foreach ($data as $key => $value) {
             if (in_array($key, self::ENCRYPTED_KEYS, true)) {
