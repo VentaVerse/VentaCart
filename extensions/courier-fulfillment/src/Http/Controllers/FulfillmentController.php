@@ -68,13 +68,16 @@ class FulfillmentController extends Controller
             return back()->with('error', "Booking failed: " . ($result['error'] ?? 'unknown error'));
         }
 
-        $order->update([
+        // forceFill bypasses mass-assignment ($fillable) — the courier_* columns
+        // are extension-owned and not in core Order::$fillable. courier_meta is
+        // json-encoded explicitly since the core model has no cast for it.
+        $order->forceFill([
             'courier_provider'        => $courier->getKey(),
             'courier_tracking_number' => $result['tracking_number'] ?? null,
             'courier_status'          => $result['status'] ?? null,
-            'courier_meta'            => $result['meta'] ?? null,
+            'courier_meta'            => isset($result['meta']) ? json_encode($result['meta']) : null,
             'courier_booked_at'       => now(),
-        ]);
+        ])->save();
 
         return back()->with('success', "Booked with {$courier->getName()} — tracking {$result['tracking_number']}.");
     }
@@ -91,7 +94,7 @@ class FulfillmentController extends Controller
             return back()->with('error', 'Cancel failed: ' . ($result['error'] ?? 'unknown error'));
         }
 
-        $order->update(['courier_status' => 'cancelled']);
+        $order->forceFill(['courier_status' => 'cancelled'])->save();
         return back()->with('success', "Cancelled booking for order #{$order->id}.");
     }
 
@@ -126,7 +129,7 @@ class FulfillmentController extends Controller
         }
 
         if (!empty($result['status'])) {
-            $order->update(['courier_status' => $result['status']]);
+            $order->forceFill(['courier_status' => $result['status']])->save();
         }
         return back()->with('success', "Status: " . ($result['status'] ?? 'unchanged'));
     }

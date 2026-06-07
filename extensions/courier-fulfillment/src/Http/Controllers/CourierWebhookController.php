@@ -57,6 +57,6 @@ class CourierWebhookController extends Controller
             return;
         }
 
-        $order->update(['courier_status' => $event['status']]);
+        $order->forceFill(['courier_status' => $event['status']])->save();
     }
 }
