@@ -296,7 +296,8 @@
                          total explicit when buying more than one, so the big number can't
                          be misread as the total (OpenCart parity: product price is per-unit). --}}
                     <div x-show="quantity > 1" class="mt-1.5 text-sm" style="color: var(--color-text-muted, #888);">
-                        <span class="text-[11px] uppercase tracking-wider">each</span><span x-text="' · ' + quantity + ' × {{ $currencySymbol }}' + displayPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' = {{ $currencySymbol }}' + totalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                        <span class="text-[11px] uppercase tracking-wider">each</span>
+                        <span> · <span x-text="quantity"></span> × {{ $currencySymbol }}<span x-text="displayPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span> = {{ $currencySymbol }}<span x-text="totalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span></span>
                     </div>
 
                     <div x-show="quantity <= 1 && (!hasVariants || !activeVariant)">
