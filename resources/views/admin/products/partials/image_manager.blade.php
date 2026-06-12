@@ -233,6 +233,8 @@ function imageManager() {
     return {
         items: @json($existingImages ?? []),
         pimToken: '{{ $pimToken ?? Str::uuid() }}',
+        root: 'products',
+        defaultFolder: '{{ $defaultFolder ?? 'products' }}',
         showUrlInput: false,
         urlInput: '',
         importingUrl: false,
@@ -464,6 +466,10 @@ function imageManager() {
                 if (lastSlash > 0) {
                     startPath = mainPath.substring(0, lastSlash);
                 }
+            } else {
+                // New product, no images yet — open at products/{brand} so uploads
+                // land in-context (never the bare storage root).
+                startPath = this.defaultFolder;
             }
 
             await this.browseDir(startPath);
@@ -501,6 +507,7 @@ function imageManager() {
             this.browserLoading = true;
             const params = new URLSearchParams();
             if (path) params.set('path', path);
+            if (this.root) params.set('root', this.root);
 
             const res = await fetch(`{{ route('admin.products.images.browse') }}?${params}`);
             const data = await res.json();
@@ -593,7 +600,7 @@ function imageManager() {
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('catalog_path', this.browserCurrentPath);
+            formData.append('catalog_path', this.browserCurrentPath || this.defaultFolder);
 
             try {
                 const res = await fetch('{{ route("admin.products.images.upload-to-catalog") }}', {
@@ -623,7 +630,7 @@ function imageManager() {
                 const res = await fetch('{{ route("admin.products.images.import-url") }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                    body: JSON.stringify({ url: this.urlInput.trim(), store_id: this.getStoreId(), catalog_path: this.browserCurrentPath }),
+                    body: JSON.stringify({ url: this.urlInput.trim(), store_id: this.getStoreId(), catalog_path: this.browserCurrentPath || this.defaultFolder }),
                 });
                 const data = await res.json();
                 if (data.ok) {
