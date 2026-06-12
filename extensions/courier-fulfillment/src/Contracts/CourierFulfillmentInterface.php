@@ -61,6 +61,13 @@ interface CourierFulfillmentInterface
     public function getTracking(string $trackingNumber): array;
 
     /**
+     * Statuses considered final — the scheduled poll stops checking an order
+     * once it reaches one of these, so finished shipments aren't re-polled.
+     * @return string[]
+     */
+    public function terminalStatuses(): array;
+
+    /**
      * @param string $format provider format hint (e.g. 'zebra'|'fuji')
      * @return array{success:bool, url?:string, manifest_url?:string, error?:string}
      */

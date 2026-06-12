@@ -116,6 +116,13 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         return ['success' => true, 'status' => $res['body']['status'] ?? null, 'raw' => $res['body']];
     }
 
+    public function terminalStatuses(): array
+    {
+        // Final states — the poll stops re-checking once an order reaches one.
+        // failed_delivery is NOT terminal (rider retries), so we keep polling it.
+        return ['delivered', 'cancelled', 'returned', 'failed_return'];
+    }
+
     public function printLabel(string $trackingNumber, string $format): array
     {
         $type = in_array($format, ['zebra', 'fuji'], true) ? $format : 'zebra';
