@@ -351,7 +351,15 @@ class CartService
     {
         if ($customerGroupId === null) {
             $customer = Auth::guard('customer')->user();
-            $customerGroupId = $customer?->customer_group_id;
+            // Guests resolve to the default customer group (OpenCart parity) so
+            // Default-group specials/tiers apply in cart/checkout exactly as they
+            // do on the product page.
+            $customerGroupId = $customer?->customer_group_id
+                ?? \Illuminate\Support\Facades\Cache::remember(
+                    'default_customer_group_id',
+                    3600,
+                    fn () => \App\Models\CustomerGroup::where('is_default', true)->value('id')
+                );
         }
         $now = now();
 
