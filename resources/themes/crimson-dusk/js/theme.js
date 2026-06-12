@@ -347,9 +347,14 @@ Alpine.data('addToCart', (config = {}) => ({
         const tier = this.activeTier;
         if (this.hasVariants && this.activeVariant) {
             const variantPrice = parseFloat(this.activeVariant.price);
-            // Apply the quantity tier to variants too, carrying the variant's
-            // price modifier (matches backend CartService::resolvePrice).
-            if (tier) return tier.price + (variantPrice - this.productPrice);
+            // The variant's upcharge over base must be measured from its REGULAR
+            // price. activeVariant.price is already special-discounted by the
+            // controller's ripple, so using it here subtracts the discount twice
+            // (e.g. tier 240 + (240 − 350) = 130 instead of 240). regular_price
+            // is the true variant price; this matches CartService::resolvePrice,
+            // which uses the stored (regular) variant price as its base.
+            const variantRegular = parseFloat(this.activeVariant.regular_price ?? variantPrice);
+            if (tier) return tier.price + (variantRegular - this.productPrice);
             return variantPrice;
         }
         return tier ? tier.price : this.basePrice;
