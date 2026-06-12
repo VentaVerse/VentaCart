@@ -24,14 +24,22 @@ class CustomerGroupVisibilityScope implements Scope
 {
     public function apply(Builder $builder, Model $model): void
     {
-        // Bypass for everything that isn't a customer-facing storefront page:
+        // Bypass for everything that isn't a customer-facing storefront page.
+        // Crucially this is based on WHERE the request is (admin panel vs
+        // storefront), NOT on whether an admin is logged in — an admin
+        // browsing the storefront is not a customer, so they must see what a
+        // guest sees there. Bypassed for:
         //  - CLI (seeders, queue, scheduled jobs)
-        //  - admin panel (web guard authenticated)
-        //  - API requests incl. the ERP sync (/api/*) — must see ALL products
+        //  - admin panel routes (manage all products)
+        //  - API incl. ERP sync (/api/*) — must see ALL products
         $request = request();
+        $adminPrefix = config('admin.prefix', 'admin');
         if (app()->runningInConsole()
-            || Auth::guard('web')->check()
-            || ($request && $request->is('api/*'))) {
+            || ($request && (
+                $request->is($adminPrefix)
+                || $request->is($adminPrefix . '/*')
+                || $request->is('api/*')
+            ))) {
             return;
         }
 
