@@ -505,6 +505,7 @@ function imageManager() {
 
         async browseDir(path) {
             this.browserLoading = true;
+            this.browserSearch = ''; // reset the filter on navigation — a stale search hides files in the new folder
             const params = new URLSearchParams();
             if (path) params.set('path', path);
             if (this.root) params.set('root', this.root);
