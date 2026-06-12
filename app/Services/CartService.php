@@ -365,14 +365,21 @@ class CartService
                 if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
                 if ($s->quantity > $qty) return false;
                 return true;
-            })
-            ->sortBy([['priority', 'asc'], ['price', 'asc']]);
+            });
 
-        $best = $applicableSpecials->first();
-        if ($best) {
-            $effectiveVariantPrice = (float) $best->price + $modifier;
-            if ($effectiveVariantPrice < $bestPrice) {
-                $bestPrice = $effectiveVariantPrice;
+        if ($applicableSpecials->isNotEmpty()) {
+            // Quantity-tier semantics: the DEEPEST tier whose threshold <= qty
+            // wins (the most specific tier for this quantity), regardless of
+            // whether its price is above or below the base. Tie-break within a
+            // tier: lower priority value first, then lower price.
+            $deepestQty = $applicableSpecials->max('quantity');
+            $best = $applicableSpecials
+                ->where('quantity', $deepestQty)
+                ->sortBy([['priority', 'asc'], ['price', 'asc']])
+                ->first();
+
+            if ($best) {
+                $bestPrice = (float) $best->price + $modifier;
             }
         }
 
