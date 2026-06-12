@@ -10,8 +10,8 @@
             </div>
         @else
             @if ($hasOutOfStock)
-            <div class="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-6 reveal">
-                <p class="text-red-300 text-sm">Some items in your cart are out of stock or have insufficient quantity. Please remove or update them before checking out.</p>
+            <div class="bg-red-50 border border-red-300 rounded-lg p-4 mb-6 reveal">
+                <p class="text-red-700 text-sm">Some items in your cart are out of stock or have insufficient quantity. Please remove or update them before checking out.</p>
             </div>
         @endif
 
@@ -40,7 +40,7 @@
                                     <div class="cart-item-variant" x-show="item.variant_label" x-text="item.variant_label"></div>
                                     <div class="cart-item-sku" x-show="item.sku" x-text="'SKU: ' + item.sku"></div>
                                     <div x-show="outOfStockIds.includes(item.id)" class="mt-1">
-                                        <span class="text-xs font-medium text-red-400 bg-red-900/40 px-2 py-0.5 rounded">OUT OF STOCK</span>
+                                        <span class="text-xs font-medium text-red-700 bg-red-100 px-2 py-0.5 rounded">OUT OF STOCK</span>
                                     </div>
                                 </div>
 
