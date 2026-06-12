@@ -540,59 +540,8 @@ class ProductController extends Controller
                 'sort_order' => $index,
             ]);
         }
-
-        // Determine catalog folder based on brand
-        $catalogDir = $this->getCatalogDir($product);
-        $this->moveImagesToDir($product, $catalogDir);
-    }
-
-    protected function getCatalogDir(Product $product): string
-    {
-        $brand = $product->brand;
-        $folder = $brand ? $brand->slug : '';
-
-        return $folder ? "catalog/{$folder}" : 'catalog';
-    }
-
-    protected function moveImagesToDir(Product $product, string $catalogDir): void
-    {
-        // Skip symlinked OpenCart images (catalog/ prefix) — they live outside open_basedir
-        // Move main image if not already in the target directory
-        if ($product->image && !str_starts_with($product->image, 'catalog/') && !str_starts_with($product->image, $catalogDir . '/')) {
-            $newPath = $this->moveFileToDir($product->image, $catalogDir);
-            if ($newPath) {
-                $product->update(['image' => $newPath]);
-            }
-        }
-
-        // Move additional images
-        foreach ($product->images as $img) {
-            if (!str_starts_with($img->path, 'catalog/') && !str_starts_with($img->path, $catalogDir . '/')) {
-                $newPath = $this->moveFileToDir($img->path, $catalogDir);
-                if ($newPath) {
-                    $img->update(['path' => $newPath]);
-                }
-            }
-        }
-    }
-
-    protected function moveFileToDir(string $currentPath, string $targetDir): ?string
-    {
-        if (!Storage::disk('public')->exists($currentPath)) {
-            return null;
-        }
-
-        $newPath = $targetDir . '/' . basename($currentPath);
-        Storage::disk('public')->move($currentPath, $newPath);
-
-        // Move thumbnail too
-        $info = pathinfo($currentPath);
-        $thumbOld = $info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg');
-        if (Storage::disk('public')->exists($thumbOld)) {
-            $thumbNew = $targetDir . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg');
-            Storage::disk('public')->move($thumbOld, $thumbNew);
-        }
-
-        return $newPath;
+        // Image files are persisted at whatever path the upload helper produced
+        // (products/{brand}/… etc.). No relocation here — see the image storage
+        // convention spec. Relocating was the source of a silent-failure bug.
     }
 }

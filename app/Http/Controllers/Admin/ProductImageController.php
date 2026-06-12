@@ -8,19 +8,53 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ProductImageController extends Controller
 {
+    /**
+     * Entity-specific image roots. The OpenCart-era catalog/ umbrella is retired;
+     * every upload lands under one of these (products/{brand}/, brands/, …).
+     */
+    private const IMAGE_ROOTS = ['products', 'brands', 'categories', 'blog', 'banners'];
+
+    /**
+     * Resolve the destination directory for an upload.
+     *  - pim_token (pre-attach staging) → neutral _tmp/{token}
+     *  - {root}/{folder} when a subfolder is given (e.g. products/{brand-slug}/)
+     *  - flat roots (brands, categories, …) store at the root itself
+     *  - brand-less products quarantine to products/_unbranded so products/ stays clean
+     *
+     * @return array{0:string,1:string} [directory, kind]
+     */
+    protected function uploadDirectory(string $root, ?string $folder, ?string $pimToken): array
+    {
+        if ($pimToken && !$folder) {
+            return ["_tmp/{$pimToken}", 'temp'];
+        }
+
+        $safe = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : '';
+        if ($safe !== '') {
+            return ["{$root}/{$safe}", 'final'];
+        }
+
+        $directory = $root === 'products' ? 'products/_unbranded' : $root;
+
+        return [$directory, 'final'];
+    }
+
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
             'file' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'store_id' => ['required', 'exists:stores,id'],
+            'root' => ['nullable', Rule::in(self::IMAGE_ROOTS)],
             'folder' => ['nullable', 'string', 'max:200'],
             'pim_token' => ['nullable', 'string'],
         ]);
 
         $file = $request->file('file');
+        $root = $request->input('root', 'products');
         $folder = $request->input('folder');
         $pimToken = $request->input('pim_token');
 
@@ -29,15 +63,7 @@ class ProductImageController extends Controller
             $file = $this->convertWebpToJpg($file);
         }
 
-        // Determine storage path
-        if ($pimToken && !$folder) {
-            $directory = "catalog/_tmp/{$pimToken}";
-            $kind = 'temp';
-        } else {
-            $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : '';
-            $directory = $safeName ? "catalog/{$safeName}" : 'catalog';
-            $kind = 'final';
-        }
+        [$directory, $kind] = $this->uploadDirectory($root, $folder, $pimToken);
 
         $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
         $path = $file->storeAs($directory, $filename, 'public');
@@ -57,13 +83,25 @@ class ProductImageController extends Controller
         $request->validate([
             'url' => ['required', 'url'],
             'store_id' => ['required', 'exists:stores,id'],
+            'root' => ['nullable', Rule::in(self::IMAGE_ROOTS)],
             'folder' => ['nullable', 'string', 'max:200'],
             'pim_token' => ['nullable', 'string'],
         ]);
 
         $imageUrl = $request->input('url');
-        $folder = $request->input('folder') ?? $request->input('catalog_path');
+        $root = $request->input('root', 'products');
+        $catalogPath = $request->input('catalog_path');
+        $folder = $request->input('folder');
         $pimToken = $request->input('pim_token');
+
+        // Path-direct destination (the browser's current folder) takes precedence
+        // and must be inside an allowed location — reject traversal.
+        if (!empty($catalogPath)) {
+            $normalized = str_replace('\\', '/', $catalogPath);
+            if (str_contains($normalized, '..') || str_contains($normalized, './')) {
+                return response()->json(['ok' => false, 'message' => 'Invalid path.'], 403);
+            }
+        }
 
         try {
             $response = Http::timeout(15)->get($imageUrl);
@@ -87,13 +125,13 @@ class ProductImageController extends Controller
                 default => 'jpg',
             };
 
-            if ($pimToken && !$folder) {
-                $directory = "catalog/_tmp/{$pimToken}";
-                $kind = 'temp';
-            } else {
-                $safeName = $folder ? preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $folder) : '';
-                $directory = $safeName ? "catalog/{$safeName}" : 'catalog';
+            if (!empty($catalogPath)) {
+                // Browser's current folder is already a full entity path.
+                $safe = preg_replace('/[^a-zA-Z0-9_\-\/]/', '', $catalogPath);
+                $directory = $safe !== '' ? $safe : $root;
                 $kind = 'final';
+            } else {
+                [$directory, $kind] = $this->uploadDirectory($root, $folder, $pimToken);
             }
 
             $filename = Str::uuid() . '.' . $ext;
@@ -121,7 +159,18 @@ class ProductImageController extends Controller
 
     public function browse(Request $request): JsonResponse
     {
+        $root = $request->input('root');
+        if ($root !== null && !in_array($root, self::IMAGE_ROOTS, true)) {
+            return response()->json(['ok' => false, 'message' => 'Invalid root.'], 422);
+        }
+
         $relativePath = $request->input('path', '');
+
+        // Default the initial view to the caller's entity root — the manager opens
+        // in-context (products/, brands/, …), never the bare storage root.
+        if ($relativePath === '' && $root) {
+            $relativePath = $root;
+        }
 
         // Prevent path traversal
         $normalized = str_replace('\\', '/', $relativePath);

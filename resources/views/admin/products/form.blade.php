@@ -213,6 +213,7 @@
                 @include('admin.products.partials.image_manager', [
                     'existingImages' => $existingImages,
                     'pimToken' => $pimToken,
+                    'defaultFolder' => $product?->brand?->slug ? 'products/' . $product->brand->slug : 'products',
                 ])
             </div>
 
