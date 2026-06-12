@@ -75,6 +75,7 @@
                  variantTypes: {{ json_encode($variantTypes) }},
                  basePrice: {{ $effectivePrice }},
                  priceTiers: {{ json_encode($priceTiers) }},
+                 productPrice: {{ $product->price }},
                  trackStock: {{ $product->track_stock ? 'true' : 'false' }},
                  productQuantity: {{ $product->quantity }},
                  customerName: '{{ addslashes(auth('customer')->user()?->first_name ?? '') }}',

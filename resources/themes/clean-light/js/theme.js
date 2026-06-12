@@ -310,6 +310,7 @@ Alpine.data('addToCart', (config = {}) => ({
     variantMatrix: config.variantMatrix || {},
     basePrice: config.basePrice || 0,
     priceTiers: config.priceTiers || [],
+    productPrice: config.productPrice || config.basePrice || 0,
     selectedValues: {},
     quantity: 1,
     loading: false,
@@ -343,8 +344,14 @@ Alpine.data('addToCart', (config = {}) => ({
     },
 
     get unitPrice() {
-        if (this.hasVariants && this.activeVariant) return parseFloat(this.activeVariant.price);
         const tier = this.activeTier;
+        if (this.hasVariants && this.activeVariant) {
+            const variantPrice = parseFloat(this.activeVariant.price);
+            // Apply the quantity tier to variants too, carrying the variant's
+            // price modifier (matches backend CartService::resolvePrice).
+            if (tier) return tier.price + (variantPrice - this.productPrice);
+            return variantPrice;
+        }
         return tier ? tier.price : this.basePrice;
     },
 
