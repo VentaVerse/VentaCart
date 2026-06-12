@@ -74,6 +74,7 @@
                  variantMatrix: {{ json_encode($variantMatrix) }},
                  variantTypes: {{ json_encode($variantTypes) }},
                  basePrice: {{ $effectivePrice }},
+                 priceTiers: {{ json_encode($priceTiers) }},
                  trackStock: {{ $product->track_stock ? 'true' : 'false' }},
                  productQuantity: {{ $product->quantity }},
                  customerName: '{{ addslashes(auth('customer')->user()?->first_name ?? '') }}',
@@ -374,6 +375,28 @@
                             </div>
                         @endforeach
 
+                    </div>
+                @endif
+                {{-- Volume / tier pricing (current customer group) --}}
+                @if (!empty($priceTiers) && collect($priceTiers)->where('qty', '>', 1)->isNotEmpty())
+                    <div class="mb-5 rounded-lg border p-3" style="border-color: var(--color-border, #2a2a2a);">
+                        <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--color-text-muted, #888);">Volume pricing</p>
+                        <div class="space-y-1 text-sm">
+                            @foreach ($priceTiers as $i => $tier)
+                                @if ($tier['qty'] > 1)
+                                    @php
+                                        $next = $priceTiers[$i + 1] ?? null;
+                                        $range = $next ? $tier['qty'] . '–' . ($next['qty'] - 1) : $tier['qty'] . '+';
+                                    @endphp
+                                    <div class="flex items-center justify-between"
+                                         :class="activeTier && activeTier.qty === {{ $tier['qty'] }} ? 'font-semibold' : ''"
+                                         :style="activeTier && activeTier.qty === {{ $tier['qty'] }} ? 'color: var(--color-primary)' : 'color: var(--color-text-muted, #999)'">
+                                        <span>{{ $range }} pcs</span>
+                                        <span>{{ $currencySymbol }}{{ number_format($tier['price'], 2) }} each</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
                 @endif
 
