@@ -143,7 +143,7 @@ Route::prefix('account')->name('account.')->middleware(['customer.auth', 'noinde
     Route::get('/orders/{order}', [OrderHistoryController::class, 'show'])->name('orders.show');
 });
 
-Route::middleware('auth')->prefix(config('admin.prefix', 'admin'))->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 'admin'))->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::post('products/quick-create', [ProductController::class, 'quickCreate'])->name('products.quick-create');

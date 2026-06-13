@@ -55,6 +55,12 @@ class CustomerAuthController extends Controller
             'is_active' => true,
         ];
 
+        // Customer "remember me" gets a longer, sliding window (default 5 days) —
+        // multi-device convenience, no single-session or absolute cap.
+        Auth::guard('customer')->setRememberDuration(
+            (int) config('auth.session_policy.customer.remember_minutes', 7200)
+        );
+
         if (!Auth::guard('customer')->attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => __('These credentials do not match our records.'),
