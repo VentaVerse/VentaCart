@@ -22,15 +22,13 @@ class RecentlyViewedController extends Controller
         // Limit to 12, sanitize to integers
         $ids = array_slice(array_map('intval', $ids), 0, 12);
 
-        $currency = \App\Models\Setting::where('key', 'currency_symbol')->value('value') ?? '₱';
-
         $products = Product::where('is_active', true)
             ->whereIn('id', $ids)
             ->with(['images', 'specials'])
             ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
             ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
             ->get()
-            ->map(function ($product) use ($badgeService, $currency) {
+            ->map(function ($product) use ($badgeService) {
                 $galleryImage = $product->images->sortBy('sort_order')->first();
                 $image = $product->image ? (object)['path' => $product->image] : $galleryImage;
                 $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
@@ -84,8 +82,8 @@ class RecentlyViewedController extends Controller
                     'price' => $displayPrice,
                     'sale_price' => $salePrice,
                     'override_price' => $overridePrice,
-                    'formatted_price' => $currency . number_format($displayPrice, 2),
-                    'formatted_sale_price' => $salePrice ? $currency . number_format($salePrice, 2) : null,
+                    'formatted_price' => money($displayPrice),
+                    'formatted_sale_price' => $salePrice ? money($salePrice) : null,
                     'url' => route('product.show', $product->slug),
                     'image' => $image ? storage_url($image->path) : null,
                     'badges' => $badgeService->getBadgesForProduct($product),
