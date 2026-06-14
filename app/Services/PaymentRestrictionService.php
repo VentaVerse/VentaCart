@@ -30,7 +30,8 @@ class PaymentRestrictionService
         ?int $customerGroupId = null,
         array $cartCategoryIds = [],
         array $cartBrandIds = [],
-        ?string $shippingMethodKey = null
+        ?string $shippingMethodKey = null,
+        ?string $currencyCode = null
     ): bool {
         // Normalise key: bank_transfer_1 => bank_transfer
         $baseKey = preg_replace('/_\d+$/', '', $paymentKey);
@@ -80,6 +81,13 @@ class PaymentRestrictionService
 
         if (!empty($restriction->shipping_method_keys) && $shippingMethodKey !== null) {
             if (!in_array($shippingMethodKey, $restriction->shipping_method_keys, true)) {
+                return false;
+            }
+        }
+
+        // Active display currency must be among the allowed currencies
+        if (!empty($restriction->currency_codes) && $currencyCode !== null) {
+            if (!in_array($currencyCode, $restriction->currency_codes, true)) {
                 return false;
             }
         }
@@ -139,6 +147,13 @@ class PaymentRestrictionService
         // Exclude brands
         if (!empty($restriction->exclude_brand_ids) && !empty($cartBrandIds)) {
             if (!empty(array_intersect($restriction->exclude_brand_ids, $cartBrandIds))) {
+                return false;
+            }
+        }
+
+        // Exclude active display currency
+        if (!empty($restriction->exclude_currency_codes) && $currencyCode !== null) {
+            if (in_array($currencyCode, $restriction->exclude_currency_codes, true)) {
                 return false;
             }
         }

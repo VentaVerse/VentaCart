@@ -105,6 +105,7 @@ class PaymentRestrictionController extends Controller
             'category_ids' => ['nullable', 'array'],
             'brand_ids' => ['nullable', 'array'],
             'shipping_method_keys' => ['nullable', 'array'],
+            'currency_codes' => ['nullable', 'array'],
             'min_total' => ['nullable', 'numeric', 'min:0'],
             'max_total' => ['nullable', 'numeric', 'min:0'],
             'min_weight' => ['nullable', 'numeric', 'min:0'],
@@ -115,6 +116,7 @@ class PaymentRestrictionController extends Controller
             'exclude_customer_group_ids' => ['nullable', 'array'],
             'exclude_category_ids' => ['nullable', 'array'],
             'exclude_brand_ids' => ['nullable', 'array'],
+            'exclude_currency_codes' => ['nullable', 'array'],
             'is_active' => ['boolean'],
         ];
 
@@ -136,9 +138,9 @@ class PaymentRestrictionController extends Controller
     {
         $arrayFields = [
             'geo_zone_ids', 'customer_group_ids', 'category_ids', 'brand_ids',
-            'shipping_method_keys',
+            'shipping_method_keys', 'currency_codes',
             'exclude_geo_zone_ids', 'exclude_customer_group_ids',
-            'exclude_category_ids', 'exclude_brand_ids',
+            'exclude_category_ids', 'exclude_brand_ids', 'exclude_currency_codes',
         ];
 
         foreach ($arrayFields as $field) {
@@ -161,6 +163,7 @@ class PaymentRestrictionController extends Controller
                 ['key' => 'flat_rate', 'name' => 'Flat Rate'],
                 ['key' => 'dhl', 'name' => 'DHL Express'],
             ],
+            'currencies' => \App\Models\Currency::orderByDesc('is_default')->orderBy('code')->get(),
         ];
     }
 }
