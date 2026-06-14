@@ -126,6 +126,10 @@
             if (!path) return '';
             return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
         };
+        window.__currency = { symbol: @json($activeCurrency?->symbol ?? '₱'), rate: {{ (float) ($activeCurrency?->rate ?? 1) }} };
+        window.money = function(amount) {
+            return window.__currency.symbol + (Number(amount) * window.__currency.rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
     </script>
     @stack('head')
 </head>
@@ -172,7 +176,7 @@
             <div class="flex items-center gap-5">
                 {{-- Currency Selector --}}
                 @if ($currencies->count() > 1)
-                    <div class="currency-selector" x-data="currencySelector({ current: '{{ $defaultCurrency?->code ?? 'PHP' }}', symbol: '{{ $defaultCurrency?->symbol ?? '₱' }}' })">
+                    <div class="currency-selector" x-data="currencySelector({ current: '{{ $activeCurrency?->code ?? 'PHP' }}', symbol: '{{ $activeCurrency?->symbol ?? '₱' }}' })">
                         <button @click="toggle()" type="button">
                             <span class="led led-green mr-1"></span>
                             <span x-text="current"></span>

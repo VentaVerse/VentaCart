@@ -186,14 +186,28 @@
 
                     <div class="space-y-2">
                         @foreach ($currencies as $cur)
-                            <div class="flex items-center gap-4 bg-gray-50 rounded-lg p-3">
+                            <div class="flex items-center gap-4 bg-gray-50 rounded-lg p-3 {{ $cur->is_enabled ? '' : 'opacity-60' }}">
                                 <span class="font-mono text-sm font-bold w-10">{{ $cur->code }}</span>
                                 <span class="text-sm flex-1">{{ $cur->name }}</span>
                                 <span class="text-sm text-gray-500">{{ $cur->symbol }}</span>
                                 <span class="text-sm text-gray-500">Rate: {{ $cur->rate }}</span>
                                 @if ($cur->is_default)
                                     <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Default</span>
+                                    <span class="text-xs text-gray-400" title="The default currency is the price base and can't be turned off.">Always on</span>
                                 @else
+                                    <span class="text-xs px-2 py-0.5 rounded {{ $cur->is_enabled ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600' }}">
+                                        {{ $cur->is_enabled ? 'Enabled' : 'Disabled' }}
+                                    </span>
+                                    <form method="POST" action="{{ route('admin.theme.currencies.update', $cur) }}" class="inline">
+                                        @csrf @method('PUT')
+                                        <input type="hidden" name="name" value="{{ $cur->name }}">
+                                        <input type="hidden" name="symbol" value="{{ $cur->symbol }}">
+                                        <input type="hidden" name="rate" value="{{ $cur->rate }}">
+                                        <input type="hidden" name="is_enabled" value="{{ $cur->is_enabled ? 0 : 1 }}">
+                                        <button type="submit" class="text-sm {{ $cur->is_enabled ? 'text-amber-600 hover:text-amber-800' : 'text-emerald-600 hover:text-emerald-800' }}">
+                                            {{ $cur->is_enabled ? 'Disable' : 'Enable' }}
+                                        </button>
+                                    </form>
                                     <form method="POST" action="{{ route('admin.theme.currencies.update', $cur) }}" class="inline">
                                         @csrf @method('PUT')
                                         <input type="hidden" name="name" value="{{ $cur->name }}">

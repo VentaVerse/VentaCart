@@ -45,7 +45,9 @@ class CurrencyController extends Controller
             'name' => $request->input('name'),
             'symbol' => $request->input('symbol'),
             'rate' => $request->input('rate'),
-            'is_enabled' => $request->boolean('is_enabled'),
+            // The default currency is the base for every price and conversion, so
+            // it can never be disabled — force it on regardless of the request.
+            'is_enabled' => $currency->is_default ? true : $request->boolean('is_enabled'),
         ]);
 
         if ($request->boolean('is_default') && !$currency->is_default) {

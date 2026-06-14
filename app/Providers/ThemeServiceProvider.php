@@ -20,6 +20,7 @@ class ThemeServiceProvider extends ServiceProvider
             $theme = app(ThemeService::class);
             $view->with('theme', $theme);
             $view->with('defaultCurrency', $theme->getDefaultCurrency());
+            $view->with('activeCurrency', $theme->getActiveCurrency());
             $view->with('badgeService', app(BadgeService::class));
         });
     }
