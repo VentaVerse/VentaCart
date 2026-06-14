@@ -445,6 +445,11 @@
                     </div>
 
                     {{-- Place Order --}}
+                    @if ($activeCurrency && !$activeCurrency->is_default)
+                        <p class="text-xs text-[var(--color-text-muted)] text-right mb-3">
+                            Prices shown in {{ $activeCurrency->code }} — your order is charged in {{ $defaultCurrency->code }}.
+                        </p>
+                    @endif
                     <div class="flex items-center justify-end gap-3">
                         <button @click="goToStep(1)" class="account-btn-secondary">Back</button>
                         <button @click="submitOrder()"
@@ -497,7 +502,7 @@
                                 </div>
                                 <div class="flex-shrink-0 text-right">
                                     <div class="text-sm text-[#E8E8E8] font-medium">
-                                        {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                        <span x-text="money((item.price * item.quantity))"></span>
                                     </div>
                                     <button type="button" @click="removeCheckoutItem(item)"
                                         class="text-[10px] text-[#555] hover:text-red-400 mt-1 transition-colors">Remove</button>
@@ -511,7 +516,7 @@
                     {{-- Subtotal --}}
                     <div class="flex justify-between text-sm mb-3">
                         <span class="text-[#888]">Subtotal</span>
-                        <span class="text-[#E8E8E8]"class="font-heading">{{ $currencySymbol }}<span x-text="subtotal.toFixed(2)"></span></span>
+                        <span class="text-[#E8E8E8]"class="font-heading"><span x-text="money(subtotal)"></span></span>
                     </div>
 
                     {{-- Shipping Methods --}}
@@ -540,7 +545,7 @@
                                                 <span class="text-emerald-400">FREE</span>
                                             </template>
                                             <template x-if="sm.cost > 0">
-                                                <span>{{ $currencySymbol }}<span x-text="sm.cost.toFixed(2)"></span></span>
+                                                <span><span x-text="money(sm.cost)"></span></span>
                                             </template>
                                         </span>
                                     </label>
@@ -580,7 +585,7 @@
                             <div>
                                 <div class="flex items-center justify-between text-sm">
                                     <span class="text-[#888]">Coupon <span class="font-medium text-[#E8E8E8]" x-text="couponCode"></span></span>
-                                    <span class="text-emerald-400">-{{ $currencySymbol }}<span x-text="couponDiscount.toFixed(2)"></span></span>
+                                    <span class="text-emerald-400">-<span x-text="money(couponDiscount)"></span></span>
                                 </div>
                                 <template x-if="couponFreeShipping">
                                     <div class="text-xs text-emerald-400 mt-0.5">+ Free shipping</div>
@@ -595,7 +600,7 @@
                     {{-- Total --}}
                     <div class="flex justify-between">
                         <span class="text-[#E8E8E8]" class="font-heading-wide">TOTAL</span>
-                        <span class="text-xl text-[#E8E8E8]"class="font-heading">{{ $currencySymbol }}<span x-text="total.toFixed(2)"></span></span>
+                        <span class="text-xl text-[#E8E8E8]"class="font-heading"><span x-text="money(total)"></span></span>
                     </div>
                 </div>
             </div>
@@ -644,7 +649,7 @@
                                     <div class="text-xs opacity-50" x-text="'Qty: ' + item.quantity"></div>
                                 </div>
                                 <div class="text-sm font-medium flex-shrink-0">
-                                    {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                    <span x-text="money((item.price * item.quantity))"></span>
                                 </div>
                             </div>
                         </template>
@@ -675,7 +680,7 @@
                                 <span class="text-emerald-500">FREE</span>
                             </template>
                             <template x-if="selectedShippingMethod && selectedShippingMethod.cost > 0">
-                                <span>{{ $currencySymbol }}<span x-text="selectedShippingMethod.cost.toFixed(2)"></span></span>
+                                <span><span x-text="money(selectedShippingMethod.cost)"></span></span>
                             </template>
                         </span>
                     </div>
@@ -699,7 +704,7 @@
                 <div class="checkout-modal-totals">
                     <div class="flex justify-between text-sm">
                         <span>Subtotal</span>
-                        <span>{{ $currencySymbol }}<span x-text="subtotal.toFixed(2)"></span></span>
+                        <span><span x-text="money(subtotal)"></span></span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span>Shipping</span>
@@ -708,19 +713,19 @@
                                 <span class="text-emerald-500">FREE</span>
                             </template>
                             <template x-if="effectiveShippingCost > 0">
-                                <span>{{ $currencySymbol }}<span x-text="effectiveShippingCost.toFixed(2)"></span></span>
+                                <span><span x-text="money(effectiveShippingCost)"></span></span>
                             </template>
                         </span>
                     </div>
                     <template x-if="couponCode">
                         <div class="flex justify-between text-sm text-emerald-400">
                             <span>Coupon (<span x-text="couponCode"></span>)</span>
-                            <span>-{{ $currencySymbol }}<span x-text="couponDiscount.toFixed(2)"></span></span>
+                            <span>-<span x-text="money(couponDiscount)"></span></span>
                         </div>
                     </template>
                     <div class="checkout-modal-total-line">
                         <span>Total</span>
-                        <span class="text-lg font-bold">{{ $currencySymbol }}<span x-text="total.toFixed(2)"></span></span>
+                        <span class="text-lg font-bold"><span x-text="money(total)"></span></span>
                     </div>
                 </div>
 

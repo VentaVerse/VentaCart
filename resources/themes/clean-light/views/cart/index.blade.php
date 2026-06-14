@@ -45,7 +45,7 @@
                                 </div>
 
                                 <div class="cart-item-price" class="font-heading">
-                                    {{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="parseFloat(item.price).toFixed(2)"></span>
+                                    <span x-text="money(parseFloat(item.price))"></span>
                                 </div>
 
                                 <div class="cart-item-qty">
@@ -55,7 +55,7 @@
                                 </div>
 
                                 <div class="cart-item-total" class="font-heading">
-                                    {{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                    <span x-text="money((item.price * item.quantity))"></span>
                                 </div>
 
                                 <button @click="removeItem(item)" class="cart-item-remove" title="Remove">
@@ -73,7 +73,7 @@
 
                         <div class="flex justify-between text-sm mb-3">
                             <span class="text-[var(--color-text-muted)]">Subtotal</span>
-                            <span class="text-[var(--color-text-heading)]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                            <span class="text-[var(--color-text-heading)]" class="font-heading"><span x-text="money(subtotal)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
                         {{-- Shipping Estimate --}}
@@ -150,7 +150,7 @@
                                                         <span class="text-emerald-400">FREE</span>
                                                     </template>
                                                     <template x-if="m.cost > 0">
-                                                        <span>{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="m.cost.toFixed(2)"></span></span>
+                                                        <span><span x-text="money(m.cost)"></span></span>
                                                     </template>
                                                 </span>
                                             </div>
@@ -175,7 +175,7 @@
 
                         <div class="flex justify-between mb-6">
                             <span class="text-[var(--color-text-heading)]" class="font-heading-wide">TOTAL</span>
-                            <span class="text-xl text-[var(--color-text-heading)]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                            <span class="text-xl text-[var(--color-text-heading)]" class="font-heading"><span x-text="money(subtotal)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
                         <template x-if="outOfStockIds.length > 0">

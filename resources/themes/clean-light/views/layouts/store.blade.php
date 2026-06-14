@@ -269,7 +269,7 @@
                                         </div>
                                         <div class="flex-1 min-w-0">
                                             <div class="text-sm text-[var(--color-text)] truncate" x-text="item.name"></div>
-                                            <div class="text-sm font-bold" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;" x-text="'{{ $defaultCurrency?->symbol ?? '₱' }}' + item.price"></div>
+                                            <div class="text-sm font-bold" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;" x-text="money(item.price)"></div>
                                         </div>
                                     </a>
                                 </template>
@@ -285,7 +285,7 @@
             {{-- Cart --}}
             <div class="relative flex-shrink-0" x-data="miniCart({{ $cartCount }}, {{ $cartSubtotal }}, '{{ $defaultCurrency?->symbol ?? '₱' }}')" @mouseenter="onHover()" @mouseleave="onLeave()">
                 <a href="{{ route('cart.index') }}" class="cart-btn" x-on:cart-updated.window="onCartUpdated($event.detail)">
-                    <span class="hidden sm:inline font-mono text-xs cart-text" x-text="count + ' item(s) - ' + symbol + subtotal.toFixed(2)">{{ $cartCount }} item(s) - {{ $defaultCurrency?->symbol ?? '₱' }}{{ number_format($cartSubtotal, 2) }}</span>
+                    <span class="hidden sm:inline font-mono text-xs cart-text" x-text="count + ' item(s) - ' + money(subtotal)">{{ $cartCount }} item(s) - {{ money($cartSubtotal) }}</span>
                     <div class="relative">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"/></svg>
                         <span class="cart-badge absolute -top-1.5 -right-1.5 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center" style="background: var(--color-primary); color: #FFFFFF;" x-text="count">{{ $cartCount }}</span>
@@ -370,7 +370,7 @@
                                     </div>
                                     <div class="flex-1 min-w-0">
                                         <div class="text-sm text-[var(--color-text)] truncate" x-text="item.name"></div>
-                                        <div class="text-sm font-bold" style="color: var(--color-primary);" x-text="'{{ $defaultCurrency?->symbol ?? '₱' }}' + item.price"></div>
+                                        <div class="text-sm font-bold" style="color: var(--color-primary);" x-text="money(item.price)"></div>
                                     </div>
                                 </a>
                             </template>
