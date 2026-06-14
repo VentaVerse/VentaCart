@@ -41,6 +41,12 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
+        // Cap the admin "remember me" cookie to a short window (default 24h)
+        // instead of Laravel's ~5-year default.
+        Auth::guard('web')->setRememberDuration(
+            (int) config('auth.session_policy.admin.remember_minutes', 1440)
+        );
+
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 

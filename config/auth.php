@@ -121,4 +121,26 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Session Policy (Venta)
+    |--------------------------------------------------------------------------
+    |
+    | Deliberately different rules per guard. Admin: single active session,
+    | a short remember window, and a hard absolute cap (forced re-login after
+    | N minutes from login regardless of activity). Customer: a longer, sliding
+    | remember window with multi-device convenience. All values are minutes.
+    |
+    */
+
+    'session_policy' => [
+        'admin' => [
+            'remember_minutes' => (int) env('ADMIN_REMEMBER_MINUTES', 1440),       // 24h
+            'absolute_cap_minutes' => (int) env('ADMIN_SESSION_CAP_MINUTES', 1440), // 24h hard cap
+        ],
+        'customer' => [
+            'remember_minutes' => (int) env('CUSTOMER_REMEMBER_MINUTES', 7200),    // 5 days
+        ],
+    ],
+
 ];
