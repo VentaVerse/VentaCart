@@ -6,9 +6,6 @@
             <nav class="flex border-b border-gray-200 overflow-x-auto">
                 @php
                     $tabs = [['id' => 'countries', 'label' => 'Countries'], ['id' => 'zones', 'label' => 'Zones'], ['id' => 'geo-zones', 'label' => 'Geo Zones']];
-                    if (!empty($phExtensionInstalled)) {
-                        $tabs[] = ['id' => 'ph-reference', 'label' => 'PH Reference'];
-                    }
                 @endphp
                 @foreach ($tabs as $t)
                     <button type="button" @click="activeTab = '{{ $t['id'] }}'"
@@ -273,7 +270,7 @@
                         @csrf
                         <div class="flex-1">
                             <label class="block text-xs text-gray-600 mb-1">Name</label>
-                            <input type="text" name="name" required class="block w-full rounded-md border-gray-300 text-sm" placeholder="e.g. Metro Manila">
+                            <input type="text" name="name" required class="block w-full rounded-md border-gray-300 text-sm" placeholder="e.g. Domestic">
                         </div>
                         <div class="flex-1">
                             <label class="block text-xs text-gray-600 mb-1">Description</label>
@@ -288,10 +285,6 @@
                 </div>
             </div>
 
-            {{-- ==================== PH REFERENCE (Extension) ==================== --}}
-            @if (!empty($phExtensionInstalled))
-                @include('ph-address::localization-tab')
-            @endif
         </div>
 
         {{-- Toast --}}

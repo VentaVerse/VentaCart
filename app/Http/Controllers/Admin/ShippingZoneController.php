@@ -57,7 +57,6 @@ class ShippingZoneController extends Controller
 
                 ShippingZoneRate::create([
                     'geo_zone_id' => $zone->id,
-                    'shipping_zone_id' => null,
                     'customer_group_id' => $customerGroupId,
                     'weight_from' => $row['weight_from'],
                     'weight_to' => $row['weight_to'] ?? null,

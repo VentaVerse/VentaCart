@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ShippingZoneRate extends Model
 {
     protected $fillable = [
-        'shipping_zone_id', 'customer_group_id',
+        'geo_zone_id', 'customer_group_id',
         'weight_from', 'weight_to', 'cost', 'free_shipping_threshold',
     ];
 
@@ -21,7 +21,7 @@ class ShippingZoneRate extends Model
 
     public function zone(): BelongsTo
     {
-        return $this->belongsTo(ShippingZone::class, 'shipping_zone_id');
+        return $this->belongsTo(GeoZone::class, 'geo_zone_id');
     }
 
     public function customerGroup(): BelongsTo

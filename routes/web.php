@@ -50,6 +50,7 @@ use App\Http\Controllers\Storefront\CheckoutController as StorefrontCheckoutCont
 use App\Http\Controllers\Storefront\CouponController as StorefrontCouponController;
 use App\Http\Controllers\Storefront\HitPayWebhookController;
 use App\Http\Controllers\Storefront\AddressLookupController as StorefrontAddressLookupController;
+use App\Http\Controllers\Storefront\DeepAddressLookupController;
 use App\Http\Controllers\Storefront\BrandController as StorefrontBrandController;
 use App\Http\Controllers\Storefront\RecentlyViewedController;
 use App\Http\Controllers\Storefront\ReviewController as StorefrontReviewController;
@@ -121,7 +122,10 @@ Route::prefix('address-lookup')->name('storefront.address.')->group(function () 
     Route::get('/countries', [StorefrontAddressLookupController::class, 'countries'])->name('countries');
     Route::get('/zones', [StorefrontAddressLookupController::class, 'zones'])->name('zones');
     Route::get('/providers', [StorefrontAddressLookupController::class, 'providers'])->name('providers');
-    // Country-specific routes (e.g. ph-provinces, ph-cities) are provided by their respective address extensions
+    // Deep sub-levels (e.g. PH city/barangay) — read on-demand from bundled files, config-driven per country
+    Route::get('/deep/{country}/{level}', [DeepAddressLookupController::class, 'level'])
+        ->where(['country' => '[A-Za-z]{2}', 'level' => '[a-z_]+'])
+        ->name('deep');
 });
 
 // Customer Account (authenticated)
@@ -161,7 +165,7 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
     // Address Lookups
     Route::get('/address/countries', [AddressLookupController::class, 'countries'])->name('address.countries');
     Route::get('/address/zones', [AddressLookupController::class, 'zones'])->name('address.zones');
-    // PH-specific routes (ph-provinces, ph-cities, ph-districts, ph-barangays) are provided by the PhilippineAddress extension
+    // Deep-address lookups (e.g. PH city/barangay) are read on-demand from bundled files; routes added when the deep tier is enabled.
 
     // Orders
     Route::get('/orders/search-products', [OrderController::class, 'searchProducts'])->name('orders.search-products');

@@ -17,7 +17,7 @@ class LocalizationController extends Controller
 
         $countries = Country::withCount('zones')->orderBy('sort_order')->orderBy('name')->get();
 
-        $selectedCountry = $request->input('country', Country::where('iso2', 'PH')->value('id'));
+        $selectedCountry = (int) $request->input('country', Country::where('iso2', 'PH')->value('id'));
         $zones = Zone::where('country_id', $selectedCountry)->orderBy('name')->get();
         $countryList = Country::orderBy('sort_order')->orderBy('name')->pluck('name', 'id');
 

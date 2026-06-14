@@ -49,10 +49,39 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        $this->registerDeepAddressProviders();
+
         // Expose address provider manifest to storefront layouts
         View::composer('layouts.store', function ($view) {
             $registry = app(AddressProviderRegistry::class);
             $view->with('addressProviders', $registry->toFrontendManifest());
+        });
+    }
+
+    /**
+     * Register config-driven deep-address providers (e.g. PH city/barangay).
+     * Gated by the `ph_address_enabled` setting (default on); skips cleanly if
+     * the settings table isn't available yet (e.g. during migrations).
+     */
+    private function registerDeepAddressProviders(): void
+    {
+        $this->app->booted(function () {
+            try {
+                $enabled = Setting::where('group', 'extensions')
+                    ->where('key', 'ph_address_enabled')
+                    ->value('value');
+
+                if ($enabled === '0') {
+                    return;
+                }
+
+                $registry = app(AddressProviderRegistry::class);
+                foreach (config('localization.deep_address', []) as $iso => $config) {
+                    $registry->register(new \App\Services\Address\DeepAddressProvider($iso, $config));
+                }
+            } catch (\Throwable) {
+                // Settings table or DB may be unavailable during early boot/migrations.
+            }
         });
     }
 

@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\FlatShippingRate;
 use App\Models\FreeShippingRule;
 use App\Models\PaymentMethodRestriction;
-use App\Models\WeightBasedMethod;
 
 class GeoZone extends Model
 {
@@ -41,9 +40,9 @@ class GeoZone extends Model
                 }
             });
 
-            // Null out flat rate and weight-based references
+            // Null out flat rate references. (Weight-based methods reference geo zones
+            // via the weight_based_method_geo_zone pivot, which the FK cascades on delete.)
             FlatShippingRate::where('geo_zone_id', $id)->update(['geo_zone_id' => null]);
-            WeightBasedMethod::where('geo_zone_id', $id)->update(['geo_zone_id' => null]);
         });
     }
 
