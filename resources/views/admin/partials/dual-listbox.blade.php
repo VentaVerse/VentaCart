@@ -7,7 +7,9 @@
 <div x-data="{
     search: '',
     allItems: @js($items),
-    selectedIds: @js(array_map('intval', $selected)),
+    // Coerce numeric ids to int (so old() string values match integer item ids),
+    // but preserve non-numeric ids like currency codes ('USD') as strings.
+    selectedIds: @js(array_values($selected)).map(v => /^-?\d+$/.test(String(v)) ? parseInt(v, 10) : v),
     showList: false,
     highlightedAvailable: [],
     highlightedSelected: [],
