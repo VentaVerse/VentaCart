@@ -188,9 +188,21 @@
                         @foreach ($currencies as $cur)
                             <div class="flex items-center gap-4 bg-gray-50 rounded-lg p-3 {{ $cur->is_enabled ? '' : 'opacity-60' }}">
                                 <span class="font-mono text-sm font-bold w-10">{{ $cur->code }}</span>
-                                <span class="text-sm flex-1">{{ $cur->name }}</span>
-                                <span class="text-sm text-gray-500">{{ $cur->symbol }}</span>
-                                <span class="text-sm text-gray-500">Rate: {{ $cur->rate }}</span>
+                                {{-- Inline edit: name, symbol, rate --}}
+                                <form method="POST" action="{{ route('admin.theme.currencies.update', $cur) }}" class="flex items-center gap-2 flex-1">
+                                    @csrf @method('PUT')
+                                    {{-- Preserve enabled state: the controller reads is_enabled on every update. --}}
+                                    <input type="hidden" name="is_enabled" value="{{ $cur->is_enabled ? 1 : 0 }}">
+                                    <input type="text" name="name" value="{{ $cur->name }}" required maxlength="255"
+                                           class="flex-1 min-w-0 rounded border-gray-300 text-sm py-1" placeholder="Name">
+                                    <input type="text" name="symbol" value="{{ $cur->symbol }}" required maxlength="10"
+                                           class="w-14 rounded border-gray-300 text-sm py-1 text-center" placeholder="₱">
+                                    <input type="number" name="rate" value="{{ $cur->rate }}" step="0.000001" min="0.000001" required
+                                           @if ($cur->is_default) readonly @endif
+                                           class="w-32 rounded border-gray-300 text-sm py-1 {{ $cur->is_default ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : '' }}"
+                                           title="{{ $cur->is_default ? 'Base currency — its rate is always 1.' : 'Units of '.$cur->code.' per 1 '.($defaultCurrency?->code ?? 'base') }}">
+                                    <button type="submit" class="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 shrink-0">Save</button>
+                                </form>
                                 @if ($cur->is_default)
                                     <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Default</span>
                                     <span class="text-xs text-gray-400" title="The default currency is the price base and can't be turned off.">Always on</span>
