@@ -66,8 +66,7 @@ class SearchController extends Controller
         $products = Product::where('is_active', true)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'LIKE', "%{$query}%")
-                  ->orWhere('sku', 'LIKE', "%{$query}%")
-                  ->orWhere('model', 'LIKE', "%{$query}%");
+                  ->orWhere('sku', 'LIKE', "%{$query}%");
             })
             ->with('images')
             ->limit(6)
@@ -77,7 +76,7 @@ class SearchController extends Controller
                 return [
                     'name' => $product->name,
                     'slug' => $product->slug,
-                    'price' => number_format($product->price, 2),
+                    'price' => (float) $product->price,
                     'image' => $image ? asset('storage/' . $image->path) : null,
                     'url' => route('product.show', $product->slug),
                 ];
