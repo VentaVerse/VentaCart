@@ -4,12 +4,21 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Removes the standalone philippine-address extension's tables.
+ *
+ * The PH deep-address levels (city, barangay) are no longer stored in the DB;
+ * they are read on-demand from bundled files in database/data/ph/. The single
+ * sub-national level (province) lives in the generic `zones` table like every
+ * other country. See docs/superpowers/specs/2026-06-14-global-localization-design.md
+ */
 return new class extends Migration
 {
-    public function up(): void
+    public function down(): void
     {
+        // Recreate the original structure (schema only — data is not restorable).
         if (Schema::hasTable('ph_regions')) {
-            return; // Already exists — skip (migrated from core or previous install)
+            return;
         }
 
         Schema::create('ph_regions', function (Blueprint $table) {
@@ -45,7 +54,7 @@ return new class extends Migration
         });
     }
 
-    public function down(): void
+    public function up(): void
     {
         Schema::dropIfExists('ph_barangays');
         Schema::dropIfExists('ph_cities');

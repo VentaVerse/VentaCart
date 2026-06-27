@@ -330,7 +330,7 @@
                         state: '',
                         postcode: '',
                         phone: '',
-                        country_id: '{{ \App\Models\Country::where("iso2", "PH")->value("id") ?? "" }}',
+                        country_id: '',
                         is_default: this.addresses.length === 0,
                     });
                     const idx = this.addresses.length - 1;

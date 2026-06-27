@@ -117,12 +117,12 @@
 
         <div class="product-price">
             @if ($salePrice)
-                <span class="product-price-old">{{ $currency->symbol }}{{ number_format($price, 2) }}</span>
-                <span class="product-price-sale">{{ $currency->symbol }}{{ number_format($salePrice, 2) }}</span>
+                <span class="product-price-old">{{ money($price) }}</span>
+                <span class="product-price-sale">{{ money($salePrice) }}</span>
             @elseif ($overridePrice)
-                {{ $currency->symbol }}{{ number_format($overridePrice, 2) }}
+                {{ money($overridePrice) }}
             @else
-                {{ $currency->symbol }}{{ number_format($price, 2) }}
+                {{ money($price) }}
             @endif
         </div>
     </div>

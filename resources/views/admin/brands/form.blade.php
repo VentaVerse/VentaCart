@@ -30,6 +30,7 @@
                     @include('admin.partials.single_image_picker', [
                         'fieldName' => 'image',
                         'currentImage' => $brand?->image,
+                        'root' => 'brands',
                         'defaultFolder' => 'Brands',
                         'hint' => 'Recommended: transparent PNG, square or horizontal',
                     ])

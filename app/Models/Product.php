@@ -25,6 +25,9 @@ class Product extends Model
 
     protected static function booted(): void
     {
+        // Storefront customer-group visibility (admin + CLI bypass it).
+        static::addGlobalScope(new \App\Models\Scopes\CustomerGroupVisibilityScope());
+
         static::creating(function (Product $product) {
             if (is_null($product->date_available)) {
                 $product->date_available = now();

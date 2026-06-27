@@ -204,7 +204,7 @@
                                     <h3 class="text-sm font-semibold text-gray-900">Choose Featured Image</h3>
                                     <span class="text-gray-300">|</span>
                                     <nav class="flex items-center gap-0.5 text-sm">
-                                        <button type="button" @click="browseDir('')" class="text-indigo-600 hover:text-indigo-800 font-medium">catalog</button>
+                                        <button type="button" @click="browseDir(root)" class="text-indigo-600 hover:text-indigo-800 font-medium">blog</button>
                                         <template x-for="(crumb, i) in breadcrumbs" :key="i">
                                             <span class="flex items-center gap-0.5">
                                                 <span class="text-gray-400">/</span>
@@ -312,6 +312,7 @@
                 folders: [],
                 files: [],
                 lastBrowsedPath: null,
+                root: 'blog',
 
                 get previewUrl() {
                     if (!this.selectedPath) return '';
@@ -336,16 +337,11 @@
                     } else if (this.selectedPath) {
                         const lastSlash = this.selectedPath.lastIndexOf('/');
                         if (lastSlash > 0) {
-                            let folder = this.selectedPath.substring(0, lastSlash);
-                            if (folder.startsWith('catalog/')) {
-                                folder = folder.substring(8);
-                            } else if (folder === 'catalog') {
-                                folder = '';
-                            }
-                            startPath = folder;
+                            // Navigate to the existing image's folder (full path).
+                            startPath = this.selectedPath.substring(0, lastSlash);
                         }
                     } else {
-                        startPath = 'blog';
+                        startPath = this.root;
                     }
 
                     await this.browseDir(startPath);
@@ -353,8 +349,10 @@
 
                 async browseDir(path) {
                     this.loading = true;
-                    const params = path ? '?path=' + encodeURIComponent(path) : '';
-                    const res = await fetch(`{{ route('admin.products.images.browse') }}${params}`);
+                    const qs = new URLSearchParams();
+                    if (path) qs.set('path', path);
+                    qs.set('root', this.root);
+                    const res = await fetch(`{{ route('admin.products.images.browse') }}?${qs}`);
                     const data = await res.json();
                     if (data.ok) {
                         this.currentPath = data.path;

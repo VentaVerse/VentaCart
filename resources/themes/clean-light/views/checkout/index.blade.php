@@ -445,6 +445,11 @@
                     </div>
 
                     {{-- Place Order --}}
+                    @if ($activeCurrency && !$activeCurrency->is_default)
+                        <p class="text-xs text-[var(--color-text-muted)] text-right mb-3">
+                            Prices shown in {{ $activeCurrency->code }} — your order is charged in {{ $defaultCurrency->code }}.
+                        </p>
+                    @endif
                     <div class="flex items-center justify-end gap-3">
                         <button @click="goToStep(1)" class="account-btn-secondary">Back</button>
                         <button @click="submitOrder()"
@@ -473,10 +478,10 @@
                         <template x-for="item in items" :key="item.id">
                             <div class="flex items-start gap-3">
                                 <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100">
-                                    <template x-if="item.product && item.product.images && item.product.images.length">
-                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" class="w-full h-full object-contain p-1" loading="lazy">
+                                    <template x-if="item.product && (item.product.image || (item.product.images && item.product.images.length))">
+                                        <img :src="storageUrl(item.product.image ? item.product.image : item.product.images[0].path)" :alt="item.name" class="w-full h-full object-contain p-1" loading="lazy">
                                     </template>
-                                    <template x-if="!item.product || !item.product.images || !item.product.images.length">
+                                    <template x-if="!item.product || (!item.product.image && (!item.product.images || !item.product.images.length))">
                                         <div class="w-full h-full flex items-center justify-center text-gray-300">
                                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         </div>
@@ -497,7 +502,7 @@
                                 </div>
                                 <div class="flex-shrink-0 text-right">
                                     <div class="text-sm text-[var(--color-text-heading)] font-medium">
-                                        {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                        <span x-text="money((item.price * item.quantity))"></span>
                                     </div>
                                     <button type="button" @click="removeCheckoutItem(item)"
                                         class="text-[10px] text-[var(--color-text-muted)] hover:text-red-500 mt-1 transition-colors">Remove</button>
@@ -511,7 +516,7 @@
                     {{-- Subtotal --}}
                     <div class="flex justify-between text-sm mb-3">
                         <span class="text-[var(--color-text-muted)]">Subtotal</span>
-                        <span class="text-[var(--color-text-heading)]" class="font-heading">{{ $currencySymbol }}<span x-text="subtotal.toFixed(2)"></span></span>
+                        <span class="text-[var(--color-text-heading)]" class="font-heading"><span x-text="money(subtotal)"></span></span>
                     </div>
 
                     {{-- Shipping Methods --}}
@@ -540,7 +545,7 @@
                                                 <span class="text-emerald-400">FREE</span>
                                             </template>
                                             <template x-if="sm.cost > 0">
-                                                <span>{{ $currencySymbol }}<span x-text="sm.cost.toFixed(2)"></span></span>
+                                                <span><span x-text="money(sm.cost)"></span></span>
                                             </template>
                                         </span>
                                     </label>
@@ -580,7 +585,7 @@
                             <div>
                                 <div class="flex items-center justify-between text-sm">
                                     <span class="text-[var(--color-text-muted)]">Coupon <span class="font-medium text-[var(--color-text-heading)]" x-text="couponCode"></span></span>
-                                    <span class="text-emerald-500">-{{ $currencySymbol }}<span x-text="couponDiscount.toFixed(2)"></span></span>
+                                    <span class="text-emerald-500">-<span x-text="money(couponDiscount)"></span></span>
                                 </div>
                                 <template x-if="couponFreeShipping">
                                     <div class="text-xs text-emerald-500 mt-0.5">+ Free shipping</div>
@@ -595,7 +600,7 @@
                     {{-- Total --}}
                     <div class="flex justify-between">
                         <span class="text-[var(--color-text-heading)]" class="font-heading-wide">TOTAL</span>
-                        <span class="text-xl text-[var(--color-text-heading)]" class="font-heading">{{ $currencySymbol }}<span x-text="total.toFixed(2)"></span></span>
+                        <span class="text-xl text-[var(--color-text-heading)]" class="font-heading"><span x-text="money(total)"></span></span>
                     </div>
                 </div>
             </div>
@@ -634,8 +639,8 @@
                         <template x-for="item in items" :key="item.id">
                             <div class="checkout-modal-item">
                                 <div class="checkout-modal-item-img">
-                                    <template x-if="item.product && item.product.images && item.product.images.length">
-                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" loading="lazy">
+                                    <template x-if="item.product && (item.product.image || (item.product.images && item.product.images.length))">
+                                        <img :src="storageUrl(item.product.image ? item.product.image : item.product.images[0].path)" :alt="item.name" loading="lazy">
                                     </template>
                                 </div>
                                 <div class="flex-1 min-w-0">
@@ -644,7 +649,7 @@
                                     <div class="text-xs opacity-50" x-text="'Qty: ' + item.quantity"></div>
                                 </div>
                                 <div class="text-sm font-medium flex-shrink-0">
-                                    {{ $currencySymbol }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                    <span x-text="money((item.price * item.quantity))"></span>
                                 </div>
                             </div>
                         </template>
@@ -675,7 +680,7 @@
                                 <span class="text-emerald-500">FREE</span>
                             </template>
                             <template x-if="selectedShippingMethod && selectedShippingMethod.cost > 0">
-                                <span>{{ $currencySymbol }}<span x-text="selectedShippingMethod.cost.toFixed(2)"></span></span>
+                                <span><span x-text="money(selectedShippingMethod.cost)"></span></span>
                             </template>
                         </span>
                     </div>
@@ -699,7 +704,7 @@
                 <div class="checkout-modal-totals">
                     <div class="flex justify-between text-sm">
                         <span>Subtotal</span>
-                        <span>{{ $currencySymbol }}<span x-text="subtotal.toFixed(2)"></span></span>
+                        <span><span x-text="money(subtotal)"></span></span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span>Shipping</span>
@@ -708,19 +713,19 @@
                                 <span class="text-emerald-500">FREE</span>
                             </template>
                             <template x-if="effectiveShippingCost > 0">
-                                <span>{{ $currencySymbol }}<span x-text="effectiveShippingCost.toFixed(2)"></span></span>
+                                <span><span x-text="money(effectiveShippingCost)"></span></span>
                             </template>
                         </span>
                     </div>
                     <template x-if="couponCode">
                         <div class="flex justify-between text-sm text-emerald-500">
                             <span>Coupon (<span x-text="couponCode"></span>)</span>
-                            <span>-{{ $currencySymbol }}<span x-text="couponDiscount.toFixed(2)"></span></span>
+                            <span>-<span x-text="money(couponDiscount)"></span></span>
                         </div>
                     </template>
                     <div class="checkout-modal-total-line">
                         <span>Total</span>
-                        <span class="text-lg font-bold">{{ $currencySymbol }}<span x-text="total.toFixed(2)"></span></span>
+                        <span class="text-lg font-bold"><span x-text="money(total)"></span></span>
                     </div>
                 </div>
 

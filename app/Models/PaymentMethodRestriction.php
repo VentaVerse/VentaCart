@@ -9,11 +9,11 @@ class PaymentMethodRestriction extends Model
     protected $fillable = [
         'payment_method',
         'geo_zone_ids', 'customer_group_ids', 'category_ids', 'brand_ids',
-        'shipping_method_keys',
+        'shipping_method_keys', 'currency_codes',
         'min_total', 'max_total', 'min_weight', 'max_weight',
         'min_quantity', 'max_quantity',
         'exclude_geo_zone_ids', 'exclude_customer_group_ids',
-        'exclude_category_ids', 'exclude_brand_ids',
+        'exclude_category_ids', 'exclude_brand_ids', 'exclude_currency_codes',
         'is_active',
     ];
 
@@ -25,10 +25,12 @@ class PaymentMethodRestriction extends Model
             'category_ids' => 'array',
             'brand_ids' => 'array',
             'shipping_method_keys' => 'array',
+            'currency_codes' => 'array',
             'exclude_geo_zone_ids' => 'array',
             'exclude_customer_group_ids' => 'array',
             'exclude_category_ids' => 'array',
             'exclude_brand_ids' => 'array',
+            'exclude_currency_codes' => 'array',
             'min_total' => 'decimal:2',
             'max_total' => 'decimal:2',
             'min_weight' => 'decimal:2',
@@ -78,6 +80,9 @@ class PaymentMethodRestriction extends Model
         if (!empty($this->shipping_method_keys)) {
             $parts[] = "Shipping: " . implode(', ', $this->shipping_method_keys);
         }
+        if (!empty($this->currency_codes)) {
+            $parts[] = "Currencies: " . implode(', ', $this->currency_codes);
+        }
         if (!empty($this->exclude_customer_group_ids)) {
             $names = CustomerGroup::whereIn('id', $this->exclude_customer_group_ids)->pluck('name')->join(', ');
             $parts[] = "Excl. groups: {$names}";
@@ -90,6 +95,9 @@ class PaymentMethodRestriction extends Model
         }
         if (!empty($this->exclude_category_ids)) {
             $parts[] = "Excl. " . count($this->exclude_category_ids) . " categories";
+        }
+        if (!empty($this->exclude_currency_codes)) {
+            $parts[] = "Excl. currencies: " . implode(', ', $this->exclude_currency_codes);
         }
 
         return $parts ? implode(' + ', $parts) : 'No restrictions (always available)';

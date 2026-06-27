@@ -13,7 +13,7 @@
                 <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input type="text" name="name" id="name" required value="{{ old('name', $rate?->name) }}"
                     class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    placeholder="e.g. Pickup from Warehouse, Metro Manila Flat">
+                    placeholder="e.g. Standard Flat Rate, Store Pickup">
                 <p class="text-xs text-gray-400 mt-1">This name appears in checkout exactly as you type it</p>
                 @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>

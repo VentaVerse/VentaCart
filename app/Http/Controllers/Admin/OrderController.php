@@ -35,13 +35,17 @@ class OrderController extends Controller
         }
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
+            $search = trim($request->input('search'));
             $query->where(function ($q) use ($search) {
-                $q->where('id', $search)
-                  ->orWhere('first_name', 'like', "%{$search}%")
+                if (is_numeric($search)) {
+                    $q->orWhere('id', (int) $search);
+                }
+                $q->orWhere('first_name', 'like', "%{$search}%")
                   ->orWhere('last_name', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('tracking_number', 'like', "%{$search}%");
+                  ->orWhere('tracking_number', 'like', "%{$search}%")
+                  // Full-name search: "John Doe" matches first+last together.
+                  ->orWhereRaw("CONCAT(first_name, ' ', last_name) LIKE ?", ["%{$search}%"]);
             });
         }
 

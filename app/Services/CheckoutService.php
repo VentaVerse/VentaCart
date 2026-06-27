@@ -65,7 +65,8 @@ class CheckoutService
 
         // Apply payment restrictions if address and subtotal are provided
         if ($address !== null && $subtotal !== null) {
-            $methods = array_values(array_filter($methods, function (PaymentMethodInterface $method) use ($address, $subtotal, $restrictionContext) {
+            $currencyCode = app(\App\Services\ThemeService::class)->getActiveCurrency()?->code;
+            $methods = array_values(array_filter($methods, function (PaymentMethodInterface $method) use ($address, $subtotal, $restrictionContext, $currencyCode) {
                 return PaymentRestrictionService::isAllowed(
                     $method->getKey(),
                     $address,
@@ -75,7 +76,8 @@ class CheckoutService
                     $restrictionContext['customer_group_id'] ?? null,
                     $restrictionContext['category_ids'] ?? [],
                     $restrictionContext['brand_ids'] ?? [],
-                    $restrictionContext['shipping_method_key'] ?? null
+                    $restrictionContext['shipping_method_key'] ?? null,
+                    $currencyCode
                 );
             }));
         }
@@ -165,7 +167,8 @@ class CheckoutService
         if (!PaymentRestrictionService::isAllowed(
             $paymentMethodKey, $addressData, $subtotal,
             $totalWeight, $totalQuantity, $customerGroupId,
-            $cartCategoryIds, $cartBrandIds, $shippingMethodKey
+            $cartCategoryIds, $cartBrandIds, $shippingMethodKey,
+            app(\App\Services\ThemeService::class)->getActiveCurrency()?->code
         )) {
             throw new \InvalidArgumentException('Selected payment method is not available for this order.');
         }

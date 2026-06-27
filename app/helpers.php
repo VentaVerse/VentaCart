@@ -9,6 +9,25 @@ if (!function_exists('theme')) {
     }
 }
 
+if (!function_exists('money')) {
+    /**
+     * Format a base-currency amount for display in the shopper's active currency.
+     * Converts by the active currency's rate and prefixes its symbol. Display-only
+     * — orders are still charged in the base (default) currency.
+     */
+    function money(mixed $amount, ?\App\Models\Currency $currency = null): string
+    {
+        $currency = $currency ?? app(ThemeService::class)->getActiveCurrency();
+        $amount = (float) $amount;
+
+        if (!$currency) {
+            return number_format($amount, 2);
+        }
+
+        return $currency->symbol . number_format($amount * (float) $currency->rate, 2);
+    }
+}
+
 if (!function_exists('storage_url')) {
     /**
      * Generate a URL for a file in the public storage disk.

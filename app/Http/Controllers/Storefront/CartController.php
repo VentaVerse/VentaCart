@@ -102,13 +102,15 @@ class CartController extends Controller
             }
         }
 
-        $this->cartService->update($cartItem->id, $newQty);
+        $updated = $this->cartService->update($cartItem->id, $newQty);
 
         $response = [
             'success' => true,
             'count' => $this->cartService->getCount(),
             'subtotal' => $this->cartService->getSubtotal(),
             'quantity' => $newQty,
+            // Recomputed per-unit price (tier may have changed) so the line refreshes.
+            'price' => $updated ? (float) $updated->price : null,
         ];
 
         if ($stockWarning) {
@@ -148,7 +150,7 @@ class CartController extends Controller
                     'quantity' => $item->quantity,
                     'price' => $item->price,
                     'line_total' => $item->price * $item->quantity,
-                    'image' => $item->product?->images?->first()?->path,
+                    'image' => $item->product?->image ?? $item->product?->images?->first()?->path,
                 ];
             })->values(),
             'subtotal' => $items->sum(fn($i) => $i->price * $i->quantity),

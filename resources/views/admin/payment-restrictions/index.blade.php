@@ -16,6 +16,7 @@
         $groupItems = $customerGroups->map(function($g) { return ['id' => $g->id, 'name' => $g->name]; })->values()->all();
         $zoneItems = $geoZones->map(function($z) { return ['id' => $z->id, 'name' => $z->name]; })->values()->all();
         $shippingItems = collect($shippingMethods)->map(function($m) { return ['id' => $m['key'], 'name' => $m['name']]; })->all();
+        $currencyItems = $currencies->map(function($c) { return ['id' => $c->code, 'name' => $c->code . ' (' . $c->symbol . ')']; })->values()->all();
     @endphp
 
     <div x-data="{ active: '{{ request('tab', $methods->first()['key']) }}' }" class="flex gap-6">
@@ -113,6 +114,7 @@
                                         @include('admin.partials.dual-listbox', ['name' => 'customer_group_ids', 'label' => 'Customer Groups', 'hint' => 'Only show for these groups', 'items' => $groupItems, 'selected' => old('customer_group_ids', $r?->customer_group_ids ?? [])])
                                         @include('admin.partials.dual-listbox', ['name' => 'category_ids', 'label' => 'Categories', 'hint' => 'Cart must contain products from these', 'items' => $categoryItems, 'selected' => old('category_ids', $r?->category_ids ?? [])])
                                         @include('admin.partials.dual-listbox', ['name' => 'brand_ids', 'label' => 'Brands', 'hint' => 'Cart must contain products from these', 'items' => $brandItems, 'selected' => old('brand_ids', $r?->brand_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'currency_codes', 'label' => 'Currencies', 'hint' => 'Only show when viewing in these currencies', 'items' => $currencyItems, 'selected' => old('currency_codes', $r?->currency_codes ?? [])])
                                     </div>
                                 </div>
                                 <div>
@@ -123,6 +125,7 @@
                                         @include('admin.partials.dual-listbox', ['name' => 'exclude_customer_group_ids', 'label' => 'Customer Groups', 'hint' => 'Block for these groups', 'items' => $groupItems, 'selected' => old('exclude_customer_group_ids', $r?->exclude_customer_group_ids ?? [])])
                                         @include('admin.partials.dual-listbox', ['name' => 'exclude_category_ids', 'label' => 'Categories', 'hint' => 'Block if cart has these', 'items' => $categoryItems, 'selected' => old('exclude_category_ids', $r?->exclude_category_ids ?? [])])
                                         @include('admin.partials.dual-listbox', ['name' => 'exclude_brand_ids', 'label' => 'Brands', 'hint' => 'Block if cart has these', 'items' => $brandItems, 'selected' => old('exclude_brand_ids', $r?->exclude_brand_ids ?? [])])
+                                        @include('admin.partials.dual-listbox', ['name' => 'exclude_currency_codes', 'label' => 'Currencies', 'hint' => 'Block when viewing in these currencies', 'items' => $currencyItems, 'selected' => old('exclude_currency_codes', $r?->exclude_currency_codes ?? [])])
                                     </div>
                                 </div>
                             </div>

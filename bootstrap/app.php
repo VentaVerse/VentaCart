@@ -20,10 +20,15 @@ return Application::configure(basePath: dirname(__DIR__))
         // be reachable via its proxy, so trusting all forwarded headers is safe.
         $middleware->trustProxies(at: '*');
 
+        // The storefront currency selector sets a plain (JS) `currency` cookie, so
+        // it must be exempt from Laravel's cookie encryption or it can't be read.
+        $middleware->encryptCookies(except: ['currency']);
+
         $middleware->alias([
             'customer.auth' => \App\Http\Middleware\CustomerAuthenticated::class,
             'erp.auth' => \App\Http\Middleware\ErpApiAuth::class,
             'noindex' => \App\Http\Middleware\NoIndexResponse::class,
+            'admin.session.cap' => \App\Http\Middleware\EnforceAdminSessionCap::class,
         ]);
 
         // Web requests go through the redirect lookup first (early exit on

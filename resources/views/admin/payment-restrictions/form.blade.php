@@ -23,6 +23,7 @@
         $groupItems = $customerGroups->map(function($g) { return ['id' => $g->id, 'name' => $g->name]; })->values()->all();
         $zoneItems = $geoZones->map(function($z) { return ['id' => $z->id, 'name' => $z->name]; })->values()->all();
         $shippingItems = collect($shippingMethods)->map(function($m) { return ['id' => $m['key'], 'name' => $m['name']]; })->all();
+        $currencyItems = $currencies->map(function($c) { return ['id' => $c->code, 'name' => $c->code . ' (' . $c->symbol . ')']; })->values()->all();
     @endphp
 
     <form method="POST"
@@ -139,6 +140,14 @@
                     'hint' => 'Cart must have at least one product from a selected brand.',
                     'items' => $brandItems,
                     'selected' => old('brand_ids', $restriction?->brand_ids ?? []),
+                ])
+
+                @include('admin.partials.dual-listbox', [
+                    'name' => 'currency_codes',
+                    'label' => 'Only in these Currencies',
+                    'hint' => 'Show this payment method only when the shopper is viewing in a selected currency.',
+                    'items' => $currencyItems,
+                    'selected' => old('currency_codes', $restriction?->currency_codes ?? []),
                 ])
 
                 {{-- Shipping method listbox uses string keys instead of integer IDs --}}
@@ -326,6 +335,14 @@
                     'hint' => 'If cart contains ANY product from these brands, payment method is hidden.',
                     'items' => $brandItems,
                     'selected' => old('exclude_brand_ids', $restriction?->exclude_brand_ids ?? []),
+                ])
+
+                @include('admin.partials.dual-listbox', [
+                    'name' => 'exclude_currency_codes',
+                    'label' => 'Exclude Currencies',
+                    'hint' => 'Hide this payment method when the shopper is viewing in these currencies.',
+                    'items' => $currencyItems,
+                    'selected' => old('exclude_currency_codes', $restriction?->exclude_currency_codes ?? []),
                 ])
             </div>
         </div>

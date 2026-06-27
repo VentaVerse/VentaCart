@@ -8,6 +8,7 @@
     $hint = $hint ?? '';
     $required = $required ?? false;
     $defaultFolder = $defaultFolder ?? '';
+    $root = $root ?? '';
     $componentId = 'sip_' . str_replace(['[', ']', '.'], '_', $fieldName);
 @endphp
 
@@ -196,6 +197,7 @@ function {{ $componentId }}() {
         browserSearch: '',
         lastBrowsedPath: null,
         defaultFolder: '{{ $defaultFolder }}',
+        root: '{{ $root }}',
 
         // URL import
         showUrlInput: false,
@@ -233,8 +235,9 @@ function {{ $componentId }}() {
                     startPath = this.imagePath.substring(0, lastSlash);
                 }
             } else {
-                // New entity, no image yet — use default folder
-                startPath = this.defaultFolder;
+                // New entity, no image yet — open at the entity root (brands/,
+                // categories/, …); defaultFolder kept only as a legacy fallback.
+                startPath = this.root || this.defaultFolder;
             }
 
             await this.browseDir(startPath);
@@ -266,8 +269,10 @@ function {{ $componentId }}() {
 
         async browseDir(path) {
             this.browserLoading = true;
+            this.browserSearch = ''; // reset the filter on navigation — a stale search hides files in the new folder
             const params = new URLSearchParams();
             if (path) params.set('path', path);
+            if (this.root) params.set('root', this.root);
 
             const res = await fetch(`{{ route('admin.products.images.browse') }}?${params}`);
             const data = await res.json();
@@ -312,7 +317,7 @@ function {{ $componentId }}() {
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('catalog_path', this.browserCurrentPath);
+            formData.append('catalog_path', this.browserCurrentPath || this.root);
 
             try {
                 const res = await fetch('{{ route("admin.products.images.upload-to-catalog") }}', {
@@ -349,7 +354,7 @@ function {{ $componentId }}() {
                     body: JSON.stringify({
                         url: this.urlInput.trim(),
                         store_id: 1,
-                        catalog_path: this.browserCurrentPath,
+                        catalog_path: this.browserCurrentPath || this.root,
                     }),
                 });
                 const data = await res.json();

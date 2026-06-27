@@ -309,6 +309,8 @@ Alpine.data('addToCart', (config = {}) => ({
     hasVariants: config.hasVariants || false,
     variantMatrix: config.variantMatrix || {},
     basePrice: config.basePrice || 0,
+    priceTiers: config.priceTiers || [],
+    productPrice: config.productPrice || config.basePrice || 0,
     selectedValues: {},
     quantity: 1,
     loading: false,
@@ -331,9 +333,31 @@ Alpine.data('addToCart', (config = {}) => ({
         return parseInt(config.productQuantity) <= 0;
     },
 
+    // Deepest quantity tier whose threshold <= current quantity (current group).
+    get activeTier() {
+        if (!this.priceTiers || !this.priceTiers.length) return null;
+        let best = null;
+        for (const t of this.priceTiers) {
+            if (t.qty <= this.quantity && (!best || t.qty > best.qty)) best = t;
+        }
+        return best;
+    },
+
     get unitPrice() {
-        if (this.hasVariants && this.activeVariant) return parseFloat(this.activeVariant.price);
-        return this.basePrice;
+        const tier = this.activeTier;
+        if (this.hasVariants && this.activeVariant) {
+            const variantPrice = parseFloat(this.activeVariant.price);
+            // The variant's upcharge over base must be measured from its REGULAR
+            // price. activeVariant.price is already special-discounted by the
+            // controller's ripple, so using it here subtracts the discount twice
+            // (e.g. tier 240 + (240 − 350) = 130 instead of 240). regular_price
+            // is the true variant price; this matches CartService::resolvePrice,
+            // which uses the stored (regular) variant price as its base.
+            const variantRegular = parseFloat(this.activeVariant.regular_price ?? variantPrice);
+            if (tier) return tier.price + (variantRegular - this.productPrice);
+            return variantPrice;
+        }
+        return tier ? tier.price : this.basePrice;
     },
 
     get displayPrice() {
@@ -497,6 +521,7 @@ Alpine.data('cartPage', (initialItems, initialSubtotal, initialOutOfStockIds) =>
         });
         const data = await resp.json();
         if (data.success) {
+            if (data.price != null) item.price = parseFloat(data.price);
             if (data.stock_warning) {
                 this.stockWarning = data.stock_warning;
                 item.quantity = data.quantity;
@@ -909,6 +934,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
                     }
                 } else {
                     item.quantity = newQty;
+                    if (data.price != null) item.price = parseFloat(data.price);
                 }
                 this.subtotal = parseFloat(data.subtotal);
                 window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.count, subtotal: data.subtotal, silent: true } }));

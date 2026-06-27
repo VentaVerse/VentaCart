@@ -14,6 +14,9 @@ class ThemeService
     protected array $settings = [];
     protected const CACHE_KEY = 'theme_settings';
 
+    /** Per-request memo for the active currency (false = not yet resolved). */
+    protected Currency|null|false $activeCurrency = false;
+
     public function __construct()
     {
         $this->settings = Cache::rememberForever(self::CACHE_KEY, function () {
@@ -188,5 +191,24 @@ class ThemeService
     public function getDefaultCurrency(): ?Currency
     {
         return $this->getActiveCurrencies()->firstWhere('is_default', true);
+    }
+
+    /**
+     * The currency the shopper is currently viewing prices in: the one named by
+     * the `currency` cookie (if still enabled), otherwise the store default.
+     * Memoized per request. Display-only — orders are still charged in the base
+     * (default) currency.
+     */
+    public function getActiveCurrency(): ?Currency
+    {
+        if ($this->activeCurrency !== false) {
+            return $this->activeCurrency;
+        }
+
+        $currencies = $this->getActiveCurrencies();
+        $code = request()?->cookie('currency');
+        $match = $code ? $currencies->firstWhere('code', $code) : null;
+
+        return $this->activeCurrency = $match ?: $this->getDefaultCurrency();
     }
 }

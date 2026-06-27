@@ -178,6 +178,23 @@ class ProductController extends Controller
         $effectivePrice = $activeSpecial ? (float) $activeSpecial->price
             : ($overrideSpecial ? (float) $overrideSpecial->price : (float) $product->price);
 
+        // Quantity price tiers for the current customer group — one row per
+        // quantity threshold (matching CartService::resolvePrice tie-break),
+        // sorted ascending. Drives the tier table + reactive price on the page.
+        $priceTiers = $product->specials
+            ->filter(function ($s) use ($customerGroupId) {
+                if ($s->date_start && $s->date_start > now()) return false;
+                if ($s->date_end && $s->date_end < now()) return false;
+                if ($s->customer_group_id !== null && $s->customer_group_id != $customerGroupId) return false;
+                return true;
+            })
+            ->groupBy('quantity')
+            ->map(fn ($g) => $g->sortBy([['priority', 'asc'], ['price', 'asc']])->first())
+            ->sortBy('quantity')
+            ->map(fn ($s) => ['qty' => (int) $s->quantity, 'price' => (float) $s->price])
+            ->values()
+            ->all();
+
         $hasFreeShipping = app(\App\Services\BadgeService::class)->getBadgesForProduct($product);
         $hasFreeShipping = collect($hasFreeShipping)->where('type', 'free_shipping')->isNotEmpty();
 
@@ -190,7 +207,7 @@ class ProductController extends Controller
             'product', 'activeSpecial', 'overrideSpecial', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
-            'variantMatrix', 'variantTypes', 'effectivePrice',
+            'variantMatrix', 'variantTypes', 'effectivePrice', 'priceTiers',
             'valueStockMap', 'approvedReviews', 'averageRating', 'reviewCount',
             'hasFreeShipping', 'ogTitle', 'ogDescription'
         ));

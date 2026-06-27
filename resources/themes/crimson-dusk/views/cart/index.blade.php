@@ -25,10 +25,10 @@
                         <template x-for="item in items" :key="item.id">
                             <div class="cart-item" x-show="!item._removed" x-transition.opacity>
                                 <a :href="item.product ? '/product/' + item.product.slug : '#'" class="cart-item-image">
-                                    <template x-if="item.product && item.product.images && item.product.images.length">
-                                        <img :src="storageUrl(item.product.images[0].path)" :alt="item.name" loading="lazy">
+                                    <template x-if="item.product && (item.product.image || (item.product.images && item.product.images.length))">
+                                        <img :src="storageUrl(item.product.image ? item.product.image : item.product.images[0].path)" :alt="item.name" loading="lazy">
                                     </template>
-                                    <template x-if="!item.product || !item.product.images || !item.product.images.length">
+                                    <template x-if="!item.product || (!item.product.image && (!item.product.images || !item.product.images.length))">
                                         <div class="w-full h-full flex items-center justify-center text-[#333]">
                                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         </div>
@@ -45,7 +45,7 @@
                                 </div>
 
                                 <div class="cart-item-price" class="font-heading">
-                                    {{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="parseFloat(item.price).toFixed(2)"></span>
+                                    <span x-text="money(parseFloat(item.price))"></span>
                                 </div>
 
                                 <div class="cart-item-qty">
@@ -55,7 +55,7 @@
                                 </div>
 
                                 <div class="cart-item-total" class="font-heading">
-                                    {{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="(item.price * item.quantity).toFixed(2)"></span>
+                                    <span x-text="money((item.price * item.quantity))"></span>
                                 </div>
 
                                 <button @click="removeItem(item)" class="cart-item-remove" title="Remove">
@@ -73,7 +73,7 @@
 
                         <div class="flex justify-between text-sm mb-3">
                             <span class="text-[#888]">Subtotal</span>
-                            <span class="text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                            <span class="text-[#E8E8E8]" class="font-heading"><span x-text="money(subtotal)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
                         {{-- Shipping Estimate --}}
@@ -150,7 +150,7 @@
                                                         <span class="text-emerald-400">FREE</span>
                                                     </template>
                                                     <template x-if="m.cost > 0">
-                                                        <span>{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="m.cost.toFixed(2)"></span></span>
+                                                        <span><span x-text="money(m.cost)"></span></span>
                                                     </template>
                                                 </span>
                                             </div>
@@ -175,7 +175,7 @@
 
                         <div class="flex justify-between mb-6">
                             <span class="text-[#E8E8E8]" class="font-heading-wide">TOTAL</span>
-                            <span class="text-xl text-[#E8E8E8]" class="font-heading">{{ $defaultCurrency?->symbol ?? '₱' }}<span x-text="subtotal.toFixed(2)">{{ number_format($subtotal, 2) }}</span></span>
+                            <span class="text-xl text-[#E8E8E8]" class="font-heading"><span x-text="money(subtotal)">{{ number_format($subtotal, 2) }}</span></span>
                         </div>
 
                         <template x-if="outOfStockIds.length > 0">

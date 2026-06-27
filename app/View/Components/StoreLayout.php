@@ -92,6 +92,7 @@ class StoreLayout extends Component
             'footerColumns' => $theme->getFooterColumns(),
             'currencies' => $theme->getActiveCurrencies(),
             'defaultCurrency' => $theme->getDefaultCurrency(),
+            'activeCurrency' => $theme->getActiveCurrency(),
             'cartCount' => $cartService->getCount(),
             'cartSubtotal' => $cartService->getSubtotal(),
             'customerLoggedIn' => auth('customer')->check(),

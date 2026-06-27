@@ -74,6 +74,8 @@
                  variantMatrix: {{ json_encode($variantMatrix) }},
                  variantTypes: {{ json_encode($variantTypes) }},
                  basePrice: {{ $effectivePrice }},
+                 priceTiers: {{ json_encode($priceTiers) }},
+                 productPrice: {{ $product->price }},
                  trackStock: {{ $product->track_stock ? 'true' : 'false' }},
                  productQuantity: {{ $product->quantity }},
                  customerName: '{{ addslashes(auth('customer')->user()?->first_name ?? '') }}',
@@ -273,10 +275,10 @@
                     <div class="flex items-baseline gap-3"
                          x-show="hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price">
                         <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
-                            {{ $currencySymbol }}<span x-text="(displayPrice * quantity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            <span x-text="money(displayPrice)"></span>
                         </span>
                         <span class="text-lg text-[#555] line-through">
-                            {{ $currencySymbol }}<span x-text="((activeVariant?.regular_price ?? 0) * quantity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                            <span x-text="money((activeVariant?.regular_price ?? 0))"></span>
                         </span>
                         <span class="text-xs font-bold text-white px-2 py-0.5 rounded"
                               style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;"
@@ -284,20 +286,28 @@
                     </div>
                     @endif
 
-                    {{-- Dynamic price: unit price × quantity (override mode, no sale on variant, or qty>1 stack view) --}}
+                    {{-- Dynamic price: per-unit price (line total shown in the clarifier below) --}}
                     <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;"
                           :style="(quantity > 1 || (hasVariants && activeVariant)) @if ($activeSpecial)&& !(hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price)@endif ? '' : 'display:none'">
-                        {{ $currencySymbol }}<span x-text="(displayPrice * quantity).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span>
+                        <span x-text="money(displayPrice)"></span>
                     </span>
+
+                    {{-- Headline shows the per-unit price; this clarifier makes the line
+                         total explicit when buying more than one, so the big number can't
+                         be misread as the total (OpenCart parity: product price is per-unit). --}}
+                    <div x-show="quantity > 1" class="mt-1.5 text-sm" style="color: var(--color-text-muted, #888);">
+                        <span class="text-[11px] uppercase tracking-wider">each</span>
+                        <span> · <span x-text="quantity"></span> × <span x-text="money(displayPrice)"></span> = <span x-text="money(totalPrice)"></span></span>
+                    </div>
 
                     <div x-show="quantity <= 1 && (!hasVariants || !activeVariant)">
                         @if ($activeSpecial)
                             <div class="flex items-baseline gap-3">
                                 <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
-                                    {{ $currencySymbol }}{{ number_format($activeSpecial->price, 2) }}
+                                    {{ money($activeSpecial->price) }}
                                 </span>
                                 <span class="text-lg text-[#555] line-through">
-                                    {{ $currencySymbol }}{{ number_format($product->price, 2) }}
+                                    {{ money($product->price) }}
                                 </span>
                                 @php $pct = round((1 - $activeSpecial->price / $product->price) * 100); @endphp
                                 <span class="text-xs font-bold text-white px-2 py-0.5 rounded" style="background-color: var(--color-secondary); font-family: var(--font-heading); letter-spacing: 0.1em;">
@@ -320,11 +330,11 @@
                             @endif
                         @elseif ($overrideSpecial)
                             <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
-                                {{ $currencySymbol }}{{ number_format($overrideSpecial->price, 2) }}
+                                {{ money($overrideSpecial->price) }}
                             </span>
                         @else
                             <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
-                                {{ $currencySymbol }}{{ number_format($product->price, 2) }}
+                                {{ money($product->price) }}
                                 </span>
                             @endif
                         </div>
@@ -374,6 +384,28 @@
                             </div>
                         @endforeach
 
+                    </div>
+                @endif
+                {{-- Volume / tier pricing (current customer group) --}}
+                @if (!empty($priceTiers) && collect($priceTiers)->where('qty', '>', 1)->isNotEmpty())
+                    <div class="mb-5 rounded-lg border p-3" style="border-color: var(--color-border, #2a2a2a);">
+                        <p class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--color-text-muted, #888);">Volume pricing</p>
+                        <div class="space-y-1 text-sm">
+                            @foreach ($priceTiers as $i => $tier)
+                                @if ($tier['qty'] > 1)
+                                    @php
+                                        $next = $priceTiers[$i + 1] ?? null;
+                                        $range = $next ? $tier['qty'] . '–' . ($next['qty'] - 1) : $tier['qty'] . '+';
+                                    @endphp
+                                    <div class="flex items-center justify-between"
+                                         :class="activeTier && activeTier.qty === {{ $tier['qty'] }} ? 'font-semibold' : ''"
+                                         :style="activeTier && activeTier.qty === {{ $tier['qty'] }} ? 'color: var(--color-primary)' : 'color: var(--color-text-muted, #999)'">
+                                        <span>{{ $range }} pcs</span>
+                                        <span>{{ money($tier['price']) }} each</span>
+                                    </div>
+                                @endif
+                            @endforeach
+                        </div>
                     </div>
                 @endif
 
