@@ -53,33 +53,18 @@ class FulfillmentController extends Controller
             'shipping_payment' => 'required|string',
         ]);
 
-        $courier = CourierManager::get($data['courier']);
-        if (!$courier || !$courier->isEnabled()) {
-            return back()->with('error', 'Selected courier is not available.');
-        }
-
         if ($order->courier_tracking_number) {
             return back()->with('error', "Order #{$order->id} is already booked ({$order->courier_tracking_number}).");
         }
 
-        $result = $courier->createShipment($order, $data);
+        // Shared booking core (same path the ERP API uses).
+        $res = app(\Extensions\CourierFulfillment\FulfillmentService::class)->book($order, $data);
 
-        if (!$result['success']) {
-            return back()->with('error', "Booking failed: " . ($result['error'] ?? 'unknown error'));
+        if (!$res['success']) {
+            return back()->with('error', "Booking failed: " . ($res['error'] ?? 'unknown error'));
         }
 
-        // forceFill bypasses mass-assignment ($fillable) — the courier_* columns
-        // are extension-owned and not in core Order::$fillable. courier_meta is
-        // json-encoded explicitly since the core model has no cast for it.
-        $order->forceFill([
-            'courier_provider'        => $courier->getKey(),
-            'courier_tracking_number' => $result['tracking_number'] ?? null,
-            'courier_status'          => $result['status'] ?? null,
-            'courier_meta'            => isset($result['meta']) ? json_encode($result['meta']) : null,
-            'courier_booked_at'       => now(),
-        ])->save();
-
-        return back()->with('success', "Booked with {$courier->getName()} — tracking {$result['tracking_number']}.");
+        return back()->with('success', "Booked — tracking {$res['tracking_number']}.");
     }
 
     public function cancel(Order $order)

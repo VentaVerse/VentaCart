@@ -30,7 +30,8 @@
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
             "Extensions\\Banners\\": "extensions/banners/src/",
-            "Extensions\\CourierFulfillment\\": "extensions/courier-fulfillment/src/"
+            "Extensions\\CourierFulfillment\\": "extensions/courier-fulfillment/src/",
+            "Extensions\\CourierFulfillment\\Database\\Seeders\\": "extensions/courier-fulfillment/database/seeders/"
         }
     },
     "autoload-dev": {
