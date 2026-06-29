@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -100,6 +101,19 @@ class Order extends Model
     public function shippingCourier(): BelongsTo
     {
         return $this->belongsTo(ShippingCourier::class);
+    }
+
+    /**
+     * Orders a customer is allowed to see — excludes "missing"/ghost orders.
+     *
+     * A NULL order_status_id is the deliberate sentinel for an abandoned
+     * checkout (order row written, payment never confirmed). These are
+     * hidden from the admin list by default and must never surface on the
+     * customer-facing storefront.
+     */
+    public function scopeVisibleToCustomer(Builder $query): Builder
+    {
+        return $query->whereNotNull('order_status_id');
     }
 
     public function getFullNameAttribute(): string
