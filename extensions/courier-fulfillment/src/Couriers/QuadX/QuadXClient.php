@@ -126,8 +126,12 @@ class QuadXClient
     private function extractError(array $json, int $status): string
     {
         // QuadX uses a few error shapes across endpoints.
-        if (isset($json['errors']['detail'])) return $json['errors']['detail'];
-        if (isset($json['description'])) return $json['description'];
+        if (isset($json['errors']['detail'])) {
+            // Seen as both a string and an array of field-error strings.
+            $d = $json['errors']['detail'];
+            return is_array($d) ? implode(' ', array_map(fn ($v) => is_array($v) ? implode(' ', $v) : (string) $v, $d)) : (string) $d;
+        }
+        if (isset($json['description'])) return (string) $json['description'];
         if (isset($json['message']) && is_string($json['message'])) return $json['message'];
         if (isset($json['parameters']) && is_array($json['parameters'])) {
             $first = reset($json['parameters']);
