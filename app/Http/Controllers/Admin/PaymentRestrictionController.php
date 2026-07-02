@@ -8,24 +8,27 @@ use App\Models\Category;
 use App\Models\CustomerGroup;
 use App\Models\GeoZone;
 use App\Models\PaymentMethodRestriction;
+use App\Services\PaymentManager;
 use Illuminate\Http\Request;
 
 class PaymentRestrictionController extends Controller
 {
-    private const PAYMENT_METHODS = ['bank_transfer', 'hitpay', 'cod'];
-
     public function index()
     {
-        $restrictions = PaymentMethodRestriction::orderByRaw("FIELD(payment_method, 'bank_transfer', 'hitpay', 'cod')")->get()->keyBy('payment_method');
+        $families = $this->paymentFamilies();
 
-        // Build a restriction (or empty placeholder) for each payment method
-        $methods = collect(self::PAYMENT_METHODS)->map(function ($method) use ($restrictions) {
+        $restrictions = PaymentMethodRestriction::whereIn('payment_method', array_keys($families))
+            ->get()
+            ->keyBy('payment_method');
+
+        // Build a restriction (or empty placeholder) for each payment method family
+        $methods = collect($families)->map(function ($label, $key) use ($restrictions) {
             return [
-                'key' => $method,
-                'label' => PaymentMethodRestriction::getPaymentMethodLabel($method),
-                'restriction' => $restrictions->get($method),
+                'key' => $key,
+                'label' => $label,
+                'restriction' => $restrictions->get($key),
             ];
-        });
+        })->values();
 
         return view('admin.payment-restrictions.index', [
             'methods' => $methods,
@@ -36,7 +39,7 @@ class PaymentRestrictionController extends Controller
     public function create()
     {
         $existing = PaymentMethodRestriction::pluck('payment_method')->all();
-        $availableMethods = array_diff(self::PAYMENT_METHODS, $existing);
+        $availableMethods = array_diff(array_keys($this->paymentFamilies()), $existing);
 
         if (empty($availableMethods)) {
             return redirect()->route('admin.payment-restrictions.index')
@@ -121,7 +124,7 @@ class PaymentRestrictionController extends Controller
         ];
 
         if (!$existing) {
-            $rules['payment_method'] = ['required', 'string', 'in:' . implode(',', self::PAYMENT_METHODS), 'unique:payment_method_restrictions,payment_method'];
+            $rules['payment_method'] = ['required', 'string', 'in:' . implode(',', array_keys($this->paymentFamilies())), 'unique:payment_method_restrictions,payment_method'];
         }
 
         $validated = $request->validate($rules);
@@ -148,6 +151,24 @@ class PaymentRestrictionController extends Controller
                 $validated[$field] = null;
             }
         }
+    }
+
+    /**
+     * Registered payment method families (base key => label), one entry per
+     * distinct base key regardless of how many instances share it (e.g. every
+     * bank account instance collapses into a single 'bank_transfer' family).
+     *
+     * @return array<string, string>
+     */
+    private function paymentFamilies(): array
+    {
+        $families = [];
+        foreach (PaymentManager::methods() as $method) {
+            $baseKey = $method->getBaseKey();
+            $families[$baseKey] ??= PaymentMethodRestriction::getPaymentMethodLabel($baseKey);
+        }
+
+        return $families;
     }
 
     private function getFormData(): array
