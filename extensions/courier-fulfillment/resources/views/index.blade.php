@@ -127,7 +127,7 @@
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
                                 @if ($order->courier_tracking_number)
-                                    <a href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" @click.stop class="text-indigo-600 hover:underline text-xs mr-2">Print AWB</a>
+                                    <a href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener" @click.stop class="text-indigo-600 hover:underline text-xs mr-2">Print AWB</a>
                                     <form method="POST" action="{{ route('admin.fulfillment.track', $order) }}" class="inline">@csrf<button @click.stop class="text-gray-500 hover:text-gray-700 text-xs mr-2">Refresh</button></form>
                                     <form method="POST" action="{{ route('admin.fulfillment.cancel', $order) }}" class="inline" onsubmit="return confirm('Cancel this booking?')">@csrf<button @click.stop class="text-red-500 hover:text-red-700 text-xs">Cancel</button></form>
                                 @elseif (!empty($couriers))
@@ -291,7 +291,7 @@
                                     </div>
 
                                     <div class="flex flex-col gap-2">
-                                        <a :href="labelUrl" target="_blank" class="text-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50">Print AWB</a>
+                                        <a :href="labelUrl" target="_blank" rel="noopener" class="text-center px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50">Print AWB</a>
                                         <form :action="trackAction" method="POST">
                                             @csrf
                                             <button type="submit" class="w-full px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50">Refresh status</button>
@@ -328,6 +328,7 @@
                 openDrawer(order) {
                     this.active = order;
                     this.buyerPayment = order.buyerPaymentGuess;
+                    this.courier = @js(array_key_first($courierOptions) ?? '');
                     this.drawerOpen = true;
                 },
                 closeDrawer() {

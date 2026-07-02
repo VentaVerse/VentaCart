@@ -36,8 +36,10 @@ class FulfillmentController extends Controller
 
         if ($s = $request->query('q')) {
             $query->where(function ($x) use ($s) {
-                $x->where('id', $s)
-                    ->orWhere('courier_tracking_number', 'like', "%{$s}%")
+                if (is_numeric($s)) {
+                    $x->orWhere('id', $s);
+                }
+                $x->orWhere('courier_tracking_number', 'like', "%{$s}%")
                     ->orWhereRaw("CONCAT(shipping_first_name,' ',shipping_last_name) like ?", ["%{$s}%"]);
             });
         }
