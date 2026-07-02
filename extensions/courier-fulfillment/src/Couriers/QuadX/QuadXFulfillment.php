@@ -128,11 +128,11 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         $s = (string) $status;
 
         $failed = ['failed_pickup','failed_pickup_attempt','failed_delivery','for_reattempt',
-                   'returned','return_in_transit','out_for_return','for_return','canceled',
+                   'returned','return_in_transit','out_for_return','for_return','canceled','cancelled',
                    'rejected','lost','damaged','disposed'];
         if (in_array($s, $failed, true)) {
             // Keep the node where it broke: pickup failures at step 1, else step 2.
-            $atPickup = str_contains($s, 'pickup') || $s === 'canceled' || $s === 'rejected';
+            $atPickup = str_contains($s, 'pickup') || $s === 'canceled' || $s === 'cancelled' || $s === 'rejected';
             return ['step' => $atPickup ? 1 : 2, 'failed' => true];
         }
 

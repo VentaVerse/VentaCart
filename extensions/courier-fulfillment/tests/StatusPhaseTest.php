@@ -34,6 +34,7 @@ class StatusPhaseTest extends TestCase
         $this->assertTrue($this->phase('failed_delivery')['failed']);
         $this->assertTrue($this->phase('returned')['failed']);
         $this->assertTrue($this->phase('canceled')['failed']);
+        $this->assertTrue($this->phase('cancelled')['failed']);
     }
 
     public function test_unknown_defaults_to_booked(): void
