@@ -260,7 +260,7 @@ class CheckoutService
             ->first();
 
         $order = DB::transaction(function () use (
-            $customer, $shippingAddress, $billingAddress, $paymentMethodKey,
+            $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,
             $shippingMethod, $shippingMethodKey, $shippingMethodName, $shippingMeta, $items, $subtotal, $shippingCost, $total,
             $comment, $cart, $coupon, $couponCode, $couponDiscount
         ) {
@@ -283,8 +283,10 @@ class CheckoutService
                 'shipping_country_id' => $shippingAddress->country_id,
                 'shipping_phone' => $shippingAddress->phone,
                 'payment_method' => $paymentMethodKey,
+                'payment_method_title' => $paymentMethod?->getName(),
                 'shipping_method' => $shippingMethodName ?? $shippingMethod['name'],
                 'shipping_meta' => $shippingMeta,
+                'shipping_country_name' => \App\Models\Country::find($shippingAddress->country_id ?? null)?->name,
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'total' => $total,
@@ -304,6 +306,7 @@ class CheckoutService
                     'billing_state' => $billingAddress['state'] ?? null,
                     'billing_postcode' => $billingAddress['postcode'] ?? null,
                     'billing_country_id' => $billingAddress['country_id'],
+                    'billing_country_name' => \App\Models\Country::find($billingAddress['country_id'] ?? null)?->name,
                 ]);
             }
 
@@ -316,6 +319,7 @@ class CheckoutService
                     'product_variant_id' => $item->product_variant_id,
                     'name' => $item->name,
                     'sku' => $item->sku,
+                    'image' => $item->product?->image,
                     'variant_label' => $item->variant_label,
                     'price' => $item->price,
                     'quantity' => $item->quantity,
