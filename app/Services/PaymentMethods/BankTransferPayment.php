@@ -34,11 +34,13 @@ class BankTransferPayment implements PaymentMethodInterface
 
     public function getName(): string
     {
-        $prefix = $this->getDisplayPrefix();
+        // Account instance with a resolvable account: bank name alone (e.g. "Maya").
         if ($this->bankAccount) {
-            return $prefix . ' — ' . $this->bankAccount->bank_name;
+            return $this->bankAccount->bank_name;
         }
-        return $prefix;
+        // Account row missing (deleted after the key was persisted, e.g. on an
+        // order) or a keyless/family instance: fall back to the family label.
+        return $this->getDisplayPrefix();
     }
 
     private function getDisplayPrefix(): string
@@ -80,26 +82,35 @@ class BankTransferPayment implements PaymentMethodInterface
     }
 
     /**
-     * Get all bank transfer payment options.
-     * If bank_accounts table has active entries, returns one per account.
-     * Otherwise falls back to a single generic "Bank Transfer" option.
+     * The Bank Accounts CRUD is a method FACTORY: one first-class payment
+     * method per active account. No accounts => no bank methods (the old
+     * generic fallback is gone — a method with no account details was a
+     * phantom). Family enable (bank_transfer_enabled) gates the whole factory.
      *
+     * @return BankTransferPayment[]
+     */
+    public static function instances(): array
+    {
+        $family = new self();
+        if (!$family->isEnabled()) {
+            return [];
+        }
+
+        return BankAccount::active()
+            ->orderBy('sort_order')->orderBy('bank_name')
+            ->get()
+            ->map(fn ($account) => new self($account->id))
+            ->all();
+    }
+
+    /**
+     * @deprecated Use instances(). Kept as an alias until Task 3 removes its
+     * remaining callers (e.g. CheckoutService), then this method is deleted.
      * @return BankTransferPayment[]
      */
     public static function getPaymentOptions(): array
     {
-        $accounts = BankAccount::active()->orderBy('sort_order')->orderBy('bank_name')->get();
-
-        if ($accounts->isNotEmpty()) {
-            $options = [];
-            foreach ($accounts as $account) {
-                $options[] = new self($account->id);
-            }
-            return $options;
-        }
-
-        // Fallback: single generic bank transfer
-        return [new self()];
+        return self::instances();
     }
 
     /**
