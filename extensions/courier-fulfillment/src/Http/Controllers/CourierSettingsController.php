@@ -100,4 +100,20 @@ class CourierSettingsController extends Controller
 
         return back()->with('success', 'Courier settings saved.');
     }
+
+    public function testConnection()
+    {
+        $courier = \Extensions\CourierFulfillment\CourierManager::get('quadx');
+        if (!$courier) {
+            return response()->json(['ok' => false, 'message' => 'QuadX courier not registered.']);
+        }
+        $client = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXClient();
+        if (!$client->isConfigured()) {
+            return response()->json(['ok' => false, 'message' => 'API key/secret not set.']);
+        }
+        $res = $client->getStatuses();
+        return response()->json($res['ok']
+            ? ['ok' => true, 'message' => 'Connected — QuadX reachable and credentials valid.']
+            : ['ok' => false, 'message' => 'Failed: ' . ($res['error'] ?? 'unknown (HTTP ' . $res['status'] . ')')]);
+    }
 }
