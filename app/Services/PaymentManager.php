@@ -64,6 +64,24 @@ class PaymentManager
         return array_values(array_filter(self::methods(), fn ($m) => $m->isEnabled()));
     }
 
+    /**
+     * Base keys of every REGISTERED method class, independent of enabled state
+     * or factory instance availability (a disabled family must still be
+     * administrable). Requires registered classes to be constructible with no
+     * arguments (factories included — their keyless instance carries the
+     * family identity).
+     *
+     * @return string[]
+     */
+    public static function registeredBaseKeys(): array
+    {
+        $keys = [];
+        foreach (self::$registered as $class) {
+            $keys[] = (new $class())->getBaseKey();
+        }
+        return array_values(array_unique($keys));
+    }
+
     public static function get(string $key): ?PaymentMethodInterface
     {
         foreach (self::methods() as $m) {

@@ -57,4 +57,11 @@ class PaymentManagerTest extends TestCase
         $this->assertSame('fake_factory_2', PaymentManager::get('fake_factory_2')?->getKey());
         $this->assertNull(PaymentManager::get('nope'));
     }
+
+    public function test_registered_base_keys_independent_of_enabled_state(): void
+    {
+        PaymentManager::register(FakeSingle::class);
+        PaymentManager::register(FakeFactoryMethod::class);
+        $this->assertSame(['fake_single', 'fake_factory'], PaymentManager::registeredBaseKeys());
+    }
 }
