@@ -74,6 +74,7 @@ class PollCourierStatus extends Command
                 if ($status && $status !== $old) {
                     // courier_* columns aren't in core Order::$fillable — must forceFill.
                     $order->forceFill(['courier_status' => $status])->save();
+                    \Extensions\CourierFulfillment\StatusMapper::apply($order, $status);
                     $updated++;
                     $this->line("  order {$order->id}: " . ($old ?? '(none)') . " -> {$status}");
                 }

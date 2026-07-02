@@ -41,10 +41,17 @@ class StatusMapper
             return false;
         }
 
-        $order->update(['order_status_id' => $target['order_status_id']]);
+        $newStatus = \App\Models\OrderStatus::find($target['order_status_id']);
+        if (!$newStatus) {
+            return false;
+        }
+
+        $order->update(['order_status_id' => $newStatus->id]);
+        \App\Services\StockService::adjustForStatusChange($order, $newStatus);
+
         OrderHistory::create([
             'order_id'         => $order->id,
-            'order_status_id'  => $target['order_status_id'],
+            'order_status_id'  => $newStatus->id,
             'comment'          => 'Courier status: ' . $quadxStatus,
             'notify_customer'  => $target['notify'],
         ]);

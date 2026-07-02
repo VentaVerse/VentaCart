@@ -58,5 +58,6 @@ class CourierWebhookController extends Controller
         }
 
         $order->forceFill(['courier_status' => $event['status']])->save();
+        \Extensions\CourierFulfillment\StatusMapper::apply($order, $event['status'] ?? null);
     }
 }

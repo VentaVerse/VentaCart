@@ -120,7 +120,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface
     {
         // Final states — the poll stops re-checking once an order reaches one.
         // failed_delivery is NOT terminal (rider retries), so we keep polling it.
-        return ['delivered', 'cancelled', 'returned', 'failed_return'];
+        return ['delivered', 'canceled', 'cancelled', 'returned', 'failed_return'];
     }
 
     public function statusPhase(?string $status): array
