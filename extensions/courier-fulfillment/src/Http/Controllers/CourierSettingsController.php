@@ -34,6 +34,8 @@ class CourierSettingsController extends Controller
         'quadx_mode',
         'quadx_default_service',
         'quadx_default_parcel',
+        'fulfillment_enabled',
+        'quadx_status_map',
         'quadx_staging_api_key',
         'quadx_staging_secret_key',
         'quadx_production_api_key',
