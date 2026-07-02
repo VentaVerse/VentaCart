@@ -9,9 +9,6 @@ use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
-use App\Services\PaymentMethods\BankTransferPayment;
-use App\Services\PaymentMethods\CodPayment;
-use App\Services\PaymentMethods\HitPayPayment;
 use App\Services\PaymentMethods\PaymentMethodInterface;
 use App\Services\PaymentMethods\PaymentResult;
 use App\Services\ActivityLogger;
@@ -40,28 +37,7 @@ class CheckoutService
      */
     public function getAvailablePaymentMethods(?array $address = null, ?float $subtotal = null, array $restrictionContext = []): array
     {
-        $methods = [];
-
-        // Bank Transfer: may expand to multiple entries
-        $bt = new BankTransferPayment();
-        if ($bt->isEnabled()) {
-            $bankOptions = BankTransferPayment::getPaymentOptions();
-            foreach ($bankOptions as $option) {
-                $methods[] = $option;
-            }
-        }
-
-        // HitPay
-        $hitpay = new HitPayPayment();
-        if ($hitpay->isEnabled()) {
-            $methods[] = $hitpay;
-        }
-
-        // COD
-        $cod = new CodPayment();
-        if ($cod->isEnabled()) {
-            $methods[] = $cod;
-        }
+        $methods = \App\Services\PaymentManager::enabledMethods();
 
         // Apply payment restrictions if address and subtotal are provided
         if ($address !== null && $subtotal !== null) {
@@ -87,12 +63,8 @@ class CheckoutService
 
     public function getPaymentMethod(string $key): ?PaymentMethodInterface
     {
-        foreach ($this->getAvailablePaymentMethods() as $method) {
-            if ($method->getKey() === $key) {
-                return $method;
-            }
-        }
-        return null;
+        $method = \App\Services\PaymentManager::get($key);
+        return ($method && $method->isEnabled()) ? $method : null;
     }
 
     public function placeOrder(
@@ -241,11 +213,7 @@ class CheckoutService
         }
 
         // Resolve initial order status based on payment method
-        $statusSettingKey = match (preg_replace('/_\d+$/', '', $paymentMethodKey)) {
-            'bank_transfer' => 'bank_transfer_success_status_id',
-            'cod' => 'cod_success_status_id',
-            default => null,
-        };
+        $statusSettingKey = "{$paymentMethod->getBaseKey()}_success_status_id";
 
         $initialStatus = null;
         if ($statusSettingKey) {
