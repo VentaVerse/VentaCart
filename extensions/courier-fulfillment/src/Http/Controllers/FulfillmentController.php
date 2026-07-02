@@ -17,14 +17,29 @@ class FulfillmentController extends Controller
     public function index(Request $request)
     {
         $couriers = CourierManager::enabled();
+        $primary  = $couriers[0] ?? null;
 
         $filter = $request->query('filter', 'to_book');
-        $query = Order::query()->latest();
+        $query  = Order::query()
+            ->with('status:id,name')
+            ->withCount('products')
+            ->latest();
 
         if ($filter === 'to_book') {
             $query->whereNull('courier_tracking_number');
-        } elseif ($filter === 'booked') {
-            $query->whereNotNull('courier_tracking_number');
+        } elseif ($filter === 'in_transit') {
+            $query->whereNotNull('courier_tracking_number')->where('courier_status', '!=', 'delivered');
+        } elseif ($filter === 'delivered') {
+            $query->where('courier_status', 'delivered');
+        }
+        // 'all' — no extra constraint.
+
+        if ($s = $request->query('q')) {
+            $query->where(function ($x) use ($s) {
+                $x->where('id', $s)
+                    ->orWhere('courier_tracking_number', 'like', "%{$s}%")
+                    ->orWhereRaw("CONCAT(shipping_first_name,' ',shipping_last_name) like ?", ["%{$s}%"]);
+            });
         }
 
         $orders = $query->paginate(25)->withQueryString();
@@ -40,7 +55,7 @@ class FulfillmentController extends Controller
             ];
         }
 
-        return view('courier-fulfillment::index', compact('orders', 'couriers', 'courierOptions', 'filter'));
+        return view('courier-fulfillment::index', compact('orders', 'couriers', 'primary', 'courierOptions', 'filter'));
     }
 
     public function book(Request $request, Order $order)
