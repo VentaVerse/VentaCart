@@ -51,6 +51,12 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerDeepAddressProviders();
 
+        // Payment methods sign in here (see PaymentManager docblock). Extensions
+        // add their own register() call in their own service provider.
+        \App\Services\PaymentManager::register(\App\Services\PaymentMethods\BankTransferPayment::class);
+        \App\Services\PaymentManager::register(\App\Services\PaymentMethods\HitPayPayment::class);
+        \App\Services\PaymentManager::register(\App\Services\PaymentMethods\CodPayment::class);
+
         // Expose address provider manifest to storefront layouts
         View::composer('layouts.store', function ($view) {
             $registry = app(AddressProviderRegistry::class);

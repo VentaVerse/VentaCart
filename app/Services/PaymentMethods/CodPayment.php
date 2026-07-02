@@ -12,6 +12,11 @@ class CodPayment implements PaymentMethodInterface
         return 'cod';
     }
 
+    public function getBaseKey(): string
+    {
+        return $this->getKey();
+    }
+
     public function getName(): string
     {
         $custom = Setting::where('group', 'payment')->where('key', 'cod_display_name')->value('value');

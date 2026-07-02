@@ -27,6 +27,11 @@ class BankTransferPayment implements PaymentMethodInterface
         return 'bank_transfer';
     }
 
+    public function getBaseKey(): string
+    {
+        return 'bank_transfer';
+    }
+
     public function getName(): string
     {
         $prefix = $this->getDisplayPrefix();

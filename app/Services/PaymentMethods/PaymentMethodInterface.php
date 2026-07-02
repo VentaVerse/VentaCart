@@ -7,6 +7,10 @@ use App\Models\Order;
 interface PaymentMethodInterface
 {
     public function getKey(): string;
+
+    /** Family key for settings/restrictions grouping (e.g. bank_transfer_4 -> bank_transfer). */
+    public function getBaseKey(): string;
+
     public function getName(): string;
     public function getDescription(): string;
     public function getImage(): ?string;
