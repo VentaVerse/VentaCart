@@ -240,6 +240,12 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'currency'         => 'PHP',
             'shipment'         => $opts['parcel'] ?? 'box',
             'total'            => (float) $order->total,
+            // QuadX insures via declared_value (~1% fee on that amount). Omitting
+            // this field entirely makes QuadX silently DEFAULT declared_value to
+            // the order total — auto-insuring every booking with an unwanted fee.
+            // We always send it explicitly: 0 = uninsured (default), order total
+            // = insured (admin opt-in via the "Insure shipment" checkbox).
+            'declared_value'   => (bool) ($opts['insure'] ?? false) ? (float) $order->total : 0,
             'async_address_validate' => false,
         ];
 

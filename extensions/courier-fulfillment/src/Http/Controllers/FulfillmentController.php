@@ -72,6 +72,7 @@ class FulfillmentController extends Controller
             'service'          => 'required|string',
             'parcel'           => 'required|string',
             'shipping_payment' => 'required|string',
+            'insure'           => 'sometimes|boolean',
         ]);
 
         if (FulfillmentService::isActivelyBooked($order)) {

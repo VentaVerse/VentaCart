@@ -104,6 +104,19 @@ class CourierSettingsController extends Controller
         $liveCoreMethods = ['bank_transfer', 'hitpay', 'cod'];
         $legacyCutoff = now()->subMonths(12);
 
+        // Pre-resolve bank names for bank_transfer_<id> slugs in ONE query
+        // (never per-slug) — used below to shorten the label to just the bank
+        // name and suppress the redundant slug hint in the view.
+        $bankIds = [];
+        foreach ($methodSlugs as $slug) {
+            if (preg_match('/^bank_transfer_(\d+)$/', $slug, $m)) {
+                $bankIds[] = (int) $m[1];
+            }
+        }
+        $bankNames = $bankIds
+            ? \App\Models\BankAccount::whereIn('id', $bankIds)->pluck('bank_name', 'id')
+            : collect();
+
         $paymentMethodOptions = [];
         foreach ($methodSlugs as $slug) {
             $probe = new \App\Models\Order();
@@ -113,11 +126,25 @@ class CourierSettingsController extends Controller
                 $label = ucwords(str_replace('_', ' ', $slug));
             }
 
+            // bank_transfer_<id> with a resolvable bank name: the bank name
+            // alone IS the label (e.g. "Maya" instead of "Bank Transfer —
+            // Maya") and the slug hint is suppressed in the view — the name
+            // is already self-explanatory. Plain "bank_transfer" and any
+            // slug whose bank account was deleted keep the full label + hint.
+            $hint = $slug;
+            if (preg_match('/^bank_transfer_(\d+)$/', $slug, $m)) {
+                $bankName = $bankNames[(int) $m[1]] ?? null;
+                if ($bankName) {
+                    $label = $bankName;
+                    $hint = null;
+                }
+            }
+
             $lastUsed = $lastUsedBySlug[$slug] ?? null;
             $legacy = !in_array($slug, $liveCoreMethods, true)
                 && (!$lastUsed || \Illuminate\Support\Carbon::parse($lastUsed)->lt($legacyCutoff));
 
-            $paymentMethodOptions[$slug] = ['label' => $label, 'legacy' => $legacy];
+            $paymentMethodOptions[$slug] = ['label' => $label, 'legacy' => $legacy, 'hint' => $hint];
         }
 
         $codRaw = $settings['cod_payment_methods'] ?? null;

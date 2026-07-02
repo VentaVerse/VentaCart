@@ -40,6 +40,8 @@ class ErpFulfillmentController extends Controller
             'parcel'           => $request->input('parcel', 'box'),
             'buyer_payment'    => $request->input('buyer_payment'),
             'shipping_payment' => $request->input('shipping_payment', 'net_off'),
+            // Bookings are uninsured by default; ERP may opt in explicitly.
+            'insure'           => $request->boolean('insure'),
         ];
 
         $res = $service->book($order, $opts);
