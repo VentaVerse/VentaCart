@@ -115,9 +115,6 @@
                                 <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $slug }}"
                                     {{ in_array($slug, $codMethods, true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
                                 <span class="text-xs text-gray-700">{{ $method['label'] }}</span>
-                                @if (!empty($method['hint']))
-                                    <span class="text-[10px] text-gray-400 font-mono">{{ $method['hint'] }}</span>
-                                @endif
                                 @if ($method['legacy'])
                                     <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">legacy</span>
                                 @endif

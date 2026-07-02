@@ -91,8 +91,11 @@ class CourierSettingsController extends Controller
         }
 
         // Payment-method keys seen in real orders + the core methods, for COD classification.
+        // Marketplace keys are excluded: those orders are marketplace-fulfilled and never
+        // courier-booked by the store, so classifying them is meaningless (absent = prepaid).
+        $marketplaceKeys = ['shopee', 'lazada', 'tiktok'];
         $seenMethods = \Illuminate\Support\Facades\DB::table('orders')->whereNotNull('payment_method')->where('payment_method', '!=', '')->distinct()->pluck('payment_method')->all();
-        $methodSlugs = collect(array_merge($seenMethods, ['bank_transfer', 'hitpay', 'cod']))->unique()->sort()->values()->all();
+        $methodSlugs = collect(array_merge($seenMethods, ['bank_transfer', 'hitpay', 'cod']))->unique()->reject(fn ($m) => in_array($m, $marketplaceKeys, true))->sort()->values()->all();
 
         // Last-used date per slug, in ONE grouped query (never per-slug queries).
         $lastUsedBySlug = \Illuminate\Support\Facades\DB::table('orders')
@@ -127,16 +130,11 @@ class CourierSettingsController extends Controller
             }
 
             // bank_transfer_<id> with a resolvable bank name: the bank name
-            // alone IS the label (e.g. "Maya" instead of "Bank Transfer —
-            // Maya") and the slug hint is suppressed in the view — the name
-            // is already self-explanatory. Plain "bank_transfer" and any
-            // slug whose bank account was deleted keep the full label + hint.
-            $hint = $slug;
+            // alone IS the label (e.g. "Maya" instead of "Bank Transfer — Maya").
             if (preg_match('/^bank_transfer_(\d+)$/', $slug, $m)) {
                 $bankName = $bankNames[(int) $m[1]] ?? null;
                 if ($bankName) {
                     $label = $bankName;
-                    $hint = null;
                 }
             }
 
@@ -144,7 +142,7 @@ class CourierSettingsController extends Controller
             $legacy = !in_array($slug, $liveCoreMethods, true)
                 && (!$lastUsed || \Illuminate\Support\Carbon::parse($lastUsed)->lt($legacyCutoff));
 
-            $paymentMethodOptions[$slug] = ['label' => $label, 'legacy' => $legacy, 'hint' => $hint];
+            $paymentMethodOptions[$slug] = ['label' => $label, 'legacy' => $legacy];
         }
 
         $codRaw = $settings['cod_payment_methods'] ?? null;
