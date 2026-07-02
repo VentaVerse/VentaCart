@@ -79,6 +79,10 @@
                                 : ['step' => 0, 'failed' => false];
                             $trackingUrl = $extractTrackingUrl($meta['booked_response']['tracking_links'] ?? null);
                             $estimatedDelivery = $meta['booked_response']['estimated_delivery_date'] ?? null;
+                            // Canceled bookings are not terminal — a tracking number is still
+                            // present but the order is rebookable (see FulfillmentService).
+                            $activelyBooked = \Extensions\CourierFulfillment\FulfillmentService::isActivelyBooked($order);
+                            $rebookable = (bool) $order->courier_tracking_number && !$activelyBooked;
                             $rowData = [
                                 'id' => $order->id,
                                 'date' => optional($order->created_at)->format('M d, Y g:ia'),
@@ -86,7 +90,8 @@
                                 'address' => trim(collect([$order->shipping_address_1, $order->shipping_city, $order->shipping_state])->filter()->implode(', ')) ?: '—',
                                 'statusName' => $order->status?->name ?? 'Missing',
                                 'itemsCount' => $order->products_count ?? 0,
-                                'booked' => (bool) $order->courier_tracking_number,
+                                'activelyBooked' => $activelyBooked,
+                                'rebookable' => $rebookable,
                                 'trackingNumber' => $order->courier_tracking_number,
                                 'provider' => strtoupper((string) $order->courier_provider),
                                 'courierStatus' => $order->courier_status,
@@ -126,13 +131,13 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap">
-                                @if ($order->courier_tracking_number)
+                                @if ($activelyBooked)
                                     <a href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener" @click.stop class="text-indigo-600 hover:underline text-xs mr-2">Print AWB</a>
                                     <form method="POST" action="{{ route('admin.fulfillment.track', $order) }}" class="inline">@csrf<button @click.stop class="text-gray-500 hover:text-gray-700 text-xs mr-2">Refresh</button></form>
                                     <form method="POST" action="{{ route('admin.fulfillment.cancel', $order) }}" class="inline" onsubmit="return confirm('Cancel this booking?')">@csrf<button @click.stop class="text-red-500 hover:text-red-700 text-xs">Cancel</button></form>
                                 @elseif (!empty($couriers))
                                     <button type="button" @click.stop="openDrawer(@js($rowData))"
-                                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700">Book</button>
+                                        class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700">{{ $rebookable ? 'Rebook' : 'Book' }}</button>
                                 @endif
                             </td>
                         </tr>
@@ -210,9 +215,14 @@
                         {{-- Booking / tracking body --}}
                         <div class="px-5 py-4 flex-1 overflow-y-auto">
                             @if (!empty($couriers))
-                                <template x-if="!active.booked">
+                                <template x-if="!active.activelyBooked">
                                     <form :action="bookAction" method="POST" class="space-y-4">
                                         @csrf
+                                        <template x-if="active.rebookable">
+                                            <div class="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-500">
+                                                Previous booking <span class="font-mono" x-text="active.trackingNumber"></span> was canceled — booking again creates a new shipment.
+                                            </div>
+                                        </template>
                                         <div>
                                             <label class="block text-xs font-medium text-gray-500 mb-1">Courier</label>
                                             <select name="courier" x-model="courier" class="w-full rounded-lg border-gray-300 text-sm">
@@ -254,7 +264,7 @@
                                     </form>
                                 </template>
                             @else
-                                <template x-if="!active.booked">
+                                <template x-if="!active.activelyBooked">
                                     <div class="rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3">
                                         No courier is enabled yet.
                                         <a href="{{ route('admin.fulfillment.settings') }}" class="font-semibold underline">Configure a courier →</a>
@@ -262,7 +272,7 @@
                                 </template>
                             @endif
 
-                            <template x-if="active.booked">
+                            <template x-if="active.activelyBooked">
                                 <div class="space-y-4">
                                     <div class="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 space-y-2">
                                         <div class="flex justify-between text-sm">

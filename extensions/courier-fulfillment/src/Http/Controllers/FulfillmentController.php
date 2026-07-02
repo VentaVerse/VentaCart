@@ -5,6 +5,7 @@ namespace Extensions\CourierFulfillment\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Extensions\CourierFulfillment\CourierManager;
+use Extensions\CourierFulfillment\FulfillmentService;
 use Illuminate\Http\Request;
 
 /**
@@ -74,7 +75,7 @@ class FulfillmentController extends Controller
             'shipping_payment' => 'required|string',
         ]);
 
-        if ($order->courier_tracking_number) {
+        if (FulfillmentService::isActivelyBooked($order)) {
             return back()->with('error', "Order #{$order->id} is already booked ({$order->courier_tracking_number}).");
         }
 
