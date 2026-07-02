@@ -23,6 +23,15 @@
             <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" class="p-5 space-y-5">
                 @csrf
 
+                {{-- Enable Fulfillment (surfaces the Sales › Order Fulfillment page) --}}
+                <div class="flex items-center gap-3 pb-4 border-b border-gray-100">
+                    <input type="hidden" name="settings[fulfillment_enabled]" value="0">
+                    <input type="checkbox" name="settings[fulfillment_enabled]" value="1"
+                        {{ ($settings['fulfillment_enabled'] ?? '0') === '1' ? 'checked' : '' }}
+                        class="rounded border-gray-300 text-indigo-600">
+                    <span class="text-sm text-gray-700">Enable Fulfillment (shows the Sales &rsaquo; Order Fulfillment page)</span>
+                </div>
+
                 {{-- Enabled --}}
                 <label class="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="hidden" name="settings[quadx_enabled]" value="0">
@@ -76,6 +85,48 @@
                         </div>
                     </div>
                 </template>
+
+                {{-- Test Connection — hits the live QuadX API with the saved credentials --}}
+                <div x-data="{ testing:false, result:null }" class="mt-2">
+                    <button type="button" @click="testing=true; result=null;
+                        fetch('{{ route('admin.fulfillment.test-connection') }}', {method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}})
+                        .then(r=>r.json()).then(d=>result=d).finally(()=>testing=false)"
+                        class="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50">
+                        <span x-show="!testing">Test Connection</span><span x-show="testing">Testing…</span>
+                    </button>
+                    <span x-show="result" x-text="result?.message" :class="result?.ok ? 'text-emerald-600' : 'text-red-600'" class="ml-2 text-sm"></span>
+                </div>
+
+                {{-- Order status mapping — QuadX status → Venta order status --}}
+                <div class="mt-8">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Order status mapping</h3>
+                    <p class="text-xs text-gray-500 mb-3">When QuadX reports a status, set the Venta order status. Leave blank to only track it on the fulfillment page.</p>
+                    <table class="w-full text-sm">
+                        <thead><tr class="text-[11px] uppercase text-gray-400">
+                            <th class="text-left py-1">QuadX status</th><th class="text-left py-1">Venta order status</th><th class="text-left py-1">Notify customer</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach ($quadxStatuses as $key => $label)
+                            <tr class="border-t border-gray-100">
+                                <td class="py-2">{{ $label }}</td>
+                                <td class="py-2">
+                                    <select name="settings[quadx_status_map][{{ $key }}][order_status_id]" class="rounded-md border-gray-300 text-sm">
+                                        <option value="">— none —</option>
+                                        @foreach ($orderStatuses as $id => $name)
+                                            <option value="{{ $id }}" {{ (string) ($statusMap[$key]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="py-2">
+                                    <input type="hidden" name="settings[quadx_status_map][{{ $key }}][notify]" value="0">
+                                    <input type="checkbox" name="settings[quadx_status_map][{{ $key }}][notify]" value="1"
+                                        {{ !empty($statusMap[$key]['notify']) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                                </td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                </div>
 
                 <div class="flex justify-end">
                     <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Save</button>

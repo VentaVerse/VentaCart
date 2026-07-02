@@ -72,7 +72,34 @@ class CourierSettingsController extends Controller
         $webhookUrl = rtrim((string) config('app.url'), '/')
             . '/webhooks/courier/quadx?token=' . $settings['quadx_webhook_token'];
 
-        return view('courier-fulfillment::settings', compact('settings', 'masked', 'webhookUrl'));
+        $orderStatuses = \App\Models\OrderStatus::orderBy('name')->pluck('name', 'id')->toArray();
+
+        // Lifecycle statuses we let admins map (curated subset).
+        $lifecycle = ['for_pickup', 'picked_up', 'in_transit', 'out_for_delivery',
+                      'delivered', 'failed_pickup', 'failed_delivery', 'returned', 'canceled'];
+        $client = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXClient();
+        $labels = [];
+        if ($client->isConfigured()) {
+            $res = $client->getStatuses();
+            foreach (($res['ok'] ? $res['body'] : []) as $s) {
+                $labels[$s['name']] = $s['label'];
+            }
+        }
+        $quadxStatuses = [];
+        foreach ($lifecycle as $name) {
+            $quadxStatuses[$name] = $labels[$name] ?? ucwords(str_replace('_', ' ', $name));
+        }
+
+        $statusMap = \Extensions\CourierFulfillment\StatusMapper::currentMap();
+
+        return view('courier-fulfillment::settings', compact(
+            'settings',
+            'masked',
+            'webhookUrl',
+            'orderStatuses',
+            'quadxStatuses',
+            'statusMap'
+        ));
     }
 
     public function update(Request $request)
