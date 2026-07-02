@@ -104,6 +104,22 @@
                     <span x-show="result" x-text="result?.message" :class="result?.ok ? 'text-emerald-600' : 'text-red-600'" class="ml-2 text-sm"></span>
                 </div>
 
+                {{-- COD payment methods — which payment methods book as cash-on-delivery --}}
+                <div class="mt-8">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-1">COD payment methods</h3>
+                    <p class="text-xs text-gray-500 mb-3">Orders paid with a checked method are booked as COD (the rider collects the order total). Everything else books as prepaid.</p>
+                    <input type="hidden" name="settings[cod_payment_methods][]" value="__none__">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                        @foreach ($paymentMethodOptions as $method)
+                            <label class="flex items-center gap-2 text-sm cursor-pointer">
+                                <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $method }}"
+                                    {{ in_array($method, $codMethods, true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                                <span class="font-mono text-xs text-gray-700">{{ $method }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
                 {{-- Order status mapping — QuadX status → Venta order status --}}
                 <div class="mt-8">
                     <div class="flex items-center justify-between mb-1">

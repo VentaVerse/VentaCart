@@ -134,7 +134,7 @@
 
                             // Buyer payment is derived from the order, never chosen by the
                             // admin — prevents mis-shipping a COD order as prepaid.
-                            $isCod = str_contains(strtolower((string) $order->payment_method), 'cod');
+                            $isCod = \Extensions\CourierFulfillment\FulfillmentService::isCodOrder($order);
                             $buyerPaymentLabel = $isCod
                                 ? 'Buyer pays for goods: COD — rider collects ₱' . number_format($order->total, 2)
                                 : 'Buyer pays for goods: Prepaid — no collection';

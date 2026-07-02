@@ -4,6 +4,7 @@ namespace Extensions\CourierFulfillment;
 
 use App\Models\Order;
 use App\Models\OrderHistory;
+use App\Models\Setting;
 
 /**
  * Shared booking core, used by BOTH the admin Fulfillment page and the ERP API
@@ -34,6 +35,25 @@ class FulfillmentService
     {
         return (bool) $order->courier_tracking_number
             && !in_array((string) $order->courier_status, self::CANCELED_STATUSES, true);
+    }
+
+    /**
+     * Is this order paid via a COD-type method (rider collects the total)?
+     * Uses the admin-configured mapping (courier.cod_payment_methods); when the
+     * store hasn't configured one, falls back to the name heuristic.
+     */
+    public static function isCodOrder(Order $order): bool
+    {
+        $raw = Setting::where('group', 'courier')->where('key', 'cod_payment_methods')->value('value');
+        $configured = $raw !== null;
+        $list = $configured ? array_values(array_filter((array) json_decode($raw, true), fn ($v) => $v !== '' && $v !== '__none__')) : [];
+
+        if ($configured) {
+            return in_array((string) $order->payment_method, $list, true);
+        }
+
+        $pm = strtolower((string) $order->payment_method);
+        return str_contains($pm, 'cod') || str_contains($pm, 'cash on delivery');
     }
 
     /**

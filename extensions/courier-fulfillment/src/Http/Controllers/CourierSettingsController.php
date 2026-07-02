@@ -36,6 +36,7 @@ class CourierSettingsController extends Controller
         'quadx_default_parcel',
         'fulfillment_enabled',
         'quadx_status_map',
+        'cod_payment_methods',
         'quadx_staging_api_key',
         'quadx_staging_secret_key',
         'quadx_production_api_key',
@@ -89,6 +90,18 @@ class CourierSettingsController extends Controller
             $quadxStatuses[$name] = $cachedLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
         }
 
+        // Payment-method keys seen in real orders + the core methods, for COD classification.
+        $seenMethods = \Illuminate\Support\Facades\DB::table('orders')->whereNotNull('payment_method')->where('payment_method', '!=', '')->distinct()->pluck('payment_method')->all();
+        $paymentMethodOptions = collect(array_merge($seenMethods, ['bank_transfer', 'hitpay', 'cod']))->unique()->sort()->values()->all();
+
+        $codRaw = $settings['cod_payment_methods'] ?? null;
+        if ($codRaw !== null) {
+            $codMethods = array_values(array_filter((array) json_decode($codRaw, true), fn ($v) => $v !== '' && $v !== '__none__'));
+        } else {
+            // Unconfigured: pre-check the heuristic matches so first save codifies today's behavior.
+            $codMethods = array_values(array_filter($paymentMethodOptions, fn ($m) => str_contains(strtolower($m), 'cod')));
+        }
+
         $statusMap = \Extensions\CourierFulfillment\StatusMapper::currentMap();
 
         // Smart defaults: only when the admin hasn't configured a map yet. These
@@ -116,7 +129,9 @@ class CourierSettingsController extends Controller
             'webhookUrl',
             'orderStatuses',
             'quadxStatuses',
-            'statusMap'
+            'statusMap',
+            'paymentMethodOptions',
+            'codMethods'
         ));
     }
 

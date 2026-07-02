@@ -300,7 +300,6 @@ class QuadXFulfillment implements CourierFulfillmentInterface
 
     private function orderIsCod(Order $order): bool
     {
-        return str_contains(strtolower((string) $order->payment_method), 'cod')
-            || str_contains(strtolower((string) $order->payment_method), 'cash on delivery');
+        return \Extensions\CourierFulfillment\FulfillmentService::isCodOrder($order);
     }
 }
