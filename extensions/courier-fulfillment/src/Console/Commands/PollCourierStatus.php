@@ -99,8 +99,9 @@ class PollCourierStatus extends Command
                         break;
                     }
                 }
-                $trackingLink = $trackingLink ?? $order->tracking_link;
-                $linkChanged = $trackingLink !== $order->tracking_link;
+                // raw column, NOT the accessor — the accessor live-derives and would trigger relation queries / freeze derived URLs.
+                $trackingLink = $trackingLink ?? $order->getRawOriginal('tracking_link');
+                $linkChanged = $trackingLink !== $order->getRawOriginal('tracking_link');
 
                 if ($statusChanged || $metaChanged || $linkChanged) {
                     $fill = [];

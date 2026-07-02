@@ -164,8 +164,9 @@ class FulfillmentController extends Controller
                 break;
             }
         }
-        $trackingLink = $trackingLink ?? $order->tracking_link;
-        if ($trackingLink !== $order->tracking_link) {
+        // raw column, NOT the accessor — the accessor live-derives and would trigger relation queries / freeze derived URLs.
+        $trackingLink = $trackingLink ?? $order->getRawOriginal('tracking_link');
+        if ($trackingLink !== $order->getRawOriginal('tracking_link')) {
             $fill['tracking_link'] = $trackingLink;
         }
 
