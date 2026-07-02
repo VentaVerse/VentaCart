@@ -92,14 +92,40 @@ class CourierSettingsController extends Controller
 
         // Payment-method keys seen in real orders + the core methods, for COD classification.
         $seenMethods = \Illuminate\Support\Facades\DB::table('orders')->whereNotNull('payment_method')->where('payment_method', '!=', '')->distinct()->pluck('payment_method')->all();
-        $paymentMethodOptions = collect(array_merge($seenMethods, ['bank_transfer', 'hitpay', 'cod']))->unique()->sort()->values()->all();
+        $methodSlugs = collect(array_merge($seenMethods, ['bank_transfer', 'hitpay', 'cod']))->unique()->sort()->values()->all();
+
+        // Last-used date per slug, in ONE grouped query (never per-slug queries).
+        $lastUsedBySlug = \Illuminate\Support\Facades\DB::table('orders')
+            ->whereNotNull('payment_method')
+            ->where('payment_method', '!=', '')
+            ->groupBy('payment_method')
+            ->pluck(\Illuminate\Support\Facades\DB::raw('MAX(created_at)'), 'payment_method');
+
+        $liveCoreMethods = ['bank_transfer', 'hitpay', 'cod'];
+        $legacyCutoff = now()->subMonths(12);
+
+        $paymentMethodOptions = [];
+        foreach ($methodSlugs as $slug) {
+            $probe = new \App\Models\Order();
+            $probe->payment_method = $slug;
+            $label = $probe->payment_method_label;
+            if ($label === '') {
+                $label = ucwords(str_replace('_', ' ', $slug));
+            }
+
+            $lastUsed = $lastUsedBySlug[$slug] ?? null;
+            $legacy = !in_array($slug, $liveCoreMethods, true)
+                && (!$lastUsed || \Illuminate\Support\Carbon::parse($lastUsed)->lt($legacyCutoff));
+
+            $paymentMethodOptions[$slug] = ['label' => $label, 'legacy' => $legacy];
+        }
 
         $codRaw = $settings['cod_payment_methods'] ?? null;
         if ($codRaw !== null) {
             $codMethods = array_values(array_filter((array) json_decode($codRaw, true), fn ($v) => $v !== '' && $v !== '__none__'));
         } else {
             // Unconfigured: pre-check the heuristic matches so first save codifies today's behavior.
-            $codMethods = array_values(array_filter($paymentMethodOptions, fn ($m) => str_contains(strtolower($m), 'cod')));
+            $codMethods = array_values(array_filter(array_keys($paymentMethodOptions), fn ($m) => str_contains(strtolower($m), 'cod')));
         }
 
         $statusMap = \Extensions\CourierFulfillment\StatusMapper::currentMap();

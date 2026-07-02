@@ -110,11 +110,15 @@
                     <p class="text-xs text-gray-500 mb-3">Orders paid with a checked method are booked as COD (the rider collects the order total). Everything else books as prepaid.</p>
                     <input type="hidden" name="settings[cod_payment_methods][]" value="__none__">
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
-                        @foreach ($paymentMethodOptions as $method)
+                        @foreach ($paymentMethodOptions as $slug => $method)
                             <label class="flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $method }}"
-                                    {{ in_array($method, $codMethods, true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                <span class="font-mono text-xs text-gray-700">{{ $method }}</span>
+                                <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $slug }}"
+                                    {{ in_array($slug, $codMethods, true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
+                                <span class="text-xs text-gray-700">{{ $method['label'] }}</span>
+                                <span class="text-[10px] text-gray-400 font-mono">{{ $slug }}</span>
+                                @if ($method['legacy'])
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">legacy</span>
+                                @endif
                             </label>
                         @endforeach
                     </div>
