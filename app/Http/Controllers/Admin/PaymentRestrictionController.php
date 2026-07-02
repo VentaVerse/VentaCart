@@ -154,18 +154,28 @@ class PaymentRestrictionController extends Controller
     }
 
     /**
-     * Registered payment method families (base key => label), one entry per
-     * distinct base key regardless of how many instances share it (e.g. every
-     * bank account instance collapses into a single 'bank_transfer' family).
+     * Payment method families available for restriction admin (base key =>
+     * label). Deliberately NOT derived from PaymentManager::methods(), which
+     * is enabled-state-dependent — a disabled family (or a factory with zero
+     * active instances, e.g. Bank Transfer with no active accounts) returns no
+     * instances there, which would make its restriction row invisible and
+     * uneditable. Instead this unions:
+     *  - every REGISTERED family (enabled or not), so it's always administrable;
+     *  - every family already referenced by an existing restriction row, so an
+     *    orphan row from a since-removed extension stays visible/editable.
      *
      * @return array<string, string>
      */
     private function paymentFamilies(): array
     {
+        $keys = array_unique(array_merge(
+            PaymentManager::registeredBaseKeys(),
+            PaymentMethodRestriction::query()->pluck('payment_method')->all()
+        ));
+
         $families = [];
-        foreach (PaymentManager::methods() as $method) {
-            $baseKey = $method->getBaseKey();
-            $families[$baseKey] ??= PaymentMethodRestriction::getPaymentMethodLabel($baseKey);
+        foreach ($keys as $baseKey) {
+            $families[$baseKey] = PaymentMethodRestriction::getPaymentMethodLabel($baseKey);
         }
 
         return $families;
