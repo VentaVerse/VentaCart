@@ -84,6 +84,11 @@ class OrderController extends Controller
 
         $newCustomerPassword = null;
 
+        // Snapshot human-facing facts at order time (order-snapshots spec).
+        $validated['payment_method_title'] = $this->resolvePaymentTitle($request->input('payment_method'));
+        $validated['shipping_country_name'] = Country::find($validated['shipping_country_id'] ?? null)?->name;
+        $validated['billing_country_name'] = Country::find($validated['billing_country_id'] ?? null)?->name;
+
         $order = DB::transaction(function () use ($request, $validated, &$newCustomerPassword) {
             $validated['created_by'] = Auth::id();
             $validated['subtotal'] = 0;
@@ -242,6 +247,17 @@ class OrderController extends Controller
     {
         $validated = $this->validateOrder($request, $order->id);
 
+        // Re-snapshot human-facing facts only when their underlying fields changed.
+        if ($request->has('payment_method')) {
+            $validated['payment_method_title'] = $this->resolvePaymentTitle($request->input('payment_method'));
+        }
+        if (array_key_exists('shipping_country_id', $validated)) {
+            $validated['shipping_country_name'] = Country::find($validated['shipping_country_id'])?->name;
+        }
+        if (array_key_exists('billing_country_id', $validated)) {
+            $validated['billing_country_name'] = Country::find($validated['billing_country_id'])?->name;
+        }
+
         $productsChanged = false;
 
         DB::transaction(function () use ($request, $order, $validated, &$productsChanged) {
@@ -307,6 +323,11 @@ class OrderController extends Controller
                 'tracking_number' => $validated['tracking_number'] ?? $order->tracking_number,
             ]);
             $order->refresh();
+            $order->update([
+                'tracking_link' => ($order->tracking_number && $order->shippingCourier)
+                    ? $order->shippingCourier->getTrackingLink($order->tracking_number)
+                    : null,
+            ]);
             $courierChanged = true;
         }
 
@@ -390,6 +411,12 @@ class OrderController extends Controller
         $order->update([
             'shipping_courier_id' => $validated['shipping_courier_id'],
             'tracking_number' => $validated['tracking_number'],
+        ]);
+        $order->refresh();
+        $order->update([
+            'tracking_link' => ($order->tracking_number && $order->shippingCourier)
+                ? $order->shippingCourier->getTrackingLink($order->tracking_number)
+                : null,
         ]);
 
         // Send shipping notification if new tracking number and notify is checked
@@ -672,6 +699,20 @@ class OrderController extends Controller
         return response()->json(['methods' => $result]);
     }
 
+    /** Human title for a picked payment key; free-text methods snapshot as themselves. */
+    private function resolvePaymentTitle(?string $key): ?string
+    {
+        if (!$key) {
+            return null;
+        }
+        foreach (app(\App\Services\CheckoutService::class)->getAvailablePaymentMethods() as $m) {
+            if ($m->getKey() === $key) {
+                return $m->getName();
+            }
+        }
+        return $key; // admin typed a free-text method — the text IS the title
+    }
+
     protected function validateOrder(Request $request, ?int $orderId = null): array
     {
         $isCreate = $orderId === null;
@@ -759,6 +800,7 @@ class OrderController extends Controller
                 'quantity' => $qty,
                 'total' => $price * $qty,
                 'is_custom' => !empty($item['is_custom']),
+                'image' => Product::find($item['product_id'] ?? null)?->image,
             ]);
         }
     }
