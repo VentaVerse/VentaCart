@@ -29,7 +29,10 @@ class FulfillmentController extends Controller
         if ($filter === 'to_book') {
             $query->whereNull('courier_tracking_number');
         } elseif ($filter === 'in_transit') {
-            $query->whereNotNull('courier_tracking_number')->where('courier_status', '!=', 'delivered');
+            $query->whereNotNull('courier_tracking_number')
+                ->where(function ($q) {
+                    $q->whereNull('courier_status')->orWhere('courier_status', '!=', 'delivered');
+                });
         } elseif ($filter === 'delivered') {
             $query->where('courier_status', 'delivered');
         }
@@ -97,7 +100,8 @@ class FulfillmentController extends Controller
             return back()->with('error', 'Cancel failed: ' . ($result['error'] ?? 'unknown error'));
         }
 
-        $order->forceFill(['courier_status' => 'cancelled'])->save();
+        $order->forceFill(['courier_status' => 'canceled'])->save();
+        \Extensions\CourierFulfillment\StatusMapper::apply($order, 'canceled');
         return back()->with('success', "Cancelled booking for order #{$order->id}.");
     }
 
@@ -133,6 +137,7 @@ class FulfillmentController extends Controller
 
         if (!empty($result['status'])) {
             $order->forceFill(['courier_status' => $result['status']])->save();
+            \Extensions\CourierFulfillment\StatusMapper::apply($order, $result['status']);
         }
         return back()->with('success', "Status: " . ($result['status'] ?? 'unchanged'));
     }

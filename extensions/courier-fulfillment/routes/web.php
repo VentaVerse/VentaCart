@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 $adminPrefix = config('admin.prefix', 'admin');
 
 // Admin: the dedicated Fulfillment page (respects the configurable admin prefix).
-Route::middleware(['web', 'auth'])
+Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/fulfillment')
     ->name('admin.fulfillment.')
     ->group(function () {
