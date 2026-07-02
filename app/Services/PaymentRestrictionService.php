@@ -33,10 +33,19 @@ class PaymentRestrictionService
         ?string $shippingMethodKey = null,
         ?string $currencyCode = null
     ): bool {
-        // Normalise key: bank_transfer_1 => bank_transfer
-        $baseKey = preg_replace('/_\d+$/', '', $paymentKey);
+        // Exact-key restriction wins (e.g. a restriction configured specifically
+        // for 'bank_transfer_1'); otherwise fall back to the family/base key
+        // (e.g. 'bank_transfer' covers all bank accounts).
+        $restriction = PaymentMethodRestriction::where('payment_method', $paymentKey)->first();
 
-        $restriction = PaymentMethodRestriction::where('payment_method', $baseKey)->first();
+        if (!$restriction) {
+            $method = PaymentManager::get($paymentKey);
+            $baseKey = $method?->getBaseKey() ?? preg_replace('/_\d+$/', '', $paymentKey);
+
+            if ($baseKey !== $paymentKey) {
+                $restriction = PaymentMethodRestriction::where('payment_method', $baseKey)->first();
+            }
+        }
 
         // No restriction record = no restrictions applied, always allowed
         if (!$restriction) {

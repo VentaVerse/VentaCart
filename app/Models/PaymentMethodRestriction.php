@@ -105,6 +105,15 @@ class PaymentMethodRestriction extends Model
 
     public static function getPaymentMethodLabel(string $key): string
     {
+        // Exact-key registry hit (e.g. a specific bank account instance) uses
+        // that instance's own name. Family keys (e.g. 'bank_transfer' has no
+        // single instance — only per-account instances) and unknown/legacy
+        // keys fall through to the static match below.
+        $method = \App\Services\PaymentManager::get($key);
+        if ($method) {
+            return $method->getName();
+        }
+
         return match ($key) {
             'bank_transfer' => 'Bank Transfer',
             'hitpay' => 'HitPay',
