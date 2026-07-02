@@ -103,6 +103,7 @@ class FulfillmentService
             // Core snapshot field (Order Historical Snapshots): the extension is the
             // only writer of core tracking_number; no tracking_link yet at booking time.
             'tracking_number'         => $result['tracking_number'] ?? null,
+            'tracking_link'           => null, // stale link from a prior booking/manual entry must not point at the new shipment; the poll re-stamps it when the courier link appears
         ])->save();
 
         if ($previousTracking) {
