@@ -132,6 +132,13 @@
                                 }
                             }
 
+                            // Buyer payment is derived from the order, never chosen by the
+                            // admin — prevents mis-shipping a COD order as prepaid.
+                            $isCod = str_contains(strtolower((string) $order->payment_method), 'cod');
+                            $buyerPaymentLabel = $isCod
+                                ? 'Buyer pays for goods: COD — rider collects ₱' . number_format($order->total, 2)
+                                : 'Buyer pays for goods: Prepaid — no collection';
+
                             $rowData = [
                                 'id' => $order->id,
                                 'date' => optional($order->created_at)->format('M d, Y g:ia'),
@@ -150,7 +157,7 @@
                                 'phaseStep' => $phase['step'],
                                 'phaseFailed' => $phase['failed'],
                                 'timeline' => $timeline,
-                                'buyerPaymentGuess' => str_contains(strtolower($order->payment_method ?? ''), 'cod') ? 'cod' : 'prepaid',
+                                'buyerPaymentLabel' => $buyerPaymentLabel,
                             ];
                         @endphp
                         <tr class="hover:bg-gray-50 cursor-pointer" @click="openDrawer(@js($rowData))">
@@ -317,20 +324,15 @@
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-500 mb-1">Buyer pays for goods</label>
-                                                <select name="buyer_payment" x-model="buyerPayment" class="w-full rounded-lg border-gray-300 text-sm">
-                                                    <option value="cod">COD (collect on delivery)</option>
-                                                    <option value="prepaid">Prepaid (already paid)</option>
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-500 mb-1">You pay shipping</label>
-                                                <select name="shipping_payment" class="w-full rounded-lg border-gray-300 text-sm">
-                                                    <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
-                                                </select>
-                                            </div>
+                                        <div class="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2">
+                                            <div class="text-xs font-medium text-gray-500 mb-0.5">Buyer pays for goods</div>
+                                            <div class="text-sm text-gray-700" x-text="active.buyerPaymentLabel"></div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">You pay shipping</label>
+                                            <select name="shipping_payment" class="w-full rounded-lg border-gray-300 text-sm">
+                                                <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
+                                            </select>
                                         </div>
                                         <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Book Shipment</button>
                                     </form>
@@ -405,7 +407,6 @@
             return {
                 drawerOpen: false,
                 active: null,
-                buyerPayment: 'cod',
                 courier: @js(array_key_first($courierOptions) ?? ''),
                 options: @js($courierOptions),
                 urlBase: '{{ url(config('admin.prefix', 'admin') . '/fulfillment') }}',
@@ -416,7 +417,6 @@
                 get labelUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/label'; },
                 openDrawer(order) {
                     this.active = order;
-                    this.buyerPayment = order.buyerPaymentGuess;
                     this.courier = @js(array_key_first($courierOptions) ?? '');
                     this.drawerOpen = true;
                 },

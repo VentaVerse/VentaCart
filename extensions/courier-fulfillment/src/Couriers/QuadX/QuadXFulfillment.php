@@ -50,9 +50,9 @@ class QuadXFulfillment implements CourierFulfillmentInterface
     public function getParcelOptions(): array
     {
         return [
-            ['value' => 'small-pouch',  'label' => 'Small Pouch'],
-            ['value' => 'medium-pouch', 'label' => 'Medium Pouch'],
-            ['value' => 'big-pouch',    'label' => 'Big Pouch'],
+            ['value' => 'small-pouch',  'label' => 'White Small Pouch'],
+            ['value' => 'medium-pouch', 'label' => 'Blue Medium Pouch'],
+            ['value' => 'big-pouch',    'label' => 'Red Large Pouch'],
             ['value' => 'box',          'label' => 'Box'],
             ['value' => 'oversized',    'label' => 'Oversized'],
         ];
