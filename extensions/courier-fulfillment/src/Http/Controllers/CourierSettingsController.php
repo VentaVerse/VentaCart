@@ -77,20 +77,38 @@ class CourierSettingsController extends Controller
         // Lifecycle statuses we let admins map (curated subset).
         $lifecycle = ['for_pickup', 'picked_up', 'in_transit', 'out_for_delivery',
                       'delivered', 'failed_pickup', 'failed_delivery', 'returned', 'canceled'];
-        $client = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXClient();
-        $labels = [];
-        if ($client->isConfigured()) {
-            $res = $client->getStatuses();
-            foreach (($res['ok'] ? $res['body'] : []) as $s) {
-                $labels[$s['name']] = $s['label'];
-            }
-        }
+
+        // Labels come from a cache populated by the "Refresh from QuadX" button
+        // (see refreshStatuses()) — never a live API call on page load.
+        $cachedLabelsRaw = Setting::where('group', 'courier')->where('key', 'quadx_status_labels')->value('value');
+        $cachedLabels = $cachedLabelsRaw ? json_decode($cachedLabelsRaw, true) : [];
+        $cachedLabels = is_array($cachedLabels) ? $cachedLabels : [];
+
         $quadxStatuses = [];
         foreach ($lifecycle as $name) {
-            $quadxStatuses[$name] = $labels[$name] ?? ucwords(str_replace('_', ' ', $name));
+            $quadxStatuses[$name] = $cachedLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
         }
 
         $statusMap = \Extensions\CourierFulfillment\StatusMapper::currentMap();
+
+        // Smart defaults: only when the admin hasn't configured a map yet. These
+        // are display-only pre-selections for the dropdowns — nothing is written
+        // to the DB here. The admin's first Save is what actually persists them.
+        if (empty($statusMap)) {
+            $defaultNames = [
+                'picked_up'        => 'Shipped',
+                'in_transit'       => 'Shipped',
+                'out_for_delivery' => 'Shipped',
+                'delivered'        => 'Delivered',
+                'canceled'         => 'Canceled',
+            ];
+            foreach ($defaultNames as $quadxKey => $ventaName) {
+                $id = \App\Models\OrderStatus::where('name', $ventaName)->value('id');
+                if ($id) {
+                    $statusMap[$quadxKey] = ['order_status_id' => $id, 'notify' => false];
+                }
+            }
+        }
 
         return view('courier-fulfillment::settings', compact(
             'settings',
@@ -126,6 +144,38 @@ class CourierSettingsController extends Controller
         }
 
         return back()->with('success', 'Courier settings saved.');
+    }
+
+    /**
+     * Pull the live status list from QuadX and cache it as the admin-facing
+     * labels used by index(). Explicit admin action only — never called on
+     * page load.
+     */
+    public function refreshStatuses()
+    {
+        $client = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXClient();
+        if (!$client->isConfigured()) {
+            return back()->with('error', 'API key/secret not set — cannot refresh statuses.');
+        }
+
+        $res = $client->getStatuses();
+        if (!$res['ok']) {
+            return back()->with('error', 'Refresh failed: ' . ($res['error'] ?? 'unknown error'));
+        }
+
+        $labels = [];
+        foreach ($res['body'] as $s) {
+            if (!empty($s['name'])) {
+                $labels[$s['name']] = $s['label'] ?? ucwords(str_replace('_', ' ', $s['name']));
+            }
+        }
+
+        Setting::updateOrCreate(
+            ['group' => 'courier', 'key' => 'quadx_status_labels'],
+            ['value' => json_encode($labels)]
+        );
+
+        return back()->with('success', 'QuadX status list refreshed.');
     }
 
     public function testConnection()

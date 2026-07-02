@@ -22,6 +22,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::get('/settings', [CourierSettingsController::class, 'index'])->name('settings');
         Route::post('/settings', [CourierSettingsController::class, 'update'])->name('settings.update');
         Route::post('/settings/test-connection', [CourierSettingsController::class, 'testConnection'])->name('test-connection');
+        Route::post('/settings/refresh-statuses', [CourierSettingsController::class, 'refreshStatuses'])->name('settings.refresh-statuses');
     });
 
 // Public webhook receiver — per-store token guarded, CSRF-exempt (external POST).

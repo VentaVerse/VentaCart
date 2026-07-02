@@ -20,6 +20,13 @@
                 <p class="text-xs text-gray-500 mt-0.5">Philippine courier (LBC-backed). Book confirmed orders from the Fulfillment page.</p>
             </div>
 
+            {{-- Standalone form for the "Refresh from QuadX" button — kept outside the
+                 main settings form below since HTML forms cannot be nested. Associated
+                 via the button's form="refresh-statuses-form" attribute. --}}
+            <form id="refresh-statuses-form" method="POST" action="{{ route('admin.fulfillment.settings.refresh-statuses') }}" class="hidden">
+                @csrf
+            </form>
+
             <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" class="p-5 space-y-5">
                 @csrf
 
@@ -99,7 +106,10 @@
 
                 {{-- Order status mapping — QuadX status → Venta order status --}}
                 <div class="mt-8">
-                    <h3 class="text-sm font-semibold text-gray-900 mb-1">Order status mapping</h3>
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="text-sm font-semibold text-gray-900">Order status mapping</h3>
+                        <button type="submit" form="refresh-statuses-form" class="px-3 py-1.5 text-xs rounded-md border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Refresh from QuadX</button>
+                    </div>
                     <p class="text-xs text-gray-500 mb-3">When QuadX reports a status, set the Venta order status. Leave blank to only track it on the fulfillment page.</p>
                     <table class="w-full text-sm">
                         <thead><tr class="text-[11px] uppercase text-gray-400">
