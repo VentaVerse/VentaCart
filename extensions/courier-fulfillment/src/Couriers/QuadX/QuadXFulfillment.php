@@ -123,6 +123,35 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         return ['delivered', 'cancelled', 'returned', 'failed_return'];
     }
 
+    public function statusPhase(?string $status): array
+    {
+        $s = (string) $status;
+
+        $failed = ['failed_pickup','failed_pickup_attempt','failed_delivery','for_reattempt',
+                   'returned','return_in_transit','out_for_return','for_return','canceled',
+                   'rejected','lost','damaged','disposed'];
+        if (in_array($s, $failed, true)) {
+            // Keep the node where it broke: pickup failures at step 1, else step 2.
+            $atPickup = str_contains($s, 'pickup') || $s === 'canceled' || $s === 'rejected';
+            return ['step' => $atPickup ? 1 : 2, 'failed' => true];
+        }
+
+        if ($s === 'delivered') {
+            return ['step' => 3, 'failed' => false];
+        }
+
+        $shipped = ['picked_up','in_transit','out_for_delivery','for_delivery',
+                    'in_transit_to_delivery_area','received_at_delivery_hub',
+                    'received_at_delivery_area','at_sorting_center','at_3pl_facility',
+                    'received_at_pickup_hub','claimed','confirmed_transit'];
+        if (in_array($s, $shipped, true)) {
+            return ['step' => 2, 'failed' => false];
+        }
+
+        // Everything else that means "booked, awaiting pickup" -> step 1.
+        return ['step' => 1, 'failed' => false];
+    }
+
     public function printLabel(string $trackingNumber, string $format): array
     {
         $type = in_array($format, ['zebra', 'fuji'], true) ? $format : 'zebra';

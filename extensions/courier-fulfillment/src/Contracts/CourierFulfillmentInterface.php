@@ -68,6 +68,12 @@ interface CourierFulfillmentInterface
     public function terminalStatuses(): array;
 
     /**
+     * Coarse visual phase for the fulfillment stepper.
+     * @return array{step:int, failed:bool}  step: 0 Pending,1 Booked,2 Shipped,3 Delivered
+     */
+    public function statusPhase(?string $status): array;
+
+    /**
      * @param string $format provider format hint (e.g. 'zebra'|'fuji')
      * @return array{success:bool, url?:string, manifest_url?:string, error?:string}
      */
