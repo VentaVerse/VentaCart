@@ -136,8 +136,8 @@
                             // admin — prevents mis-shipping a COD order as prepaid.
                             $isCod = \Extensions\CourierFulfillment\FulfillmentService::isCodOrder($order);
                             $buyerPaymentLabel = $isCod
-                                ? 'Buyer pays for goods: COD — rider collects ₱' . number_format($order->total, 2)
-                                : 'Buyer pays for goods: Prepaid — no collection';
+                                ? 'COD — rider collects ₱' . number_format($order->total, 2)
+                                : 'Prepaid — no collection';
 
                             $rowData = [
                                 'id' => $order->id,
