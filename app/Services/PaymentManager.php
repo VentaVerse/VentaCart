@@ -21,16 +21,30 @@ class PaymentManager
     /** @var array<int, class-string<PaymentMethodInterface>> */
     private static array $registered = [];
 
+    /** @var PaymentMethodInterface[]|null per-request memo */
+    private static ?array $memo = null;
+
     public static function register(string $class): void
     {
         if (!in_array($class, self::$registered, true)) {
             self::$registered[] = $class;
         }
+        self::$memo = null;
     }
 
-    /** All method instances, factories flattened, registration order. @return PaymentMethodInterface[] */
+    /**
+     * All method instances, factories flattened, registration order.
+     * Memoized per-request: factories like BankTransferPayment::instances()
+     * hit the DB, and methods() may be called many times in a single request
+     * (checkout, admin listing, order emails). register()/reset() invalidate.
+     * @return PaymentMethodInterface[]
+     */
     public static function methods(): array
     {
+        if (self::$memo !== null) {
+            return self::$memo;
+        }
+
         $methods = [];
         foreach (self::$registered as $class) {
             if (method_exists($class, 'instances')) {
@@ -41,7 +55,7 @@ class PaymentManager
                 $methods[] = new $class();
             }
         }
-        return $methods;
+        return self::$memo = $methods;
     }
 
     /** @return PaymentMethodInterface[] */
@@ -64,5 +78,6 @@ class PaymentManager
     public static function reset(): void
     {
         self::$registered = [];
+        self::$memo = null;
     }
 }
