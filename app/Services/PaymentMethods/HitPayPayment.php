@@ -18,6 +18,11 @@ class HitPayPayment implements PaymentMethodInterface
         return 'hitpay';
     }
 
+    public function getBaseKey(): string
+    {
+        return $this->getKey();
+    }
+
     public function getName(): string
     {
         $custom = $this->getSetting('hitpay_display_name');
