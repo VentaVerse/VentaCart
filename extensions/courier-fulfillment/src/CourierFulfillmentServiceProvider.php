@@ -33,7 +33,10 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         // banners/ph-address use). When this extension isn't installed, the flag
         // is never set and the menu link never renders.
         View::composer('layouts.admin', function ($view) {
+            $enabled = \App\Models\Setting::where('group', 'courier')
+                ->where('key', 'fulfillment_enabled')->value('value') === '1';
             $view->with('fulfillmentInstalled', true);
+            $view->with('fulfillmentEnabled', $enabled);
         });
     }
 
