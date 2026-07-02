@@ -21,6 +21,7 @@ class FulfillmentController extends Controller
 
         $filter = $request->query('filter', 'to_book');
         $query  = Order::query()
+            ->whereNotNull('order_status_id') // Ghost/abandoned orders (no status) are never fulfilled — same default as the core Orders page.
             ->with('status:id,name')
             ->withCount('products')
             ->latest();
