@@ -115,7 +115,7 @@
                             @if ($order->shipping_barangay) <p class="text-gray-600">{{ $order->shipping_barangay }}</p> @endif
                             @if ($order->shipping_district) <p class="text-gray-600">{{ $order->shipping_district }}</p> @endif
                             <p class="text-gray-600">{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif {{ $order->shipping_postcode }}</p>
-                            @if ($order->shipping_country_code) <p class="text-gray-400 text-xs">{{ $order->shipping_country_code }}</p> @endif
+                            @if ($order->shipping_country_name ?? $order->shippingCountry?->name) <p class="text-gray-400 text-xs">{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p> @endif
                             @if ($order->shipping_phone || $order->phone)
                                 <p class="text-gray-500 mt-1.5">{{ $order->shipping_phone ?: $order->phone }}</p>
                             @endif
@@ -135,7 +135,7 @@
                                 @if ($order->billing_barangay) <p class="text-gray-600">{{ $order->billing_barangay }}</p> @endif
                                 @if ($order->billing_district) <p class="text-gray-600">{{ $order->billing_district }}</p> @endif
                                 <p class="text-gray-600">{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif {{ $order->billing_postcode }}</p>
-                                @if ($order->billing_country_code) <p class="text-gray-400 text-xs">{{ $order->billing_country_code }}</p> @endif
+                                @if ($order->billing_country_name ?? $order->billingCountry?->name) <p class="text-gray-400 text-xs">{{ $order->billing_country_name ?? $order->billingCountry?->name }}</p> @endif
                                 @if ($order->billing_phone)
                                     <p class="text-gray-500 mt-1.5">{{ $order->billing_phone }}</p>
                                 @endif
@@ -165,8 +165,9 @@
                         @foreach ($order->products as $item)
                             <tr class="hover:bg-gray-50/50">
                                 <td class="pl-6 py-3 w-14">
-                                    @if ($item->product?->image)
-                                        <img src="{{ storage_url($item->product->image) }}" alt="{{ $item->name }}" class="w-10 h-10 rounded object-cover border border-gray-200">
+                                    @php($itemImage = $item->image ?? $item->product?->image)
+                                    @if ($itemImage)
+                                        <img src="{{ storage_url($itemImage) }}" alt="{{ $item->name }}" class="w-10 h-10 rounded object-cover border border-gray-200">
                                     @else
                                         <div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
                                             <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
@@ -238,8 +239,8 @@
                             @if ($order->shippingCourier)
                                 <span class="font-medium text-indigo-800">{{ $order->shippingCourier->name }}</span>
                             @endif
-                            @if ($order->shippingCourier?->getTrackingLink($order->tracking_number))
-                                <a href="{{ $order->shippingCourier->getTrackingLink($order->tracking_number) }}" target="_blank" class="text-indigo-600 hover:underline">{{ $order->tracking_number }}</a>
+                            @if ($order->tracking_link)
+                                <a href="{{ $order->tracking_link }}" target="_blank" class="text-indigo-600 hover:underline">{{ $order->tracking_number }}</a>
                             @else
                                 <span class="text-indigo-600">{{ $order->tracking_number }}</span>
                             @endif

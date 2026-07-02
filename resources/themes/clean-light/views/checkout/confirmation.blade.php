@@ -82,7 +82,7 @@
                                 {{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif
                                 @if ($order->shipping_postcode) {{ $order->shipping_postcode }}@endif
                             </p>
-                            <p>{{ $order->shipping_country_code }}</p>
+                            <p>{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p>
                         </div>
                     </div>
                 @endif

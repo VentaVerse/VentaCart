@@ -43,7 +43,7 @@
                                         @if ($order->shipping_barangay) <p>{{ $order->shipping_barangay }}</p> @endif
                                         @if ($order->shipping_district) <p>{{ $order->shipping_district }}</p> @endif
                                         <p>{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif @if ($order->shipping_postcode) {{ $order->shipping_postcode }}@endif</p>
-                                        @if ($order->shipping_country_code) <p>{{ $order->shipping_country_code }}</p> @endif
+                                        @if ($order->shipping_country_name ?? $order->shippingCountry?->name) <p>{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p> @endif
                                         @if ($order->shipping_phone) <p class="mt-1">{{ $order->shipping_phone }}</p> @endif
                                     </div>
                                 </div>
@@ -59,7 +59,7 @@
                                         @if ($order->billing_barangay) <p>{{ $order->billing_barangay }}</p> @endif
                                         @if ($order->billing_district) <p>{{ $order->billing_district }}</p> @endif
                                         <p>{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif @if ($order->billing_postcode) {{ $order->billing_postcode }}@endif</p>
-                                        @if ($order->billing_country_code) <p>{{ $order->billing_country_code }}</p> @endif
+                                        @if ($order->billing_country_name ?? $order->billingCountry?->name) <p>{{ $order->billing_country_name ?? $order->billingCountry?->name }}</p> @endif
                                         @if ($order->billing_phone) <p class="mt-1">{{ $order->billing_phone }}</p> @endif
                                     </div>
                                 @else
