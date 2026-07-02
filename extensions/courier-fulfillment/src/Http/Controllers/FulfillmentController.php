@@ -154,6 +154,21 @@ class FulfillmentController extends Controller
             $fill['courier_meta'] = json_encode($meta);
         }
 
+        // Core tracking_link snapshot: prefer the delivery URL, then pickup. When
+        // this call returned no usable link, keep whatever core already has —
+        // never null out a previously stored link.
+        $trackingLink = null;
+        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
+            if (is_string($u) && str_starts_with($u, 'http')) {
+                $trackingLink = $u;
+                break;
+            }
+        }
+        $trackingLink = $trackingLink ?? $order->tracking_link;
+        if ($trackingLink !== $order->tracking_link) {
+            $fill['tracking_link'] = $trackingLink;
+        }
+
         if (!empty($fill)) {
             // courier_* columns aren't in core Order::$fillable — must forceFill.
             $order->forceFill($fill)->save();

@@ -100,6 +100,9 @@ class FulfillmentService
             'courier_status'          => $result['status'] ?? null,
             'courier_meta'            => json_encode($meta),
             'courier_booked_at'       => now(),
+            // Core snapshot field (Order Historical Snapshots): the extension is the
+            // only writer of core tracking_number; no tracking_link yet at booking time.
+            'tracking_number'         => $result['tracking_number'] ?? null,
         ])->save();
 
         if ($previousTracking) {

@@ -89,7 +89,20 @@ class PollCourierStatus extends Command
                     $metaChanged = true;
                 }
 
-                if ($statusChanged || $metaChanged) {
+                // Core tracking_link snapshot: prefer the delivery URL, then pickup.
+                // When this poll cycle returned no usable link, keep whatever core
+                // already has — never null out a previously stored link.
+                $trackingLink = null;
+                foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
+                    if (is_string($u) && str_starts_with($u, 'http')) {
+                        $trackingLink = $u;
+                        break;
+                    }
+                }
+                $trackingLink = $trackingLink ?? $order->tracking_link;
+                $linkChanged = $trackingLink !== $order->tracking_link;
+
+                if ($statusChanged || $metaChanged || $linkChanged) {
                     $fill = [];
                     if ($statusChanged) {
                         $fill['courier_status'] = $status;
@@ -97,7 +110,11 @@ class PollCourierStatus extends Command
                     if ($metaChanged) {
                         $fill['courier_meta'] = json_encode($meta);
                     }
+                    if ($linkChanged) {
+                        $fill['tracking_link'] = $trackingLink;
+                    }
                     // courier_* columns aren't in core Order::$fillable — must forceFill.
+                    // tracking_link IS fillable, but forceFill here keeps this a single call.
                     $order->forceFill($fill)->save();
                     if ($statusChanged) {
                         \Extensions\CourierFulfillment\StatusMapper::apply($order, $status);
