@@ -136,8 +136,29 @@ class FulfillmentController extends Controller
             return back()->with('error', 'Tracking failed: ' . ($result['error'] ?? 'unknown error'));
         }
 
+        $fill = [];
         if (!empty($result['status'])) {
-            $order->forceFill(['courier_status' => $result['status']])->save();
+            $fill['courier_status'] = $result['status'];
+        }
+
+        $links = $result['links'] ?? null;
+        $timeline = $result['timeline'] ?? null;
+        if (!empty($links) || !empty($timeline)) {
+            $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+            if (!empty($links)) {
+                $meta['tracking_links'] = $links;
+            }
+            if (!empty($timeline)) {
+                $meta['timeline'] = $timeline;
+            }
+            $fill['courier_meta'] = json_encode($meta);
+        }
+
+        if (!empty($fill)) {
+            // courier_* columns aren't in core Order::$fillable — must forceFill.
+            $order->forceFill($fill)->save();
+        }
+        if (!empty($result['status'])) {
             \Extensions\CourierFulfillment\StatusMapper::apply($order, $result['status']);
         }
         return back()->with('success', "Status: " . ($result['status'] ?? 'unchanged'));

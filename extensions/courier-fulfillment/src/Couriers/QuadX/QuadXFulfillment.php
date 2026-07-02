@@ -113,7 +113,14 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         if (!$res['ok']) {
             return ['success' => false, 'error' => $res['error'] ?? 'Tracking lookup failed.'];
         }
-        return ['success' => true, 'status' => $res['body']['status'] ?? null, 'raw' => $res['body']];
+        $b = $res['body'];
+        return [
+            'success'  => true,
+            'status'   => $b['status'] ?? null,
+            'raw'      => $b,
+            'links'    => (isset($b['tracking_links']) && is_array($b['tracking_links'])) ? $b['tracking_links'] : null,
+            'timeline' => self::timelineFromTat($b['tat'] ?? null),
+        ];
     }
 
     public function terminalStatuses(): array
@@ -121,6 +128,34 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         // Final states — the poll stops re-checking once an order reaches one.
         // failed_delivery is NOT terminal (rider retries), so we keep polling it.
         return ['delivered', 'canceled', 'cancelled', 'returned', 'failed_return'];
+    }
+
+    public function cancelableStatuses(): array
+    {
+        return ['pending', 'confirmed', 'for_pickup', 'searching_for_rider',
+                'failed_pickup_attempt', 'for_acceptance', 'for_consolidation',
+                'for_dropoff', 'for_payment', 'paid'];
+    }
+
+    /** Normalize QuadX's tat map into a chronological event list. @return array<int,array{status:string,at:int}> */
+    public static function timelineFromTat(?array $tat): array
+    {
+        if (empty($tat)) {
+            return [];
+        }
+        $excluded = ['sla_start', 'first_pickup_at', 'first_estimated_delivery_date'];
+        $events = [];
+        foreach ($tat as $status => $at) {
+            if (in_array($status, $excluded, true)) {
+                continue;
+            }
+            if (!is_int($at)) {
+                continue;
+            }
+            $events[] = ['status' => (string) $status, 'at' => $at];
+        }
+        usort($events, fn ($a, $b) => $a['at'] <=> $b['at']);
+        return array_values($events);
     }
 
     public function statusPhase(?string $status): array

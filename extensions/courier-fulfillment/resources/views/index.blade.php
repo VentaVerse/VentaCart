@@ -17,6 +17,19 @@
             }
             return null;
         };
+
+        // Statuses the primary courier still allows canceling from — computed once,
+        // not per row. A null/unknown current status is always cancelable (fresh booking).
+        $cancelableStatuses = $primary?->cancelableStatuses() ?? [];
+
+        // Cached QuadX status labels (populated by the "Refresh from QuadX" button on
+        // the settings page) — same source the settings screen uses, never a live call.
+        $cachedLabelsRaw = \App\Models\Setting::where('group', 'courier')->where('key', 'quadx_status_labels')->value('value');
+        $cachedLabels = $cachedLabelsRaw ? (json_decode($cachedLabelsRaw, true) ?: []) : [];
+        $cachedLabels = is_array($cachedLabels) ? $cachedLabels : [];
+        $humanizeStatus = function (string $status) use ($cachedLabels) {
+            return $cachedLabels[$status] ?? ucwords(str_replace('_', ' ', $status));
+        };
     @endphp
 
     <div x-data="fulfillment()" class="space-y-4">
@@ -77,12 +90,48 @@
                             $phase = $order->courier_tracking_number
                                 ? ($primary?->statusPhase($order->courier_status) ?? ['step' => 0, 'failed' => false])
                                 : ['step' => 0, 'failed' => false];
-                            $trackingUrl = $extractTrackingUrl($meta['booked_response']['tracking_links'] ?? null);
+
+                            // URL preference: fresh courier_meta.tracking_links (delivery, then
+                            // pickup) persisted on refresh, else fall back to whatever shape the
+                            // provider returned at booking time inside booked_response.
+                            $trackingUrl = null;
+                            $metaLinks = $meta['tracking_links'] ?? null;
+                            if (is_array($metaLinks)) {
+                                foreach ([$metaLinks['delivery'] ?? null, $metaLinks['pickup'] ?? null] as $candidate) {
+                                    if (is_string($candidate) && str_starts_with($candidate, 'http')) {
+                                        $trackingUrl = $candidate;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (!$trackingUrl) {
+                                $trackingUrl = $extractTrackingUrl($meta['booked_response']['tracking_links'] ?? null);
+                            }
+
                             $estimatedDelivery = $meta['booked_response']['estimated_delivery_date'] ?? null;
                             // Canceled bookings are not terminal — a tracking number is still
                             // present but the order is rebookable (see FulfillmentService).
                             $activelyBooked = \Extensions\CourierFulfillment\FulfillmentService::isActivelyBooked($order);
                             $rebookable = (bool) $order->courier_tracking_number && !$activelyBooked;
+                            // A null/unknown courier_status is always cancelable (fresh booking) —
+                            // otherwise it must be one of the courier's own cancelable statuses.
+                            $cancelable = $activelyBooked
+                                && (!$order->courier_status || in_array($order->courier_status, $cancelableStatuses, true));
+
+                            $timelineRaw = $meta['timeline'] ?? [];
+                            $timeline = [];
+                            if (is_array($timelineRaw)) {
+                                foreach ($timelineRaw as $event) {
+                                    if (!is_array($event) || !isset($event['status'], $event['at']) || !is_int($event['at'])) {
+                                        continue;
+                                    }
+                                    $timeline[] = [
+                                        'label' => $humanizeStatus((string) $event['status']),
+                                        'at' => \Carbon\Carbon::createFromTimestamp($event['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia'),
+                                    ];
+                                }
+                            }
+
                             $rowData = [
                                 'id' => $order->id,
                                 'date' => optional($order->created_at)->format('M d, Y g:ia'),
@@ -92,6 +141,7 @@
                                 'itemsCount' => $order->products_count ?? 0,
                                 'activelyBooked' => $activelyBooked,
                                 'rebookable' => $rebookable,
+                                'cancelable' => $cancelable,
                                 'trackingNumber' => $order->courier_tracking_number,
                                 'provider' => strtoupper((string) $order->courier_provider),
                                 'courierStatus' => $order->courier_status,
@@ -99,6 +149,7 @@
                                 'estimatedDelivery' => $estimatedDelivery,
                                 'phaseStep' => $phase['step'],
                                 'phaseFailed' => $phase['failed'],
+                                'timeline' => $timeline,
                                 'buyerPaymentGuess' => str_contains(strtolower($order->payment_method ?? ''), 'cod') ? 'cod' : 'prepaid',
                             ];
                         @endphp
@@ -124,7 +175,11 @@
                             </td>
                             <td class="px-4 py-3">
                                 @if ($order->courier_tracking_number)
-                                    <div class="text-gray-900 font-mono text-xs">{{ $order->courier_tracking_number }}</div>
+                                    @if ($trackingUrl)
+                                        <a href="{{ $trackingUrl }}" target="_blank" rel="noopener" @click.stop class="text-indigo-600 hover:underline font-mono text-xs">{{ $order->courier_tracking_number }}</a>
+                                    @else
+                                        <div class="text-gray-900 font-mono text-xs">{{ $order->courier_tracking_number }}</div>
+                                    @endif
                                     <div class="text-[11px] text-gray-500">{{ strtoupper($order->courier_provider) }} · {{ $order->courier_status ?: 'booked' }}</div>
                                 @else
                                     <span class="text-gray-300">—</span>
@@ -134,7 +189,9 @@
                                 @if ($activelyBooked)
                                     <a href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener" @click.stop class="text-indigo-600 hover:underline text-xs mr-2">Print AWB</a>
                                     <form method="POST" action="{{ route('admin.fulfillment.track', $order) }}" class="inline">@csrf<button @click.stop class="text-gray-500 hover:text-gray-700 text-xs mr-2">Refresh</button></form>
-                                    <form method="POST" action="{{ route('admin.fulfillment.cancel', $order) }}" class="inline" onsubmit="return confirm('Cancel this booking?')">@csrf<button @click.stop class="text-red-500 hover:text-red-700 text-xs">Cancel</button></form>
+                                    @if ($cancelable)
+                                        <form method="POST" action="{{ route('admin.fulfillment.cancel', $order) }}" class="inline" onsubmit="return confirm('Cancel this booking?')">@csrf<button @click.stop class="text-red-500 hover:text-red-700 text-xs">Cancel</button></form>
+                                    @endif
                                 @elseif (!empty($couriers))
                                     <button type="button" @click.stop="openDrawer(@js($rowData))"
                                         class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700">{{ $rebookable ? 'Rebook' : 'Book' }}</button>
@@ -191,6 +248,21 @@
                                 @endforeach
                             </div>
                         </div>
+
+                        {{-- Tracking history --}}
+                        <template x-if="active.activelyBooked && active.timeline && active.timeline.length">
+                            <div class="px-5 py-4 border-b border-gray-100">
+                                <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Tracking history</h4>
+                                <ul class="space-y-1.5">
+                                    <template x-for="(event, idx) in active.timeline" :key="idx">
+                                        <li class="flex items-baseline justify-between gap-3 text-sm">
+                                            <span class="text-gray-800" x-text="event.label"></span>
+                                            <span class="text-xs text-gray-400 whitespace-nowrap" x-text="event.at"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </template>
 
                         {{-- Summary --}}
                         <div class="px-5 py-4 border-b border-gray-100 space-y-2 text-sm">
@@ -277,7 +349,12 @@
                                     <div class="rounded-lg bg-gray-50 border border-gray-200 px-4 py-3 space-y-2">
                                         <div class="flex justify-between text-sm">
                                             <span class="text-gray-500">Tracking #</span>
-                                            <span class="font-mono font-medium text-gray-900" x-text="active.trackingNumber"></span>
+                                            <template x-if="active.trackingUrl">
+                                                <a :href="active.trackingUrl" target="_blank" rel="noopener" class="font-mono font-medium text-indigo-600 hover:underline" x-text="active.trackingNumber"></a>
+                                            </template>
+                                            <template x-if="!active.trackingUrl">
+                                                <span class="font-mono font-medium text-gray-900" x-text="active.trackingNumber"></span>
+                                            </template>
                                         </div>
                                         <div class="flex justify-between text-sm">
                                             <span class="text-gray-500">Courier</span>
@@ -306,10 +383,12 @@
                                             @csrf
                                             <button type="submit" class="w-full px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-50">Refresh status</button>
                                         </form>
-                                        <form :action="cancelAction" method="POST" onsubmit="return confirm('Cancel this booking?')">
-                                            @csrf
-                                            <button type="submit" class="w-full px-4 py-2 border border-red-200 text-red-600 text-sm font-semibold rounded-lg hover:bg-red-50">Cancel booking</button>
-                                        </form>
+                                        <template x-if="active.cancelable">
+                                            <form :action="cancelAction" method="POST" onsubmit="return confirm('Cancel this booking?')">
+                                                @csrf
+                                                <button type="submit" class="w-full px-4 py-2 border border-red-200 text-red-600 text-sm font-semibold rounded-lg hover:bg-red-50">Cancel booking</button>
+                                            </form>
+                                        </template>
                                     </div>
                                 </div>
                             </template>

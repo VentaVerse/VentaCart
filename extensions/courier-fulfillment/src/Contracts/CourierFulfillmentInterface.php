@@ -68,6 +68,12 @@ interface CourierFulfillmentInterface
     public function terminalStatuses(): array;
 
     /**
+     * Courier statuses from which a shipment can still be canceled.
+     * A null/unknown current status counts as cancelable (fresh bookings).
+     */
+    public function cancelableStatuses(): array;
+
+    /**
      * Coarse visual phase for the fulfillment stepper.
      * @return array{step:int, failed:bool}  step: 0 Pending,1 Booked,2 Shipped,3 Delivered
      */

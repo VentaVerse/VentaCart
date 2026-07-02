@@ -71,12 +71,39 @@ class PollCourierStatus extends Command
                 }
 
                 $status = $result['status'] ?? null;
-                if ($status && $status !== $old) {
+                $statusChanged = $status && $status !== $old;
+
+                // Tracking links / timeline can appear (or change) without a status
+                // transition, so check them independently and only write if something
+                // actually differs — keeps this a no-op write on unchanged polls.
+                $links = $result['links'] ?? null;
+                $timeline = $result['timeline'] ?? null;
+                $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+                $metaChanged = false;
+                if (!empty($links) && ($meta['tracking_links'] ?? null) !== $links) {
+                    $meta['tracking_links'] = $links;
+                    $metaChanged = true;
+                }
+                if (!empty($timeline) && ($meta['timeline'] ?? null) !== $timeline) {
+                    $meta['timeline'] = $timeline;
+                    $metaChanged = true;
+                }
+
+                if ($statusChanged || $metaChanged) {
+                    $fill = [];
+                    if ($statusChanged) {
+                        $fill['courier_status'] = $status;
+                    }
+                    if ($metaChanged) {
+                        $fill['courier_meta'] = json_encode($meta);
+                    }
                     // courier_* columns aren't in core Order::$fillable — must forceFill.
-                    $order->forceFill(['courier_status' => $status])->save();
-                    \Extensions\CourierFulfillment\StatusMapper::apply($order, $status);
-                    $updated++;
-                    $this->line("  order {$order->id}: " . ($old ?? '(none)') . " -> {$status}");
+                    $order->forceFill($fill)->save();
+                    if ($statusChanged) {
+                        \Extensions\CourierFulfillment\StatusMapper::apply($order, $status);
+                        $updated++;
+                        $this->line("  order {$order->id}: " . ($old ?? '(none)') . " -> {$status}");
+                    }
                 }
             }
         }
