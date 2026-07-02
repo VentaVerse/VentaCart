@@ -46,6 +46,8 @@ class StatusMapper
             return false;
         }
 
+        $oldStatus = \App\Models\OrderStatus::find($order->order_status_id)?->name ?? 'Unknown';
+
         $order->update(['order_status_id' => $newStatus->id]);
         \App\Services\StockService::adjustForStatusChange($order, $newStatus);
 
@@ -55,6 +57,18 @@ class StatusMapper
             'comment'          => 'Courier status: ' . $quadxStatus,
             'notify_customer'  => $target['notify'],
         ]);
+
+        if ($target['notify'] && $order->email) {
+            \App\Services\TemplateMailService::send('order_status_update', $order->email, [
+                'customer_name' => $order->first_name . ' ' . $order->last_name,
+                'order_id'      => $order->id,
+                'old_status'    => $oldStatus,
+                'new_status'    => $newStatus->name,
+                'comment'       => 'Courier status: ' . $quadxStatus,
+                'store_name'    => config('app.name'),
+            ]);
+        }
+
         return true;
     }
 }
