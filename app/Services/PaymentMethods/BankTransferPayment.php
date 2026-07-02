@@ -104,16 +104,6 @@ class BankTransferPayment implements PaymentMethodInterface
     }
 
     /**
-     * @deprecated Use instances(). Kept as an alias until Task 3 removes its
-     * remaining callers (e.g. CheckoutService), then this method is deleted.
-     * @return BankTransferPayment[]
-     */
-    public static function getPaymentOptions(): array
-    {
-        return self::instances();
-    }
-
-    /**
      * Resolve bank account details for displaying in order confirmation.
      */
     public static function getInstructionsForOrder(Order $order): ?string
