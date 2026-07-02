@@ -517,7 +517,7 @@ class CheckoutService
     {
         $html = '';
         foreach ($order->products as $item) {
-            $image = $item->product?->image;
+            $image = $item->image ?? $item->product?->image;
             $imgHtml = '';
             if ($image) {
                 $imgUrl = url('/storage/' . $image);
@@ -568,19 +568,15 @@ class CheckoutService
         if ($stateLine) {
             $lines[] = $stateLine;
         }
-        if ($order->shipping_country_id) {
-            $country = \App\Models\Country::find($order->shipping_country_id);
-            if ($country) {
-                $lines[] = e($country->name);
-            }
+        $country = $order->shipping_country_id ? \App\Models\Country::find($order->shipping_country_id) : null;
+        $countryName = $order->shipping_country_name ?? $country?->name;
+        if ($countryName) {
+            $lines[] = e($countryName);
         }
         if ($order->shipping_phone) {
             $phoneCode = '';
-            if ($order->shipping_country_id) {
-                $countryForPhone = $country ?? \App\Models\Country::find($order->shipping_country_id);
-                if ($countryForPhone && $countryForPhone->phone_code) {
-                    $phoneCode = '+' . $countryForPhone->phone_code . ' ';
-                }
+            if ($country && $country->phone_code) {
+                $phoneCode = '+' . $country->phone_code . ' ';
             }
             $lines[] = 'Phone: ' . $phoneCode . e($order->shipping_phone);
         }

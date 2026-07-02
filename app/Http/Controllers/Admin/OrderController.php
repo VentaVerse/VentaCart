@@ -71,7 +71,7 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['customer', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
+        $order->load(['customer', 'status', 'products.product:id,image', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
 

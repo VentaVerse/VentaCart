@@ -17,6 +17,7 @@
                         $storeLogo = \App\Models\Setting::where('group', 'identity')->where('key', 'logo')->value('value');
                         $primaryColor = \App\Models\Setting::where('group', 'colors')->where('key', 'primary')->value('value') ?? '#BE3144';
                         $country = $order->shipping_country_id ? \App\Models\Country::find($order->shipping_country_id) : null;
+                        $countryName = $order->shipping_country_name ?? $country?->name;
                     @endphp
                     <tr>
                         <td style="background-color: #1a1a1a; border-bottom: 2px solid {{ $primaryColor }}; padding: 32px 40px; text-align: center;">
@@ -73,7 +74,7 @@
                                             @if ($order->shipping_district)<br>{{ $order->shipping_district }}, {{ $order->shipping_city }}@else<br>{{ $order->shipping_city }}@endif
                                             @if ($order->shipping_state), {{ $order->shipping_state }}@endif
                                             @if ($order->shipping_postcode) {{ $order->shipping_postcode }}@endif
-                                            @if ($country)<br>{{ $country->name }}@endif
+                                            @if ($countryName)<br>{{ $countryName }}@endif
                                         </p>
                                         @if ($order->shipping_phone)
                                             <p style="margin: 8px 0 0 0; font-size: 13px; color: #bbbbbb;">
@@ -195,8 +196,9 @@
                                 @foreach ($order->products as $item)
                                 <tr>
                                     <td style="padding: 8px; border-bottom: 1px solid #2a2a2a; width: 58px; vertical-align: middle;">
-                                        @if ($item->product?->image)
-                                            <img src="{{ url('/storage/' . $item->product->image) }}" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">
+                                        @php($itemImage = $item->image ?? $item->product?->image)
+                                        @if ($itemImage)
+                                            <img src="{{ url('/storage/' . $itemImage) }}" alt="" width="50" height="50" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; display: block;">
                                         @endif
                                     </td>
                                     <td style="padding: 12px; font-size: 14px; color: #e8e8e8; border-bottom: 1px solid #2a2a2a;">
