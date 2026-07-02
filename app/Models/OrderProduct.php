@@ -9,7 +9,7 @@ class OrderProduct extends Model
 {
     protected $fillable = [
         'order_id', 'product_id', 'product_variant_id',
-        'name', 'sku', 'variant_label',
+        'name', 'sku', 'image', 'variant_label',
         'price', 'quantity', 'total',
         'is_custom',
     ];

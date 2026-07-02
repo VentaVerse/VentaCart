@@ -14,12 +14,13 @@ class Order extends Model
         'shipping_first_name', 'shipping_last_name',
         'shipping_address_1', 'shipping_city', 'shipping_district', 'shipping_barangay',
         'shipping_state', 'shipping_postcode', 'shipping_country_id', 'shipping_phone',
-        'payment_method', 'payment_reference', 'shipping_method', 'shipping_meta',
+        'payment_method', 'payment_method_title', 'payment_reference', 'shipping_method', 'shipping_meta',
         'subtotal', 'shipping_cost', 'total',
-        'shipping_courier_id', 'tracking_number',
+        'shipping_courier_id', 'tracking_number', 'tracking_link',
+        'shipping_country_name',
         'billing_first_name', 'billing_last_name', 'billing_address_1',
         'billing_city', 'billing_district', 'billing_barangay',
-        'billing_state', 'billing_postcode', 'billing_country_id', 'billing_phone',
+        'billing_state', 'billing_postcode', 'billing_country_id', 'billing_phone', 'billing_country_name',
         'comment', 'stock_adjusted',
         'coupon_code', 'coupon_discount',
     ];
@@ -109,6 +110,12 @@ class Order extends Model
 
     public function getPaymentMethodLabelAttribute(): string
     {
+        // Snapshot first — what was true at order time (see order-snapshots spec).
+        $title = $this->attributes['payment_method_title'] ?? null;
+        if ($title) {
+            return $title;
+        }
+
         $key = $this->payment_method;
         if (!$key) return '';
 
@@ -130,6 +137,12 @@ class Order extends Model
 
     public function getTrackingLinkAttribute(): ?string
     {
+        // Snapshot first — survives courier deletion/edits.
+        $stored = $this->attributes['tracking_link'] ?? null;
+        if ($stored) {
+            return $stored;
+        }
+
         if (!$this->tracking_number || !$this->shippingCourier) {
             return null;
         }
