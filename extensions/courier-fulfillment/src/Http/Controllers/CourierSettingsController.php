@@ -95,7 +95,7 @@ class CourierSettingsController extends Controller
         // courier-booked by the store, so classifying them is meaningless (absent = prepaid).
         $marketplaceKeys = ['shopee', 'lazada', 'tiktok'];
         $seenMethods = \Illuminate\Support\Facades\DB::table('orders')->whereNotNull('payment_method')->where('payment_method', '!=', '')->distinct()->pluck('payment_method')->all();
-        $methodSlugs = collect(array_merge($seenMethods, ['bank_transfer', 'hitpay', 'cod']))->unique()->reject(fn ($m) => in_array($m, $marketplaceKeys, true))->sort()->values()->all();
+        $methodSlugs = collect(array_merge($seenMethods, \App\Services\PaymentManager::registeredBaseKeys()))->unique()->reject(fn ($m) => in_array($m, $marketplaceKeys, true))->sort()->values()->all();
 
         // Last-used date per slug, in ONE grouped query (never per-slug queries).
         $lastUsedBySlug = \Illuminate\Support\Facades\DB::table('orders')
@@ -104,7 +104,7 @@ class CourierSettingsController extends Controller
             ->groupBy('payment_method')
             ->pluck(\Illuminate\Support\Facades\DB::raw('MAX(created_at)'), 'payment_method');
 
-        $liveCoreMethods = ['bank_transfer', 'hitpay', 'cod'];
+        $liveCoreMethods = \App\Services\PaymentManager::registeredBaseKeys();
         $legacyCutoff = now()->subMonths(12);
 
         // Pre-resolve bank names for bank_transfer_<id> slugs in ONE query
