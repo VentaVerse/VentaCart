@@ -189,6 +189,7 @@
                                     <a href="{{ route('checkout.index') }}" class="btn-checkout block text-center mb-3"
                                        x-data="{ clicked: false }"
                                        @click="clicked = true"
+                                       @pageshow.window="clicked = false"
                                        :class="clicked && 'btn-checkout-loading'">
                                         <span x-show="!clicked">PROCEED TO CHECKOUT</span>
                                         <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
@@ -200,6 +201,7 @@
                                     <a href="{{ route('customer.login', ['redirect' => 'checkout']) }}" class="btn-checkout block text-center mb-3"
                                        x-data="{ clicked: false }"
                                        @click="clicked = true"
+                                       @pageshow.window="clicked = false"
                                        :class="clicked && 'btn-checkout-loading'">
                                         <span x-show="!clicked">PROCEED TO CHECKOUT</span>
                                         <span x-show="clicked" x-cloak class="inline-flex items-center gap-2">
