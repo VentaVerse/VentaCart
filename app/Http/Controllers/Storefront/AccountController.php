@@ -13,7 +13,7 @@ class AccountController extends Controller
     public function dashboard()
     {
         $customer = Auth::guard('customer')->user();
-        $recentOrders = $customer->orders()->latest()->take(5)->get();
+        $recentOrders = $customer->orders()->visibleToCustomer()->latest()->take(5)->get();
         $defaultAddress = $customer->defaultAddress();
 
         return view('account.dashboard', compact('customer', 'recentOrders', 'defaultAddress'));

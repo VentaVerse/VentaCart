@@ -324,7 +324,7 @@
                                                     @endif
                                                 </div>
                                                 @if ($history->comment)
-                                                    <p class="text-sm text-gray-600 mt-1">{!! strip_tags($history->comment, '<a>') !!}</p>
+                                                    <p class="text-sm text-gray-600 mt-1">{{ strip_tags($history->comment) }}</p>
                                                 @endif
                                                 <p class="text-[11px] text-gray-400 mt-1">
                                                     {{ $history->created_at->format('M d, Y g:i A') }}

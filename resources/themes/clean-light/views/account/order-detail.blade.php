@@ -155,7 +155,7 @@
                                             <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[#2A2A2A] text-[var(--color-text-muted)]">{{ $history->status->name }}</span>
                                         @endif
                                         @if ($history->comment)
-                                            <p class="text-[var(--color-text-muted)] mt-0.5">{{ $history->comment }}</p>
+                                            <p class="text-[var(--color-text-muted)] mt-0.5">{{ strip_tags($history->comment) }}</p>
                                         @endif
                                     </div>
                                 </div>

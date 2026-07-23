@@ -12,6 +12,7 @@ class OrderHistoryController extends Controller
     {
         $orders = Auth::guard('customer')->user()
             ->orders()
+            ->visibleToCustomer()
             ->latest()
             ->paginate(15);
 
@@ -21,6 +22,7 @@ class OrderHistoryController extends Controller
     public function show(Order $order)
     {
         abort_if($order->customer_id !== Auth::guard('customer')->id(), 403);
+        abort_if(is_null($order->order_status_id), 404);
 
         $order->load(['products', 'histories.status', 'status', 'shippingCourier']);
 
