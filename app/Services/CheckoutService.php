@@ -39,13 +39,18 @@ class CheckoutService
     {
         $methods = \App\Services\PaymentManager::enabledMethods();
 
-        // Apply payment restrictions if address and subtotal are provided
-        if ($address !== null && $subtotal !== null) {
+        // Apply payment restrictions whenever we know the cart subtotal. The
+        // address may be null (customer hasn't picked or saved one yet) — that
+        // is fine: only the geo-zone check needs an address, and isAllowed skips
+        // it when absent. Every other dimension (customer group, total, quantity,
+        // weight, currency) MUST still apply here, or group-restricted methods
+        // (e.g. reseller-only bank transfer) leak to the wrong customers.
+        if ($subtotal !== null) {
             $currencyCode = app(\App\Services\ThemeService::class)->getActiveCurrency()?->code;
             $methods = array_values(array_filter($methods, function (PaymentMethodInterface $method) use ($address, $subtotal, $restrictionContext, $currencyCode) {
                 return PaymentRestrictionService::isAllowed(
                     $method->getKey(),
-                    $address,
+                    $address ?? [],
                     $subtotal,
                     $restrictionContext['weight'] ?? null,
                     $restrictionContext['quantity'] ?? null,

@@ -57,10 +57,17 @@ class PaymentRestrictionService
             return true;
         }
 
+        // Whether we have enough address data to evaluate geo-zone rules. A
+        // customer can reach checkout before choosing/saving an address; in that
+        // case group/total/quantity/currency rules still apply, but geo-zone
+        // rules simply can't be evaluated yet — skip them (don't block) instead
+        // of bypassing every restriction.
+        $hasAddress = !empty($address['state']) || !empty($address['city']);
+
         // --- Inclusion conditions (AND logic: all must pass) ---
 
-        // Geo zone check
-        if (!empty($restriction->geo_zone_ids)) {
+        // Geo zone check (only when the address is known)
+        if ($hasAddress && !empty($restriction->geo_zone_ids)) {
             $matchedGeoZoneId = self::resolveGeoZoneId($address);
             if (!$matchedGeoZoneId || !in_array($matchedGeoZoneId, $restriction->geo_zone_ids)) {
                 return false;
