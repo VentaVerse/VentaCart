@@ -444,6 +444,7 @@
                                         </td>
                                         <td class="px-3 py-2">
                                             <input type="number" x-model="item.price" :name="'items['+iIndex+'][price]'" step="0.01" min="0"
+                                                @input.debounce.500ms="refreshMethods()"
                                                 class="w-28 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                                         </td>
                                         <td class="px-3 py-2">
@@ -462,6 +463,7 @@
                                         </td>
                                         <td class="px-3 py-2">
                                             <input type="number" x-model.number="item.quantity" :name="'items['+iIndex+'][quantity]'" min="1"
+                                                @input.debounce.500ms="refreshMethods()"
                                                 class="w-20 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
                                                 :class="!item.is_custom && item.stock !== undefined && item.quantity > item.stock ? 'border-red-300 ring-1 ring-red-300' : ''">
                                             <template x-if="!item.is_custom && item.stock !== undefined && item.quantity > item.stock">
@@ -470,7 +472,7 @@
                                         </td>
                                         <td class="px-3 py-2 text-sm font-medium text-gray-900" x-text="(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)"></td>
                                         <td class="px-3 py-2">
-                                            <button type="button" @click="items.splice(iIndex, 1)" class="text-red-500 hover:text-red-700">
+                                            <button type="button" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())" class="text-red-500 hover:text-red-700">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                             </button>
                                         </td>
@@ -808,6 +810,9 @@
                     this.customerGroupName = c.customer_group_name || null;
                     this.isNewCustomer = false;
 
+                    // Customer group drives group-restricted shipping/payment rules,
+                    // so recompute both when the selected customer changes.
+                    this.$nextTick(() => this.refreshMethods());
                 },
 
                 loadCustomerAddress(addrId) {
@@ -883,6 +888,7 @@
                         group_price_mode: 'regular',
                         base_price: 0,
                     });
+                    this.$nextTick(() => this.refreshMethods());
                 },
 
                 // Generic sync helper
