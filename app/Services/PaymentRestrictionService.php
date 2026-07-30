@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CustomerGroup;
 use App\Models\GeoZoneEntry;
 use App\Models\PaymentMethodRestriction;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +34,11 @@ class PaymentRestrictionService
         ?string $shippingMethodKey = null,
         ?string $currencyCode = null
     ): bool {
+        // Guests and unregistered customers (admin order entry) have no group;
+        // treat them as the store default group so Default-group payment rules
+        // apply to them instead of being skipped.
+        $customerGroupId = CustomerGroup::effectiveId($customerGroupId);
+
         // Exact-key restriction wins (e.g. a restriction configured specifically
         // for 'bank_transfer_1'); otherwise fall back to the family/base key
         // (e.g. 'bank_transfer' covers all bank accounts).

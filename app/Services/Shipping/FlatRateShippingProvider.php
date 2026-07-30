@@ -38,7 +38,13 @@ class FlatRateShippingProvider implements ShippingProviderInterface
                 return [];
             }
 
-            $customerGroupId = Auth::guard('customer')->user()?->customer_group_id;
+            // Match the sibling providers: prefer the passed-in context group
+            // (admin order entry / guest checkout supply it here), fall back to
+            // the logged-in customer, then to the store default group.
+            $context = ShippingQuoteService::getContext();
+            $customerGroupId = \App\Models\CustomerGroup::effectiveId(
+                $context['customer_group_id'] ?? Auth::guard('customer')->user()?->customer_group_id
+            );
             $quotes = [];
 
             foreach ($rates as $rate) {
