@@ -11,3 +11,11 @@ document.addEventListener('submit', (e) => {
     form.dataset.vSubmitting = 'true';
     form.querySelectorAll('button[type="submit"]').forEach((b) => b.setAttribute('data-loading', 'true'));
 });
+
+// Rows with data-href navigate on click, unless the click hit an
+// interactive element inside the row (link, button, input).
+document.addEventListener('click', (e) => {
+    const row = e.target.closest('tr[data-href]');
+    if (!row || e.target.closest('a, button, input, select, label')) return;
+    window.location.assign(row.dataset.href);
+});

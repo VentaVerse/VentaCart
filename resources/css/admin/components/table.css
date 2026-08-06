@@ -1,0 +1,2 @@
+.v-admin .v-table .v-row { transition: background-color var(--motion-fast); }
+.v-admin .v-table .v-row:hover { background: var(--surface-hover); }
