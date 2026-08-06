@@ -1,122 +1,117 @@
-<x-admin-layout>
-    <x-slot name="header">Order Statuses</x-slot>
+<x-admin.shell title="Order Statuses">
+    <x-admin.page title="Order Statuses" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+        <div class="space-y-5">
+            <x-admin.card title="Stock actions" description="What happens to inventory when an order enters a status.">
+                <div class="flex flex-wrap gap-4 text-[13px]">
+                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">▼ Decrements</x-admin.badge><span class="text-v-secondary">stock committed (e.g. Processing)</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="success">▲ Increments</x-admin.badge><span class="text-v-secondary">stock returned (e.g. Refunded, Canceled)</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="neutral">—</x-admin.badge><span class="text-v-secondary">no inventory effect</span></span>
+                </div>
+            </x-admin.card>
 
-    @if (session('success'))
-        <div class="mb-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>
-    @endif
-    @if (session('error'))
-        <div class="mb-4 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">{{ session('error') }}</div>
-    @endif
-
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
-            <p class="text-xs text-gray-500">Manage the lifecycle stages of an order. <strong>Stock Action</strong> controls inventory: <em>Decrement</em> reduces stock, <em>Increment</em> restores it (for cancellations/returns).</p>
-        </div>
-
-        <table class="min-w-full divide-y divide-gray-200" x-data="{ editing: null }">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Action</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Default</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                @foreach ($statuses as $status)
-                    <tr class="hover:bg-gray-50">
-                        {{-- Read mode --}}
-                        <template x-if="editing !== {{ $status->id }}">
-                            <td class="px-6 py-3 text-sm font-medium text-gray-900" colspan="0">{{ $status->name }}</td>
-                        </template>
-                        <template x-if="editing !== {{ $status->id }}">
-                            <td class="px-6 py-3 text-sm">
-                                @if ($status->stock_action === 'decrement')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Decrement</span>
-                                @elseif ($status->stock_action === 'increment')
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">Increment</span>
-                                @else
-                                    <span class="text-gray-400">None</span>
-                                @endif
-                            </td>
-                        </template>
-                        <template x-if="editing !== {{ $status->id }}">
-                            <td class="px-6 py-3 text-sm text-center text-gray-500">{{ $status->sort_order }}</td>
-                        </template>
-                        <template x-if="editing !== {{ $status->id }}">
-                            <td class="px-6 py-3 text-center">
-                                @if ($status->is_default)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Default</span>
-                                @endif
-                            </td>
-                        </template>
-                        <template x-if="editing !== {{ $status->id }}">
-                            <td class="px-6 py-3 text-right text-sm">
-                                <button type="button" @click="editing = {{ $status->id }}" class="text-indigo-600 hover:text-indigo-900 mr-2">Edit</button>
-                                @unless ($status->is_default)
-                                    <form method="POST" action="{{ route('admin.order-statuses.destroy', $status) }}" class="inline" onsubmit="return confirm('Delete this status?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                    </form>
-                                @endunless
-                            </td>
-                        </template>
-
-                        {{-- Edit mode (using x-show on a separate row to avoid single-cell colspan issues) --}}
-                        <template x-if="editing === {{ $status->id }}">
-                            <td colspan="5" class="px-0 py-0">
-                                <form method="POST" action="{{ route('admin.order-statuses.update', $status) }}">
+            <x-admin.card title="Statuses">
+                {{--
+                    A <form> cannot legally wrap table rows/cells. Each row's edit form is
+                    self-contained inside its own <td> (spanning the row via a nested table),
+                    and the delete button lives OUTSIDE that form, as a sibling that opens the
+                    confirm-dialog modal (which renders its own form).
+                --}}
+                <x-admin.table>
+                    <x-slot:head>
+                        <x-admin.table.th>Status</x-admin.table.th>
+                        <x-admin.table.th>Stock action</x-admin.table.th>
+                        <x-admin.table.th>Sort</x-admin.table.th>
+                        <x-admin.table.th align="right">Actions</x-admin.table.th>
+                    </x-slot:head>
+                    @foreach ($statuses as $status)
+                        <x-admin.table.row>
+                            <td class="px-0 py-0" colspan="4">
+                                <form method="POST" action="{{ route('admin.order-statuses.update', $status) }}" data-v-form class="w-full">
                                     @csrf @method('PUT')
-                                    <table class="min-w-full">
-                                        <tr class="bg-indigo-50/50">
-                                            <td class="px-6 py-3">
-                                                <input type="text" name="name" value="{{ $status->name }}" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                    <table class="w-full">
+                                        <tr>
+                                            <td class="px-4 py-2 align-middle">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="text" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
+                                                        class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                    @if ($status->is_default)
+                                                        <x-admin.badge tone="success">Default</x-admin.badge>
+                                                    @endif
+                                                </div>
                                             </td>
-                                            <td class="px-6 py-3">
-                                                <select name="stock_action" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                                    <option value="">None</option>
-                                                    <option value="decrement" {{ $status->stock_action === 'decrement' ? 'selected' : '' }}>Decrement</option>
-                                                    <option value="increment" {{ $status->stock_action === 'increment' ? 'selected' : '' }}>Increment</option>
-                                                </select>
+                                            <td class="px-4 py-2 align-middle">
+                                                <div class="flex items-center gap-2">
+                                                    <select name="stock_action" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                        <option value="" @selected(! $status->stock_action)>None</option>
+                                                        <option value="decrement" @selected($status->stock_action === 'decrement')>Decrement</option>
+                                                        <option value="increment" @selected($status->stock_action === 'increment')>Increment</option>
+                                                    </select>
+                                                    @if ($status->stock_action === 'decrement')
+                                                        <x-admin.badge tone="danger">▼ Decrements</x-admin.badge>
+                                                    @elseif ($status->stock_action === 'increment')
+                                                        <x-admin.badge tone="success">▲ Increments</x-admin.badge>
+                                                    @else
+                                                        <x-admin.badge tone="neutral">—</x-admin.badge>
+                                                    @endif
+                                                </div>
                                             </td>
-                                            <td class="px-6 py-3 text-center">
-                                                <input type="number" name="sort_order" value="{{ $status->sort_order }}" min="0" class="w-16 rounded-lg border-gray-300 text-sm text-center focus:border-indigo-500 focus:ring-indigo-500 mx-auto">
+                                            <td class="px-4 py-2 align-middle">
+                                                <input type="number" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
+                                                    class="v-control w-20 h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                             </td>
-                                            <td class="px-6 py-3 text-center">
-                                                <input type="hidden" name="is_default" value="0">
-                                                <input type="checkbox" name="is_default" value="1" {{ $status->is_default ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                            </td>
-                                            <td class="px-6 py-3 text-right">
-                                                <div class="flex items-center justify-end gap-2">
-                                                    <button type="submit" class="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">Save</button>
-                                                    <button type="button" @click="editing = null" class="px-3 py-1.5 bg-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-300">Cancel</button>
+                                            <td class="px-4 py-2 align-middle text-right">
+                                                <div class="flex items-center justify-end gap-3">
+                                                    <label class="inline-flex items-center gap-1.5 text-[13px] text-v-text cursor-pointer">
+                                                        <input type="hidden" name="is_default" value="0">
+                                                        <input type="checkbox" name="is_default" value="1" @checked(old('is_default', $status->is_default))
+                                                            class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                                        <span>Default</span>
+                                                    </label>
+                                                    <x-admin.button variant="secondary" size="sm" type="submit">Save</x-admin.button>
+                                                    @unless ($status->is_default)
+                                                        <x-admin.button variant="ghost" size="sm" type="button" class="text-v-danger hover:text-v-danger" @click="$dispatch('open-modal', 'delete-status-{{ $status->id }}')">Delete</x-admin.button>
+                                                    @endunless
                                                 </div>
                                             </td>
                                         </tr>
                                     </table>
                                 </form>
                             </td>
-                        </template>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+                        </x-admin.table.row>
+                    @endforeach
+                </x-admin.table>
+            </x-admin.card>
 
-        {{-- Add New --}}
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-            <form method="POST" action="{{ route('admin.order-statuses.store') }}" class="flex items-center gap-3">
-                @csrf
-                <span class="text-xs font-medium text-gray-500 uppercase tracking-wider mr-2">Add</span>
-                <input type="text" name="name" required placeholder="Status name" class="rounded-lg border-gray-300 text-sm w-40 focus:border-indigo-500 focus:ring-indigo-500">
-                <select name="stock_action" class="rounded-lg border-gray-300 text-sm w-32 focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="">No stock action</option>
-                    <option value="decrement">Decrement</option>
-                    <option value="increment">Increment</option>
-                </select>
-                <input type="number" name="sort_order" value="0" min="0" class="rounded-lg border-gray-300 text-sm w-16 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Order">
-                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 uppercase tracking-wide">Add Status</button>
-            </form>
+            @foreach ($statuses as $status)
+                @unless ($status->is_default)
+                    <x-admin.confirm-dialog name="delete-status-{{ $status->id }}" title="Delete “{{ $status->name }}”?"
+                        message="Orders using this status keep their history; the status becomes unavailable for new changes."
+                        confirm="Delete" :action="route('admin.order-statuses.destroy', $status)" method="DELETE" />
+                @endunless
+            @endforeach
+
+            <x-admin.card title="Add status">
+                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:items-end">
+                    @csrf
+                    <x-admin.field name="name" label="Name">
+                        <x-admin.input name="name" required placeholder="Quality Check" />
+                    </x-admin.field>
+                    <x-admin.field name="stock_action" label="Stock action">
+                        <x-admin.select name="stock_action">
+                            <option value="">None</option>
+                            <option value="decrement">Decrement</option>
+                            <option value="increment">Increment</option>
+                        </x-admin.select>
+                    </x-admin.field>
+                    <x-admin.field name="sort_order" label="Sort">
+                        <x-admin.input name="sort_order" type="number" min="0" value="0" />
+                    </x-admin.field>
+                    <div class="flex items-center gap-3">
+                        <x-admin.checkbox name="is_default" label="Default" />
+                        <x-admin.button variant="primary" type="submit">Add</x-admin.button>
+                    </div>
+                </form>
+            </x-admin.card>
         </div>
-    </div>
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>
