@@ -1,223 +1,203 @@
-<x-admin-layout>
-    <x-slot name="header">Stock Alerts</x-slot>
-
-    {{-- Summary Stats --}}
-    <div class="grid grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-2xl font-bold text-amber-600">{{ $totalWaiting }}</p>
-            <p class="text-sm text-gray-500">Waiting</p>
+<x-admin.shell title="Stock Alerts">
+    <x-admin.page title="Stock Alerts" :breadcrumb="[['label' => 'Extensions']]">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+            <x-admin.stat label="Waiting" :value="$totalWaiting" tone="warning" />
+            <x-admin.stat label="Notified" :value="$totalNotified" tone="accent" />
+            <x-admin.stat label="Failed" :value="$totalFailed" tone="danger" />
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-2xl font-bold text-green-600">{{ $totalNotified }}</p>
-            <p class="text-sm text-gray-500">Notified</p>
-        </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <p class="text-2xl font-bold text-red-600">{{ $totalFailed }}</p>
-            <p class="text-sm text-gray-500">Failed</p>
-        </div>
-    </div>
 
-    <div x-data="{ activeTab: '{{ $tab }}' }">
-        {{-- Tabs --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <nav class="flex border-b border-gray-200 overflow-x-auto">
-                @foreach ([['id' => 'waitlist', 'label' => 'Waitlist'], ['id' => 'notified', 'label' => 'Notified'], ['id' => 'template', 'label' => 'Email Template']] as $t)
-                    <button type="button" @click="activeTab = '{{ $t['id'] }}'"
-                        :class="activeTab === '{{ $t['id'] }}' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                        class="whitespace-nowrap px-5 py-3 border-b-2 text-sm font-medium transition-colors">{{ $t['label'] }}</button>
-                @endforeach
-            </nav>
+        <x-admin.tabs default="{{ $tab }}" param="tab" :names="['waitlist', 'notified', 'template']">
+            <x-slot:nav>
+                <x-admin.tabs.tab name="waitlist">Waitlist</x-admin.tabs.tab>
+                <x-admin.tabs.tab name="notified">Notified</x-admin.tabs.tab>
+                <x-admin.tabs.tab name="template">Email Template</x-admin.tabs.tab>
+            </x-slot:nav>
 
-            {{-- WAITLIST TAB --}}
-            <div x-show="activeTab === 'waitlist'" class="p-6">
-                {{-- Search --}}
-                <form method="GET" class="flex gap-3 mb-4">
-                    <input type="hidden" name="tab" value="waitlist">
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Search product, name, or email..."
-                        class="flex-1 rounded-lg border-gray-300 text-sm">
-                    <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700">Search</button>
-                    @if ($search)
-                        <a href="{{ route('admin.stock-notifications.index', ['tab' => 'waitlist']) }}" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300">Clear</a>
-                    @endif
-                </form>
+            {{-- ==================== WAITLIST ==================== --}}
+            <x-admin.tabs.panel name="waitlist">
+                <x-admin.card>
+                    <form method="GET" class="flex gap-3 mb-4">
+                        <input type="hidden" name="tab" value="waitlist">
+                        <x-admin.input name="search" :value="$search" placeholder="Search product, name, or email..." class="flex-1" />
+                        <x-admin.button type="submit">Search</x-admin.button>
+                        @if ($search)
+                            <x-admin.button variant="secondary" href="{{ route('admin.stock-notifications.index', ['tab' => 'waitlist']) }}">Clear</x-admin.button>
+                        @endif
+                    </form>
 
-                {{-- Bulk Delete Form --}}
-                <form method="POST" action="{{ route('admin.stock-notifications.bulk-delete') }}" x-data="{ selected: [] }" onsubmit="return confirm('Delete selected notifications?')">
-                    @csrf
-                    <template x-for="id in selected" :key="id">
-                        <input type="hidden" name="ids[]" :value="id">
-                    </template>
+                    <div x-data="{ selected: [] }">
+                        <div class="flex items-center justify-between mb-3">
+                            <x-admin.button variant="danger" size="sm" type="button" x-show="selected.length > 0" x-cloak
+                                @click="$dispatch('open-modal', 'bulk-delete-waitlist')">
+                                Delete Selected (<span x-text="selected.length"></span>)
+                            </x-admin.button>
+                            <span class="text-xs text-v-muted" x-show="selected.length === 0">Select items to bulk delete</span>
+                        </div>
 
-                    <div class="flex items-center justify-between mb-3">
-                        <button type="submit" x-show="selected.length > 0" class="px-3 py-1.5 bg-red-600 text-white text-xs rounded hover:bg-red-700">
-                            Delete Selected (<span x-text="selected.length"></span>)
-                        </button>
-                        <span class="text-xs text-gray-400" x-show="selected.length === 0">Select items to bulk delete</span>
+                        <x-admin.table>
+                            <x-slot:head>
+                                <x-admin.table.th class="w-8">
+                                    <input type="checkbox" @change="selected = $event.target.checked ? [{{ $waitlist->pluck('id')->join(',') }}] : []" class="rounded-v-sm border-v-strong bg-v-surface text-v-accent focus:ring-v-accent">
+                                </x-admin.table.th>
+                                <x-admin.table.th>Customer</x-admin.table.th>
+                                <x-admin.table.th>Email</x-admin.table.th>
+                                <x-admin.table.th>Product</x-admin.table.th>
+                                <x-admin.table.th>Variant</x-admin.table.th>
+                                <x-admin.table.th>Requested</x-admin.table.th>
+                                <x-admin.table.th align="right">Actions</x-admin.table.th>
+                            </x-slot:head>
+                            @forelse ($waitlist as $item)
+                                <x-admin.table.row>
+                                    <x-admin.table.cell>
+                                        <input type="checkbox" :value="{{ $item->id }}" x-model.number="selected" class="rounded-v-sm border-v-strong bg-v-surface text-v-accent focus:ring-v-accent">
+                                    </x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-text">{{ $item->name }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-secondary">{{ $item->email }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-text">{{ $item->product?->name ?? 'Deleted' }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-secondary">{{ $item->variant?->name ?? '—' }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-muted">{{ $item->created_at->format('M j, Y') }}</x-admin.table.cell>
+                                    <x-admin.table.cell align="right">
+                                        <button type="button" class="text-v-danger hover:underline text-[13px]"
+                                            @click="$dispatch('open-modal', 'delete-waitlist-{{ $item->id }}')">Delete</button>
+                                        <x-admin.confirm-dialog name="delete-waitlist-{{ $item->id }}" title="Remove notification"
+                                            message="Remove this subscriber from the waitlist?" confirm="Delete"
+                                            :action="route('admin.stock-notifications.destroy', $item)" method="DELETE" />
+                                    </x-admin.table.cell>
+                                </x-admin.table.row>
+                            @empty
+                                <tr><td colspan="7" class="px-4 py-2"><x-admin.empty-state icon="products" title="No subscribers waiting" /></td></tr>
+                            @endforelse
+
+                            <x-slot:footer>
+                                @if ($waitlist->hasPages())
+                                    {{ $waitlist->links() }}
+                                @endif
+                            </x-slot:footer>
+                        </x-admin.table>
+
+                        <x-admin.modal name="bulk-delete-waitlist" title="Delete selected notifications?" maxWidth="sm">
+                            <p class="text-[13px] text-v-secondary">Delete <span x-text="selected.length"></span> selected notification(s)? This cannot be undone.</p>
+                            <form method="POST" action="{{ route('admin.stock-notifications.bulk-delete') }}" data-v-form class="mt-4 flex justify-end gap-2">
+                                @csrf
+                                <template x-for="id in selected" :key="id">
+                                    <input type="hidden" name="ids[]" :value="id">
+                                </template>
+                                <x-admin.button variant="secondary" type="button" @click="open = false">Cancel</x-admin.button>
+                                <x-admin.button variant="danger" type="submit">Delete Selected</x-admin.button>
+                            </form>
+                        </x-admin.modal>
                     </div>
-
-                    <div class="overflow-hidden rounded-lg border border-gray-200">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-3 w-8"><input type="checkbox" @change="selected = $event.target.checked ? [{{ $waitlist->pluck('id')->join(',') }}] : []" class="rounded border-gray-300"></th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested</th>
-                                    <th class="px-4 py-3 w-16"></th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                @forelse ($waitlist as $item)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-4 py-3"><input type="checkbox" :value="{{ $item->id }}" x-model.number="selected" class="rounded border-gray-300"></td>
-                                        <td class="px-4 py-3 text-sm text-gray-900">{{ $item->name }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-500">{{ $item->email }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-900">{{ $item->product?->name ?? 'Deleted' }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-500">{{ $item->variant?->name ?? '—' }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-400">{{ $item->created_at->format('M j, Y') }}</td>
-                                        <td class="px-4 py-3 text-right">
-                                            <form method="POST" action="{{ route('admin.stock-notifications.destroy', $item) }}" class="inline" onsubmit="return confirm('Remove?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900 text-sm">Delete</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">No subscribers waiting.</td></tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    @if ($waitlist->hasPages())
-                        <div class="mt-4">{{ $waitlist->links() }}</div>
-                    @endif
-                </form>
+                </x-admin.card>
 
                 {{-- Analytics: Most Requested --}}
                 @if ($topProducts->isNotEmpty())
-                    <div class="mt-8 border-t pt-6">
-                        <h3 class="text-sm font-semibold text-gray-700 mb-3 uppercase tracking-wide">Most Requested Products</h3>
-                        <div class="overflow-hidden rounded-lg border border-gray-200">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Requests</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Currently Waiting</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach ($topProducts as $tp)
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-4 py-3 text-sm text-gray-900">{{ $tp->name }}</td>
-                                            <td class="px-4 py-3 text-sm text-gray-500">{{ $tp->total_requests }}</td>
-                                            <td class="px-4 py-3 text-sm">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $tp->waiting_count > 0 ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-600' }}">
-                                                    {{ $tp->waiting_count }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                @endif
-            </div>
-
-            {{-- NOTIFIED TAB --}}
-            <div x-show="activeTab === 'notified'" class="p-6">
-                <div class="overflow-hidden rounded-lg border border-gray-200">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Variant</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Notified</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @forelse ($notified as $item)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-3 text-sm text-gray-900">{{ $item->name }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $item->email }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-900">{{ $item->product?->name ?? 'Deleted' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $item->variant?->name ?? '—' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-400">{{ $item->created_at->format('M j, Y') }}</td>
-                                    <td class="px-4 py-3 text-sm text-green-600">{{ $item->notified_at?->format('M j, Y g:i A') }}</td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="6" class="px-4 py-8 text-center text-gray-400">No notifications sent yet.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                @if ($notified->hasPages())
-                    <div class="mt-4">{{ $notified->links() }}</div>
-                @endif
-            </div>
-
-            {{-- EMAIL TEMPLATE TAB --}}
-            <div x-show="activeTab === 'template'" class="p-6">
-                <form method="POST" action="{{ route('admin.stock-notifications.update-template') }}" class="space-y-4 max-w-2xl">
-                    @csrf
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                        <input type="text" name="subject" value="{{ old('subject', $template?->subject ?? '') }}"
-                            class="w-full rounded-lg border-gray-300 text-sm" placeholder="Good news! {product_name} is back in stock">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Body</label>
-                        <textarea name="body" id="stock-template-body" rows="12"
-                            class="tinymce-editor w-full rounded-lg border-gray-300 text-sm">{{ old('body', $template?->body ?? '') }}</textarea>
-                    </div>
-                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p class="text-xs font-semibold text-gray-600 mb-2">Available Placeholders:</p>
-                        <div class="flex flex-wrap gap-2">
-                            @foreach (['{customer_name}', '{product_name}', '{product_url}', '{variant_name}', '{product_image}', '{store_name}'] as $ph)
-                                <code class="text-xs bg-white border border-gray-200 rounded px-2 py-1 text-indigo-600">{{ $ph }}</code>
+                    <x-admin.card title="Most Requested Products" class="mt-6">
+                        <x-admin.table>
+                            <x-slot:head>
+                                <x-admin.table.th>Product</x-admin.table.th>
+                                <x-admin.table.th>Total Requests</x-admin.table.th>
+                                <x-admin.table.th>Currently Waiting</x-admin.table.th>
+                            </x-slot:head>
+                            @foreach ($topProducts as $tp)
+                                <x-admin.table.row>
+                                    <x-admin.table.cell class="text-v-text">{{ $tp->name }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-secondary">{{ $tp->total_requests }}</x-admin.table.cell>
+                                    <x-admin.table.cell>
+                                        <x-admin.badge :tone="$tp->waiting_count > 0 ? 'warning' : 'neutral'">{{ $tp->waiting_count }}</x-admin.badge>
+                                    </x-admin.table.cell>
+                                </x-admin.table.row>
                             @endforeach
-                        </div>
-                    </div>
-                    <div class="flex gap-3">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Template</button>
-                    </div>
-                </form>
+                        </x-admin.table>
+                    </x-admin.card>
+                @endif
+            </x-admin.tabs.panel>
 
-                <div class="border-t border-gray-200 mt-6 pt-6">
-                    <h4 class="text-sm font-medium text-gray-700 mb-3">Test Email</h4>
-                    <form method="POST" action="{{ route('admin.stock-notifications.send-test') }}" class="flex items-center gap-3">
+            {{-- ==================== NOTIFIED ==================== --}}
+            <x-admin.tabs.panel name="notified">
+                <x-admin.card>
+                    <x-admin.table>
+                        <x-slot:head>
+                            <x-admin.table.th>Customer</x-admin.table.th>
+                            <x-admin.table.th>Email</x-admin.table.th>
+                            <x-admin.table.th>Product</x-admin.table.th>
+                            <x-admin.table.th>Variant</x-admin.table.th>
+                            <x-admin.table.th>Requested</x-admin.table.th>
+                            <x-admin.table.th>Notified</x-admin.table.th>
+                        </x-slot:head>
+                        @forelse ($notified as $item)
+                            <x-admin.table.row>
+                                <x-admin.table.cell class="text-v-text">{{ $item->name }}</x-admin.table.cell>
+                                <x-admin.table.cell class="text-v-secondary">{{ $item->email }}</x-admin.table.cell>
+                                <x-admin.table.cell class="text-v-text">{{ $item->product?->name ?? 'Deleted' }}</x-admin.table.cell>
+                                <x-admin.table.cell class="text-v-secondary">{{ $item->variant?->name ?? '—' }}</x-admin.table.cell>
+                                <x-admin.table.cell class="text-v-muted">{{ $item->created_at->format('M j, Y') }}</x-admin.table.cell>
+                                <x-admin.table.cell class="text-v-accent">{{ $item->notified_at?->format('M j, Y g:i A') }}</x-admin.table.cell>
+                            </x-admin.table.row>
+                        @empty
+                            <tr><td colspan="6" class="px-4 py-2"><x-admin.empty-state icon="products" title="No notifications sent yet" /></td></tr>
+                        @endforelse
+
+                        <x-slot:footer>
+                            @if ($notified->hasPages())
+                                {{ $notified->links() }}
+                            @endif
+                        </x-slot:footer>
+                    </x-admin.table>
+                </x-admin.card>
+            </x-admin.tabs.panel>
+
+            {{-- ==================== EMAIL TEMPLATE ==================== --}}
+            <x-admin.tabs.panel name="template">
+                <x-admin.card class="max-w-2xl">
+                    <form method="POST" action="{{ route('admin.stock-notifications.update-template') }}" data-v-form class="space-y-4">
                         @csrf
-                        <span class="text-sm text-gray-500">Send test to {{ auth()->user()->email }}</span>
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">Send Test</button>
+                        <x-admin.field name="subject" label="Subject">
+                            <x-admin.input name="subject" :value="$template?->subject ?? ''" placeholder="Good news! {product_name} is back in stock" />
+                        </x-admin.field>
+                        <x-admin.field name="body" label="Body">
+                            <textarea name="body" id="stock-template-body" rows="12"
+                                class="tinymce-editor v-control w-full px-3 py-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">{{ old('body', $template?->body ?? '') }}</textarea>
+                        </x-admin.field>
+                        <div class="bg-v-sunken border border-v-border rounded-v-lg p-4">
+                            <p class="text-xs font-semibold text-v-secondary mb-2">Available Placeholders:</p>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach (['{customer_name}', '{product_name}', '{product_url}', '{variant_name}', '{product_image}', '{store_name}'] as $ph)
+                                    <code class="text-xs bg-v-surface border border-v-border rounded px-2 py-1 text-v-accent">{{ $ph }}</code>
+                                @endforeach
+                            </div>
+                        </div>
+                        <x-admin.form-actions class="-mx-6">
+                            <x-admin.button type="submit">Save Template</x-admin.button>
+                        </x-admin.form-actions>
                     </form>
-                </div>
-            </div>
-        </div>
-    </div>
+                </x-admin.card>
 
-    @push('scripts')
-    <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
-    <script>
-        tinymce.init({
-            selector: '.tinymce-editor',
-            height: 350,
-            menubar: false,
-            plugins: 'lists link autolink code table',
-            toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | link table | removeformat code',
-            content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }',
-            branding: false,
-            promotion: false,
-            license_key: 'gpl',
-            convert_urls: false,
-        });
-    </script>
-    @endpush
-</x-admin-layout>
+                <x-admin.card title="Test Email" class="mt-6 max-w-2xl">
+                    <form method="POST" action="{{ route('admin.stock-notifications.send-test') }}" data-v-form class="flex items-center gap-3">
+                        @csrf
+                        <span class="text-[13px] text-v-secondary">Send test to {{ auth()->user()->email }}</span>
+                        <x-admin.button variant="secondary" type="submit">Send Test</x-admin.button>
+                    </form>
+                </x-admin.card>
+            </x-admin.tabs.panel>
+        </x-admin.tabs>
+
+        @push('scripts')
+        <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
+        <script>
+            tinymce.init({
+                selector: '.tinymce-editor',
+                height: 350,
+                menubar: false,
+                plugins: 'lists link autolink code table',
+                toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | link table | removeformat code',
+                content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }',
+                branding: false,
+                promotion: false,
+                license_key: 'gpl',
+                convert_urls: false,
+            });
+        </script>
+        @endpush
+    </x-admin.page>
+</x-admin.shell>

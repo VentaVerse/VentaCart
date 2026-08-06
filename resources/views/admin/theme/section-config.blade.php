@@ -8,138 +8,118 @@
     @endphp
     <div class="space-y-3">
         @if ($bannerGroups->isNotEmpty())
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Banner Group</label>
-                <select name="config[banner_group]" class="rounded-md border-gray-300 shadow-sm sm:text-sm">
+            <x-admin.field name="config[banner_group]" label="Banner Group">
+                <x-admin.select name="config[banner_group]">
                     <option value="">— Select a banner group —</option>
                     @foreach ($bannerGroups as $group)
                         <option value="{{ $group->slug }}" {{ ($config['banner_group'] ?? '') === $group->slug ? 'selected' : '' }}>
                             {{ $group->name }} ({{ $group->slides()->count() }} slides)
                         </option>
                     @endforeach
-                </select>
-            </div>
-            <p class="text-xs text-gray-500">Slides, autoplay, and dimensions are configured in the Banner Group itself.</p>
+                </x-admin.select>
+            </x-admin.field>
+            <p class="text-xs text-v-muted">Slides, autoplay, and dimensions are configured in the Banner Group itself.</p>
         @else
-            <p class="text-sm text-gray-500">Install the Banners extension to manage banner slides.</p>
+            <p class="text-[13px] text-v-secondary">Install the Banners extension to manage banner slides.</p>
         @endif
     </div>
 
 @elseif ($section->type === 'products')
     <div class="space-y-3">
-        <div>
-            <label class="block text-xs text-gray-600 mb-1">Product Filter</label>
-            <select name="config[filter]" class="rounded-md border-gray-300 shadow-sm sm:text-sm">
+        <x-admin.field name="config[filter]" label="Product Filter">
+            <x-admin.select name="config[filter]">
                 <option value="new" {{ ($config['filter'] ?? '') === 'new' ? 'selected' : '' }}>New Arrivals</option>
                 <option value="featured" {{ ($config['filter'] ?? '') === 'featured' ? 'selected' : '' }}>Featured</option>
                 <option value="specials" {{ ($config['filter'] ?? '') === 'specials' ? 'selected' : '' }}>On Sale / Specials</option>
                 <option value="category" {{ ($config['filter'] ?? '') === 'category' ? 'selected' : '' }}>By Category</option>
                 <option value="brand" {{ ($config['filter'] ?? '') === 'brand' ? 'selected' : '' }}>By Brand</option>
                 <option value="best_sellers" {{ ($config['filter'] ?? '') === 'best_sellers' ? 'selected' : '' }}>Best Sellers</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-xs text-gray-600 mb-1">Limit</label>
-            <input type="number" name="config[limit]" value="{{ $config['limit'] ?? 12 }}" min="2" max="48" class="block w-24 rounded-md border-gray-300 shadow-sm sm:text-sm">
-        </div>
+            </x-admin.select>
+        </x-admin.field>
+        <x-admin.field name="config[limit]" label="Limit">
+            <x-admin.input type="number" name="config[limit]" :value="$config['limit'] ?? 12" min="2" max="48" class="w-24" />
+        </x-admin.field>
         <div class="grid grid-cols-3 gap-3">
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Mobile Cols</label>
-                <input type="number" name="config[columns_mobile]" value="{{ $config['columns_mobile'] ?? 2 }}" min="1" max="3" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Tablet Cols</label>
-                <input type="number" name="config[columns_tablet]" value="{{ $config['columns_tablet'] ?? 3 }}" min="2" max="4" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Desktop Cols</label>
-                <input type="number" name="config[columns_desktop]" value="{{ $config['columns_desktop'] ?? 6 }}" min="3" max="8" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
+            <x-admin.field name="config[columns_mobile]" label="Mobile Cols">
+                <x-admin.input type="number" name="config[columns_mobile]" :value="$config['columns_mobile'] ?? 2" min="1" max="3" />
+            </x-admin.field>
+            <x-admin.field name="config[columns_tablet]" label="Tablet Cols">
+                <x-admin.input type="number" name="config[columns_tablet]" :value="$config['columns_tablet'] ?? 3" min="2" max="4" />
+            </x-admin.field>
+            <x-admin.field name="config[columns_desktop]" label="Desktop Cols">
+                <x-admin.input type="number" name="config[columns_desktop]" :value="$config['columns_desktop'] ?? 6" min="3" max="8" />
+            </x-admin.field>
         </div>
     </div>
 
 @elseif ($section->type === 'brands')
     <div class="space-y-3">
         <div class="grid grid-cols-3 gap-3">
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Per Page</label>
-                <input type="number" name="config[per_page]" value="{{ $config['per_page'] ?? 8 }}" min="4" max="20" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
+            <x-admin.field name="config[per_page]" label="Per Page">
+                <x-admin.input type="number" name="config[per_page]" :value="$config['per_page'] ?? 8" min="4" max="20" />
+            </x-admin.field>
+            <div class="flex items-end pb-1.5">
+                <x-admin.checkbox name="config[autoplay]" :checked="$config['autoplay'] ?? false" label="Autoplay" />
             </div>
-            <div class="flex items-end gap-2">
-                <input type="hidden" name="config[autoplay]" value="0">
-                <input type="checkbox" name="config[autoplay]" value="1" {{ ($config['autoplay'] ?? false) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                <label class="text-sm text-gray-700">Autoplay</label>
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Speed (ms)</label>
-                <input type="number" name="config[speed]" value="{{ $config['speed'] ?? 3000 }}" min="1000" step="500" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
+            <x-admin.field name="config[speed]" label="Speed (ms)">
+                <x-admin.input type="number" name="config[speed]" :value="$config['speed'] ?? 3000" min="1000" step="500" />
+            </x-admin.field>
         </div>
     </div>
 
 @elseif ($section->type === 'category_tabs')
     <div class="space-y-3">
-        <div>
-            <label class="block text-xs text-gray-600 mb-1">Limit per tab</label>
-            <input type="number" name="config[limit]" value="{{ $config['limit'] ?? 6 }}" min="2" max="24" class="block w-24 rounded-md border-gray-300 shadow-sm sm:text-sm">
-        </div>
+        <x-admin.field name="config[limit]" label="Limit per tab">
+            <x-admin.input type="number" name="config[limit]" :value="$config['limit'] ?? 6" min="2" max="24" class="w-24" />
+        </x-admin.field>
         <div class="grid grid-cols-3 gap-3">
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Mobile Cols</label>
-                <input type="number" name="config[columns_mobile]" value="{{ $config['columns_mobile'] ?? 2 }}" min="1" max="3" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Tablet Cols</label>
-                <input type="number" name="config[columns_tablet]" value="{{ $config['columns_tablet'] ?? 3 }}" min="2" max="4" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Desktop Cols</label>
-                <input type="number" name="config[columns_desktop]" value="{{ $config['columns_desktop'] ?? 6 }}" min="3" max="8" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
+            <x-admin.field name="config[columns_mobile]" label="Mobile Cols">
+                <x-admin.input type="number" name="config[columns_mobile]" :value="$config['columns_mobile'] ?? 2" min="1" max="3" />
+            </x-admin.field>
+            <x-admin.field name="config[columns_tablet]" label="Tablet Cols">
+                <x-admin.input type="number" name="config[columns_tablet]" :value="$config['columns_tablet'] ?? 3" min="2" max="4" />
+            </x-admin.field>
+            <x-admin.field name="config[columns_desktop]" label="Desktop Cols">
+                <x-admin.input type="number" name="config[columns_desktop]" :value="$config['columns_desktop'] ?? 6" min="3" max="8" />
+            </x-admin.field>
         </div>
-        <p class="text-xs text-gray-500">Categories for tabs will be selectable after the category selector is built.</p>
+        <p class="text-xs text-v-muted">Categories for tabs will be selectable after the category selector is built.</p>
     </div>
 
 @elseif ($section->type === 'text_block')
     <div class="space-y-3">
-        <div>
-            <label class="block text-xs text-gray-600 mb-1">Content</label>
-            <textarea name="config[content]" rows="4" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">{{ $config['content'] ?? '' }}</textarea>
-        </div>
-        <div>
-            <label class="block text-xs text-gray-600 mb-1">Alignment</label>
-            <select name="config[alignment]" class="rounded-md border-gray-300 shadow-sm sm:text-sm">
+        <x-admin.field name="config[content]" label="Content">
+            <x-admin.textarea name="config[content]" rows="4" :value="$config['content'] ?? ''" />
+        </x-admin.field>
+        <x-admin.field name="config[alignment]" label="Alignment">
+            <x-admin.select name="config[alignment]">
                 <option value="left" {{ ($config['alignment'] ?? '') === 'left' ? 'selected' : '' }}>Left</option>
                 <option value="center" {{ ($config['alignment'] ?? 'center') === 'center' ? 'selected' : '' }}>Center</option>
                 <option value="right" {{ ($config['alignment'] ?? '') === 'right' ? 'selected' : '' }}>Right</option>
-            </select>
-        </div>
+            </x-admin.select>
+        </x-admin.field>
     </div>
 
 @elseif ($section->type === 'blog_posts')
     <div class="space-y-3">
-        <div>
-            <label class="block text-xs text-gray-600 mb-1">Limit</label>
-            <input type="number" name="config[limit]" value="{{ $config['limit'] ?? 4 }}" min="2" max="12" class="block w-24 rounded-md border-gray-300 shadow-sm sm:text-sm">
-        </div>
+        <x-admin.field name="config[limit]" label="Limit">
+            <x-admin.input type="number" name="config[limit]" :value="$config['limit'] ?? 4" min="2" max="12" class="w-24" />
+        </x-admin.field>
         <div class="grid grid-cols-3 gap-3">
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Mobile Cols</label>
-                <input type="number" name="config[columns_mobile]" value="{{ $config['columns_mobile'] ?? 2 }}" min="1" max="3" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Tablet Cols</label>
-                <input type="number" name="config[columns_tablet]" value="{{ $config['columns_tablet'] ?? 3 }}" min="2" max="4" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
-            <div>
-                <label class="block text-xs text-gray-600 mb-1">Desktop Cols</label>
-                <input type="number" name="config[columns_desktop]" value="{{ $config['columns_desktop'] ?? 4 }}" min="3" max="8" class="block w-full rounded-md border-gray-300 shadow-sm sm:text-sm">
-            </div>
+            <x-admin.field name="config[columns_mobile]" label="Mobile Cols">
+                <x-admin.input type="number" name="config[columns_mobile]" :value="$config['columns_mobile'] ?? 2" min="1" max="3" />
+            </x-admin.field>
+            <x-admin.field name="config[columns_tablet]" label="Tablet Cols">
+                <x-admin.input type="number" name="config[columns_tablet]" :value="$config['columns_tablet'] ?? 3" min="2" max="4" />
+            </x-admin.field>
+            <x-admin.field name="config[columns_desktop]" label="Desktop Cols">
+                <x-admin.input type="number" name="config[columns_desktop]" :value="$config['columns_desktop'] ?? 4" min="3" max="8" />
+            </x-admin.field>
         </div>
     </div>
 
 @elseif ($section->type === 'recently_viewed')
     <div>
-        <p class="text-xs text-gray-500">Shows products the visitor has recently browsed. Data comes from the browser — no configuration needed. The section only appears when the visitor has viewed at least one product.</p>
+        <p class="text-xs text-v-muted">Shows products the visitor has recently browsed. Data comes from the browser — no configuration needed. The section only appears when the visitor has viewed at least one product.</p>
     </div>
 @endif

@@ -4,6 +4,7 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\AbandonedCartNotification;
 use App\Models\AbandonedCartRule;
+use App\Models\ApiSyncLog;
 use App\Models\BankAccount;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
@@ -17,8 +18,11 @@ use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
 use App\Models\FlatShippingRate;
+use App\Models\FooterColumn;
 use App\Models\FreeShippingRule;
 use App\Models\GeoZone;
+use App\Models\HomepageSection;
+use App\Models\NavMenuItem;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
@@ -27,12 +31,16 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Role;
+use App\Models\ShippingCourier;
 use App\Models\Store;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\WeightBasedMethod;
 use App\Models\Zone;
+use Extensions\Banners\Models\Banner;
+use Extensions\Banners\Models\BannerGroup;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -820,5 +828,112 @@ class ReskinWaveTest extends TestCase
 
         $this->assertEquals(2, $managerRole->permissions()->count());
         $this->assertEquals(1, $supportRole->permissions()->count());
+    }
+
+    public function test_spokes_wave2_pages_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $category = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);
+
+        HomepageSection::create(['type' => 'banner', 'title' => 'Hero', 'config' => [], 'sort_order' => 1, 'is_enabled' => true]);
+        NavMenuItem::create(['label' => 'Pedals', 'type' => 'category', 'category_id' => $category->id, 'sort_order' => 1, 'is_enabled' => true]);
+        FooterColumn::create(['title' => 'Links', 'type' => 'links', 'config' => ['links' => []], 'sort_order' => 1, 'is_enabled' => true]);
+
+        $courier = ShippingCourier::create(['store_id' => 1, 'name' => 'GoGo Express', 'tracking_url' => 'https://track.example.com/{tracking_number}', 'is_active' => true, 'sort_order' => 1]);
+
+        ApiSyncLog::create(['method' => 'POST', 'endpoint' => '/api/products', 'sku' => 'DIST-1', 'status_code' => 200, 'response_time_ms' => 120, 'ip_address' => '127.0.0.1']);
+
+        $routes = [
+            route('admin.theme.index'),
+            route('admin.stock-notifications.index'),
+            route('admin.stock-notifications.index', ['tab' => 'template']),
+            route('admin.shipping-couriers.index'),
+            route('admin.api-sync-logs.index'),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+
+        // Banners is an optional extension — only assert its routes when the
+        // BannerServiceProvider has actually registered them (Route::has guard,
+        // matching the pattern ModuleController already uses for this module).
+        if (Route::has('admin.banners.index')) {
+            $group = BannerGroup::create([
+                'name' => 'Homepage Hero',
+                'slug' => 'homepage-hero',
+                'autoplay' => true,
+                'speed' => 5000,
+                'height' => 500,
+                'height_mobile' => 400,
+                'full_width' => true,
+                'is_active' => true,
+            ]);
+
+            $banner = Banner::create([
+                'banner_group_id' => $group->id,
+                'name' => 'Summer Sale',
+                'bg_color' => '#000000',
+                'bg_size' => 'cover',
+                'layers' => [],
+                'sort_order' => 1,
+                'is_active' => true,
+            ]);
+
+            $bannerRoutes = [
+                route('admin.banners.index'),
+                route('admin.banners.create'),
+                route('admin.banners.edit', $group),
+                route('admin.banners.slides', $group),
+                route('admin.banners.slides.create', $group),
+                route('admin.banners.slides.edit', [$group, $banner]),
+            ];
+
+            foreach ($bannerRoutes as $url) {
+                $this->get($url)->assertOk()->assertSee('v-admin', false);
+            }
+        }
+    }
+
+    public function test_shipping_courier_update_round_trip_edits_courier(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $courier = ShippingCourier::create([
+            'store_id' => 1,
+            'name' => 'GoGo Express',
+            'tracking_url' => 'https://track.example.com/{tracking_number}',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->put(route('admin.shipping-couriers.update', $courier), [
+            'name' => 'GoGo Express Plus',
+            'tracking_url' => 'https://track.example.com/v2/{tracking_number}',
+            'sort_order' => 2,
+            'is_active' => '1',
+        ])->assertRedirect(route('admin.shipping-couriers.index'));
+
+        $this->assertDatabaseHas('shipping_couriers', [
+            'id' => $courier->id,
+            'name' => 'GoGo Express Plus',
+            'tracking_url' => 'https://track.example.com/v2/{tracking_number}',
+            'sort_order' => 2,
+            'is_active' => true,
+        ]);
+
+        // Unchecked x-admin.checkbox omits the field entirely; the controller's
+        // $request->boolean('is_active') still resolves the missing key to false.
+        $this->put(route('admin.shipping-couriers.update', $courier), [
+            'name' => 'GoGo Express Plus',
+            'tracking_url' => 'https://track.example.com/v2/{tracking_number}',
+            'sort_order' => 2,
+        ])->assertRedirect(route('admin.shipping-couriers.index'));
+
+        $this->assertDatabaseHas('shipping_couriers', [
+            'id' => $courier->id,
+            'is_active' => false,
+        ]);
     }
 }
