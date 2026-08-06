@@ -401,8 +401,8 @@
             <x-admin.form-actions>
                 @if ($restriction)
                     <x-admin.button variant="danger" type="button"
-                        onclick="if(confirm('Remove the availability rule for {{ $name }}?')) document.getElementById('delete-restriction-{{ $method }}').submit()">
-                        Delete
+                        onclick="if(confirm('Delete the availability rule for {{ $name }}? This removes ALL conditions listed above — {{ $name }} will become available everywhere.')) document.getElementById('delete-restriction-{{ $method }}').submit()">
+                        Delete rule
                     </x-admin.button>
                 @endif
                 <x-admin.button variant="primary" type="submit">{{ $restriction ? 'Save' : 'Create restriction' }}</x-admin.button>

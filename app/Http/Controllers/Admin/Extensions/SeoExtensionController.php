@@ -374,10 +374,6 @@ class SeoExtensionController extends Controller
                     'og_description' => $suggestion->suggested_og_description ?? $entity->og_description,
                 ];
                 $entity->update($updateData);
-
-                if ($suggestion->product_id && $suggestion->entity_type === Product::class) {
-                    Product::where('id', $suggestion->product_id)->update($updateData);
-                }
             }
 
             $suggestion->update(['status' => 'accepted']);

@@ -24,4 +24,24 @@ class TabsComponentTest extends TestCase
             ->assertSee('aria-selected', false)
             ->assertSee('x-cloak', false);
     }
+
+    public function test_unknown_tab_query_param_falls_back_to_default_when_names_given(): void
+    {
+        $this->get('/?tab=bogus'); // seed request with an invalid ?tab= value
+        $this->blade(<<<'BLADE'
+            <x-admin.tabs default="config" param="tab" :names="['config', 'availability']">
+                <x-slot:nav>
+                    <x-admin.tabs.tab name="config">Configuration</x-admin.tabs.tab>
+                    <x-admin.tabs.tab name="availability">Availability</x-admin.tabs.tab>
+                </x-slot:nav>
+                <x-admin.tabs.panel name="config">CONFIG BODY</x-admin.tabs.panel>
+                <x-admin.tabs.panel name="availability">AVAIL BODY</x-admin.tabs.panel>
+            </x-admin.tabs>
+            BLADE)
+            // The Alpine tab: starts out as the raw (invalid) query value...
+            ->assertSee("tab: 'bogus'", false)
+            // ...but init() resets it to the default when names doesn't include it.
+            ->assertSee("this.tab = 'config'", false)
+            ->assertSee('names: JSON.parse', false);
+    }
 }

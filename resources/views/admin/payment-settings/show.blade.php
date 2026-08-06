@@ -3,7 +3,7 @@
         ['label' => 'Settings', 'url' => route('admin.settings.index')],
         ['label' => 'Payments', 'url' => route('admin.payment-settings.index')],
     ]">
-        <x-admin.tabs default="config" param="tab">
+        <x-admin.tabs default="config" param="tab" :names="['config', 'availability']">
             <x-slot:nav>
                 <x-admin.tabs.tab name="config">Configuration</x-admin.tabs.tab>
                 <x-admin.tabs.tab name="availability">Availability</x-admin.tabs.tab>

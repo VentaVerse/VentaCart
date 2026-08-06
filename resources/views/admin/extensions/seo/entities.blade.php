@@ -157,7 +157,8 @@
                     },
                     async acceptSuggestion(suggestionId, entityId) {
                         try {
-                            const res = await fetch('/opensesame/extensions/seo/suggestions/' + suggestionId + '/accept', {
+                            const url = '{{ route('admin.extensions.seo.accept', ['suggestion' => 'SUGGESTION_ID']) }}'.replace('SUGGESTION_ID', suggestionId);
+                            const res = await fetch(url, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
                             });
@@ -185,7 +186,8 @@
                     },
                     async rejectSuggestion(suggestionId, entityId) {
                         try {
-                            const res = await fetch('/opensesame/extensions/seo/suggestions/' + suggestionId + '/reject', {
+                            const url = '{{ route('admin.extensions.seo.reject', ['suggestion' => 'SUGGESTION_ID']) }}'.replace('SUGGESTION_ID', suggestionId);
+                            const res = await fetch(url, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
                             });
