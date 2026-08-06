@@ -1,105 +1,108 @@
-<x-admin-layout>
-    <x-slot name="header">Blog Posts</x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.blog-categories.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors mr-2">
-            Categories
-        </a>
-        <a href="{{ route('admin.blog.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            New Post
-        </a>
-    </x-slot>
+<x-admin.shell title="Blog Posts">
+    <x-admin.page title="Blog Posts" :breadcrumb="[['label' => 'Content']]">
+        <x-slot:actions>
+            <x-admin.button variant="secondary" href="{{ route('admin.blog-categories.index') }}">Categories</x-admin.button>
+            <x-admin.button variant="primary" href="{{ route('admin.blog.create') }}">
+                <x-admin.icon name="plus" class="w-4 h-4" /> New Post
+            </x-admin.button>
+        </x-slot:actions>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" action="{{ route('admin.blog.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search posts..."
-                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-            </div>
-            <div>
-                <select name="category_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="">All Categories</option>
-                    @foreach ($categories as $cat)
-                        <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <select name="status" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="">All Status</option>
-                    <option value="published" {{ request('status') === 'published' ? 'selected' : '' }}>Published</option>
-                    <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
-                </select>
-            </div>
-            <div class="flex space-x-2">
-                <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">Filter</button>
-                <a href="{{ route('admin.blog.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">Clear</a>
-            </div>
-        </form>
-    </div>
+        <div class="space-y-5">
+            <x-admin.card>
+                <form method="GET" action="{{ route('admin.blog.index') }}" class="flex flex-wrap items-end gap-3">
+                    <div class="min-w-[220px] flex-1">
+                        <x-admin.field name="search" label="Search">
+                            <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search posts..." />
+                        </x-admin.field>
+                    </div>
+                    <div class="w-48">
+                        <x-admin.field name="category_id" label="Category">
+                            <x-admin.select name="category_id">
+                                <option value="">All Categories</option>
+                                @foreach ($categories as $cat)
+                                    <option value="{{ $cat->id }}" {{ request('category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                                @endforeach
+                            </x-admin.select>
+                        </x-admin.field>
+                    </div>
+                    <div class="w-40">
+                        <x-admin.field name="status" label="Status">
+                            <x-admin.select name="status">
+                                <option value="">All Status</option>
+                                <option value="published" {{ request('status') === 'published' ? 'selected' : '' }}>Published</option>
+                                <option value="draft" {{ request('status') === 'draft' ? 'selected' : '' }}>Draft</option>
+                            </x-admin.select>
+                        </x-admin.field>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <x-admin.button type="submit" variant="primary">Filter</x-admin.button>
+                        @if (request()->anyFilled(['search', 'category_id', 'status']))
+                            <a href="{{ route('admin.blog.index') }}" class="text-[13px] text-v-muted underline hover:text-v-text">Clear</a>
+                        @endif
+                    </div>
+                </form>
+            </x-admin.card>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Image</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <x-admin.table>
+                <x-slot:head>
+                    <x-admin.table.th>Image</x-admin.table.th>
+                    <x-admin.table.th>Title</x-admin.table.th>
+                    <x-admin.table.th>Category</x-admin.table.th>
+                    <x-admin.table.th>Status</x-admin.table.th>
+                    <x-admin.table.th align="right">Views</x-admin.table.th>
+                    <x-admin.table.th>Published</x-admin.table.th>
+                    <x-admin.table.th align="right">Actions</x-admin.table.th>
+                </x-slot:head>
                 @forelse ($posts as $post)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-3">
+                    <x-admin.table.row href="{{ route('admin.blog.edit', $post) }}">
+                        <x-admin.table.cell>
                             @if ($post->featured_image)
-                                <img src="{{ storage_url($post->featured_image) }}" alt="" class="w-12 h-12 object-cover rounded">
+                                <img src="{{ storage_url($post->featured_image) }}" alt="" class="w-12 h-12 object-cover rounded-v-sm">
                             @else
-                                <div class="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-300">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <div class="w-12 h-12 rounded-v-sm bg-v-sunken flex items-center justify-center text-v-muted">
+                                    <x-admin.icon name="blog" class="w-5 h-5" />
                                 </div>
                             @endif
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ $post->title }}</div>
-                            <div class="text-xs text-gray-400">{{ $post->slug }}</div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $post->category?->name ?? '—' }}</td>
-                        <td class="px-6 py-4">
-                            @if ($post->is_published)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Published</span>
-                            @else
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Draft</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ number_format($post->view_count) }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $post->published_at?->format('M d, Y') ?? '—' }}</td>
-                        <td class="px-6 py-4 text-right text-sm">
-                            <a href="{{ route('admin.blog.edit', $post) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                            <form method="POST" action="{{ route('admin.blog.destroy', $post) }}" class="inline" onsubmit="return confirm('Delete this post?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
+                        </x-admin.table.cell>
+                        <x-admin.table.cell>
+                            <div class="text-[13px] font-medium text-v-text">{{ $post->title }}</div>
+                            <div class="text-xs text-v-muted">{{ $post->slug }}</div>
+                        </x-admin.table.cell>
+                        <x-admin.table.cell>{{ $post->category?->name ?? '—' }}</x-admin.table.cell>
+                        <x-admin.table.cell>
+                            <x-admin.badge :tone="$post->is_published ? 'success' : 'warning'">
+                                {{ $post->is_published ? 'Published' : 'Draft' }}
+                            </x-admin.badge>
+                        </x-admin.table.cell>
+                        <x-admin.table.cell align="right" mono>{{ number_format($post->view_count) }}</x-admin.table.cell>
+                        <x-admin.table.cell>{{ $post->published_at?->format('M d, Y') ?? '—' }}</x-admin.table.cell>
+                        <x-admin.table.cell align="right">
+                            <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('admin.blog.edit', $post) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
+                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-post-{{ $post->id }}')">Delete</button>
+                            </div>
+                        </x-admin.table.cell>
+                    </x-admin.table.row>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                            No blog posts yet. <a href="{{ route('admin.blog.create') }}" class="text-indigo-600 hover:underline">Create your first post</a>.
+                        <td colspan="7" class="px-4 py-2">
+                            <x-admin.empty-state icon="blog" title="No blog posts yet" :description="request()->anyFilled(['search', 'category_id', 'status']) ? 'Try adjusting your filters.' : null">
+                                <a href="{{ route('admin.blog.create') }}" class="text-[13px] text-v-accent hover:underline">Create your first post</a>
+                            </x-admin.empty-state>
                         </td>
                     </tr>
                 @endforelse
-            </tbody>
-        </table>
+                @if ($posts->hasPages())
+                    <x-slot:footer>
+                        {{ $posts->links() }}
+                    </x-slot:footer>
+                @endif
+            </x-admin.table>
+        </div>
 
-        @if ($posts->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200">
-                {{ $posts->links() }}
-            </div>
-        @endif
-    </div>
-</x-admin-layout>
+        @foreach ($posts as $post)
+            <x-admin.confirm-dialog name="delete-post-{{ $post->id }}" title="Delete {{ $post->title }}?"
+                message="This cannot be undone." confirm="Delete" :action="route('admin.blog.destroy', $post)" method="DELETE" />
+        @endforeach
+    </x-admin.page>
+</x-admin.shell>

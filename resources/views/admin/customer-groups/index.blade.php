@@ -1,65 +1,64 @@
-<x-admin-layout>
-    <x-slot name="header">Customer Groups</x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.customer-groups.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add Group
-        </a>
-    </x-slot>
+<x-admin.shell title="Customer Groups">
+    <x-admin.page title="Customer Groups" :breadcrumb="[['label' => 'Customers']]">
+        <x-slot:actions>
+            <x-admin.button variant="primary" href="{{ route('admin.customer-groups.create') }}">
+                <x-admin.icon name="plus" class="w-4 h-4" /> Add Group
+            </x-admin.button>
+        </x-slot:actions>
 
-    {{-- Table --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Group</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customers</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @forelse ($groups as $group)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ $group->name }}</div>
-                            @if ($group->description)
-                                <div class="text-xs text-gray-400">{{ Str::limit($group->description, 60) }}</div>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $group->customers_count }}</td>
-                        <td class="px-6 py-4">
-                            @if ($group->is_default)
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Default</span>
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 text-right text-sm">
-                            <a href="{{ route('admin.customer-groups.edit', $group) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
+        <x-admin.table>
+            <x-slot:head>
+                <x-admin.table.th>Group</x-admin.table.th>
+                <x-admin.table.th align="right">Customers</x-admin.table.th>
+                <x-admin.table.th>Default</x-admin.table.th>
+                <x-admin.table.th align="right">Actions</x-admin.table.th>
+            </x-slot:head>
+            @forelse ($groups as $group)
+                <x-admin.table.row href="{{ route('admin.customer-groups.edit', $group) }}">
+                    <x-admin.table.cell>
+                        <div class="text-[13px] font-medium text-v-text">{{ $group->name }}</div>
+                        @if ($group->description)
+                            <div class="text-xs text-v-muted">{{ Str::limit($group->description, 60) }}</div>
+                        @endif
+                    </x-admin.table.cell>
+                    <x-admin.table.cell align="right" mono>{{ $group->customers_count }}</x-admin.table.cell>
+                    <x-admin.table.cell>
+                        @if ($group->is_default)
+                            <x-admin.badge tone="success">Default</x-admin.badge>
+                        @endif
+                    </x-admin.table.cell>
+                    <x-admin.table.cell align="right">
+                        <div class="flex items-center justify-end gap-3">
+                            <a href="{{ route('admin.customer-groups.edit', $group) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
                             @if ($group->customers_count === 0)
-                                <form method="POST" action="{{ route('admin.customer-groups.destroy', $group) }}" class="inline" onsubmit="return confirm('Delete this group?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                                </form>
+                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-group-{{ $group->id }}')">Delete</button>
                             @else
-                                <span class="text-xs text-gray-400" title="Cannot delete — group has customers">{{ $group->customers_count }} customer{{ $group->customers_count > 1 ? 's' : '' }}</span>
+                                <span class="text-xs text-v-muted" title="Cannot delete — group has customers">{{ $group->customers_count }} customer{{ $group->customers_count > 1 ? 's' : '' }}</span>
                             @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                            No customer groups found. <a href="{{ route('admin.customer-groups.create') }}" class="text-indigo-600 hover:underline">Create your first group</a>.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+                        </div>
+                    </x-admin.table.cell>
+                </x-admin.table.row>
+            @empty
+                <tr>
+                    <td colspan="4" class="px-4 py-2">
+                        <x-admin.empty-state icon="groups" title="No customer groups found">
+                            <a href="{{ route('admin.customer-groups.create') }}" class="text-[13px] text-v-accent hover:underline">Create your first group</a>
+                        </x-admin.empty-state>
+                    </td>
+                </tr>
+            @endforelse
+            @if ($groups->hasPages())
+                <x-slot:footer>
+                    {{ $groups->links() }}
+                </x-slot:footer>
+            @endif
+        </x-admin.table>
 
-        @if ($groups->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200">
-                {{ $groups->links() }}
-            </div>
-        @endif
-    </div>
-</x-admin-layout>
+        @foreach ($groups as $group)
+            @if ($group->customers_count === 0)
+                <x-admin.confirm-dialog name="delete-group-{{ $group->id }}" title="Delete {{ $group->name }}?"
+                    message="This cannot be undone." confirm="Delete" :action="route('admin.customer-groups.destroy', $group)" method="DELETE" />
+            @endif
+        @endforeach
+    </x-admin.page>
+</x-admin.shell>

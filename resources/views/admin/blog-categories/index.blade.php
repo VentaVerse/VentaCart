@@ -1,50 +1,49 @@
-<x-admin-layout>
-    <x-slot name="header">Blog Categories</x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.blog.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors mr-2">
-            Back to Posts
-        </a>
-        <a href="{{ route('admin.blog-categories.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add Category
-        </a>
-    </x-slot>
+<x-admin.shell title="Blog Categories">
+    <x-admin.page title="Blog Categories" :breadcrumb="[['label' => 'Content'], ['label' => 'Blog Posts', 'url' => route('admin.blog.index')]]">
+        <x-slot:actions>
+            <x-admin.button variant="secondary" href="{{ route('admin.blog.index') }}">Back to Posts</x-admin.button>
+            <x-admin.button variant="primary" href="{{ route('admin.blog-categories.create') }}">
+                <x-admin.icon name="plus" class="w-4 h-4" /> Add Category
+            </x-admin.button>
+        </x-slot:actions>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <x-admin.table>
+            <x-slot:head>
+                <x-admin.table.th>Name</x-admin.table.th>
+                <x-admin.table.th>Slug</x-admin.table.th>
+                <x-admin.table.th align="right">Posts</x-admin.table.th>
+                <x-admin.table.th align="right">Sort</x-admin.table.th>
+                <x-admin.table.th align="right">Actions</x-admin.table.th>
+            </x-slot:head>
+            @forelse ($categories as $category)
+                <x-admin.table.row href="{{ route('admin.blog-categories.edit', $category) }}">
+                    <x-admin.table.cell>
+                        <span class="text-[13px] font-medium text-v-text">{{ $category->name }}</span>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell mono>{{ $category->slug }}</x-admin.table.cell>
+                    <x-admin.table.cell align="right" mono>{{ $category->posts_count }}</x-admin.table.cell>
+                    <x-admin.table.cell align="right" mono>{{ $category->sort_order }}</x-admin.table.cell>
+                    <x-admin.table.cell align="right">
+                        <div class="flex items-center justify-end gap-3">
+                            <a href="{{ route('admin.blog-categories.edit', $category) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
+                            <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-blog-category-{{ $category->id }}')">Delete</button>
+                        </div>
+                    </x-admin.table.cell>
+                </x-admin.table.row>
+            @empty
                 <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posts</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sort</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <td colspan="5" class="px-4 py-2">
+                        <x-admin.empty-state icon="categories" title="No blog categories yet">
+                            <a href="{{ route('admin.blog-categories.create') }}" class="text-[13px] text-v-accent hover:underline">Create one</a>
+                        </x-admin.empty-state>
+                    </td>
                 </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @forelse ($categories as $category)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ $category->name }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $category->slug }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $category->posts_count }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $category->sort_order }}</td>
-                        <td class="px-6 py-4 text-right text-sm">
-                            <a href="{{ route('admin.blog-categories.edit', $category) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                            <form method="POST" action="{{ route('admin.blog-categories.destroy', $category) }}" class="inline" onsubmit="return confirm('Delete this category?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                            No blog categories yet. <a href="{{ route('admin.blog-categories.create') }}" class="text-indigo-600 hover:underline">Create one</a>.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</x-admin-layout>
+            @endforelse
+        </x-admin.table>
+
+        @foreach ($categories as $category)
+            <x-admin.confirm-dialog name="delete-blog-category-{{ $category->id }}" title="Delete {{ $category->name }}?"
+                message="This cannot be undone." confirm="Delete" :action="route('admin.blog-categories.destroy', $category)" method="DELETE" />
+        @endforeach
+    </x-admin.page>
+</x-admin.shell>

@@ -48,11 +48,10 @@ class CustomerActivity extends Model
     public function getColorAttribute(): string
     {
         return match ($this->type) {
-            'order_placed' => 'text-emerald-600 bg-emerald-50',
-            'login', 'registered' => 'text-blue-600 bg-blue-50',
-            'cart_add' => 'text-indigo-600 bg-indigo-50',
-            'review_submitted' => 'text-amber-600 bg-amber-50',
-            default => 'text-gray-500 bg-gray-50',
+            'order_placed' => 'text-v-accent bg-v-accent-weak',
+            'login', 'registered' => 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]',
+            'review_submitted' => 'text-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]',
+            default => 'text-v-secondary bg-v-sunken',
         };
     }
 }

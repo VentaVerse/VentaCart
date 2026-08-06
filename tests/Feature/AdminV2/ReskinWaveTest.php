@@ -4,16 +4,20 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\AbandonedCartNotification;
 use App\Models\AbandonedCartRule;
+use App\Models\BlogCategory;
+use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
+use App\Models\Page;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Store;
@@ -417,5 +421,178 @@ class ReskinWaveTest extends TestCase
             'id' => $category->id,
             'is_active' => false,
         ]);
+    }
+
+    public function test_customers_and_content_pages_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $country = Country::create(['iso2' => 'PH', 'iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]);
+
+        $customer = Customer::create([
+            'store_id' => 1,
+            'customer_group_id' => $group->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'password' => 'secret123',
+            'is_active' => true,
+        ]);
+        $customer->addresses()->create([
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'address_1' => '123 Main St',
+            'city' => 'Manila',
+            'country_id' => $country->id,
+            'is_default' => true,
+        ]);
+        $customer->activities()->create([
+            'type' => 'order_placed',
+            'description' => 'Placed order #1001',
+        ]);
+
+        $blogCategory = BlogCategory::create(['name' => 'News', 'slug' => 'news', 'sort_order' => 0]);
+        $tag = Tag::create(['name' => 'Vintage', 'slug' => 'vintage']);
+
+        $post = BlogPost::create([
+            'title' => 'Hello World',
+            'slug' => 'hello-world',
+            'content' => 'Body content.',
+            'blog_category_id' => $blogCategory->id,
+            'is_published' => true,
+            'published_at' => now(),
+        ]);
+        $post->tags()->attach($tag->id);
+
+        $page = Page::create([
+            'title' => 'About Us',
+            'slug' => 'about-us',
+            'body' => 'Our story.',
+            'is_active' => true,
+        ]);
+
+        $routes = [
+            route('admin.customers.index'),
+            route('admin.customers.create'),
+            route('admin.customers.edit', $customer),
+            route('admin.customer-groups.index'),
+            route('admin.customer-groups.create'),
+            route('admin.customer-groups.edit', $group),
+            route('admin.pages.index'),
+            route('admin.pages.create'),
+            route('admin.pages.edit', $page),
+            route('admin.blog.index'),
+            route('admin.blog.create'),
+            route('admin.blog.edit', $post),
+            route('admin.blog-categories.index'),
+            route('admin.blog-categories.create'),
+            route('admin.blog-categories.edit', $blogCategory),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+    }
+
+    public function test_customer_update_round_trip_syncs_addresses_and_toggles(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $country = Country::create(['iso2' => 'PH', 'iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]);
+
+        $customer = Customer::create([
+            'store_id' => 1,
+            'customer_group_id' => $group->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'password' => 'secret123',
+            'is_active' => true,
+            'newsletter' => false,
+        ]);
+        $existingAddress = $customer->addresses()->create([
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'address_1' => '123 Main St',
+            'city' => 'Manila',
+            'country_id' => $country->id,
+            'is_default' => true,
+        ]);
+
+        $this->put(route('admin.customers.update', $customer), [
+            'store_id' => 1,
+            'customer_group_id' => $group->id,
+            'first_name' => 'Janet',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'phone' => '9171234567',
+            'is_active' => '1',
+            'newsletter' => '1',
+            'addresses' => [
+                [
+                    'id' => $existingAddress->id,
+                    'first_name' => 'Janet',
+                    'last_name' => 'Doe',
+                    'address_1' => '456 New St',
+                    'city' => 'Quezon City',
+                    'country_id' => $country->id,
+                    'is_default' => '1',
+                ],
+                [
+                    'id' => '',
+                    'first_name' => 'Janet',
+                    'last_name' => 'Doe',
+                    'address_1' => '789 Second Address',
+                    'city' => 'Makati',
+                    'country_id' => $country->id,
+                    'is_default' => '0',
+                ],
+            ],
+        ])->assertRedirect(route('admin.customers.index'));
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'first_name' => 'Janet',
+            'phone' => '9171234567',
+            'is_active' => true,
+            'newsletter' => true,
+        ]);
+
+        $this->assertDatabaseHas('customer_addresses', [
+            'id' => $existingAddress->id,
+            'address_1' => '456 New St',
+            'city' => 'Quezon City',
+            'is_default' => true,
+        ]);
+        $this->assertDatabaseHas('customer_addresses', [
+            'customer_id' => $customer->id,
+            'address_1' => '789 Second Address',
+            'city' => 'Makati',
+            'is_default' => false,
+        ]);
+        $this->assertEquals(2, $customer->addresses()->count());
+
+        // Unchecked x-admin.toggle omits the checkbox but keeps the hidden 0.
+        $this->put(route('admin.customers.update', $customer), [
+            'store_id' => 1,
+            'customer_group_id' => $group->id,
+            'first_name' => 'Janet',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'is_active' => '0',
+            'newsletter' => '0',
+        ])->assertRedirect(route('admin.customers.index'));
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'is_active' => false,
+            'newsletter' => false,
+        ]);
+
+        // Addresses omitted entirely from the payload are all deleted (syncAddresses
+        // drops anything not present in the submitted array).
+        $this->assertEquals(0, $customer->addresses()->count());
     }
 }

@@ -1,123 +1,102 @@
-<x-admin-layout>
-    <x-slot name="header">{{ $page ? 'Edit Page' : 'New Page' }}</x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.pages.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-            Back to Pages
-        </a>
-    </x-slot>
+<x-admin.shell :title="$page ? 'Edit Page' : 'New Page'">
+    <x-admin.page :title="$page ? 'Edit Page' : 'New Page'" :breadcrumb="[['label' => 'Content'], ['label' => 'Pages', 'url' => route('admin.pages.index')]]">
+        <x-slot:actions>
+            <x-admin.button variant="ghost" href="{{ route('admin.pages.index') }}">Back to Pages</x-admin.button>
+        </x-slot:actions>
 
-    <form method="POST" action="{{ $page ? route('admin.pages.update', $page) : route('admin.pages.store') }}">
-        @csrf
-        @if ($page) @method('PUT') @endif
+        <form method="POST" action="{{ $page ? route('admin.pages.update', $page) : route('admin.pages.store') }}" data-v-form>
+            @csrf
+            @if ($page) @method('PUT') @endif
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- Main content --}}
-            <div class="lg:col-span-2 space-y-6">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                            <input type="text" name="title" value="{{ old('title', $page?->title) }}" required
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            @error('title') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {{-- Main content --}}
+                <div class="lg:col-span-2 space-y-6">
+                    <x-admin.card>
+                        <div class="space-y-4">
+                            <x-admin.field name="title" label="Title">
+                                <x-admin.input type="text" name="title" required :value="$page?->title" />
+                            </x-admin.field>
+
+                            <x-admin.field name="slug" label="Slug" help="Leave blank to auto-generate from title">
+                                <div class="flex items-center gap-1">
+                                    <span class="text-[13px] text-v-muted">/</span>
+                                    <x-admin.input type="text" name="slug" class="flex-1 font-mono" :value="$page?->slug" placeholder="auto-generated-from-title" />
+                                </div>
+                            </x-admin.field>
+
+                            <x-admin.field name="body" label="Content">
+                                <textarea name="body" class="tinymce-editor v-control w-full text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">{{ old('body', $page?->body) }}</textarea>
+                            </x-admin.field>
                         </div>
+                    </x-admin.card>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm text-gray-400">/</span>
-                                <input type="text" name="slug" value="{{ old('slug', $page?->slug) }}"
-                                    placeholder="auto-generated from title"
-                                    class="flex-1 rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500">
+                    {{-- SEO --}}
+                    <x-admin.card title="SEO">
+                        <div class="space-y-4">
+                            <x-admin.field name="meta_title" label="Meta Title">
+                                <x-admin.input type="text" name="meta_title" :value="$page?->meta_title" placeholder="Defaults to page title" />
+                            </x-admin.field>
+                            <x-admin.field name="meta_description" label="Meta Description">
+                                <x-admin.textarea name="meta_description" rows="2" :value="$page?->meta_description" placeholder="Brief description for search engines" />
+                            </x-admin.field>
+                        </div>
+                    </x-admin.card>
+                </div>
+
+                {{-- Sidebar --}}
+                <div class="space-y-6">
+                    <x-admin.card title="Publish">
+                        <div class="space-y-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <x-admin.toggle name="is_active" :checked="$page?->is_active ?? true" />
+                                <span class="text-[13px] text-v-text">Active</span>
+                            </label>
+                            <x-admin.field name="sort_order" label="Sort Order">
+                                <x-admin.input type="number" name="sort_order" class="w-24" min="0" :value="$page?->sort_order ?? 0" />
+                            </x-admin.field>
+                        </div>
+                        <div class="mt-6">
+                            <x-admin.button type="submit" class="w-full justify-center">
+                                {{ $page ? 'Update' : 'Create' }}
+                            </x-admin.button>
+                        </div>
+                        @if ($page)
+                            <div class="mt-3 pt-3 border-t border-v-border">
+                                <a href="/{{ $page->slug }}" target="_blank" class="text-xs text-v-accent hover:underline">View page &rarr;</a>
                             </div>
-                            @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                            <textarea name="body" class="tinymce-editor w-full rounded-lg border-gray-300 text-sm">{{ old('body', $page?->body) }}</textarea>
-                            @error('body') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                </div>
-
-                {{-- SEO --}}
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">SEO</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Meta Title</label>
-                            <input type="text" name="meta_title" value="{{ old('meta_title', $page?->meta_title) }}"
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Defaults to page title">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Meta Description</label>
-                            <textarea name="meta_description" rows="2"
-                                class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Brief description for search engines">{{ old('meta_description', $page?->meta_description) }}</textarea>
-                        </div>
-                    </div>
+                        @endif
+                    </x-admin.card>
                 </div>
             </div>
+        </form>
 
-            {{-- Sidebar --}}
-            <div class="space-y-6">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Publish</h3>
-                    <div class="space-y-4">
-                        <label class="flex items-center gap-2">
-                            <input type="hidden" name="is_active" value="0">
-                            <input type="checkbox" name="is_active" value="1"
-                                {{ old('is_active', $page?->is_active ?? true) ? 'checked' : '' }}
-                                class="rounded border-gray-300 text-indigo-600">
-                            <span class="text-sm text-gray-700">Active</span>
-                        </label>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Sort Order</label>
-                            <input type="number" name="sort_order" value="{{ old('sort_order', $page?->sort_order ?? 0) }}" min="0"
-                                class="w-20 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        </div>
-                    </div>
-                    <div class="mt-6 flex gap-2">
-                        <button type="submit" class="flex-1 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
-                            {{ $page ? 'Update' : 'Create' }}
-                        </button>
-                    </div>
-                    @if ($page)
-                        <div class="mt-3 pt-3 border-t border-gray-100">
-                            <a href="/{{ $page->slug }}" target="_blank" class="text-xs text-indigo-600 hover:underline">View page &rarr;</a>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </form>
-
-    @push('scripts')
-    <style>
-        .tox.tox-tinymce-aux .tox-textfield,
-        .tox.tox-tinymce-aux .tox-textarea,
-        .tox .tox-dialog .tox-textfield,
-        .tox .tox-dialog .tox-textarea {
-            border: 1px solid #999 !important;
-            border-radius: 4px !important;
-            padding: 6px 8px !important;
-        }
-    </style>
-    <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
-    <script>
-        tinymce.init({
-            selector: '.tinymce-editor',
-            height: 450,
-            menubar: false,
-            plugins: 'lists link autolink code table media',
-            toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | link table media | removeformat code',
-            content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }',
-            branding: false,
-            promotion: false,
-            license_key: 'gpl',
-            relative_urls: false,
-            remove_script_host: true,
-        });
-    </script>
-    @endpush
-</x-admin-layout>
+        @push('scripts')
+        <style>
+            .tox.tox-tinymce-aux .tox-textfield,
+            .tox.tox-tinymce-aux .tox-textarea,
+            .tox .tox-dialog .tox-textfield,
+            .tox .tox-dialog .tox-textarea {
+                border: 1px solid #999 !important;
+                border-radius: 4px !important;
+                padding: 6px 8px !important;
+            }
+        </style>
+        <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
+        <script>
+            tinymce.init({
+                selector: '.tinymce-editor',
+                height: 450,
+                menubar: false,
+                plugins: 'lists link autolink code table media',
+                toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | link table media | removeformat code',
+                content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }',
+                branding: false,
+                promotion: false,
+                license_key: 'gpl',
+                relative_urls: false,
+                remove_script_host: true,
+            });
+        </script>
+        @endpush
+    </x-admin.page>
+</x-admin.shell>
