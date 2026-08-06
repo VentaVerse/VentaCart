@@ -57,9 +57,4 @@ class GeoZone extends Model
     {
         return $this->hasMany(GeoZoneEntry::class);
     }
-
-    public function rates(): HasMany
-    {
-        return $this->hasMany(ShippingZoneRate::class, 'geo_zone_id');
-    }
 }

@@ -10,7 +10,7 @@ class DhlShippingProvider implements ShippingProviderInterface
 {
     public function getKey(): string
     {
-        return 'dhl_express';
+        return 'dhl';
     }
 
     public function getName(): string

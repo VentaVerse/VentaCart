@@ -26,7 +26,6 @@ use App\Http\Controllers\Admin\RolePermissionController;
 use App\Http\Controllers\Admin\ShippingSettingController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CouponController;
-use App\Http\Controllers\Admin\ShippingZoneController;
 use App\Http\Controllers\Admin\StockNotificationController as AdminStockNotificationController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\ProductController;
@@ -276,11 +275,6 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
     // API Sync Logs
     Route::get('/api-sync-logs', [ApiSyncLogController::class, 'index'])->name('api-sync-logs.index');
     Route::delete('/api-sync-logs', [ApiSyncLogController::class, 'destroyAll'])->name('api-sync-logs.destroy-all');
-
-    Route::get('shipping-zones', [ShippingZoneController::class, 'index'])->name('shipping-zones.index');
-    Route::get('shipping-zones/{geoZone}/edit', [ShippingZoneController::class, 'edit'])->name('shipping-zones.edit');
-    Route::put('shipping-zones/{geoZone}', [ShippingZoneController::class, 'update'])->name('shipping-zones.update');
-
 
     // Modules
     Route::get('/modules', [\App\Http\Controllers\Admin\ModuleController::class, 'index'])->name('modules.index');
