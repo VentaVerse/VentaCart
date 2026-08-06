@@ -33,4 +33,31 @@ class SettingsSectionTest extends TestCase
             ->assertSee('All Settings')        // sub-sidebar back link
             ->assertSee('SMTP');
     }
+
+    public function test_every_section_renders(): void
+    {
+        $this->actingAs(User::factory()->create());
+        foreach (['general', 'mail', 'checkout', 'currencies', 'api', 'security', 'automations'] as $section) {
+            $this->get(route('admin.settings.section', $section))->assertOk();
+        }
+    }
+
+    public function test_mail_form_saves_through_shared_endpoint(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $this->post(route('admin.settings.update'), [
+            'group' => 'mail',
+            '_redirect' => route('admin.settings.section', 'mail'),
+            'settings' => ['host' => 'smtp.example.test', 'port' => '587'],
+        ])->assertRedirect(route('admin.settings.section', 'mail'));
+
+        $this->assertDatabaseHas('settings', ['group' => 'mail', 'key' => 'host', 'value' => 'smtp.example.test']);
+    }
+
+    public function test_old_tabbed_view_is_gone(): void
+    {
+        $this->assertFileDoesNotExist(resource_path('views/admin/settings/index.blade.php'));
+    }
 }
