@@ -1,6 +1,19 @@
 // Admin v2 behavior. Registered on alpine:init so this file can load
 // before app.js (which calls Alpine.start()).
-document.addEventListener('alpine:init', () => {});
+document.addEventListener('alpine:init', () => {
+    window.Alpine.store('toasts', {
+        items: [],
+        counter: 0,
+        push(message, tone = 'success') {
+            const id = ++this.counter;
+            this.items.push({ id, message, tone });
+            setTimeout(() => this.dismiss(id), 4500);
+        },
+        dismiss(id) {
+            this.items = this.items.filter((t) => t.id !== id);
+        },
+    });
+});
 
 // Any form marked data-v-form: on submit, flip its submit buttons into the
 // loading state (spinner + no double-submit). Guard against re-entry.
