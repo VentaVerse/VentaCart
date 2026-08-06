@@ -33,4 +33,22 @@ class SeoPagesTest extends TestCase
             ->assertOk()->assertSee('Old Title')->assertSee('New Better Title')
             ->assertSee('bulk', false);
     }
+
+    public function test_all_seo_pages_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $routes = [
+            route('admin.extensions.seo.review'),
+            route('admin.extensions.seo.slugs'),
+            route('admin.extensions.seo.search-console'),
+            route('admin.extensions.seo.redirects.index'),
+            route('admin.extensions.seo.not-found.index'),
+            route('admin.extensions.seo.strategy'),
+            route('admin.extensions.seo.settings'),
+            route('admin.extensions.seo.entities', 'products'),
+        ];
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+    }
 }

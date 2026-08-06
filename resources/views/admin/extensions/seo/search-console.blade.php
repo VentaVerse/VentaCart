@@ -1,118 +1,97 @@
-<x-admin-layout>
-    <x-slot name="header">SEO Optimization</x-slot>
+<x-admin.shell title="SEO Search Console">
+    <x-admin.page title="Search Console"
+        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Search Console']]">
+        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
+            @include('admin.extensions.seo.partials.nav-v2')
 
-    @include('admin.extensions.seo.partials.tabs')
-
-    @if (! $gscConfigured)
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Google Search Console is not configured yet.</h3>
-            <p class="text-gray-600">
-                <a href="{{ route('admin.extensions.seo.settings') }}" class="text-indigo-600 hover:text-indigo-800 underline">Go to Settings</a>
-                to upload credentials and set your site URL.
-            </p>
-        </div>
-    @else
-        {{-- Last updated + Refresh --}}
-        <div class="flex items-center justify-between mb-4">
-            <p class="text-xs text-gray-400">
-                @if ($fetchedAt)
-                    Last fetched: {{ $fetchedAt->diffForHumans() }} ({{ $fetchedAt->format('M d, Y g:i A') }})
+            <div class="min-w-0 flex-1 space-y-6">
+                @if (! $gscConfigured)
+                    <x-admin.card>
+                        <x-admin.empty-state icon="search" title="Google Search Console is not configured yet"
+                            description="Upload credentials and set your site URL to see real query performance here.">
+                            <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.settings')">Go to Settings →</x-admin.button>
+                        </x-admin.empty-state>
+                    </x-admin.card>
                 @else
-                    Not fetched yet.
+                    {{-- Last updated + Refresh --}}
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs text-v-muted">
+                            @if ($fetchedAt)
+                                Last fetched: {{ $fetchedAt->diffForHumans() }} ({{ $fetchedAt->format('M d, Y g:i A') }})
+                            @else
+                                Not fetched yet.
+                            @endif
+                            <span class="mx-1 text-v-border">|</span>
+                            Data from Google has a 2-3 day delay.
+                        </p>
+                        <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.search-console', ['refresh' => 1])">
+                            Refresh
+                        </x-admin.button>
+                    </div>
+
+                    {{-- Top Queries --}}
+                    <x-admin.card title="Top Queries" description="Last 28 days.">
+                        @if (count($queries) > 0)
+                            <x-admin.table>
+                                <x-slot name="head">
+                                    <x-admin.table.th>Query</x-admin.table.th>
+                                    <x-admin.table.th align="right">Clicks</x-admin.table.th>
+                                    <x-admin.table.th align="right">Impressions</x-admin.table.th>
+                                    <x-admin.table.th align="right">CTR</x-admin.table.th>
+                                    <x-admin.table.th align="right">Avg Position</x-admin.table.th>
+                                </x-slot>
+                                @foreach ($queries as $row)
+                                    @php
+                                        $ctrVal = $row['ctr'] * 100;
+                                        $ctrTone = $ctrVal < 2 ? 'text-v-danger' : ($ctrVal <= 5 ? 'text-v-warning' : 'text-v-accent');
+                                        $posTone = $row['position'] < 10 ? 'text-v-accent' : ($row['position'] <= 20 ? 'text-v-warning' : 'text-v-danger');
+                                    @endphp
+                                    <x-admin.table.row>
+                                        <x-admin.table.cell class="text-v-text">{{ $row['query'] }}</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" mono>{{ number_format($row['clicks']) }}</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" mono>{{ number_format($row['impressions']) }}</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" class="font-medium {{ $ctrTone }}">{{ number_format($ctrVal, 1) }}%</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" class="font-medium {{ $posTone }}">{{ number_format($row['position'], 1) }}</x-admin.table.cell>
+                                    </x-admin.table.row>
+                                @endforeach
+                            </x-admin.table>
+                        @else
+                            <x-admin.empty-state icon="search" title="No query data available" />
+                        @endif
+                    </x-admin.card>
+
+                    {{-- Top Pages --}}
+                    <x-admin.card title="Top Pages" description="Last 28 days.">
+                        @if (count($pages) > 0)
+                            <x-admin.table>
+                                <x-slot name="head">
+                                    <x-admin.table.th>Page URL</x-admin.table.th>
+                                    <x-admin.table.th align="right">Clicks</x-admin.table.th>
+                                    <x-admin.table.th align="right">Impressions</x-admin.table.th>
+                                    <x-admin.table.th align="right">CTR</x-admin.table.th>
+                                    <x-admin.table.th align="right">Avg Position</x-admin.table.th>
+                                </x-slot>
+                                @foreach ($pages as $row)
+                                    @php
+                                        $ctrVal = $row['ctr'] * 100;
+                                        $ctrTone = $ctrVal < 2 ? 'text-v-danger' : ($ctrVal <= 5 ? 'text-v-warning' : 'text-v-accent');
+                                        $posTone = $row['position'] < 10 ? 'text-v-accent' : ($row['position'] <= 20 ? 'text-v-warning' : 'text-v-danger');
+                                    @endphp
+                                    <x-admin.table.row>
+                                        <x-admin.table.cell class="max-w-xs truncate text-v-text" title="{{ $row['page'] }}">{{ Str::limit($row['page'], 60) }}</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" mono>{{ number_format($row['clicks']) }}</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" mono>{{ number_format($row['impressions']) }}</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" class="font-medium {{ $ctrTone }}">{{ number_format($ctrVal, 1) }}%</x-admin.table.cell>
+                                        <x-admin.table.cell align="right" class="font-medium {{ $posTone }}">{{ number_format($row['position'], 1) }}</x-admin.table.cell>
+                                    </x-admin.table.row>
+                                @endforeach
+                            </x-admin.table>
+                        @else
+                            <x-admin.empty-state icon="search" title="No page data available" />
+                        @endif
+                    </x-admin.card>
                 @endif
-                <span class="text-gray-300 mx-1">|</span>
-                Data from Google has a 2-3 day delay.
-            </p>
-            <a href="{{ route('admin.extensions.seo.search-console', ['refresh' => 1]) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-200 border border-gray-300 transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
-                Refresh
-            </a>
-        </div>
-
-        {{-- Top Queries --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Top Queries (Last 28 Days)</h3>
             </div>
-
-            @if (count($queries) > 0)
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Query</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Clicks</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Impressions</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">CTR</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Position</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach ($queries as $row)
-                                @php
-                                    $ctrVal = $row['ctr'] * 100;
-                                    $ctrClass = $ctrVal < 2 ? 'text-red-600' : ($ctrVal <= 5 ? 'text-amber-600' : 'text-green-600');
-                                    $posClass = $row['position'] < 10 ? 'text-green-600' : ($row['position'] <= 20 ? 'text-amber-600' : 'text-red-600');
-                                @endphp
-                                <tr>
-                                    <td class="px-6 py-4 text-sm text-gray-900">{{ $row['query'] }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ number_format($row['clicks']) }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ number_format($row['impressions']) }}</td>
-                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $ctrClass }}">{{ number_format($ctrVal, 1) }}%</td>
-                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $posClass }}">{{ number_format($row['position'], 1) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="px-6 py-4">
-                    <p class="text-sm text-gray-500">No query data available.</p>
-                </div>
-            @endif
         </div>
-
-        {{-- Top Pages --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Top Pages (Last 28 Days)</h3>
-            </div>
-
-            @if (count($pages) > 0)
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Page URL</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Clicks</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Impressions</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">CTR</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Position</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            @foreach ($pages as $row)
-                                @php
-                                    $ctrVal = $row['ctr'] * 100;
-                                    $ctrClass = $ctrVal < 2 ? 'text-red-600' : ($ctrVal <= 5 ? 'text-amber-600' : 'text-green-600');
-                                    $posClass = $row['position'] < 10 ? 'text-green-600' : ($row['position'] <= 20 ? 'text-amber-600' : 'text-red-600');
-                                @endphp
-                                <tr>
-                                    <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title="{{ $row['page'] }}">{{ Str::limit($row['page'], 60) }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ number_format($row['clicks']) }}</td>
-                                    <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ number_format($row['impressions']) }}</td>
-                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $ctrClass }}">{{ number_format($ctrVal, 1) }}%</td>
-                                    <td class="px-6 py-4 text-sm font-medium text-right {{ $posClass }}">{{ number_format($row['position'], 1) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="px-6 py-4">
-                    <p class="text-sm text-gray-500">No page data available.</p>
-                </div>
-            @endif
-        </div>
-    @endif
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

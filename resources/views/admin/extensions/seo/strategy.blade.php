@@ -1,69 +1,53 @@
-<x-admin-layout>
-    <x-slot name="header">SEO Optimization</x-slot>
-    @include('admin.extensions.seo.partials.tabs')
+<x-admin.shell title="SEO Strategy">
+    <x-admin.page title="Strategy"
+        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Strategy']]">
+        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
+            @include('admin.extensions.seo.partials.nav-v2')
 
-    <form method="POST" action="{{ route('admin.extensions.seo.save-strategy') }}">
-        @csrf
+            <form method="POST" action="{{ route('admin.extensions.seo.save-strategy') }}" class="min-w-0 flex-1 space-y-5">
+                @csrf
 
-        {{-- Store Context --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Store Description</h3>
-            <p class="text-xs text-gray-500 mb-4">Describe your store in detail. Claude uses this as context for every SEO suggestion it generates.</p>
+                <x-admin.card title="Store Description" description="Describe your store in detail. Claude uses this as context for every SEO suggestion it generates.">
+                    <div class="max-w-2xl">
+                        <x-admin.textarea name="store_context" rows="5" :value="$seoSettings['store_context'] ?? ''"
+                            placeholder="Example: Online music gear store in the Philippines. We sell guitar pedals, cables, amplifiers, and accessories. Free shipping available. Cash on delivery. Installments via Billease. Based in Manila." />
+                    </div>
+                </x-admin.card>
 
-            <div class="max-w-2xl">
-                <textarea name="store_context" rows="5" placeholder="Example: Online music gear store in the Philippines. We sell guitar pedals, cables, amplifiers, and accessories. Free shipping available. Cash on delivery. Installments via Billease. Based in Manila."
-                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ $seoSettings['store_context'] ?? '' }}</textarea>
-            </div>
+                <x-admin.card title="Target Market" description="Who are your customers? Where are they? Claude will optimize keywords and language for this audience.">
+                    <div class="max-w-2xl">
+                        <x-admin.textarea name="target_market" rows="3" :value="$seoSettings['target_market'] ?? ''"
+                            placeholder="Example: Filipino musicians and guitar enthusiasts in the Philippines. Hobbyists and semi-professional players. Age 18-45. English and Taglish speakers." />
+                    </div>
+                </x-admin.card>
+
+                <x-admin.card title="Brand Voice & Tone" description="How should your SEO copy sound? This shapes the meta descriptions and OG tags Claude writes.">
+                    <div class="max-w-2xl">
+                        <x-admin.textarea name="brand_voice" rows="3" :value="$seoSettings['brand_voice'] ?? ''"
+                            placeholder="Example: Friendly, knowledgeable, enthusiastic about gear. Use simple English. Avoid overly technical jargon. Mention Philippines when relevant." />
+                    </div>
+                </x-admin.card>
+
+                <x-admin.card title="Priority Keywords" description="Keywords or phrases Claude should try to incorporate when relevant. One per line.">
+                    <div class="max-w-2xl">
+                        <x-admin.textarea name="priority_keywords" rows="4" :value="$seoSettings['priority_keywords'] ?? ''"
+                            class="font-mono"
+                            placeholder="Example:&#10;Philippines&#10;guitar pedals Philippines&#10;buy guitar effects online&#10;free shipping&#10;cash on delivery" />
+                    </div>
+                </x-admin.card>
+
+                <x-admin.card title="Avoid Keywords" description="Words or phrases Claude should NOT use in SEO copy. One per line.">
+                    <div class="max-w-2xl">
+                        <x-admin.textarea name="avoid_keywords" rows="3" :value="$seoSettings['avoid_keywords'] ?? ''"
+                            class="font-mono"
+                            placeholder="Example:&#10;cheap&#10;knockoff&#10;clone" />
+                    </div>
+                </x-admin.card>
+
+                <div class="flex justify-end">
+                    <x-admin.button type="submit" variant="primary">Save Strategy</x-admin.button>
+                </div>
+            </form>
         </div>
-
-        {{-- Target Market --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Target Market</h3>
-            <p class="text-xs text-gray-500 mb-4">Who are your customers? Where are they? Claude will optimize keywords and language for this audience.</p>
-
-            <div class="max-w-2xl">
-                <textarea name="target_market" rows="3" placeholder="Example: Filipino musicians and guitar enthusiasts in the Philippines. Hobbyists and semi-professional players. Age 18-45. English and Taglish speakers."
-                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ $seoSettings['target_market'] ?? '' }}</textarea>
-            </div>
-        </div>
-
-        {{-- Brand Voice --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Brand Voice &amp; Tone</h3>
-            <p class="text-xs text-gray-500 mb-4">How should your SEO copy sound? This shapes the meta descriptions and OG tags Claude writes.</p>
-
-            <div class="max-w-2xl">
-                <textarea name="brand_voice" rows="3" placeholder="Example: Friendly, knowledgeable, enthusiastic about gear. Use simple English. Avoid overly technical jargon. Mention Philippines when relevant."
-                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ $seoSettings['brand_voice'] ?? '' }}</textarea>
-            </div>
-        </div>
-
-        {{-- Priority Keywords --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Priority Keywords</h3>
-            <p class="text-xs text-gray-500 mb-4">Keywords or phrases Claude should try to incorporate when relevant. One per line.</p>
-
-            <div class="max-w-2xl">
-                <textarea name="priority_keywords" rows="4" placeholder="Example:&#10;Philippines&#10;guitar pedals Philippines&#10;buy guitar effects online&#10;free shipping&#10;cash on delivery"
-                    class="w-full rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500">{{ $seoSettings['priority_keywords'] ?? '' }}</textarea>
-            </div>
-        </div>
-
-        {{-- Avoid Keywords --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-sm font-semibold text-gray-700 mb-1 uppercase tracking-wide">Avoid Keywords</h3>
-            <p class="text-xs text-gray-500 mb-4">Words or phrases Claude should NOT use in SEO copy. One per line.</p>
-
-            <div class="max-w-2xl">
-                <textarea name="avoid_keywords" rows="3" placeholder="Example:&#10;cheap&#10;knockoff&#10;clone"
-                    class="w-full rounded-lg border-gray-300 text-sm font-mono focus:border-indigo-500 focus:ring-indigo-500">{{ $seoSettings['avoid_keywords'] ?? '' }}</textarea>
-            </div>
-        </div>
-
-        <div class="flex justify-end">
-            <button type="submit" class="px-6 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-                Save Strategy
-            </button>
-        </div>
-    </form>
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

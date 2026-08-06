@@ -13,7 +13,6 @@ use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ApiSyncLogController;
 use App\Http\Controllers\Admin\AutomationController;
-use App\Http\Controllers\Admin\SeoController;
 use App\Http\Controllers\Admin\EmailTemplateController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Admin\FooterColumnController;
@@ -330,13 +329,6 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
     Route::put('/email-templates/{emailTemplate}', [EmailTemplateController::class, 'update'])->name('email-templates.update');
     Route::post('/email-templates/{emailTemplate}/toggle', [EmailTemplateController::class, 'toggleActive'])->name('email-templates.toggle');
     Route::post('/email-templates/{emailTemplate}/test', [EmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
-
-    // SEO
-    Route::get('/seo', [SeoController::class, 'index'])->name('seo.index');
-    Route::post('/seo/generate', [SeoController::class, 'generateNow'])->name('seo.generate');
-    Route::post('/seo/suggestions/{suggestion}/accept', [SeoController::class, 'accept'])->name('seo.accept');
-    Route::post('/seo/suggestions/{suggestion}/reject', [SeoController::class, 'reject'])->name('seo.reject');
-    Route::post('/seo/suggestions/bulk-accept', [SeoController::class, 'bulkAccept'])->name('seo.bulk-accept');
 
     // SEO Extension
     Route::prefix('extensions/seo')->name('extensions.seo.')->group(function () {

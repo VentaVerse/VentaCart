@@ -1,9 +1,8 @@
 {{--
     Grouped SEO workspace nav — settings-shell's visual pattern (sticky grouped
     sidebar + mobile <select>), scoped locally to the SEO extension instead of
-    App\Support\SettingsNav. Replaces the flat 13-tab strip (partials/tabs.blade.php)
-    on the dashboard only; other SEO pages keep the old tabs until Task 10 migrates
-    them too — both partials coexist until then.
+    App\Support\SettingsNav. Replaces the old flat 13-tab strip (formerly
+    partials/tabs.blade.php, deleted) across every SEO page.
 --}}
 @php
     $seoNavGroups = [
