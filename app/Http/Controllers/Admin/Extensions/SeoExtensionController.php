@@ -7,8 +7,10 @@ use App\Models\Automation;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\NotFoundLog;
 use App\Models\Page;
 use App\Models\Product;
+use App\Models\Redirect;
 use App\Models\SeoSuggestion;
 use App\Models\Setting;
 use App\Services\GoogleSearchConsoleService;
@@ -53,8 +55,15 @@ class SeoExtensionController extends Controller
         // schedule itself is edited in Settings > Automations, this is read-only.
         $seoAutomation = Automation::where('key', 'seo_generate')->first();
 
+        // Traffic stats for the dashboard's stat row.
+        $redirectsLive = Redirect::where('is_active', true)->count();
+        $notFoundThisMonth = NotFoundLog::whereBetween(
+            'last_hit_at', [now()->startOfMonth(), now()->endOfMonth()]
+        )->count();
+
         return view('admin.extensions.seo.dashboard', compact(
-            'healthScores', 'pendingCount', 'recentSuggestions', 'topQueries', 'seoAutomation'
+            'healthScores', 'pendingCount', 'recentSuggestions', 'topQueries',
+            'seoAutomation', 'redirectsLive', 'notFoundThisMonth'
         ));
     }
 

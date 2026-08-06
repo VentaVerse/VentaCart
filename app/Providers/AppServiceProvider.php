@@ -62,19 +62,6 @@ class AppServiceProvider extends ServiceProvider
             $registry = app(AddressProviderRegistry::class);
             $view->with('addressProviders', $registry->toFrontendManifest());
         });
-
-        // Traffic stats for the SEO dashboard's stat row. Kept out of the
-        // controller (SeoExtensionController@dashboard is otherwise untouched
-        // this iteration) and out of the Blade template — composers are this
-        // codebase's existing pattern for view-local read data (see above).
-        View::composer('admin.extensions.seo.dashboard', function ($view) {
-            $view->with([
-                'redirectsLive' => \App\Models\Redirect::where('is_active', true)->count(),
-                'notFoundThisMonth' => \App\Models\NotFoundLog::whereBetween(
-                    'last_hit_at', [now()->startOfMonth(), now()->endOfMonth()]
-                )->count(),
-            ]);
-        });
     }
 
     /**
