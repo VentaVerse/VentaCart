@@ -47,4 +47,29 @@ class PaymentsPageTest extends TestCase
 
         $this->get(route('admin.payment-settings.show', 'nope'))->assertNotFound();
     }
+
+    public function test_availability_tab_shows_rule_sentences_and_form(): void
+    {
+        $this->actingAs(User::factory()->create());
+        PaymentMethodRestriction::create(['payment_method' => 'cod', 'min_total' => 500, 'is_active' => true]);
+
+        $this->get(route('admin.payment-settings.show', ['method' => 'cod', 'tab' => 'availability']))
+            ->assertOk()->assertSee('Minimum order total')->assertSee('min_total', false);
+    }
+
+    public function test_old_restrictions_pages_redirect_into_payments(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->get(route('admin.payment-restrictions.index'))
+            ->assertRedirect(route('admin.payment-settings.index'));
+    }
+
+    public function test_restriction_save_roundtrip_still_works(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->post(route('admin.payment-restrictions.store'), [
+            'payment_method' => 'hitpay', 'min_total' => 100, 'is_active' => 1,
+        ])->assertRedirect(route('admin.payment-settings.show', ['method' => 'hitpay', 'tab' => 'availability']));
+        $this->assertDatabaseHas('payment_method_restrictions', ['payment_method' => 'hitpay']);
+    }
 }

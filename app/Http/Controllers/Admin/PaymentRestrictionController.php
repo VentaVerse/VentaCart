@@ -3,54 +3,28 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Brand;
-use App\Models\Category;
-use App\Models\CustomerGroup;
-use App\Models\GeoZone;
 use App\Models\PaymentMethodRestriction;
 use App\Services\PaymentManager;
 use Illuminate\Http\Request;
 
 class PaymentRestrictionController extends Controller
 {
+    /**
+     * The standalone restrictions index/create/edit pages were absorbed
+     * into the Availability tab of the payment method detail page
+     * (admin-v2 sales-channels plan, Task 5) — their views are gone, so
+     * these GET actions are now pure redirects. Kept as controller methods
+     * (rather than route closures) because production caches routes via
+     * `php artisan route:cache`, which cannot serialize closures.
+     */
     public function index()
     {
-        $families = $this->paymentFamilies();
-
-        $restrictions = PaymentMethodRestriction::whereIn('payment_method', array_keys($families))
-            ->get()
-            ->keyBy('payment_method');
-
-        // Build a restriction (or empty placeholder) for each payment method family
-        $methods = collect($families)->map(function ($label, $key) use ($restrictions) {
-            return [
-                'key' => $key,
-                'label' => $label,
-                'restriction' => $restrictions->get($key),
-            ];
-        })->values();
-
-        return view('admin.payment-restrictions.index', [
-            'methods' => $methods,
-            ...$this->getFormData(),
-        ]);
+        return redirect()->route('admin.payment-settings.index');
     }
 
     public function create()
     {
-        $existing = PaymentMethodRestriction::pluck('payment_method')->all();
-        $availableMethods = array_diff(array_keys($this->paymentFamilies()), $existing);
-
-        if (empty($availableMethods)) {
-            return redirect()->route('admin.payment-restrictions.index')
-                ->with('info', 'All payment methods already have restrictions configured.');
-        }
-
-        return view('admin.payment-restrictions.form', [
-            'restriction' => null,
-            'availableMethods' => $availableMethods,
-            ...$this->getFormData(),
-        ]);
+        return redirect()->route('admin.payment-settings.index');
     }
 
     public function store(Request $request)
@@ -60,17 +34,13 @@ class PaymentRestrictionController extends Controller
 
         PaymentMethodRestriction::create($validated);
 
-        return redirect()->route('admin.payment-restrictions.index', ['tab' => $validated['payment_method']])
+        return redirect()->route('admin.payment-settings.show', ['method' => $validated['payment_method'], 'tab' => 'availability'])
             ->with('success', 'Payment restriction created.');
     }
 
     public function edit(PaymentMethodRestriction $paymentRestriction)
     {
-        return view('admin.payment-restrictions.form', [
-            'restriction' => $paymentRestriction,
-            'availableMethods' => [],
-            ...$this->getFormData(),
-        ]);
+        return redirect()->route('admin.payment-settings.show', ['method' => $paymentRestriction->payment_method, 'tab' => 'availability']);
     }
 
     public function update(Request $request, PaymentMethodRestriction $paymentRestriction)
@@ -80,7 +50,7 @@ class PaymentRestrictionController extends Controller
 
         $paymentRestriction->update($validated);
 
-        return redirect()->route('admin.payment-restrictions.index', ['tab' => $paymentRestriction->payment_method])
+        return redirect()->route('admin.payment-settings.show', ['method' => $paymentRestriction->payment_method, 'tab' => 'availability'])
             ->with('success', 'Payment restriction updated.');
     }
 
@@ -89,7 +59,7 @@ class PaymentRestrictionController extends Controller
         $method = $paymentRestriction->payment_method;
         $paymentRestriction->delete();
 
-        return redirect()->route('admin.payment-restrictions.index', ['tab' => $method])
+        return redirect()->route('admin.payment-settings.show', ['method' => $method, 'tab' => 'availability'])
             ->with('success', 'Payment restriction deleted.');
     }
 
@@ -179,22 +149,5 @@ class PaymentRestrictionController extends Controller
         }
 
         return $families;
-    }
-
-    private function getFormData(): array
-    {
-        return [
-            'brands' => Brand::orderBy('name')->get(),
-            'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
-            'customerGroups' => CustomerGroup::orderBy('name')->get(),
-            'geoZones' => GeoZone::where('is_active', true)->orderBy('sort_order')->get(),
-            'shippingMethods' => [
-                ['key' => 'free_shipping', 'name' => 'Free Shipping'],
-                ['key' => 'weight_based', 'name' => 'Weight-Based'],
-                ['key' => 'flat_rate', 'name' => 'Flat Rate'],
-                ['key' => 'dhl', 'name' => 'DHL Express'],
-            ],
-            'currencies' => \App\Models\Currency::orderByDesc('is_default')->orderBy('code')->get(),
-        ];
     }
 }

@@ -404,8 +404,20 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
     Route::put('bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
     Route::delete('bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
 
-    // Payment Restrictions
-    Route::resource('payment-restrictions', \App\Http\Controllers\Admin\PaymentRestrictionController::class)->except(['show'])->parameters(['payment-restrictions' => 'paymentRestriction']);
+    // Payment Restrictions — the standalone index/create/edit pages have been
+    // absorbed into the payment method detail page's Availability tab
+    // (Task 5 of the admin-v2 sales-channels plan). The GET pages now 302
+    // into the corresponding payments page (see PaymentRestrictionController
+    // index/create/edit — routed via controller methods, not closures,
+    // because `php artisan route:cache` in docker/entrypoint.sh cannot
+    // serialize closure-based routes). The resource POST/PUT/DELETE and
+    // toggle endpoints are unchanged and still power the Availability form.
+    Route::get('payment-restrictions', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'index'])->name('payment-restrictions.index');
+    Route::get('payment-restrictions/create', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'create'])->name('payment-restrictions.create');
+    Route::get('payment-restrictions/{paymentRestriction}/edit', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'edit'])->name('payment-restrictions.edit');
+    Route::post('payment-restrictions', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'store'])->name('payment-restrictions.store');
+    Route::put('payment-restrictions/{paymentRestriction}', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'update'])->name('payment-restrictions.update');
+    Route::delete('payment-restrictions/{paymentRestriction}', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'destroy'])->name('payment-restrictions.destroy');
     Route::post('payment-restrictions/{paymentRestriction}/toggle', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'toggleActive'])->name('payment-restrictions.toggle');
 
     // Shipping Settings (standalone)

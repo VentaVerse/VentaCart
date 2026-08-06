@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
 use App\Models\OrderStatus;
+use App\Models\PaymentMethodRestriction;
 use App\Models\Setting;
+use App\Support\PaymentRestrictionFormData;
 use Illuminate\Support\Facades\Crypt;
 
 class PaymentMethodPageController extends Controller
@@ -74,6 +76,8 @@ class PaymentMethodPageController extends Controller
             ? BankAccount::orderBy('sort_order')->orderBy('bank_name')->get()
             : collect();
 
+        $restriction = PaymentMethodRestriction::where('payment_method', $method)->first();
+
         return view('admin.payment-settings.show', [
             'method' => $method,
             'name' => $name,
@@ -83,6 +87,8 @@ class PaymentMethodPageController extends Controller
             'orderStatuses' => $orderStatuses,
             'maskedKeys' => $maskedKeys,
             'bankAccounts' => $bankAccounts,
+            'restriction' => $restriction,
+            ...PaymentRestrictionFormData::get(),
         ]);
     }
 }

@@ -14,9 +14,7 @@
             </x-admin.tabs.panel>
 
             <x-admin.tabs.panel name="availability">
-                <x-admin.card>
-                    <p class="text-[13px] text-v-secondary">Availability rules — configured in the next task.</p>
-                </x-admin.card>
+                @include('admin.payment-settings.partials.availability')
             </x-admin.tabs.panel>
         </x-admin.tabs>
     </x-admin.page>
