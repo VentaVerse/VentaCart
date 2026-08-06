@@ -152,6 +152,10 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
 
     Route::get('palette/search', [\App\Http\Controllers\Admin\PaletteController::class, 'search'])->name('palette.search');
 
+    if (app()->environment(['local', 'testing'])) {
+        Route::view('ui-kit', 'admin.ui-kit')->name('ui-kit');
+    }
+
     Route::post('products/quick-create', [ProductController::class, 'quickCreate'])->name('products.quick-create');
     Route::resource('products', ProductController::class)->except(['show']);
     Route::resource('categories', CategoryController::class)->except(['show']);
