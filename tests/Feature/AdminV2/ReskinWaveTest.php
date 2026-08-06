@@ -4,16 +4,21 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\AbandonedCartNotification;
 use App\Models\AbandonedCartRule;
+use App\Models\BankAccount;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
+use App\Models\FlatShippingRate;
+use App\Models\FreeShippingRule;
+use App\Models\GeoZone;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
@@ -23,6 +28,7 @@ use App\Models\Review;
 use App\Models\Store;
 use App\Models\Tag;
 use App\Models\User;
+use App\Models\WeightBasedMethod;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -594,5 +600,147 @@ class ReskinWaveTest extends TestCase
         // Addresses omitted entirely from the payload are all deleted (syncAddresses
         // drops anything not present in the submitted array).
         $this->assertEquals(0, $customer->addresses()->count());
+    }
+
+    public function test_marketing_and_child_forms_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $geoZone = GeoZone::create(['name' => 'Metro Manila', 'is_active' => true]);
+        $brand = Brand::create(['store_id' => 1, 'name' => 'Boss', 'slug' => 'boss']);
+        $category = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);
+
+        $coupon = Coupon::create([
+            'code' => 'SUMMER10',
+            'name' => 'Summer 10% Off',
+            'type' => 'percent',
+            'discount_value' => 10,
+            'customer_eligibility' => 'all',
+            'is_active' => true,
+        ]);
+
+        $flatRate = FlatShippingRate::create([
+            'name' => 'Standard Flat Rate',
+            'cost' => 150,
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        $weightMethod = WeightBasedMethod::create([
+            'name' => 'Standard Shipping',
+            'admin_name' => 'Standard Shipping',
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+        $weightMethod->rates()->create(['weight_from' => 0, 'weight_to' => 5, 'cost' => 100]);
+
+        $freeShippingRule = FreeShippingRule::create([
+            'name' => 'Free Shipping over 5000',
+            'min_order_total' => 5000,
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
+
+        $bankAccount = BankAccount::create([
+            'bank_name' => 'BDO',
+            'account_name' => 'Venta Store',
+            'account_number' => '1234567890',
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        $routes = [
+            route('admin.coupons.index'),
+            route('admin.coupons.index', ['search' => 'SUMMER', 'type' => 'percent', 'status' => 'active']),
+            route('admin.coupons.create'),
+            route('admin.coupons.edit', $coupon),
+            route('admin.flat-rates.create'),
+            route('admin.flat-rates.edit', $flatRate),
+            route('admin.weight-based-methods.create'),
+            route('admin.weight-based-methods.edit', $weightMethod),
+            route('admin.free-shipping-rules.index'),
+            route('admin.free-shipping-rules.create'),
+            route('admin.free-shipping-rules.edit', $freeShippingRule),
+            route('admin.bank-accounts.edit', $bankAccount),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+    }
+
+    public function test_coupon_update_round_trip_syncs_restrictions_and_toggles(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $product = Product::create(['store_id' => 1, 'name' => 'Distortion Pedal', 'slug' => 'distortion-pedal', 'price' => 1000]);
+
+        $coupon = Coupon::create([
+            'code' => 'SUMMER10',
+            'name' => 'Summer 10% Off',
+            'type' => 'percent',
+            'discount_value' => 10,
+            'customer_eligibility' => 'all',
+            'is_active' => true,
+            'free_shipping' => false,
+        ]);
+
+        $this->put(route('admin.coupons.update', $coupon), [
+            'code' => 'summer20',
+            'name' => 'Summer 20% Off',
+            'type' => 'percent',
+            'discount_value' => '20',
+            'min_order_total' => '1000',
+            'max_discount' => '500',
+            'customer_eligibility' => 'logged_in',
+            'customer_group_id' => $group->id,
+            'usage_limit' => '100',
+            'usage_per_customer' => '1',
+            'date_start' => '2026-01-01',
+            'date_end' => '2026-12-31',
+            'is_active' => '1',
+            'free_shipping' => '1',
+            'restriction_products' => json_encode([$product->id]),
+        ])->assertRedirect(route('admin.coupons.index'));
+
+        // Code is uppercased by the controller regardless of casing submitted.
+        $this->assertDatabaseHas('coupons', [
+            'id' => $coupon->id,
+            'code' => 'SUMMER20',
+            'name' => 'Summer 20% Off',
+            'discount_value' => 20,
+            'customer_eligibility' => 'logged_in',
+            'customer_group_id' => $group->id,
+            'is_active' => true,
+            'free_shipping' => true,
+        ]);
+        $this->assertDatabaseHas('coupon_restrictions', [
+            'coupon_id' => $coupon->id,
+            'restriction_type' => 'product',
+            'restriction_id' => $product->id,
+        ]);
+
+        // Unchecked x-admin.toggle omits the checkbox but keeps the hidden 0.
+        $this->put(route('admin.coupons.update', $coupon), [
+            'code' => 'summer20',
+            'name' => 'Summer 20% Off',
+            'type' => 'percent',
+            'discount_value' => '20',
+            'customer_eligibility' => 'all',
+            'is_active' => '0',
+            'free_shipping' => '0',
+        ])->assertRedirect(route('admin.coupons.index'));
+
+        $this->assertDatabaseHas('coupons', [
+            'id' => $coupon->id,
+            'is_active' => false,
+            'free_shipping' => false,
+        ]);
+
+        // Restrictions omitted from the payload are all cleared (syncRestrictions
+        // deletes existing rows before re-creating from the submitted fields).
+        $this->assertEquals(0, $coupon->restrictions()->count());
     }
 }

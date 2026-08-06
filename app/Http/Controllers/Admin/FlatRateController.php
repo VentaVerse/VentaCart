@@ -37,7 +37,7 @@ class FlatRateController extends Controller
 
         FlatShippingRate::create($validated);
 
-        return redirect()->route('admin.shipping-settings.index', ['tab' => 'flat-rate'])
+        return redirect(route('admin.shipping-settings.index') . '#panel-flat-rate')
             ->with('success', 'Flat rate created.');
     }
 
@@ -68,7 +68,7 @@ class FlatRateController extends Controller
 
         $flatRate->update($validated);
 
-        return redirect()->route('admin.shipping-settings.index', ['tab' => 'flat-rate'])
+        return redirect(route('admin.shipping-settings.index') . '#panel-flat-rate')
             ->with('success', 'Flat rate updated.');
     }
 
@@ -76,7 +76,7 @@ class FlatRateController extends Controller
     {
         $flatRate->delete();
 
-        return redirect()->route('admin.shipping-settings.index', ['tab' => 'flat-rate'])
+        return redirect(route('admin.shipping-settings.index') . '#panel-flat-rate')
             ->with('success', 'Flat rate deleted.');
     }
 }
