@@ -1,0 +1,45 @@
+@props(['active', 'title'])
+@php $groups = \App\Support\SettingsNav::groups(Auth::user()); @endphp
+<x-admin.shell :title="$title . ' — Settings'">
+    <x-admin.page :title="$title" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+        <div class="flex gap-8">
+            {{-- Sub-sidebar (desktop) --}}
+            <nav class="hidden lg:block w-[13.5rem] shrink-0">
+                <div class="sticky top-16 space-y-4">
+                    <a href="{{ route('admin.settings.index') }}" class="flex items-center gap-1.5 text-xs font-medium text-v-secondary hover:text-v-text">
+                        <x-admin.icon name="chevron-right" class="w-3 h-3 rotate-180" /> All Settings
+                    </a>
+                    @foreach ($groups as $group)
+                        <div>
+                            <p class="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ $group['label'] }}</p>
+                            <div class="space-y-0.5">
+                                @foreach ($group['items'] as $item)
+                                    <a href="{{ \App\Support\SettingsNav::url($item) }}"
+                                       class="block rounded-v-md px-2 py-1 text-[13px] transition-colors
+                                           {{ $item['key'] === $active ? 'bg-v-accent-weak font-semibold text-v-accent' : 'text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
+                                        {{ $item['label'] }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </nav>
+
+            {{-- Content (mobile select + slot) --}}
+            <div class="min-w-0 max-w-2xl flex-1">
+                <select x-data @change="window.location.assign($event.target.value)"
+                        class="v-control lg:hidden mb-5 w-full h-[var(--control-h)] rounded-v-md border border-v-border bg-v-surface px-2.5 text-[13px] text-v-text" aria-label="Settings section">
+                    @foreach ($groups as $group)
+                        <optgroup label="{{ $group['label'] }}">
+                            @foreach ($group['items'] as $item)
+                                <option value="{{ \App\Support\SettingsNav::url($item) }}" @selected($item['key'] === $active)>{{ $item['label'] }}</option>
+                            @endforeach
+                        </optgroup>
+                    @endforeach
+                </select>
+                {{ $slot }}
+            </div>
+        </div>
+    </x-admin.page>
+</x-admin.shell>
