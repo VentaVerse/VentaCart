@@ -14,8 +14,25 @@ document.addEventListener('submit', (e) => {
 
 // Rows with data-href navigate on click, unless the click hit an
 // interactive element inside the row (link, button, input).
+// Supports modifier clicks (ctrl/cmd) to open in new tab.
 document.addEventListener('click', (e) => {
     const row = e.target.closest('tr[data-href]');
     if (!row || e.target.closest('a, button, input, select, label')) return;
-    window.location.assign(row.dataset.href);
+    if (e.ctrlKey || e.metaKey) {
+        window.open(row.dataset.href, '_blank');
+    } else {
+        window.location.assign(row.dataset.href);
+    }
+});
+
+// Keyboard navigation: Enter on focused row with data-href navigates it.
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const row = e.target.closest('tr[data-href]');
+    if (!row) return;
+    if (e.ctrlKey || e.metaKey) {
+        window.open(row.dataset.href, '_blank');
+    } else {
+        window.location.assign(row.dataset.href);
+    }
 });
