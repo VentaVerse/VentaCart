@@ -1,0 +1,16 @@
+.v-admin {
+    background: var(--canvas);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+.v-admin ::selection { background: var(--accent-weak); }
+.v-admin .v-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.v-admin :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+    border-radius: var(--radius-sm);
+}
+[x-cloak] { display: none !important; }

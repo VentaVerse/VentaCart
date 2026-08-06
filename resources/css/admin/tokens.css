@@ -1,0 +1,88 @@
+/*
+ * Admin v2 design tokens — ported from VentaSync v2 (WCAG-audited there
+ * against canvas/surface/sunken/hover in both themes; worst case is
+ * surface-hover). Light and dark are peers: every token defined twice.
+ * Scoped to .v-admin (the admin shell <body> class) so nothing leaks
+ * into storefront pages sharing this Vite bundle. New colors must pass
+ * 4.5:1 on all four backgrounds in both themes before entering this file.
+ */
+
+@font-face {
+    font-family: "Geist";
+    src: url("../../fonts/Geist.woff2") format("woff2-variations");
+    font-weight: 100 900;
+    font-display: swap;
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    src: url("../../fonts/JetBrainsMono.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+}
+
+.v-admin {
+    --canvas:          #FBFBFA;
+    --surface:         #FFFFFF;
+    --surface-sunken:  #F5F5F3;
+    --surface-hover:   #F2F2EF;
+    --border:          #E7E5E1;
+    --border-strong:   #D3D0CB;
+    --text:            #1A1917;
+    --text-secondary:  #6B6862;
+    --text-muted:      #726D65;
+
+    --accent:          #0A7A54;
+    --accent-hover:    #096647;
+    --accent-weak:     rgba(10,122,84,.05);
+    --accent-text:     #FFFFFF;
+
+    --danger:          #B4342A;
+    --warning:         #926500;
+    --info:            #2A5FA8;
+
+    --font-ui:   "Geist", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 10px;
+
+    --shadow-menu:  0 4px 12px rgba(0,0,0,.10), 0 0 0 1px var(--border);
+    --shadow-modal: 0 16px 48px rgba(0,0,0,.18), 0 0 0 1px var(--border);
+
+    --motion-fast: 120ms cubic-bezier(.2,0,.38,.9);
+    --motion-base: 200ms cubic-bezier(.2,0,.38,.9);
+
+    --row-h: 32px;
+    --control-h: 32px;
+    --control-h-sm: 28px;
+    --sidebar-w: 216px;
+}
+
+:root[data-theme="dark"] .v-admin {
+    --canvas:          #0B0B0C;
+    --surface:         #131315;
+    --surface-sunken:  #0F0F11;
+    --surface-hover:   #1A1A1D;
+    --border:          #232326;
+    --border-strong:   #34343A;
+    --text:            #ECECEE;
+    --text-secondary:  #9A9AA2;
+    --text-muted:      #82828B;
+
+    --accent:          #3FBF8F;
+    --accent-hover:    #55CB9F;
+    --accent-weak:     rgba(63,191,143,.12);
+    --accent-text:     #06231A;
+
+    --danger:          #E5675C;
+    --warning:         #E0A73B;
+    --info:            #6C9BE0;
+
+    --shadow-menu:  0 4px 12px rgba(0,0,0,.40), 0 0 0 1px var(--border);
+    --shadow-modal: 0 16px 48px rgba(0,0,0,.55), 0 0 0 1px var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .v-admin { --motion-fast: 1ms; --motion-base: 1ms; }
+}
