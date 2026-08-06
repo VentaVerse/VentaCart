@@ -1,5 +1,17 @@
 // Admin v2 behavior. Registered on alpine:init so this file can load
 // before app.js (which calls Alpine.start()).
+
+// Shared with the storefront helper of the same name (resources/themes/*/layouts/store.blade.php)
+// and the legacy layouts/admin.blade.php: turns a stored relative path into a
+// public /storage/... URL. Needed by any v-admin page that embeds the image
+// picker/manager partials (single_image_picker.blade.php, media/index.blade.php),
+// which call storageUrl() directly — those partials assumed the old admin
+// layout's inline <script> defined it, which the v-admin shell never did.
+window.storageUrl = function (path) {
+    if (!path) return '';
+    return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
+};
+
 document.addEventListener('alpine:init', () => {
     window.Alpine.store('toasts', {
         items: [],

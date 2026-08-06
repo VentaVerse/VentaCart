@@ -1,64 +1,72 @@
-<x-admin-layout>
-    <x-slot name="header">Tags</x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.tags.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add Tag
-        </a>
-    </x-slot>
+<x-admin.shell title="Tags">
+    <x-admin.page title="Tags" :breadcrumb="[['label' => 'Catalog']]">
+        <x-slot:actions>
+            <x-admin.button variant="primary" href="{{ route('admin.tags.create') }}">
+                <x-admin.icon name="plus" class="w-4 h-4" /> Add Tag
+            </x-admin.button>
+        </x-slot:actions>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" action="{{ route('admin.tags.index') }}" class="flex gap-4">
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Search tags..."
-                class="rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-            <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">Search</button>
-            @if (request('search'))
-                <a href="{{ route('admin.tags.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">Clear</a>
-            @endif
-        </form>
-    </div>
+        <div class="space-y-5">
+            <x-admin.card>
+                <form method="GET" action="{{ route('admin.tags.index') }}" class="flex flex-wrap items-end gap-3">
+                    <div class="min-w-[220px]">
+                        <x-admin.field name="search" label="Search">
+                            <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search tags..." />
+                        </x-admin.field>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <x-admin.button type="submit" variant="primary">Search</x-admin.button>
+                        @if (request('search'))
+                            <a href="{{ route('admin.tags.index') }}" class="text-[13px] text-v-muted underline hover:text-v-text">Clear</a>
+                        @endif
+                    </div>
+                </form>
+            </x-admin.card>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tag</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Products</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Blog Posts</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            <x-admin.table>
+                <x-slot:head>
+                    <x-admin.table.th>Tag</x-admin.table.th>
+                    <x-admin.table.th>Slug</x-admin.table.th>
+                    <x-admin.table.th align="right">Products</x-admin.table.th>
+                    <x-admin.table.th align="right">Blog Posts</x-admin.table.th>
+                    <x-admin.table.th align="right">Actions</x-admin.table.th>
+                </x-slot:head>
                 @forelse ($tags as $tag)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ $tag->name }}</td>
-                        <td class="px-6 py-3 text-sm text-gray-500">{{ $tag->slug }}</td>
-                        <td class="px-6 py-3 text-sm text-gray-500">{{ $tag->products_count }}</td>
-                        <td class="px-6 py-3 text-sm text-gray-500">{{ $tag->blog_posts_count }}</td>
-                        <td class="px-6 py-3 text-right text-sm">
-                            <a href="{{ route('admin.tags.edit', $tag) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                            <form method="POST" action="{{ route('admin.tags.destroy', $tag) }}" class="inline" onsubmit="return confirm('Delete this tag?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
+                    <x-admin.table.row href="{{ route('admin.tags.edit', $tag) }}">
+                        <x-admin.table.cell>
+                            <span class="text-[13px] font-medium text-v-text">{{ $tag->name }}</span>
+                        </x-admin.table.cell>
+                        <x-admin.table.cell mono>{{ $tag->slug }}</x-admin.table.cell>
+                        <x-admin.table.cell align="right" mono>{{ $tag->products_count }}</x-admin.table.cell>
+                        <x-admin.table.cell align="right" mono>{{ $tag->blog_posts_count }}</x-admin.table.cell>
+                        <x-admin.table.cell align="right">
+                            <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('admin.tags.edit', $tag) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
+                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-tag-{{ $tag->id }}')">Delete</button>
+                            </div>
+                        </x-admin.table.cell>
+                    </x-admin.table.row>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                            No tags yet. <a href="{{ route('admin.tags.create') }}" class="text-indigo-600 hover:underline">Create one</a>.
+                        <td colspan="5" class="px-4 py-2">
+                            <x-admin.empty-state icon="tags" title="No tags yet" :description="request('search') ? 'Try adjusting your search.' : null">
+                                <a href="{{ route('admin.tags.create') }}" class="text-[13px] text-v-accent hover:underline">Create one</a>
+                            </x-admin.empty-state>
                         </td>
                     </tr>
                 @endforelse
-            </tbody>
-        </table>
+                @if ($tags->hasPages())
+                    <x-slot:footer>
+                        {{ $tags->links() }}
+                    </x-slot:footer>
+                @endif
+            </x-admin.table>
+        </div>
 
-        @if ($tags->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200">
-                {{ $tags->links() }}
-            </div>
-        @endif
-    </div>
-</x-admin-layout>
+        @foreach ($tags as $tag)
+            <x-admin.confirm-dialog name="delete-tag-{{ $tag->id }}" title="Delete {{ $tag->name }}?"
+                message="This removes the tag from all products and blog posts. This cannot be undone."
+                confirm="Delete" :action="route('admin.tags.destroy', $tag)" method="DELETE" />
+        @endforeach
+    </x-admin.page>
+</x-admin.shell>

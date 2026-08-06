@@ -17,6 +17,7 @@ use App\Models\OrderStatus;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Store;
+use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -346,6 +347,75 @@ class ReskinWaveTest extends TestCase
             'group' => 'abandoned_cart',
             'key' => 'enabled',
             'value' => '0',
+        ]);
+    }
+
+    public function test_catalog_pages_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $parentCategory = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);
+        $childCategory = Category::create(['store_id' => 1, 'parent_id' => $parentCategory->id, 'name' => 'Distortion', 'slug' => 'distortion']);
+
+        $brand = Brand::create(['store_id' => 1, 'name' => 'Boss', 'slug' => 'boss']);
+
+        $tag = Tag::create(['name' => 'Vintage', 'slug' => 'vintage']);
+
+        $routes = [
+            route('admin.categories.index'),
+            route('admin.categories.create'),
+            route('admin.categories.edit', $parentCategory),
+            route('admin.categories.edit', $childCategory),
+            route('admin.brands.index'),
+            route('admin.brands.create'),
+            route('admin.brands.edit', $brand),
+            route('admin.media.index'),
+            route('admin.tags.index'),
+            route('admin.tags.create'),
+            route('admin.tags.edit', $tag),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+    }
+
+    public function test_category_update_round_trip_reparents_and_updates_fields(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $parent = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);
+        $category = Category::create(['store_id' => 1, 'name' => 'Cables', 'slug' => 'cables', 'is_active' => true]);
+
+        $this->put(route('admin.categories.update', $category), [
+            'store_id' => 1,
+            'parent_id' => $parent->id,
+            'name' => 'Instrument Cables',
+            'description' => 'Guitar and patch cables.',
+            'sort_order' => 5,
+            'is_active' => '1',
+        ])->assertRedirect(route('admin.categories.index'));
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'parent_id' => $parent->id,
+            'name' => 'Instrument Cables',
+            'sort_order' => 5,
+            'is_active' => true,
+        ]);
+
+        // Unchecked x-admin.toggle omits the checkbox but keeps the hidden 0.
+        $this->put(route('admin.categories.update', $category), [
+            'store_id' => 1,
+            'parent_id' => $parent->id,
+            'name' => 'Instrument Cables',
+            'sort_order' => 5,
+            'is_active' => '0',
+        ])->assertRedirect(route('admin.categories.index'));
+
+        $this->assertDatabaseHas('categories', [
+            'id' => $category->id,
+            'is_active' => false,
         ]);
     }
 }
