@@ -1,353 +1,297 @@
 @php
     $currency = $defaultCurrency->symbol ?? '₱';
-    $statusColors = [
-        'Pending' => 'bg-amber-100 text-amber-800 ring-amber-300',
-        'Unpaid' => 'bg-amber-100 text-amber-800 ring-amber-300',
-        'Processing' => 'bg-blue-100 text-blue-800 ring-blue-300',
-        'Payment Received' => 'bg-teal-100 text-teal-800 ring-teal-300',
-        'Shipped' => 'bg-indigo-100 text-indigo-800 ring-indigo-300',
-        'Order Being Shipped' => 'bg-indigo-100 text-indigo-800 ring-indigo-300',
-        'Delivered' => 'bg-emerald-100 text-emerald-800 ring-emerald-300',
-        'Complete' => 'bg-emerald-100 text-emerald-800 ring-emerald-300',
-        'Canceled' => 'bg-red-100 text-red-800 ring-red-300',
-        'Refunded' => 'bg-gray-200 text-gray-700 ring-gray-300',
-        'Failed' => 'bg-red-100 text-red-800 ring-red-300',
-        'Expired' => 'bg-gray-200 text-gray-600 ring-gray-300',
+    $statusTones = [
+        'Pending' => 'warning', 'Unpaid' => 'warning', 'Processing' => 'info',
+        'Payment Received' => 'info', 'Shipped' => 'info', 'Order Being Shipped' => 'info',
+        'Delivered' => 'success', 'Complete' => 'success',
+        'Canceled' => 'danger', 'Failed' => 'danger',
+        'Refunded' => 'neutral', 'Expired' => 'neutral',
     ];
-    $statusClass = $statusColors[$order->status?->name] ?? 'bg-gray-100 text-gray-700 ring-gray-300';
+    $statusTone = $statusTones[$order->status?->name] ?? 'neutral';
     $shippingCourierLabel = $order->courier_label;
 @endphp
 
-<x-admin-layout>
-    <x-slot name="header">
-        <span class="text-gray-400 font-normal">#{{ $order->id }}</span>
-        {{ $order->first_name }} {{ $order->last_name }}
-    </x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.orders.edit', $order) }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors mr-2">
-            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-            Edit
-        </a>
-        <a href="{{ route('admin.orders.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-            Back to Orders
-        </a>
-    </x-slot>
+<x-admin.shell title="Order #{{ $order->id }}">
+    <x-admin.page title="{{ $order->first_name }} {{ $order->last_name }}"
+        :breadcrumb="[['label' => 'Orders', 'url' => route('admin.orders.index')], ['label' => '#'.$order->id]]">
+        <x-slot:actions>
+            <x-admin.button variant="secondary" href="{{ route('admin.orders.edit', $order) }}">Edit</x-admin.button>
+            <x-admin.button variant="ghost" href="{{ route('admin.orders.index') }}">Back to Orders</x-admin.button>
+        </x-slot:actions>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 
-        {{-- LEFT COLUMN --}}
-        <div class="lg:col-span-2 space-y-6">
+            {{-- LEFT COLUMN --}}
+            <div class="space-y-6 lg:col-span-2">
 
-            {{-- 1. ORDER OVERVIEW --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-5 flex flex-wrap items-center justify-between gap-4">
-                    <div class="flex items-center gap-3">
-                        <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide ring-1 ring-inset {{ $statusClass }}">
-                            {{ $order->status?->name ?? 'No Status' }}
-                        </span>
-                        <span class="text-2xl font-bold text-gray-900">{{ $currency }}{{ number_format($order->total, 2) }}</span>
-                    </div>
-                </div>
-                <div class="border-t border-gray-100 px-6 py-3 flex flex-wrap gap-x-8 gap-y-2 text-sm text-gray-600 bg-gray-50/50">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <span>{{ $order->created_at->format('M d, Y · g:i A') }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                        <span>{{ $order->payment_method_label }}</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                        <span>Shipping @if ($shippingCourierLabel)<span class="text-gray-500">({{ $shippingCourierLabel }})</span>@endif</span>
-                    </div>
-                    @if ($order->payment_reference)
-                        <div class="flex items-center gap-2">
-                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
-                            <span class="font-mono text-xs">{{ $order->payment_reference }}</span>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- 2. CUSTOMER --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Customer</h3>
-                    @if ($order->customer)
-                        <a href="{{ route('admin.customers.edit', $order->customer) }}" class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
-                            View Profile
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                        </a>
-                    @endif
-                </div>
-                <div class="px-6 py-4 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm">
-                        {{ strtoupper(substr($order->first_name, 0, 1) . substr($order->last_name, 0, 1)) }}
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <p class="text-sm font-semibold text-gray-900">{{ $order->first_name }} {{ $order->last_name }}</p>
-                            @if ($order->customer?->customerGroup)
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-600">{{ $order->customer->customerGroup->name }}</span>
-                            @endif
-                        </div>
-                        <a href="mailto:{{ $order->email }}" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline">{{ $order->email }}</a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 3. ADDRESSES --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Addresses</h3>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                    {{-- Shipping --}}
-                    <div class="px-6 py-4">
-                        <div class="flex items-center gap-2 mb-3">
-                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
-                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Ship To</h4>
-                        </div>
-                        <div class="text-sm space-y-0.5">
-                            <p class="font-medium text-gray-900">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
-                            <p class="text-gray-600">{{ $order->shipping_address_1 }}</p>
-                            @if ($order->shipping_barangay) <p class="text-gray-600">{{ $order->shipping_barangay }}</p> @endif
-                            @if ($order->shipping_district) <p class="text-gray-600">{{ $order->shipping_district }}</p> @endif
-                            <p class="text-gray-600">{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif {{ $order->shipping_postcode }}</p>
-                            @if ($order->shipping_country_name ?? $order->shippingCountry?->name) <p class="text-gray-400 text-xs">{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p> @endif
-                            @if ($order->shipping_phone || $order->phone)
-                                <p class="text-gray-500 mt-1.5">{{ $order->shipping_phone ?: $order->phone }}</p>
-                            @endif
+                {{-- 1. ORDER OVERVIEW --}}
+                <x-admin.card>
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <x-admin.badge :tone="$statusTone">{{ $order->status?->name ?? 'No Status' }}</x-admin.badge>
+                            <span class="v-num text-2xl font-semibold text-v-text">{{ $currency }}{{ number_format($order->total, 2) }}</span>
                         </div>
                     </div>
-
-                    {{-- Billing --}}
-                    <div class="px-6 py-4">
-                        <div class="flex items-center gap-2 mb-3">
-                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>
-                            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Bill To</h4>
+                    <div class="mt-4 flex flex-wrap gap-x-8 gap-y-3 border-t border-v-border pt-4 text-[13px]">
+                        <div>
+                            <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Placed</p>
+                            <p class="mt-0.5 text-v-secondary">{{ $order->created_at->format('M d, Y · g:i A') }}</p>
                         </div>
-                        @if ($order->billing_first_name)
-                            <div class="text-sm space-y-0.5">
-                                <p class="font-medium text-gray-900">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
-                                <p class="text-gray-600">{{ $order->billing_address_1 }}</p>
-                                @if ($order->billing_barangay) <p class="text-gray-600">{{ $order->billing_barangay }}</p> @endif
-                                @if ($order->billing_district) <p class="text-gray-600">{{ $order->billing_district }}</p> @endif
-                                <p class="text-gray-600">{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif {{ $order->billing_postcode }}</p>
-                                @if ($order->billing_country_name ?? $order->billingCountry?->name) <p class="text-gray-400 text-xs">{{ $order->billing_country_name ?? $order->billingCountry?->name }}</p> @endif
-                                @if ($order->billing_phone)
-                                    <p class="text-gray-500 mt-1.5">{{ $order->billing_phone }}</p>
-                                @endif
+                        <div>
+                            <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Payment Method</p>
+                            <p class="mt-0.5 text-v-secondary">{{ $order->payment_method_label }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Shipping</p>
+                            <p class="mt-0.5 text-v-secondary">Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</p>
+                        </div>
+                        @if ($order->payment_reference)
+                            <div>
+                                <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Payment Reference</p>
+                                <p class="v-num mt-0.5 text-v-secondary">{{ $order->payment_reference }}</p>
                             </div>
-                        @else
-                            <p class="text-sm text-gray-400 italic">Same as shipping</p>
                         @endif
                     </div>
-                </div>
-            </div>
+                </x-admin.card>
 
-            {{-- 4. PRODUCTS --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Products</h3>
-                </div>
-                <table class="min-w-full">
-                    <thead>
-                        <tr class="border-b border-gray-100 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
-                            <th class="px-6 py-3 text-left" colspan="2">Item</th>
-                            <th class="px-4 py-3 text-right w-24">Price</th>
-                            <th class="px-4 py-3 text-center w-16">Qty</th>
-                            <th class="px-6 py-3 text-right w-28">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        @foreach ($order->products as $item)
-                            <tr class="hover:bg-gray-50/50">
-                                <td class="pl-6 py-3 w-14">
-                                    @php($itemImage = $item->image ?? $item->product?->image)
-                                    @if ($itemImage)
-                                        <img src="{{ storage_url($itemImage) }}" alt="{{ $item->name }}" class="w-10 h-10 rounded object-cover border border-gray-200">
-                                    @else
-                                        <div class="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                        </div>
-                                    @endif
-                                </td>
-                                <td class="px-3 py-3">
-                                    <p class="text-sm font-medium text-gray-900">{{ $item->name }}</p>
-                                    <div class="flex items-center gap-2 mt-0.5">
-                                        @if ($item->variant_label)
-                                            <span class="text-[11px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-medium">{{ $item->variant_label }}</span>
-                                        @endif
-                                        @if ($item->sku)
-                                            <span class="text-[11px] text-gray-400">{{ $item->sku }}</span>
-                                        @endif
-                                        @if ($item->is_custom)
-                                            <span class="text-[11px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-medium">Custom</span>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ $currency }}{{ number_format($item->price, 2) }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-600 text-center">{{ $item->quantity }}</td>
-                                <td class="px-6 py-3 text-sm font-semibold text-gray-900 text-right">{{ $currency }}{{ number_format($item->price * $item->quantity, 2) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                <div class="border-t border-gray-200 bg-gray-50/70 px-6 py-3">
-                    <div class="flex justify-end">
-                        <div class="w-full sm:max-w-md space-y-1.5">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-500">Subtotal</span>
-                                <span class="text-gray-700">{{ $currency }}{{ number_format($order->subtotal, 2) }}</span>
+                {{-- 2. CUSTOMER --}}
+                <x-admin.card title="Customer">
+                    <x-slot:headerActions>
+                        @if ($order->customer)
+                            <a href="{{ route('admin.customers.edit', $order->customer) }}" class="text-[13px] font-medium text-v-accent hover:opacity-80">View Profile →</a>
+                        @endif
+                    </x-slot:headerActions>
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-v-accent-weak text-sm font-bold text-v-accent">
+                            {{ strtoupper(substr($order->first_name, 0, 1) . substr($order->last_name, 0, 1)) }}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <p class="text-[13px] font-semibold text-v-text">{{ $order->first_name }} {{ $order->last_name }}</p>
+                                @if ($order->customer?->customerGroup)
+                                    <x-admin.badge tone="neutral">{{ $order->customer->customerGroup->name }}</x-admin.badge>
+                                @endif
                             </div>
-                            <div class="flex justify-between items-start text-sm gap-3">
-                                <span class="text-gray-500 break-words">Shipping @if ($shippingCourierLabel)<span class="text-gray-400">({{ $shippingCourierLabel }})</span>@endif</span>
-                                <span class="text-gray-700 whitespace-nowrap">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
-                            </div>
-                            @if ($order->coupon_code)
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-500">Coupon ({{ $order->coupon_code }})</span>
-                                <span class="text-emerald-600">-{{ $currency }}{{ number_format($order->coupon_discount, 2) }}</span>
-                            </div>
-                            @endif
-                            <div class="flex justify-between text-sm font-bold pt-2 border-t border-gray-200">
-                                <span class="text-gray-800">Total</span>
-                                <span class="text-gray-900 text-base">{{ $currency }}{{ number_format($order->total, 2) }}</span>
-                            </div>
+                            <a href="mailto:{{ $order->email }}" class="text-[13px] text-v-accent hover:opacity-80">{{ $order->email }}</a>
                         </div>
                     </div>
-                </div>
-                @if ($order->comment)
-                    <div class="px-6 py-3 bg-amber-50 border-t border-amber-100 text-sm">
-                        <span class="font-medium text-amber-800">Customer Note:</span>
-                        <span class="text-amber-700">{{ $order->comment }}</span>
-                    </div>
-                @endif
-            </div>
+                </x-admin.card>
 
-            {{-- 5. SHIPPING & TRACKING --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Shipping & Tracking</h3>
-                </div>
-                <div class="p-6">
+                {{-- 3. ADDRESSES --}}
+                <x-admin.card title="Addresses">
+                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        {{-- Shipping --}}
+                        <div>
+                            <h4 class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">Ship To</h4>
+                            <div class="space-y-0.5 text-[13px]">
+                                <p class="font-medium text-v-text">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
+                                <p class="text-v-secondary">{{ $order->shipping_address_1 }}</p>
+                                @if ($order->shipping_barangay) <p class="text-v-secondary">{{ $order->shipping_barangay }}</p> @endif
+                                @if ($order->shipping_district) <p class="text-v-secondary">{{ $order->shipping_district }}</p> @endif
+                                <p class="text-v-secondary">{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif {{ $order->shipping_postcode }}</p>
+                                @if ($order->shipping_country_name ?? $order->shippingCountry?->name) <p class="text-xs text-v-muted">{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p> @endif
+                                @if ($order->shipping_phone || $order->phone)
+                                    <p class="mt-1.5 text-v-muted">{{ $order->shipping_phone ?: $order->phone }}</p>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Billing --}}
+                        <div>
+                            <h4 class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">Bill To</h4>
+                            @if ($order->billing_first_name)
+                                <div class="space-y-0.5 text-[13px]">
+                                    <p class="font-medium text-v-text">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
+                                    <p class="text-v-secondary">{{ $order->billing_address_1 }}</p>
+                                    @if ($order->billing_barangay) <p class="text-v-secondary">{{ $order->billing_barangay }}</p> @endif
+                                    @if ($order->billing_district) <p class="text-v-secondary">{{ $order->billing_district }}</p> @endif
+                                    <p class="text-v-secondary">{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif {{ $order->billing_postcode }}</p>
+                                    @if ($order->billing_country_name ?? $order->billingCountry?->name) <p class="text-xs text-v-muted">{{ $order->billing_country_name ?? $order->billingCountry?->name }}</p> @endif
+                                    @if ($order->billing_phone)
+                                        <p class="mt-1.5 text-v-muted">{{ $order->billing_phone }}</p>
+                                    @endif
+                                </div>
+                            @else
+                                <p class="text-[13px] italic text-v-muted">Same as shipping</p>
+                            @endif
+                        </div>
+                    </div>
+                </x-admin.card>
+
+                {{-- 4. PRODUCTS --}}
+                <x-admin.card title="Products">
+                    <x-admin.table>
+                        <x-slot:head>
+                            <x-admin.table.th>Item</x-admin.table.th>
+                            <x-admin.table.th align="right">Price</x-admin.table.th>
+                            <x-admin.table.th align="right">Qty</x-admin.table.th>
+                            <x-admin.table.th align="right">Total</x-admin.table.th>
+                        </x-slot:head>
+                        @foreach ($order->products as $item)
+                            <x-admin.table.row>
+                                <x-admin.table.cell>
+                                    <div class="flex items-center gap-3">
+                                        @php($itemImage = $item->image ?? $item->product?->image)
+                                        @if ($itemImage)
+                                            <img src="{{ storage_url($itemImage) }}" alt="{{ $item->name }}" class="h-10 w-10 shrink-0 rounded-v-md border border-v-border object-cover">
+                                        @else
+                                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-v-md border border-v-border bg-v-sunken">
+                                                <x-admin.icon name="products" class="h-5 w-5 text-v-muted" />
+                                            </div>
+                                        @endif
+                                        <div class="min-w-0">
+                                            <p class="font-medium text-v-text">{{ $item->name }}</p>
+                                            <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                                @if ($item->variant_label)
+                                                    <span class="rounded px-1.5 py-0.5 text-[11px] font-medium text-v-accent bg-v-accent-weak">{{ $item->variant_label }}</span>
+                                                @endif
+                                                @if ($item->sku)
+                                                    <span class="v-num text-[11px] text-v-muted">{{ $item->sku }}</span>
+                                                @endif
+                                                @if ($item->is_custom)
+                                                    <x-admin.badge tone="warning">Custom</x-admin.badge>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </x-admin.table.cell>
+                                <x-admin.table.cell align="right" mono>{{ $currency }}{{ number_format($item->price, 2) }}</x-admin.table.cell>
+                                <x-admin.table.cell align="right" mono>{{ $item->quantity }}</x-admin.table.cell>
+                                <x-admin.table.cell align="right" mono>{{ $currency }}{{ number_format($item->price * $item->quantity, 2) }}</x-admin.table.cell>
+                            </x-admin.table.row>
+                        @endforeach
+                        <x-slot:footer>
+                            <div class="flex justify-end">
+                                <div class="w-full space-y-1.5 sm:max-w-md">
+                                    <div class="flex justify-between text-[13px]">
+                                        <span class="text-v-muted">Subtotal</span>
+                                        <span class="v-num text-v-secondary">{{ $currency }}{{ number_format($order->subtotal, 2) }}</span>
+                                    </div>
+                                    <div class="flex items-start justify-between gap-3 text-[13px]">
+                                        <span class="break-words text-v-muted">Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</span>
+                                        <span class="v-num whitespace-nowrap text-v-secondary">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
+                                    </div>
+                                    @if ($order->coupon_code)
+                                        <div class="flex justify-between text-[13px]">
+                                            <span class="text-v-muted">Coupon ({{ $order->coupon_code }})</span>
+                                            <span class="v-num text-v-accent">-{{ $currency }}{{ number_format($order->coupon_discount, 2) }}</span>
+                                        </div>
+                                    @endif
+                                    <div class="flex justify-between border-t border-v-border pt-2 text-[13px] font-bold">
+                                        <span class="text-v-text">Total</span>
+                                        <span class="v-num text-base text-v-text">{{ $currency }}{{ number_format($order->total, 2) }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </x-slot:footer>
+                    </x-admin.table>
+                    @if ($order->comment)
+                        <div class="mt-4 rounded-v-md px-3 py-2.5 text-[13px] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)]">
+                            <span class="font-medium text-v-warning">Customer Note:</span>
+                            <span class="text-v-secondary">{{ $order->comment }}</span>
+                        </div>
+                    @endif
+                </x-admin.card>
+
+                {{-- 5. SHIPPING & TRACKING --}}
+                <x-admin.card title="Shipping & Tracking">
                     @if ($order->tracking_number)
-                        <div class="flex items-center gap-2 bg-indigo-50 rounded-lg p-3 text-sm">
-                            <svg class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <div class="flex items-center gap-2 rounded-v-lg bg-v-accent-weak p-3 text-[13px]">
                             @if ($order->shippingCourier)
-                                <span class="font-medium text-indigo-800">{{ $order->shippingCourier->name }}</span>
+                                <span class="font-medium text-v-accent">{{ $order->shippingCourier->name }}</span>
                             @endif
                             @if ($order->tracking_link)
-                                <a href="{{ $order->tracking_link }}" target="_blank" class="text-indigo-600 hover:underline">{{ $order->tracking_number }}</a>
+                                <a href="{{ $order->tracking_link }}" target="_blank" class="v-num text-v-accent hover:underline">{{ $order->tracking_number }}</a>
                             @else
-                                <span class="text-indigo-600">{{ $order->tracking_number }}</span>
+                                <span class="v-num text-v-accent">{{ $order->tracking_number }}</span>
                             @endif
                         </div>
                     @else
-                        <p class="text-sm text-gray-400">No tracking info yet. Use the Update Order form to add courier and tracking number.</p>
+                        <p class="text-[13px] text-v-muted">No tracking info yet. Use the Update Order form to add courier and tracking number.</p>
                     @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- RIGHT COLUMN --}}
-        <div class="space-y-6">
-
-            {{-- UPDATE STATUS --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Update Order</h3>
-                </div>
-                <form method="POST" action="{{ route('admin.orders.history.store', $order) }}" class="p-5 space-y-3">
-                    @csrf
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
-                        <select name="order_status_id" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            @foreach ($statuses as $status)
-                                <option value="{{ $status->id }}" {{ $order->order_status_id == $status->id ? 'selected' : '' }}>{{ $status->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Courier</label>
-                        <select name="shipping_courier_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">Select courier...</option>
-                            @foreach ($couriers as $courier)
-                                <option value="{{ $courier->id }}" {{ $order->shipping_courier_id == $courier->id ? 'selected' : '' }}>{{ $courier->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-500 mb-1">Tracking Number</label>
-                        <input type="text" name="tracking_number" value="{{ $order->tracking_number }}"
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Enter tracking number">
-                    </div>
-                    <div>
-                        <input type="text" name="comment" placeholder="Add a comment..."
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                    <div class="flex items-center justify-between pt-1">
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" name="notify_customer" value="1" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            <span class="text-xs text-gray-500">Notify Customer</span>
-                        </label>
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors uppercase tracking-wide">
-                            Update
-                        </button>
-                    </div>
-                </form>
+                </x-admin.card>
             </div>
 
-            {{-- ORDER HISTORY --}}
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
-                    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">History</h3>
-                </div>
-                <div class="p-5">
+            {{-- RIGHT COLUMN --}}
+            <div class="space-y-6">
+
+                {{-- UPDATE STATUS --}}
+                <x-admin.card title="Update Order">
+                    <form method="POST" action="{{ route('admin.orders.history.store', $order) }}" data-v-form class="-mt-2 space-y-3">
+                        @csrf
+                        <x-admin.field name="order_status_id" label="Status">
+                            <x-admin.select name="order_status_id" required>
+                                @foreach ($statuses as $status)
+                                    <option value="{{ $status->id }}" @selected($order->order_status_id == $status->id)>{{ $status->name }}</option>
+                                @endforeach
+                            </x-admin.select>
+                        </x-admin.field>
+                        <x-admin.field name="shipping_courier_id" label="Courier">
+                            <x-admin.select name="shipping_courier_id">
+                                <option value="">Select courier...</option>
+                                @foreach ($couriers as $courier)
+                                    <option value="{{ $courier->id }}" @selected($order->shipping_courier_id == $courier->id)>{{ $courier->name }}</option>
+                                @endforeach
+                            </x-admin.select>
+                        </x-admin.field>
+                        <x-admin.field name="tracking_number" label="Tracking Number">
+                            <x-admin.input type="text" name="tracking_number" :value="$order->tracking_number" placeholder="Enter tracking number" />
+                        </x-admin.field>
+                        <x-admin.field name="comment" label="Comment">
+                            <x-admin.input type="text" name="comment" placeholder="Add a comment..." />
+                        </x-admin.field>
+                        <div class="flex items-center justify-between pt-1">
+                            <x-admin.checkbox name="notify_customer" label="Notify Customer" />
+                            <x-admin.button type="submit" size="sm">Update</x-admin.button>
+                        </div>
+                    </form>
+                </x-admin.card>
+
+                {{-- ORDER HISTORY --}}
+                <x-admin.card title="History">
                     @if ($order->histories->count() > 0)
-                        <div class="relative">
-                            <div class="absolute left-[7px] top-2 bottom-2 w-px bg-gray-200"></div>
+                        <div class="relative -mt-1">
+                            <div class="absolute bottom-2 left-[7px] top-2 w-px bg-v-border"></div>
                             <div class="space-y-5">
                                 @foreach ($order->histories->sortByDesc('created_at') as $history)
-                                    <div class="relative pl-7 group">
-                                        <div class="absolute left-0 top-1 w-[15px] h-[15px] rounded-full border-2 {{ $loop->first ? 'border-indigo-500 bg-indigo-100' : 'border-gray-300 bg-white' }}"></div>
+                                    <div class="group relative pl-7">
+                                        <div class="absolute left-0 top-1 h-[15px] w-[15px] rounded-full border-2 {{ $loop->first ? 'border-v-accent bg-v-accent-weak' : 'border-v-strong bg-v-surface' }}"></div>
                                         <div class="flex items-start justify-between">
                                             <div class="min-w-0">
-                                                <div class="flex items-center gap-2 flex-wrap">
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold {{ $loop->first ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700' }}">
-                                                        {{ $history->status?->name ?? '—' }}
-                                                    </span>
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->status?->name ?? '—' }}</x-admin.badge>
                                                     @if ($history->notify_customer)
-                                                        <span class="text-[10px] text-indigo-500 font-medium">Notified</span>
+                                                        <span class="text-[10px] font-medium text-v-accent">Notified</span>
                                                     @endif
                                                 </div>
                                                 @if ($history->comment)
-                                                    <p class="text-sm text-gray-600 mt-1">{{ strip_tags($history->comment) }}</p>
+                                                    <p class="mt-1 text-[13px] text-v-secondary">{{ strip_tags($history->comment) }}</p>
                                                 @endif
-                                                <p class="text-[11px] text-gray-400 mt-1">
+                                                <p class="mt-1 text-[11px] text-v-muted">
                                                     {{ $history->created_at->format('M d, Y g:i A') }}
                                                     @if ($history->createdByUser) &mdash; {{ $history->createdByUser->name }} @endif
                                                 </p>
                                             </div>
-                                            <form method="POST" action="{{ route('admin.orders.history.destroy', [$order, $history->id]) }}" onsubmit="return confirm('Delete this history entry?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="text-gray-300 hover:text-red-600 hover:bg-red-50 rounded p-1 transition-colors ml-2" title="Delete">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
-                                                </button>
-                                            </form>
+                                            <button type="button" class="ml-2 rounded p-1 text-v-muted transition-colors hover:bg-v-hover hover:text-v-danger" title="Delete"
+                                                @click="$dispatch('open-modal', 'delete-history-{{ $history->id }}')">
+                                                <x-admin.icon name="trash" class="h-4 w-4" />
+                                            </button>
                                         </div>
                                     </div>
                                 @endforeach
                             </div>
                         </div>
                     @else
-                        <p class="text-sm text-gray-400 text-center py-6">No history yet.</p>
+                        <p class="py-6 text-center text-[13px] text-v-muted">No history yet.</p>
                     @endif
-                </div>
+                </x-admin.card>
             </div>
         </div>
-    </div>
 
-</x-admin-layout>
+        @foreach ($order->histories as $history)
+            <x-admin.confirm-dialog name="delete-history-{{ $history->id }}" title="Delete this history entry?"
+                message="This removes the status-change record from the order's timeline. This cannot be undone."
+                confirm="Delete" :action="route('admin.orders.history.destroy', [$order, $history->id])" method="DELETE" />
+        @endforeach
+    </x-admin.page>
+</x-admin.shell>
