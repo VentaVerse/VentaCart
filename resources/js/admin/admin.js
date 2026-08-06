@@ -17,7 +17,7 @@ document.addEventListener('submit', (e) => {
 // Supports modifier clicks (ctrl/cmd) to open in new tab.
 document.addEventListener('click', (e) => {
     const row = e.target.closest('tr[data-href]');
-    if (!row || e.target.closest('a, button, input, select, label')) return;
+    if (!row || e.target.closest('a, button, input, select, textarea, label')) return;
     if (e.ctrlKey || e.metaKey) {
         window.open(row.dataset.href, '_blank');
     } else {
@@ -29,7 +29,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     const row = e.target.closest('tr[data-href]');
-    if (!row) return;
+    if (!row || e.target.closest('a, button, input, select, textarea, label')) return;
     if (e.ctrlKey || e.metaKey) {
         window.open(row.dataset.href, '_blank');
     } else {
