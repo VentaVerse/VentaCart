@@ -244,10 +244,24 @@
                 {{-- ===================== ACTIVITY ===================== --}}
                 @if (isset($customer) && $customer->id)
                     <div x-show="activeTab === 'activity'" class="p-6">
+                        @php
+                            // CustomerActivity::getColorAttribute() returns raw Tailwind classes
+                            // (text-*-600 bg-*-50) because it's also rendered by the still-unmigrated
+                            // admin/dashboard.blade.php, which has no .v-admin ancestor and so no v-*
+                            // token variables in scope. Map its `type` to a v-* tone locally instead
+                            // of touching the shared accessor. Task 10 (dashboard redesign) can
+                            // re-centralize this once the dashboard is on the new shell.
+                            $activityToneClasses = [
+                                'order_placed' => 'text-v-accent bg-v-accent-weak',
+                                'login' => 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]',
+                                'registered' => 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]',
+                                'review_submitted' => 'text-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]',
+                            ];
+                        @endphp
                         <div class="space-y-3">
                             @forelse ($customer->activities->take(100) as $activity)
                                 <div class="flex items-start gap-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {{ $activity->color }}">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {{ $activityToneClasses[$activity->type] ?? 'text-v-secondary bg-v-sunken' }}">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $activity->icon }}"/></svg>
                                     </div>
                                     <div class="min-w-0 flex-1">
