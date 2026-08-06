@@ -1,138 +1,180 @@
-<x-admin-layout>
-    <x-slot name="header">SEO Optimization</x-slot>
-    @include('admin.extensions.seo.partials.tabs')
+@php
+    $entityTypeLabels = [
+        'product' => 'Products',
+        'category' => 'Categories',
+        'brand' => 'Brands',
+        'blog_post' => 'Blog',
+        'page' => 'Pages',
+    ];
 
-    {{-- Filter bar --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <div class="flex items-center gap-4">
-            <span class="text-sm font-medium text-gray-700">Filter:</span>
-            <div class="flex gap-2">
-                <a href="{{ route('admin.extensions.seo.review') }}"
-                   class="px-3 py-1.5 text-sm rounded-lg border transition-colors {{ $filter === 'all' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50' }}">
-                    All ({{ $totalPending }})
-                </a>
-                @foreach (['product' => 'Products', 'category' => 'Categories', 'brand' => 'Brands', 'blog_post' => 'Blog', 'page' => 'Pages'] as $key => $label)
-                    @if (($counts[$key] ?? 0) > 0)
-                        <a href="{{ route('admin.extensions.seo.review', ['type' => $key]) }}"
-                           class="px-3 py-1.5 text-sm rounded-lg border transition-colors {{ $filter === $key ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50' }}">
-                            {{ $label }} ({{ $counts[$key] ?? 0 }})
-                        </a>
-                    @endif
-                @endforeach
-            </div>
+    $diffFieldDefs = [
+        'meta_title' => 'Meta Title',
+        'meta_description' => 'Meta Description',
+        'meta_keywords' => 'Keywords',
+        'og_title' => 'OG Title',
+        'og_description' => 'OG Description',
+        'slug' => 'Slug',
+    ];
+@endphp
+<x-admin.shell title="SEO Review">
+    <x-admin.page title="Review Queue"
+        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Review']]">
+        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
+            @include('admin.extensions.seo.partials.nav-v2')
 
-            @php
-                $filterLabels = ['all' => 'All', 'product' => 'Products', 'category' => 'Categories', 'brand' => 'Brands', 'blog_post' => 'Blog', 'page' => 'Pages'];
-                $buttonLabel = 'Accept All ' . ($filter === 'all' ? '' : ($filterLabels[$filter] ?? ''));
-                $buttonCount = $filter === 'all' ? $totalPending : ($counts[$filter] ?? 0);
-            @endphp
-            @if ($buttonCount > 0)
-                <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" class="ml-auto" onsubmit="return confirm('Accept all {{ $buttonCount }} {{ trim($buttonLabel) }} suggestions? This includes all pages, not just the current one.')">
-                    @csrf
-                    <input type="hidden" name="entity_type" value="{{ $filter }}">
-                    <button type="submit" class="px-4 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors">
-                        {{ trim($buttonLabel) }} ({{ $buttonCount }})
-                    </button>
-                </form>
-            @endif
-        </div>
-    </div>
+            <div class="min-w-0 flex-1 space-y-5">
+                {{-- Entity-type filter chips --}}
+                <div class="flex flex-wrap gap-2" role="tablist" aria-label="Filter suggestions by content type">
+                    <a href="{{ route('admin.extensions.seo.review') }}"
+                       class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
+                           {{ $filter === 'all' ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
+                        All
+                        <span class="v-num rounded-full bg-v-sunken px-1.5 text-[11px] {{ $filter === 'all' ? 'text-v-accent' : 'text-v-muted' }}">{{ $totalPending }}</span>
+                    </a>
+                    @foreach ($entityTypeLabels as $key => $label)
+                        @if (($counts[$key] ?? 0) > 0)
+                            <a href="{{ route('admin.extensions.seo.review', ['type' => $key]) }}"
+                               class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
+                                   {{ $filter === $key ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
+                                {{ $label }}
+                                <span class="v-num rounded-full bg-v-sunken px-1.5 text-[11px] {{ $filter === $key ? 'text-v-accent' : 'text-v-muted' }}">{{ $counts[$key] }}</span>
+                            </a>
+                        @endif
+                    @endforeach
+                </div>
 
-    @if ($suggestions->isEmpty())
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
-            <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <p class="text-sm font-medium text-gray-500">No pending suggestions</p>
-            <p class="text-xs text-gray-400 mt-1">Generate suggestions from the Products, Categories, Brands, or Blog tabs.</p>
-        </div>
-    @else
-        <div class="space-y-3" x-data="{
-            expanded: null,
-            async accept(id, el) {
-                const res = await fetch(`{{ url(config('admin.prefix', 'admin') . '/extensions/seo/suggestions') }}/${id}/accept`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-                });
-                if ((await res.json()).ok) {
-                    el.closest('[data-suggestion]').remove();
-                }
-            },
-            async reject(id, el) {
-                const res = await fetch(`{{ url(config('admin.prefix', 'admin') . '/extensions/seo/suggestions') }}/${id}/reject`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-                });
-                if ((await res.json()).ok) {
-                    el.closest('[data-suggestion]').remove();
-                }
-            }
-        }">
-            @foreach ($suggestions as $suggestion)
-                @php
-                    $entity = $suggestion->entity;
-                    $entityName = $entity ? ($entity->name ?? $entity->title ?? 'Unknown') : 'Deleted';
-                    $typeLabel = str_replace('_', ' ', $suggestion->entity_type);
-                @endphp
-                <div data-suggestion="{{ $suggestion->id }}" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    {{-- Header row (always visible) --}}
-                    <div class="flex items-center gap-4 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                         @click="expanded = expanded === {{ $suggestion->id }} ? null : {{ $suggestion->id }}">
-                        <div class="flex-shrink-0">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 capitalize">{{ $typeLabel }}</span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">{{ $entityName }}</p>
-                            <p class="text-xs text-gray-400">Suggested {{ $suggestion->generated_at->diffForHumans() }}</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button type="button" @click.stop="accept({{ $suggestion->id }}, $el)"
-                                class="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors">Accept</button>
-                            <button type="button" @click.stop="reject({{ $suggestion->id }}, $el)"
-                                class="px-3 py-1 bg-red-500 text-white text-xs font-medium rounded hover:bg-red-600 transition-colors">Reject</button>
-                            <svg class="w-4 h-4 text-gray-400 transition-transform" :class="expanded === {{ $suggestion->id }} && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                        </div>
-                    </div>
-
-                    {{-- Expanded diff --}}
-                    <div x-show="expanded === {{ $suggestion->id }}" x-cloak
-                         x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="opacity-0"
-                         x-transition:enter-end="opacity-100"
-                         class="border-t border-gray-100 bg-gray-50 px-5 py-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            @foreach ([
-                                'meta_title' => 'Meta Title',
-                                'meta_description' => 'Meta Description',
-                                'og_title' => 'OG Title',
-                                'og_description' => 'OG Description',
-                            ] as $field => $label)
+                @if ($suggestions->isEmpty())
+                    <x-admin.card>
+                        <x-admin.empty-state icon="check" title="Queue clear"
+                            :description="'Next generation run: ' . ($seoAutomation?->schedule_description ?? 'not scheduled — configure a cadence in Settings → Automations.')" />
+                    </x-admin.card>
+                @else
+                    <div x-data="{ selected: [] }" class="space-y-4 pb-20">
+                        <div class="space-y-4">
+                            @foreach ($suggestions as $suggestion)
                                 @php
-                                    $current = $suggestion->{"current_{$field}"};
-                                    $suggested = $suggestion->{"suggested_{$field}"};
+                                    $entity = $suggestion->entity;
+                                    $entityName = $entity ? ($entity->name ?? $entity->title ?? 'Unknown') : 'Deleted';
+                                    $typeLabel = $entityTypeLabels[$suggestion->entity_type] ?? \Illuminate\Support\Str::headline($suggestion->entity_type);
+
+                                    $changedFields = [];
+                                    $unchangedFields = [];
+                                    foreach ($diffFieldDefs as $field => $label) {
+                                        $suggested = $suggestion->{"suggested_{$field}"};
+                                        if (! filled($suggested)) {
+                                            continue;
+                                        }
+                                        $current = $suggestion->{"current_{$field}"};
+                                        $row = ['field' => $field, 'label' => $label, 'current' => $current, 'suggested' => $suggested];
+                                        if ($suggested !== $current) {
+                                            $changedFields[] = $row;
+                                        } else {
+                                            $unchangedFields[] = $row;
+                                        }
+                                    }
                                 @endphp
-                                @if ($suggested || $current)
-                                    <div class="md:col-span-2">
-                                        <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ $label }}</label>
-                                        <div class="grid grid-cols-2 gap-2 mt-1">
-                                            <div class="bg-white rounded p-3 text-sm border border-gray-200">
-                                                <span class="text-xs text-gray-400 block mb-1">Current</span>
-                                                <span class="{{ $current ? 'text-gray-700' : 'text-gray-300 italic' }}">{{ $current ?: '(empty)' }}</span>
+                                <div data-suggestion="{{ $suggestion->id }}" x-data="{ showUnchanged: false }"
+                                     class="overflow-hidden rounded-v-lg border border-v-border bg-v-surface">
+                                    {{-- Card header --}}
+                                    <div class="flex flex-wrap items-start gap-3 border-b border-v-border px-5 py-4">
+                                        <input type="checkbox" value="{{ $suggestion->id }}" x-model.number="selected"
+                                               aria-label="Select {{ $entityName }} suggestion"
+                                               class="mt-1 h-4 w-4 shrink-0 rounded-v-sm border-v-strong bg-v-surface text-v-accent focus:ring-v-accent">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <x-admin.badge tone="info">{{ $typeLabel }}</x-admin.badge>
+                                                <span class="truncate text-[13px] font-semibold text-v-text">{{ $entityName }}</span>
                                             </div>
-                                            <div class="bg-white rounded p-3 text-sm border-l-3 border border-indigo-200 bg-indigo-50/30">
-                                                <span class="text-xs text-indigo-500 block mb-1">Suggested</span>
-                                                <span class="{{ $suggested ? 'text-gray-700' : 'text-gray-300 italic' }}">{{ $suggested ?: '(no change)' }}</span>
-                                            </div>
+                                            <p class="mt-0.5 text-xs text-v-muted">Suggested {{ $suggestion->generated_at->diffForHumans() }}</p>
+                                        </div>
+                                        <div class="flex shrink-0 items-center gap-2">
+                                            <form method="POST" action="{{ route('admin.extensions.seo.accept', $suggestion) }}">
+                                                @csrf
+                                                <x-admin.button type="submit" variant="primary" size="sm">Accept</x-admin.button>
+                                            </form>
+                                            <form method="POST" action="{{ route('admin.extensions.seo.reject', $suggestion) }}">
+                                                @csrf
+                                                <x-admin.button type="submit" variant="ghost" size="sm">Reject</x-admin.button>
+                                            </form>
                                         </div>
                                     </div>
-                                @endif
+
+                                    {{-- Field-by-field diff --}}
+                                    <div class="space-y-3 px-5 py-4">
+                                        @forelse ($changedFields as $row)
+                                            <div class="rounded-v-md bg-v-accent-weak px-3 py-2.5">
+                                                <p class="text-[10px] font-semibold uppercase tracking-widest text-v-accent">{{ $row['label'] }}</p>
+                                                <div class="mt-1.5 grid gap-2 sm:grid-cols-2">
+                                                    <div>
+                                                        <p class="text-[11px] text-v-muted">Current</p>
+                                                        <p class="text-[13px] {{ $row['current'] ? 'text-v-secondary' : 'italic text-v-muted' }}">{{ $row['current'] ?: '(empty)' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-[11px] font-medium text-v-accent">Suggested</p>
+                                                        <p class="text-[13px] font-medium text-v-text">{{ $row['suggested'] }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <p class="text-[13px] text-v-muted">No changed fields — every suggested value matches the current one.</p>
+                                        @endforelse
+
+                                        @if (! empty($unchangedFields))
+                                            <button type="button" class="text-xs font-medium text-v-secondary hover:text-v-text"
+                                                    @click="showUnchanged = !showUnchanged">
+                                                <span x-show="!showUnchanged">Show {{ count($unchangedFields) }} unchanged field{{ count($unchangedFields) === 1 ? '' : 's' }}</span>
+                                                <span x-show="showUnchanged" x-cloak>Hide unchanged fields</span>
+                                            </button>
+                                            <div x-show="showUnchanged" x-cloak class="space-y-2">
+                                                @foreach ($unchangedFields as $row)
+                                                    <div class="rounded-v-md bg-v-sunken px-3 py-2">
+                                                        <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ $row['label'] }}</p>
+                                                        <p class="mt-1 text-[13px] text-v-secondary">{{ $row['suggested'] }}</p>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
 
-        <div class="mt-6">
-            {{ $suggestions->links() }}
+                        {{-- Sticky bulk bar --}}
+                        <div id="bulk-bar" x-show="selected.length > 0" x-cloak
+                             class="sticky bottom-4 z-10">
+                            <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}"
+                                  aria-label="Bulk actions"
+                                  class="flex items-center justify-between gap-4 rounded-v-lg border border-v-border bg-v-surface px-5 py-3 shadow-[var(--shadow-modal)]"
+                                  @submit.prevent="
+                                      const form = $el;
+                                      selected.forEach((id) => {
+                                          const input = document.createElement('input');
+                                          input.type = 'hidden';
+                                          input.name = 'ids[]';
+                                          input.value = id;
+                                          form.appendChild(input);
+                                      });
+                                      form.submit();
+                                  ">
+                                @csrf
+                                <span class="text-[13px] font-medium text-v-text">
+                                    <span x-text="selected.length"></span> selected
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <x-admin.button type="button" variant="ghost" size="sm" @click="selected = []">Clear</x-admin.button>
+                                    <x-admin.button type="submit" variant="primary" size="sm">
+                                        Accept <span x-text="selected.length"></span> selected
+                                    </x-admin.button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    @if ($suggestions->hasPages())
+                        <div class="pt-2">{{ $suggestions->links() }}</div>
+                    @endif
+                @endif
+            </div>
         </div>
-    @endif
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

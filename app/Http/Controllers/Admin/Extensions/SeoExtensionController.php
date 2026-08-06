@@ -509,7 +509,9 @@ class SeoExtensionController extends Controller
 
         $totalPending = array_sum($counts);
 
-        return view('admin.extensions.seo.review', compact('suggestions', 'counts', 'totalPending', 'filter'));
+        $seoAutomation = Automation::where('key', 'seo_generate')->first();
+
+        return view('admin.extensions.seo.review', compact('suggestions', 'counts', 'totalPending', 'filter', 'seoAutomation'));
     }
 
     /**

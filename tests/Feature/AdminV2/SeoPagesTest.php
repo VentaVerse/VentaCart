@@ -19,4 +19,18 @@ class SeoPagesTest extends TestCase
             ->assertSeeInOrder(['Work', 'Content', 'Traffic', 'Setup'])
             ->assertSee('Automation');
     }
+
+    public function test_review_queue_shows_diff_and_bulk_bar(): void
+    {
+        $this->actingAs(User::factory()->create());
+        \App\Models\SeoSuggestion::create([
+            'entity_type' => 'product', 'entity_id' => 1,
+            'current_meta_title' => 'Old Title', 'suggested_meta_title' => 'New Better Title',
+            'status' => 'pending', 'generated_at' => now(),
+        ]);
+
+        $this->get(route('admin.extensions.seo.review'))
+            ->assertOk()->assertSee('Old Title')->assertSee('New Better Title')
+            ->assertSee('bulk', false);
+    }
 }
