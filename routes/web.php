@@ -421,6 +421,7 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
 
     // Shipping Settings (standalone)
     Route::get('/shipping-settings', [ShippingSettingController::class, 'index'])->name('shipping-settings.index');
+    Route::post('/shipping-settings/test', \App\Http\Controllers\Admin\ShippingTestController::class)->name('shipping-settings.test');
     Route::resource('free-shipping-rules', \App\Http\Controllers\Admin\FreeShippingRuleController::class)->except(['show']);
     Route::post('free-shipping-rules/{freeShippingRule}/toggle', [\App\Http\Controllers\Admin\FreeShippingRuleController::class, 'toggleActive'])->name('free-shipping-rules.toggle');
 

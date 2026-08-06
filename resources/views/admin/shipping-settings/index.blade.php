@@ -45,6 +45,9 @@
 
         <div class="space-y-8">
 
+            {{-- ==================== RATE TESTER ==================== --}}
+            @include('admin.shipping-settings.partials.rate-tester')
+
             {{-- ==================== FREE SHIPPING ==================== --}}
             <x-admin.card id="panel-free-shipping" title="Free Shipping Rules"
                 description="First matching rule applies. Full condition editing lives on the dedicated rules page.">

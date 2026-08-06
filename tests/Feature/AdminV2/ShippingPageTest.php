@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\AdminV2;
 
+use App\Models\Country;
 use App\Models\CustomerGroup;
 use App\Models\FlatShippingRate;
 use App\Models\FreeShippingRule;
@@ -120,5 +121,25 @@ class ShippingPageTest extends TestCase
         $this->assertDatabaseHas('settings', [
             'group' => 'shipping', 'key' => 'pickup_city', 'value' => 'Makati',
         ]);
+    }
+
+    public function test_rate_tester_returns_quotes_flash(): void
+    {
+        $this->actingAs(User::factory()->create());
+        Store::firstOrCreate(['id' => 1], ['name' => 'Test Store', 'code' => 'test']);
+
+        $countryId = Country::value('id') ?? 1;
+
+        $response = $this->from(route('admin.shipping-settings.index'))
+            ->post(route('admin.shipping-settings.test'), [
+                'country_id' => $countryId,
+                'province' => 'Metro Manila',
+                'city' => 'Quezon City',
+                'weight' => 1.5,
+                'subtotal' => 2500,
+            ]);
+
+        $response->assertRedirect(route('admin.shipping-settings.index'));
+        $response->assertSessionHas('rate_test');
     }
 }
