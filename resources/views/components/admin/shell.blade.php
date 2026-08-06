@@ -71,7 +71,7 @@
         </aside>
 
         {{-- Main --}}
-        <div class="flex-1 lg:ml-[var(--sidebar-w)]">
+        <div class="min-w-0 flex-1 lg:ml-[var(--sidebar-w)]">
             <header class="sticky top-0 z-20 flex h-11 items-center gap-3 border-b border-v-border bg-v-canvas/80 px-4 backdrop-blur sm:px-6">
                 <button class="lg:hidden text-v-secondary hover:text-v-text" @click="mobileNav = true" aria-label="Open navigation">
                     <x-admin.icon name="menu" class="w-5 h-5" />

@@ -15,6 +15,6 @@
             history.replaceState({}, '', url);
         },
     }" {{ $attributes->merge([]) }}>
-    <div class="flex items-center gap-1 border-b border-v-border" role="tablist">{{ $nav }}</div>
+    <div class="flex items-center gap-1 overflow-x-auto border-b border-v-border" role="tablist">{{ $nav }}</div>
     <div class="pt-5">{{ $slot }}</div>
 </div>
