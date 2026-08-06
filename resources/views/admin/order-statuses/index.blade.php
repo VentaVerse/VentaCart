@@ -11,11 +11,19 @@
 
             <x-admin.card title="Statuses">
                 {{--
-                    A <form> cannot legally wrap table rows/cells. Each row's edit form is
-                    self-contained inside its own <td> (spanning the row via a nested table),
-                    and the delete button lives OUTSIDE that form, as a sibling that opens the
-                    confirm-dialog modal (which renders its own form).
+                    A <form> cannot legally wrap table rows/cells (invalid HTML: form is not a
+                    permitted child of <tr>). Each row's edit form is instead declared as an
+                    empty, id'd <form> and every input/select/checkbox/button inside the row
+                    references it via the HTML5 form="" attribute — keeps the table structure
+                    valid (and column widths governed by one single table) while each row still
+                    submits independently. Pattern matches sections/currencies.blade.php.
                 --}}
+                @foreach ($statuses as $status)
+                    <form id="status-update-{{ $status->id }}" method="POST" action="{{ route('admin.order-statuses.update', $status) }}" data-v-form class="hidden">
+                        @csrf @method('PUT')
+                    </form>
+                @endforeach
+
                 <x-admin.table>
                     <x-slot:head>
                         <x-admin.table.th>Status</x-admin.table.th>
@@ -24,59 +32,51 @@
                         <x-admin.table.th align="right">Actions</x-admin.table.th>
                     </x-slot:head>
                     @foreach ($statuses as $status)
+                        @php $editForm = 'status-update-'.$status->id; @endphp
                         <x-admin.table.row>
-                            <td class="px-0 py-0" colspan="4">
-                                <form method="POST" action="{{ route('admin.order-statuses.update', $status) }}" data-v-form class="w-full">
-                                    @csrf @method('PUT')
-                                    <table class="w-full">
-                                        <tr>
-                                            <td class="px-4 py-2 align-middle">
-                                                <div class="flex items-center gap-2">
-                                                    <input type="text" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
-                                                        class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                                    @if ($status->is_default)
-                                                        <x-admin.badge tone="success">Default</x-admin.badge>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-2 align-middle">
-                                                <div class="flex items-center gap-2">
-                                                    <select name="stock_action" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                                        <option value="" @selected(! $status->stock_action)>None</option>
-                                                        <option value="decrement" @selected($status->stock_action === 'decrement')>Decrement</option>
-                                                        <option value="increment" @selected($status->stock_action === 'increment')>Increment</option>
-                                                    </select>
-                                                    @if ($status->stock_action === 'decrement')
-                                                        <x-admin.badge tone="danger">▼ Decrements</x-admin.badge>
-                                                    @elseif ($status->stock_action === 'increment')
-                                                        <x-admin.badge tone="success">▲ Increments</x-admin.badge>
-                                                    @else
-                                                        <x-admin.badge tone="neutral">—</x-admin.badge>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-2 align-middle">
-                                                <input type="number" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
-                                                    class="v-control w-20 h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                            </td>
-                                            <td class="px-4 py-2 align-middle text-right">
-                                                <div class="flex items-center justify-end gap-3">
-                                                    <label class="inline-flex items-center gap-1.5 text-[13px] text-v-text cursor-pointer">
-                                                        <input type="hidden" name="is_default" value="0">
-                                                        <input type="checkbox" name="is_default" value="1" @checked(old('is_default', $status->is_default))
-                                                            class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
-                                                        <span>Default</span>
-                                                    </label>
-                                                    <x-admin.button variant="secondary" size="sm" type="submit">Save</x-admin.button>
-                                                    @unless ($status->is_default)
-                                                        <x-admin.button variant="ghost" size="sm" type="button" class="text-v-danger hover:text-v-danger" @click="$dispatch('open-modal', 'delete-status-{{ $status->id }}')">Delete</x-admin.button>
-                                                    @endunless
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </form>
-                            </td>
+                            <x-admin.table.cell>
+                                <div class="flex items-center gap-2">
+                                    <input type="text" form="{{ $editForm }}" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
+                                        class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                    @if ($status->is_default)
+                                        <x-admin.badge tone="success">Default</x-admin.badge>
+                                    @endif
+                                </div>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell>
+                                <div class="flex items-center gap-2">
+                                    <select form="{{ $editForm }}" name="stock_action" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        <option value="" @selected(! $status->stock_action)>None</option>
+                                        <option value="decrement" @selected($status->stock_action === 'decrement')>Decrement</option>
+                                        <option value="increment" @selected($status->stock_action === 'increment')>Increment</option>
+                                    </select>
+                                    @if ($status->stock_action === 'decrement')
+                                        <x-admin.badge tone="danger">▼ Decrements</x-admin.badge>
+                                    @elseif ($status->stock_action === 'increment')
+                                        <x-admin.badge tone="success">▲ Increments</x-admin.badge>
+                                    @else
+                                        <x-admin.badge tone="neutral">—</x-admin.badge>
+                                    @endif
+                                </div>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell>
+                                <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
+                                    class="v-control w-20 h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                            </x-admin.table.cell>
+                            <x-admin.table.cell align="right">
+                                <div class="flex items-center justify-end gap-3">
+                                    <label class="inline-flex items-center gap-1.5 text-[13px] text-v-text cursor-pointer">
+                                        <input type="hidden" form="{{ $editForm }}" name="is_default" value="0">
+                                        <input type="checkbox" form="{{ $editForm }}" name="is_default" value="1" @checked(old('is_default', $status->is_default))
+                                            class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                        <span>Default</span>
+                                    </label>
+                                    <x-admin.button variant="secondary" size="sm" type="submit" form="{{ $editForm }}">Save</x-admin.button>
+                                    @unless ($status->is_default)
+                                        <x-admin.button variant="ghost" size="sm" type="button" class="text-v-danger hover:text-v-danger" @click="$dispatch('open-modal', 'delete-status-{{ $status->id }}')">Delete</x-admin.button>
+                                    @endunless
+                                </div>
+                            </x-admin.table.cell>
                         </x-admin.table.row>
                     @endforeach
                 </x-admin.table>
