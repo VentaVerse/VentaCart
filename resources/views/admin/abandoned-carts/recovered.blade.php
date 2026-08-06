@@ -1,54 +1,40 @@
-<x-admin-layout>
-    <x-slot name="header">Abandoned Carts</x-slot>
+<x-admin.shell title="Recovered Carts">
+    <x-admin.page title="Recovered" :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')]]">
+        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
+            @include('admin.abandoned-carts.partials.nav')
 
-    {{-- Tab Navigation --}}
-    <div class="mb-6 border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8">
-            <a href="{{ route('admin.abandoned-carts.settings') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">General</a>
-            <a href="{{ route('admin.abandoned-carts.index') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Carts</a>
-            <a href="{{ route('admin.abandoned-carts.rules') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Rules</a>
-            <a href="{{ route('admin.abandoned-carts.templates') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Templates</a>
-            <a href="{{ route('admin.abandoned-carts.notifications') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Notifications</a>
-            <a href="{{ route('admin.abandoned-carts.recovered') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-indigo-500 text-indigo-600">Recovered</a>
-        </nav>
-    </div>
-
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cart Items</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notified</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recovery Time</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-                @forelse ($recoveredCarts as $recovered)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="text-sm font-medium text-gray-900">{{ $recovered['customer']->full_name }}</div>
-                            <div class="text-xs text-gray-400">{{ $recovered['customer']->email }}</div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ Str::limit($recovered['cart_items'], 80) }}</td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm text-gray-900">{{ $recovered['send_count'] }}x</div>
-                            <div class="text-xs text-gray-400">Last: {{ $recovered['last_sent_at']->diffForHumans() }}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <a href="{{ route('admin.orders.show', $recovered['order']) }}" class="text-sm text-indigo-600 hover:text-indigo-900">
-                                #{{ $recovered['order']->id }}
-                            </a>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $recovered['recovery_time'] }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-sm text-gray-500">No recovered carts yet.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</x-admin-layout>
+            <div class="min-w-0 flex-1">
+                <x-admin.table>
+                    <x-slot name="head">
+                        <x-admin.table.th>Customer</x-admin.table.th>
+                        <x-admin.table.th>Cart Items</x-admin.table.th>
+                        <x-admin.table.th>Notified</x-admin.table.th>
+                        <x-admin.table.th>Order</x-admin.table.th>
+                        <x-admin.table.th>Recovery Time</x-admin.table.th>
+                    </x-slot>
+                    @forelse ($recoveredCarts as $recovered)
+                        <x-admin.table.row>
+                            <x-admin.table.cell>
+                                <div class="font-medium text-v-text">{{ $recovered['customer']->full_name }}</div>
+                                <div class="text-xs text-v-muted">{{ $recovered['customer']->email }}</div>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell class="text-v-secondary">{{ Str::limit($recovered['cart_items'], 80) }}</x-admin.table.cell>
+                            <x-admin.table.cell>
+                                <div class="text-v-text">{{ $recovered['send_count'] }}x</div>
+                                <div class="text-xs text-v-muted">Last: {{ $recovered['last_sent_at']->diffForHumans() }}</div>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell>
+                                <a href="{{ route('admin.orders.show', $recovered['order']) }}" class="text-v-accent hover:underline">
+                                    #{{ $recovered['order']->id }}
+                                </a>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell class="text-v-secondary">{{ $recovered['recovery_time'] }}</x-admin.table.cell>
+                        </x-admin.table.row>
+                    @empty
+                        <tr><td colspan="5" class="px-4 py-2"><x-admin.empty-state icon="cart" title="No recovered carts yet" /></td></tr>
+                    @endforelse
+                </x-admin.table>
+            </div>
+        </div>
+    </x-admin.page>
+</x-admin.shell>

@@ -1,107 +1,96 @@
-<x-admin-layout>
-    <x-slot name="header">Abandoned Cart #{{ $cart->id }}</x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.abandoned-carts.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
-            Back to Abandoned Carts
-        </a>
-    </x-slot>
+<x-admin.shell title="Abandoned Cart #{{ $cart->id }}">
+    <x-admin.page title="Cart #{{ $cart->id }}"
+        :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')], ['label' => 'Carts', 'url' => route('admin.abandoned-carts.index')]]">
+        <x-slot:actions>
+            <x-admin.button variant="ghost" href="{{ route('admin.abandoned-carts.index') }}">Back to Abandoned Carts</x-admin.button>
+        </x-slot:actions>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {{-- Cart Details --}}
-        <div class="lg:col-span-2">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-sm font-medium text-gray-900">Cart Items</h3>
-                </div>
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Variant</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Qty</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Line Total</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach ($cart->items as $item)
-                            <tr class="hover:bg-gray-50">
-                                <td class="px-6 py-4">
-                                    <div class="text-sm font-medium text-gray-900">{{ $item->name }}</div>
-                                    @if ($item->sku)
-                                        <div class="text-xs text-gray-400">SKU: {{ $item->sku }}</div>
-                                    @endif
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-500">{{ $item->variant_label ?? '—' }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ number_format($item->price, 2) }}</td>
-                                <td class="px-6 py-4 text-sm text-gray-900">{{ $item->quantity }}</td>
-                                <td class="px-6 py-4 text-sm font-medium text-gray-900 text-right">{{ number_format($item->line_total, 2) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    <tfoot class="bg-gray-50">
-                        <tr>
-                            <td colspan="4" class="px-6 py-3 text-right text-sm font-medium text-gray-900">Total</td>
-                            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">{{ number_format($cart->total, 2) }}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {{-- Cart Details --}}
+            <div class="lg:col-span-2">
+                <x-admin.table>
+                    <x-slot name="head">
+                        <x-admin.table.th>Product</x-admin.table.th>
+                        <x-admin.table.th>Variant</x-admin.table.th>
+                        <x-admin.table.th>Price</x-admin.table.th>
+                        <x-admin.table.th>Qty</x-admin.table.th>
+                        <x-admin.table.th align="right">Line Total</x-admin.table.th>
+                    </x-slot>
+                    @foreach ($cart->items as $item)
+                        <x-admin.table.row>
+                            <x-admin.table.cell>
+                                <div class="font-medium text-v-text">{{ $item->name }}</div>
+                                @if ($item->sku)
+                                    <div class="text-xs text-v-muted">SKU: {{ $item->sku }}</div>
+                                @endif
+                            </x-admin.table.cell>
+                            <x-admin.table.cell class="text-v-secondary">{{ $item->variant_label ?? '—' }}</x-admin.table.cell>
+                            <x-admin.table.cell mono class="text-v-text">{{ number_format($item->price, 2) }}</x-admin.table.cell>
+                            <x-admin.table.cell mono class="text-v-text">{{ $item->quantity }}</x-admin.table.cell>
+                            <x-admin.table.cell align="right" mono class="font-medium text-v-text">{{ number_format($item->line_total, 2) }}</x-admin.table.cell>
+                        </x-admin.table.row>
+                    @endforeach
+
+                    <x-slot name="footer">
+                        <div class="flex justify-end gap-6 text-[13px]">
+                            <span class="font-medium text-v-text">Total</span>
+                            <span class="v-num font-bold text-v-text">{{ number_format($cart->total, 2) }}</span>
+                        </div>
+                    </x-slot>
+                </x-admin.table>
             </div>
-        </div>
 
-        {{-- Customer Info --}}
-        <div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-sm font-medium text-gray-900 mb-4">Customer</h3>
-                @if ($cart->customer)
+            {{-- Customer Info --}}
+            <div class="space-y-6">
+                <x-admin.card title="Customer">
+                    @if ($cart->customer)
+                        <dl class="space-y-3">
+                            <div>
+                                <dt class="text-xs text-v-muted">Name</dt>
+                                <dd class="text-[13px] text-v-text">{{ $cart->customer->first_name }} {{ $cart->customer->last_name }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-v-muted">Email</dt>
+                                <dd class="text-[13px] text-v-text">{{ $cart->customer->email }}</dd>
+                            </div>
+                            @if ($cart->customer->phone)
+                                <div>
+                                    <dt class="text-xs text-v-muted">Phone</dt>
+                                    <dd class="text-[13px] text-v-text">{{ $cart->customer->phone }}</dd>
+                                </div>
+                            @endif
+                        </dl>
+                    @else
+                        <p class="text-[13px] text-v-muted">Guest session</p>
+                        <p class="mt-1 text-xs text-v-muted">Session: {{ $cart->session_id }}</p>
+                    @endif
+                </x-admin.card>
+
+                <x-admin.card title="Timeline">
                     <dl class="space-y-3">
                         <div>
-                            <dt class="text-xs text-gray-500">Name</dt>
-                            <dd class="text-sm text-gray-900">{{ $cart->customer->first_name }} {{ $cart->customer->last_name }}</dd>
+                            <dt class="text-xs text-v-muted">Created</dt>
+                            <dd class="text-[13px] text-v-text">{{ $cart->created_at->format('M d, Y H:i') }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs text-gray-500">Email</dt>
-                            <dd class="text-sm text-gray-900">{{ $cart->customer->email }}</dd>
+                            <dt class="text-xs text-v-muted">Last Activity</dt>
+                            <dd class="text-[13px] text-v-text">{{ $cart->updated_at->format('M d, Y H:i') }}</dd>
                         </div>
-                        @if ($cart->customer->phone)
-                            <div>
-                                <dt class="text-xs text-gray-500">Phone</dt>
-                                <dd class="text-sm text-gray-900">{{ $cart->customer->phone }}</dd>
-                            </div>
-                        @endif
+                        <div>
+                            <dt class="text-xs text-v-muted">Abandoned For</dt>
+                            <dd class="text-[13px] font-medium text-v-danger">{{ $cart->updated_at->diffForHumans() }}</dd>
+                        </div>
                     </dl>
-                @else
-                    <p class="text-sm text-gray-400">Guest session</p>
-                    <p class="text-xs text-gray-400 mt-1">Session: {{ $cart->session_id }}</p>
-                @endif
-            </div>
+                </x-admin.card>
 
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
-                <h3 class="text-sm font-medium text-gray-900 mb-4">Timeline</h3>
-                <dl class="space-y-3">
-                    <div>
-                        <dt class="text-xs text-gray-500">Created</dt>
-                        <dd class="text-sm text-gray-900">{{ $cart->created_at->format('M d, Y H:i') }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Last Activity</dt>
-                        <dd class="text-sm text-gray-900">{{ $cart->updated_at->format('M d, Y H:i') }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-xs text-gray-500">Abandoned For</dt>
-                        <dd class="text-sm text-red-600 font-medium">{{ $cart->updated_at->diffForHumans() }}</dd>
-                    </div>
-                </dl>
-            </div>
-
-            <div class="mt-6">
-                <form method="POST" action="{{ route('admin.abandoned-carts.destroy', $cart) }}" onsubmit="return confirm('Delete this abandoned cart?')">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="w-full px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
-                        Delete Cart
-                    </button>
-                </form>
+                <x-admin.button variant="danger" class="w-full" type="button"
+                    @click="$dispatch('open-modal', 'delete-cart')">
+                    Delete Cart
+                </x-admin.button>
+                <x-admin.confirm-dialog name="delete-cart" title="Delete abandoned cart"
+                    message="Delete this abandoned cart? This cannot be undone." confirm="Delete Cart"
+                    :action="route('admin.abandoned-carts.destroy', $cart)" method="DELETE" />
             </div>
         </div>
-    </div>
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

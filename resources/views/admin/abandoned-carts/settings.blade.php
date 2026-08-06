@@ -1,54 +1,44 @@
-<x-admin-layout>
-    <x-slot name="header">Abandoned Carts</x-slot>
+<x-admin.shell title="Abandoned Cart Settings">
+    <x-admin.page title="Abandoned Cart Settings" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
+            @include('admin.abandoned-carts.partials.nav')
 
-    {{-- Tab Navigation --}}
-    <div class="mb-6 border-b border-gray-200">
-        <nav class="-mb-px flex space-x-8">
-            <a href="{{ route('admin.abandoned-carts.settings') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-indigo-500 text-indigo-600">General</a>
-            <a href="{{ route('admin.abandoned-carts.index') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Carts</a>
-            <a href="{{ route('admin.abandoned-carts.rules') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Rules</a>
-            <a href="{{ route('admin.abandoned-carts.templates') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Templates</a>
-            <a href="{{ route('admin.abandoned-carts.notifications') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Notifications</a>
-            <a href="{{ route('admin.abandoned-carts.recovered') }}" class="py-3 px-1 border-b-2 text-sm font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">Recovered</a>
-        </nav>
-    </div>
+            <div class="min-w-0 max-w-2xl flex-1 space-y-6">
+                {{-- Enable/Disable --}}
+                <form method="POST" action="{{ route('admin.abandoned-carts.settings.update') }}" data-v-form>
+                    @csrf
+                    <x-admin.card title="Abandoned Cart Notifications"
+                        description="When enabled, the cron command will process rules and send notification emails to customers with abandoned carts.">
+                        <div class="space-y-3">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <x-admin.toggle name="enabled" :checked="$enabled" />
+                                <span class="text-[13px] font-medium text-v-text">Enable abandoned cart notifications</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <x-admin.toggle name="skip_out_of_stock" :checked="$skipOutOfStock" />
+                                <span class="text-[13px] text-v-text">Skip notifications when all cart items are out of stock</span>
+                            </label>
+                        </div>
+                        <x-slot name="footer">
+                            <div class="flex justify-end">
+                                <x-admin.button type="submit">Save</x-admin.button>
+                            </div>
+                        </x-slot>
+                    </x-admin.card>
+                </form>
 
-    <div class="max-w-2xl space-y-6">
-        {{-- Enable/Disable --}}
-        <form method="POST" action="{{ route('admin.abandoned-carts.settings.update') }}">
-            @csrf
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-sm font-medium text-gray-900">Abandoned Cart Notifications</h3>
-                <p class="text-sm text-gray-500 mt-1 mb-4">When enabled, the cron command will process rules and send notification emails to customers with abandoned carts.</p>
-                <div class="flex items-center gap-2 mb-3">
-                    <input type="hidden" name="enabled" value="0">
-                    <input type="checkbox" name="enabled" id="enabled" value="1" {{ $enabled ? 'checked' : '' }}
-                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                    <label for="enabled" class="text-sm font-medium text-gray-700">Enable abandoned cart notifications</label>
-                </div>
-                <div class="flex items-center gap-2 mb-4">
-                    <input type="hidden" name="skip_out_of_stock" value="0">
-                    <input type="checkbox" name="skip_out_of_stock" id="skip_out_of_stock" value="1" {{ $skipOutOfStock ? 'checked' : '' }}
-                        class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                    <label for="skip_out_of_stock" class="text-sm text-gray-700">Skip notifications when all cart items are out of stock</label>
-                </div>
-                <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">Save</button>
-            </div>
-        </form>
+                {{-- Scheduling --}}
+                <x-admin.card title="Scheduling"
+                    description="Abandoned cart notifications run automatically via the Venta scheduler. Change how often they fire — or run them manually — in the Automations panel.">
+                    <x-admin.button variant="secondary" size="sm" :href="route('admin.settings.section', 'automations')">
+                        Manage in Settings → Automations
+                    </x-admin.button>
 
-        {{-- Scheduling --}}
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-sm font-medium text-gray-900 mb-1">Scheduling</h3>
-            <p class="text-sm text-gray-500 mb-3">Abandoned cart notifications run automatically via the Venta scheduler. Change how often they fire — or run them manually — in the Automations panel.</p>
-
-            <a href="{{ route('admin.settings.index', ['tab' => 'automations']) }}" class="inline-flex items-center gap-2 px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                Manage in Settings → Automations
-            </a>
-
-            <div class="mt-4 p-3 rounded-md bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="bg-amber-100 px-1 rounded">cart:notify</code> directly, remove it — the command now fires through the universal scheduler and the old line will cause duplicate runs.
+                    <div class="mt-4 rounded-v-md border border-v-border bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] p-3 text-xs text-v-warning">
+                        <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="rounded bg-v-sunken px-1">cart:notify</code> directly, remove it — the command now fires through the universal scheduler and the old line will cause duplicate runs.
+                    </div>
+                </x-admin.card>
             </div>
         </div>
-    </div>
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

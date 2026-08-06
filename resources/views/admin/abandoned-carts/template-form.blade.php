@@ -1,58 +1,58 @@
-<x-admin-layout>
-    <x-slot name="header">{{ $emailTemplate ? 'Edit Template' : 'Create Template' }}</x-slot>
+<x-admin.shell :title="$emailTemplate ? 'Edit Template' : 'Create Template'">
+    <x-admin.page :title="$emailTemplate ? 'Edit Template' : 'Create Template'"
+        :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')], ['label' => 'Templates', 'url' => route('admin.abandoned-carts.templates')]]">
+        <x-slot:actions>
+            <x-admin.button variant="ghost" href="{{ route('admin.abandoned-carts.templates') }}">Cancel</x-admin.button>
+        </x-slot:actions>
 
-    <div class="max-w-4xl">
-        <form method="POST" action="{{ $emailTemplate ? route('admin.abandoned-carts.templates.update', $emailTemplate) : route('admin.abandoned-carts.templates.store') }}" class="space-y-6">
-            @csrf
-            @if ($emailTemplate) @method('PUT') @endif
+        <div class="max-w-4xl">
+            <x-admin.card>
+                <form method="POST" action="{{ $emailTemplate ? route('admin.abandoned-carts.templates.update', $emailTemplate) : route('admin.abandoned-carts.templates.store') }}"
+                    data-v-form class="space-y-6">
+                    @csrf
+                    @if ($emailTemplate) @method('PUT') @endif
 
-            <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input type="text" name="name" id="name" value="{{ old('name', $emailTemplate?->name) }}" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-            </div>
+                    <x-admin.field name="name" label="Name">
+                        <x-admin.input name="name" :value="$emailTemplate?->name" required />
+                    </x-admin.field>
 
-            @if (!$emailTemplate)
-                <div>
-                    <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">Slug</label>
-                    <input type="text" name="slug" id="slug" value="{{ old('slug', 'abandoned_cart_') }}" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 font-mono">
-                    <p class="mt-1 text-xs text-gray-400">Must start with <code class="bg-gray-100 px-1 rounded">abandoned_cart_</code>. Use lowercase and underscores.</p>
-                    @error('slug') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-                </div>
-            @endif
+                    @if (!$emailTemplate)
+                        <x-admin.field name="slug" label="Slug"
+                            help="Must start with abandoned_cart_. Use lowercase and underscores.">
+                            <x-admin.input name="slug" :value="old('slug', 'abandoned_cart_')" required class="font-mono" />
+                        </x-admin.field>
+                    @endif
 
-            <div>
-                <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                <input type="text" name="subject" id="subject" value="{{ old('subject', $emailTemplate?->subject) }}" required class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                @error('subject') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-            </div>
+                    <x-admin.field name="subject" label="Subject">
+                        <x-admin.input name="subject" :value="$emailTemplate?->subject" required />
+                    </x-admin.field>
 
-            @if (!empty($placeholders))
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Available Placeholders <span class="font-normal normal-case">(click to copy)</span></p>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach ($placeholders as $placeholder)
-                            <button type="button" onclick="copyPlaceholder(this, '{{ $placeholder }}')"
-                                class="px-2.5 py-1 bg-white rounded border border-gray-200 text-xs text-gray-700 hover:bg-indigo-50 hover:border-indigo-300 transition-colors cursor-pointer">
-                                <span>{!! '{' . $placeholder . '}' !!}</span>
-                            </button>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
+                    @if (!empty($placeholders))
+                        <div class="rounded-v-md bg-v-sunken p-4">
+                            <p class="mb-2 text-xs font-medium uppercase tracking-wider text-v-muted">Available Placeholders <span class="font-normal normal-case">(click to copy)</span></p>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach ($placeholders as $placeholder)
+                                    <button type="button" onclick="copyPlaceholder(this, '{{ $placeholder }}')"
+                                        class="cursor-pointer rounded-v-md border border-v-border bg-v-surface px-2.5 py-1 text-xs text-v-text transition-colors hover:border-v-accent hover:bg-v-accent-weak">
+                                        <span>{!! '{' . $placeholder . '}' !!}</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
 
-            <div>
-                <label for="body" class="block text-sm font-medium text-gray-700 mb-1">Body</label>
-                <textarea name="body" id="body" class="tinymce-editor w-full rounded-lg border-gray-300 text-sm shadow-sm">{{ old('body', $emailTemplate?->body) }}</textarea>
-                @error('body') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-            </div>
+                    <x-admin.field name="body" label="Body">
+                        <textarea name="body" id="body" class="tinymce-editor v-control w-full rounded-v-md border border-v-border bg-v-surface px-3 py-2 text-[13px] text-v-text">{{ old('body', $emailTemplate?->body) }}</textarea>
+                    </x-admin.field>
 
-            <div class="flex items-center gap-3">
-                <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">{{ $emailTemplate ? 'Save Template' : 'Create Template' }}</button>
-                <a href="{{ route('admin.abandoned-carts.templates') }}" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">Cancel</a>
-            </div>
-        </form>
-    </div>
+                    <x-admin.form-actions>
+                        <x-admin.button variant="secondary" href="{{ route('admin.abandoned-carts.templates') }}">Cancel</x-admin.button>
+                        <x-admin.button type="submit">{{ $emailTemplate ? 'Save Template' : 'Create Template' }}</x-admin.button>
+                    </x-admin.form-actions>
+                </form>
+            </x-admin.card>
+        </div>
+    </x-admin.page>
 
     @push('scripts')
     <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
@@ -81,4 +81,4 @@
         });
     </script>
     @endpush
-</x-admin-layout>
+</x-admin.shell>

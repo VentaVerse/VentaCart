@@ -2,11 +2,22 @@
 
 namespace Tests\Feature\AdminV2;
 
+use App\Models\AbandonedCartNotification;
+use App\Models\AbandonedCartRule;
+use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Customer;
+use App\Models\CustomerGroup;
+use App\Models\EmailTemplate;
 use App\Models\Order;
+use App\Models\OrderProduct;
 use App\Models\OrderStatus;
+use App\Models\Product;
+use App\Models\Review;
 use App\Models\Store;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -83,6 +94,154 @@ class ReskinWaveTest extends TestCase
             'order_id' => $order->id,
             'order_status_id' => $processing->id,
             'comment' => 'Moving to processing',
+        ]);
+    }
+
+    public function test_carts_and_reviews_pages_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail']);
+
+        $customer = Customer::create([
+            'store_id' => 1,
+            'customer_group_id' => $group->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'password' => 'secret',
+            'is_active' => true,
+        ]);
+
+        $product = Product::create(['store_id' => 1, 'name' => 'Test Pedal', 'slug' => 'test-pedal', 'price' => 1000]);
+
+        $cart = Cart::create(['store_id' => 1, 'customer_id' => $customer->id]);
+        $cart->timestamps = false;
+        $cart->update(['updated_at' => now()->subDays(2)]);
+
+        CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'name' => $product->name,
+            'price' => 1000,
+        ]);
+
+        $template = EmailTemplate::create([
+            'store_id' => 1,
+            'slug' => 'abandoned_cart_reminder',
+            'name' => 'Reminder',
+            'subject' => 'Come back!',
+            'body' => 'Hi {customer_name}',
+            'type' => 'customer',
+            'is_active' => true,
+        ]);
+
+        $rule = AbandonedCartRule::create([
+            'store_id' => 1,
+            'email_template_id' => $template->id,
+            'customer_group_id' => $group->id,
+            'max_sends' => 3,
+            'min_cart_age_hours' => 1,
+            'priority' => 1,
+            'is_active' => true,
+        ]);
+
+        $notification = AbandonedCartNotification::create([
+            'cart_id' => $cart->id,
+            'customer_id' => $customer->id,
+            'abandoned_cart_rule_id' => $rule->id,
+            'email_template_id' => $template->id,
+            'send_count' => 1,
+            'last_sent_at' => now()->subDay(),
+        ]);
+
+        // Order placed after the notification, for the same customer/product,
+        // so recovered() finds a match and renders the non-empty branch.
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        $order = Order::create([
+            'store_id' => 1,
+            'customer_id' => $customer->id,
+            'order_status_id' => $status->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'subtotal' => 1000,
+            'shipping_cost' => 0,
+            'total' => 1000,
+        ]);
+        OrderProduct::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'price' => 1000,
+            'quantity' => 1,
+            'total' => 1000,
+        ]);
+
+        $review = Review::create([
+            'product_id' => $product->id,
+            'customer_id' => $customer->id,
+            'token' => Str::random(32),
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'rating' => 5,
+            'title' => 'Great pedal',
+            'body' => 'Loved it.',
+            'status' => 'pending',
+        ]);
+
+        $routes = [
+            route('admin.abandoned-carts.settings'),
+            route('admin.abandoned-carts.index'),
+            route('admin.abandoned-carts.show', $cart),
+            route('admin.abandoned-carts.notifications'),
+            route('admin.abandoned-carts.recovered'),
+            route('admin.abandoned-carts.rules'),
+            route('admin.abandoned-carts.rules.create'),
+            route('admin.abandoned-carts.rules.edit', $rule),
+            route('admin.abandoned-carts.templates'),
+            route('admin.abandoned-carts.templates.create'),
+            route('admin.abandoned-carts.templates.edit', $template),
+            route('admin.reviews.index'),
+            route('admin.reviews.index', ['tab' => 'settings']),
+            route('admin.reviews.show', $review),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+    }
+
+    public function test_abandoned_cart_settings_round_trip_updates_settings_table(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.abandoned-carts.settings.update'), [
+            'enabled' => '1',
+            'skip_out_of_stock' => '0',
+        ])->assertRedirect(route('admin.abandoned-carts.settings'));
+
+        $this->assertDatabaseHas('settings', [
+            'group' => 'abandoned_cart',
+            'key' => 'enabled',
+            'value' => '1',
+        ]);
+        $this->assertDatabaseHas('settings', [
+            'group' => 'abandoned_cart',
+            'key' => 'skip_out_of_stock',
+            'value' => '0',
+        ]);
+
+        // Unchecked x-admin.toggle omits the checkbox but keeps the hidden 0.
+        $this->post(route('admin.abandoned-carts.settings.update'), [
+            'enabled' => '0',
+        ])->assertRedirect(route('admin.abandoned-carts.settings'));
+
+        $this->assertDatabaseHas('settings', [
+            'group' => 'abandoned_cart',
+            'key' => 'enabled',
+            'value' => '0',
         ]);
     }
 }
