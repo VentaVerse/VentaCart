@@ -10,7 +10,7 @@ $nextDir = ($currentSort === $field && $currentDir === 'asc') ? 'desc' : 'asc';
         <a href="{{ request()->fullUrlWithQuery(['sort' => $field, 'dir' => $nextDir]) }}" class="inline-flex items-center gap-1 hover:text-v-text">
             {{ $slot }}
             @if ($currentSort === $field)
-                <x-admin.icon :name="$currentDir === 'asc' ? 'chevron-down' : 'chevron-right'" class="w-3 h-3" />
+                <x-admin.icon name="chevron-down" class="{{ $currentDir === 'desc' ? 'rotate-180 ' : '' }}w-3 h-3" />
             @endif
         </a>
     @else

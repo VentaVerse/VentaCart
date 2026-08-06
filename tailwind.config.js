@@ -49,6 +49,7 @@ export default {
                     'accent-weak': 'var(--accent-weak)',
                     'accent-text': 'var(--accent-text)',
                     danger: 'var(--danger)',
+                    'danger-text': 'var(--danger-text)',
                     warning: 'var(--warning)',
                     info: 'var(--info)',
                 },

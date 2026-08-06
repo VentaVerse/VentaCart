@@ -8,10 +8,12 @@ $sizes = [
 $variants = [
     'primary'   => 'bg-v-accent text-v-accent-text hover:bg-v-accent-hover',
     'secondary' => 'bg-v-surface text-v-text border border-v-border hover:bg-v-hover',
-    'danger'    => 'bg-v-danger text-white hover:opacity-90',
+    'danger'    => 'bg-v-danger text-v-danger-text hover:opacity-90',
     'ghost'     => 'text-v-secondary hover:text-v-text hover:bg-v-hover',
 ];
-$classes = "$base {$sizes[$size]} {$variants[$variant]}";
+$sizeClass = $sizes[$size] ?? $sizes['md'];
+$variantClass = $variants[$variant] ?? $variants['primary'];
+$classes = "$base $sizeClass $variantClass";
 @endphp
 @if ($href)
 <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }}>{{ $slot }}</a>

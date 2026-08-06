@@ -90,6 +90,18 @@ document.addEventListener('submit', (e) => {
     form.querySelectorAll('button[type="submit"]').forEach((b) => b.setAttribute('data-loading', 'true'));
 });
 
+// bfcache restore (browser Back after a submit) leaves the frozen DOM with
+// the submit-guard still latched: buttons stuck spinning and the form
+// inert. pageshow fires on bfcache restore (and on a normal load), so use
+// it to clear the guard for every data-v-form on the page. Mirrors the
+// storefront fix in commit 5e0fa9b.
+window.addEventListener('pageshow', () => {
+    document.querySelectorAll('form[data-v-form]').forEach((form) => {
+        delete form.dataset.vSubmitting;
+        form.querySelectorAll('button[type="submit"]').forEach((b) => b.removeAttribute('data-loading'));
+    });
+});
+
 // Rows with data-href navigate on click, unless the click hit an
 // interactive element inside the row (link, button, input).
 // Supports modifier clicks (ctrl/cmd) to open in new tab.
