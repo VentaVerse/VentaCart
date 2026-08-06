@@ -128,11 +128,14 @@ class ShippingPageTest extends TestCase
         $this->actingAs(User::factory()->create());
         Store::firstOrCreate(['id' => 1], ['name' => 'Test Store', 'code' => 'test']);
 
-        $countryId = Country::value('id') ?? 1;
+        $country = Country::firstOrCreate(
+            ['iso2' => 'PH'],
+            ['iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '+63', 'is_active' => true]
+        );
 
         $response = $this->from(route('admin.shipping-settings.index'))
             ->post(route('admin.shipping-settings.test'), [
-                'country_id' => $countryId,
+                'country_id' => $country->id,
                 'province' => 'Metro Manila',
                 'city' => 'Quezon City',
                 'weight' => 1.5,

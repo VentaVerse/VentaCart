@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Country;
 use App\Models\CustomerGroup;
 use App\Models\FlatShippingRate;
 use App\Models\FreeShippingRule;
@@ -79,9 +80,12 @@ class ShippingSettingController extends Controller
             ],
         ];
 
+        $countries = Country::orderBy('name')->get();
+        $defaultCountryId = Country::where('iso2', 'PH')->value('id') ?? $countries->first()?->id ?? 1;
+
         return view('admin.shipping-settings.index', compact(
             'settings', 'maskedKeys', 'flatRates', 'weightMethods', 'geoZones', 'customerGroups',
-            'freeShippingRules', 'chain'
+            'freeShippingRules', 'chain', 'countries', 'defaultCountryId'
         ));
     }
 }

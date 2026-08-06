@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Country;
 use App\Services\Shipping\ShippingQuoteService;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,7 @@ class ShippingTestController extends Controller
     public function __invoke(Request $request, ShippingQuoteService $quotes)
     {
         $data = $request->validate([
-            'country_id' => ['required', 'integer'],
+            'country_id' => ['required', 'integer', 'exists:countries,id'],
             'province' => ['nullable', 'string', 'max:100'],
             'city' => ['nullable', 'string', 'max:100'],
             'postcode' => ['nullable', 'string', 'max:20'],
