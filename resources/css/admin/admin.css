@@ -5,4 +5,5 @@
 @import "./components/table.css";
 @import "./components/palette.css";
 @import "./components/settings.css";
+@import "./components/dashboard.css";
 @import "./layout/shell.css";

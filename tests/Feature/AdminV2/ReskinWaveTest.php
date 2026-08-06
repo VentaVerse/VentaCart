@@ -5,6 +5,7 @@ namespace Tests\Feature\AdminV2;
 use App\Models\AbandonedCartNotification;
 use App\Models\AbandonedCartRule;
 use App\Models\ApiSyncLog;
+use App\Models\Automation;
 use App\Models\BankAccount;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
@@ -15,6 +16,7 @@ use App\Models\Category;
 use App\Models\Coupon;
 use App\Models\Country;
 use App\Models\Customer;
+use App\Models\CustomerActivity;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
 use App\Models\FlatShippingRate;
@@ -31,6 +33,7 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Role;
+use App\Models\SeoSuggestion;
 use App\Models\ShippingCourier;
 use App\Models\Store;
 use App\Models\Tag;
@@ -935,5 +938,98 @@ class ReskinWaveTest extends TestCase
             'id' => $courier->id,
             'is_active' => false,
         ]);
+    }
+
+    public function test_dashboard_renders_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+
+        Order::create([
+            'store_id' => 1,
+            'order_status_id' => $status->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'subtotal' => 1000,
+            'shipping_cost' => 100,
+            'total' => 1100,
+        ]);
+
+        $product = Product::create(['store_id' => 1, 'name' => 'Distortion Pedal', 'slug' => 'distortion-pedal', 'price' => 1000]);
+
+        // Pending review + SEO suggestion + a stale cart exercise the
+        // "Needs Attention" card's three linked counts.
+        Review::create([
+            'product_id' => $product->id,
+            'token' => Str::random(32),
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'rating' => 5,
+            'title' => 'Great pedal',
+            'body' => 'Loved it.',
+            'status' => 'pending',
+        ]);
+
+        SeoSuggestion::create([
+            'product_id' => $product->id,
+            'entity_type' => Product::class,
+            'entity_id' => $product->id,
+            'status' => 'pending',
+            'generated_at' => now(),
+        ]);
+
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail']);
+        $customer = Customer::create([
+            'store_id' => 1,
+            'customer_group_id' => $group->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane2@example.com',
+            'password' => 'secret',
+            'is_active' => true,
+        ]);
+
+        $cart = Cart::create(['store_id' => 1, 'customer_id' => $customer->id]);
+        $cart->timestamps = false;
+        $cart->update(['updated_at' => now()->subDays(2)]);
+        CartItem::create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'name' => $product->name,
+            'price' => 1000,
+        ]);
+
+        // Renders through CustomerActivity::color, now returning v-* tokens
+        // directly (re-centralized from the local map in customers/form).
+        CustomerActivity::create([
+            'customer_id' => $customer->id,
+            'type' => 'order_placed',
+            'description' => 'Placed an order',
+            'created_at' => now(),
+        ]);
+
+        // Enabled, daily-at-16:00 automation last run 10 days ago is always
+        // overdue regardless of when the test runs — exercises the danger
+        // branch of the automation health strip.
+        Automation::create([
+            'key' => 'currency_update',
+            'name' => 'Currency Exchange Rates',
+            'command' => 'currency:update',
+            'schedule_preset' => 'daily',
+            'schedule_params' => ['hour' => 16, 'minute' => 0],
+            'cron_expression' => '0 16 * * *',
+            'enabled' => true,
+            'last_run_at' => now()->subDays(10),
+            'last_run_status' => 'success',
+        ]);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('v-admin', false)
+            ->assertSee('Revenue Today')
+            ->assertSee('Overdue');
     }
 }
