@@ -1,82 +1,78 @@
-<x-admin-layout>
-    <x-slot name="header">Users</x-slot>
-    <x-slot name="headerActions">
-        <a href="{{ route('admin.users.create') }}" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Add User</a>
-    </x-slot>
+<x-admin.shell title="Users">
+    <x-admin.page title="Users" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+        <x-slot:actions>
+            <x-admin.button variant="primary" href="{{ route('admin.users.create') }}">
+                <x-admin.icon name="plus" class="w-4 h-4" /> Add User
+            </x-admin.button>
+        </x-slot:actions>
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created</th>
-                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse ($users as $user)
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 text-sm font-medium text-gray-900">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                                        {{ strtoupper(substr($user->name, 0, 1)) }}
-                                    </div>
-                                    {{ $user->name }}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-600">{{ $user->email }}</td>
-                            <td class="px-6 py-4 text-sm">
-                                @if ($user->role)
-                                    @php
-                                        $badgeColor = match($user->role->slug) {
-                                            'super-admin' => 'bg-purple-100 text-purple-700',
-                                            'store-manager' => 'bg-blue-100 text-blue-700',
-                                            default => 'bg-gray-100 text-gray-700',
-                                        };
-                                    @endphp
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ $badgeColor }}">{{ $user->role->name }}</span>
-                                @else
-                                    <span class="text-gray-400 text-xs">No role</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm">
-                                @if ($user->is_active)
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-700">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                        Active
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                        Inactive
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $user->created_at->format('M j, Y') }}</td>
-                            <td class="px-6 py-4 text-sm text-right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.users.edit', $user) }}" class="text-indigo-600 hover:text-indigo-800 text-xs font-medium">Edit</a>
-                                    @if ($user->id !== auth()->id())
-                                        <form method="POST" action="{{ route('admin.users.destroy', $user) }}" class="inline" onsubmit="return confirm('Delete this user?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-800 text-xs font-medium">Delete</button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="px-6 py-12 text-center text-sm text-gray-500">No users found.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-</x-admin-layout>
+        <x-admin.table>
+            <x-slot:head>
+                <x-admin.table.th>Name</x-admin.table.th>
+                <x-admin.table.th>Email</x-admin.table.th>
+                <x-admin.table.th>Role</x-admin.table.th>
+                <x-admin.table.th>Status</x-admin.table.th>
+                <x-admin.table.th>Created</x-admin.table.th>
+                <x-admin.table.th align="right">Actions</x-admin.table.th>
+            </x-slot:head>
+            @forelse ($users as $user)
+                <x-admin.table.row href="{{ route('admin.users.edit', $user) }}">
+                    <x-admin.table.cell>
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-v-accent-weak text-xs font-bold text-v-accent">
+                                {{ strtoupper(substr($user->name, 0, 1)) }}
+                            </div>
+                            <span class="text-[13px] font-medium text-v-text">{{ $user->name }}</span>
+                        </div>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell>
+                        <span class="text-[13px] text-v-secondary">{{ $user->email }}</span>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell>
+                        @if ($user->role)
+                            @php
+                                $tone = match ($user->role->slug) {
+                                    'super-admin' => 'danger',
+                                    'store-manager' => 'info',
+                                    default => 'neutral',
+                                };
+                            @endphp
+                            <x-admin.badge :tone="$tone">{{ $user->role->name }}</x-admin.badge>
+                        @else
+                            <span class="text-xs text-v-muted">No role</span>
+                        @endif
+                    </x-admin.table.cell>
+                    <x-admin.table.cell>
+                        <x-admin.badge :tone="$user->is_active ? 'success' : 'neutral'">
+                            {{ $user->is_active ? 'Active' : 'Inactive' }}
+                        </x-admin.badge>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell>
+                        <span class="text-[13px] text-v-secondary">{{ $user->created_at->format('M j, Y') }}</span>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell align="right">
+                        <div class="flex items-center justify-end gap-3">
+                            <a href="{{ route('admin.users.edit', $user) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
+                            @if ($user->id !== auth()->id())
+                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-user-{{ $user->id }}')">Delete</button>
+                            @endif
+                        </div>
+                    </x-admin.table.cell>
+                </x-admin.table.row>
+            @empty
+                <tr>
+                    <td colspan="6" class="px-4 py-2">
+                        <x-admin.empty-state icon="customers" title="No users found." />
+                    </td>
+                </tr>
+            @endforelse
+        </x-admin.table>
+
+        @foreach ($users as $user)
+            @if ($user->id !== auth()->id())
+                <x-admin.confirm-dialog name="delete-user-{{ $user->id }}" title="Delete {{ $user->name }}?"
+                    message="This cannot be undone." confirm="Delete" :action="route('admin.users.destroy', $user)" method="DELETE" />
+            @endif
+        @endforeach
+    </x-admin.page>
+</x-admin.shell>

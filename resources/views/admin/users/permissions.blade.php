@@ -1,49 +1,40 @@
-<x-admin-layout>
-    <x-slot name="header">Role Permissions</x-slot>
+<x-admin.shell title="Role Permissions">
+    <x-admin.page title="Role Permissions" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+        <x-admin.card>
+            <form method="POST" action="{{ route('admin.permissions.update') }}" data-v-form>
+                @csrf
 
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <form method="POST" action="{{ route('admin.permissions.update') }}">
-            @csrf
-
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Permission</th>
-                            @foreach ($roles as $role)
-                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">{{ $role->name }}</th>
-                            @endforeach
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach ($groups as $group => $perms)
-                            <tr class="bg-gray-50/50">
-                                <td colspan="{{ $roles->count() + 1 }}" class="px-4 py-2">
-                                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ ucfirst($group) }}</span>
-                                </td>
-                            </tr>
-                            @foreach ($perms as $permission)
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-2 text-sm text-gray-700 pl-8">{{ $permission->name }}</td>
-                                    @foreach ($roles as $role)
-                                        <td class="px-4 py-2 text-center">
-                                            <input type="checkbox"
-                                                name="permissions[{{ $role->id }}][]"
-                                                value="{{ $permission->id }}"
-                                                {{ $role->permissions->contains($permission->id) ? 'checked' : '' }}
-                                                class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                        </td>
-                                    @endforeach
-                                </tr>
-                            @endforeach
+                <x-admin.table>
+                    <x-slot:head>
+                        <x-admin.table.th>Permission</x-admin.table.th>
+                        @foreach ($roles as $role)
+                            <x-admin.table.th align="right">{{ $role->name }}</x-admin.table.th>
                         @endforeach
-                    </tbody>
-                </table>
-            </div>
+                    </x-slot:head>
+                    @foreach ($groups as $group => $perms)
+                        <tr class="bg-v-sunken">
+                            <td colspan="{{ $roles->count() + 1 }}" class="px-4 py-2">
+                                <span class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ ucfirst($group) }}</span>
+                            </td>
+                        </tr>
+                        @foreach ($perms as $permission)
+                            <tr class="v-row">
+                                <td class="px-4 py-2 pl-8 text-[13px] text-v-text">{{ $permission->name }}</td>
+                                @foreach ($roles as $role)
+                                    <td class="px-4 py-2 text-right">
+                                        <x-admin.checkbox :name="'permissions[' . $role->id . '][]'" :value="$permission->id"
+                                            :checked="$role->permissions->contains($permission->id)" />
+                                    </td>
+                                @endforeach
+                            </tr>
+                        @endforeach
+                    @endforeach
+                </x-admin.table>
 
-            <div class="p-4 border-t border-gray-200">
-                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save Permissions</button>
-            </div>
-        </form>
-    </div>
-</x-admin-layout>
+                <x-admin.form-actions>
+                    <x-admin.button type="submit">Save Permissions</x-admin.button>
+                </x-admin.form-actions>
+            </form>
+        </x-admin.card>
+    </x-admin.page>
+</x-admin.shell>

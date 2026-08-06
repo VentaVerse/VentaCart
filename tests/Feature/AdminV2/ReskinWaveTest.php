@@ -23,12 +23,15 @@ use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
 use App\Models\Page;
+use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\Role;
 use App\Models\Store;
 use App\Models\Tag;
 use App\Models\User;
 use App\Models\WeightBasedMethod;
+use App\Models\Zone;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -742,5 +745,80 @@ class ReskinWaveTest extends TestCase
         // Restrictions omitted from the payload are all cleared (syncRestrictions
         // deletes existing rows before re-creating from the submitted fields).
         $this->assertEquals(0, $coupon->restrictions()->count());
+    }
+
+    public function test_spokes_wave1_pages_render_in_new_shell(): void
+    {
+        $role = Role::create(['name' => 'Super Admin', 'slug' => 'super-admin']);
+        $this->actingAs(User::factory()->create(['role_id' => $role->id]));
+
+        $country = Country::create(['iso2' => 'PH', 'iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]);
+        $zone = Zone::create(['country_id' => $country->id, 'name' => 'Metro Manila', 'code' => 'MM', 'is_active' => true]);
+        $geoZone = GeoZone::create(['name' => 'Domestic', 'description' => 'PH-wide', 'is_active' => true]);
+        $geoZone->entries()->create(['country_id' => $country->id, 'zone_id' => $zone->id]);
+
+        $editableUser = User::factory()->create(['role_id' => $role->id]);
+
+        Permission::create(['name' => 'View Orders', 'slug' => 'orders.view', 'group' => 'orders']);
+
+        $template = EmailTemplate::create([
+            'store_id' => 1,
+            'slug' => 'welcome',
+            'name' => 'Welcome Email',
+            'subject' => 'Welcome!',
+            'body' => 'Hi {customer_name}',
+            'type' => 'customer',
+            'is_active' => true,
+        ]);
+
+        $routes = [
+            route('admin.localization.index'),
+            route('admin.localization.index', ['tab' => 'zones', 'country' => $country->id]),
+            route('admin.localization.index', ['tab' => 'geo-zones']),
+            route('admin.localization.edit-geo-zone', $geoZone),
+            route('admin.users.index'),
+            route('admin.users.create'),
+            route('admin.users.edit', $editableUser),
+            route('admin.permissions.index'),
+            route('admin.email-templates.index'),
+            route('admin.email-templates.edit', $template),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+    }
+
+    public function test_permissions_matrix_round_trip_syncs_role_permissions(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $managerRole = Role::create(['name' => 'Store Manager', 'slug' => 'store-manager']);
+        $supportRole = Role::create(['name' => 'Support', 'slug' => 'support']);
+
+        $viewOrders = Permission::create(['name' => 'View Orders', 'slug' => 'orders.view', 'group' => 'orders']);
+        $editOrders = Permission::create(['name' => 'Edit Orders', 'slug' => 'orders.edit', 'group' => 'orders']);
+        $viewProducts = Permission::create(['name' => 'View Products', 'slug' => 'products.view', 'group' => 'products']);
+
+        // Support role starts with an assignment that the round-trip below must clear
+        // (sync() replaces the full set, matching RolePermissionController::update).
+        $supportRole->permissions()->attach($viewProducts->id);
+
+        $this->post(route('admin.permissions.update'), [
+            'permissions' => [
+                $managerRole->id => [$viewOrders->id, $editOrders->id],
+                $supportRole->id => [$viewOrders->id],
+            ],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('role_permission', ['role_id' => $managerRole->id, 'permission_id' => $viewOrders->id]);
+        $this->assertDatabaseHas('role_permission', ['role_id' => $managerRole->id, 'permission_id' => $editOrders->id]);
+        $this->assertDatabaseHas('role_permission', ['role_id' => $supportRole->id, 'permission_id' => $viewOrders->id]);
+
+        // Support's prior product-view grant was dropped since it wasn't resubmitted.
+        $this->assertDatabaseMissing('role_permission', ['role_id' => $supportRole->id, 'permission_id' => $viewProducts->id]);
+
+        $this->assertEquals(2, $managerRole->permissions()->count());
+        $this->assertEquals(1, $supportRole->permissions()->count());
     }
 }
