@@ -14,8 +14,8 @@ class PaymentRestrictionController extends Controller
      * into the Availability tab of the payment method detail page
      * (admin-v2 sales-channels plan, Task 5) — their views are gone, so
      * these GET actions are now pure redirects. Kept as controller methods
-     * (rather than route closures) because production caches routes via
-     * `php artisan route:cache`, which cannot serialize closures.
+     * (rather than route closures) for testability and to keep them
+     * consistent with the rest of this controller's actions.
      */
     public function index()
     {

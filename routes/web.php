@@ -406,12 +406,11 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
 
     // Payment Restrictions — the standalone index/create/edit pages have been
     // absorbed into the payment method detail page's Availability tab
-    // (Task 5 of the admin-v2 sales-channels plan). The GET pages now 302
-    // into the corresponding payments page (see PaymentRestrictionController
-    // index/create/edit — routed via controller methods, not closures,
-    // because `php artisan route:cache` in docker/entrypoint.sh cannot
-    // serialize closure-based routes). The resource POST/PUT/DELETE and
-    // toggle endpoints are unchanged and still power the Availability form.
+    // (Task 5 of the admin-v2 sales-channels plan); their views are deleted,
+    // so the GET pages now 302 into the corresponding payments page (see
+    // PaymentRestrictionController index/create/edit — routed via controller
+    // methods, not closures, for testability). The resource POST/PUT/DELETE
+    // and toggle endpoints are unchanged and still power the Availability form.
     Route::get('payment-restrictions', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'index'])->name('payment-restrictions.index');
     Route::get('payment-restrictions/create', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'create'])->name('payment-restrictions.create');
     Route::get('payment-restrictions/{paymentRestriction}/edit', [\App\Http\Controllers\Admin\PaymentRestrictionController::class, 'edit'])->name('payment-restrictions.edit');
