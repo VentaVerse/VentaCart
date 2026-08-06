@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Extensions;
 
 use App\Http\Controllers\Controller;
+use App\Models\Automation;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
@@ -48,8 +49,12 @@ class SeoExtensionController extends Controller
         $gsc = new GoogleSearchConsoleService();
         $topQueries = $gsc->isConfigured() ? $gsc->getSearchPerformance(28, 5) : [];
 
+        // Cron visibility for the dashboard's Automation status card — the
+        // schedule itself is edited in Settings > Automations, this is read-only.
+        $seoAutomation = Automation::where('key', 'seo_generate')->first();
+
         return view('admin.extensions.seo.dashboard', compact(
-            'healthScores', 'pendingCount', 'recentSuggestions', 'topQueries'
+            'healthScores', 'pendingCount', 'recentSuggestions', 'topQueries', 'seoAutomation'
         ));
     }
 
