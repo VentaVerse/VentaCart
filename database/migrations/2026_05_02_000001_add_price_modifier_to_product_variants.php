@@ -33,15 +33,18 @@ return new class extends Migration {
             });
         }
 
-        // Raw UPDATE must apply the configured table prefix manually — the
-        // query builder and Schema facade do this automatically, but
-        // DB::statement() goes straight to MySQL with the literal name.
-        $prefix = DB::getTablePrefix();
-        DB::statement("
-            UPDATE {$prefix}product_variants pv
-            JOIN {$prefix}products p ON pv.product_id = p.id
-            SET pv.price_modifier = pv.price - p.price
-        ");
+        // Backfilled via the query builder (not a raw UPDATE...JOIN) so this
+        // migration runs on any supported driver, not just MySQL.
+        DB::table('product_variants')
+            ->join('products', 'product_variants.product_id', '=', 'products.id')
+            ->select('product_variants.id as variant_id', 'product_variants.price as variant_price', 'products.price as product_price')
+            ->orderBy('product_variants.id')
+            ->get()
+            ->each(function ($row) {
+                DB::table('product_variants')
+                    ->where('id', $row->variant_id)
+                    ->update(['price_modifier' => $row->variant_price - $row->product_price]);
+            });
     }
 
     public function down(): void
