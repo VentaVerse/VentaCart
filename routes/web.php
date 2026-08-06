@@ -395,6 +395,7 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
 
     // Payment Settings (standalone)
     Route::get('/payment-settings', [PaymentSettingController::class, 'index'])->name('payment-settings.index');
+    Route::get('payment-settings/{method}', fn () => abort(404))->name('payment-settings.show');
 
     // Bank Accounts
     Route::post('bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
