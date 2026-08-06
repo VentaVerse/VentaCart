@@ -1,0 +1,2 @@
+.v-admin .v-control { transition: border-color var(--motion-fast), box-shadow var(--motion-fast); }
+.v-admin .v-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
