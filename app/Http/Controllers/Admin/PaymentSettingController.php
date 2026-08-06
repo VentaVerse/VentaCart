@@ -71,9 +71,10 @@ class PaymentSettingController extends Controller
         $cards = [];
         foreach (self::FAMILIES as $family => $meta) {
             $restriction = $restrictions->get($family);
+            $displayName = $settings['payment']["{$family}_display_name"] ?? '';
             $cards[] = [
                 'family' => $family,
-                'name' => $settings['payment']["{$family}_display_name"] ?? $meta['default_name'],
+                'name' => !empty($displayName) ? $displayName : $meta['default_name'],
                 'description' => $meta['description'],
                 'enabled' => ($settings['payment']["{$family}_enabled"] ?? '0') === '1',
                 'restricted' => $restriction !== null,

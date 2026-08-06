@@ -33,4 +33,18 @@ class PaymentsPageTest extends TestCase
 
         $this->get(route('admin.payment-settings.index'))->assertSee('Restricted');
     }
+
+    public function test_detail_page_renders_config_tab_per_method(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('admin.payment-settings.show', 'cod'))
+            ->assertOk()->assertSee('Configuration')->assertSee('Availability')
+            ->assertSee('settings[cod_display_name]', false);
+
+        $this->get(route('admin.payment-settings.show', 'hitpay'))
+            ->assertOk()->assertSee('settings[hitpay_mode]', false);
+
+        $this->get(route('admin.payment-settings.show', 'nope'))->assertNotFound();
+    }
 }

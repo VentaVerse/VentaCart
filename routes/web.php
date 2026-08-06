@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\HomepageSectionController;
 use App\Http\Controllers\Admin\NavMenuController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\BankAccountController;
+use App\Http\Controllers\Admin\PaymentMethodPageController;
 use App\Http\Controllers\Admin\PaymentSettingController;
 use App\Http\Controllers\Admin\RolePermissionController;
 use App\Http\Controllers\Admin\ShippingSettingController;
@@ -395,7 +396,7 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
 
     // Payment Settings (standalone)
     Route::get('/payment-settings', [PaymentSettingController::class, 'index'])->name('payment-settings.index');
-    Route::get('payment-settings/{method}', fn () => abort(404))->name('payment-settings.show');
+    Route::get('payment-settings/{method}', [PaymentMethodPageController::class, 'show'])->name('payment-settings.show');
 
     // Bank Accounts
     Route::post('bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');

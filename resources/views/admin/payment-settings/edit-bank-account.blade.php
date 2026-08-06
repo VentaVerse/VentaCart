@@ -1,7 +1,7 @@
 <x-admin-layout>
     <x-slot name="header">Edit Bank Account: {{ $bankAccount->bank_name }}</x-slot>
     <x-slot name="headerActions">
-        <a href="{{ route('admin.payment-settings.index', ['tab' => 'bank-transfer']) }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
+        <a href="{{ route('admin.payment-settings.show', 'bank_transfer') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors">
             Back to Payment
         </a>
     </x-slot>
@@ -75,7 +75,7 @@
         </div>
 
         <div class="flex justify-end gap-3 mt-6">
-            <a href="{{ route('admin.payment-settings.index', ['tab' => 'bank-transfer']) }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">Cancel</a>
+            <a href="{{ route('admin.payment-settings.show', 'bank_transfer') }}" class="px-6 py-2.5 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300">Cancel</a>
             <button type="submit" class="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Update Bank Account</button>
         </div>
     </form>

@@ -32,7 +32,7 @@ class BankAccountController extends Controller
 
         BankAccount::create($validated);
 
-        return redirect()->route('admin.payment-settings.index', ['tab' => 'bank-transfer'])
+        return redirect()->route('admin.payment-settings.show', 'bank_transfer')
             ->with('success', 'Bank account added.');
     }
 
@@ -75,7 +75,7 @@ class BankAccountController extends Controller
         unset($validated['remove_qr']);
         $bankAccount->update($validated);
 
-        return redirect()->route('admin.payment-settings.index', ['tab' => 'bank-transfer'])
+        return redirect()->route('admin.payment-settings.show', 'bank_transfer')
             ->with('success', 'Bank account updated.');
     }
 
@@ -87,7 +87,7 @@ class BankAccountController extends Controller
 
         $bankAccount->delete();
 
-        return redirect()->route('admin.payment-settings.index', ['tab' => 'bank-transfer'])
+        return redirect()->route('admin.payment-settings.show', 'bank_transfer')
             ->with('success', 'Bank account removed.');
     }
 }
