@@ -1,78 +1,81 @@
-<x-admin-layout>
-    <x-slot name="header">Products</x-slot>
-    <x-slot name="headerActions">
-        <button type="button" @click="$dispatch('open-product-modal')" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Add Product
-        </button>
-    </x-slot>
+<x-admin.shell title="Products">
+    <x-admin.page title="Products" :breadcrumb="[['label' => 'Catalog']]">
+        <x-slot:actions>
+            <x-admin.button type="button" variant="primary" @click="$dispatch('open-product-modal')">
+                <x-admin.icon name="plus" class="w-4 h-4" /> Add Product
+            </x-admin.button>
+        </x-slot:actions>
 
-    {{-- Filters --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-        <form method="GET" action="{{ route('admin.products.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div>
-                <input type="text" name="search" value="{{ request('search') }}" placeholder="Search name, SKU..."
-                    class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-            </div>
-            <div>
-                <select name="category_id" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="">All Categories</option>
-                    @foreach ($categories as $category)
-                        <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <select name="status" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="">All Status</option>
-                    <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                    <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                </select>
-            </div>
-            <div class="flex space-x-2">
-                <button type="submit" class="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors">Filter</button>
-                <a href="{{ route('admin.products.index') }}" class="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300 transition-colors">Clear</a>
-            </div>
-        </form>
-    </div>
+        <div class="space-y-5">
+            {{-- Filters --}}
+            <x-admin.card>
+                <form method="GET" action="{{ route('admin.products.index') }}" class="flex flex-wrap items-end gap-3">
+                    <div class="min-w-[220px] flex-1">
+                        <x-admin.field name="search" label="Search">
+                            <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search name, SKU..." />
+                        </x-admin.field>
+                    </div>
+                    <div class="w-52">
+                        <x-admin.field name="category_id" label="Category">
+                            <x-admin.select name="category_id">
+                                <option value="">All Categories</option>
+                                @foreach ($categories as $category)
+                                    <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                                @endforeach
+                            </x-admin.select>
+                        </x-admin.field>
+                    </div>
+                    <div class="w-44">
+                        <x-admin.field name="status" label="Status">
+                            <x-admin.select name="status">
+                                <option value="">All Status</option>
+                                <option value="active" @selected(request('status') === 'active')>Active</option>
+                                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+                            </x-admin.select>
+                        </x-admin.field>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <x-admin.button type="submit" variant="primary">Filter</x-admin.button>
+                        @if (request('search') || request('category_id') || request('status'))
+                            <a href="{{ route('admin.products.index') }}" class="text-[13px] text-v-muted underline hover:text-v-text">Clear</a>
+                        @endif
+                    </div>
+                </form>
+            </x-admin.card>
 
-    {{-- Products Table --}}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
+            {{-- Products --}}
+            <x-admin.table>
+                <x-slot:head>
+                    <x-admin.table.th>Product</x-admin.table.th>
+                    <x-admin.table.th>SKU</x-admin.table.th>
+                    <x-admin.table.th align="right">Price</x-admin.table.th>
+                    <x-admin.table.th align="right">Stock</x-admin.table.th>
+                    <x-admin.table.th>Status</x-admin.table.th>
+                    <x-admin.table.th align="right">Actions</x-admin.table.th>
+                </x-slot:head>
                 @forelse ($products as $product)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 h-10 w-10">
+                    <x-admin.table.row href="{{ route('admin.products.edit', $product) }}">
+                        <x-admin.table.cell>
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 shrink-0 overflow-hidden rounded-v-md bg-v-sunken">
                                     @if ($product->image)
-                                        <img class="h-10 w-10 rounded-lg object-cover" src="{{ storage_url($product->image) }}" alt="{{ $product->name }}">
+                                        <img class="h-10 w-10 object-cover" src="{{ storage_url($product->image) }}" alt="{{ $product->name }}">
                                     @else
-                                        <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
-                                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        <div class="flex h-10 w-10 items-center justify-center text-v-muted">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         </div>
                                     @endif
                                 </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900">{{ $product->name }}</div>
+                                <div class="min-w-0">
+                                    <div class="truncate font-medium text-v-text">{{ $product->name }}</div>
                                     @if ($product->has_variants)
-                                        <div class="text-xs text-indigo-600">{{ $product->variants->count() }} variants</div>
+                                        <div class="text-xs text-v-accent">{{ $product->variants->count() }} variants</div>
                                     @endif
                                 </div>
                             </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">{{ $product->sku ?? '-' }}</td>
-                        <td class="px-6 py-4 text-sm text-gray-900">
+                        </x-admin.table.cell>
+                        <x-admin.table.cell mono>{{ $product->sku ?? '-' }}</x-admin.table.cell>
+                        <x-admin.table.cell align="right" mono>
                             @if ($product->has_variants)
                                 @php
                                     $minPrice = $product->variants->min('price');
@@ -86,105 +89,114 @@
                             @else
                                 {{ number_format($product->price, 2) }}
                             @endif
-                        </td>
-                        <td class="px-6 py-4 text-sm text-gray-500">
+                        </x-admin.table.cell>
+                        <x-admin.table.cell align="right" mono>
                             @if ($product->has_variants)
                                 {{ $product->variants->sum('quantity') }}
                             @else
                                 {{ $product->quantity }}
                             @endif
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $product->is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                        </x-admin.table.cell>
+                        <x-admin.table.cell>
+                            <x-admin.badge :tone="$product->is_active ? 'success' : 'neutral'">
                                 {{ $product->is_active ? 'Active' : 'Inactive' }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right text-sm">
-                            <a href="{{ route('admin.products.edit', $product) }}" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</a>
-                            <form method="POST" action="{{ route('admin.products.destroy', $product) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this product?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
+                            </x-admin.badge>
+                        </x-admin.table.cell>
+                        <x-admin.table.cell align="right">
+                            <div class="flex items-center justify-end gap-3">
+                                <a href="{{ route('admin.products.edit', $product) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
+                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-product-{{ $product->id }}')">Delete</button>
+                            </div>
+                        </x-admin.table.cell>
+                    </x-admin.table.row>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
-                            No products found. <a href="{{ route('admin.products.create') }}" class="text-indigo-600 hover:underline">Create your first product</a>.
+                        <td colspan="6" class="px-4 py-2">
+                            <x-admin.empty-state icon="products" title="No products found"
+                                :description="(request('search') || request('category_id') || request('status')) ? 'Try adjusting your filters.' : null">
+                                <a href="{{ route('admin.products.create') }}" class="text-[13px] text-v-accent hover:underline">Create your first product</a>
+                            </x-admin.empty-state>
                         </td>
                     </tr>
                 @endforelse
-            </tbody>
-        </table>
+                @if ($products->hasPages())
+                    <x-slot:footer>
+                        {{ $products->links() }}
+                    </x-slot:footer>
+                @endif
+            </x-admin.table>
+        </div>
 
-        @if ($products->hasPages())
-            <div class="px-6 py-4 border-t border-gray-200">
-                {{ $products->links() }}
-            </div>
-        @endif
-    </div>
+        @foreach ($products as $product)
+            <x-admin.confirm-dialog name="delete-product-{{ $product->id }}" title="Delete {{ $product->name }}?"
+                message="This permanently removes the product, its images, variants, and pricing. This cannot be undone."
+                confirm="Delete" :action="route('admin.products.destroy', $product)" method="DELETE" />
+        @endforeach
 
-    {{-- Quick Create Product Modal --}}
-    <div x-data="{
-            open: false, name: '', brandId: '', brandSearch: '', brandResults: [], saving: false, error: '',
-            async searchBrands() {
-                if (this.brandSearch.length < 1) { this.brandResults = []; return; }
-                const res = await fetch('{{ route('admin.brands.search') }}?store_id={{ config('app.store_id', 1) }}&q=' + encodeURIComponent(this.brandSearch));
-                this.brandResults = await res.json();
-            },
-            selectBrand(brand) {
-                this.brandId = brand.id;
-                this.brandSearch = brand.name;
-                this.brandResults = [];
-            }
-         }"
-         @open-product-modal.window="open = true; name = ''; brandId = ''; brandSearch = ''; error = ''"
-         x-show="open" x-transition.opacity
-         class="fixed inset-0 z-50 flex items-center justify-center p-4"
-         style="background: rgba(0,0,0,0.4); backdrop-filter: blur(2px);">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6" @click.outside="open = false" @keydown.escape.window="open = false">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">New Product</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Brand</label>
-                    <div class="relative">
-                        <input type="text" x-model="brandSearch" @input.debounce.300ms="searchBrands()" @keydown.enter.prevent
-                            class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Search brand...">
-                        <div x-show="brandResults.length > 0" class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                            <template x-for="brand in brandResults" :key="brand.id">
-                                <button type="button" @click="selectBrand(brand)" class="w-full text-left px-3 py-2 text-sm hover:bg-gray-50" x-text="brand.name"></button>
-                            </template>
+        {{-- Quick Create Product Modal --}}
+        <div x-data="{
+                open: false, name: '', brandId: '', brandSearch: '', brandResults: [], saving: false, error: '',
+                async searchBrands() {
+                    if (this.brandSearch.length < 1) { this.brandResults = []; return; }
+                    const res = await fetch('{{ route('admin.brands.search') }}?store_id={{ config('app.store_id', 1) }}&q=' + encodeURIComponent(this.brandSearch));
+                    this.brandResults = await res.json();
+                },
+                selectBrand(brand) {
+                    this.brandId = brand.id;
+                    this.brandSearch = brand.name;
+                    this.brandResults = [];
+                }
+             }"
+             @open-product-modal.window="open = true; name = ''; brandId = ''; brandSearch = ''; error = ''"
+             x-show="open" x-cloak x-transition.opacity
+             class="fixed inset-0 z-[90] flex items-center justify-center p-4">
+            <div class="absolute inset-0 bg-black/50" @click="open = false"></div>
+            <div class="relative w-full max-w-md rounded-v-lg border border-v-border bg-v-surface p-6 shadow-2xl"
+                 @click.outside="open = false" @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-label="New Product">
+                <h3 class="mb-4 text-[15px] font-semibold text-v-text">New Product</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="mb-1 block text-[13px] font-medium text-v-text">Brand</label>
+                        <div class="relative">
+                            <input type="text" x-model="brandSearch" @input.debounce.300ms="searchBrands()" @keydown.enter.prevent
+                                class="v-control h-[var(--control-h)] w-full rounded-v-md border border-v-border bg-v-surface px-3 text-[13px] text-v-text placeholder:text-v-muted"
+                                placeholder="Search brand...">
+                            <div x-show="brandResults.length > 0" x-cloak class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-lg">
+                                <template x-for="brand in brandResults" :key="brand.id">
+                                    <button type="button" @click="selectBrand(brand)" class="block w-full px-3 py-2 text-left text-[13px] text-v-text hover:bg-v-hover" x-text="brand.name"></button>
+                                </template>
+                            </div>
                         </div>
+                        <p x-show="brandId" x-cloak class="mt-1 text-xs text-v-accent">Selected: <span x-text="brandSearch"></span></p>
                     </div>
-                    <p x-show="brandId" class="mt-1 text-xs text-emerald-600">Selected: <span x-text="brandSearch"></span></p>
+                    <div>
+                        <label class="mb-1 block text-[13px] font-medium text-v-text">Product Name</label>
+                        <input type="text" x-model="name"
+                            class="v-control h-[var(--control-h)] w-full rounded-v-md border border-v-border bg-v-surface px-3 text-[13px] text-v-text placeholder:text-v-muted"
+                            placeholder="e.g. Boss DS-1 Distortion Pedal">
+                    </div>
+                    <p x-show="error" x-cloak x-text="error" class="text-[13px] text-v-danger"></p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
-                    <input type="text" x-model="name"
-                        class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. Boss DS-1 Distortion Pedal">
+                <div class="mt-6 flex justify-end gap-2">
+                    <x-admin.button type="button" variant="secondary" @click="open = false">Cancel</x-admin.button>
+                    <x-admin.button type="button" variant="primary"
+                        x-bind:disabled="saving || !name.trim() || !brandId"
+                        @click="
+                            saving = true; error = '';
+                            fetch('{{ route('admin.products.quick-create') }}', {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify({ name: name.trim(), brand_id: brandId })
+                            }).then(function(r) { return r.json(); }).then(function(d) {
+                                if (d.success) { window.location.href = d.redirect; }
+                                else { error = d.message || 'Failed to create product.'; saving = false; }
+                            }).catch(function() { error = 'Network error.'; saving = false; });
+                        ">
+                        <span x-show="!saving">Create &amp; Edit</span>
+                        <span x-show="saving" x-cloak>Creating...</span>
+                    </x-admin.button>
                 </div>
-                <p x-show="error" x-text="error" class="text-sm text-red-600"></p>
-            </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button type="button" @click="open = false" class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
-                <button type="button" :disabled="saving || !name.trim() || !brandId"
-                    @click="
-                        saving = true; error = '';
-                        fetch('{{ route('admin.products.quick-create') }}', {
-                            method: 'POST',
-                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                            body: JSON.stringify({ name: name.trim(), brand_id: brandId })
-                        }).then(function(r) { return r.json(); }).then(function(d) {
-                            if (d.success) { window.location.href = d.redirect; }
-                            else { error = d.message || 'Failed to create product.'; saving = false; }
-                        }).catch(function() { error = 'Network error.'; saving = false; });
-                    "
-                    class="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-                    <span x-show="!saving">Create & Edit</span>
-                    <span x-show="saving">Creating...</span>
-                </button>
             </div>
         </div>
-    </div>
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

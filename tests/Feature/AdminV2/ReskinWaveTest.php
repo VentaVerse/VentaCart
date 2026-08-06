@@ -4,8 +4,10 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\AbandonedCartNotification;
 use App\Models\AbandonedCartRule;
+use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\CartItem;
+use App\Models\Category;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
@@ -94,6 +96,108 @@ class ReskinWaveTest extends TestCase
             'order_id' => $order->id,
             'order_status_id' => $processing->id,
             'comment' => 'Moving to processing',
+        ]);
+    }
+
+    public function test_products_pages_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $brand = Brand::create(['store_id' => 1, 'name' => 'Boss', 'slug' => 'boss']);
+        $category = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);
+
+        $product = Product::create([
+            'store_id' => 1,
+            'brand_id' => $brand->id,
+            'name' => 'Distortion Pedal',
+            'slug' => 'distortion-pedal',
+            'price' => 1000,
+        ]);
+        $product->categories()->attach($category->id);
+
+        $routes = [
+            route('admin.products.index'),
+            route('admin.products.create'),
+            route('admin.products.edit', $product),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+    }
+
+    public function test_product_update_round_trip_with_variant_payload(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $brand = Brand::create(['store_id' => 1, 'name' => 'Boss', 'slug' => 'boss']);
+
+        $product = Product::create([
+            'store_id' => 1,
+            'brand_id' => $brand->id,
+            'name' => 'Distortion Pedal',
+            'slug' => 'distortion-pedal',
+            'price' => 1000,
+        ]);
+
+        $payload = [
+            'store_id' => 1,
+            'name' => 'Distortion Pedal V2',
+            'brand_id' => $brand->id,
+            'price' => '1000.00',
+            'is_active' => '1',
+            'track_stock' => '1',
+            'variant_types' => [
+                ['name' => 'Color', 'values' => ['Red', 'Blue']],
+            ],
+            'variants' => [
+                [
+                    'sku' => 'DIST-RED',
+                    'modifier_sign' => '+',
+                    'modifier_amount' => '50.00',
+                    'quantity' => 10,
+                    'value_keys' => ['0_0'],
+                    'is_active' => '1',
+                ],
+                [
+                    'sku' => 'DIST-BLUE',
+                    'modifier_sign' => '-',
+                    'modifier_amount' => '25.00',
+                    'quantity' => 5,
+                    'value_keys' => ['0_1'],
+                    'is_active' => '1',
+                ],
+            ],
+        ];
+
+        $this->put(route('admin.products.update', $product), $payload)
+            ->assertRedirect(route('admin.products.edit', $product));
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'name' => 'Distortion Pedal V2',
+            'has_variants' => true,
+            'quantity' => 15,
+        ]);
+        $this->assertDatabaseHas('variant_types', [
+            'product_id' => $product->id,
+            'name' => 'Color',
+        ]);
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'sku' => 'DIST-RED',
+            'price' => 1050.00,
+            'price_modifier' => 50.00,
+            'quantity' => 10,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('product_variants', [
+            'product_id' => $product->id,
+            'sku' => 'DIST-BLUE',
+            'price' => 975.00,
+            'price_modifier' => -25.00,
+            'quantity' => 5,
+            'is_active' => true,
         ]);
     }
 
