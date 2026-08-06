@@ -27,7 +27,7 @@ class WeightBasedMethodController extends Controller
         $method->customerGroups()->sync($request->input('customer_group_ids', []));
         $this->syncRates($method, $request->input('rates', []));
 
-        return redirect(route('admin.shipping-settings.index') . '#panel-weight-based')
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
             ->with('success', 'Weight-based method created.');
     }
 
@@ -48,7 +48,7 @@ class WeightBasedMethodController extends Controller
         $weightBasedMethod->customerGroups()->sync($request->input('customer_group_ids', []));
         $this->syncRates($weightBasedMethod, $request->input('rates', []));
 
-        return redirect(route('admin.shipping-settings.index') . '#panel-weight-based')
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
             ->with('success', 'Weight-based method updated.');
     }
 
@@ -72,7 +72,7 @@ class WeightBasedMethodController extends Controller
             $this->syncRates($method, $data['rates'] ?? []);
         }
 
-        return redirect(route('admin.shipping-settings.index') . '#panel-weight-based')
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
             ->with('success', count($methods) . ' method(s) updated.');
     }
 
@@ -89,7 +89,7 @@ class WeightBasedMethodController extends Controller
             $copy->rates()->create($rate->only(['weight_from', 'weight_to', 'cost']));
         }
 
-        return redirect(route('admin.shipping-settings.index') . '#panel-weight-based')
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
             ->with('success', 'Method duplicated as "' . $copy->admin_name . '".');
     }
 
@@ -97,7 +97,7 @@ class WeightBasedMethodController extends Controller
     {
         $weightBasedMethod->delete();
 
-        return redirect(route('admin.shipping-settings.index') . '#panel-weight-based')
+        return redirect()->route('admin.shipping-settings.index', ['tab' => 'weight-based'])
             ->with('success', 'Weight-based method deleted.');
     }
 
