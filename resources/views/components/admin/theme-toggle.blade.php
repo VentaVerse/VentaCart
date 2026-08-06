@@ -1,13 +1,13 @@
 <div x-data="{
         pref: (() => {
             try {
-                return localStorage.getItem('vTheme') || 'system';
+                return localStorage.getItem('vTheme') || 'light';
             } catch (e) {
-                return 'system';
+                return 'light';
             }
         })(),
         cycle() {
-            this.pref = this.pref === 'system' ? 'light' : (this.pref === 'light' ? 'dark' : 'system');
+            this.pref = this.pref === 'light' ? 'dark' : (this.pref === 'dark' ? 'system' : 'light');
             try {
                 localStorage.setItem('vTheme', this.pref);
             } catch (e) {
@@ -22,8 +22,8 @@
     }">
     <button type="button" @click="cycle()" class="p-1.5 rounded-v-md text-v-secondary hover:text-v-text hover:bg-v-hover"
             :title="'Theme: ' + pref">
-        <x-admin.icon name="sun" x-show="pref === 'light'" x-cloak class="w-4 h-4" />
+        <x-admin.icon name="sun" x-show="pref === 'light'" class="w-4 h-4" />
         <x-admin.icon name="moon" x-show="pref === 'dark'" x-cloak class="w-4 h-4" />
-        <x-admin.icon name="monitor" x-show="pref === 'system'" class="w-4 h-4" />
+        <x-admin.icon name="monitor" x-show="pref === 'system'" x-cloak class="w-4 h-4" />
     </button>
 </div>
