@@ -20,6 +20,7 @@ document.addEventListener('alpine:init', () => {
         results: [],
         selected: 0,
         searchTimer: null,
+        controller: null,
         init() {
             window.addEventListener('open-palette', () => this.show());
             window.addEventListener('keydown', (e) => {
@@ -51,10 +52,21 @@ document.addEventListener('alpine:init', () => {
             clearTimeout(this.searchTimer);
             if (this.q.length < 2) return;
             this.searchTimer = setTimeout(async () => {
-                const res = await fetch(`${searchUrl}?q=${encodeURIComponent(this.q)}`, { headers: { Accept: 'application/json' } });
-                if (!res.ok) return;
-                const data = await res.json();
-                this.results = [...this.pageMatches(this.q), ...data.results];
+                this.controller?.abort();
+                this.controller = new AbortController();
+                try {
+                    const res = await fetch(`${searchUrl}?q=${encodeURIComponent(this.q)}`, {
+                        headers: { Accept: 'application/json' },
+                        signal: this.controller.signal,
+                    });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    this.results = [...this.pageMatches(this.q), ...data.results];
+                } catch (e) {
+                    // Aborted (superseded by a newer request) or network error:
+                    // keep the current results (page matches) silently.
+                    return;
+                }
             }, 200);
         },
         go() {
