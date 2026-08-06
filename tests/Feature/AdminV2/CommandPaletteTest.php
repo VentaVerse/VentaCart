@@ -30,4 +30,12 @@ class CommandPaletteTest extends TestCase
             ->assertSee('vPalette', false)
             ->assertSee('Dashboard'); // registry destination serialized into the page
     }
+
+    public function test_palette_embeds_settings_destinations(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->blade('<x-admin.command-palette />')
+            ->assertSee('Settings: Mail')
+            ->assertSee('smtp', false);
+    }
 }

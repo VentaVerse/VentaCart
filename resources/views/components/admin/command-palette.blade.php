@@ -1,4 +1,4 @@
-<div x-data="vPalette(@js(\App\Support\AdminNav::paletteEntries(Auth::user())), @js(route('admin.palette.search')))"
+<div x-data="vPalette(@js(array_merge(\App\Support\AdminNav::paletteEntries(Auth::user()), \App\Support\SettingsNav::paletteEntries(Auth::user()))), @js(route('admin.palette.search')))"
      x-show="open" x-cloak
      x-on:keydown.escape.window="open = false"
      class="fixed inset-0 z-[95] flex items-start justify-center pt-[15vh] px-4">
