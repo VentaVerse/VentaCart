@@ -259,7 +259,7 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
     Route::resource('tags', TagController::class)->except(['show']);
 
     // Settings
-    Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
+    Route::get('/settings', [\App\Http\Controllers\Admin\SettingsHubController::class, 'index'])->name('settings.index');
     Route::get('settings/section/{section}', fn (string $section) => abort(404))->name('settings.section');
     Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
     Route::post('/settings/test-mail', [SettingController::class, 'testMail'])->name('settings.test-mail');
