@@ -9,8 +9,10 @@ use App\Models\CustomerActivity;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Review;
 use App\Models\SeoSuggestion;
+use App\Models\Setting;
 use Cron\CronExpression;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -38,10 +40,7 @@ class DashboardController extends Controller
             ->whereIn('order_status_id', $this->pendingStatusIds($storeId))
             ->count();
 
-        $lowStockCount = Product::where('is_active', true)
-            ->where('quantity', '>', 0)
-            ->where('quantity', '<=', 5)
-            ->count();
+        $lowStockCount = $this->lowStockCount();
 
         // === Recent orders ===
         $recentOrders = Order::where('store_id', $storeId)
@@ -92,6 +91,34 @@ class DashboardController extends Controller
             ->whereIn('name', ['Pending', 'Unpaid'])
             ->pluck('id')
             ->all();
+    }
+
+    /**
+     * Source of truth: App\Console\Commands\CheckLowStock (stock:check-low).
+     * Mirrors its threshold lookup and product/variant predicates exactly —
+     * read-only, no alerts sent, no LowStockAlert rows touched — so this
+     * stat always agrees with what the alerting system considers low stock.
+     */
+    private function lowStockCount(): int
+    {
+        $threshold = (int) (Setting::where('group', 'stock')->where('key', 'low_stock_threshold')->value('value') ?: 5);
+
+        $productCount = Product::where('is_active', true)
+            ->where('track_stock', true)
+            ->where('has_variants', false)
+            ->where('quantity', '>', 0)
+            ->where('quantity', '<=', $threshold)
+            ->count();
+
+        $variantCount = ProductVariant::where('is_active', true)
+            ->where('quantity', '>', 0)
+            ->where('quantity', '<=', $threshold)
+            ->whereHas('product', function ($q) {
+                $q->where('is_active', true)->where('track_stock', true);
+            })
+            ->count();
+
+        return $productCount + $variantCount;
     }
 
     /**
