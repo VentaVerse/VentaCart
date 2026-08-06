@@ -10,7 +10,7 @@
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center justify-between gap-2">
                                 <h3 class="text-[14px] font-semibold text-v-text">{{ $module['name'] }}</h3>
-                                <x-admin.badge :tone="$module['enabled'] ? 'success' : 'neutral'">{{ $module['status_label'] }}</x-admin.badge>
+                                <x-admin.badge :tone="$module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')">{{ $module['status_label'] }}</x-admin.badge>
                             </div>
                             <p class="mt-1 text-[13px] leading-snug text-v-secondary">{{ $module['description'] }}</p>
                             <div class="mt-3 flex items-center justify-between">

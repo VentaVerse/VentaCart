@@ -14,12 +14,14 @@ class ModuleController extends Controller
 {
     public function index()
     {
-        $automations = Automation::whereIn('key', ['seo_generate', 'stock_notify'])->get()->keyBy('key');
+        $automations = Automation::whereIn('key', ['seo_generate', 'stock_notify', 'stock_check_low'])->get()->keyBy('key');
         $flags = Setting::whereIn('group', ['stock', 'abandoned_cart'])->get()
             ->groupBy('group')->map(fn ($rows) => $rows->pluck('value', 'key'));
 
-        $stockAlertEnabled = ($flags['stock']['low_stock_alert_enabled'] ?? '0') === '1'
-            && (bool) ($automations['stock_notify']->enabled ?? false);
+        $backInStock = (bool) ($automations['stock_notify']->enabled ?? false);
+        $lowStock = ($flags['stock']['low_stock_alert_enabled'] ?? '0') === '1'
+            && (bool) ($automations['stock_check_low']->enabled ?? false);
+        $stockAlertEnabled = $backInStock || $lowStock;
         $seoAutoEnabled = (bool) ($automations['seo_generate']->enabled ?? false);
         $abandonedCartEnabled = ($flags['abandoned_cart']['enabled'] ?? '0') === '1';
         $bannersInstalled = class_exists(\Extensions\Banners\BannerServiceProvider::class);
@@ -41,8 +43,9 @@ class ModuleController extends Controller
                 'description' => 'Back-in-stock customer emails and low-stock admin warnings.',
                 'icon' => 'warning',
                 'enabled' => $stockAlertEnabled,
-                'status_label' => $stockAlertEnabled ? 'Active' : 'Disabled',
-                'stats' => StockNotification::count() . ' subscribers',
+                'status_label' => 'Back-in-stock ' . ($backInStock ? 'on' : 'off') . ' · Low-stock ' . ($lowStock ? 'on' : 'off'),
+                'tone' => ($backInStock && $lowStock) ? 'success' : (($backInStock || $lowStock) ? 'warning' : 'neutral'),
+                'stats' => StockNotification::where('status', 'waiting')->count() . ' waiting',
                 'configure' => route('admin.stock-notifications.index'),
             ],
             [
