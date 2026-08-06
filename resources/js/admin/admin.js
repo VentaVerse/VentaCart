@@ -13,6 +13,59 @@ document.addEventListener('alpine:init', () => {
             this.items = this.items.filter((t) => t.id !== id);
         },
     });
+
+    window.Alpine.data('vPalette', (destinations, searchUrl) => ({
+        open: false,
+        q: '',
+        results: [],
+        selected: 0,
+        searchTimer: null,
+        init() {
+            window.addEventListener('open-palette', () => this.show());
+            window.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                    e.preventDefault();
+                    this.show();
+                }
+            });
+        },
+        show() {
+            this.open = true;
+            this.q = '';
+            this.results = this.pageMatches('');
+            this.selected = 0;
+            this.$nextTick(() => this.$refs.input.focus());
+        },
+        pageMatches(q) {
+            const needle = q.toLowerCase();
+            return destinations
+                .filter((d) => !needle
+                    || d.label.toLowerCase().includes(needle)
+                    || d.keywords.some((k) => k.toLowerCase().includes(needle)))
+                .slice(0, 8)
+                .map((d) => ({ label: d.label, sub: d.group, url: d.url, group: 'Pages' }));
+        },
+        search() {
+            this.results = this.pageMatches(this.q);
+            this.selected = 0;
+            clearTimeout(this.searchTimer);
+            if (this.q.length < 2) return;
+            this.searchTimer = setTimeout(async () => {
+                const res = await fetch(`${searchUrl}?q=${encodeURIComponent(this.q)}`, { headers: { Accept: 'application/json' } });
+                if (!res.ok) return;
+                const data = await res.json();
+                this.results = [...this.pageMatches(this.q), ...data.results];
+            }, 200);
+        },
+        go() {
+            const hit = this.results[this.selected];
+            if (hit) window.location.assign(hit.url);
+        },
+        move(delta) {
+            const max = this.results.length - 1;
+            this.selected = Math.min(Math.max(this.selected + delta, 0), Math.max(max, 0));
+        },
+    }));
 });
 
 // Any form marked data-v-form: on submit, flip its submit buttons into the

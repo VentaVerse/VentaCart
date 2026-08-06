@@ -92,7 +92,7 @@
         </div>
     </div>
     <x-admin.toasts />
-    {{-- <x-admin.command-palette /> : enabled in Task 10 --}}
+    <x-admin.command-palette />
     @stack('scripts')
 </body>
 </html>

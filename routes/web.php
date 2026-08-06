@@ -150,6 +150,8 @@ Route::prefix('account')->name('account.')->middleware(['customer.auth', 'noinde
 Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 'admin'))->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+    Route::get('palette/search', [\App\Http\Controllers\Admin\PaletteController::class, 'search'])->name('palette.search');
+
     Route::post('products/quick-create', [ProductController::class, 'quickCreate'])->name('products.quick-create');
     Route::resource('products', ProductController::class)->except(['show']);
     Route::resource('categories', CategoryController::class)->except(['show']);
