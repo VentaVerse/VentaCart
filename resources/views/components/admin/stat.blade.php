@@ -4,5 +4,5 @@ $tones = ['default' => 'text-v-text', 'accent' => 'text-v-accent', 'warning' => 
 @endphp
 <div {{ $attributes->merge(['class' => 'bg-v-surface border border-v-border rounded-v-lg px-4 py-3']) }}>
     <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ $label }}</p>
-    <p class="v-num mt-1 text-xl font-medium {{ $tones[$tone] }}">{{ $value }}</p>
+    <p class="v-num mt-1 text-xl font-medium {{ $tones[$tone] ?? $tones['default'] }}">{{ $value }}</p>
 </div>
