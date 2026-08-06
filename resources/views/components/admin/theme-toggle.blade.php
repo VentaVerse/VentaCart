@@ -1,0 +1,19 @@
+<div x-data="{
+        pref: localStorage.getItem('vTheme') || 'system',
+        cycle() {
+            this.pref = this.pref === 'system' ? 'light' : (this.pref === 'light' ? 'dark' : 'system');
+            localStorage.setItem('vTheme', this.pref);
+            this.apply();
+        },
+        apply() {
+            const dark = this.pref === 'dark' || (this.pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        },
+    }">
+    <button type="button" @click="cycle()" class="p-1.5 rounded-v-md text-v-secondary hover:text-v-text hover:bg-v-hover"
+            :title="'Theme: ' + pref">
+        <x-admin.icon name="sun" x-show="pref === 'light'" class="w-4 h-4" />
+        <x-admin.icon name="moon" x-show="pref === 'dark'" x-cloak class="w-4 h-4" />
+        <x-admin.icon name="monitor" x-show="pref === 'system'" x-cloak class="w-4 h-4" />
+    </button>
+</div>
