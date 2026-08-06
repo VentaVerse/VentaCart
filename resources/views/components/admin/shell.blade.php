@@ -10,17 +10,18 @@
     @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body class="v-admin min-h-screen" x-data="{ mobileNav: false }">
+<body class="v-admin min-h-screen" x-data="{ mobileNav: false }" x-on:keydown.escape.window="mobileNav = false">
     <div class="flex min-h-screen">
         {{-- Mobile overlay --}}
         <div x-show="mobileNav" x-transition.opacity x-cloak class="fixed inset-0 z-40 bg-black/50 lg:hidden" @click="mobileNav = false"></div>
 
         {{-- Sidebar --}}
         <aside :class="mobileNav ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+               role="dialog" aria-modal="true" aria-label="Navigation"
                class="v-sidebar fixed inset-y-0 z-50 flex w-[var(--sidebar-w)] flex-col bg-v-sunken border-r border-v-border transition-transform duration-200">
             <div class="flex h-11 items-center px-4 border-b border-v-border">
                 <a href="{{ route('admin.dashboard') }}" class="text-[15px] font-semibold text-v-text">{{ config('app.name') }}</a>
-                <button class="ml-auto lg:hidden text-v-muted hover:text-v-text" @click="mobileNav = false">
+                <button class="ml-auto lg:hidden text-v-muted hover:text-v-text" @click="mobileNav = false" aria-label="Close navigation">
                     <x-admin.icon name="x" class="w-4 h-4" />
                 </button>
             </div>
@@ -72,7 +73,7 @@
         {{-- Main --}}
         <div class="flex-1 lg:ml-[var(--sidebar-w)]">
             <header class="sticky top-0 z-20 flex h-11 items-center gap-3 border-b border-v-border bg-v-canvas/80 px-4 backdrop-blur sm:px-6">
-                <button class="lg:hidden text-v-secondary hover:text-v-text" @click="mobileNav = true">
+                <button class="lg:hidden text-v-secondary hover:text-v-text" @click="mobileNav = true" aria-label="Open navigation">
                     <x-admin.icon name="menu" class="w-5 h-5" />
                 </button>
                 <div class="min-w-0 flex-1" id="v-topbar-slot"></div>
