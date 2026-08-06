@@ -60,4 +60,45 @@ class SettingsSectionTest extends TestCase
     {
         $this->assertFileDoesNotExist(resource_path('views/admin/settings/index.blade.php'));
     }
+
+    public function test_api_section_renders_new_erp_token_flash_with_copy_control(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->withSession(['new_erp_token' => 'plaintext-erp-token-abc123'])
+            ->get(route('admin.settings.section', 'api'))
+            ->assertOk()
+            ->assertSee('New token generated', false)
+            ->assertSee('plaintext-erp-token-abc123', false)
+            ->assertSee('Copy', false);
+    }
+
+    public function test_api_section_masks_plaintext_erp_token_on_decrypt_failure(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        \App\Models\Setting::updateOrCreate(
+            ['group' => 'api', 'key' => 'erp_token'],
+            ['value' => 'plaintext-erp-token-abc123']
+        );
+
+        $expectedMask = str_repeat('•', strlen('plaintext-erp-token-abc123') - 4).'c123';
+
+        $this->get(route('admin.settings.section', 'api'))
+            ->assertOk()
+            ->assertSee($expectedMask, false); // masked fallback keeps the last 4 chars, not a bare bullet placeholder
+    }
+
+    public function test_mail_section_driver_options_match_supported_set(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get(route('admin.settings.section', 'mail'));
+
+        $response->assertOk();
+        $response->assertSee('<option value="smtp"', false);
+        $response->assertSee('<option value="mail"', false);
+        $response->assertDontSee('<option value="sendmail"', false);
+        $response->assertDontSee('<option value="log"', false);
+    }
 }

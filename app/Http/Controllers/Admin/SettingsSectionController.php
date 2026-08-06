@@ -57,10 +57,12 @@ class SettingsSectionController extends Controller
             if (! empty($group[$key])) {
                 try {
                     $plain = Crypt::decryptString($group[$key]);
-                    $masked[$key] = str_repeat('•', max(strlen($plain) - 4, 0)).substr($plain, -4);
                 } catch (\Throwable) {
-                    $masked[$key] = '••••';
+                    // Fallback: value may not be encrypted yet (e.g. ERP token stored plaintext).
+                    // Mirrors ErpApiAuth's own decrypt-failure fallback.
+                    $plain = $group[$key];
                 }
+                $masked[$key] = str_repeat('•', max(strlen($plain) - 4, 0)).substr($plain, -4);
             }
         }
 

@@ -2,11 +2,30 @@
     <div class="space-y-6">
         <x-admin.card title="ERP token" description="Used by the ERP system to authenticate API requests. Keep it secret.">
             <div class="space-y-4">
-                <div>
-                    <p class="text-[13px] font-mono text-v-text">
-                        {{ $maskedKeys['erp_token'] ?? 'Not generated' }}
-                    </p>
-                </div>
+                @if (session('new_erp_token'))
+                    <div class="rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] p-4"
+                         x-data="{ copied: false, copy() {
+                             navigator.clipboard.writeText($refs.newTokenInput.value).then(() => {
+                                 this.copied = true;
+                                 setTimeout(() => this.copied = false, 2000);
+                             });
+                             $refs.newTokenInput.select();
+                         } }">
+                        <p class="text-[13px] font-medium text-v-warning">New token generated — copy it now. It will not be shown again in full.</p>
+                        <div class="mt-2 flex items-center gap-2">
+                            <input type="text" x-ref="newTokenInput" readonly value="{{ session('new_erp_token') }}"
+                                   onclick="this.select()"
+                                   class="v-control flex-1 h-[var(--control-h)] rounded-v-md border border-v-border bg-v-surface px-2.5 font-mono text-[13px] text-v-text">
+                            <x-admin.button variant="secondary" type="button" @click="copy()" x-text="copied ? 'Copied!' : 'Copy'">Copy</x-admin.button>
+                        </div>
+                    </div>
+                @else
+                    <div>
+                        <p class="text-[13px] font-mono text-v-text">
+                            {{ $maskedKeys['erp_token'] ?? 'Not generated' }}
+                        </p>
+                    </div>
+                @endif
                 <x-admin.button variant="danger" type="button" @click="$dispatch('open-modal', 'regen-token')">
                     {{ isset($maskedKeys['erp_token']) ? 'Regenerate token' : 'Generate token' }}
                 </x-admin.button>

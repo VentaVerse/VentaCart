@@ -7,7 +7,7 @@
                 <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'mail') }}">
                 <x-admin.field name="settings[driver]" label="Driver">
                     <x-admin.select name="settings[driver]">
-                        @foreach (['smtp' => 'SMTP', 'sendmail' => 'Sendmail', 'log' => 'Log (testing)'] as $v => $label)
+                        @foreach (['smtp' => 'SMTP', 'mail' => 'PHP Mail / Sendmail'] as $v => $label)
                             <option value="{{ $v }}" @selected(($settings['mail']['driver'] ?? 'smtp') === $v)>{{ $label }}</option>
                         @endforeach
                     </x-admin.select>

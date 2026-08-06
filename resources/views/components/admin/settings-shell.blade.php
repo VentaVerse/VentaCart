@@ -5,7 +5,7 @@
         <div class="flex gap-8">
             {{-- Sub-sidebar (desktop) --}}
             <nav class="hidden lg:block w-[13.5rem] shrink-0">
-                <div class="sticky top-16 space-y-4">
+                <div class="sticky top-11 space-y-4">
                     <a href="{{ route('admin.settings.index') }}" class="flex items-center gap-1.5 text-xs font-medium text-v-secondary hover:text-v-text">
                         <x-admin.icon name="chevron-right" class="w-3 h-3 rotate-180" /> All Settings
                     </a>

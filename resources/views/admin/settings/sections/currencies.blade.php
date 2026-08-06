@@ -69,7 +69,7 @@
                                         <input type="hidden" name="symbol" value="{{ $cur->symbol }}">
                                         <input type="hidden" name="rate" value="{{ $cur->rate }}">
                                         <input type="hidden" name="is_enabled" value="{{ $cur->is_enabled ? 0 : 1 }}">
-                                        <button type="submit" class="{{ $cur->is_enabled ? 'text-amber-600 hover:text-amber-700' : 'text-v-accent hover:underline' }}">
+                                        <button type="submit" class="{{ $cur->is_enabled ? 'text-v-warning hover:underline' : 'text-v-accent hover:underline' }}">
                                             {{ $cur->is_enabled ? 'Disable' : 'Enable' }}
                                         </button>
                                     </form>
