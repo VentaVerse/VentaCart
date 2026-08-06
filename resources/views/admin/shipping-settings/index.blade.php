@@ -1,357 +1,435 @@
-<x-admin-layout>
-    <x-slot name="header">Shipping</x-slot>
+<x-admin.shell title="Shipping">
+    <x-admin.page title="Shipping" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
 
-    @php
-        $extensions = [
-            ['id' => 'flat-rate', 'label' => 'Flat Rate', 'enabled' => ($settings['shipping']['flat_rate_enabled'] ?? '0') === '1'],
-            ['id' => 'weight-based', 'label' => 'Weight-Based', 'enabled' => ($settings['shipping']['weight_based_enabled'] ?? '0') === '1'],
-            ['id' => 'free-shipping', 'label' => 'Free Shipping', 'enabled' => true],
-            ['id' => 'dhl', 'label' => 'DHL Express', 'enabled' => ($settings['shipping']['dhl_enabled'] ?? '0') === '1'],
-        ];
-    @endphp
-
-    <div x-data="{ active: '{{ request('tab', session('tab', 'flat-rate')) }}' }" class="flex flex-col lg:flex-row gap-6">
-        {{-- Left sidebar --}}
-        <nav class="w-full lg:w-52 lg:shrink-0">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-4 py-3 border-b border-gray-100">
-                    <h3 class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Extensions</h3>
-                </div>
-                @foreach ($extensions as $ext)
-                    <button type="button" @click="active = '{{ $ext['id'] }}'"
-                        :class="active === '{{ $ext['id'] }}' ? 'bg-indigo-50 text-indigo-700 border-l-2 border-indigo-500' : 'text-gray-600 hover:bg-gray-50 border-l-2 border-transparent'"
-                        class="flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium transition-colors text-left">
-                        <span>{{ $ext['label'] }}</span>
-                        <span class="w-2 h-2 rounded-full shrink-0 {{ $ext['enabled'] ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                    </button>
-                @endforeach
-            </div>
-        </nav>
-
-        {{-- Right content --}}
-        <div class="flex-1 min-w-0">
-
-            {{-- ==================== FLAT RATE ==================== --}}
-            <div x-show="active === 'flat-rate'" class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="flex items-center justify-between p-5 border-b border-gray-100">
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-900">Flat Rate Shipping</h3>
-                        <p class="text-xs text-gray-500 mt-0.5">Fixed-cost shipping methods with custom names</p>
+        {{--
+            Chain strip — numbered in the REAL evaluation order from
+            ShippingQuoteService::getProviders(): Free Shipping, Weight Based,
+            Flat Rate, DHL. If a free-shipping rule matches, it overrides every
+            paid method below it, which is why it has no enable toggle of its
+            own — its "on" state is simply "does an active rule exist".
+        --}}
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
+            @foreach ($chain as $i => $provider)
+                <x-admin.card>
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-v-sunken text-[13px] font-semibold text-v-secondary">{{ $i + 1 }}</span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-2">
+                                <h3 class="text-[14px] font-semibold text-v-text">{{ $provider['label'] }}</h3>
+                                @if ($provider['settingKey'])
+                                    <form method="POST" action="{{ route('admin.settings.update') }}">
+                                        @csrf
+                                        <input type="hidden" name="group" value="shipping">
+                                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
+                                        <x-admin.toggle name="settings[{{ $provider['settingKey'] }}]" :checked="$provider['active']"
+                                            x-on:change="$el.closest('form').submit()" />
+                                    </form>
+                                @else
+                                    <x-admin.badge :tone="$provider['active'] ? 'success' : 'neutral'">
+                                        {{ $provider['active'] ? 'Active' : 'No active rules' }}
+                                    </x-admin.badge>
+                                @endif
+                            </div>
+                            <p class="mt-1 text-[13px] leading-snug text-v-secondary">{{ $provider['description'] }}</p>
+                            @if ($provider['id'] === 'free-shipping')
+                                <p class="mt-1.5 text-[11px] text-v-muted">Overrides every paid method below when a rule matches.</p>
+                            @endif
+                            <div class="mt-3 flex items-center justify-end">
+                                <x-admin.button variant="ghost" size="sm" href="#panel-{{ $provider['id'] }}">Configure →</x-admin.button>
+                            </div>
+                        </div>
                     </div>
-                    <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
+                </x-admin.card>
+            @endforeach
+        </div>
+
+        <div class="space-y-8">
+
+            {{-- ==================== FREE SHIPPING ==================== --}}
+            <x-admin.card id="panel-free-shipping" title="Free Shipping Rules"
+                description="First matching rule applies. Full condition editing lives on the dedicated rules page.">
+                <x-slot name="headerActions">
+                    <x-admin.button variant="secondary" size="sm" :href="route('admin.free-shipping-rules.index')">Manage rules →</x-admin.button>
+                </x-slot>
+
+                @if ($freeShippingRules->isEmpty())
+                    <x-admin.empty-state icon="cart" title="No free shipping rules"
+                        description="Create a rule to automatically waive shipping when conditions are met.">
+                        <x-admin.button variant="primary" size="sm" :href="route('admin.free-shipping-rules.create')">Add rule</x-admin.button>
+                    </x-admin.empty-state>
+                @else
+                    <x-admin.table>
+                        <x-slot:head>
+                            <x-admin.table.th>Rule</x-admin.table.th>
+                            <x-admin.table.th>Conditions</x-admin.table.th>
+                            <x-admin.table.th>Order</x-admin.table.th>
+                            <x-admin.table.th>Status</x-admin.table.th>
+                            <x-admin.table.th align="right">Actions</x-admin.table.th>
+                        </x-slot:head>
+                        @foreach ($freeShippingRules as $rule)
+                            <x-admin.table.row>
+                                <x-admin.table.cell><span class="font-medium text-v-text">{{ $rule->name }}</span></x-admin.table.cell>
+                                <x-admin.table.cell><span class="text-v-secondary">{{ $rule->getConditionsSummary() }}</span></x-admin.table.cell>
+                                <x-admin.table.cell><span class="text-v-secondary">{{ $rule->sort_order }}</span></x-admin.table.cell>
+                                <x-admin.table.cell>
+                                    <form method="POST" action="{{ route('admin.free-shipping-rules.toggle', $rule) }}" data-v-form>
+                                        @csrf
+                                        <button type="submit">
+                                            <x-admin.badge :tone="$rule->is_active ? 'success' : 'neutral'">
+                                                {{ $rule->is_active ? 'Active' : 'Disabled' }}
+                                            </x-admin.badge>
+                                        </button>
+                                    </form>
+                                </x-admin.table.cell>
+                                <x-admin.table.cell align="right">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <a href="{{ route('admin.free-shipping-rules.edit', $rule) }}" class="text-xs font-medium text-v-accent hover:underline">Edit</a>
+                                        <button type="button" class="text-xs font-medium text-v-danger hover:underline"
+                                            @click="$dispatch('open-modal', 'delete-fsr-{{ $rule->id }}')">Delete</button>
+                                    </div>
+                                </x-admin.table.cell>
+                            </x-admin.table.row>
+                        @endforeach
+                    </x-admin.table>
+                @endif
+            </x-admin.card>
+            @foreach ($freeShippingRules as $rule)
+                <x-admin.confirm-dialog name="delete-fsr-{{ $rule->id }}" title="Delete “{{ $rule->name }}”?"
+                    message="This free shipping rule will stop applying immediately." confirm="Delete"
+                    :action="route('admin.free-shipping-rules.destroy', $rule)" method="DELETE" />
+            @endforeach
+
+            {{-- ==================== WEIGHT BASED ==================== --}}
+            <x-admin.card id="panel-weight-based" title="Weight Based"
+                description="Cost tiers based on cart weight. Click a method to expand and edit.">
+                <x-slot name="headerActions">
+                    <x-admin.button variant="primary" size="sm" :href="route('admin.weight-based-methods.create')">Add method</x-admin.button>
+                </x-slot>
+
+                @if ($weightMethods->isEmpty())
+                    <x-admin.empty-state icon="fulfillment" title="No weight-based methods"
+                        description="Create tiers priced by cart weight.">
+                        <x-admin.button variant="primary" size="sm" :href="route('admin.weight-based-methods.create')">Add method</x-admin.button>
+                    </x-admin.empty-state>
+                @else
+                    <form method="POST" action="{{ route('admin.weight-based-methods.bulk-update') }}" data-v-form>
                         @csrf
-                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
-                        <input type="hidden" name="group" value="shipping">
-                        <input type="hidden" name="_tab" value="flat-rate">
-                        <input type="hidden" name="settings[flat_rate_enabled]" value="0">
-                        <label class="flex items-center gap-2 text-sm cursor-pointer">
-                            <input type="checkbox" name="settings[flat_rate_enabled]" value="1" {{ ($settings['shipping']['flat_rate_enabled'] ?? '0') === '1' ? 'checked' : '' }}
-                                class="rounded border-gray-300 text-indigo-600" onchange="this.form.submit()">
-                            Enabled
-                        </label>
-                    </form>
-                </div>
-                <div class="p-5">
-                    <div class="overflow-hidden rounded-lg border border-gray-200 mb-4">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Geo Zone</th>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase">Group</th>
-                                    <th class="px-4 py-2.5 text-left text-xs font-medium text-gray-500 uppercase w-24">Cost</th>
-                                    <th class="px-4 py-2.5 text-center text-xs font-medium text-gray-500 uppercase w-16">Status</th>
-                                    <th class="px-4 py-2.5 text-right text-xs font-medium text-gray-500 uppercase w-20"></th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                @forelse ($flatRates as $fr)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-4 py-2 text-sm font-medium text-gray-900">{{ $fr->name ?: 'Unnamed' }}</td>
-                                        <td class="px-4 py-2 text-sm text-gray-500">{{ $fr->geoZone?->name ?? 'All' }}</td>
-                                        <td class="px-4 py-2 text-sm text-gray-500">{{ $fr->customerGroup?->name ?? 'All' }}</td>
-                                        <td class="px-4 py-2 text-sm text-gray-700 font-medium">₱{{ number_format($fr->cost, 2) }}</td>
-                                        <td class="px-4 py-2 text-center">
-                                            <span class="w-2 h-2 rounded-full inline-block {{ $fr->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                                        </td>
-                                        <td class="px-4 py-2 text-right">
-                                            <a href="{{ route('admin.flat-rates.edit', $fr) }}" class="text-indigo-600 hover:text-indigo-900 text-xs mr-2">Edit</a>
-                                            <form method="POST" action="{{ route('admin.flat-rates.destroy', $fr) }}" class="inline" onsubmit="return confirm('Delete?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="text-red-500 hover:text-red-700 text-xs">Delete</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="px-4 py-8 text-center text-gray-400 text-sm">No flat rate methods configured</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    <a href="{{ route('admin.flat-rates.create') }}" class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                        Add Flat Rate
-                    </a>
-                </div>
-            </div>
+                        @method('PUT')
+                        <div class="border border-v-border rounded-v-lg divide-y divide-v-border overflow-hidden">
+                            @foreach ($weightMethods as $wm)
+                                <div x-data="{
+                                        open: false,
+                                        rates: {{ json_encode($wm->rates->map(function ($r) {
+                                            return ['weight_from' => $r->weight_from, 'weight_to' => $r->weight_to, 'cost' => $r->cost];
+                                        })) }},
+                                        addRate() {
+                                            const last = this.rates.length > 0 ? this.rates[this.rates.length - 1] : null;
+                                            this.rates.push({
+                                                weight_from: last ? last.weight_to : '0.000',
+                                                weight_to: last ? (parseFloat(last.weight_to) + 5).toFixed(3) : '5.000',
+                                                cost: last ? last.cost : '0.00',
+                                            });
+                                        },
+                                    }">
+                                    {{-- Method header row --}}
+                                    <div class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-v-hover transition-colors" @click="open = !open">
+                                        <x-admin.icon name="chevron-right" class="w-3.5 h-3.5 text-v-muted transition-transform shrink-0" x-bind:class="open && 'rotate-90'" />
+                                        <span class="w-2 h-2 rounded-full shrink-0 {{ $wm->is_active ? 'bg-v-accent' : 'bg-v-strong' }}"></span>
+                                        <span class="text-[13px] font-medium text-v-text flex-1 truncate">{{ $wm->admin_name ?: $wm->name }}</span>
+                                        <span class="hidden sm:inline text-xs text-v-muted">{{ $wm->geoZones->isNotEmpty() ? $wm->geoZones->pluck('name')->implode(', ') : 'All zones' }}</span>
+                                        <span class="hidden sm:inline text-xs text-v-muted">{{ $wm->customerGroups->isNotEmpty() ? $wm->customerGroups->pluck('name')->implode(', ') : 'All groups' }}</span>
+                                        <span class="text-xs text-v-muted whitespace-nowrap">{{ $wm->rates_count }} {{ Str::plural('tier', $wm->rates_count) }}</span>
+                                    </div>
 
-            {{-- ==================== WEIGHT-BASED ==================== --}}
-            <div x-show="active === 'weight-based'" x-cloak class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="flex items-center justify-between p-5 border-b border-gray-100">
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-900">Weight-Based Shipping</h3>
-                        <p class="text-xs text-gray-500 mt-0.5">Cost tiers based on cart weight. Click a method to expand and edit.</p>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <form method="POST" action="{{ route('admin.settings.update') }}" class="flex items-center gap-3">
-                            @csrf
-                            <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
-                            <input type="hidden" name="group" value="shipping">
-                            <input type="hidden" name="_tab" value="weight-based">
-                            <input type="hidden" name="settings[weight_based_enabled]" value="0">
-                            <label class="flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="checkbox" name="settings[weight_based_enabled]" value="1" {{ ($settings['shipping']['weight_based_enabled'] ?? '0') === '1' ? 'checked' : '' }}
-                                    class="rounded border-gray-300 text-indigo-600" onchange="this.form.submit()">
-                                Enabled
-                            </label>
-                        </form>
-                        <a href="{{ route('admin.weight-based-methods.create') }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                            Add
-                        </a>
-                    </div>
-                </div>
-
-                <form method="POST" action="{{ route('admin.weight-based-methods.bulk-update') }}">
-                    @csrf @method('PUT')
-                    <div class="divide-y divide-gray-100">
-                        @forelse ($weightMethods as $wm)
-                            <div x-data="{ open: false, rates: {{ json_encode($wm->rates->map(fn($r) => ['weight_from' => $r->weight_from, 'weight_to' => $r->weight_to, 'cost' => $r->cost])) }}, addRate() { const last = this.rates.length > 0 ? this.rates[this.rates.length - 1] : null; this.rates.push({ weight_from: last ? last.weight_to : '0.000', weight_to: last ? (parseFloat(last.weight_to) + 5).toFixed(3) : '5.000', cost: last ? last.cost : '0.00' }); } }">
-                                {{-- Method header row --}}
-                                <div class="flex items-center gap-3 px-5 py-3 cursor-pointer hover:bg-gray-50 transition-colors" @click="open = !open">
-                                    <svg class="w-4 h-4 text-gray-400 transition-transform shrink-0" :class="open && 'rotate-90'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
-                                    <span class="w-2 h-2 rounded-full shrink-0 {{ $wm->is_active ? 'bg-emerald-500' : 'bg-gray-300' }}"></span>
-                                    <span class="text-sm font-medium text-gray-900 flex-1">{{ $wm->admin_name ?: $wm->name }}</span>
-                                    <span class="text-xs text-gray-400">{{ $wm->geoZones->isNotEmpty() ? $wm->geoZones->pluck('name')->implode(', ') : 'All zones' }}</span>
-                                    <span class="text-xs text-gray-400">{{ $wm->customerGroups->isNotEmpty() ? $wm->customerGroups->pluck('name')->implode(', ') : 'All groups' }}</span>
-                                    <span class="text-xs text-gray-400">{{ $wm->rates_count }} {{ Str::plural('tier', $wm->rates_count) }}</span>
-                                </div>
-
-                                {{-- Expanded edit --}}
-                                <div x-show="open" x-transition class="px-5 pb-5 bg-gray-50/50 border-t border-gray-100">
-                                    <div class="pt-4 space-y-4">
-                                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Admin Name</label>
-                                                <input type="text" name="methods[{{ $wm->id }}][admin_name]" value="{{ $wm->admin_name }}" class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Internal reference">
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Checkout Name</label>
-                                                <input type="text" name="methods[{{ $wm->id }}][name]" value="{{ $wm->name }}" required class="w-full rounded-md border-gray-300 text-sm py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
-                                            </div>
-                                            <div class="flex items-end gap-3">
-                                                <label class="flex items-center gap-2 text-sm pb-1.5">
-                                                    <input type="checkbox" name="methods[{{ $wm->id }}][is_active]" value="1" {{ $wm->is_active ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
-                                                    Active
-                                                </label>
-                                                <div class="flex items-center gap-1 pb-1.5">
-                                                    <label class="text-xs text-gray-500">Sort</label>
-                                                    <input type="number" name="methods[{{ $wm->id }}][sort_order]" value="{{ $wm->sort_order }}" class="w-14 rounded-md border-gray-300 text-sm py-1 text-center focus:border-indigo-500 focus:ring-indigo-500">
+                                    {{-- Expanded edit --}}
+                                    <div x-show="open" x-transition x-cloak class="px-4 pb-5 bg-v-sunken/40 border-t border-v-border">
+                                        <div class="pt-4 space-y-4">
+                                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-v-secondary mb-1">Admin name</label>
+                                                    <input type="text" name="methods[{{ $wm->id }}][admin_name]" value="{{ $wm->admin_name }}" placeholder="Internal reference"
+                                                        class="v-control w-full h-[var(--control-h-sm)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-medium text-v-secondary mb-1">Checkout name</label>
+                                                    <input type="text" name="methods[{{ $wm->id }}][name]" value="{{ $wm->name }}" required
+                                                        class="v-control w-full h-[var(--control-h-sm)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                </div>
+                                                <div class="flex items-end gap-4">
+                                                    <div class="pb-1.5">
+                                                        <x-admin.checkbox name="methods[{{ $wm->id }}][is_active]" :checked="$wm->is_active" label="Active" />
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5 pb-1.5">
+                                                        <label class="text-xs text-v-muted">Sort</label>
+                                                        <input type="number" name="methods[{{ $wm->id }}][sort_order]" value="{{ $wm->sort_order }}"
+                                                            class="v-control w-14 h-[var(--control-h-sm)] px-1.5 text-[13px] text-center bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
 
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Geo Zones</label>
-                                                <div class="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                                                    @foreach ($geoZones as $zone)
-                                                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                                                            <input type="checkbox" name="methods[{{ $wm->id }}][geo_zone_ids][]" value="{{ $zone->id }}"
-                                                                {{ $wm->geoZones->contains('id', $zone->id) ? 'checked' : '' }}
-                                                                class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
-                                                            {{ $zone->name }}
-                                                        </label>
-                                                    @endforeach
-                                                    @if ($geoZones->isEmpty())
-                                                        <p class="text-xs text-gray-400">No geo zones</p>
-                                                    @endif
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                <div>
+                                                    <label class="block text-xs font-medium text-v-secondary mb-1">Geo zones</label>
+                                                    <div class="space-y-1 max-h-32 overflow-y-auto border border-v-border rounded-v-md p-2">
+                                                        @foreach ($geoZones as $zone)
+                                                            <label class="flex items-center gap-2 text-xs text-v-text cursor-pointer">
+                                                                <input type="checkbox" name="methods[{{ $wm->id }}][geo_zone_ids][]" value="{{ $zone->id }}"
+                                                                    {{ $wm->geoZones->contains('id', $zone->id) ? 'checked' : '' }}
+                                                                    class="w-3.5 h-3.5 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                                                {{ $zone->name }}
+                                                            </label>
+                                                        @endforeach
+                                                        @if ($geoZones->isEmpty())
+                                                            <p class="text-xs text-v-muted">No geo zones</p>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-[11px] text-v-muted mt-1">None = all zones</p>
                                                 </div>
-                                                <p class="text-[10px] text-gray-400 mt-1">None = all zones</p>
-                                            </div>
-                                            <div>
-                                                <label class="block text-xs font-medium text-gray-600 mb-1">Customer Groups</label>
-                                                <div class="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                                                    @foreach ($customerGroups as $group)
-                                                        <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
-                                                            <input type="checkbox" name="methods[{{ $wm->id }}][customer_group_ids][]" value="{{ $group->id }}"
-                                                                {{ $wm->customerGroups->contains('id', $group->id) ? 'checked' : '' }}
-                                                                class="rounded border-gray-300 text-indigo-600 w-3.5 h-3.5">
-                                                            {{ $group->name }}
-                                                        </label>
-                                                    @endforeach
-                                                    @if ($customerGroups->isEmpty())
-                                                        <p class="text-xs text-gray-400">No groups</p>
-                                                    @endif
+                                                <div>
+                                                    <label class="block text-xs font-medium text-v-secondary mb-1">Customer groups</label>
+                                                    <div class="space-y-1 max-h-32 overflow-y-auto border border-v-border rounded-v-md p-2">
+                                                        @foreach ($customerGroups as $group)
+                                                            <label class="flex items-center gap-2 text-xs text-v-text cursor-pointer">
+                                                                <input type="checkbox" name="methods[{{ $wm->id }}][customer_group_ids][]" value="{{ $group->id }}"
+                                                                    {{ $wm->customerGroups->contains('id', $group->id) ? 'checked' : '' }}
+                                                                    class="w-3.5 h-3.5 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                                                {{ $group->name }}
+                                                            </label>
+                                                        @endforeach
+                                                        @if ($customerGroups->isEmpty())
+                                                            <p class="text-xs text-v-muted">No groups</p>
+                                                        @endif
+                                                    </div>
+                                                    <p class="text-[11px] text-v-muted mt-1">None = all customers</p>
                                                 </div>
-                                                <p class="text-[10px] text-gray-400 mt-1">None = all customers</p>
                                             </div>
-                                        </div>
 
-                                        {{-- Weight tiers --}}
-                                        <div>
-                                            <div class="flex items-center justify-between mb-2">
-                                                <label class="text-xs font-medium text-gray-600">Weight Tiers</label>
-                                                <button type="button" @click="addRate()" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 font-medium">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-                                                    Add Tier
+                                            {{-- Weight tiers --}}
+                                            <div>
+                                                <div class="flex items-center justify-between mb-2">
+                                                    <label class="text-xs font-medium text-v-secondary">Weight tiers</label>
+                                                    <button type="button" @click="addRate()"
+                                                        class="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-v-accent-weak text-v-accent rounded-v-md hover:opacity-90 font-medium">
+                                                        <x-admin.icon name="plus" class="w-3 h-3" /> Add tier
+                                                    </button>
+                                                </div>
+                                                <template x-if="rates.length > 0">
+                                                    <div class="border border-v-border rounded-v-md overflow-hidden">
+                                                        <table class="w-full text-[13px]">
+                                                            <thead class="bg-v-sunken">
+                                                                <tr>
+                                                                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">From (kg)</th>
+                                                                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">To (kg)</th>
+                                                                    <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Cost (₱)</th>
+                                                                    <th class="px-3 py-2 w-8"></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody class="divide-y divide-v-border">
+                                                                <template x-for="(rate, i) in rates" :key="i">
+                                                                    <tr>
+                                                                        <td class="px-3 py-1.5">
+                                                                            <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0"
+                                                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                                        </td>
+                                                                        <td class="px-3 py-1.5">
+                                                                            <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0"
+                                                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                                        </td>
+                                                                        <td class="px-3 py-1.5">
+                                                                            <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0"
+                                                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                                        </td>
+                                                                        <td class="px-1 py-1.5 text-center">
+                                                                            <button type="button" @click="rates.splice(i, 1)" class="p-0.5 text-v-muted hover:text-v-danger" title="Remove tier">
+                                                                                <x-admin.icon name="x" class="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        </td>
+                                                                    </tr>
+                                                                </template>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </template>
+                                                <template x-if="rates.length === 0">
+                                                    <p class="text-[13px] text-v-muted text-center py-4">No tiers. Click "Add tier" above.</p>
+                                                </template>
+                                            </div>
+
+                                            {{-- Actions --}}
+                                            <div class="flex items-center justify-between pt-2 border-t border-v-border">
+                                                <button type="button" class="text-xs font-medium text-v-danger hover:underline"
+                                                    @click="$dispatch('open-modal', 'delete-wm-{{ $wm->id }}')">Delete method</button>
+                                                <button type="button" class="inline-flex items-center gap-1 text-xs font-medium text-v-accent hover:underline"
+                                                    @click="document.getElementById('duplicate-wm-{{ $wm->id }}').submit()">
+                                                    Duplicate
                                                 </button>
                                             </div>
-                                            <template x-if="rates.length > 0">
-                                                <div class="overflow-hidden rounded-lg border border-gray-200">
-                                                    <table class="min-w-full divide-y divide-gray-200">
-                                                        <thead class="bg-gray-50">
-                                                            <tr>
-                                                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">From (kg)</th>
-                                                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">To (kg)</th>
-                                                                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cost (₱)</th>
-                                                                <th class="px-3 py-2 w-8"></th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody class="divide-y divide-gray-100">
-                                                            <template x-for="(rate, i) in rates" :key="i">
-                                                                <tr>
-                                                                    <td class="px-3 py-1.5">
-                                                                        <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                                                    </td>
-                                                                    <td class="px-3 py-1.5">
-                                                                        <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                                                    </td>
-                                                                    <td class="px-3 py-1.5">
-                                                                        <input type="number" :name="'methods[{{ $wm->id }}][rates]['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" class="w-full rounded-md border-gray-300 text-sm py-1 focus:border-indigo-500 focus:ring-indigo-500">
-                                                                    </td>
-                                                                    <td class="px-1 py-1.5 text-center">
-                                                                        <button type="button" @click="rates.splice(i, 1)" class="p-0.5 text-gray-400 hover:text-red-600" title="Remove">
-                                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                                        </button>
-                                                                    </td>
-                                                                </tr>
-                                                            </template>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </template>
-                                            <template x-if="rates.length === 0">
-                                                <p class="text-sm text-gray-400 text-center py-4">No tiers. Click "Add Tier" above.</p>
-                                            </template>
-                                        </div>
-
-                                        {{-- Actions --}}
-                                        <div class="flex items-center justify-between pt-2 border-t border-gray-200">
-                                            <button type="button" onclick="if(confirm('Delete {{ addslashes($wm->admin_name ?: $wm->name) }} and all its tiers?')) document.getElementById('delete-wm-{{ $wm->id }}').submit()"
-                                                class="text-red-500 hover:text-red-700 text-xs font-medium">Delete Method</button>
-                                            <button type="button" onclick="document.getElementById('duplicate-wm-{{ $wm->id }}').submit()"
-                                                class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-xs font-medium">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2"/></svg>
-                                                Duplicate
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        @empty
-                            <div class="px-5 py-12 text-center text-gray-400 text-sm">
-                                No weight-based methods configured.
-                                <a href="{{ route('admin.weight-based-methods.create') }}" class="text-indigo-600 hover:underline">Create your first one</a>.
-                            </div>
-                        @endforelse
-                    </div>
-
-                    @if ($weightMethods->isNotEmpty())
-                        <div class="p-5 border-t border-gray-200">
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save All Methods</button>
+                            @endforeach
                         </div>
-                    @endif
-                </form>
 
-                {{-- Delete & Duplicate forms (outside the bulk form) --}}
-                @foreach ($weightMethods as $wm)
-                    <form id="delete-wm-{{ $wm->id }}" method="POST" action="{{ route('admin.weight-based-methods.destroy', $wm) }}" class="hidden">
-                        @csrf @method('DELETE')
+                        <div class="pt-5">
+                            <x-admin.button variant="primary" type="submit">Save all methods</x-admin.button>
+                        </div>
                     </form>
-                    <form id="duplicate-wm-{{ $wm->id }}" method="POST" action="{{ route('admin.weight-based-methods.duplicate', $wm) }}" class="hidden">
-                        @csrf
-                    </form>
-                @endforeach
-            </div>
 
-            {{-- ==================== FREE SHIPPING ==================== --}}
-            <div x-show="active === 'free-shipping'" x-cloak class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="p-5 border-b border-gray-100">
-                    <h3 class="text-sm font-semibold text-gray-900">Free Shipping Rules</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">Automatically offer free shipping when conditions are met. First matching rule applies.</p>
-                </div>
-                <div class="p-5">
-                    <a href="{{ route('admin.free-shipping-rules.index') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/></svg>
-                        Manage Free Shipping Rules
-                    </a>
-                </div>
-            </div>
+                    {{-- Delete & duplicate can't live inside the bulk-update form (forms cannot nest). --}}
+                    @foreach ($weightMethods as $wm)
+                        <form id="duplicate-wm-{{ $wm->id }}" method="POST" action="{{ route('admin.weight-based-methods.duplicate', $wm) }}" class="hidden">
+                            @csrf
+                        </form>
+                        <x-admin.confirm-dialog name="delete-wm-{{ $wm->id }}" title="Delete “{{ $wm->admin_name ?: $wm->name }}”?"
+                            message="All weight tiers for this method will be removed." confirm="Delete method"
+                            :action="route('admin.weight-based-methods.destroy', $wm)" method="DELETE" />
+                    @endforeach
+                @endif
+            </x-admin.card>
+
+            {{-- ==================== FLAT RATE ==================== --}}
+            <x-admin.card id="panel-flat-rate" title="Flat Rate" description="Fixed-cost shipping methods with custom names.">
+                <x-slot name="headerActions">
+                    <x-admin.button variant="primary" size="sm" :href="route('admin.flat-rates.create')">Add flat rate</x-admin.button>
+                </x-slot>
+
+                @if ($flatRates->isEmpty())
+                    <x-admin.empty-state icon="fulfillment" title="No flat rate methods"
+                        description="Add a fixed-cost method scoped to a geo zone or customer group.">
+                        <x-admin.button variant="primary" size="sm" :href="route('admin.flat-rates.create')">Add flat rate</x-admin.button>
+                    </x-admin.empty-state>
+                @else
+                    <x-admin.table>
+                        <x-slot:head>
+                            <x-admin.table.th>Name</x-admin.table.th>
+                            <x-admin.table.th>Geo zone</x-admin.table.th>
+                            <x-admin.table.th>Group</x-admin.table.th>
+                            <x-admin.table.th align="right">Cost</x-admin.table.th>
+                            <x-admin.table.th>Status</x-admin.table.th>
+                            <x-admin.table.th align="right">Actions</x-admin.table.th>
+                        </x-slot:head>
+                        @foreach ($flatRates as $fr)
+                            <x-admin.table.row>
+                                <x-admin.table.cell><span class="font-medium text-v-text">{{ $fr->name ?: 'Unnamed' }}</span></x-admin.table.cell>
+                                <x-admin.table.cell><span class="text-v-secondary">{{ $fr->geoZone?->name ?? 'All' }}</span></x-admin.table.cell>
+                                <x-admin.table.cell><span class="text-v-secondary">{{ $fr->customerGroup?->name ?? 'All' }}</span></x-admin.table.cell>
+                                <x-admin.table.cell align="right" mono>₱{{ number_format($fr->cost, 2) }}</x-admin.table.cell>
+                                <x-admin.table.cell>
+                                    <x-admin.badge :tone="$fr->is_active ? 'success' : 'neutral'">{{ $fr->is_active ? 'Active' : 'Inactive' }}</x-admin.badge>
+                                </x-admin.table.cell>
+                                <x-admin.table.cell align="right">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <a href="{{ route('admin.flat-rates.edit', $fr) }}" class="text-xs font-medium text-v-accent hover:underline">Edit</a>
+                                        <button type="button" class="text-xs font-medium text-v-danger hover:underline"
+                                            @click="$dispatch('open-modal', 'delete-fr-{{ $fr->id }}')">Delete</button>
+                                    </div>
+                                </x-admin.table.cell>
+                            </x-admin.table.row>
+                        @endforeach
+                    </x-admin.table>
+                @endif
+            </x-admin.card>
+            @foreach ($flatRates as $fr)
+                <x-admin.confirm-dialog name="delete-fr-{{ $fr->id }}" title="Delete “{{ $fr->name ?: 'this flat rate' }}”?"
+                    message="This flat rate method will no longer be offered at checkout." confirm="Delete"
+                    :action="route('admin.flat-rates.destroy', $fr)" method="DELETE" />
+            @endforeach
 
             {{-- ==================== DHL EXPRESS ==================== --}}
-            <div x-show="active === 'dhl'" x-cloak class="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div class="p-5 border-b border-gray-100">
-                    <h3 class="text-sm font-semibold text-gray-900">DHL Express</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">International shipments via DHL Express API</p>
-                </div>
-                <div class="p-5">
-                    <form method="POST" action="{{ route('admin.settings.update') }}">
+            <x-admin.card id="panel-dhl" title="DHL Express" description="International shipments via the DHL Express API.">
+                <div class="space-y-6">
+                    <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5 max-w-lg">
                         @csrf
-                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
                         <input type="hidden" name="group" value="shipping">
-                        <input type="hidden" name="_tab" value="dhl">
-                        <div class="space-y-4 max-w-lg">
-                            <label class="flex items-center gap-2 text-sm cursor-pointer">
-                                <input type="hidden" name="settings[dhl_enabled]" value="0">
-                                <input type="checkbox" name="settings[dhl_enabled]" value="1" {{ ($settings['shipping']['dhl_enabled'] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                Enable DHL Express
-                            </label>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Site ID</label>
-                                @if (!empty($maskedKeys['dhl_site_id'] ?? ''))
-                                    <p class="text-xs text-gray-500 mb-1">Current: {{ $maskedKeys['dhl_site_id'] }}</p>
-                                @endif
-                                <input type="text" name="settings[dhl_site_id]" autocomplete="off" placeholder="{{ !empty($maskedKeys['dhl_site_id'] ?? '') ? 'Leave blank to keep current' : 'Enter Site ID' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Password</label>
-                                @if (!empty($maskedKeys['dhl_password'] ?? ''))
-                                    <p class="text-xs text-gray-500 mb-1">Current: {{ $maskedKeys['dhl_password'] }}</p>
-                                @endif
-                                <input type="password" name="settings[dhl_password]" autocomplete="new-password" placeholder="{{ !empty($maskedKeys['dhl_password'] ?? '') ? 'Leave blank to keep current' : 'Enter Password' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700">Account Number</label>
-                                <input type="text" name="settings[dhl_account_number]" value="{{ $settings['shipping']['dhl_account_number'] ?? '' }}" class="mt-1 block w-full rounded-md border-gray-300 text-sm" placeholder="e.g. 642344995">
-                            </div>
-                        </div>
-                        <div class="mt-6">
-                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">Save</button>
-                        </div>
+                        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
+
+                        <x-admin.field name="settings[dhl_site_id]" label="Site ID"
+                            :help="!empty($maskedKeys['dhl_site_id'] ?? null) ? 'Current key ends in ' . $maskedKeys['dhl_site_id'] . ' — leave blank to keep it.' : null">
+                            <x-admin.input name="settings[dhl_site_id]" autocomplete="off" placeholder="Enter Site ID" />
+                        </x-admin.field>
+
+                        <x-admin.field name="settings[dhl_password]" label="Password"
+                            :help="!empty($maskedKeys['dhl_password'] ?? null) ? 'Current password ends in ' . $maskedKeys['dhl_password'] . ' — leave blank to keep it.' : null">
+                            <x-admin.input type="password" name="settings[dhl_password]" autocomplete="new-password" placeholder="Enter Password" />
+                        </x-admin.field>
+
+                        <x-admin.field name="settings[dhl_account_number]" label="Account number">
+                            <x-admin.input name="settings[dhl_account_number]" :value="$settings['shipping']['dhl_account_number'] ?? ''" placeholder="e.g. 642344995" />
+                        </x-admin.field>
+
+                        <x-admin.form-actions>
+                            <x-admin.button variant="primary" type="submit">Save credentials</x-admin.button>
+                        </x-admin.form-actions>
                     </form>
-                    <div class="border-t border-gray-200 mt-6 pt-4">
-                        <form method="POST" action="{{ route('admin.settings.test-dhl') }}" class="flex items-center gap-3">
+
+                    <div class="flex items-center gap-3 border-t border-v-border pt-5">
+                        <form method="POST" action="{{ route('admin.settings.test-dhl') }}" data-v-form>
                             @csrf
-                            <button type="submit" class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 border border-gray-300">Test Connection</button>
-                            <span class="text-xs text-gray-400">Tests a rate quote from Manila to Singapore.</span>
+                            <x-admin.button variant="secondary" type="submit">Test connection</x-admin.button>
                         </form>
+                        <span class="text-xs text-v-muted">Tests a rate quote from Manila to Singapore.</span>
                     </div>
                 </div>
-            </div>
+            </x-admin.card>
+
+            {{-- ==================== ORIGIN ==================== --}}
+            <x-admin.card id="origin" title="Origin"
+                description="Used as the origin for courier rate quotes (DHL) and future fulfillment bookings.">
+                <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
+                    @csrf
+                    <input type="hidden" name="group" value="shipping">
+                    <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <x-admin.field name="settings[pickup_address]" label="Address" class="sm:col-span-2">
+                            <x-admin.input name="settings[pickup_address]" :value="$settings['shipping']['pickup_address'] ?? ''" placeholder="Unit / street / building" />
+                        </x-admin.field>
+                        <x-admin.field name="settings[pickup_barangay]" label="Barangay">
+                            <x-admin.input name="settings[pickup_barangay]" :value="$settings['shipping']['pickup_barangay'] ?? ''" />
+                        </x-admin.field>
+                        <x-admin.field name="settings[pickup_city]" label="City">
+                            <x-admin.input name="settings[pickup_city]" :value="$settings['shipping']['pickup_city'] ?? ''" />
+                        </x-admin.field>
+                        <x-admin.field name="settings[pickup_province]" label="Province">
+                            <x-admin.input name="settings[pickup_province]" :value="$settings['shipping']['pickup_province'] ?? ''" />
+                        </x-admin.field>
+                        <x-admin.field name="settings[pickup_postal_code]" label="Postal code">
+                            <x-admin.input name="settings[pickup_postal_code]" :value="$settings['shipping']['pickup_postal_code'] ?? ''" />
+                        </x-admin.field>
+                        <x-admin.field name="settings[pickup_contact_name]" label="Contact name">
+                            <x-admin.input name="settings[pickup_contact_name]" :value="$settings['shipping']['pickup_contact_name'] ?? ''" />
+                        </x-admin.field>
+                        <x-admin.field name="settings[pickup_contact_number]" label="Contact number">
+                            <x-admin.input name="settings[pickup_contact_number]" :value="$settings['shipping']['pickup_contact_number'] ?? ''" placeholder="e.g. 09171234567" />
+                        </x-admin.field>
+                        <x-admin.field name="settings[pickup_contact_email]" label="Contact email" class="sm:col-span-2">
+                            <x-admin.input type="email" name="settings[pickup_contact_email]" :value="$settings['shipping']['pickup_contact_email'] ?? ''" />
+                        </x-admin.field>
+                    </div>
+
+                    <x-admin.form-actions>
+                        <x-admin.button variant="primary" type="submit">Save origin</x-admin.button>
+                    </x-admin.form-actions>
+                </form>
+            </x-admin.card>
 
         </div>
-    </div>
-</x-admin-layout>
+    </x-admin.page>
+
+    {{--
+        Old create/edit/duplicate flows for flat rates and weight-based methods
+        still redirect here with ?tab=<slug> (e.g. after saving a new flat rate).
+        Scroll the matching panel into view instead of leaving the admin at the
+        top of a much longer page than the old tabbed layout.
+    --}}
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const tab = new URLSearchParams(window.location.search).get('tab');
+                if (tab) {
+                    document.getElementById('panel-' + tab)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        </script>
+    @endpush
+</x-admin.shell>
