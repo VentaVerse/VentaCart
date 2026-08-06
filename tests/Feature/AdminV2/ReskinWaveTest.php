@@ -1032,4 +1032,18 @@ class ReskinWaveTest extends TestCase
             ->assertSee('Revenue Today')
             ->assertSee('Overdue');
     }
+
+    public function test_old_admin_layout_is_gone(): void
+    {
+        $this->assertFileDoesNotExist(base_path('resources/views/layouts/admin.blade.php'));
+        $this->assertFileDoesNotExist(base_path('app/View/Components/AdminLayout.php'));
+    }
+
+    public function test_admin_login_page_renders_in_new_shell(): void
+    {
+        $this->get(route('login'))
+            ->assertOk()
+            ->assertSee('v-admin', false)
+            ->assertSee('Sign in');
+    }
 }

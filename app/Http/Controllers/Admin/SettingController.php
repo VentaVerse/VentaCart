@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Automation;
-use App\Models\Currency;
 use App\Models\Setting;
 use App\Services\ThemeService;
 use Illuminate\Http\Request;
@@ -25,35 +23,6 @@ class SettingController extends Controller
         'turnstile_secret_key',
         'erp_token',
     ];
-
-    public function index()
-    {
-        $settings = [];
-        foreach (Setting::all() as $s) {
-            $settings[$s->group][$s->key] = $s->value;
-        }
-
-        $currencies = Currency::orderBy('is_default', 'desc')->orderBy('code')->get();
-
-        // Build masked previews for encrypted fields
-        $maskedKeys = [];
-        foreach (self::ENCRYPTED_KEYS as $key) {
-            // Check payment, shipping, and seo groups for encrypted keys
-            $encrypted = $settings['payment'][$key] ?? $settings['shipping'][$key] ?? $settings['seo'][$key] ?? $settings['security'][$key] ?? null;
-            if ($encrypted) {
-                try {
-                    $plain = Crypt::decryptString($encrypted);
-                    $maskedKeys[$key] = str_repeat('*', max(0, strlen($plain) - 4)) . substr($plain, -4);
-                } catch (\Throwable) {
-                    $maskedKeys[$key] = '********';
-                }
-            }
-        }
-
-        $automations = Automation::orderBy('id')->get();
-
-        return view('admin.settings.index', compact('settings', 'currencies', 'maskedKeys', 'automations'));
-    }
 
     private const RESERVED_PREFIXES = [
         'login', 'register', 'logout', 'forgot-password', 'reset-password',
