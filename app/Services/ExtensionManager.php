@@ -5,7 +5,10 @@ namespace App\Services;
 use App\Models\Extension;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -22,6 +25,18 @@ use Illuminate\Support\Facades\Schema;
  */
 class ExtensionManager
 {
+    /**
+     * Cache key for the DB registry snapshot (see registry()). Cross-request
+     * (backed by the real cache store — config('cache.default') — not
+     * in-process state), because $booted below only helps within a single
+     * long-lived instance (Octane), never in the stateless PHP-FPM/CLI model
+     * this app actually deploys under, where every request is a fresh
+     * Application and would otherwise pay a Schema::hasTable() + table read
+     * on every single storefront request (BootExtensions is global
+     * middleware, not admin-only).
+     */
+    protected const REGISTRY_CACHE_KEY = 'extensions.registry';
+
     protected ?Collection $discoveredCache = null;
 
     /**
@@ -70,14 +85,82 @@ class ExtensionManager
      * DB registry rows, keyed by extension name. Empty-safe pre-migration
      * (fresh install mid-`migrate`, or migrations rolled back) so nothing in
      * the boot path ever crashes on a missing table.
+     *
+     * Cross-request cached (see REGISTRY_CACHE_KEY) — on a cache HIT this
+     * does no Schema/DB work at all; the `Schema::hasTable` guard only runs
+     * on a cache MISS. install()/enable()/disable()/uninstall() invalidate
+     * the cache; nothing else needs to.
+     *
+     * CRITICAL, do not revert to Eloquent statics (Extension::all()/
+     * ::where()) anywhere in this method: this is called from
+     * bootEnabled(), which ExtensionServiceProvider::register() calls
+     * directly — i.e. it can run before
+     * Illuminate\Database\DatabaseServiceProvider::boot() has wired
+     * Eloquent's connection resolver (Model::setConnectionResolver()
+     * happens in ITS boot(), not register()). Any Eloquent static call here
+     * throws "Call to a member function connection() on null", which — since
+     * it happens during another provider's register() — aborts the entire
+     * application bootstrap and 500s EVERY request, not just this one
+     * extension. DB::table() and Model::newFromBuilder() (see
+     * hydrateRegistryRows()) only touch the 'db' container binding and
+     * plain property assignment respectively, both of which are safe
+     * during register(). Regression test:
+     * tests/Feature/AdminV2/ExtensionKernelBootSafetyTest.php — it boots a
+     * genuinely separate Application process against a migrated, populated
+     * `extensions` table, which is the one scenario RefreshDatabase-based
+     * tests structurally cannot reproduce (see that test's docblock).
      */
     public function registry(): Collection
     {
+        try {
+            if (Cache::has(self::REGISTRY_CACHE_KEY)) {
+                return Cache::get(self::REGISTRY_CACHE_KEY);
+            }
+        } catch (\Throwable) {
+            // Cache backend unavailable/unmigrated (e.g. `database` store
+            // without a migrated `cache` table) — fall through to a live,
+            // guarded read below. Never let a broken cache take the site
+            // down any more than a broken `extensions` table should.
+        }
+
         if (! Schema::hasTable('extensions')) {
+            // Deliberately NOT cached: a "table missing" snapshot (e.g.
+            // captured mid `php artisan migrate`, before this migration has
+            // run yet) must never persist past the moment the table starts
+            // existing. Nothing would invalidate a bad cached-empty result —
+            // install()/enable()/etc. are the only invalidation points, and
+            // none of them run during a bare `migrate`.
             return collect();
         }
 
-        return Extension::all()->keyBy('name');
+        $fresh = $this->hydrateRegistryRows(DB::table('extensions')->get());
+
+        try {
+            Cache::forever(self::REGISTRY_CACHE_KEY, $fresh);
+        } catch (\Throwable) {
+            // Cache write failed — the freshly-read value for THIS call is
+            // still correct; we've just lost cross-request caching until
+            // the backend recovers.
+        }
+
+        return $fresh;
+    }
+
+    /**
+     * Turns raw `extensions` table rows (stdClass, from the query builder)
+     * into real Extension model instances WITHOUT ever calling
+     * Extension::query()/newQuery() — see registry()'s docblock for why that
+     * matters. Model::newFromBuilder() only sets plain properties/attributes
+     * and no-ops its "retrieved" event if no dispatcher is wired yet, so it's
+     * safe at any point in the boot lifecycle.
+     */
+    protected function hydrateRegistryRows(iterable $rows): Collection
+    {
+        $prototype = new Extension();
+
+        return collect($rows)
+            ->map(fn ($row) => $prototype->newFromBuilder((array) $row))
+            ->keyBy('name');
     }
 
     /**
@@ -187,6 +270,9 @@ class ExtensionManager
         // request/test) pick up the freshly-installed extension instead of
         // short-circuiting on the cached $booted flag.
         $this->booted = false;
+
+        $this->invalidateRegistryCache();
+        $this->clearRouteCacheIfNeeded('install', $name);
     }
 
     public function enable(string $name): void
@@ -195,6 +281,9 @@ class ExtensionManager
         $extension->update(['enabled' => true]);
 
         $this->booted = false;
+
+        $this->invalidateRegistryCache();
+        $this->clearRouteCacheIfNeeded('enable', $name);
     }
 
     public function disable(string $name): void
@@ -207,6 +296,9 @@ class ExtensionManager
         // limitation of Laravel's provider model, not something resetting
         // this flag can fix. Disabling takes full effect on the next request
         // (new process/instance in real deployments).
+
+        $this->invalidateRegistryCache();
+        $this->clearRouteCacheIfNeeded('disable', $name);
     }
 
     /**
@@ -222,6 +314,62 @@ class ExtensionManager
         }
 
         Extension::where('name', $name)->delete();
+
+        $this->invalidateRegistryCache();
+        $this->clearRouteCacheIfNeeded('uninstall', $name);
+    }
+
+    /**
+     * Whether a compiled route cache is currently active. `loadRoutesFrom()`
+     * (which every extension provider's boot() calls to register its own
+     * routes) silently no-ops when routes are cached — Laravel serves
+     * exclusively from the compiled cache file in that mode and never
+     * re-requires route files at all. `docker/entrypoint.sh` runs
+     * `route:cache` in production, so this is a real prod condition, not a
+     * theoretical one: without clearRouteCacheIfNeeded() below, installing
+     * or enabling an extension after the cache was built would silently do
+     * nothing — its routes 404 until the next deploy rebuilds the cache.
+     * Exposed for the Task 2 Modules UI to surface a "routes cache is stale,
+     * a redeploy is needed to fully activate this" warning.
+     */
+    public function routesCacheStale(): bool
+    {
+        return app()->routesAreCached();
+    }
+
+    /**
+     * If a route cache is active, clear it so this lifecycle change actually
+     * takes effect on the very next request (falling back to live route-file
+     * loading) instead of silently no-oping until someone thinks to redeploy.
+     * Logged because clearing a production route cache outside a normal
+     * deploy is unusual enough to want a paper trail.
+     */
+    protected function clearRouteCacheIfNeeded(string $action, string $name): void
+    {
+        if (! app()->routesAreCached()) {
+            return;
+        }
+
+        Artisan::call('route:clear');
+
+        Log::warning("ExtensionManager: cleared cached routes after {$action}('{$name}') — a compiled route cache would otherwise mask this extension's routes until the next deploy rebuilds it.");
+    }
+
+    /**
+     * Invalidates the registry() cache. Every lifecycle method that writes
+     * to the `extensions` table must call this — it's the only way a change
+     * becomes visible to bootEnabled() before the cache's next natural
+     * expiry (there isn't one; it's cached forever until invalidated).
+     */
+    protected function invalidateRegistryCache(): void
+    {
+        try {
+            Cache::forget(self::REGISTRY_CACHE_KEY);
+        } catch (\Throwable) {
+            // Same reasoning as the read-side try/catch in registry(): a
+            // broken cache backend must not turn a routine install/enable/
+            // disable/uninstall into a fatal error.
+        }
     }
 
     /**
