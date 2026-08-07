@@ -36,7 +36,9 @@
             'label' => 'Setup',
             'items' => [
                 ['label' => 'Strategy', 'route' => 'admin.extensions.seo.strategy', 'pattern' => 'admin.extensions.seo.strategy'],
-                ['label' => 'Settings', 'route' => 'admin.extensions.seo.settings', 'pattern' => 'admin.extensions.seo.settings'],
+                // Single, explicit crossing into the Settings context (modules/seo/settings)
+                // — never the reverse (workspace nav must not bleed into Settings' own pages).
+                ['label' => 'Engine settings', 'route' => 'admin.extensions.seo.settings', 'pattern' => 'admin.extensions.seo.settings'],
             ],
         ],
     ];

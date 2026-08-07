@@ -1,9 +1,19 @@
-<x-admin.shell title="SEO Settings">
-    <x-admin.page title="Settings">
-        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
-            @include('admin.marketing.seo.partials.nav-v2')
+{{--
+    Settings-context page (settings/modules/seo/settings) — must show the
+    Settings sub-sidebar, not the Marketing/SEO workspace nav (that was the
+    "menus bring me to the Main Nav" bug: this page used to @include the SEO
+    workspace nav wholesale, so every link out of here re-entered the SEO
+    workspace). The only crossing back into the workspace is the single
+    explicit link below; the only crossing in the other direction is the SEO
+    workspace nav's single "Engine settings" item (partials/nav-v2.blade.php).
+--}}
+<x-admin.settings-shell title="SEO Engine" :wide="true">
+        <div class="space-y-5">
+                <a href="{{ route('admin.extensions.seo.dashboard') }}"
+                   class="mb-1 flex w-fit items-center gap-1.5 text-[13px] text-v-secondary hover:text-v-text">
+                    <x-admin.icon name="chevron-right" class="h-3 w-3 rotate-180" /> SEO workspace
+                </a>
 
-            <div class="min-w-0 flex-1 space-y-5">
                 <form method="POST" action="{{ route('admin.extensions.seo.save-settings') }}" class="space-y-5">
                     @csrf
 
@@ -222,7 +232,5 @@
                         </div>
                     </div>
                 </x-admin.card>
-            </div>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

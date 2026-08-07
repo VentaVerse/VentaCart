@@ -1,5 +1,5 @@
 @php $defaultCurrency = $currencies->firstWhere('is_default', true); @endphp
-<x-admin.settings-shell title="Currencies">
+<x-admin.settings-shell title="Currencies" :wide="true">
     <div class="space-y-6">
         <x-admin.card title="Currencies" description="Exchange rates are relative to the default (base) currency.">
             <x-slot name="headerActions">

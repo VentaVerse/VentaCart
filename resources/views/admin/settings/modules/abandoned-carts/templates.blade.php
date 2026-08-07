@@ -1,13 +1,11 @@
-<x-admin.shell title="Abandoned Cart Templates">
-    <x-admin.page title="Templates">
+<x-admin.settings-shell title="Templates" :wide="true">
         <x-slot:actions>
             <x-admin.button href="{{ route('admin.abandoned-carts.templates.create') }}">Create Template</x-admin.button>
         </x-slot:actions>
 
-        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
-            @include('admin.sales.abandoned-carts.partials.nav')
+        @include('admin.settings.modules.abandoned-carts.partials.nav')
 
-            <div class="min-w-0 flex-1 space-y-4">
+        <div class="space-y-4">
                 <p class="text-[13px] text-v-secondary">Email templates used by abandoned cart notification rules. These are independent from the core email templates.</p>
 
                 <x-admin.table>
@@ -58,7 +56,5 @@
                         </tr>
                     @endforelse
                 </x-admin.table>
-            </div>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

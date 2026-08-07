@@ -1108,4 +1108,65 @@ class ReskinWaveTest extends TestCase
             ->assertDontSee('bg-indigo-600', false)
             ->assertDontSee('text-gray-900', false);
     }
+
+    /**
+     * Owner report: "When I go to their settings, there are menus that bring
+     * me to the Main Nav." Settings-context pages (settings/modules/seo/...
+     * and settings/modules/abandoned-carts/...) used to @include the
+     * Marketing/SEO and Sales workspace navs wholesale, so every link out of
+     * a Settings page re-entered a different workspace's main nav. Pin that
+     * these pages no longer carry those workspace-nav markers, while the
+     * single, explicit crossing links (in both directions) still render.
+     */
+    public function test_settings_context_seo_and_abandoned_cart_pages_do_not_leak_workspace_nav(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $seoWorkspaceNavMarker = 'aria-label="SEO workspace"';
+        $acWorkspaceNavMarker = 'aria-label="Abandoned carts workspace"';
+
+        $this->get(route('admin.extensions.seo.settings'))
+            ->assertOk()
+            ->assertDontSee($seoWorkspaceNavMarker, false)
+            ->assertSee('SEO workspace'); // the one explicit crossing link back
+
+        foreach ([
+            route('admin.abandoned-carts.settings'),
+            route('admin.abandoned-carts.rules'),
+            route('admin.abandoned-carts.templates'),
+        ] as $url) {
+            $this->get($url)
+                ->assertOk()
+                ->assertDontSee($acWorkspaceNavMarker, false)
+                ->assertSee('Carts workspace'); // the one explicit crossing link back
+        }
+
+        // The reverse direction: the Sales-workspace pages keep their own
+        // nav, with exactly one explicit link into Settings — not the full
+        // Rules/Templates/Settings trio it used to carry.
+        $this->get(route('admin.abandoned-carts.index'))
+            ->assertOk()
+            ->assertSee($acWorkspaceNavMarker, false);
+
+        // The SEO workspace nav's single crossing item, renamed for clarity.
+        $this->get(route('admin.extensions.seo.dashboard'))
+            ->assertOk()
+            ->assertSee('Engine settings');
+    }
+
+    /**
+     * Owner report: "Make global length of contents 1400. There are some
+     * that are squeezed. Such as Automations." Automations' schedule table
+     * was rendering inside settings-shell's narrow (max-w-2xl / 672px) mode.
+     * Pin that it now renders in wide mode.
+     */
+    public function test_automations_section_renders_wide(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('admin.settings.section', 'automations'))
+            ->assertOk()
+            ->assertSee('max-w-none', false)
+            ->assertDontSee('max-w-2xl', false);
+    }
 }

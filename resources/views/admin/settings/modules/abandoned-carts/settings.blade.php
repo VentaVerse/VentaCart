@@ -1,8 +1,7 @@
 <x-admin.settings-shell title="Abandoned Cart Settings" :wide="true">
-        <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
-            @include('admin.sales.abandoned-carts.partials.nav')
+        @include('admin.settings.modules.abandoned-carts.partials.nav')
 
-            <div class="min-w-0 max-w-2xl flex-1 space-y-6">
+        <div class="max-w-2xl space-y-6">
                 {{-- Enable/Disable --}}
                 <form method="POST" action="{{ route('admin.abandoned-carts.settings.update') }}" data-v-form>
                     @csrf
@@ -37,6 +36,5 @@
                         <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="rounded bg-v-sunken px-1">cart:notify</code> directly, remove it — the command now fires through the universal scheduler and the old line will cause duplicate runs.
                     </div>
                 </x-admin.card>
-            </div>
         </div>
 </x-admin.settings-shell>
