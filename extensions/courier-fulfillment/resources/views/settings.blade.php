@@ -1,184 +1,165 @@
-<x-admin.shell title="Courier Settings">
-    <x-admin.page title="Courier Settings">
+<x-admin.settings-shell title="Courier Settings" :wide="true">
 
-    <div class="max-w-2xl space-y-4" x-data="{ mode: '{{ $settings['quadx_mode'] ?? 'staging' }}' }">
+    <div class="space-y-6">
 
-        @if (session('success'))
-            <div class="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm px-4 py-3">{{ session('success') }}</div>
-        @endif
-        @if (session('error'))
-            <div class="rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3">{{ session('error') }}</div>
-        @endif
-
-        <div class="flex items-center justify-between">
-            <a href="{{ route('admin.fulfillment.index') }}" class="text-sm text-indigo-600 hover:underline">← Back to Fulfillment</a>
-        </div>
-
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-            <div class="px-5 py-4 border-b border-gray-100">
-                <h3 class="text-sm font-semibold text-gray-900">QuadX</h3>
-                <p class="text-xs text-gray-500 mt-0.5">Philippine courier (LBC-backed). Book confirmed orders from the Fulfillment page.</p>
-            </div>
-
-            {{-- Standalone form for the "Refresh from QuadX" button — kept outside the
-                 main settings form below since HTML forms cannot be nested. Associated
-                 via the button's form="refresh-statuses-form" attribute. --}}
-            <form id="refresh-statuses-form" method="POST" action="{{ route('admin.fulfillment.settings.refresh-statuses') }}" class="hidden">
-                @csrf
-            </form>
-
-            <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" class="p-5 space-y-5">
+        {{-- Module-level card: not owned by any one courier's schema. --}}
+        <x-admin.card title="Fulfillment" description="Turn the manual booking page on or off, choose which payment methods book as COD, and share your webhook URL with couriers.">
+            <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" data-v-form class="space-y-6">
                 @csrf
 
-                {{-- Enable Fulfillment (surfaces the Sales › Order Fulfillment page) --}}
-                <div class="flex items-center gap-3 pb-4 border-b border-gray-100">
-                    <input type="hidden" name="settings[fulfillment_enabled]" value="0">
-                    <input type="checkbox" name="settings[fulfillment_enabled]" value="1"
-                        {{ ($settings['fulfillment_enabled'] ?? '0') === '1' ? 'checked' : '' }}
-                        class="rounded border-gray-300 text-indigo-600">
-                    <span class="text-sm text-gray-700">Enable Fulfillment (shows the Sales &rsaquo; Order Fulfillment page)</span>
-                </div>
+                <x-admin.field name="settings[fulfillment_enabled]"
+                    help="Required to book and manage orders on Sales › Fulfillment. Bookings triggered by the ERP API work either way — this only hides the manual page.">
+                    <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
+                        <x-admin.toggle name="settings[fulfillment_enabled]" :checked="($settings['fulfillment_enabled'] ?? '0') === '1'" />
+                        Enable Fulfillment page
+                    </label>
+                </x-admin.field>
 
-                {{-- Enabled --}}
-                <label class="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="hidden" name="settings[quadx_enabled]" value="0">
-                    <input type="checkbox" name="settings[quadx_enabled]" value="1" {{ ($settings['quadx_enabled'] ?? '0') === '1' ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                    Enable QuadX
-                </label>
-
-                {{-- Mode --}}
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mode</label>
-                    <select name="settings[quadx_mode]" x-model="mode" class="w-48 rounded-md border-gray-300 text-sm">
-                        <option value="staging">Staging</option>
-                        <option value="production">Production</option>
-                    </select>
-                </div>
-
-                {{-- Staging creds --}}
-                <template x-if="mode === 'staging'">
-                    <div class="space-y-3 border-l-4 border-amber-400 pl-4">
-                        <p class="text-xs font-medium text-amber-600 uppercase tracking-wide">Staging Credentials</p>
-                        <div>
-                            <label class="block text-sm text-gray-700">API Key
-                                @if (!empty($masked['quadx_staging_api_key'])) <span class="text-xs text-gray-400 font-mono">(current: {{ $masked['quadx_staging_api_key'] }})</span> @endif
-                            </label>
-                            <input type="password" name="settings[quadx_staging_api_key]" autocomplete="off" placeholder="Enter to change" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-700">Secret Key
-                                @if (!empty($masked['quadx_staging_secret_key'])) <span class="text-xs text-gray-400 font-mono">(current: {{ $masked['quadx_staging_secret_key'] }})</span> @endif
-                            </label>
-                            <input type="password" name="settings[quadx_staging_secret_key]" autocomplete="off" placeholder="Enter to change" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                        </div>
-                    </div>
-                </template>
-
-                {{-- Production creds --}}
-                <template x-if="mode === 'production'">
-                    <div class="space-y-3 border-l-4 border-green-500 pl-4">
-                        <p class="text-xs font-medium text-green-600 uppercase tracking-wide">Production Credentials</p>
-                        <div>
-                            <label class="block text-sm text-gray-700">API Key
-                                @if (!empty($masked['quadx_production_api_key'])) <span class="text-xs text-gray-400 font-mono">(current: {{ $masked['quadx_production_api_key'] }})</span> @endif
-                            </label>
-                            <input type="password" name="settings[quadx_production_api_key]" autocomplete="off" placeholder="Enter to change" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm text-gray-700">Secret Key
-                                @if (!empty($masked['quadx_production_secret_key'])) <span class="text-xs text-gray-400 font-mono">(current: {{ $masked['quadx_production_secret_key'] }})</span> @endif
-                            </label>
-                            <input type="password" name="settings[quadx_production_secret_key]" autocomplete="off" placeholder="Enter to change" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                        </div>
-                    </div>
-                </template>
-
-                {{-- Test Connection — hits the live QuadX API with the saved credentials --}}
-                <div x-data="{ testing:false, result:null }" class="mt-2">
-                    <button type="button" @click="testing=true; result=null;
-                        fetch('{{ route('admin.fulfillment.test-connection') }}', {method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}})
-                        .then(r=>r.json()).then(d=>result=d).finally(()=>testing=false)"
-                        class="px-3 py-1.5 text-sm rounded-md border border-gray-300 hover:bg-gray-50">
-                        <span x-show="!testing">Test Connection</span><span x-show="testing">Testing…</span>
-                    </button>
-                    <span x-show="result" x-text="result?.message" :class="result?.ok ? 'text-emerald-600' : 'text-red-600'" class="ml-2 text-sm"></span>
-                </div>
-
-                {{-- COD payment methods — which payment methods book as cash-on-delivery --}}
-                <div class="mt-8">
-                    <h3 class="text-sm font-semibold text-gray-900 mb-1">COD payment methods</h3>
-                    <p class="text-xs text-gray-500 mb-3">Orders paid with a checked method are booked as COD (the rider collects the order total). Everything else books as prepaid.</p>
+                    <h3 class="text-[13px] font-semibold text-v-text mb-1">COD payment methods</h3>
+                    <p class="text-xs text-v-muted mb-3">Orders paid with a checked method are booked as COD (the rider collects the order total). Everything else books as prepaid.</p>
                     <input type="hidden" name="settings[cod_payment_methods][]" value="__none__">
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
                         @foreach ($paymentMethodOptions as $slug => $method)
-                            <label class="flex items-center gap-2 text-sm cursor-pointer">
+                            <label class="flex items-center gap-2 text-[13px] text-v-text cursor-pointer">
                                 <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $slug }}"
-                                    {{ in_array($slug, $codMethods, true) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                <span class="text-xs text-gray-700">{{ $method['label'] }}</span>
+                                    {{ in_array($slug, $codMethods, true) ? 'checked' : '' }}
+                                    class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                <span class="text-xs text-v-secondary">{{ $method['label'] }}</span>
                                 @if ($method['legacy'])
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200">legacy</span>
+                                    <x-admin.badge tone="neutral">legacy</x-admin.badge>
                                 @endif
                             </label>
                         @endforeach
                     </div>
                 </div>
 
-                {{-- Order status mapping — QuadX status → Venta order status --}}
-                <div class="mt-8">
-                    <div class="flex items-center justify-between mb-1">
-                        <h3 class="text-sm font-semibold text-gray-900">Order status mapping</h3>
-                        <button type="submit" form="refresh-statuses-form" class="px-3 py-1.5 text-xs rounded-md border border-gray-300 hover:bg-gray-50 whitespace-nowrap">Refresh from QuadX</button>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-3">When QuadX reports a status, set the Venta order status. Leave blank to only track it on the fulfillment page.</p>
-                    <table class="w-full text-sm">
-                        <thead><tr class="text-[11px] uppercase text-gray-400">
-                            <th class="text-left py-1">QuadX status</th><th class="text-left py-1">Venta order status</th><th class="text-left py-1">Notify customer</th>
-                        </tr></thead>
-                        <tbody>
-                        @foreach ($quadxStatuses as $key => $label)
-                            <tr class="border-t border-gray-100">
-                                <td class="py-2">{{ $label }}</td>
-                                <td class="py-2">
-                                    <select name="settings[quadx_status_map][{{ $key }}][order_status_id]" class="rounded-md border-gray-300 text-sm">
-                                        <option value="">— none —</option>
-                                        @foreach ($orderStatuses as $id => $name)
-                                            <option value="{{ $id }}" {{ (string) ($statusMap[$key]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td class="py-2">
-                                    <input type="hidden" name="settings[quadx_status_map][{{ $key }}][notify]" value="0">
-                                    <input type="checkbox" name="settings[quadx_status_map][{{ $key }}][notify]" value="1"
-                                        {{ !empty($statusMap[$key]['notify']) ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600">
-                                </td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="flex justify-end">
-                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700">Save</button>
-                </div>
+                <x-admin.form-actions>
+                    <x-admin.button type="submit">Save</x-admin.button>
+                </x-admin.form-actions>
             </form>
-        </div>
 
-        {{-- Webhook URL — this store's own URL, copy and send to QuadX --}}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200" x-data="{ copied: false }">
-            <div class="px-5 py-4 border-b border-gray-100">
-                <h3 class="text-sm font-semibold text-gray-900">Webhook URL</h3>
-                <p class="text-xs text-gray-500 mt-0.5">QuadX has no UI to set this — email/Slack them this URL so they push status updates here. Unique to this store.</p>
-            </div>
-            <div class="p-5">
+            <div class="mt-6 pt-5 border-t border-v-border" x-data="{ copied: false }">
+                <h3 class="text-[13px] font-semibold text-v-text mb-1">Webhook URL</h3>
+                <p class="text-xs text-v-muted mb-3">QuadX has no UI to set this — email/Slack them this URL so they push status updates here. Unique to this store.</p>
                 <div class="flex items-center gap-2">
-                    <input type="text" readonly value="{{ $webhookUrl }}" x-ref="hook" class="flex-1 rounded-md border-gray-300 bg-gray-50 text-xs font-mono text-gray-700">
-                    <button type="button" @click="navigator.clipboard.writeText($refs.hook.value); copied=true; setTimeout(()=>copied=false,1500)"
-                        class="px-3 py-2 bg-gray-800 text-white text-xs font-semibold rounded-lg hover:bg-gray-900 whitespace-nowrap">
-                        <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied ✓</span>
-                    </button>
+                    <input type="text" readonly value="{{ $webhookUrl }}" x-ref="hook"
+                        class="v-control flex-1 h-[var(--control-h)] rounded-v-md border border-v-border bg-v-sunken px-3 text-xs font-mono text-v-secondary">
+                    <x-admin.button type="button" variant="secondary" size="sm"
+                        x-on:click="navigator.clipboard.writeText($refs.hook.value); copied=true; setTimeout(()=>copied=false,1500)">
+                        <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied &check;</span>
+                    </x-admin.button>
                 </div>
             </div>
-        </div>
+        </x-admin.card>
+
+        {{-- One card per registered courier, rendered from its own settingsSchema(). --}}
+        @foreach ($courierCards as $key => $card)
+            @php $courier = $card['courier']; @endphp
+            <x-admin.card :title="$courier->getName()">
+                @if ($courier->getKey() === 'quadx')
+                    {{-- Standalone form for "Refresh from QuadX" — HTML forms cannot nest,
+                         so this lives outside the main form below; its button uses form="…". --}}
+                    <form id="refresh-statuses-form" method="POST" action="{{ route('admin.fulfillment.settings.refresh-statuses') }}" class="hidden">
+                        @csrf
+                    </form>
+                @endif
+
+                <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" data-v-form class="space-y-5"
+                    @if ($card['modeFieldKey']) x-data="{ mode: '{{ $card['initialMode'] }}' }" @endif>
+                    @csrf
+
+                    @foreach ($card['topFields'] as $field)
+                        @include('courier-fulfillment::partials.schema-field', [
+                            'field' => $field,
+                            'value' => $settings[$field['key']] ?? null,
+                            'masked' => $masked[$field['key']] ?? null,
+                            'isModeField' => $field['key'] === $card['modeFieldKey'],
+                        ])
+                    @endforeach
+
+                    @foreach ($card['modeGroups'] as $modeValue => $fields)
+                        <div x-show="mode === '{{ $modeValue }}'" x-cloak class="space-y-4 border-l-2 border-v-border pl-4">
+                            <p class="text-xs font-medium uppercase tracking-wide text-v-secondary">{{ ucfirst($modeValue) }} credentials</p>
+                            @foreach ($fields as $field)
+                                @include('courier-fulfillment::partials.schema-field', [
+                                    'field' => $field,
+                                    'value' => $settings[$field['key']] ?? null,
+                                    'masked' => $masked[$field['key']] ?? null,
+                                    'isModeField' => false,
+                                ])
+                            @endforeach
+                        </div>
+                    @endforeach
+
+                    @if ($courier->getKey() === 'quadx')
+                        {{-- Test Connection hits the live QuadX API with the saved credentials.
+                             Not generalized to every courier yet — this action and the route it
+                             calls are still QuadX-specific (CourierSettingsController::testConnection()
+                             hardcodes CourierManager::get('quadx')); a future courier gets this once
+                             that action takes a {courier} route parameter. --}}
+                        <div x-data="{ testing:false, result:null }" class="mt-2">
+                            <x-admin.button type="button" variant="secondary" size="sm"
+                                x-on:click="testing=true; result=null;
+                                    fetch('{{ route('admin.fulfillment.test-connection') }}', {method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}})
+                                    .then(r=>r.json()).then(d=>result=d).finally(()=>testing=false)">
+                                <span x-show="!testing">Test Connection</span><span x-show="testing" x-cloak>Testing&hellip;</span>
+                            </x-admin.button>
+                            <span x-show="result" x-cloak x-text="result?.message" :class="result?.ok ? 'text-v-accent' : 'text-v-danger'" class="ml-2 text-[13px]"></span>
+                        </div>
+
+                        {{-- Order status mapping — QuadX status -> Venta order status. Kept
+                             hardcoded to quadx_status_map/quadx_status_labels here (courier-agnostic
+                             StatusMapper derivation is a separate, later pass); still saves through
+                             this same form/allowlist. --}}
+                        <div class="mt-8 pt-6 border-t border-v-border">
+                            <div class="flex items-center justify-between mb-1">
+                                <h3 class="text-[13px] font-semibold text-v-text">Order status mapping</h3>
+                                <x-admin.button type="submit" form="refresh-statuses-form" variant="secondary" size="sm">Refresh from QuadX</x-admin.button>
+                            </div>
+                            <p class="text-xs text-v-muted mb-3">When QuadX reports a status, set the Venta order status. Leave blank to only track it on the fulfillment page.</p>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-[13px]">
+                                    <thead>
+                                        <tr class="text-[11px] uppercase text-v-muted">
+                                            <th class="text-left py-1">QuadX status</th>
+                                            <th class="text-left py-1">Venta order status</th>
+                                            <th class="text-left py-1">Notify customer</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($quadxStatuses as $statusKey => $label)
+                                            <tr class="border-t border-v-border">
+                                                <td class="py-2 text-v-text">{{ $label }}</td>
+                                                <td class="py-2">
+                                                    <x-admin.select name="settings[quadx_status_map][{{ $statusKey }}][order_status_id]" class="max-w-xs">
+                                                        <option value="">&mdash; none &mdash;</option>
+                                                        @foreach ($orderStatuses as $id => $name)
+                                                            <option value="{{ $id }}" {{ (string) ($statusMap[$statusKey]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
+                                                        @endforeach
+                                                    </x-admin.select>
+                                                </td>
+                                                <td class="py-2">
+                                                    <input type="hidden" name="settings[quadx_status_map][{{ $statusKey }}][notify]" value="0">
+                                                    <input type="checkbox" name="settings[quadx_status_map][{{ $statusKey }}][notify]" value="1"
+                                                        {{ !empty($statusMap[$statusKey]['notify']) ? 'checked' : '' }}
+                                                        class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
+
+                    <x-admin.form-actions>
+                        <x-admin.button type="submit">Save</x-admin.button>
+                    </x-admin.form-actions>
+                </form>
+            </x-admin.card>
+        @endforeach
+
     </div>
-    </x-admin.page>
-</x-admin.shell>
+
+</x-admin.settings-shell>

@@ -5,7 +5,6 @@ namespace Extensions\CourierFulfillment;
 use Extensions\CourierFulfillment\Console\Commands\PollCourierStatus;
 use Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
-use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class CourierFulfillmentServiceProvider extends ServiceProvider
@@ -29,15 +28,15 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         }
         $this->registerSeeder(CourierFulfillmentAutomationSeeder::class);
 
-        // Surface the Fulfillment menu item in the admin nav (same gated pattern
-        // banners/ph-address use). When this extension isn't installed, the flag
-        // is never set and the menu link never renders.
-        View::composer('layouts.admin', function ($view) {
-            $enabled = \App\Models\Setting::where('group', 'courier')
-                ->where('key', 'fulfillment_enabled')->value('value') === '1';
-            $view->with('fulfillmentInstalled', true);
-            $view->with('fulfillmentEnabled', $enabled);
-        });
+        // NOTE: this provider used to also register a
+        // View::composer('layouts.admin', ...) here, feeding fulfillmentEnabled/
+        // fulfillmentInstalled to the pre-kernel sidebar partial. `layouts.admin`
+        // no longer exists (admin-v2's sidebar renders from config/admin-nav.php
+        // + App\Support\AdminNav, gated by Route::has() — see that config file's
+        // 'fulfillment' entry) so the composer was dead code; removed rather than
+        // ported. The 'fulfillment_enabled' setting it read now does real work
+        // via Extensions\CourierFulfillment\Http\Middleware\EnsureFulfillmentEnabled
+        // on the queue routes (routes/web.php) instead.
     }
 
     /** Make db:seed pick up this extension's seeder (same hook core uses). */

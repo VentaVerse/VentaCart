@@ -1185,6 +1185,9 @@ class ReskinWaveTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         app(\App\Services\ExtensionManager::class)->install('courier-fulfillment');
+        // Task 4: the queue is gated by the "Enable Fulfillment page" toggle
+        // (EnsureFulfillmentEnabled), off by default like the checkbox itself.
+        \App\Models\Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '1']);
 
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
 

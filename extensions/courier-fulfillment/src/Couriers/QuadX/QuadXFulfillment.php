@@ -202,6 +202,75 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         ];
     }
 
+    /**
+     * Exactly today's stored keys (quadx_enabled, quadx_mode, the four
+     * mode-scoped credential pairs, quadx_default_service/parcel) — declaring
+     * anything else here would change what CourierSettingsController persists
+     * and break the staging verification this module already passed.
+     */
+    public function settingsSchema(): array
+    {
+        return [
+            [
+                'key'   => 'quadx_enabled',
+                'label' => 'Enable QuadX',
+                'type'  => 'toggle',
+                'help'  => 'Book confirmed orders with QuadX from the Fulfillment page.',
+            ],
+            [
+                'key'     => 'quadx_mode',
+                'label'   => 'Mode',
+                'type'    => 'select',
+                'options' => [
+                    ['value' => 'staging',    'label' => 'Staging'],
+                    ['value' => 'production', 'label' => 'Production'],
+                ],
+            ],
+            [
+                'key'         => 'quadx_staging_api_key',
+                'label'       => 'API Key',
+                'type'        => 'password',
+                'encrypted'   => true,
+                'mode_scoped' => 'staging',
+            ],
+            [
+                'key'         => 'quadx_staging_secret_key',
+                'label'       => 'Secret Key',
+                'type'        => 'password',
+                'encrypted'   => true,
+                'mode_scoped' => 'staging',
+            ],
+            [
+                'key'         => 'quadx_production_api_key',
+                'label'       => 'API Key',
+                'type'        => 'password',
+                'encrypted'   => true,
+                'mode_scoped' => 'production',
+            ],
+            [
+                'key'         => 'quadx_production_secret_key',
+                'label'       => 'Secret Key',
+                'type'        => 'password',
+                'encrypted'   => true,
+                'mode_scoped' => 'production',
+            ],
+            [
+                'key'     => 'quadx_default_service',
+                'label'   => 'Default service',
+                'type'    => 'select',
+                'options' => $this->getServiceTypes(),
+                'help'    => 'Pre-selected service on the booking form.',
+            ],
+            [
+                'key'     => 'quadx_default_parcel',
+                'label'   => 'Default parcel',
+                'type'    => 'select',
+                'options' => $this->getParcelOptions(),
+                'help'    => 'Pre-selected parcel category on the booking form.',
+            ],
+        ];
+    }
+
     public function parseWebhook(array $payload): array
     {
         $events = [];

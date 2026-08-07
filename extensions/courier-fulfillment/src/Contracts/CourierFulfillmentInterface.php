@@ -90,4 +90,38 @@ interface CourierFulfillmentInterface
      * @return array<int, array{reference_id:?string, tracking_number:?string, status:string, occurred_at:?string, remarks:?string}>
      */
     public function parseWebhook(array $payload): array;
+
+    /**
+     * Declares every `settings` group=courier row this courier reads/writes,
+     * so CourierSettingsController's write-allowlist and the settings page's
+     * per-courier card are both generated from a single source of truth —
+     * adding a courier never requires editing either of those shared files.
+     *
+     * Each field is:
+     *   key:          string   the literal Setting row key (conventionally
+     *                          prefixed with getKey(), e.g. 'quadx_mode') —
+     *                          renamed keys break stored data, so once shipped
+     *                          a key is effectively permanent.
+     *   label:        string   form label.
+     *   type:         string   'text'|'password'|'select'|'toggle'.
+     *   options:      array    for type='select' only —
+     *                          array<int,array{value:string,label:string}>,
+     *                          same shape as getServiceTypes()/getParcelOptions().
+     *   encrypted:    bool     stored via Crypt::encryptString, masked in the
+     *                          UI, blank submission keeps the existing value
+     *                          (never overwritten with empty). Default false.
+     *   mode_scoped:  ?string  when set, this field only applies under that
+     *                          mode value (e.g. 'staging'/'production') and
+     *                          the settings page groups it under that mode's
+     *                          reveal block. The field (of any courier's
+     *                          schema) whose own key ends in "_mode" drives
+     *                          which group is visible; its select options
+     *                          are expected to cover every mode_scoped value
+     *                          used elsewhere in the same schema. Default null
+     *                          (always visible).
+     *   help:         ?string  helper text under the field. Default null.
+     *
+     * @return array<int, array{key:string,label:string,type:string,options?:array,encrypted?:bool,mode_scoped?:?string,help?:?string}>
+     */
+    public function settingsSchema(): array;
 }

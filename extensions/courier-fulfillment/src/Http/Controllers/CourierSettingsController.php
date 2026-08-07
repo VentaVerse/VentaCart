@@ -4,6 +4,7 @@ namespace Extensions\CourierFulfillment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use Extensions\CourierFulfillment\CourierManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -13,35 +14,69 @@ use Illuminate\Support\Str;
  * settings group 'courier'. Credentials are encrypted at rest and masked in
  * the UI. The webhook URL is derived from THIS install's APP_URL so each
  * deployed store shows its own copy-able URL.
+ *
+ * The write-allowlist and the settings page's per-courier card are both
+ * generated from every registered courier's settingsSchema()
+ * (CourierFulfillmentInterface) — adding a courier (a new
+ * Couriers/{Name}/ folder + one CourierManager::register() call) never
+ * requires editing this controller.
  */
 class CourierSettingsController extends Controller
 {
-    private const ENCRYPTED_KEYS = [
-        'quadx_staging_api_key',
-        'quadx_staging_secret_key',
-        'quadx_production_api_key',
-        'quadx_production_secret_key',
-    ];
+    /**
+     * Settings that belong to the module as a whole, not to any one
+     * courier's schema — never renamed without a data migration, since
+     * they're read by literal key name elsewhere too: 'fulfillment_enabled'
+     * by Http\Middleware\EnsureFulfillmentEnabled, 'cod_payment_methods' by
+     * FulfillmentService::isCodOrder(). (quadx_webhook_token is neither —
+     * it's server-generated below and deliberately never part of any
+     * allowlist at all.)
+     */
+    private const MODULE_KEYS = ['fulfillment_enabled', 'cod_payment_methods'];
+
+    /** @return array<int, array{key:string,label:string,type:string,options?:array,encrypted?:bool,mode_scoped?:?string,help?:?string}> every registered courier's schema fields, flattened. */
+    private static function schemaFields(): array
+    {
+        $fields = [];
+        foreach (CourierManager::all() as $courier) {
+            foreach ($courier->settingsSchema() as $field) {
+                $fields[] = $field;
+            }
+        }
+        return $fields;
+    }
 
     /**
      * The ONLY keys writable via this form. Anything else in the request is
      * ignored — prevents arbitrary writes into the 'courier' settings group
-     * (e.g. overwriting the server-generated quadx_webhook_token, which is
-     * deliberately absent here).
+     * (e.g. overwriting the server-generated {provider}_webhook_token, which
+     * is deliberately never part of any schema).
      */
-    private const ALLOWED_KEYS = [
-        'quadx_enabled',
-        'quadx_mode',
-        'quadx_default_service',
-        'quadx_default_parcel',
-        'fulfillment_enabled',
-        'quadx_status_map',
-        'cod_payment_methods',
-        'quadx_staging_api_key',
-        'quadx_staging_secret_key',
-        'quadx_production_api_key',
-        'quadx_production_secret_key',
-    ];
+    private static function allowedKeys(): array
+    {
+        $keys = self::MODULE_KEYS;
+        foreach (self::schemaFields() as $field) {
+            $keys[] = $field['key'];
+        }
+        // Status mapping is a per-lifecycle-status nested structure, not a
+        // flat schema field, so it isn't declared via settingsSchema() —
+        // kept writable per courier here in the meantime. Full derivation of
+        // StatusMapper's storage key from the provider key is tracked
+        // separately (courier-agnostic status/tracking pass).
+        foreach (CourierManager::all() as $courier) {
+            $keys[] = $courier->getKey() . '_status_map';
+        }
+        return array_values(array_unique($keys));
+    }
+
+    private static function encryptedKeys(): array
+    {
+        $keys = array_map(
+            fn (array $field) => $field['key'],
+            array_filter(self::schemaFields(), fn (array $field) => !empty($field['encrypted']))
+        );
+        return array_values(array_unique($keys));
+    }
 
     public function index()
     {
@@ -58,7 +93,7 @@ class CourierSettingsController extends Controller
         }
 
         $masked = [];
-        foreach (self::ENCRYPTED_KEYS as $k) {
+        foreach (self::encryptedKeys() as $k) {
             if (!empty($settings[$k])) {
                 try {
                     $plain = Crypt::decryptString($settings[$k]);
@@ -67,6 +102,45 @@ class CourierSettingsController extends Controller
                     $masked[$k] = '********';
                 }
             }
+        }
+
+        // Per-courier view model: schema fields split into always-visible
+        // ("top") vs. mode-scoped groups, plus which field (if any) is the
+        // Alpine mode toggle those groups key off of — see
+        // CourierFulfillmentInterface::settingsSchema()'s docblock for the
+        // "_mode"-suffixed-key convention this relies on.
+        $courierCards = [];
+        foreach (CourierManager::all() as $courier) {
+            $schema = $courier->settingsSchema();
+
+            $modeField = null;
+            foreach ($schema as $field) {
+                if (str_ends_with($field['key'], '_mode')) {
+                    $modeField = $field;
+                    break;
+                }
+            }
+
+            $topFields = [];
+            $modeGroups = [];
+            foreach ($schema as $field) {
+                $scope = $field['mode_scoped'] ?? null;
+                if ($scope) {
+                    $modeGroups[$scope][] = $field;
+                } else {
+                    $topFields[] = $field;
+                }
+            }
+
+            $courierCards[$courier->getKey()] = [
+                'courier'      => $courier,
+                'topFields'    => $topFields,
+                'modeGroups'   => $modeGroups,
+                'modeFieldKey' => $modeField['key'] ?? null,
+                'initialMode'  => $modeField
+                    ? ($settings[$modeField['key']] ?? ($modeField['options'][0]['value'] ?? null))
+                    : null,
+            ];
         }
 
         // This store's own webhook URL — copy and send to QuadX.
@@ -182,7 +256,8 @@ class CourierSettingsController extends Controller
             'quadxStatuses',
             'statusMap',
             'paymentMethodOptions',
-            'codMethods'
+            'codMethods',
+            'courierCards'
         ));
     }
 
@@ -191,10 +266,11 @@ class CourierSettingsController extends Controller
         $data = $request->input('settings', []);
 
         // Restrict to an explicit allowlist — never persist arbitrary request keys.
-        $data = array_intersect_key($data, array_flip(self::ALLOWED_KEYS));
+        $data = array_intersect_key($data, array_flip(self::allowedKeys()));
 
+        $encryptedKeys = self::encryptedKeys();
         foreach ($data as $key => $value) {
-            if (in_array($key, self::ENCRYPTED_KEYS, true)) {
+            if (in_array($key, $encryptedKeys, true)) {
                 if (empty($value)) {
                     continue; // don't overwrite stored secret with blank
                 }
