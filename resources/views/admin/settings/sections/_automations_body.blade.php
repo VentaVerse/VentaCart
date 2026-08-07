@@ -68,17 +68,23 @@
 
             @forelse ($automations as $automation)
                 @php
-                    // Serialize the row payload into a single scalar so the Alpine click handler
-                    // can receive it as a literal JS object. Done in @php (not @json mid-HTML)
-                    // because Blade's @json compiler can't span multiple lines reliably.
-                    $editPayload = json_encode([
+                    // Row payload for the Alpine click handler. Built as a plain PHP
+                    // array/value and handed to Js::from() below — NOT pre-encoded
+                    // with json_encode()/JSON_HEX_* here. Those hex-escaped quotes
+                    // are meant for splicing into an HTML attribute value, not for
+                    // splicing raw into a JS object-literal position; used with
+                    // {!! !!} the literal '/" sequences land inside the
+                    // JS source as invalid syntax (SyntaxError on load, dead
+                    // button). Js::from() is the one path that escapes correctly
+                    // for a JS expression position — see the Copy button above.
+                    $editPayload = [
                         'id' => $automation->id,
                         'name' => $automation->name,
                         'command' => $automation->command,
                         'schedule_preset' => $automation->schedule_preset,
                         'schedule_params' => $automation->schedule_params ?: (object) [],
                         'cron_expression' => $automation->cron_expression,
-                    ], JSON_HEX_APOS | JSON_HEX_QUOT);
+                    ];
                 @endphp
                 <x-admin.table.row x-data="{ enabled: {{ $automation->enabled ? 'true' : 'false' }}, running: false }">
                     <x-admin.table.cell>
@@ -119,7 +125,7 @@
                     </x-admin.table.cell>
                     <x-admin.table.cell align="right">
                         <div class="inline-flex items-center gap-2">
-                            <x-admin.button type="button" variant="secondary" size="sm" @click='openEditor({!! $editPayload !!})'>
+                            <x-admin.button type="button" variant="secondary" size="sm" @click="openEditor({{ \Illuminate\Support\Js::from($editPayload) }})">
                                 Edit
                             </x-admin.button>
                             <span :title="enabled ? '' : 'Enable this automation to run it manually'">
