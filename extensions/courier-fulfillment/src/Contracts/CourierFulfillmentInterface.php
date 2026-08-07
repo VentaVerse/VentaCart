@@ -124,4 +124,48 @@ interface CourierFulfillmentInterface
      * @return array<int, array{key:string,label:string,type:string,options?:array,encrypted?:bool,mode_scoped?:?string,help?:?string}>
      */
     public function settingsSchema(): array;
+
+    /**
+     * Tracking URLs extracted from this order's courier_meta, in this
+     * courier's own shape — courier_meta is entirely provider-owned (QuadX
+     * nests its links under a "delivery"/"pickup" pair at refresh time, or
+     * buried inside booked_response's own tracking_links at booking time; a
+     * different courier might store one flat url, or none at all). Returned
+     * in preference order (best/most useful link first) — the queue page
+     * loops this rather than parsing courier_meta's shape itself.
+     *
+     * @return array<int, array{label:string, url:string}>
+     */
+    public function trackingLinks(\App\Models\Order $order): array;
+
+    /**
+     * Verify the currently saved credentials actually work by pinging the
+     * provider. Backs the settings page's "Test Connection" button only —
+     * never called on page load.
+     *
+     * @return array{ok:bool, message:string}
+     */
+    public function testConnection(): array;
+
+    /**
+     * Pull the live status vocabulary + display labels from the provider, to
+     * cache as this courier's "{key}_status_labels" setting (used to
+     * humanize raw courier statuses in the queue view and to label the
+     * settings page's status-mapping table). Backs the settings page's
+     * explicit "Refresh from {courier}" button only — never called on page
+     * load or on a schedule.
+     *
+     * @return array{ok:bool, labels?:array<string,string>, error?:string}
+     */
+    public function refreshStatusLabels(): array;
+
+    /**
+     * Curated subset of this courier's status vocabulary that the admin can
+     * map to a Venta order status, in display order. A courier's raw API
+     * status list (see refreshStatusLabels()) may be larger/noisier than
+     * what's useful to expose for mapping — this is that curated list.
+     *
+     * @return string[]
+     */
+    public function mappableStatuses(): array;
 }

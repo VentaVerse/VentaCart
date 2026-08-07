@@ -36,8 +36,8 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->group(function () {
         Route::get('/', [CourierSettingsController::class, 'index'])->name('settings');
         Route::post('/', [CourierSettingsController::class, 'update'])->name('settings.update');
-        Route::post('/test-connection', [CourierSettingsController::class, 'testConnection'])->name('test-connection');
-        Route::post('/refresh-statuses', [CourierSettingsController::class, 'refreshStatuses'])->name('settings.refresh-statuses');
+        Route::post('/{courier}/test-connection', [CourierSettingsController::class, 'testConnection'])->name('test-connection');
+        Route::post('/{courier}/refresh-statuses', [CourierSettingsController::class, 'refreshStatuses'])->name('settings.refresh-statuses');
     });
 
 // Public webhook receiver — per-store token guarded, CSRF-exempt (external POST).

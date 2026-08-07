@@ -17,33 +17,24 @@
     @else
 
     @php
-        // Recursively hunt for the first http(s) URL inside courier_meta.booked_response.tracking_links —
-        // couriers return this in wildly different shapes (string, nested array, or null).
-        $extractTrackingUrl = function ($value) use (&$extractTrackingUrl) {
-            if (is_string($value)) {
-                return str_starts_with($value, 'http') ? $value : null;
-            }
-            if (is_array($value)) {
-                foreach ($value as $v) {
-                    if ($found = $extractTrackingUrl($v)) {
-                        return $found;
-                    }
-                }
-            }
-            return null;
-        };
-
         // Statuses the primary courier still allows canceling from — computed once,
         // not per row. A null/unknown current status is always cancelable (fresh booking).
         $cancelableStatuses = $primary?->cancelableStatuses() ?? [];
 
-        // Cached QuadX status labels (populated by the "Refresh from QuadX" button on
-        // the settings page) — same source the settings screen uses, never a live call.
-        $cachedLabelsRaw = \App\Models\Setting::where('group', 'courier')->where('key', 'quadx_status_labels')->value('value');
-        $cachedLabels = $cachedLabelsRaw ? (json_decode($cachedLabelsRaw, true) ?: []) : [];
-        $cachedLabels = is_array($cachedLabels) ? $cachedLabels : [];
-        $humanizeStatus = function (string $status) use ($cachedLabels) {
-            return $cachedLabels[$status] ?? ucwords(str_replace('_', ' ', $status));
+        // Cached status labels (populated per-courier by the "Refresh from {courier}"
+        // button on the settings page) — same source the settings screen uses, never a
+        // live call. Memoized per provider since a page of orders can span couriers.
+        $statusLabelsByProvider = [];
+        $humanizeStatus = function (string $status, ?string $provider) use (&$statusLabelsByProvider) {
+            if ($provider === null) {
+                return ucwords(str_replace('_', ' ', $status));
+            }
+            if (!array_key_exists($provider, $statusLabelsByProvider)) {
+                $raw = \App\Models\Setting::where('group', 'courier')->where('key', $provider . '_status_labels')->value('value');
+                $decoded = $raw ? (json_decode($raw, true) ?: []) : [];
+                $statusLabelsByProvider[$provider] = is_array($decoded) ? $decoded : [];
+            }
+            return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
         };
     @endphp
 
@@ -93,21 +84,18 @@
                         ? ($primary?->statusPhase($order->courier_status) ?? ['step' => 0, 'failed' => false])
                         : ['step' => 0, 'failed' => false];
 
-                    // URL preference: fresh courier_meta.tracking_links (delivery, then
-                    // pickup) persisted on refresh, else fall back to whatever shape the
-                    // provider returned at booking time inside booked_response.
+                    // Tracking link extraction lives behind the interface — each courier
+                    // owns its own courier_meta shape (CourierFulfillmentInterface::trackingLinks()).
+                    // We just loop the result and take the first usable one.
+                    $orderCourier = $order->courier_provider ? \Extensions\CourierFulfillment\CourierManager::get($order->courier_provider) : null;
                     $trackingUrl = null;
-                    $metaLinks = $meta['tracking_links'] ?? null;
-                    if (is_array($metaLinks)) {
-                        foreach ([$metaLinks['delivery'] ?? null, $metaLinks['pickup'] ?? null] as $candidate) {
-                            if (is_string($candidate) && str_starts_with($candidate, 'http')) {
-                                $trackingUrl = $candidate;
+                    if ($orderCourier) {
+                        foreach ($orderCourier->trackingLinks($order) as $link) {
+                            if (!empty($link['url'])) {
+                                $trackingUrl = $link['url'];
                                 break;
                             }
                         }
-                    }
-                    if (!$trackingUrl) {
-                        $trackingUrl = $extractTrackingUrl($meta['booked_response']['tracking_links'] ?? null);
                     }
 
                     $estimatedDelivery = $meta['booked_response']['estimated_delivery_date'] ?? null;
@@ -128,7 +116,7 @@
                                 continue;
                             }
                             $timeline[] = [
-                                'label' => $humanizeStatus((string) $event['status']),
+                                'label' => $humanizeStatus((string) $event['status'], $order->courier_provider),
                                 'at' => \Carbon\Carbon::createFromTimestamp($event['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia'),
                             ];
                         }
@@ -426,7 +414,6 @@
                 get current() { return this.options[this.courier] ?? {services:[],parcels:[],payments:[]}; },
                 get bookAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/book'; },
                 get trackAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/track'; },
-                get cancelAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/cancel'; },
                 get labelUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/label'; },
                 openDrawer(order) {
                     this.active = order;

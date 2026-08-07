@@ -88,6 +88,32 @@ class FakeCourierFulfillment implements CourierFulfillmentInterface
     }
 
     /**
+     * Deterministic fake link (independent of courier_meta shape), so a test
+     * can register this courier, book/attach an order to it, and assert the
+     * queue view genuinely loops CourierFulfillmentInterface::trackingLinks()
+     * rather than parsing any one courier's courier_meta shape itself.
+     */
+    public function trackingLinks(Order $order): array
+    {
+        return [['label' => 'Track', 'url' => 'https://fake-courier.test/track/' . $order->id]];
+    }
+
+    public function testConnection(): array
+    {
+        return ['ok' => false, 'message' => 'not implemented'];
+    }
+
+    public function refreshStatusLabels(): array
+    {
+        return ['ok' => false, 'error' => 'not implemented'];
+    }
+
+    public function mappableStatuses(): array
+    {
+        return ['pending', 'delivered'];
+    }
+
+    /**
      * One field of each schema type, plus a mode-scoped pair, so a single
      * FakeCourier registration exercises the settings page's whole rendering
      * path (toggle/select/text/password, mode grouping, encryption+masking).

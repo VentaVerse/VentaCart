@@ -286,6 +286,95 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         return $events;
     }
 
+    /**
+     * Preference order: courier_meta.tracking_links.delivery, then .pickup
+     * (both refreshed via getTracking()'s poll/refresh path), else whatever
+     * shape QuadX returned at booking time inside booked_response.tracking_links
+     * (string, nested array, or absent — hunted for recursively).
+     */
+    public function trackingLinks(Order $order): array
+    {
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        if (!is_array($meta)) {
+            return [];
+        }
+
+        $links = [];
+        $metaLinks = $meta['tracking_links'] ?? null;
+        if (is_array($metaLinks)) {
+            foreach (['delivery' => 'Delivery', 'pickup' => 'Pickup'] as $k => $label) {
+                $url = $metaLinks[$k] ?? null;
+                if (is_string($url) && str_starts_with($url, 'http')) {
+                    $links[] = ['label' => $label, 'url' => $url];
+                }
+            }
+        }
+
+        if (empty($links)) {
+            $found = self::findFirstUrl($meta['booked_response']['tracking_links'] ?? null);
+            if ($found) {
+                $links[] = ['label' => 'Track', 'url' => $found];
+            }
+        }
+
+        return $links;
+    }
+
+    /** Recursively hunt for the first http(s) URL — booked_response's tracking_links shape varies. */
+    private static function findFirstUrl(mixed $value): ?string
+    {
+        if (is_string($value)) {
+            return str_starts_with($value, 'http') ? $value : null;
+        }
+        if (is_array($value)) {
+            foreach ($value as $v) {
+                if ($found = self::findFirstUrl($v)) {
+                    return $found;
+                }
+            }
+        }
+        return null;
+    }
+
+    public function testConnection(): array
+    {
+        if (!$this->client->isConfigured()) {
+            return ['ok' => false, 'message' => 'API key/secret not set.'];
+        }
+        $res = $this->client->getStatuses();
+        return $res['ok']
+            ? ['ok' => true, 'message' => 'Connected — QuadX reachable and credentials valid.']
+            : ['ok' => false, 'message' => 'Failed: ' . ($res['error'] ?? 'unknown (HTTP ' . $res['status'] . ')')];
+    }
+
+    public function refreshStatusLabels(): array
+    {
+        if (!$this->client->isConfigured()) {
+            return ['ok' => false, 'error' => 'API key/secret not set — cannot refresh statuses.'];
+        }
+
+        $res = $this->client->getStatuses();
+        if (!$res['ok']) {
+            return ['ok' => false, 'error' => 'Refresh failed: ' . ($res['error'] ?? 'unknown error')];
+        }
+
+        $labels = [];
+        foreach ($res['body'] as $s) {
+            if (!empty($s['name'])) {
+                $labels[$s['name']] = $s['label'] ?? ucwords(str_replace('_', ' ', $s['name']));
+            }
+        }
+
+        return ['ok' => true, 'labels' => $labels];
+    }
+
+    /** Curated subset presented on the status-mapping table — unchanged from before this became courier-owned data. */
+    public function mappableStatuses(): array
+    {
+        return ['for_pickup', 'picked_up', 'in_transit', 'out_for_delivery',
+                'delivered', 'failed_pickup', 'failed_delivery', 'returned', 'canceled'];
+    }
+
     // --- Payload builder --------------------------------------------------
 
     private function buildPayload(Order $order, array $opts): array

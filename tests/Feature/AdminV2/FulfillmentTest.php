@@ -2,10 +2,13 @@
 
 namespace Tests\Feature\AdminV2;
 
+use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\CourierManager;
+use Extensions\CourierFulfillment\StatusMapper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Tests\Support\FakeCourierFulfillment;
@@ -16,6 +19,13 @@ use Tests\TestCase;
  * See docs/superpowers/plans/2026-08-08-fulfillment-polish.md (Task 4) and
  * extensions/courier-fulfillment/src/Contracts/CourierFulfillmentInterface.php's
  * settingsSchema() docblock for the contract this exercises.
+ *
+ * Task 5 additions (courier-agnostic status + tracking): StatusMapper reading
+ * "{courier}_status_map" derived from the courier key, the queue page looping
+ * CourierFulfillmentInterface::trackingLinks() rather than parsing
+ * courier_meta itself, and the settings page's Test Connection endpoint
+ * taking a {courier} route parameter — all proven with FakeCourierFulfillment
+ * so a second real courier (not just QuadX) is genuinely supported.
  */
 class FulfillmentTest extends TestCase
 {
@@ -245,5 +255,140 @@ class FulfillmentTest extends TestCase
         // Paused must never lock an admin out of turning it back on.
 
         $this->get($this->settingsUrl())->assertOk();
+    }
+
+    // ------------------------------------------------------------------
+    // Task 5: StatusMapper reads "{courier}_status_map" derived from the
+    // courier key — proven with a second, non-QuadX key so this is genuinely
+    // courier-agnostic, not just correct for the one key it shipped with.
+    // ------------------------------------------------------------------
+
+    public function test_status_mapper_reads_the_map_under_the_bound_couriers_own_key(): void
+    {
+        // courier_provider etc. are columns the extension's own migration adds —
+        // install it so they exist on this test's in-memory schema.
+        $this->installExtension();
+        CourierManager::register(FakeCourierFulfillment::class);
+
+        $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2]);
+
+        // Two different couriers' maps, saved under their own derived keys —
+        // proves no cross-talk between "fake_status_map" and "quadx_status_map".
+        Setting::create(['group' => 'courier', 'key' => 'fake_status_map', 'value' => json_encode([
+            'delivered' => ['order_status_id' => $delivered->id, 'notify' => false],
+        ])]);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
+            'delivered' => ['order_status_id' => $pending->id, 'notify' => false], // deliberately different, to prove isolation
+        ])]);
+
+        $this->assertSame(
+            ['order_status_id' => $delivered->id, 'notify' => false],
+            StatusMapper::resolve(StatusMapper::currentMap('fake'), 'delivered')
+        );
+        $this->assertSame(
+            ['order_status_id' => $pending->id, 'notify' => false],
+            StatusMapper::resolve(StatusMapper::currentMap('quadx'), 'delivered')
+        );
+        $this->assertSame([], StatusMapper::currentMap('unregistered-courier'));
+
+        $order = Order::create([
+            'store_id' => 1,
+            'order_status_id' => $pending->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'subtotal' => 1000,
+            'shipping_cost' => 0,
+            'total' => 1000,
+        ]);
+        $order->forceFill(['courier_provider' => 'fake'])->save();
+
+        // apply() derives the courier key from the order itself, so booking
+        // with the fake courier moves the order using ITS map, not QuadX's.
+        $this->assertTrue(StatusMapper::apply($order, 'delivered'));
+        $this->assertSame($delivered->id, $order->fresh()->order_status_id);
+    }
+
+    // ------------------------------------------------------------------
+    // Task 5: tracking-link extraction lives behind the interface — the
+    // queue page loops CourierFulfillmentInterface::trackingLinks() rather
+    // than parsing any one courier's courier_meta shape itself.
+    // ------------------------------------------------------------------
+
+    public function test_queue_page_renders_a_tracking_link_from_a_non_quadx_courier(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        CourierManager::register(FakeCourierFulfillment::class);
+
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
+        $order = Order::create([
+            'store_id' => 1,
+            'order_status_id' => $status->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'subtotal' => 1000,
+            'shipping_cost' => 0,
+            'total' => 1000,
+        ]);
+        $order->forceFill([
+            'courier_provider' => 'fake',
+            'courier_tracking_number' => 'FAKE-123',
+            'courier_status' => 'in_transit',
+        ])->save();
+
+        $this->get($this->queueUrl() . '?filter=all')
+            ->assertOk()
+            ->assertSee('https://fake-courier.test/track/' . $order->id, false)
+            ->assertSee('FAKE-123');
+    }
+
+    // ------------------------------------------------------------------
+    // Task 5: Test Connection is a {courier}-parameterized endpoint — proven
+    // against both a courier with real (QuadX) behavior to preserve and one
+    // that plainly is not QuadX.
+    // ------------------------------------------------------------------
+
+    public function test_test_connection_endpoint_is_parameterized_per_courier(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        CourierManager::register(FakeCourierFulfillment::class);
+
+        // Unconfigured QuadX — same message QuadXFulfillment::testConnection()
+        // has always returned when no credentials are saved.
+        $this->postJson($this->settingsUrl('/quadx/test-connection'))
+            ->assertOk()
+            ->assertJson(['ok' => false, 'message' => 'API key/secret not set.']);
+
+        // A different, real second courier — proves the endpoint isn't
+        // secretly still hardcoded to CourierManager::get('quadx').
+        $this->postJson($this->settingsUrl('/fake/test-connection'))
+            ->assertOk()
+            ->assertJson(['ok' => false, 'message' => 'not implemented']);
+
+        // Unregistered key — never a 404/500, a clean JSON error instead.
+        $this->postJson($this->settingsUrl('/nope/test-connection'))
+            ->assertOk()
+            ->assertJson(['ok' => false, 'message' => 'Courier not registered.']);
+    }
+
+    public function test_settings_page_renders_a_second_couriers_webhook_url_and_status_mapping_table(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        CourierManager::register(FakeCourierFulfillment::class);
+
+        $response = $this->get($this->settingsUrl());
+        $response->assertOk()
+            // Webhook URL section renders per-courier, generically, not just for QuadX.
+            ->assertSee('/webhooks/courier/fake?token=', false)
+            // Status-mapping table renders FakeCourierFulfillment::mappableStatuses().
+            ->assertSee('name="settings[fake_status_map][pending][order_status_id]"', false)
+            ->assertSee('name="settings[fake_status_map][delivered][order_status_id]"', false)
+            // Test Connection route is parameterized to this courier's key.
+            ->assertSee($this->settingsUrl('/fake/test-connection'), false);
     }
 }

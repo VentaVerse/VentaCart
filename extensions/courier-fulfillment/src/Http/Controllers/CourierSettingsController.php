@@ -29,9 +29,9 @@ class CourierSettingsController extends Controller
      * they're read by literal key name elsewhere too: 'fulfillment_enabled'
      * by FulfillmentController::index() (opt-out pause toggle — missing/NULL
      * means active, only an explicit '0' pauses the queue), 'cod_payment_methods'
-     * by FulfillmentService::isCodOrder(). (quadx_webhook_token is neither —
-     * it's server-generated below and deliberately never part of any
-     * allowlist at all.)
+     * by FulfillmentService::isCodOrder(). ("{courier}_webhook_token" is
+     * neither — it's server-generated below, per registered courier, and
+     * deliberately never part of any allowlist at all.)
      */
     private const MODULE_KEYS = ['fulfillment_enabled', 'cod_payment_methods'];
 
@@ -83,14 +83,20 @@ class CourierSettingsController extends Controller
     {
         $settings = Setting::where('group', 'courier')->pluck('value', 'key')->toArray();
 
-        // Ensure a stable webhook token exists for this store.
-        if (empty($settings['quadx_webhook_token'])) {
-            $token = Str::random(40);
-            Setting::updateOrCreate(
-                ['group' => 'courier', 'key' => 'quadx_webhook_token'],
-                ['value' => $token]
-            );
-            $settings['quadx_webhook_token'] = $token;
+        // Ensure a stable webhook token exists per registered courier —
+        // matches CourierWebhookController's generic "{provider}_webhook_token"
+        // lookup, so every registered courier gets a working webhook URL
+        // without this controller knowing any courier's literal key.
+        foreach (CourierManager::all() as $courier) {
+            $tokenKey = $courier->getKey() . '_webhook_token';
+            if (empty($settings[$tokenKey])) {
+                $token = Str::random(40);
+                Setting::updateOrCreate(
+                    ['group' => 'courier', 'key' => $tokenKey],
+                    ['value' => $token]
+                );
+                $settings[$tokenKey] = $token;
+            }
         }
 
         $masked = [];
@@ -105,13 +111,33 @@ class CourierSettingsController extends Controller
             }
         }
 
+        $orderStatuses = \App\Models\OrderStatus::orderBy('name')->pluck('name', 'id')->toArray();
+
+        // Smart defaults for the status-mapping table: only applied per
+        // courier when that courier's own map is still unconfigured, and
+        // only for names that are actually in that courier's own
+        // mappableStatuses() — so this is inert data, not a QuadX special
+        // case, even though today only QuadX's vocabulary matches it.
+        // Display-only pre-selections; nothing is written to the DB here —
+        // the admin's first Save is what actually persists them.
+        $defaultStatusNames = [
+            'picked_up'        => 'Shipped',
+            'in_transit'       => 'Shipped',
+            'out_for_delivery' => 'Shipped',
+            'delivered'        => 'Delivered',
+            'canceled'         => 'Canceled',
+        ];
+
         // Per-courier view model: schema fields split into always-visible
-        // ("top") vs. mode-scoped groups, plus which field (if any) is the
-        // Alpine mode toggle those groups key off of — see
-        // CourierFulfillmentInterface::settingsSchema()'s docblock for the
-        // "_mode"-suffixed-key convention this relies on.
+        // ("top") vs. mode-scoped groups (see settingsSchema()'s docblock for
+        // the "_mode"-suffixed-key convention), plus this store's own webhook
+        // URL, curated status vocabulary + cached display labels, and the
+        // admin's saved status map — everything the settings page needs to
+        // render one card per registered courier without knowing any
+        // courier's literal key.
         $courierCards = [];
         foreach (CourierManager::all() as $courier) {
+            $key = $courier->getKey();
             $schema = $courier->settingsSchema();
 
             $modeField = null;
@@ -133,36 +159,45 @@ class CourierSettingsController extends Controller
                 }
             }
 
-            $courierCards[$courier->getKey()] = [
-                'courier'      => $courier,
-                'topFields'    => $topFields,
-                'modeGroups'   => $modeGroups,
-                'modeFieldKey' => $modeField['key'] ?? null,
-                'initialMode'  => $modeField
+            // Labels come from a cache populated by this card's "Refresh from
+            // {courier}" button (see refreshStatuses()) — never a live API
+            // call on page load.
+            $cachedLabelsRaw = $settings[$key . '_status_labels'] ?? null;
+            $cachedLabels = $cachedLabelsRaw ? json_decode($cachedLabelsRaw, true) : [];
+            $cachedLabels = is_array($cachedLabels) ? $cachedLabels : [];
+
+            $courierStatuses = [];
+            foreach ($courier->mappableStatuses() as $name) {
+                $courierStatuses[$name] = $cachedLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
+            }
+
+            $statusMap = \Extensions\CourierFulfillment\StatusMapper::currentMap($key);
+            if (empty($statusMap)) {
+                foreach ($defaultStatusNames as $statusName => $ventaName) {
+                    if (!array_key_exists($statusName, $courierStatuses)) {
+                        continue; // not part of THIS courier's own vocabulary
+                    }
+                    $id = \App\Models\OrderStatus::where('name', $ventaName)->value('id');
+                    if ($id) {
+                        $statusMap[$statusName] = ['order_status_id' => $id, 'notify' => false];
+                    }
+                }
+            }
+
+            $courierCards[$key] = [
+                'courier'         => $courier,
+                'topFields'       => $topFields,
+                'modeGroups'      => $modeGroups,
+                'modeFieldKey'    => $modeField['key'] ?? null,
+                'initialMode'     => $modeField
                     ? ($settings[$modeField['key']] ?? ($modeField['options'][0]['value'] ?? null))
                     : null,
+                // This store's own webhook URL — copy and send to the courier.
+                'webhookUrl'      => rtrim((string) config('app.url'), '/')
+                    . '/webhooks/courier/' . $key . '?token=' . $settings[$key . '_webhook_token'],
+                'courierStatuses' => $courierStatuses,
+                'statusMap'       => $statusMap,
             ];
-        }
-
-        // This store's own webhook URL — copy and send to QuadX.
-        $webhookUrl = rtrim((string) config('app.url'), '/')
-            . '/webhooks/courier/quadx?token=' . $settings['quadx_webhook_token'];
-
-        $orderStatuses = \App\Models\OrderStatus::orderBy('name')->pluck('name', 'id')->toArray();
-
-        // Lifecycle statuses we let admins map (curated subset).
-        $lifecycle = ['for_pickup', 'picked_up', 'in_transit', 'out_for_delivery',
-                      'delivered', 'failed_pickup', 'failed_delivery', 'returned', 'canceled'];
-
-        // Labels come from a cache populated by the "Refresh from QuadX" button
-        // (see refreshStatuses()) — never a live API call on page load.
-        $cachedLabelsRaw = Setting::where('group', 'courier')->where('key', 'quadx_status_labels')->value('value');
-        $cachedLabels = $cachedLabelsRaw ? json_decode($cachedLabelsRaw, true) : [];
-        $cachedLabels = is_array($cachedLabels) ? $cachedLabels : [];
-
-        $quadxStatuses = [];
-        foreach ($lifecycle as $name) {
-            $quadxStatuses[$name] = $cachedLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
         }
 
         // Payment-method keys seen in real orders + the core methods, for COD classification.
@@ -228,34 +263,10 @@ class CourierSettingsController extends Controller
             $codMethods = array_values(array_filter(array_keys($paymentMethodOptions), fn ($m) => str_contains(strtolower($m), 'cod')));
         }
 
-        $statusMap = \Extensions\CourierFulfillment\StatusMapper::currentMap();
-
-        // Smart defaults: only when the admin hasn't configured a map yet. These
-        // are display-only pre-selections for the dropdowns — nothing is written
-        // to the DB here. The admin's first Save is what actually persists them.
-        if (empty($statusMap)) {
-            $defaultNames = [
-                'picked_up'        => 'Shipped',
-                'in_transit'       => 'Shipped',
-                'out_for_delivery' => 'Shipped',
-                'delivered'        => 'Delivered',
-                'canceled'         => 'Canceled',
-            ];
-            foreach ($defaultNames as $quadxKey => $ventaName) {
-                $id = \App\Models\OrderStatus::where('name', $ventaName)->value('id');
-                if ($id) {
-                    $statusMap[$quadxKey] = ['order_status_id' => $id, 'notify' => false];
-                }
-            }
-        }
-
         return view('courier-fulfillment::settings', compact(
             'settings',
             'masked',
-            'webhookUrl',
             'orderStatuses',
-            'quadxStatuses',
-            'statusMap',
             'paymentMethodOptions',
             'codMethods',
             'courierCards'
@@ -290,50 +301,45 @@ class CourierSettingsController extends Controller
     }
 
     /**
-     * Pull the live status list from QuadX and cache it as the admin-facing
-     * labels used by index(). Explicit admin action only — never called on
-     * page load.
+     * Pull the live status list from the given courier and cache it as its
+     * own admin-facing labels used by index() (and by the queue view's
+     * status humanization). Explicit per-courier admin action only — never
+     * called on page load. Delegates the actual API call to the courier
+     * itself (CourierFulfillmentInterface::refreshStatusLabels()) — this
+     * controller never talks to a courier's client directly.
      */
-    public function refreshStatuses()
+    public function refreshStatuses(string $courier)
     {
-        $client = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXClient();
-        if (!$client->isConfigured()) {
-            return back()->with('error', 'API key/secret not set — cannot refresh statuses.');
+        $c = CourierManager::get($courier);
+        if (!$c) {
+            return back()->with('error', 'Courier not registered.');
         }
 
-        $res = $client->getStatuses();
-        if (!$res['ok']) {
-            return back()->with('error', 'Refresh failed: ' . ($res['error'] ?? 'unknown error'));
-        }
-
-        $labels = [];
-        foreach ($res['body'] as $s) {
-            if (!empty($s['name'])) {
-                $labels[$s['name']] = $s['label'] ?? ucwords(str_replace('_', ' ', $s['name']));
-            }
+        $res = $c->refreshStatusLabels();
+        if (!($res['ok'] ?? false)) {
+            return back()->with('error', $res['error'] ?? 'Refresh failed: unknown error');
         }
 
         Setting::updateOrCreate(
-            ['group' => 'courier', 'key' => 'quadx_status_labels'],
-            ['value' => json_encode($labels)]
+            ['group' => 'courier', 'key' => $c->getKey() . '_status_labels'],
+            ['value' => json_encode($res['labels'] ?? [])]
         );
 
-        return back()->with('success', 'QuadX status list refreshed.');
+        return back()->with('success', $c->getName() . ' status list refreshed.');
     }
 
-    public function testConnection()
+    /**
+     * Verify the given courier's saved credentials by delegating to its own
+     * CourierFulfillmentInterface::testConnection() — this controller never
+     * talks to a courier's client directly.
+     */
+    public function testConnection(string $courier)
     {
-        $courier = \Extensions\CourierFulfillment\CourierManager::get('quadx');
-        if (!$courier) {
-            return response()->json(['ok' => false, 'message' => 'QuadX courier not registered.']);
+        $c = CourierManager::get($courier);
+        if (!$c) {
+            return response()->json(['ok' => false, 'message' => 'Courier not registered.']);
         }
-        $client = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXClient();
-        if (!$client->isConfigured()) {
-            return response()->json(['ok' => false, 'message' => 'API key/secret not set.']);
-        }
-        $res = $client->getStatuses();
-        return response()->json($res['ok']
-            ? ['ok' => true, 'message' => 'Connected — QuadX reachable and credentials valid.']
-            : ['ok' => false, 'message' => 'Failed: ' . ($res['error'] ?? 'unknown (HTTP ' . $res['status'] . ')')]);
+
+        return response()->json($c->testConnection());
     }
 }
