@@ -19,8 +19,21 @@ class SettingsSectionTest extends TestCase
     public function test_external_key_is_not_a_section(): void
     {
         $this->actingAs(User::factory()->create());
-        // 'payments' exists in the registry but points at an external page
-        $this->get(route('admin.settings.section', 'payments'))->assertNotFound();
+
+        // 'payments' exists in the settings-nav registry but points at an
+        // external page (PaymentSettingController), not
+        // SettingsSectionController. Since the Task 3 URL grammar restructure,
+        // admin.settings.section's own URI (settings/{section}) and
+        // 'payments' real literal page (settings/payments — registered
+        // earlier in routes/admin/settings.php, specifically so it takes
+        // precedence over the generic {section} catch-all) now happen to
+        // collide on the exact same string when section='payments'. That
+        // collision is intentional: it proves the real page — not a 404 —
+        // is what actually answers, because Laravel resolves routes by
+        // registration order and the literal route always wins.
+        $this->get(route('admin.settings.section', 'payments'))
+            ->assertOk()
+            ->assertViewIs('admin.payment-settings.index');
     }
 
     public function test_mail_section_renders_in_shell_with_sub_sidebar(): void

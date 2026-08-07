@@ -3,7 +3,14 @@
 use Extensions\Banners\Http\Controllers\BannerController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['web', 'auth'])->prefix('admin/banners')->name('admin.banners.')->group(function () {
+// Mounted under the *configured* admin prefix at settings/modules/banners
+// (the kernel-mount convention) — never a hardcoded 'admin/' literal. The
+// old hardcoded 'admin/banners/*' paths now 301 via routes/admin.php's
+// legacy-banners-redirect route. Route names are unchanged ('admin.banners.*').
+Route::middleware(['web', 'auth', 'admin.session.cap'])
+    ->prefix(config('admin.prefix', 'admin').'/settings/modules/banners')
+    ->name('admin.banners.')
+    ->group(function () {
     // Groups
     Route::get('/', [BannerController::class, 'index'])->name('index');
     Route::get('/create', [BannerController::class, 'createGroup'])->name('create');

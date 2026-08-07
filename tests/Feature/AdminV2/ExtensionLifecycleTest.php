@@ -154,13 +154,14 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertSame('enabled', $manager->state('banners'));
         $this->assertDatabaseHas('extensions', ['name' => 'banners', 'enabled' => true]);
 
-        // Hit banners' literal URL (still hardcoded 'admin/banners' — that
-        // prefix bug is Part 1's fix, out of scope here) rather than
-        // route('admin.banners.index'): the named route can't be resolved to
-        // build a URL until App\Http\Middleware\BootExtensions has actually
-        // run once, and that only happens once a request is dispatched.
+        // Hit banners' literal URL — now mounted under the *configured*
+        // admin prefix at settings/modules/banners (the Part 1 prefix-bug
+        // fix) — rather than route('admin.banners.index'): the named route
+        // can't be resolved to build a URL until
+        // App\Http\Middleware\BootExtensions has actually run once, and
+        // that only happens once a request is dispatched.
         $this->actingAs(User::factory()->create())
-            ->get('/admin/banners')
+            ->get('/'.config('admin.prefix', 'admin').'/settings/modules/banners')
             ->assertOk();
 
         // A request has now run BannerServiceProvider::boot() via the
