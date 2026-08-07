@@ -43,7 +43,7 @@ class CustomerController extends Controller
         $customers = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
-        return view('admin.customers.index', compact('customers', 'customerGroups'));
+        return view('admin.customers.customers.index', compact('customers', 'customerGroups'));
     }
 
     public function create()
@@ -51,7 +51,7 @@ class CustomerController extends Controller
         $customerGroups = CustomerGroup::orderBy('name')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.customers.form', [
+        return view('admin.customers.customers.form', [
             'customer' => null,
             'customerGroups' => $customerGroups,
             'countries' => $countries,
@@ -77,7 +77,7 @@ class CustomerController extends Controller
         $customerGroups = CustomerGroup::orderBy('name')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.customers.form', compact('customer', 'customerGroups', 'countries'));
+        return view('admin.customers.customers.form', compact('customer', 'customerGroups', 'countries'));
     }
 
     public function update(Request $request, Customer $customer)

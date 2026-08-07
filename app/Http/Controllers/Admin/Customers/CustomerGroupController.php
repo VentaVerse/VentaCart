@@ -18,12 +18,12 @@ class CustomerGroupController extends Controller
 
         $groups = $query->orderBy('name')->paginate(20)->withQueryString();
 
-        return view('admin.customer-groups.index', compact('groups'));
+        return view('admin.customers.customer-groups.index', compact('groups'));
     }
 
     public function create()
     {
-        return view('admin.customer-groups.form', [
+        return view('admin.customers.customer-groups.form', [
             'group' => null,
         ]);
     }
@@ -49,7 +49,7 @@ class CustomerGroupController extends Controller
 
     public function edit(CustomerGroup $customerGroup)
     {
-        return view('admin.customer-groups.form', [
+        return view('admin.customers.customer-groups.form', [
             'group' => $customerGroup,
         ]);
     }

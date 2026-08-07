@@ -83,7 +83,7 @@ class ShippingSettingController extends Controller
         $countries = Country::orderBy('name')->get();
         $defaultCountryId = Country::where('iso2', 'PH')->value('id') ?? $countries->first()?->id ?? 1;
 
-        return view('admin.shipping-settings.index', compact(
+        return view('admin.settings.shipping.index', compact(
             'settings', 'maskedKeys', 'flatRates', 'weightMethods', 'geoZones', 'customerGroups',
             'freeShippingRules', 'chain', 'countries', 'defaultCountryId'
         ));

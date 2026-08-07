@@ -20,7 +20,7 @@ class OrderStatusController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('admin.order-statuses.index', compact('statuses'));
+        return view('admin.settings.order-statuses.index', compact('statuses'));
     }
 
     public function store(Request $request)

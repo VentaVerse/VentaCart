@@ -35,6 +35,6 @@ class PaymentSettingController extends Controller
             ];
         }
 
-        return view('admin.payment-settings.index', compact('cards'));
+        return view('admin.settings.payments.index', compact('cards'));
     }
 }

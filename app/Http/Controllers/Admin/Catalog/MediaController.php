@@ -17,7 +17,7 @@ class MediaController extends Controller
 
     public function index(Request $request)
     {
-        return view('admin.media.index');
+        return view('admin.catalog.media.index');
     }
 
     public function folders(Request $request): JsonResponse

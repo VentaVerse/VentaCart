@@ -39,7 +39,7 @@ class ThemeController extends Controller
             $themeSettingValues[$key] = $theme->getThemeSetting($key, $schema['default'] ?? null);
         }
 
-        return view('admin.theme.index', compact(
+        return view('admin.settings.theme.index', compact(
             'settings', 'sections', 'navItems', 'footerColumns', 'currencies', 'categories',
             'installedThemes', 'activeTheme', 'themeSettingsSchema', 'themeSettingValues'
         ));

@@ -57,14 +57,14 @@ class EmailTemplateController extends Controller
         $templates = EmailTemplate::where('slug', 'not like', 'abandoned_cart_%')
             ->orderBy('type')->orderBy('name')->get();
 
-        return view('admin.email-templates.index', compact('templates'));
+        return view('admin.settings.email-templates.index', compact('templates'));
     }
 
     public function edit(EmailTemplate $emailTemplate)
     {
         $placeholders = self::PLACEHOLDER_MAP[$emailTemplate->slug] ?? [];
 
-        return view('admin.email-templates.edit', compact('emailTemplate', 'placeholders'));
+        return view('admin.settings.email-templates.edit', compact('emailTemplate', 'placeholders'));
     }
 
     public function update(Request $request, EmailTemplate $emailTemplate)

@@ -32,14 +32,14 @@ class CategoryController extends Controller
 
         $categories = $query->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.categories.index', compact('categories'));
+        return view('admin.catalog.categories.index', compact('categories'));
     }
 
     public function create(Request $request)
     {
         $parentCategories = Category::whereNull('parent_id')->orderBy('name')->get();
 
-        return view('admin.categories.form', [
+        return view('admin.catalog.categories.form', [
             'category' => null,
             'parentCategories' => $parentCategories,
             'pimToken' => (string) Str::uuid(),
@@ -67,7 +67,7 @@ class CategoryController extends Controller
 
         $pimToken = (string) Str::uuid();
 
-        return view('admin.categories.form', compact('category', 'parentCategories', 'pimToken'));
+        return view('admin.catalog.categories.form', compact('category', 'parentCategories', 'pimToken'));
     }
 
     public function update(Request $request, Category $category)

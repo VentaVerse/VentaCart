@@ -12,7 +12,7 @@ class FlatRateController extends Controller
 {
     public function create()
     {
-        return view('admin.flat-rates.form', [
+        return view('admin.settings.shipping.flat-rates.form', [
             'rate' => null,
             'geoZones' => GeoZone::where('is_active', true)->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
@@ -43,7 +43,7 @@ class FlatRateController extends Controller
 
     public function edit(FlatShippingRate $flatRate)
     {
-        return view('admin.flat-rates.form', [
+        return view('admin.settings.shipping.flat-rates.form', [
             'rate' => $flatRate,
             'geoZones' => GeoZone::where('is_active', true)->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),

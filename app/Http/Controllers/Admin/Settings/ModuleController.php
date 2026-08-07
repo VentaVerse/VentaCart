@@ -93,7 +93,7 @@ class ModuleController extends Controller
             ->map(fn (array $manifest) => $this->extensionCard($manifest))
             ->values();
 
-        return view('admin.modules.index', [
+        return view('admin.settings.modules.index', [
             'coreFeatures' => $coreFeatures,
             'extensions' => $extensions,
         ]);

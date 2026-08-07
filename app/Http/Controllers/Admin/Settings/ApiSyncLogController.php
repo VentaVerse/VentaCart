@@ -30,7 +30,7 @@ class ApiSyncLogController extends Controller
 
         $logs = $query->paginate(50)->withQueryString();
 
-        return view('admin.api-sync-logs.index', compact('logs'));
+        return view('admin.settings.api-sync-logs.index', compact('logs'));
     }
 
     public function destroyAll()

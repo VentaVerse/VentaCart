@@ -4,7 +4,9 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
 /**
@@ -308,6 +310,54 @@ class UrlGrammarTest extends TestCase
         // Sanity check the sweep actually exercised something — a filter
         // bug that silently matched zero routes would otherwise pass.
         $this->assertGreaterThan(80, $checked);
+    }
+
+    /**
+     * Task 6 (view directory moves into section folders): every literal
+     * view('admin....') string in an Admin controller, and every literal
+     * @include('admin....')/@extends('admin....') string in an admin Blade
+     * file, must resolve via View::exists(). Dynamically-built names
+     * (string concatenation, e.g. BankAccountController's per-method
+     * partial) are intentionally excluded — the regex only captures a
+     * quoted literal immediately followed by ',' or ')', which a
+     * concatenation expression never is.
+     */
+    public function test_all_admin_views_resolve(): void
+    {
+        $names = [];
+
+        $controllerFiles = File::allFiles(app_path('Http/Controllers/Admin'));
+        foreach ($controllerFiles as $file) {
+            $contents = $file->getContents();
+            if (preg_match_all("/view\('([^']+)'\s*[,)]/", $contents, $matches)) {
+                foreach ($matches[1] as $name) {
+                    $names[$name] = true;
+                }
+            }
+        }
+
+        $viewFiles = File::allFiles(resource_path('views/admin'));
+        foreach ($viewFiles as $file) {
+            $contents = $file->getContents();
+            if (preg_match_all("/@(?:include|extends|component)\('([^']+)'\s*[,)]/", $contents, $matches)) {
+                foreach ($matches[1] as $name) {
+                    if (str_starts_with($name, 'admin.')) {
+                        $names[$name] = true;
+                    }
+                }
+            }
+        }
+
+        $this->assertGreaterThan(70, count($names), 'View-reference sweep matched suspiciously few names — regex likely broken.');
+
+        $missing = [];
+        foreach (array_keys($names) as $name) {
+            if (! View::exists($name)) {
+                $missing[] = $name;
+            }
+        }
+
+        $this->assertSame([], $missing, 'These referenced admin views do not resolve: '.implode(', ', $missing));
     }
 
     private function prefix(): string

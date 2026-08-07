@@ -59,7 +59,7 @@ class PaymentMethodPageController extends Controller
 
         $restriction = PaymentMethodRestriction::where('payment_method', $method)->first();
 
-        return view('admin.payment-settings.show', [
+        return view('admin.settings.payments.show', [
             'method' => $method,
             'name' => $name,
             'defaultName' => $meta['default_name'],

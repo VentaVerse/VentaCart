@@ -70,7 +70,7 @@ class StockNotificationController extends Controller
         $totalNotified = StockNotification::notified()->count();
         $totalFailed = StockNotification::where('status', 'failed')->count();
 
-        return view('admin.stock-notifications.index', compact(
+        return view('admin.settings.stock-notifications.index', compact(
             'tab', 'search', 'waitlist', 'notified', 'template',
             'topProducts', 'totalWaiting', 'totalNotified', 'totalFailed'
         ));

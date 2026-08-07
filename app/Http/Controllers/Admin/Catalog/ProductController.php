@@ -48,7 +48,7 @@ class ProductController extends Controller
         $products = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         $categories = Category::orderBy('name')->get();
 
-        return view('admin.products.index', compact('products', 'categories'));
+        return view('admin.catalog.products.index', compact('products', 'categories'));
     }
 
     public function create(Request $request)
@@ -57,7 +57,7 @@ class ProductController extends Controller
         $customerGroups = CustomerGroup::orderBy('name')->get();
         $tags = Tag::orderBy('name')->get();
 
-        return view('admin.products.form', [
+        return view('admin.catalog.products.form', [
             'product' => null,
             'categories' => $categories,
             'customerGroups' => $customerGroups,
@@ -209,7 +209,7 @@ class ProductController extends Controller
 
         $pimToken = (string) Str::uuid();
 
-        return view('admin.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken'));
+        return view('admin.catalog.products.form', compact('product', 'categories', 'customerGroups', 'tags', 'existingTypes', 'existingVariants', 'existingSpecials', 'existingImages', 'pimToken'));
     }
 
     public function update(Request $request, Product $product)

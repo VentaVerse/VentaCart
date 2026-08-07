@@ -14,14 +14,14 @@ class UserController extends Controller
     {
         $users = User::with('role')->orderBy('name')->get();
 
-        return view('admin.users.index', compact('users'));
+        return view('admin.settings.users.index', compact('users'));
     }
 
     public function create()
     {
         $roles = Role::orderBy('name')->get();
 
-        return view('admin.users.form', [
+        return view('admin.settings.users.form', [
             'user' => null,
             'roles' => $roles,
         ]);
@@ -48,7 +48,7 @@ class UserController extends Controller
     {
         $roles = Role::orderBy('name')->get();
 
-        return view('admin.users.form', compact('user', 'roles'));
+        return view('admin.settings.users.form', compact('user', 'roles'));
     }
 
     public function update(Request $request, User $user)

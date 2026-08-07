@@ -40,7 +40,7 @@ class BankAccountController extends Controller
     {
         $bankAccounts = BankAccount::orderBy('sort_order')->get();
 
-        return view('admin.payment-settings.edit-bank-account', compact('bankAccount', 'bankAccounts'));
+        return view('admin.settings.payments.edit-bank-account', compact('bankAccount', 'bankAccounts'));
     }
 
     public function update(Request $request, BankAccount $bankAccount)

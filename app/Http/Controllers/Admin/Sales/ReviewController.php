@@ -55,13 +55,13 @@ class ReviewController extends Controller
         $customerGroups = \App\Models\CustomerGroup::orderBy('name')->get();
         $reviewEmailTemplates = \App\Models\EmailTemplate::where('slug', 'like', 'review%')->orWhere('type', 'customer')->get();
 
-        return view('admin.reviews.index', compact('reviews', 'tab', 'search', 'counts', 'settings', 'orderStatuses', 'customerGroups', 'reviewEmailTemplates'));
+        return view('admin.sales.reviews.index', compact('reviews', 'tab', 'search', 'counts', 'settings', 'orderStatuses', 'customerGroups', 'reviewEmailTemplates'));
     }
 
     public function show(Review $review)
     {
         $review->load(['product.images', 'images', 'coupon']);
-        return view('admin.reviews.show', compact('review'));
+        return view('admin.sales.reviews.show', compact('review'));
     }
 
     public function approve(Review $review)

@@ -32,7 +32,7 @@ class BlogPostController extends Controller
         $posts = $query->latest('published_at')->paginate(20)->withQueryString();
         $categories = BlogCategory::orderBy('sort_order')->get();
 
-        return view('admin.blog.index', compact('posts', 'categories'));
+        return view('admin.content.blog.index', compact('posts', 'categories'));
     }
 
     public function create()
@@ -40,7 +40,7 @@ class BlogPostController extends Controller
         $categories = BlogCategory::orderBy('sort_order')->get();
         $tags = Tag::orderBy('name')->get();
 
-        return view('admin.blog.form', [
+        return view('admin.content.blog.form', [
             'post' => null,
             'categories' => $categories,
             'tags' => $tags,
@@ -86,7 +86,7 @@ class BlogPostController extends Controller
         $categories = BlogCategory::orderBy('sort_order')->get();
         $tags = Tag::orderBy('name')->get();
 
-        return view('admin.blog.form', [
+        return view('admin.content.blog.form', [
             'post' => $blog,
             'categories' => $categories,
             'tags' => $tags,

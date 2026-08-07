@@ -24,7 +24,7 @@ class SeoNotFoundController extends Controller
         $totalLogged = NotFoundLog::count();
         $totalHits = (int) NotFoundLog::sum('hits');
 
-        return view('admin.extensions.seo.not-found', compact('logs', 'search', 'sort', 'totalLogged', 'totalHits'));
+        return view('admin.marketing.seo.not-found', compact('logs', 'search', 'sort', 'totalLogged', 'totalHits'));
     }
 
     public function destroy(NotFoundLog $log)

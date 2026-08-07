@@ -15,12 +15,12 @@ class FreeShippingRuleController extends Controller
     public function index()
     {
         $rules = FreeShippingRule::orderBy('sort_order')->get();
-        return view('admin.free-shipping-rules.index', compact('rules'));
+        return view('admin.settings.shipping.free-shipping-rules.index', compact('rules'));
     }
 
     public function create()
     {
-        return view('admin.free-shipping-rules.form', [
+        return view('admin.settings.shipping.free-shipping-rules.form', [
             'rule' => null,
             'brands' => Brand::orderBy('name')->get(),
             'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),
@@ -69,7 +69,7 @@ class FreeShippingRuleController extends Controller
 
     public function edit(FreeShippingRule $freeShippingRule)
     {
-        return view('admin.free-shipping-rules.form', [
+        return view('admin.settings.shipping.free-shipping-rules.form', [
             'rule' => $freeShippingRule,
             'brands' => Brand::orderBy('name')->get(),
             'categories' => Category::whereNull('parent_id')->with('children')->orderBy('name')->get(),

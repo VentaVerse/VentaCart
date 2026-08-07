@@ -20,12 +20,12 @@ class TagController extends Controller
 
         $tags = $query->orderBy('name')->paginate(50)->withQueryString();
 
-        return view('admin.tags.index', compact('tags'));
+        return view('admin.catalog.tags.index', compact('tags'));
     }
 
     public function create()
     {
-        return view('admin.tags.form', ['tag' => null]);
+        return view('admin.catalog.tags.form', ['tag' => null]);
     }
 
     public function store(Request $request)
@@ -43,7 +43,7 @@ class TagController extends Controller
 
     public function edit(Tag $tag)
     {
-        return view('admin.tags.form', compact('tag'));
+        return view('admin.catalog.tags.form', compact('tag'));
     }
 
     public function update(Request $request, Tag $tag)

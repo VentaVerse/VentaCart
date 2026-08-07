@@ -14,12 +14,12 @@ class BlogCategoryController extends Controller
     {
         $categories = BlogCategory::withCount('posts')->orderBy('sort_order')->get();
 
-        return view('admin.blog-categories.index', compact('categories'));
+        return view('admin.content.blog-categories.index', compact('categories'));
     }
 
     public function create()
     {
-        return view('admin.blog-categories.form', ['category' => null]);
+        return view('admin.content.blog-categories.form', ['category' => null]);
     }
 
     public function store(Request $request)
@@ -41,7 +41,7 @@ class BlogCategoryController extends Controller
 
     public function edit(BlogCategory $blogCategory)
     {
-        return view('admin.blog-categories.form', ['category' => $blogCategory]);
+        return view('admin.content.blog-categories.form', ['category' => $blogCategory]);
     }
 
     public function update(Request $request, BlogCategory $blogCategory)

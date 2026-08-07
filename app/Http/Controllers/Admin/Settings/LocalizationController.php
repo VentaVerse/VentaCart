@@ -23,7 +23,7 @@ class LocalizationController extends Controller
 
         $geoZones = GeoZone::whereNull('source')->withCount('entries')->orderBy('sort_order')->get();
 
-        return view('admin.localization.index', compact(
+        return view('admin.settings.localization.index', compact(
             'tab', 'countries', 'zones', 'selectedCountry', 'countryList', 'geoZones'
         ));
     }
@@ -158,7 +158,7 @@ class LocalizationController extends Controller
             ];
         });
 
-        return view('admin.localization.geo-zone-edit', compact('geoZone', 'countries', 'entries'));
+        return view('admin.settings.localization.geo-zone-edit', compact('geoZone', 'countries', 'entries'));
     }
 
     public function updateGeoZone(Request $request, GeoZone $geoZone)

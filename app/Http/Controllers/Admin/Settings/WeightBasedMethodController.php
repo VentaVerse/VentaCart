@@ -12,7 +12,7 @@ class WeightBasedMethodController extends Controller
 {
     public function create()
     {
-        return view('admin.weight-based-methods.form', [
+        return view('admin.settings.shipping.weight-based-methods.form', [
             'method' => null,
             'geoZones' => GeoZone::where('is_active', true)->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),
@@ -33,7 +33,7 @@ class WeightBasedMethodController extends Controller
 
     public function edit(WeightBasedMethod $weightBasedMethod)
     {
-        return view('admin.weight-based-methods.form', [
+        return view('admin.settings.shipping.weight-based-methods.form', [
             'method' => $weightBasedMethod->load(['rates', 'geoZones', 'customerGroups']),
             'geoZones' => GeoZone::where('is_active', true)->orderBy('name')->get(),
             'customerGroups' => CustomerGroup::orderBy('name')->get(),

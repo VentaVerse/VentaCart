@@ -31,7 +31,7 @@ class SeoRedirectController extends Controller
             'destination_path' => $request->query('destination_path', ''),
         ];
 
-        return view('admin.extensions.seo.redirects', compact('redirects', 'search', 'prefill'));
+        return view('admin.marketing.seo.redirects', compact('redirects', 'search', 'prefill'));
     }
 
     public function store(Request $request)

@@ -24,12 +24,12 @@ class BrandController extends Controller
 
         $brands = $query->orderBy('name')->paginate(20)->withQueryString();
 
-        return view('admin.brands.index', compact('brands'));
+        return view('admin.catalog.brands.index', compact('brands'));
     }
 
     public function create()
     {
-        return view('admin.brands.form', [
+        return view('admin.catalog.brands.form', [
             'brand' => null,
             'pimToken' => (string) Str::uuid(),
         ]);
@@ -88,7 +88,7 @@ class BrandController extends Controller
     {
         $pimToken = (string) Str::uuid();
 
-        return view('admin.brands.form', compact('brand', 'pimToken'));
+        return view('admin.catalog.brands.form', compact('brand', 'pimToken'));
     }
 
     public function update(Request $request, Brand $brand)

@@ -61,7 +61,7 @@ class SeoExtensionController extends Controller
             'last_hit_at', [now()->startOfMonth(), now()->endOfMonth()]
         )->count();
 
-        return view('admin.extensions.seo.dashboard', compact(
+        return view('admin.marketing.seo.dashboard', compact(
             'healthScores', 'pendingCount', 'recentSuggestions', 'topQueries',
             'seoAutomation', 'redirectsLive', 'notFoundThisMonth'
         ));
@@ -134,7 +134,7 @@ class SeoExtensionController extends Controller
                 ->toArray();
         }
 
-        return view('admin.extensions.seo.entities', compact(
+        return view('admin.marketing.seo.entities', compact(
             'entities', 'type', 'pendingSuggestions', 'editRoute', 'entityType', 'search', 'status', 'homepageMeta'
         ));
     }
@@ -410,7 +410,7 @@ class SeoExtensionController extends Controller
         $pages = $cached['pages'] ?? [];
         $fetchedAt = isset($cached['fetched_at']) ? \Carbon\Carbon::parse($cached['fetched_at']) : null;
 
-        return view('admin.extensions.seo.search-console', compact(
+        return view('admin.marketing.seo.search-console', compact(
             'gscConfigured', 'queries', 'pages', 'fetchedAt'
         ));
     }
@@ -440,7 +440,7 @@ class SeoExtensionController extends Controller
 
         $entityType = $config['entityType'];
 
-        return view('admin.extensions.seo.slugs', compact('entities', 'filter', 'search', 'entityType'));
+        return view('admin.marketing.seo.slugs', compact('entities', 'filter', 'search', 'entityType'));
     }
 
     /**
@@ -507,7 +507,7 @@ class SeoExtensionController extends Controller
 
         $seoAutomation = Automation::where('key', 'seo_generate')->first();
 
-        return view('admin.extensions.seo.review', compact('suggestions', 'counts', 'totalPending', 'filter', 'seoAutomation'));
+        return view('admin.marketing.seo.review', compact('suggestions', 'counts', 'totalPending', 'filter', 'seoAutomation'));
     }
 
     /**
@@ -517,7 +517,7 @@ class SeoExtensionController extends Controller
     {
         $seoSettings = Setting::where('group', 'seo')->pluck('value', 'key');
 
-        return view('admin.extensions.seo.strategy', compact('seoSettings'));
+        return view('admin.marketing.seo.strategy', compact('seoSettings'));
     }
 
     /**
@@ -565,7 +565,7 @@ class SeoExtensionController extends Controller
             }
         }
 
-        return view('admin.extensions.seo.settings', compact(
+        return view('admin.settings.modules.seo.settings', compact(
             'seoSettings', 'gscCredentialsExist', 'maskedApiKey'
         ));
     }
@@ -710,11 +710,11 @@ class SeoExtensionController extends Controller
     private function entityConfigs(): array
     {
         return [
-            'products' => ['model' => Product::class, 'activeScope' => ['is_active', true], 'entityType' => 'product', 'editRoute' => 'admin.products.edit'],
-            'categories' => ['model' => Category::class, 'activeScope' => ['is_active', true], 'entityType' => 'category', 'editRoute' => 'admin.categories.edit'],
-            'brands' => ['model' => Brand::class, 'activeScope' => ['is_active', true], 'entityType' => 'brand', 'editRoute' => 'admin.brands.edit'],
-            'blog' => ['model' => BlogPost::class, 'activeScope' => ['is_published', true], 'entityType' => 'blog_post', 'editRoute' => 'admin.blog.edit'],
-            'pages' => ['model' => Page::class, 'activeScope' => ['is_active', true], 'entityType' => 'page', 'editRoute' => 'admin.pages.edit'],
+            'products' => ['model' => Product::class, 'activeScope' => ['is_active', true], 'entityType' => 'product', 'editRoute' => 'admin.catalog.products.edit'],
+            'categories' => ['model' => Category::class, 'activeScope' => ['is_active', true], 'entityType' => 'category', 'editRoute' => 'admin.catalog.categories.edit'],
+            'brands' => ['model' => Brand::class, 'activeScope' => ['is_active', true], 'entityType' => 'brand', 'editRoute' => 'admin.catalog.brands.edit'],
+            'blog' => ['model' => BlogPost::class, 'activeScope' => ['is_published', true], 'entityType' => 'blog_post', 'editRoute' => 'admin.content.blog.edit'],
+            'pages' => ['model' => Page::class, 'activeScope' => ['is_active', true], 'entityType' => 'page', 'editRoute' => 'admin.content.pages.edit'],
         ];
     }
 

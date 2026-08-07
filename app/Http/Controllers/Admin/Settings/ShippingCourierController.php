@@ -21,7 +21,7 @@ class ShippingCourierController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('admin.shipping-couriers.index', compact('couriers'));
+        return view('admin.settings.shipping-couriers.index', compact('couriers'));
     }
 
     public function store(Request $request)

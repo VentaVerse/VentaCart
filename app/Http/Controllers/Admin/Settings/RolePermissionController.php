@@ -15,7 +15,7 @@ class RolePermissionController extends Controller
         $permissions = Permission::orderBy('group')->orderBy('name')->get();
         $groups = $permissions->groupBy('group');
 
-        return view('admin.users.permissions', compact('roles', 'permissions', 'groups'));
+        return view('admin.settings.users.permissions', compact('roles', 'permissions', 'groups'));
     }
 
     public function update(Request $request)

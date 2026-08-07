@@ -24,12 +24,12 @@ class PageController extends Controller
 
         $pages = $query->orderBy('sort_order')->orderBy('title')->paginate(20)->withQueryString();
 
-        return view('admin.pages.index', compact('pages'));
+        return view('admin.content.pages.index', compact('pages'));
     }
 
     public function create()
     {
-        return view('admin.pages.form', ['page' => null]);
+        return view('admin.content.pages.form', ['page' => null]);
     }
 
     public function store(Request $request)
@@ -51,7 +51,7 @@ class PageController extends Controller
 
     public function edit(Page $page)
     {
-        return view('admin.pages.form', compact('page'));
+        return view('admin.content.pages.form', compact('page'));
     }
 
     public function update(Request $request, Page $page)

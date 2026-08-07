@@ -52,7 +52,7 @@ class OrderController extends Controller
         $orders = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
 
-        return view('admin.orders.index', compact('orders', 'statuses'));
+        return view('admin.sales.orders.index', compact('orders', 'statuses'));
     }
 
     public function create()
@@ -61,7 +61,7 @@ class OrderController extends Controller
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('admin.orders.form', [
+        return view('admin.sales.orders.form', [
             'order' => null,
             'statuses' => $statuses,
             'couriers' => $couriers,
@@ -75,7 +75,7 @@ class OrderController extends Controller
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
 
-        return view('admin.orders.show', compact('order', 'statuses', 'couriers'));
+        return view('admin.sales.orders.show', compact('order', 'statuses', 'couriers'));
     }
 
     public function store(Request $request)
@@ -240,7 +240,7 @@ class OrderController extends Controller
             ];
         })->toArray();
 
-        return view('admin.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'customerGroupId', 'customerGroupName'));
+        return view('admin.sales.orders.form', compact('order', 'statuses', 'couriers', 'countries', 'existingItems', 'customerGroupId', 'customerGroupName'));
     }
 
     public function update(Request $request, Order $order)

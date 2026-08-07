@@ -33,7 +33,7 @@ class SettingsSectionTest extends TestCase
         // registration order and the literal route always wins.
         $this->get(route('admin.settings.section', 'payments'))
             ->assertOk()
-            ->assertViewIs('admin.payment-settings.index');
+            ->assertViewIs('admin.settings.payments.index');
     }
 
     public function test_mail_section_renders_in_shell_with_sub_sidebar(): void

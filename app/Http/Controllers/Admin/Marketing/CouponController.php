@@ -41,14 +41,14 @@ class CouponController extends Controller
 
         $coupons = $query->orderByDesc('created_at')->paginate(25)->withQueryString();
 
-        return view('admin.coupons.index', compact('coupons'));
+        return view('admin.marketing.coupons.index', compact('coupons'));
     }
 
     public function create()
     {
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
-        return view('admin.coupons.form', [
+        return view('admin.marketing.coupons.form', [
             'coupon' => null,
             'customerGroups' => $customerGroups,
             'restrictions' => ['product' => [], 'category' => [], 'brand' => []],  // Arrays of {id, label} objects
@@ -90,7 +90,7 @@ class CouponController extends Controller
                 ->map(fn($b) => ['id' => $b->id, 'label' => $b->name])->values()->toArray(),
         ];
 
-        return view('admin.coupons.form', compact('coupon', 'customerGroups', 'restrictions'));
+        return view('admin.marketing.coupons.form', compact('coupon', 'customerGroups', 'restrictions'));
     }
 
     public function update(CouponRequest $request, Coupon $coupon)
