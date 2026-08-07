@@ -1,7 +1,7 @@
 <x-admin.shell :title="$rate ? 'Edit Flat Rate' : 'New Flat Rate'">
-    <x-admin.page :title="$rate ? 'Edit Flat Rate' : 'New Flat Rate'" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Shipping', 'url' => route('admin.shipping-settings.index', ['tab' => 'flat-rate'])]]">
+    <x-admin.page :title="$rate ? 'Edit Flat Rate' : 'New Flat Rate'" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Shipping', 'url' => route('admin.shipping-settings.flat-rate')]]">
         <x-slot:actions>
-            <x-admin.button variant="ghost" :href="route('admin.shipping-settings.index', ['tab' => 'flat-rate'])">Back to Shipping</x-admin.button>
+            <x-admin.button variant="ghost" :href="route('admin.shipping-settings.flat-rate')">Back to Shipping</x-admin.button>
         </x-slot:actions>
 
         <div class="max-w-xl">
@@ -48,7 +48,7 @@
                     </div>
 
                     <x-admin.form-actions>
-                        <x-admin.button variant="secondary" :href="route('admin.shipping-settings.index', ['tab' => 'flat-rate'])">Cancel</x-admin.button>
+                        <x-admin.button variant="secondary" :href="route('admin.shipping-settings.flat-rate')">Cancel</x-admin.button>
                         <x-admin.button type="submit">{{ $rate ? 'Update' : 'Create' }}</x-admin.button>
                     </x-admin.form-actions>
                 </form>

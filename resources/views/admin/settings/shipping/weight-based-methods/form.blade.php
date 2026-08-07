@@ -2,9 +2,9 @@
     $vCheck = 'w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface';
 @endphp
 <x-admin.shell :title="$method ? 'Edit Weight-Based Method' : 'New Weight-Based Method'">
-    <x-admin.page :title="$method ? 'Edit Weight-Based Method' : 'New Weight-Based Method'" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Shipping', 'url' => route('admin.shipping-settings.index', ['tab' => 'weight-based'])]]">
+    <x-admin.page :title="$method ? 'Edit Weight-Based Method' : 'New Weight-Based Method'" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Shipping', 'url' => route('admin.shipping-settings.weight-based')]]">
         <x-slot:actions>
-            <x-admin.button variant="ghost" :href="route('admin.shipping-settings.index', ['tab' => 'weight-based'])">Back to Shipping</x-admin.button>
+            <x-admin.button variant="ghost" :href="route('admin.shipping-settings.weight-based')">Back to Shipping</x-admin.button>
         </x-slot:actions>
 
         <form method="POST"

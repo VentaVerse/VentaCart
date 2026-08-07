@@ -173,6 +173,16 @@ Route::prefix('settings')->group(function () {
         Route::get('/', [ShippingSettingController::class, 'index'])->name('shipping-settings.index');
         Route::post('/test', ShippingTestController::class)->name('shipping-settings.test');
 
+        // Per-provider configuration pages (each provider in the
+        // ShippingQuoteService chain gets its own page; the index above is
+        // now a provider list only). Literal, so no conflict with the
+        // deeper '/free-rules', '/flat-rates/*', '/weight-based/*' child
+        // CRUD routes registered below.
+        Route::get('/free-shipping', [ShippingSettingController::class, 'freeShipping'])->name('shipping-settings.free-shipping');
+        Route::get('/weight-based', [ShippingSettingController::class, 'weightBased'])->name('shipping-settings.weight-based');
+        Route::get('/flat-rate', [ShippingSettingController::class, 'flatRate'])->name('shipping-settings.flat-rate');
+        Route::get('/dhl', [ShippingSettingController::class, 'dhl'])->name('shipping-settings.dhl');
+
         // Route name stays 'free-shipping-rules.*' (frozen); URI segment is
         // 'free-rules' per the grammar map.
         Route::resource('free-rules', FreeShippingRuleController::class)

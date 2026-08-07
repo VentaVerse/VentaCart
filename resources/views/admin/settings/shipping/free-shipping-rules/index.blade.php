@@ -1,5 +1,5 @@
 <x-admin.shell title="Free Shipping Rules">
-    <x-admin.page title="Free Shipping Rules" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Shipping', 'url' => route('admin.shipping-settings.index', ['tab' => 'free-shipping'])]]">
+    <x-admin.page title="Free Shipping Rules" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Shipping', 'url' => route('admin.shipping-settings.free-shipping')]]">
         <x-slot:actions>
             <x-admin.button variant="primary" :href="route('admin.free-shipping-rules.create')">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Rule
