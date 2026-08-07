@@ -15,5 +15,7 @@ class DemoServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->app->instance('extensions.demo.booted', true);
+
+        $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
     }
 }

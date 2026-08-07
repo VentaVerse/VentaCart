@@ -274,6 +274,10 @@ Route::middleware(['auth', 'admin.session.cap'])->prefix(config('admin.prefix', 
 
     // Modules
     Route::get('/modules', [\App\Http\Controllers\Admin\ModuleController::class, 'index'])->name('modules.index');
+    Route::post('/modules/{name}/install', [\App\Http\Controllers\Admin\ModuleController::class, 'install'])->name('modules.install');
+    Route::post('/modules/{name}/enable', [\App\Http\Controllers\Admin\ModuleController::class, 'enable'])->name('modules.enable');
+    Route::post('/modules/{name}/disable', [\App\Http\Controllers\Admin\ModuleController::class, 'disable'])->name('modules.disable');
+    Route::post('/modules/{name}/uninstall', [\App\Http\Controllers\Admin\ModuleController::class, 'uninstall'])->name('modules.uninstall');
 
     // Abandoned Carts
     Route::get('/abandoned-carts', [\App\Http\Controllers\Admin\AbandonedCartController::class, 'index'])->name('abandoned-carts.index');

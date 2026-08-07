@@ -320,4 +320,193 @@ class ExtensionLifecycleTest extends TestCase
         $third = $this->fixtureManager();
         $this->assertTrue($third->registry()->has('demo'), 'install() must invalidate the registry cache so the next read sees the new row.');
     }
+
+    // ------------------------------------------------------------------
+    // Task 2: Modules page lifecycle UI (HTTP round trips)
+    //
+    // All of these run against the 'demo' fixture, never the real
+    // 'banners' extension — per this task's absolute rule, banners must
+    // never be installed/disabled/uninstalled in a test (even against the
+    // in-memory sqlite test DB), to avoid the exact same process-wide
+    // spl_autoload_register contamination documented in task-1-report.md's
+    // "Incidental fix" section. config('extensions.path') is repointed to
+    // the fixtures directory in every test below, before the first HTTP
+    // request — see fixtureManager()'s docblock context: ExtensionManager
+    // reads that config lazily, on its first discovered() call, which for
+    // a fresh request happens inside App\Http\Middleware\BootExtensions,
+    // so the override must land before $this->post()/get() is called.
+    // ------------------------------------------------------------------
+
+    public function test_http_install_makes_extension_enabled_and_visible_on_modules_page(): void
+    {
+        config(['extensions.path' => base_path('tests/fixtures/extensions')]);
+        $admin = User::factory()->create();
+
+        $response = $this->actingAs($admin)->post(route('admin.modules.install', 'demo'));
+
+        $response->assertRedirect(route('admin.modules.index'));
+        $response->assertSessionHas('success');
+
+        $manager = app(ExtensionManager::class);
+        $this->assertSame('enabled', $manager->state('demo'));
+        $this->assertDatabaseHas('extensions', ['name' => 'demo', 'enabled' => true]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertSee('Demo Extension')
+            ->assertSee('Enabled');
+    }
+
+    public function test_http_disable_flips_state_and_ui_reflects_it(): void
+    {
+        config(['extensions.path' => base_path('tests/fixtures/extensions')]);
+        $admin = User::factory()->create();
+
+        $manager = app(ExtensionManager::class);
+        $manager->install('demo');
+
+        $response = $this->actingAs($admin)->post(route('admin.modules.disable', 'demo'));
+
+        $response->assertRedirect(route('admin.modules.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('extensions', ['name' => 'demo', 'enabled' => false]);
+        $this->assertSame('disabled', $manager->state('demo'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertSee('Demo Extension')
+            ->assertSee('Disabled');
+
+        // Documents a known, already-accepted constraint rather than
+        // ignoring it (see ExtensionManager::disable()'s own docblock): the
+        // install() call above reset $booted = false, so the very next
+        // request — the disable POST itself, since BootExtensions runs
+        // before the controller flips the DB row — booted the demo
+        // provider and registered its route. Routes cannot be
+        // retroactively un-registered from an already-booted process; that
+        // only happens on a genuinely fresh PHP process (real deployments)
+        // or a fresh Application instance. The provable claim — "a
+        // *disabled-from-the-start* extension's provider never boots at
+        // all" — is covered separately below,
+        // test_disabled_extension_never_registers_its_route(), which is
+        // achievable within one process because no prior boot ever ran.
+        $this->assertTrue(
+            Route::has('extensions.demo.probe'),
+            'Expected (see comment): a route booted earlier in this same process cannot be retroactively removed by disable().'
+        );
+    }
+
+    public function test_disabled_extension_never_registers_its_route(): void
+    {
+        Extension::create(['name' => 'demo', 'version' => '1.0.0', 'enabled' => false, 'installed_at' => now()]);
+
+        $this->fixtureManager()->bootEnabled();
+
+        $this->assertFalse(
+            Route::has('extensions.demo.probe'),
+            'A disabled extension\'s provider must never boot, so its routes must never be registered in the first place.'
+        );
+    }
+
+    public function test_http_uninstall_removes_extension_row_and_card(): void
+    {
+        config(['extensions.path' => base_path('tests/fixtures/extensions')]);
+        $admin = User::factory()->create();
+
+        $manager = app(ExtensionManager::class);
+        $manager->install('demo');
+        $this->assertTrue(Schema::hasTable('demo_extension_items'));
+
+        $response = $this->actingAs($admin)->post(route('admin.modules.uninstall', 'demo'));
+
+        $response->assertRedirect(route('admin.modules.index'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('extensions', ['name' => 'demo']);
+        $this->assertFalse(Schema::hasTable('demo_extension_items'));
+        $this->assertSame('not_installed', $manager->state('demo'));
+
+        $this->actingAs($admin)
+            ->get(route('admin.modules.index'))
+            ->assertOk()
+            ->assertSee('Not installed');
+    }
+
+    public function test_lifecycle_actions_404_for_unknown_extension_name_not_a_db_lookup(): void
+    {
+        config(['extensions.path' => base_path('tests/fixtures/extensions')]);
+        $admin = User::factory()->create();
+
+        // A row that exists in the DB but has no filesystem manifest
+        // ("missing_files") must still 404 — proving the guard checks
+        // discovered() (the filesystem), not whether the name is known to
+        // the database.
+        Extension::create(['name' => 'ghost', 'version' => '1.0.0', 'enabled' => true, 'installed_at' => now()]);
+
+        foreach (['install', 'enable', 'disable', 'uninstall'] as $action) {
+            $this->actingAs($admin)
+                ->post(route("admin.modules.{$action}", 'ghost'))
+                ->assertNotFound();
+
+            $this->actingAs($admin)
+                ->post(route("admin.modules.{$action}", 'totally-bogus-extension'))
+                ->assertNotFound();
+        }
+
+        // Confirms the 404 happened before any write was attempted.
+        $this->assertDatabaseHas('extensions', ['name' => 'ghost', 'enabled' => true]);
+        $this->assertDatabaseMissing('extensions', ['name' => 'totally-bogus-extension']);
+    }
+
+    public function test_invalid_state_transition_is_rejected_with_flash_not_a_crash(): void
+    {
+        config(['extensions.path' => base_path('tests/fixtures/extensions')]);
+        $admin = User::factory()->create();
+
+        // 'demo' is a valid, discovered extension, but has never been
+        // installed — enabling it is a nonsensical transition the UI never
+        // offers a button for. The controller must reject it gracefully
+        // (redirect + flashed error), not 500 or silently no-op.
+        $response = $this->actingAs($admin)->post(route('admin.modules.enable', 'demo'));
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertDatabaseMissing('extensions', ['name' => 'demo']);
+    }
+
+    public function test_install_flashes_note_when_route_cache_was_stale(): void
+    {
+        config(['extensions.path' => base_path('tests/fixtures/extensions')]);
+        $admin = User::factory()->create();
+
+        $this->writeFakeRouteCacheFile();
+
+        try {
+            $response = $this->actingAs($admin)->post(route('admin.modules.install', 'demo'));
+
+            $response->assertRedirect(route('admin.modules.index'));
+            $response->assertSessionHas('success', function ($message) {
+                return str_contains($message, 'route cache');
+            });
+        } finally {
+            $this->removeFakeRouteCacheFile();
+        }
+    }
+
+    public function test_install_does_not_flash_cache_note_when_cache_was_not_stale(): void
+    {
+        config(['extensions.path' => base_path('tests/fixtures/extensions')]);
+        $admin = User::factory()->create();
+
+        $this->assertFalse(app()->routesAreCached(), 'Precondition: no route cache should be active before this test.');
+
+        $response = $this->actingAs($admin)->post(route('admin.modules.install', 'demo'));
+
+        $response->assertSessionHas('success', function ($message) {
+            return ! str_contains($message, 'route cache');
+        });
+    }
 }
