@@ -1,0 +1,9 @@
+{
+    "name": "banners",
+    "title": "Banners",
+    "version": "1.0.0",
+    "description": "Homepage and promotional banner management.",
+    "provider": "Extensions\\Banners\\BannerServiceProvider",
+    "icon": "media",
+    "type": "feature"
+}

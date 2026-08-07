@@ -2,7 +2,12 @@
 
 @if ($section->type === 'banner')
     @php
-        $bannerGroups = class_exists(\Extensions\Banners\Models\BannerGroup::class)
+        // The extension kernel decouples class-loadability from install
+        // state (routes/DB rows can be absent even once a class has been
+        // autoloaded once), so class_exists alone no longer proves the
+        // underlying table exists — guard it explicitly, same as
+        // BannerServiceProvider's own boot-time checks do.
+        $bannerGroups = (class_exists(\Extensions\Banners\Models\BannerGroup::class) && \Illuminate\Support\Facades\Schema::hasTable('banner_groups'))
             ? \Extensions\Banners\Models\BannerGroup::orderBy('name')->get()
             : collect();
     @endphp

@@ -31,9 +31,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.session.cap' => \App\Http\Middleware\EnforceAdminSessionCap::class,
         ]);
 
-        // Web requests go through the redirect lookup first (early exit on
-        // 301/410) and then through the 404 logger (records misses for the
-        // admin's not-found monitor).
+        // Extension kernel boots first, and must be truly global (not just
+        // prepended to the 'web' group): group middleware only runs *after*
+        // a route has already matched, which is too late — an unbooted
+        // extension's routes wouldn't exist yet for the router to match
+        // against. See BootExtensions for the full rationale.
+        $middleware->prepend(\App\Http\Middleware\BootExtensions::class);
+
+        // Web requests then go through the redirect lookup first (early exit
+        // on 301/410) and then through the 404 logger (records misses for
+        // the admin's not-found monitor).
         $middleware->web(prepend: [
             \App\Http\Middleware\HandleRedirects::class,
         ]);

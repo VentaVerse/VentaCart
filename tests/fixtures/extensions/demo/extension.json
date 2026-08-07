@@ -1,0 +1,9 @@
+{
+    "name": "demo",
+    "title": "Demo Extension",
+    "version": "1.0.0",
+    "description": "Fixture extension used by ExtensionManager kernel tests.",
+    "provider": "Tests\\Fixtures\\Extensions\\Demo\\DemoServiceProvider",
+    "icon": "puzzle",
+    "type": "feature"
+}

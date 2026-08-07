@@ -28,8 +28,7 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/",
-            "Extensions\\Banners\\": "extensions/banners/src/"
+            "Database\\Seeders\\": "database/seeders/"
         }
     },
     "autoload-dev": {
