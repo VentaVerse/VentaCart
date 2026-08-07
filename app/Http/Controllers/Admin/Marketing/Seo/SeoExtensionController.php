@@ -710,11 +710,11 @@ class SeoExtensionController extends Controller
     private function entityConfigs(): array
     {
         return [
-            'products' => ['model' => Product::class, 'activeScope' => ['is_active', true], 'entityType' => 'product', 'editRoute' => 'admin.catalog.products.edit'],
-            'categories' => ['model' => Category::class, 'activeScope' => ['is_active', true], 'entityType' => 'category', 'editRoute' => 'admin.catalog.categories.edit'],
-            'brands' => ['model' => Brand::class, 'activeScope' => ['is_active', true], 'entityType' => 'brand', 'editRoute' => 'admin.catalog.brands.edit'],
-            'blog' => ['model' => BlogPost::class, 'activeScope' => ['is_published', true], 'entityType' => 'blog_post', 'editRoute' => 'admin.content.blog.edit'],
-            'pages' => ['model' => Page::class, 'activeScope' => ['is_active', true], 'entityType' => 'page', 'editRoute' => 'admin.content.pages.edit'],
+            'products' => ['model' => Product::class, 'activeScope' => ['is_active', true], 'entityType' => 'product', 'editRoute' => 'admin.products.edit'],
+            'categories' => ['model' => Category::class, 'activeScope' => ['is_active', true], 'entityType' => 'category', 'editRoute' => 'admin.categories.edit'],
+            'brands' => ['model' => Brand::class, 'activeScope' => ['is_active', true], 'entityType' => 'brand', 'editRoute' => 'admin.brands.edit'],
+            'blog' => ['model' => BlogPost::class, 'activeScope' => ['is_published', true], 'entityType' => 'blog_post', 'editRoute' => 'admin.blog.edit'],
+            'pages' => ['model' => Page::class, 'activeScope' => ['is_active', true], 'entityType' => 'page', 'editRoute' => 'admin.pages.edit'],
         ];
     }
 

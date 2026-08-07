@@ -445,6 +445,64 @@ class UrlGrammarTest extends TestCase
         }
     }
 
+    /**
+     * Every string used as a ROUTE name anywhere in the app must resolve.
+     *
+     * Guards the Plan-5 name-freeze: view/controller/config paths were
+     * re-sectioned, and a route name accidentally rewritten to match the new
+     * folder grammar (e.g. 'admin.catalog.products.edit') fails only at render
+     * time on the one page that uses it. Covers route()/->route()/Route::has()
+     * call sites plus the SEO entity map's dynamic editRoute values, which no
+     * static call-site scan can see.
+     */
+    public function test_every_route_name_referenced_in_code_resolves(): void
+    {
+        $names = collect(app('router')->getRoutes())
+            ->map(fn ($r) => $r->getName())
+            ->filter()
+            ->flip();
+
+        // Route parameter names and dead unrouted Breeze scaffolding views.
+        $ignore = ['coupon', 'pattern', 'type', 'token', 'register', 'verification.send'];
+
+        $stale = [];
+
+        foreach ([['app', '.php'], ['resources/views', '.blade.php'], ['config', '.php']] as [$dir, $ext]) {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(base_path($dir)));
+
+            foreach ($files as $file) {
+                if (! $file->isFile() || ! str_ends_with($file->getFilename(), $ext)) {
+                    continue;
+                }
+
+                $contents = file_get_contents($file->getPathname());
+
+                if (preg_match_all('/(?:->route|[^_a-zA-Z>]route|Route::has|routeIs)\(\s*[\'"]([a-zA-Z0-9_.\-]+)[\'"]/', $contents, $matches)) {
+                    foreach ($matches[1] as $name) {
+                        if (! $names->has($name) && ! in_array($name, $ignore, true)) {
+                            $stale[$name] = str_replace(base_path().'/', '', $file->getPathname());
+                        }
+                    }
+                }
+            }
+        }
+
+        // Dynamic route names the SEO workspace resolves at render time.
+        $controller = app(\App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController::class);
+        $method = new \ReflectionMethod($controller, 'entityConfigs');
+        $method->setAccessible(true);
+
+        foreach ($method->invoke($controller) as $type => $config) {
+            $route = $config['editRoute'] ?? null;
+
+            if ($route !== null && ! $names->has($route)) {
+                $stale[$route] = "SeoExtensionController::entityConfigs()[{$type}]";
+            }
+        }
+
+        $this->assertSame([], $stale, 'Unresolvable route names: '.json_encode($stale, JSON_PRETTY_PRINT));
+    }
+
     private function prefix(): string
     {
         return config('admin.prefix', 'admin');
