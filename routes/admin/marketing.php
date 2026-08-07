@@ -1,9 +1,9 @@
 <?php
 
-use App\Http\Controllers\Admin\CouponController;
-use App\Http\Controllers\Admin\Extensions\SeoExtensionController;
-use App\Http\Controllers\Admin\SeoNotFoundController;
-use App\Http\Controllers\Admin\SeoRedirectController;
+use App\Http\Controllers\Admin\Marketing\CouponController;
+use App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController;
+use App\Http\Controllers\Admin\Marketing\Seo\SeoNotFoundController;
+use App\Http\Controllers\Admin\Marketing\Seo\SeoRedirectController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('marketing')->group(function () {

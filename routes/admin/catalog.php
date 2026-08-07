@@ -1,11 +1,11 @@
 <?php
 
-use App\Http\Controllers\Admin\BrandController;
-use App\Http\Controllers\Admin\CategoryController;
-use App\Http\Controllers\Admin\MediaController;
-use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\Catalog\BrandController;
+use App\Http\Controllers\Admin\Catalog\CategoryController;
+use App\Http\Controllers\Admin\Catalog\MediaController;
+use App\Http\Controllers\Admin\Catalog\ProductController;
 use App\Http\Controllers\Admin\ProductImageController;
-use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\Catalog\TagController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('catalog')->group(function () {

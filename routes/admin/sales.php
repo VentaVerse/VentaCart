@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Admin\AbandonedCartController;
-use App\Http\Controllers\Admin\OrderController;
-use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
+use App\Http\Controllers\Admin\Sales\AbandonedCartController;
+use App\Http\Controllers\Admin\Sales\OrderController;
+use App\Http\Controllers\Admin\Sales\ReviewController as AdminReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('sales')->group(function () {

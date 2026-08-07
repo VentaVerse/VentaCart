@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin\Marketing\Seo;
 
 use App\Http\Controllers\Controller;
 use App\Models\Redirect;

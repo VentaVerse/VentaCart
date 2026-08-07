@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin\CustomerController;
-use App\Http\Controllers\Admin\CustomerGroupController;
+use App\Http\Controllers\Admin\Customers\CustomerController;
+use App\Http\Controllers\Admin\Customers\CustomerGroupController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use Illuminate\Support\Facades\Route;
 

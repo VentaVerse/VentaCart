@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Admin\BlogCategoryController;
-use App\Http\Controllers\Admin\BlogPostController;
-use App\Http\Controllers\Admin\PageController;
+use App\Http\Controllers\Admin\Content\BlogCategoryController;
+use App\Http\Controllers\Admin\Content\BlogPostController;
+use App\Http\Controllers\Admin\Content\PageController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('content')->group(function () {

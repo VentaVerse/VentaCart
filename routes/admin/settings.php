@@ -1,17 +1,16 @@
 <?php
 
-use App\Http\Controllers\Admin\AbandonedCartController;
 use App\Http\Controllers\Admin\ApiSyncLogController;
 use App\Http\Controllers\Admin\AutomationController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\CurrencyController;
 use App\Http\Controllers\Admin\EmailTemplateController;
-use App\Http\Controllers\Admin\Extensions\SeoExtensionController;
 use App\Http\Controllers\Admin\FlatRateController;
 use App\Http\Controllers\Admin\FooterColumnController;
 use App\Http\Controllers\Admin\FreeShippingRuleController;
 use App\Http\Controllers\Admin\HomepageSectionController;
 use App\Http\Controllers\Admin\LocalizationController;
+use App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\NavMenuController;
 use App\Http\Controllers\Admin\OrderStatusController;
@@ -19,6 +18,7 @@ use App\Http\Controllers\Admin\PaymentMethodPageController;
 use App\Http\Controllers\Admin\PaymentRestrictionController;
 use App\Http\Controllers\Admin\PaymentSettingController;
 use App\Http\Controllers\Admin\RolePermissionController;
+use App\Http\Controllers\Admin\Sales\AbandonedCartController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\SettingsHubController;
 use App\Http\Controllers\Admin\SettingsSectionController;
