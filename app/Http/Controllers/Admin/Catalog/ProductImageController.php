@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers\Admin\Catalog;
 
+use App\Exceptions\UnsafeUrlException;
 use App\Http\Controllers\Controller;
+use App\Services\SafeUrlFetcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -104,7 +105,7 @@ class ProductImageController extends Controller
         }
 
         try {
-            $response = Http::timeout(15)->get($imageUrl);
+            $response = app(SafeUrlFetcher::class)->get($imageUrl);
 
             if (!$response->successful()) {
                 return response()->json(['ok' => false, 'message' => 'Failed to download image.'], 422);
@@ -152,6 +153,8 @@ class ProductImageController extends Controller
                 'url' => storage_url($fullPath),
                 'kind' => $kind,
             ]);
+        } catch (UnsafeUrlException $e) {
+            return response()->json(['ok' => false, 'message' => 'That URL is not allowed.'], 422);
         } catch (\Throwable $e) {
             return response()->json(['ok' => false, 'message' => 'Failed to download: ' . $e->getMessage()], 422);
         }

@@ -7,6 +7,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Services\SafeUrlFetcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -529,7 +530,7 @@ class ErpProductController extends Controller
             $urls = $request->input('image_urls') ?? $request->input('images');
             foreach ($urls as $url) {
                 try {
-                    $response = \Illuminate\Support\Facades\Http::timeout(15)->get($url);
+                    $response = app(SafeUrlFetcher::class)->get($url);
 
                     if (!$response->successful()) {
                         $failed[] = ['url' => $url, 'reason' => 'HTTP ' . $response->status()];
@@ -701,7 +702,7 @@ class ErpProductController extends Controller
 
         foreach ($urls as $url) {
             try {
-                $response = \Illuminate\Support\Facades\Http::timeout(15)->get($url);
+                $response = app(SafeUrlFetcher::class)->get($url);
 
                 if (!$response->successful()) {
                     $failed[] = ['url' => $url, 'reason' => 'HTTP ' . $response->status()];
