@@ -60,6 +60,9 @@
                         <p class="truncate text-[13px] font-medium text-v-text">{{ Auth::user()->name }}</p>
                         <p class="truncate text-[11px] text-v-muted">{{ Auth::user()->role?->name ?? 'Admin' }}</p>
                     </div>
+                    <a href="{{ route('admin.profile.edit') }}" class="text-v-muted hover:text-v-text" title="My profile">
+                        <x-admin.icon name="customers" class="w-4 h-4" />
+                    </a>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="text-v-muted hover:text-v-text" title="Sign out">

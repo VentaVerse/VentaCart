@@ -1046,4 +1046,40 @@ class ReskinWaveTest extends TestCase
             ->assertSee('v-admin', false)
             ->assertSee('Sign in');
     }
+
+    public function test_profile_page_renders_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('admin.profile.edit'))
+            ->assertOk()
+            ->assertSee('v-admin', false)
+            ->assertSee('My Profile')
+            ->assertSee('Delete Account');
+    }
+
+    public function test_automations_section_renders_without_raw_palette_classes(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        Automation::create([
+            'key' => 'currency_update',
+            'name' => 'Currency Exchange Rates',
+            'command' => 'currency:update',
+            'schedule_preset' => 'daily',
+            'schedule_params' => ['hour' => 16, 'minute' => 0],
+            'cron_expression' => '0 16 * * *',
+            'enabled' => true,
+            'last_run_at' => now()->subDay(),
+            'last_run_status' => 'success',
+        ]);
+
+        $this->get(route('admin.settings.section', 'automations'))
+            ->assertOk()
+            ->assertSee('v-admin', false)
+            ->assertSee('Currency Exchange Rates')
+            ->assertDontSee('bg-gray-50', false)
+            ->assertDontSee('bg-indigo-600', false)
+            ->assertDontSee('text-gray-900', false);
+    }
 }
