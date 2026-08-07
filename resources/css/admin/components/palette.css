@@ -1,0 +1,10 @@
+.v-admin .v-palette {
+    animation: v-palette-in var(--motion-base) both;
+}
+
+@keyframes v-palette-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+}

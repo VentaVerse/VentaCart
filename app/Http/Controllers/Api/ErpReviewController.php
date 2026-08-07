@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\ReviewImage;
+use App\Services\SafeUrlFetcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -85,7 +85,7 @@ class ErpReviewController extends Controller
 
                 foreach ($validated['images'] as $imageUrl) {
                     try {
-                        $response = Http::timeout(15)->get($imageUrl);
+                        $response = app(SafeUrlFetcher::class)->get($imageUrl);
 
                         if ($response->successful()) {
                             $extension = $this->guessExtension($response->header('Content-Type'), $imageUrl);

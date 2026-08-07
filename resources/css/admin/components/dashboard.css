@@ -1,0 +1,11 @@
+/*
+ * Staggered reveal for the dashboard's stat row and sidebar cards, mirrors
+ * the settings.css hub pattern. nth-child is scoped per parent, so the stat
+ * grid and the sidebar card stack each restart their own wave. Respects
+ * reduced motion via tokens.css (--motion-base collapses to 1ms).
+ */
+.v-admin .v-dash-in { animation: v-dash-in var(--motion-base) both; }
+.v-admin .v-dash-in:nth-child(2) { animation-delay: 40ms; }
+.v-admin .v-dash-in:nth-child(3) { animation-delay: 80ms; }
+.v-admin .v-dash-in:nth-child(4) { animation-delay: 120ms; }
+@keyframes v-dash-in { from { opacity: 0; transform: translateY(6px); } }

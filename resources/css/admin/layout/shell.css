@@ -1,0 +1,5 @@
+.v-admin .v-nav { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+.v-admin .v-sidebar { will-change: transform; }
+@media (min-width: 1024px) {
+    .v-admin .v-sidebar { transform: none !important; }
+}

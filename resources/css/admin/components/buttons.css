@@ -1,0 +1,3 @@
+/* data-loading is set by forms while submitting (see Task 4 form-actions). */
+.v-admin .v-btn[data-loading="true"] { pointer-events: none; opacity: .7; }
+.v-admin .v-btn[data-loading="true"] .v-btn-spinner { display: inline-block; }

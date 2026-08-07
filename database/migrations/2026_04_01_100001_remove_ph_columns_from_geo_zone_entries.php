@@ -15,6 +15,16 @@ return new class extends Migration
             ->whereNull('zone_id')
             ->delete();
 
+        // Drop the old location index first — SQLite refuses to drop columns
+        // that are still referenced by an index.
+        try {
+            Schema::table('geo_zone_entries', function (Blueprint $table) {
+                $table->dropIndex('gze_location_index');
+            });
+        } catch (\Throwable) {
+            // Index may already be dropped or have a different name
+        }
+
         // Drop PH columns if they still exist
         $columns = Schema::getColumnListing('geo_zone_entries');
         $toDrop = array_intersect(['ph_region_id', 'ph_province_id', 'ph_city_id'], $columns);
@@ -24,19 +34,13 @@ return new class extends Migration
             });
         }
 
-        // Drop FK, drop old index, add new index, re-add FK
+        // Drop FK so we can safely rebuild the composite index
         try {
             Schema::table('geo_zone_entries', function (Blueprint $table) {
                 $table->dropForeign(['geo_zone_id']);
             });
         } catch (\Throwable) {
             // FK may already be dropped or have a different name
-        }
-
-        $table = DB::getTablePrefix() . 'geo_zone_entries';
-        $hasIndex = DB::select("SHOW INDEX FROM `{$table}` WHERE Key_name = 'gze_location_index'");
-        if (!empty($hasIndex)) {
-            DB::statement("DROP INDEX gze_location_index ON `{$table}`");
         }
 
         Schema::table('geo_zone_entries', function (Blueprint $table) {

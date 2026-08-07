@@ -36,6 +36,15 @@ return new class extends Migration
                     DB::statement("ALTER TABLE `{$prefix}zones` DROP FOREIGN KEY `zones_country_code_foreign`");
                 } catch (\Throwable) {}
             }
+            // Drop the index on country_code first — SQLite refuses to drop
+            // columns that are still referenced by an index.
+            try {
+                Schema::table('zones', function (Blueprint $table) {
+                    $table->dropIndex(['country_code']);
+                });
+            } catch (\Throwable) {
+                // Index may already be dropped or have a different name
+            }
             Schema::table('zones', function (Blueprint $table) {
                 $table->dropColumn('country_code');
             });
