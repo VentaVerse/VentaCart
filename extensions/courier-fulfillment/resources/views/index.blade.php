@@ -150,7 +150,13 @@
                         'buyerPaymentLabel' => $buyerPaymentLabel,
                     ];
                 @endphp
-                <x-admin.table.row class="cursor-pointer" @click="openDrawer(@js($rowData))">
+                {{-- Component-tag attributes only compile {{ }} echoes, not @-directives
+                     (Blade's ComponentTagCompiler::compileAttributeEchos() never runs the
+                     statements/directives compiler over non-bound attribute values) — @js()
+                     here would render as literal, uncompiled text. Js::from() is exactly
+                     what @js() expands to; the {{ }} form is the one that actually compiles
+                     on a component tag. See the identical fix below on the Book/Rebook button. --}}
+                <x-admin.table.row class="cursor-pointer" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">
                     <x-admin.table.cell>
                         <div class="v-num font-medium text-v-text">#{{ $order->id }}</div>
                         <div class="text-[11px] text-v-muted">{{ optional($order->created_at)->format('M d, Y') }}</div>
@@ -194,7 +200,7 @@
                                     <button type="button" @click.stop="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')" class="text-v-danger hover:opacity-80 text-xs">Cancel</button>
                                 @endif
                             @elseif (!empty($couriers))
-                                <x-admin.button type="button" size="sm" variant="primary" @click.stop="openDrawer(@js($rowData))">{{ $rebookable ? 'Rebook' : 'Book' }}</x-admin.button>
+                                <x-admin.button type="button" size="sm" variant="primary" @click.stop="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">{{ $rebookable ? 'Rebook' : 'Book' }}</x-admin.button>
                             @endif
                         </div>
                         @if ($cancelable)
