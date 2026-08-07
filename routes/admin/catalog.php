@@ -4,7 +4,7 @@ use App\Http\Controllers\Admin\Catalog\BrandController;
 use App\Http\Controllers\Admin\Catalog\CategoryController;
 use App\Http\Controllers\Admin\Catalog\MediaController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
-use App\Http\Controllers\Admin\ProductImageController;
+use App\Http\Controllers\Admin\Catalog\ProductImageController;
 use App\Http\Controllers\Admin\Catalog\TagController;
 use Illuminate\Support\Facades\Route;
 
