@@ -1,5 +1,4 @@
-<x-admin.shell title="Theme Settings">
-    <x-admin.page title="Theme Settings" :breadcrumb="[['label' => 'Extensions']]">
+<x-admin.settings-shell active="theme" title="Theme Settings" :wide="true">
         {{-- Theme Selector --}}
         <x-admin.card class="mb-6">
             <div class="flex items-center justify-between gap-4 flex-wrap">
@@ -831,5 +830,4 @@
             }
         </script>
         @endpush
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

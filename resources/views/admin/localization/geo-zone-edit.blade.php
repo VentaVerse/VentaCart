@@ -1,12 +1,4 @@
-<x-admin.shell :title="'Edit Geo Zone: ' . $geoZone->name">
-    <x-admin.page :title="'Edit Geo Zone: ' . $geoZone->name" :breadcrumb="[
-        ['label' => 'Settings', 'url' => route('admin.settings.index')],
-        ['label' => 'Localization', 'url' => route('admin.localization.index', ['tab' => 'geo-zones'])],
-    ]">
-        <x-slot:actions>
-            <x-admin.button variant="ghost" href="{{ route('admin.localization.index', ['tab' => 'geo-zones']) }}">Back to Localization</x-admin.button>
-        </x-slot:actions>
-
+<x-admin.settings-shell active="localization" :title="'Edit Geo Zone: ' . $geoZone->name" :wide="true">
         <div class="max-w-4xl space-y-6" x-data="geoZoneEditor()">
             {{-- General --}}
             <x-admin.card title="General">
@@ -157,5 +149,4 @@
         }
         </script>
         @endpush
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

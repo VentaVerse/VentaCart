@@ -1,7 +1,10 @@
-@props(['active', 'title'])
+@props(['active', 'title', 'wide' => false])
 @php $groups = \App\Support\SettingsNav::groups(Auth::user()); @endphp
 <x-admin.shell :title="$title . ' — Settings'">
     <x-admin.page :title="$title" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+        @isset($actions)
+            <x-slot:actions>{{ $actions }}</x-slot:actions>
+        @endisset
         <div class="flex gap-8">
             {{-- Sub-sidebar (desktop) --}}
             <nav class="hidden lg:block w-[13.5rem] shrink-0">
@@ -27,7 +30,7 @@
             </nav>
 
             {{-- Content (mobile select + slot) --}}
-            <div class="min-w-0 max-w-2xl flex-1">
+            <div class="min-w-0 flex-1 {{ $wide ? 'max-w-none' : 'max-w-2xl' }}">
                 <select x-data @change="window.location.assign($event.target.value)"
                         class="v-control lg:hidden mb-5 w-full h-[var(--control-h)] rounded-v-md border border-v-border bg-v-surface px-2.5 text-[13px] text-v-text" aria-label="Settings section">
                     @foreach ($groups as $group)

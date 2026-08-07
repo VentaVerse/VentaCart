@@ -1,5 +1,4 @@
-<x-admin.shell title="Stock Alerts">
-    <x-admin.page title="Stock Alerts" :breadcrumb="[['label' => 'Extensions']]">
+<x-admin.settings-shell active="stock-alerts" title="Stock Alerts" :wide="true">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
             <x-admin.stat label="Waiting" :value="$totalWaiting" tone="warning" />
             <x-admin.stat label="Notified" :value="$totalNotified" tone="accent" />
@@ -199,5 +198,4 @@
             });
         </script>
         @endpush
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

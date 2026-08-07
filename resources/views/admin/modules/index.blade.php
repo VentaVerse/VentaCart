@@ -1,5 +1,4 @@
-<x-admin.shell title="Modules">
-    <x-admin.page title="Modules" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="modules" title="Modules" :wide="true">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             @foreach ($modules as $module)
                 <x-admin.card>
@@ -24,5 +23,4 @@
                 </x-admin.card>
             @endforeach
         </div>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

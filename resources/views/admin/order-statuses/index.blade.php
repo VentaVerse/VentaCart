@@ -1,5 +1,4 @@
-<x-admin.shell title="Order Statuses">
-    <x-admin.page title="Order Statuses" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="order-statuses" title="Order Statuses" :wide="true">
         <div class="space-y-5">
             <x-admin.card title="Stock actions" description="What happens to inventory when an order enters a status.">
                 <div class="flex flex-wrap gap-4 text-[13px]">
@@ -113,5 +112,4 @@
                 </form>
             </x-admin.card>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

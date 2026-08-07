@@ -1,5 +1,4 @@
-<x-admin.shell title="Shipping Couriers">
-    <x-admin.page title="Shipping Couriers" :breadcrumb="[['label' => 'Extensions']]">
+<x-admin.settings-shell active="couriers" title="Shipping Couriers" :wide="true">
         <x-admin.card>
             <p class="text-xs text-v-secondary mb-4">Manual couriers for tracking shipments. Use <code class="bg-v-sunken px-1 rounded text-[11px]">{tracking_number}</code> in the URL template where the tracking code should be inserted.</p>
 
@@ -85,5 +84,4 @@
                 </div>
             </form>
         </x-admin.card>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

@@ -1,5 +1,4 @@
-<x-admin.shell title="Email Templates">
-    <x-admin.page title="Email Templates" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="email-templates" title="Email Templates">
         <x-admin.table>
             <x-slot:head>
                 <x-admin.table.th>Name</x-admin.table.th>
@@ -43,5 +42,4 @@
                 </tr>
             @endforelse
         </x-admin.table>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

@@ -1,5 +1,4 @@
-<x-admin.shell title="Localization">
-    <x-admin.page title="Localization" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="localization" title="Localization" :wide="true">
         <div x-data="localizationPage()">
             <x-admin.tabs default="{{ $tab }}" param="tab" :names="['countries', 'zones', 'geo-zones']">
                 <x-slot:nav>
@@ -350,5 +349,4 @@
         }
         </script>
         @endpush
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

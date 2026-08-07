@@ -1058,6 +1058,32 @@ class ReskinWaveTest extends TestCase
             ->assertSee('Delete Account');
     }
 
+    public function test_settings_hub_destinations_render_persistent_sub_sidebar(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        // Users index is a representative "external" Settings-hub destination
+        // (not a registry section) — it must now carry the same persistent
+        // sub-sidebar + "All Settings" back link as the 7 registry sections.
+        $this->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('v-admin', false)
+            ->assertSee('All Settings')
+            ->assertSee('Payments'); // sidebar lists sibling sections too
+
+        // Payments discoverability: the landing page's availability chip and
+        // "Availability rules" ghost button must both point at the method's
+        // availability tab so restrictions are reachable from the hub.
+        $availabilityUrl = route('admin.payment-settings.show', ['bank_transfer', 'tab' => 'availability']);
+
+        $this->get(route('admin.payment-settings.index'))
+            ->assertOk()
+            ->assertSee('v-admin', false)
+            ->assertSee('All Settings')
+            ->assertSee($availabilityUrl, false)
+            ->assertSee('Availability rules');
+    }
+
     public function test_automations_section_renders_without_raw_palette_classes(): void
     {
         $this->actingAs(User::factory()->create());

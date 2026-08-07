@@ -1,5 +1,4 @@
-<x-admin.shell title="Shipping">
-    <x-admin.page title="Shipping" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="shipping" title="Shipping" :wide="true">
 
         {{--
             Chain strip — numbered in the REAL evaluation order from
@@ -417,7 +416,6 @@
             </x-admin.card>
 
         </div>
-    </x-admin.page>
 
     {{--
         Old create/edit/duplicate flows for flat rates and weight-based methods
@@ -435,4 +433,4 @@
             });
         </script>
     @endpush
-</x-admin.shell>
+</x-admin.settings-shell>

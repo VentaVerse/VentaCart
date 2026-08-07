@@ -1,5 +1,4 @@
-<x-admin.shell title="Role Permissions">
-    <x-admin.page title="Role Permissions" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="permissions" title="Role Permissions" :wide="true">
         <x-admin.card>
             <form method="POST" action="{{ route('admin.permissions.update') }}" data-v-form>
                 @csrf
@@ -36,5 +35,4 @@
                 </x-admin.form-actions>
             </form>
         </x-admin.card>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

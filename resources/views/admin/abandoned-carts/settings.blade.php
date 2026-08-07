@@ -1,5 +1,4 @@
-<x-admin.shell title="Abandoned Cart Settings">
-    <x-admin.page title="Abandoned Cart Settings" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="abandoned-carts" title="Abandoned Cart Settings" :wide="true">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.abandoned-carts.partials.nav')
 
@@ -40,5 +39,4 @@
                 </x-admin.card>
             </div>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

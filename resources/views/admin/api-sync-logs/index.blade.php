@@ -1,5 +1,4 @@
-<x-admin.shell title="API Sync Logs">
-    <x-admin.page title="API Sync Logs" :breadcrumb="[['label' => 'Extensions']]">
+<x-admin.settings-shell active="api" title="API Sync Logs" :wide="true">
         <x-admin.card class="mb-6">
             <form method="GET" class="flex flex-wrap items-end gap-3">
                 <x-admin.field name="method" label="Method">
@@ -80,5 +79,4 @@
         <x-admin.confirm-dialog name="destroy-all-logs" title="Delete all API sync logs?"
             message="Delete ALL API sync logs? This cannot be undone." confirm="Delete All"
             :action="route('admin.api-sync-logs.destroy-all')" method="DELETE" />
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

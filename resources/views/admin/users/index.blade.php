@@ -1,5 +1,4 @@
-<x-admin.shell title="Users">
-    <x-admin.page title="Users" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+<x-admin.settings-shell active="users" title="Users" :wide="true">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.users.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add User
@@ -74,5 +73,4 @@
                     message="This cannot be undone." confirm="Delete" :action="route('admin.users.destroy', $user)" method="DELETE" />
             @endif
         @endforeach
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>

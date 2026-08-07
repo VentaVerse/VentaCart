@@ -1,8 +1,4 @@
-<x-admin.shell :title="$user ? 'Edit User' : 'Create User'">
-    <x-admin.page :title="$user ? 'Edit User' : 'Create User'" :breadcrumb="[
-        ['label' => 'Settings', 'url' => route('admin.settings.index')],
-        ['label' => 'Users', 'url' => route('admin.users.index')],
-    ]">
+<x-admin.settings-shell active="users" :title="$user ? 'Edit User' : 'Create User'">
         <div class="max-w-lg">
             <x-admin.card>
                 <form method="POST" action="{{ $user ? route('admin.users.update', $user) : route('admin.users.store') }}" data-v-form>
@@ -46,5 +42,4 @@
                 </form>
             </x-admin.card>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+</x-admin.settings-shell>
