@@ -170,6 +170,82 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertTrue(Route::has('admin.banners.index'));
     }
 
+    public function test_courier_fulfillment_appears_in_discovered(): void
+    {
+        // Real courier-fulfillment extension.json (not a fixture) — proves the
+        // manifest the kernel adoption task authored is well-formed and
+        // discoverable, same as the banners real-extension check above.
+        $manifest = (new ExtensionManager())->discovered()->get('courier-fulfillment');
+
+        $this->assertNotNull($manifest);
+        $this->assertSame('courier-fulfillment', $manifest['name']);
+        $this->assertSame('Courier Fulfillment', $manifest['title']);
+        $this->assertSame('1.0.0', $manifest['version']);
+        $this->assertSame('Extensions\\CourierFulfillment\\CourierFulfillmentServiceProvider', $manifest['provider']);
+        $this->assertSame('fulfillment', $manifest['icon']);
+        $this->assertSame('courier', $manifest['type']);
+    }
+
+    public function test_courier_fulfillment_install_runs_orders_columns_migration_and_uninstall_rolls_back(): void
+    {
+        // Real courier-fulfillment extension, installed/uninstalled only
+        // against this test's RefreshDatabase-managed in-memory sqlite
+        // connection — never the live dev DB (per this task's brief). No
+        // HTTP request or explicit bootEnabled() call happens in this test,
+        // so the provider itself is never booted here — this test only
+        // proves the migration side of the lifecycle, matching the scope of
+        // the analogous 'demo' fixture test above.
+        $manager = new ExtensionManager();
+
+        $columns = [
+            'courier_provider',
+            'courier_tracking_number',
+            'courier_status',
+            'courier_meta',
+            'courier_booked_at',
+        ];
+
+        foreach ($columns as $column) {
+            $this->assertFalse(Schema::hasColumn('orders', $column), "Precondition failed: orders.{$column} should not exist yet.");
+        }
+
+        $manager->install('courier-fulfillment');
+
+        foreach ($columns as $column) {
+            $this->assertTrue(Schema::hasColumn('orders', $column));
+        }
+        $this->assertDatabaseHas('extensions', ['name' => 'courier-fulfillment', 'enabled' => true]);
+
+        $manager->uninstall('courier-fulfillment');
+
+        foreach ($columns as $column) {
+            $this->assertFalse(Schema::hasColumn('orders', $column));
+        }
+        $this->assertDatabaseMissing('extensions', ['name' => 'courier-fulfillment']);
+    }
+
+    public function test_courier_fulfillment_disabled_extension_never_registers_fulfillment_route(): void
+    {
+        // Mirrors test_disabled_extension_never_registers_its_route (demo
+        // fixture) but against the real extension and its frozen route name
+        // admin.fulfillment.index: a registry row that starts disabled must
+        // never have its provider booted at all, so the route can never be
+        // registered in the first place. (Retroactively un-registering an
+        // already-booted route isn't possible within one process — see
+        // ExtensionManager::disable()'s docblock — so this is the provable
+        // form of "disable -> route unregistered".)
+        Extension::create([
+            'name' => 'courier-fulfillment',
+            'version' => '1.0.0',
+            'enabled' => false,
+            'installed_at' => now(),
+        ]);
+
+        (new ExtensionManager())->bootEnabled();
+
+        $this->assertFalse(Route::has('admin.fulfillment.index'));
+    }
+
     public function test_create_extensions_table_migration_seeds_banners_continuity_row_only_when_legacy_tables_exist(): void
     {
         // Simulates an EXISTING deploy where banners' own migrations already

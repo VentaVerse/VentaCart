@@ -1,0 +1,9 @@
+{
+    "name": "courier-fulfillment",
+    "title": "Courier Fulfillment",
+    "version": "1.0.0",
+    "description": "Book confirmed orders with shipping couriers (QuadX, and future providers) from a dedicated admin page.",
+    "provider": "Extensions\\CourierFulfillment\\CourierFulfillmentServiceProvider",
+    "icon": "fulfillment",
+    "type": "courier"
+}
