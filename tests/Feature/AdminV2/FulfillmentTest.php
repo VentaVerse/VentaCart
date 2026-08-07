@@ -3,7 +3,9 @@
 namespace Tests\Feature\AdminV2;
 
 use App\Models\Order;
+use App\Models\OrderProduct;
 use App\Models\OrderStatus;
+use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
@@ -11,6 +13,7 @@ use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\StatusMapper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Http;
 use Tests\Support\FakeCourierFulfillment;
 use Tests\TestCase;
 
@@ -37,6 +40,19 @@ class FulfillmentTest extends TestCase
     {
         parent::setUp();
         $this->prefix = config('admin.prefix', 'admin');
+
+        // LARAVEL_START is normally defined by public/index.php before Laravel
+        // boots. The test process never runs that front controller, so the
+        // constant is otherwise undefined here — App\Http\Controllers\Api\
+        // LogsApiCalls::logAndRespond() (used by every ERP controller,
+        // including this extension's ErpFulfillmentController) references it
+        // unqualified and fatals with "Undefined constant ...LARAVEL_START"
+        // the first time any ERP endpoint is feature-tested. See task-6-report
+        // for the full writeup — this define() is a test-harness accommodation
+        // only, it does not change LogsApiCalls' behavior.
+        if (!defined('LARAVEL_START')) {
+            define('LARAVEL_START', microtime(true));
+        }
     }
 
     /**
@@ -66,9 +82,94 @@ class FulfillmentTest extends TestCase
         return '/' . $this->prefix . '/sales/fulfillment';
     }
 
+    /**
+     * Raw URL strings, not route(admin.fulfillment.*, ...) — this extension's
+     * routes are registered dynamically by App\Http\Middleware\BootExtensions
+     * on the FIRST request after installExtension() (see that middleware's
+     * docblock), so route() would throw RouteNotFoundException if called
+     * before any request has gone through the HTTP kernel. queueUrl()/
+     * settingsUrl() above already follow this convention.
+     */
+    private function bookUrl(Order $order): string
+    {
+        return $this->queueUrl() . '/' . $order->id . '/book';
+    }
+
+    private function cancelUrl(Order $order): string
+    {
+        return $this->queueUrl() . '/' . $order->id . '/cancel';
+    }
+
     private function installExtension(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
+    }
+
+    // ------------------------------------------------------------------
+    // Task 6 helpers — QuadX credentials (staging), a bookable order with
+    // the shipping fields buildPayload() reads, and an ERP bearer token.
+    // ------------------------------------------------------------------
+
+    /** Turns QuadX "on" (enabled + configured) against the staging base URL, so CourierManager::enabled() includes it and FulfillmentService::book() proceeds past the courier_unavailable guard. */
+    private function enableQuadxStaging(): void
+    {
+        Setting::create(['group' => 'courier', 'key' => 'quadx_enabled', 'value' => '1']);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'staging']);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_staging_api_key', 'value' => Crypt::encryptString('test-api-key')]);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_staging_secret_key', 'value' => Crypt::encryptString('test-secret-key')]);
+    }
+
+    /** Cebu (non-NCR) address deliberately, so QuadXLocationResolver's NCR "City" suffix rewriting never kicks in and payload assertions can compare raw strings. */
+    private function makeBookableOrder(array $overrides = []): Order
+    {
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+
+        return Order::create(array_merge([
+            'store_id' => 1,
+            'order_status_id' => $status->id,
+            'first_name' => 'Jane',
+            'last_name' => 'Doe',
+            'email' => 'jane@example.com',
+            'phone' => '+639171234567',
+            'shipping_first_name' => 'Jane',
+            'shipping_last_name' => 'Doe',
+            'shipping_address_1' => '123 Mango St',
+            'shipping_city' => 'Cebu City',
+            'shipping_state' => 'Cebu',
+            'shipping_postcode' => '6000',
+            'shipping_phone' => '+639171234567',
+            'payment_method' => 'bank_transfer',
+            'subtotal' => 1000,
+            'shipping_cost' => 100,
+            'total' => 1100,
+        ], $overrides));
+    }
+
+    /** Stores an encrypted ERP token under settings(group=api,key=erp_token) — the exact row App\Http\Middleware\ErpApiAuth reads — and returns the plaintext for the Bearer header. */
+    private function makeErpToken(string $token = 'erp-test-token-abc123'): string
+    {
+        Setting::create(['group' => 'api', 'key' => 'erp_token', 'value' => Crypt::encryptString($token)]);
+        return $token;
+    }
+
+    /**
+     * $this->artisan() reuses the console Kernel's memoized Illuminate\Console\
+     * Application instance (Kernel::getArtisan() caches it in $this->artisan),
+     * and that instance is normally constructed the FIRST time any artisan
+     * command runs — which, under RefreshDatabase, is the framework's own
+     * internal `migrate` call during this test's setUp(), well before
+     * installExtension() below ever runs. ServiceProvider::commands()
+     * registers new commands via an Artisan::starting() bootstrap closure
+     * that only fires when a *new* Console\Application is constructed, so a
+     * provider booted mid-test (as installExtension() does, via
+     * ExtensionManager::bootEnabled()) is too late — the console app already
+     * exists. registerCommand() adds directly to that already-built instance
+     * instead, sidestepping the ordering problem entirely.
+     */
+    private function registerPollCommand(): void
+    {
+        $this->app->make(\Illuminate\Contracts\Console\Kernel::class)
+            ->registerCommand(new \Extensions\CourierFulfillment\Console\Commands\PollCourierStatus());
     }
 
     // ------------------------------------------------------------------
@@ -390,5 +491,395 @@ class FulfillmentTest extends TestCase
             ->assertSee('name="settings[fake_status_map][delivered][order_status_id]"', false)
             // Test Connection route is parameterized to this courier's key.
             ->assertSee($this->settingsUrl('/fake/test-connection'), false);
+    }
+
+    // ==================================================================
+    // Task 6: feature-test hardening over FROZEN behavior.
+    // Http::fake ONLY — zero real outbound requests anywhere below.
+    // ==================================================================
+
+    // ------------------------------------------------------------------
+    // Booking round-trip: payload shape + idempotency + rebook-after-cancel.
+    // ------------------------------------------------------------------
+
+    public function test_booking_sends_the_expected_quadx_payload_and_stores_the_tracking_number(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        Http::fake([
+            'api.staging.quadx.xyz/v2/orders' => Http::response([
+                'id' => 555,
+                'tracking_number' => 'QX-BOOK-001',
+                'status' => 'for_pickup',
+                'reference_id' => '1',
+            ], 200),
+        ]);
+
+        $order = $this->makeBookableOrder();
+
+        $response = $this->post($this->bookUrl($order), [
+            'courier' => 'quadx',
+            'service' => 'next_day',
+            'parcel' => 'box',
+            'shipping_payment' => 'net_off',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        Http::assertSentCount(1);
+        Http::assertSent(function ($request) use ($order) {
+            if ($request->url() !== 'https://api.staging.quadx.xyz/v2/orders') {
+                return false;
+            }
+            $body = $request->data();
+
+            return $body['reference_id'] === (string) $order->id
+                && $body['service'] === 'next_day'
+                && $body['shipment'] === 'box'
+                // Not COD (payment_method 'bank_transfer') and no buyer_payment
+                // override posted from the admin form -> 'other', not 'cod'.
+                && $body['payment_method'] === 'other'
+                // insure not posted -> declared_value must be 0, never default
+                // to the order total (that hazard is called out in buildPayload()).
+                && (int) $body['declared_value'] === 0
+                && (float) $body['total'] === 1100.0
+                && $body['delivery_address']['line_1'] === '123 Mango St'
+                && $body['delivery_address']['postal_code'] === '6000'
+                && $body['delivery_address']['city'] === 'Cebu City'
+                && $body['buyer_name'] === 'Jane Doe'
+                // net_off is the "bill me / deduct from remittance" option ->
+                // seller_payment_method is omitted entirely, not sent as 'net_off'.
+                && !array_key_exists('seller_payment_method', $body);
+        });
+
+        $order->refresh();
+        $this->assertSame('quadx', $order->courier_provider);
+        $this->assertSame('QX-BOOK-001', $order->courier_tracking_number);
+        $this->assertSame('for_pickup', $order->courier_status);
+        // Core snapshot field — the extension is the only writer of it.
+        $this->assertSame('QX-BOOK-001', $order->tracking_number);
+    }
+
+    public function test_admin_book_route_blocks_a_double_book_with_a_single_outbound_call_and_a_user_facing_message(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        Http::fake([
+            'api.staging.quadx.xyz/v2/orders' => Http::response(['tracking_number' => 'QX-DUP-001', 'status' => 'for_pickup'], 200),
+        ]);
+
+        $order = $this->makeBookableOrder();
+        $bookUrl = $this->bookUrl($order);
+        $payload = ['courier' => 'quadx', 'service' => 'next_day', 'parcel' => 'box', 'shipping_payment' => 'net_off'];
+
+        $this->post($bookUrl, $payload)->assertSessionHas('success');
+
+        $second = $this->post($bookUrl, $payload);
+        $second->assertRedirect();
+        $second->assertSessionHas('error');
+        $this->assertStringContainsString('already booked', session('error'));
+
+        // The controller's own isActivelyBooked() guard short-circuits before
+        // FulfillmentService::book() is ever reached on the second call — one
+        // shipment must exist at QuadX, not two.
+        Http::assertSentCount(1);
+        $this->assertSame('QX-DUP-001', $order->fresh()->courier_tracking_number);
+    }
+
+    public function test_erp_book_endpoint_is_idempotent_on_repeat_calls(): void
+    {
+        // The ERP endpoint has NO controller-level pre-check (unlike the admin
+        // route above) — a retry exercises FulfillmentService::book()'s own
+        // idempotency guard directly, which is exactly the hazard its docblock
+        // describes ("the ERP may retry").
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        $token = $this->makeErpToken();
+
+        Http::fake([
+            'api.staging.quadx.xyz/v2/orders' => Http::response(['tracking_number' => 'QX-ERP-001', 'status' => 'for_pickup'], 200),
+        ]);
+
+        $order = $this->makeBookableOrder();
+        $payload = ['courier' => 'quadx', 'service' => 'next_day', 'parcel' => 'box', 'shipping_payment' => 'net_off'];
+
+        $first = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/v1/orders/{$order->id}/book-courier", $payload);
+        $first->assertOk()->assertJson([
+            'success' => true,
+            'already_booked' => false,
+            'tracking_number' => 'QX-ERP-001',
+        ]);
+
+        $second = $this->withHeader('Authorization', "Bearer {$token}")
+            ->postJson("/api/v1/orders/{$order->id}/book-courier", $payload);
+        $second->assertOk()->assertJson([
+            'success' => true,
+            'already_booked' => true,
+            'tracking_number' => 'QX-ERP-001',
+        ]);
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_rebook_after_cancel_creates_a_fresh_shipment_and_records_the_previous_tracking_number(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        Http::fake([
+            // Two bookings against the same reference_id — QuadX accepts repeat
+            // bookings, so this returns a fresh tracking number the second time.
+            'api.staging.quadx.xyz/v2/orders' => Http::sequence()
+                ->push(['tracking_number' => 'QX-OLD-001', 'status' => 'for_pickup'], 200)
+                ->push(['tracking_number' => 'QX-NEW-002', 'status' => 'for_pickup'], 200),
+            'api.staging.quadx.xyz/v2/orders/*' => Http::response(['ok' => true], 200), // cancel
+        ]);
+
+        $order = $this->makeBookableOrder();
+        $bookPayload = ['courier' => 'quadx', 'service' => 'next_day', 'parcel' => 'box', 'shipping_payment' => 'net_off'];
+
+        $this->post($this->bookUrl($order), $bookPayload)->assertSessionHas('success');
+        $this->assertSame('QX-OLD-001', $order->fresh()->courier_tracking_number);
+
+        $this->post($this->cancelUrl($order))->assertSessionHas('success');
+        $order->refresh();
+        $this->assertSame('canceled', $order->courier_status);
+        // Cancel does not clear the tracking number — it's what makes the
+        // "previous" value available to capture on the rebook below.
+        $this->assertSame('QX-OLD-001', $order->courier_tracking_number);
+
+        $this->post($this->bookUrl($order), $bookPayload)->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertSame('QX-NEW-002', $order->courier_tracking_number);
+        $this->assertSame('for_pickup', $order->courier_status);
+
+        $meta = json_decode($order->courier_meta, true);
+        $this->assertSame('QX-OLD-001', $meta['previous_tracking_number']);
+
+        $this->assertDatabaseHas('order_histories', [
+            'order_id' => $order->id,
+            'comment' => 'Rebooked with courier: QX-OLD-001 superseded by QX-NEW-002',
+        ]);
+
+        Http::assertSentCount(3); // book, cancel, rebook
+    }
+
+    // ------------------------------------------------------------------
+    // Webhook ingest: valid token -> status map -> order + history + stock;
+    // invalid token rejected via the hash_equals() path.
+    // ------------------------------------------------------------------
+
+    public function test_webhook_with_valid_token_applies_the_status_map_updates_history_and_adjusts_stock(): void
+    {
+        $this->installExtension();
+
+        Setting::create(['group' => 'courier', 'key' => 'quadx_webhook_token', 'value' => 'super-secret-webhook-token']);
+
+        $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2, 'stock_action' => 'decrement']);
+
+        Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
+            'delivered' => ['order_status_id' => $delivered->id, 'notify' => false],
+        ])]);
+
+        $product = Product::create([
+            'store_id' => 1,
+            'name' => 'Guitar Strap',
+            'slug' => 'guitar-strap',
+            'price' => 500,
+            'quantity' => 10,
+            'track_stock' => true,
+        ]);
+
+        $order = $this->makeBookableOrder(['order_status_id' => $pending->id]);
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-WEBHOOK-001',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        OrderProduct::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'price' => 500,
+            'quantity' => 2,
+            'total' => 1000,
+        ]);
+
+        $response = $this->postJson('/webhooks/courier/quadx?token=super-secret-webhook-token', [
+            'data' => [[
+                'reference_id' => (string) $order->id,
+                'tracking_number' => 'QX-WEBHOOK-001',
+                'status' => 'delivered',
+                'status_updated_at' => now()->toIso8601String(),
+            ]],
+        ]);
+
+        $response->assertOk()->assertJson(['ok' => true]);
+
+        $order->refresh();
+        $this->assertSame('delivered', $order->courier_status);
+        $this->assertSame($delivered->id, $order->order_status_id);
+        $this->assertTrue((bool) $order->stock_adjusted);
+
+        $this->assertDatabaseHas('order_histories', [
+            'order_id' => $order->id,
+            'order_status_id' => $delivered->id,
+            'comment' => 'Courier status: delivered',
+        ]);
+
+        $this->assertSame(8, $product->fresh()->quantity);
+    }
+
+    public function test_webhook_with_invalid_or_missing_token_is_rejected(): void
+    {
+        $this->installExtension();
+        Setting::create(['group' => 'courier', 'key' => 'quadx_webhook_token', 'value' => 'the-real-token']);
+
+        $order = $this->makeBookableOrder();
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-SECURE-001',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        $eventPayload = ['data' => [['reference_id' => (string) $order->id, 'status' => 'delivered']]];
+
+        $this->postJson('/webhooks/courier/quadx?token=wrong-token', $eventPayload)
+            ->assertStatus(403)
+            ->assertJson(['error' => 'unauthorized']);
+
+        $this->postJson('/webhooks/courier/quadx', $eventPayload) // no token query param at all
+            ->assertStatus(403)
+            ->assertJson(['error' => 'unauthorized']);
+
+        // Neither rejected call touched the order.
+        $this->assertSame('for_pickup', $order->fresh()->courier_status);
+        $this->assertSame($order->order_status_id, $order->fresh()->order_status_id);
+    }
+
+    // ------------------------------------------------------------------
+    // ERP book-courier endpoint: erp.auth pass/fail.
+    // ------------------------------------------------------------------
+
+    public function test_erp_book_courier_endpoint_rejects_missing_or_invalid_bearer_token(): void
+    {
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        $this->makeErpToken('the-real-erp-token');
+
+        $order = $this->makeBookableOrder();
+        Http::fake(); // any outbound courier call here would itself be a bug
+
+        $this->postJson("/api/v1/orders/{$order->id}/book-courier", ['courier' => 'quadx'])
+            ->assertStatus(401);
+
+        $this->withHeader('Authorization', 'Bearer totally-wrong-token')
+            ->postJson("/api/v1/orders/{$order->id}/book-courier", ['courier' => 'quadx'])
+            ->assertStatus(401);
+
+        Http::assertNothingSent();
+        $this->assertNull($order->fresh()->courier_tracking_number);
+    }
+
+    // ------------------------------------------------------------------
+    // Poll command: faked responses, honors terminalStatuses().
+    // ------------------------------------------------------------------
+
+    public function test_poll_command_updates_non_terminal_orders_and_skips_terminal_ones(): void
+    {
+        $this->installExtension();
+        // Registers QuadXFulfillment into CourierManager (normally deferred to
+        // the next HTTP request via BootExtensions — see bookUrl()'s docblock —
+        // but this test never makes one before calling artisan()).
+        app(ExtensionManager::class)->bootEnabled();
+        $this->registerPollCommand();
+        $this->enableQuadxStaging();
+
+        $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+
+        Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
+            'in_transit' => ['order_status_id' => $shipped->id, 'notify' => false],
+        ])]);
+
+        $active = $this->makeBookableOrder(['order_status_id' => $pending->id]);
+        $active->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-ACTIVE-001',
+            'courier_status' => 'for_pickup', // not terminal -> must be polled
+        ])->save();
+
+        $terminal = $this->makeBookableOrder(['order_status_id' => $pending->id]);
+        $terminal->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-DONE-002',
+            'courier_status' => 'delivered', // terminal per QuadXFulfillment::terminalStatuses()
+        ])->save();
+
+        Http::fake([
+            'api.staging.quadx.xyz/v2/orders/QX-ACTIVE-001' => Http::response([
+                'status' => 'in_transit',
+                'tracking_links' => ['delivery' => 'https://track.quadx.test/QX-ACTIVE-001'],
+            ], 200),
+        ]);
+
+        $this->artisan('courier:poll-status')->assertExitCode(0);
+
+        // Exactly one outbound getTracking() call — the terminal order's tracking
+        // number never leaves the terminalStatuses() filter in the SQL query.
+        Http::assertSentCount(1);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'QX-ACTIVE-001'));
+
+        $active->refresh();
+        $this->assertSame('in_transit', $active->courier_status);
+        $this->assertSame($shipped->id, $active->order_status_id); // StatusMapper::apply() fired
+        $this->assertSame('https://track.quadx.test/QX-ACTIVE-001', $active->getRawOriginal('tracking_link'));
+        $this->assertDatabaseHas('order_histories', [
+            'order_id' => $active->id,
+            'comment' => 'Courier status: in_transit',
+        ]);
+
+        // Terminal order: completely untouched by this poll cycle.
+        $terminal->refresh();
+        $this->assertSame('delivered', $terminal->courier_status);
+        $this->assertSame($pending->id, $terminal->order_status_id);
+        $this->assertNull($terminal->getRawOriginal('tracking_link'));
+    }
+
+    public function test_poll_command_is_a_no_op_when_no_courier_is_enabled(): void
+    {
+        // No enableQuadxStaging() call — CourierManager::enabled() is empty,
+        // so the command must exit cleanly without touching any order or
+        // making a single outbound request.
+        $this->installExtension();
+        // Registers QuadXFulfillment into CourierManager (normally deferred to
+        // the next HTTP request via BootExtensions — see bookUrl()'s docblock —
+        // but this test never makes one before calling artisan()).
+        app(ExtensionManager::class)->bootEnabled();
+        $this->registerPollCommand();
+
+        $order = $this->makeBookableOrder();
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-ORPHAN-001',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        Http::fake();
+
+        $this->artisan('courier:poll-status')->assertExitCode(0);
+
+        Http::assertNothingSent();
+        $this->assertSame('for_pickup', $order->fresh()->courier_status);
     }
 }
