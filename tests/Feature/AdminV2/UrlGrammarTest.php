@@ -102,6 +102,30 @@ class UrlGrammarTest extends TestCase
         $this->get('/'.$this->prefix().'/settings/modules/seo/settings')->assertOk();
     }
 
+    /**
+     * Task 2 (fulfillment-polish): courier-fulfillment's operational queue,
+     * now mounted under Sales instead of a bare '/fulfillment' root. The
+     * extension is installed in-test (real extension.json, not a fixture —
+     * same pattern as ExtensionLifecycleTest's banners/courier-fulfillment
+     * coverage) since its routes only exist once installed + enabled.
+     */
+    public function test_fulfillment_queue_page_is_ok_at_new_url(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $this->get('/'.$this->prefix().'/sales/fulfillment')->assertOk();
+    }
+
+    /** Task 2: courier-fulfillment's settings page, now under Settings > Modules. */
+    public function test_fulfillment_settings_page_is_ok_at_new_url(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment')->assertOk();
+    }
+
     // ------------------------------------------------------------------
     // Old URLs: 301 to the new home, Location asserted.
     // ------------------------------------------------------------------
@@ -222,6 +246,44 @@ class UrlGrammarTest extends TestCase
         $response->assertStatus(301);
         $response->assertRedirect(route('admin.shipping-couriers.index'));
         $this->assertStringContainsString('/settings/couriers', $response->headers->get('Location'));
+    }
+
+    /**
+     * Task 2: old flat '/fulfillment' URLs 301 to their new grammar homes.
+     * Deliberately does NOT install courier-fulfillment first — these
+     * redirects must work even when the extension is currently disabled/not
+     * installed (adminLegacyExtensionRedirect() builds the destination as a
+     * literal path, never via route($name), for exactly this reason; see
+     * routes/admin/redirects.php).
+     */
+    public function test_old_fulfillment_url_redirects_to_sales_fulfillment(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get('/'.$this->prefix().'/fulfillment');
+
+        $response->assertStatus(301);
+        $this->assertStringContainsString('/'.$this->prefix().'/sales/fulfillment', $response->headers->get('Location'));
+    }
+
+    public function test_old_fulfillment_settings_url_redirects_to_settings_modules_courier_fulfillment(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get('/'.$this->prefix().'/fulfillment/settings');
+
+        $response->assertStatus(301);
+        $this->assertStringContainsString('/'.$this->prefix().'/settings/modules/courier-fulfillment', $response->headers->get('Location'));
+    }
+
+    public function test_old_fulfillment_label_url_redirects_preserving_the_order_param(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get('/'.$this->prefix().'/fulfillment/456/label');
+
+        $response->assertStatus(301);
+        $this->assertStringContainsString('/'.$this->prefix().'/sales/fulfillment/456/label', $response->headers->get('Location'));
     }
 
     public function test_old_admin_banners_literal_url_redirects_to_settings_modules_banners(): void
@@ -379,6 +441,36 @@ class UrlGrammarTest extends TestCase
 
         $response->assertOk();
         $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Banners']);
+    }
+
+    /** Task 2: the Fulfillment sidebar item (admin-nav) supplies the queue's crumb. */
+    public function test_breadcrumb_trail_on_fulfillment_queue_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $response = $this->get('/'.$this->prefix().'/sales/fulfillment');
+
+        $response->assertOk();
+        $this->assertBreadcrumbTrail($response->getContent(), ['Sales', 'Fulfillment']);
+    }
+
+    /**
+     * Task 2: the settings page has no matching settings-nav item (the
+     * reserved hub-card slot's key is 'fulfillment', deliberately distinct
+     * from the extension's own name/URL segment 'courier-fulfillment') —
+     * proving the crumb falls through to ExtensionManager's manifest title,
+     * same mechanism the banners test above exercises.
+     */
+    public function test_breadcrumb_trail_on_fulfillment_settings_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $response = $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment');
+
+        $response->assertOk();
+        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Courier Fulfillment']);
     }
 
     public function test_breadcrumb_trail_on_admin_nav_create_page(): void

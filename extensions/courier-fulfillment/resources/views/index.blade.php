@@ -1,5 +1,5 @@
-<x-admin-layout>
-    <x-slot name="header">Fulfillment</x-slot>
+<x-admin.shell title="Fulfillment">
+    <x-admin.page title="Fulfillment">
 
     @php
         // Recursively hunt for the first http(s) URL inside courier_meta.booked_response.tracking_links —
@@ -414,7 +414,7 @@
                 active: null,
                 courier: @js(array_key_first($courierOptions) ?? ''),
                 options: @js($courierOptions),
-                urlBase: '{{ url(config('admin.prefix', 'admin') . '/fulfillment') }}',
+                urlBase: '{{ url(config('admin.prefix', 'admin') . '/sales/fulfillment') }}',
                 get current() { return this.options[this.courier] ?? {services:[],parcels:[],payments:[]}; },
                 get bookAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/book'; },
                 get trackAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/track'; },
@@ -432,4 +432,5 @@
         }
     </script>
     @endpush
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

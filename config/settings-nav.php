@@ -22,7 +22,7 @@ return [
         'items' => [
             ['key' => 'payments', 'label' => 'Payments', 'description' => 'Bank transfer, HitPay, COD configuration and availability.', 'icon' => 'coupons', 'route' => 'admin.payment-settings.index', 'section' => null, 'permission' => null, 'keywords' => ['gcash', 'hitpay', 'cod', 'bank transfer', 'restrictions', 'qr']],
             ['key' => 'shipping', 'label' => 'Shipping', 'description' => 'Rates, methods, free-shipping rules, and DHL.', 'icon' => 'fulfillment', 'route' => 'admin.shipping-settings.index', 'section' => null, 'permission' => null, 'keywords' => ['rates', 'flat rate', 'weight', 'free shipping', 'dhl', 'zones']],
-            // ['key' => 'fulfillment', 'label' => 'Fulfillment', 'description' => 'Courier integrations: QuadX, LBC, SPX.', 'icon' => 'fulfillment', 'route' => 'admin.fulfillment.settings', 'section' => null, 'permission' => null, 'keywords' => ['quadx', 'lbc', 'spx', 'waybill', 'booking']], // enable when the route exists (Plan 3 / feat-quadx merge)
+            ['key' => 'fulfillment', 'label' => 'Fulfillment', 'description' => 'Courier integrations: QuadX, LBC, SPX.', 'icon' => 'fulfillment', 'route' => 'admin.fulfillment.settings', 'section' => null, 'permission' => null, 'keywords' => ['booking', 'waybill', 'awb', 'tracking', 'quadx', 'courier']],
         ],
     ],
     [

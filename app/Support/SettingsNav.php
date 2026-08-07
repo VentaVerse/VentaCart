@@ -3,18 +3,30 @@
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 
 class SettingsNav
 {
-    /** Groups with items the given user may see. Null user = no filtering. */
+    /**
+     * Groups with items the given user may see. Null user = no filtering.
+     *
+     * Also drops any item whose named route isn't currently registered —
+     * same reasoning as App\Support\AdminNav::groups(): the Fulfillment hub
+     * card points at an extension-provided route (admin.fulfillment.settings)
+     * that only exists while courier-fulfillment is installed AND enabled,
+     * and the Settings hub/sub-sidebar renders every group's items via
+     * route($item['route']) unconditionally.
+     */
     public static function groups(?User $user = null): array
     {
         return collect(config('settings-nav'))
             ->map(function (array $group) use ($user) {
                 $group['items'] = array_values(array_filter(
                     $group['items'],
-                    fn (array $item) => $item['permission'] === null
+                    fn (array $item) => (
+                        $item['permission'] === null
                         || ($user?->hasPermission($item['permission']) ?? true)
+                    ) && Route::has($item['route'])
                 ));
 
                 return $group;

@@ -1,5 +1,5 @@
-<x-admin-layout>
-    <x-slot name="header">Courier Settings</x-slot>
+<x-admin.shell title="Courier Settings">
+    <x-admin.page title="Courier Settings">
 
     <div class="max-w-2xl space-y-4" x-data="{ mode: '{{ $settings['quadx_mode'] ?? 'staging' }}' }">
 
@@ -180,4 +180,5 @@
             </div>
         </div>
     </div>
-</x-admin-layout>
+    </x-admin.page>
+</x-admin.shell>

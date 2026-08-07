@@ -113,6 +113,50 @@ adminLegacyRedirect('order-statuses', 'admin.order-statuses.index');
 // Sales — Shipping Couriers (now Settings > Couriers)
 adminLegacyRedirect('shipping-couriers', 'admin.shipping-couriers.index');
 
+// Sales — Fulfillment (operational queue) + Settings > Modules > Courier
+// Fulfillment (config).
+//
+// NOT via adminLegacyRedirect(): that helper resolves the new URL through
+// route($name), which is exactly right for every route above because those
+// targets are core routes that always exist. courier-fulfillment is an
+// optional, disableable extension (ExtensionManager) — its
+// 'admin.fulfillment.*' names only exist while it's currently installed
+// AND enabled — so route() would throw RouteNotFoundException (a 500, not
+// a redirect) the moment a visitor hits an old bookmarked '/fulfillment'
+// URL while the extension happens to be disabled. adminLegacyExtensionRedirect()
+// below builds the destination as a literal path instead, so the redirect
+// always succeeds regardless of the extension's current state — same
+// reasoning as legacy-banners-redirect (routes/admin.php) for the same
+// class of problem, just kept inside this file (unlike banners' redirect,
+// courier-fulfillment's old mount already respected config('admin.prefix'),
+// so it belongs in the normal prefixed admin. group here, not registered
+// standalone).
+if (! function_exists('adminLegacyExtensionRedirect')) {
+    function adminLegacyExtensionRedirect(string $old, string $destination): void
+    {
+        Route::get($old, function (...$params) use ($destination) {
+            // vsprintf() with zero '%s' placeholders and an empty $params
+            // array (the no-parameter routes below) just returns
+            // $destination unchanged.
+            $path = vsprintf($destination, $params);
+            $url = '/'.trim(config('admin.prefix', 'admin').'/'.$path, '/');
+
+            if ($qs = request()->getQueryString()) {
+                $url .= (str_contains($url, '?') ? '&' : '?').$qs;
+            }
+
+            return redirect($url, 301);
+        });
+    }
+}
+
+// Ordered most-specific-first per house convention, though 'fulfillment/settings'
+// (2 segments), 'fulfillment/{order}/label' (3 segments), and bare
+// 'fulfillment' (1 segment) are different depths with no precedence hazard.
+adminLegacyExtensionRedirect('fulfillment/settings', 'settings/modules/courier-fulfillment');
+adminLegacyExtensionRedirect('fulfillment/{order}/label', 'sales/fulfillment/%s/label');
+adminLegacyExtensionRedirect('fulfillment', 'sales/fulfillment');
+
 // Content
 adminLegacyRedirect('blog', 'admin.blog.index');
 adminLegacyRedirect('blog/create', 'admin.blog.create');

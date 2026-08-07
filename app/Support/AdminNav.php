@@ -3,18 +3,35 @@
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Route;
 
 class AdminNav
 {
-    /** Groups with items the given user may see. Null user = no filtering. */
+    /**
+     * Groups with items the given user may see. Null user = no filtering.
+     *
+     * Also drops any item whose named route isn't currently registered.
+     * Every core-controller route always exists, so this is a no-op for
+     * them — it only matters for the handful of reserved slots (e.g.
+     * Fulfillment) that point at an extension-provided route name: that
+     * route only exists while the extension is installed AND enabled
+     * (ExtensionManager/BootExtensions). Without this guard, disabling the
+     * extension from the Modules page — or a fresh install that never
+     * installed it at all — would make x-admin.shell's sidebar (rendered on
+     * EVERY admin page) throw RouteNotFoundException calling route() on a
+     * name nothing registered, taking down the entire admin panel rather
+     * than just hiding one link.
+     */
     public static function groups(?User $user = null): array
     {
         return collect(config('admin-nav'))
             ->map(function (array $group) use ($user) {
                 $group['items'] = array_values(array_filter(
                     $group['items'],
-                    fn (array $item) => $item['permission'] === null
+                    fn (array $item) => (
+                        $item['permission'] === null
                         || ($user?->hasPermission($item['permission']) ?? true)
+                    ) && Route::has($item['route'])
                 ));
 
                 return $group;

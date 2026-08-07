@@ -21,7 +21,7 @@ return [
         'segment' => 'sales',
         'items' => [
             ['key' => 'orders', 'label' => 'Orders', 'route' => 'admin.orders.index', 'icon' => 'orders', 'permission' => null, 'keywords' => ['sales', 'invoices']],
-            // ['key' => 'fulfillment', 'label' => 'Fulfillment', 'route' => 'admin.fulfillment.index', 'icon' => 'fulfillment', 'permission' => null, 'keywords' => ['quadx', 'lbc', 'spx', 'booking', 'waybill']], // enable when route exists
+            ['key' => 'fulfillment', 'label' => 'Fulfillment', 'route' => 'admin.fulfillment.index', 'icon' => 'fulfillment', 'permission' => null, 'keywords' => ['booking', 'waybill', 'awb', 'tracking', 'quadx', 'courier']],
             ['key' => 'abandoned-carts', 'label' => 'Abandoned Carts', 'route' => 'admin.abandoned-carts.index', 'icon' => 'cart', 'permission' => null, 'keywords' => ['recovery']],
             ['key' => 'reviews', 'label' => 'Reviews', 'route' => 'admin.reviews.index', 'icon' => 'reviews', 'permission' => null, 'keywords' => ['ratings', 'stars']],
         ],

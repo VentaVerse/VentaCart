@@ -246,6 +246,45 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertFalse(Route::has('admin.fulfillment.index'));
     }
 
+    /**
+     * Task 2 (fulfillment-polish) carried finding from Task 1's review:
+     * ModuleController's "Configure" link used to always derive
+     * "admin.{name}.index", which never matches courier-fulfillment's
+     * frozen queue route name (admin.fulfillment.index lives at Sales, not
+     * Settings > Modules) — the card would silently show no Configure link
+     * at all. extension.json now carries an explicit "configure_route"
+     * (admin.fulfillment.settings — Configure means the settings page, not
+     * the operational queue) that ModuleController::configureUrl() prefers
+     * over the bare-convention fallback. Installed via the real
+     * courier-fulfillment extension (not a fixture) so this proves the
+     * actual shipped manifest's configure_route resolves correctly.
+     */
+    public function test_modules_page_configure_link_uses_manifests_configure_route_for_courier_fulfillment(): void
+    {
+        $admin = User::factory()->create();
+        (new ExtensionManager())->install('courier-fulfillment');
+
+        $response = $this->actingAs($admin)->get(route('admin.modules.index'));
+
+        $response->assertOk();
+
+        // The Configure link (rendered per-card) must be the manifest's
+        // configure_route — NOT the "admin.{name}.index" fallback (the
+        // queue route), which was the old, wrong derivation this task's
+        // carried finding fixes. Scoped to the courier-fulfillment card's
+        // own HTML: the sidebar (rendered earlier in the document, in
+        // <aside>, well before <main>'s extension cards) legitimately links
+        // to the queue route too, on every admin page including this one —
+        // a page-wide assertDontSee() would false-positive on that.
+        $html = $response->getContent();
+        $titlePos = strpos($html, 'Courier Fulfillment');
+        $this->assertNotFalse($titlePos, 'Courier Fulfillment card title not found on the Modules page.');
+        $card = substr($html, $titlePos, 1500);
+
+        $this->assertStringContainsString(route('admin.fulfillment.settings'), $card);
+        $this->assertStringNotContainsString(route('admin.fulfillment.index'), $card);
+    }
+
     public function test_create_extensions_table_migration_seeds_banners_continuity_row_only_when_legacy_tables_exist(): void
     {
         // Simulates an EXISTING deploy where banners' own migrations already

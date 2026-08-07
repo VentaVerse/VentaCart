@@ -199,18 +199,30 @@ class ModuleController extends Controller
             'state_label' => $stateMeta['label'],
             'state_tone' => $stateMeta['tone'],
             'actions' => self::actionsForState($state),
-            // Reuses the same "admin.{name}.index" naming ModuleController
-            // already relied on for banners pre-kernel; generalized so any
-            // extension exposing an index route at that conventional name
-            // picks up a Configure link automatically. A formal per-extension
-            // mount convention (settings/modules/{name}/...) lands in the
-            // Part 1 route-grammar task — this is a zero-risk stopgap
-            // (Route::has() just returns false, hiding the link, for any
-            // extension that doesn't follow the convention yet).
-            'configure' => ($state === 'enabled' && Route::has("admin.{$name}.index"))
-                ? route("admin.{$name}.index")
-                : null,
+            'configure' => $state === 'enabled' ? $this->configureUrl($manifest, $name) : null,
         ];
+    }
+
+    /**
+     * The Modules page's "Configure" link target for an enabled extension.
+     *
+     * Prefers an explicit `configure_route` in extension.json — needed for
+     * any extension (courier-fulfillment included) whose main admin surface
+     * is an *operational* page at a frozen route name that doesn't match
+     * the "admin.{name}.index" convention (its queue lives under Sales, at
+     * admin.fulfillment.index — "Configure" on this card means the
+     * SETTINGS page, admin.fulfillment.settings, not that queue). Falls
+     * back to the original "admin.{name}.index" convention — the settings/
+     * modules/{name} mount convention banners established pre-kernel —
+     * for every extension that doesn't need the override. Route::has()
+     * guards both branches so a manifest typo or an extension whose
+     * provider hasn't booted yet just hides the link rather than 500ing.
+     */
+    private function configureUrl(array $manifest, string $name): ?string
+    {
+        $route = $manifest['configure_route'] ?? "admin.{$name}.index";
+
+        return Route::has($route) ? route($route) : null;
     }
 
     private static function actionsForState(string $state): array
