@@ -1,2 +1,10 @@
 .v-admin .v-control { transition: border-color var(--motion-fast), box-shadow var(--motion-fast); }
 .v-admin .v-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+
+/*
+ * Selects: @tailwindcss/forms gives bare <select> py-2 + line-height 1.5,
+ * which overflows our fixed 32px/28px control heights and clips the text
+ * bottom (owner-reported "halved dropdowns"). Zero the vertical padding so
+ * the fixed height centers the text; applies to component AND raw selects.
+ */
+.v-admin select { padding-top: 0; padding-bottom: 0; line-height: normal; }
