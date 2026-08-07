@@ -1169,4 +1169,99 @@ class ReskinWaveTest extends TestCase
             ->assertSee('max-w-none', false)
             ->assertDontSee('max-w-2xl', false);
     }
+
+    /**
+     * Fulfillment queue (extensions/courier-fulfillment) — seeds one order per
+     * filter phase (to_book: no tracking number; in_transit: tracking number,
+     * not delivered; delivered: courier_status = delivered) and pins that the
+     * filter param scopes the result set and survives into the rendered
+     * filter-pill/search markup, matching FulfillmentController::index().
+     *
+     * The extension is installed in-test (real extension.json, not a fixture)
+     * since its routes and courier_* order columns only exist once installed
+     * + enabled — same pattern as UrlGrammarTest's fulfillment coverage.
+     */
+    public function test_fulfillment_pages_render_in_new_shell(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(\App\Services\ExtensionManager::class)->install('courier-fulfillment');
+
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
+
+        $makeOrder = function (string $suffix) use ($status) {
+            return Order::create([
+                'store_id' => 1,
+                'order_status_id' => $status->id,
+                'first_name' => 'Jane',
+                'last_name' => 'Doe',
+                'shipping_first_name' => 'Jane',
+                'shipping_last_name' => 'Doe',
+                'email' => "jane.{$suffix}@example.com",
+                'subtotal' => 1000,
+                'shipping_cost' => 100,
+                'total' => 1100,
+            ]);
+        };
+
+        $toBook = $makeOrder('tobook');
+
+        $inTransit = $makeOrder('intransit');
+        $inTransit->forceFill([
+            'courier_tracking_number' => 'TRACK-IN-TRANSIT',
+            'courier_provider' => 'quadx',
+            'courier_status' => 'picked_up',
+        ])->save();
+
+        $delivered = $makeOrder('delivered');
+        $delivered->forceFill([
+            'courier_tracking_number' => 'TRACK-DELIVERED',
+            'courier_provider' => 'quadx',
+            'courier_status' => 'delivered',
+        ])->save();
+
+        // route()/route helpers can't resolve these names yet — the extension's
+        // routes are only registered once BootExtensions middleware re-checks
+        // on the next dispatched request (see install()'s $booted reset), so
+        // raw prefix-based paths are used instead, same as UrlGrammarTest.
+        $base = '/' . config('admin.prefix', 'admin') . '/sales/fulfillment';
+
+        // Default filter (to_book) renders the shell and shows only the unbooked order.
+        $this->get($base)
+            ->assertOk()
+            ->assertSee('v-admin', false)
+            ->assertSee('#' . $toBook->id)
+            ->assertDontSee('#' . $inTransit->id)
+            ->assertDontSee('#' . $delivered->id);
+
+        // in_transit filter: only the booked-not-delivered order, param preserved
+        // in the hidden search-form input the view renders.
+        $this->get($base . '?filter=in_transit')
+            ->assertOk()
+            ->assertSee('#' . $inTransit->id)
+            ->assertDontSee('#' . $toBook->id)
+            ->assertDontSee('#' . $delivered->id)
+            ->assertSee('name="filter" value="in_transit"', false);
+
+        // delivered filter: only the delivered order.
+        $this->get($base . '?filter=delivered')
+            ->assertOk()
+            ->assertSee('#' . $delivered->id)
+            ->assertDontSee('#' . $toBook->id)
+            ->assertDontSee('#' . $inTransit->id)
+            ->assertSee('name="filter" value="delivered"', false);
+
+        // all filter: every order, q param preserved alongside filter.
+        $this->get($base . '?filter=all&q=jane')
+            ->assertOk()
+            ->assertSee('#' . $toBook->id)
+            ->assertSee('#' . $inTransit->id)
+            ->assertSee('#' . $delivered->id)
+            ->assertSee('name="filter" value="all"', false);
+
+        // Courier settings route (mounted separately under Settings > Modules)
+        // also renders in the new shell.
+        $this->get('/' . config('admin.prefix', 'admin') . '/settings/modules/courier-fulfillment')
+            ->assertOk()
+            ->assertSee('v-admin', false);
+    }
 }
