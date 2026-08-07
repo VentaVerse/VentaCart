@@ -40,19 +40,6 @@ class FulfillmentTest extends TestCase
     {
         parent::setUp();
         $this->prefix = config('admin.prefix', 'admin');
-
-        // LARAVEL_START is normally defined by public/index.php before Laravel
-        // boots. The test process never runs that front controller, so the
-        // constant is otherwise undefined here — App\Http\Controllers\Api\
-        // LogsApiCalls::logAndRespond() (used by every ERP controller,
-        // including this extension's ErpFulfillmentController) references it
-        // unqualified and fatals with "Undefined constant ...LARAVEL_START"
-        // the first time any ERP endpoint is feature-tested. See task-6-report
-        // for the full writeup — this define() is a test-harness accommodation
-        // only, it does not change LogsApiCalls' behavior.
-        if (!defined('LARAVEL_START')) {
-            define('LARAVEL_START', microtime(true));
-        }
     }
 
     /**
@@ -444,6 +431,85 @@ class FulfillmentTest extends TestCase
             ->assertOk()
             ->assertSee('https://fake-courier.test/track/' . $order->id, false)
             ->assertSee('FAKE-123');
+    }
+
+    // ------------------------------------------------------------------
+    // Final-review fix (a): per-row cancelable/phase must derive from EACH
+    // row's own resolved courier, never a page-level $primary — a mixed
+    // queue with two registered couriers is the only way to catch a
+    // regression back to the $primary-for-everyone bug.
+    // ------------------------------------------------------------------
+
+    public function test_queue_derives_cancelable_and_phase_from_each_rows_own_courier_not_a_shared_primary(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        CourierManager::register(FakeCourierFulfillment::class);
+
+        // Deliberately different rules at the SAME courier_status so a bug
+        // that falls back to $primary (whichever courier happens to be
+        // first) is unmistakable: QuadXFulfillment::cancelableStatuses()
+        // includes 'for_pickup' and statusPhase('for_pickup') is step 1;
+        // FakeCourierFulfillment::cancelableStatuses() is only ['pending']
+        // and statusPhase() always returns step 0.
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
+
+        $quadxOrder = $this->makeBookableOrder(['order_status_id' => $status->id]);
+        $quadxOrder->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-MIX-001',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        $fakeOrder = $this->makeBookableOrder(['order_status_id' => $status->id]);
+        $fakeOrder->forceFill([
+            'courier_provider' => 'fake',
+            'courier_tracking_number' => 'FAKE-MIX-001',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        // QuadXFulfillment gets registered by the extension's service
+        // provider on this request (see bookUrl()'s docblock on the
+        // BootExtensions timing) — no enableQuadxStaging() needed since
+        // both orders are already booked (isActivelyBooked() doesn't care
+        // whether the courier is currently "enabled").
+        $response = $this->get($this->queueUrl() . '?filter=all');
+        $response->assertOk();
+        $content = $response->getContent();
+
+        // Cancel affordance: QuadX row is cancelable ('for_pickup' is in its
+        // list), Fake row is not (only 'pending' is in Fake's list).
+        $this->assertStringContainsString('cancel-fulfillment-' . $quadxOrder->id, $content);
+        $this->assertStringNotContainsString('cancel-fulfillment-' . $fakeOrder->id, $content);
+
+        // phaseStep in each row's own JSON payload (fed to openDrawer()).
+        $quadxFlags = $this->extractRowFlags($content, $quadxOrder->id);
+        $fakeFlags = $this->extractRowFlags($content, $fakeOrder->id);
+
+        $this->assertSame(['cancelable' => true, 'phaseStep' => 1], $quadxFlags);
+        $this->assertSame(['cancelable' => false, 'phaseStep' => 0], $fakeFlags);
+    }
+
+    /**
+     * Pulls the {@see openDrawer()} JSON payload for one row out of the
+     * rendered queue page and returns just the two fields this fix touches.
+     * Js::from() renders an object as `JSON.parse('...')` with a "-escaped
+     * inner string (never a literal quote or apostrophe inside the JS string
+     * literal), so the captured inner text is itself valid JSON once wrapped
+     * in real double quotes — one json_decode() to unescape it back to a
+     * JSON string, a second to decode that string into the array.
+     */
+    private function extractRowFlags(string $html, int $orderId): array
+    {
+        preg_match_all("/openDrawer\\(JSON\\.parse\\('(.*?)'\\)\\)/", $html, $matches);
+        foreach ($matches[1] as $escaped) {
+            $jsonString = json_decode('"' . $escaped . '"');
+            $decoded = json_decode($jsonString, true);
+            if (is_array($decoded) && ($decoded['id'] ?? null) === $orderId) {
+                return ['cancelable' => $decoded['cancelable'], 'phaseStep' => $decoded['phaseStep']];
+            }
+        }
+        $this->fail("No row JSON payload found for order #{$orderId}");
     }
 
     // ------------------------------------------------------------------

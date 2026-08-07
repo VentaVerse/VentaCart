@@ -86,6 +86,14 @@ Blade views, not the poll command — references a courier by name.
 - Data migration for a renamed `getKey()`. The key is the prefix for every
   stored setting (`{key}_*`) and the webhook URL segment — treat it as
   permanent once shipped.
+- Provider-scoped webhook matching on tracking-number fallback.
+  `CourierWebhookController::applyEvent` falls back to matching an order by
+  `courier_tracking_number` alone (no `courier_provider` filter) when a
+  webhook event lacks a usable `reference_id`. With a single courier this is
+  moot; once a second courier is registered, a tracking-number collision
+  across providers could apply one courier's webhook to another courier's
+  order. Scope that fallback query to `->where('courier_provider', $provider)`
+  before (or as part of) wiring up your courier.
 
 ## UAT / staging guidance
 

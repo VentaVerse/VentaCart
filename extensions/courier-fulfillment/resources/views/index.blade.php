@@ -17,10 +17,6 @@
     @else
 
     @php
-        // Statuses the primary courier still allows canceling from — computed once,
-        // not per row. A null/unknown current status is always cancelable (fresh booking).
-        $cancelableStatuses = $primary?->cancelableStatuses() ?? [];
-
         // Cached status labels (populated per-courier by the "Refresh from {courier}"
         // button on the settings page) — same source the settings screen uses, never a
         // live call. Memoized per provider since a page of orders can span couriers.
@@ -80,14 +76,20 @@
             @forelse ($orders as $order)
                 @php
                     $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
-                    $phase = $order->courier_tracking_number
-                        ? ($primary?->statusPhase($order->courier_status) ?? ['step' => 0, 'failed' => false])
-                        : ['step' => 0, 'failed' => false];
 
                     // Tracking link extraction lives behind the interface — each courier
                     // owns its own courier_meta shape (CourierFulfillmentInterface::trackingLinks()).
                     // We just loop the result and take the first usable one.
                     $orderCourier = $order->courier_provider ? \Extensions\CourierFulfillment\CourierManager::get($order->courier_provider) : null;
+
+                    // Phase and cancelability are derived from THIS row's own resolved
+                    // courier, never $primary — a mixed-courier queue must not apply one
+                    // courier's cancel rules/stepper to another courier's order. An
+                    // unregistered provider degrades to the neutral phase and non-cancelable.
+                    $phase = $order->courier_tracking_number
+                        ? ($orderCourier?->statusPhase($order->courier_status) ?? ['step' => 0, 'failed' => false])
+                        : ['step' => 0, 'failed' => false];
+
                     $trackingUrl = null;
                     if ($orderCourier) {
                         foreach ($orderCourier->trackingLinks($order) as $link) {
@@ -105,8 +107,10 @@
                     $rebookable = (bool) $order->courier_tracking_number && !$activelyBooked;
                     // A null/unknown courier_status is always cancelable (fresh booking) —
                     // otherwise it must be one of the courier's own cancelable statuses.
-                    $cancelable = $activelyBooked
-                        && (!$order->courier_status || in_array($order->courier_status, $cancelableStatuses, true));
+                    // The $orderCourier guard also covers a booked row whose provider is no
+                    // longer registered: it stays non-cancelable instead of erroring.
+                    $cancelable = $activelyBooked && $orderCourier
+                        && (!$order->courier_status || in_array($order->courier_status, $orderCourier->cancelableStatuses(), true));
 
                     $timelineRaw = $meta['timeline'] ?? [];
                     $timeline = [];

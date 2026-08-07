@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Courier Settings" :wide="true">
+<x-admin.settings-shell title="Courier Settings" :wide="true" active="fulfillment">
 
     <div class="space-y-6">
 

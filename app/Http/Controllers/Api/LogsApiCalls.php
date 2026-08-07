@@ -26,7 +26,7 @@ trait LogsApiCalls
             'endpoint' => $request->path(),
             'sku' => $sku,
             'status_code' => $status,
-            'response_time_ms' => (int) ((microtime(true) - LARAVEL_START) * 1000),
+            'response_time_ms' => (int) ((microtime(true) - (defined('LARAVEL_START') ? LARAVEL_START : ($_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true)))) * 1000),
             'request_body' => $request->method() !== 'GET' ? json_encode($request->all(), JSON_UNESCAPED_UNICODE) : null,
             'response_body' => substr(json_encode($data, JSON_UNESCAPED_UNICODE), 0, 5000),
             'ip_address' => $request->ip(),

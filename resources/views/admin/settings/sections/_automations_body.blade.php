@@ -38,8 +38,14 @@
                 </p>
                 <div class="flex items-center gap-2 flex-wrap">
                     <code class="flex-1 min-w-0 block bg-v-surface border border-v-border rounded-v-md px-3 py-2 text-xs font-vmono text-v-text overflow-x-auto whitespace-nowrap">{{ $crontabLine }}</code>
+                    {{-- Component-tag attributes only compile {{ }} echoes, not
+                         @-directives (Blade's ComponentTagCompiler never runs the
+                         directive compiler over non-bound attribute values) — @js()
+                         here would render as literal, uncompiled text. Js::from()
+                         is exactly what @js() expands to; the {{ }} form is the
+                         one that actually compiles on a component tag. --}}
                     <x-admin.button type="button" variant="secondary" size="sm"
-                        @click="navigator.clipboard.writeText(@js($crontabLine)).then(() => { copied = true; setTimeout(() => copied = false, 2000); })">
+                        @click="navigator.clipboard.writeText({{ \Illuminate\Support\Js::from($crontabLine) }}).then(() => { copied = true; setTimeout(() => copied = false, 2000); })">
                         <span x-show="!copied">Copy</span>
                         <span x-show="copied" x-cloak class="text-v-accent">Copied</span>
                     </x-admin.button>
@@ -117,8 +123,11 @@
                                 Edit
                             </x-admin.button>
                             <span :title="enabled ? '' : 'Enable this automation to run it manually'">
+                                {{-- @js() inside a component-tag attribute never
+                                     compiles — see the Copy button above for the
+                                     full explanation. --}}
                                 <x-admin.button type="button" variant="primary" size="sm"
-                                    @click="runNow({{ $automation->id }}, @js($automation->command), $event)"
+                                    @click="runNow({{ $automation->id }}, {{ \Illuminate\Support\Js::from($automation->command) }}, $event)"
                                     x-bind:disabled="!enabled || running">
                                     <span x-show="!running">Run Now</span>
                                     <span x-show="running" x-cloak>Running...</span>
