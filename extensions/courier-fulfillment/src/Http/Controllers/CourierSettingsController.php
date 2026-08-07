@@ -27,8 +27,9 @@ class CourierSettingsController extends Controller
      * Settings that belong to the module as a whole, not to any one
      * courier's schema — never renamed without a data migration, since
      * they're read by literal key name elsewhere too: 'fulfillment_enabled'
-     * by Http\Middleware\EnsureFulfillmentEnabled, 'cod_payment_methods' by
-     * FulfillmentService::isCodOrder(). (quadx_webhook_token is neither —
+     * by FulfillmentController::index() (opt-out pause toggle — missing/NULL
+     * means active, only an explicit '0' pauses the queue), 'cod_payment_methods'
+     * by FulfillmentService::isCodOrder(). (quadx_webhook_token is neither —
      * it's server-generated below and deliberately never part of any
      * allowlist at all.)
      */

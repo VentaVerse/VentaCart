@@ -113,9 +113,8 @@ class UrlGrammarTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
-        // Task 4: the queue is gated by the "Enable Fulfillment page" toggle
-        // (EnsureFulfillmentEnabled), off by default like the checkbox itself.
-        \App\Models\Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '1']);
+        // Task 4: 'fulfillment_enabled' is opt-out (missing/NULL means active),
+        // so no setting write is needed here — see FulfillmentController::index().
 
         $this->get('/'.$this->prefix().'/sales/fulfillment')->assertOk();
     }
@@ -451,7 +450,6 @@ class UrlGrammarTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
-        \App\Models\Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '1']);
 
         $response = $this->get('/'.$this->prefix().'/sales/fulfillment');
 

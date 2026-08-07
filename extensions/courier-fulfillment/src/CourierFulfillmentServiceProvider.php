@@ -34,9 +34,11 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         // no longer exists (admin-v2's sidebar renders from config/admin-nav.php
         // + App\Support\AdminNav, gated by Route::has() — see that config file's
         // 'fulfillment' entry) so the composer was dead code; removed rather than
-        // ported. The 'fulfillment_enabled' setting it read now does real work
-        // via Extensions\CourierFulfillment\Http\Middleware\EnsureFulfillmentEnabled
-        // on the queue routes (routes/web.php) instead.
+        // ported. The 'fulfillment_enabled' setting it read now does real work as
+        // an opt-out "pause the queue" toggle, read directly by
+        // FulfillmentController::index() (renders an explanatory empty state
+        // rather than hiding/redirecting anything) — see that controller and
+        // CourierSettingsController's task reports for the full history.
     }
 
     /** Make db:seed pick up this extension's seeder (same hook core uses). */

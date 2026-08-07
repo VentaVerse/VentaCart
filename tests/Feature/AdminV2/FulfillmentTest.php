@@ -56,10 +56,9 @@ class FulfillmentTest extends TestCase
         return '/' . $this->prefix . '/sales/fulfillment';
     }
 
-    private function installAndEnable(): void
+    private function installExtension(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
-        Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '1']);
     }
 
     // ------------------------------------------------------------------
@@ -69,7 +68,7 @@ class FulfillmentTest extends TestCase
     public function test_settings_save_round_trips_through_the_derived_allowlist(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->installAndEnable();
+        $this->installExtension();
 
         $this->post($this->settingsUrl(), [
             'settings' => [
@@ -90,7 +89,7 @@ class FulfillmentTest extends TestCase
     public function test_unknown_keys_are_discarded(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->installAndEnable();
+        $this->installExtension();
 
         $this->post($this->settingsUrl(), [
             'settings' => [
@@ -112,7 +111,7 @@ class FulfillmentTest extends TestCase
     public function test_encrypted_field_is_encrypted_at_rest_and_masked_on_the_page(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->installAndEnable();
+        $this->installExtension();
 
         $this->post($this->settingsUrl(), [
             'settings' => ['quadx_staging_api_key' => 'super-secret-key-1234'],
@@ -131,7 +130,7 @@ class FulfillmentTest extends TestCase
     public function test_blank_submission_keeps_the_stored_encrypted_value(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->installAndEnable();
+        $this->installExtension();
 
         $this->post($this->settingsUrl(), [
             'settings' => ['quadx_staging_api_key' => 'original-secret'],
@@ -156,7 +155,7 @@ class FulfillmentTest extends TestCase
     public function test_a_second_registered_courier_renders_its_own_card_and_saves_independently(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->installAndEnable();
+        $this->installExtension();
         CourierManager::register(FakeCourierFulfillment::class);
 
         $response = $this->get($this->settingsUrl());
@@ -194,38 +193,56 @@ class FulfillmentTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // fulfillment_enabled — now a real gate (Task 4 "while here" cleanup).
+    // fulfillment_enabled — opt-out "pause" toggle (fixed per review):
+    // missing/NULL means active (installing+enabling the extension IS the
+    // admin's intent signal), only an explicit '0' pauses the queue, and
+    // pausing renders an explanatory empty state — never a redirect trap.
     // ------------------------------------------------------------------
 
-    public function test_queue_page_redirects_to_settings_when_fulfillment_disabled(): void
+    public function test_queue_page_is_reachable_by_default_when_fulfillment_enabled_is_unset(): void
     {
         $this->actingAs(User::factory()->create());
-        app(ExtensionManager::class)->install('courier-fulfillment');
-        // Deliberately NOT enabling fulfillment_enabled — off by default.
+        $this->installExtension();
+        // No 'fulfillment_enabled' row written at all — NULL-means-on.
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'fulfillment_enabled']);
+
+        $this->get($this->queueUrl())
+            ->assertOk()
+            ->assertDontSee('Fulfillment is paused')
+            ->assertSee('To Book'); // the real queue's filter tabs render
+    }
+
+    public function test_queue_page_is_reachable_when_fulfillment_enabled_is_explicitly_one(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '1']);
+
+        $this->get($this->queueUrl())->assertOk()->assertDontSee('Fulfillment is paused');
+    }
+
+    public function test_queue_page_shows_an_explanatory_paused_state_when_explicitly_disabled(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '0']);
 
         $response = $this->get($this->queueUrl());
 
-        $response->assertRedirect($this->settingsUrl());
-        $this->assertSame(
-            'The Fulfillment page is turned off — enable it below to book and manage orders.',
-            session('error')
-        );
+        // 200, never a redirect — a paused page explains itself instead of
+        // bouncing the admin away.
+        $response->assertOk()
+            ->assertSee('Fulfillment is paused')
+            ->assertSee('Go to Courier Settings')
+            ->assertDontSee('To Book'); // the real queue's filter tabs are absent
     }
 
-    public function test_queue_page_is_reachable_once_fulfillment_enabled(): void
+    public function test_settings_page_is_reachable_even_while_fulfillment_is_paused(): void
     {
         $this->actingAs(User::factory()->create());
-        $this->installAndEnable();
-
-        $this->get($this->queueUrl())->assertOk();
-    }
-
-    public function test_settings_page_itself_is_never_gated_by_fulfillment_enabled(): void
-    {
-        $this->actingAs(User::factory()->create());
-        app(ExtensionManager::class)->install('courier-fulfillment');
-        // fulfillment_enabled left off — the settings page must still be
-        // reachable, or an admin could never turn it back on.
+        $this->installExtension();
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '0']);
+        // Paused must never lock an admin out of turning it back on.
 
         $this->get($this->settingsUrl())->assertOk();
     }

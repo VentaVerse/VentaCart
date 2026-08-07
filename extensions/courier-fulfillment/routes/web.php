@@ -3,7 +3,6 @@
 use Extensions\CourierFulfillment\Http\Controllers\CourierSettingsController;
 use Extensions\CourierFulfillment\Http\Controllers\CourierWebhookController;
 use Extensions\CourierFulfillment\Http\Controllers\FulfillmentController;
-use Extensions\CourierFulfillment\Http\Middleware\EnsureFulfillmentEnabled;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
@@ -11,10 +10,11 @@ $adminPrefix = config('admin.prefix', 'admin');
 
 // Admin: the operational Fulfillment queue — lives under Sales in the URL
 // grammar. Route names are frozen at 'admin.fulfillment.*' (Task 1 already
-// shipped code depending on them); only the URI root moved. Gated by
-// EnsureFulfillmentEnabled — the settings group below is deliberately NOT
-// gated by it (see that middleware's docblock).
-Route::middleware(['web', 'auth', 'admin.session.cap', EnsureFulfillmentEnabled::class])
+// shipped code depending on them); only the URI root moved. The
+// 'fulfillment_enabled' pause toggle is handled inside
+// FulfillmentController@index itself (renders an explanatory empty state),
+// not as route middleware — a redirect-away trap was rejected in review.
+Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/sales/fulfillment')
     ->name('admin.fulfillment.')
     ->group(function () {

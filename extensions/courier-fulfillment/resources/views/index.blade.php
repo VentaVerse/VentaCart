@@ -4,6 +4,18 @@
             <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings') }}">Courier settings</x-admin.button>
         </x-slot:actions>
 
+    @if ($paused)
+        {{-- Explicitly paused (courier.fulfillment_enabled = '0') — an explanatory
+             page, never a redirect. Bookings triggered by the ERP endpoint are a
+             separate code path and keep working regardless of this toggle. --}}
+        <x-admin.empty-state icon="fulfillment" title="Fulfillment is paused"
+            description="The manual booking queue is turned off. Orders booked automatically through the ERP integration (if configured) are unaffected — this only hides this page.">
+            @if ($canConfigureCouriers)
+                <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings') }}">Go to Courier Settings</x-admin.button>
+            @endif
+        </x-admin.empty-state>
+    @else
+
     @php
         // Recursively hunt for the first http(s) URL inside courier_meta.booked_response.tracking_links —
         // couriers return this in wildly different shapes (string, nested array, or null).
@@ -428,5 +440,6 @@
         }
     </script>
     @endpush
+    @endif
     </x-admin.page>
 </x-admin.shell>

@@ -4,9 +4,12 @@ namespace Extensions\CourierFulfillment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Setting;
+use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * The dedicated Fulfillment page. Self-contained in the extension — the generic
@@ -17,6 +20,20 @@ class FulfillmentController extends Controller
 {
     public function index(Request $request)
     {
+        // "Pause" the queue without touching the extension's install/enable
+        // state or any individual courier's own enabled flag — see
+        // CourierSettingsController's report for the full history of this
+        // setting. Opt-out semantics: installing + enabling the extension IS
+        // the admin's intent signal, so missing/NULL means enabled and only
+        // an explicit '0' pauses it (never a redirect-with-flash trap — the
+        // page explains its own state instead).
+        if (Setting::where('group', 'courier')->where('key', 'fulfillment_enabled')->value('value') === '0') {
+            return view('courier-fulfillment::index', [
+                'paused' => true,
+                'canConfigureCouriers' => $this->canConfigureCouriers(),
+            ]);
+        }
+
         $couriers = CourierManager::enabled();
         $primary  = $couriers[0] ?? null;
 
@@ -62,7 +79,31 @@ class FulfillmentController extends Controller
             ];
         }
 
-        return view('courier-fulfillment::index', compact('orders', 'couriers', 'primary', 'courierOptions', 'filter'));
+        return view('courier-fulfillment::index', [
+            'orders' => $orders,
+            'couriers' => $couriers,
+            'primary' => $primary,
+            'courierOptions' => $courierOptions,
+            'filter' => $filter,
+            'paused' => false,
+            'canConfigureCouriers' => $this->canConfigureCouriers(),
+        ]);
+    }
+
+    /**
+     * Whether the current admin can see the "Go to Courier Settings" link on
+     * the paused empty-state — same permission the Settings hub itself
+     * checks for this page (App\Support\SettingsNav::groups()), so we never
+     * point a lower-privileged admin at a link they can't use.
+     */
+    private function canConfigureCouriers(): bool
+    {
+        $item = SettingsNav::find('fulfillment');
+        if (!$item) {
+            return false;
+        }
+
+        return $item['permission'] === null || (Auth::user()?->hasPermission($item['permission']) ?? false);
     }
 
     public function book(Request $request, Order $order)
