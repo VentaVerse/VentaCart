@@ -1,5 +1,5 @@
 <x-admin.shell title="UI Kit">
-    <x-admin.page title="UI Kit" :breadcrumb="[['label' => 'System']]">
+    <x-admin.page title="UI Kit">
         <div class="space-y-8">
             <x-admin.card title="Buttons" description="All variants and sizes. Toggle themes with the topbar switch.">
                 <div class="flex flex-wrap items-center gap-3">

@@ -2,7 +2,7 @@
     $vLabel = 'block text-[13px] font-medium text-v-text mb-1';
 @endphp
 <x-admin.shell :title="$category ? 'Edit Category' : 'Create Category'">
-    <x-admin.page :title="$category ? 'Edit Category' : 'Create Category'" :breadcrumb="[['label' => 'Catalog'], ['label' => 'Categories', 'url' => route('admin.categories.index')]]">
+    <x-admin.page :title="$category ? 'Edit Category' : 'Create Category'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.categories.index') }}">Back to Categories</x-admin.button>
         </x-slot:actions>

@@ -3,6 +3,8 @@
 namespace Tests\Feature\AdminV2;
 
 use App\Models\User;
+use App\Services\ExtensionManager;
+use App\Support\Breadcrumbs;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
@@ -358,6 +360,89 @@ class UrlGrammarTest extends TestCase
         }
 
         $this->assertSame([], $missing, 'These referenced admin views do not resolve: '.implode(', ', $missing));
+    }
+
+    // ------------------------------------------------------------------
+    // Task 7: path-derived breadcrumbs (App\Support\Breadcrumbs). Three
+    // representative deep pages — an extension-kernel page (proving the
+    // ExtensionManager manifest-title fallback), a plain admin-nav create
+    // form, and a settings/modules/{name} sub-page — each rendered end to
+    // end through x-admin.page's auto-derivation (no :breadcrumb passed).
+    // ------------------------------------------------------------------
+
+    public function test_breadcrumb_trail_on_extension_page_shows_settings_modules_and_manifest_title(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('banners');
+
+        $response = $this->get('/'.$this->prefix().'/settings/modules/banners');
+
+        $response->assertOk();
+        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Banners']);
+    }
+
+    public function test_breadcrumb_trail_on_admin_nav_create_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get('/'.$this->prefix().'/content/pages/create');
+
+        $response->assertOk();
+        $this->assertBreadcrumbTrail($response->getContent(), ['Content', 'Pages', 'New Page']);
+    }
+
+    public function test_breadcrumb_trail_on_settings_modules_subpage(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $response = $this->get('/'.$this->prefix().'/settings/modules/abandoned-carts/rules');
+
+        $response->assertOk();
+        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Abandoned Carts', 'Rules']);
+    }
+
+    public function test_breadcrumbs_forpath_unit_cases(): void
+    {
+        $this->assertSame([], Breadcrumbs::forPath('/'.$this->prefix().'/dashboard', 'Dashboard'));
+
+        $this->assertSame(
+            [['label' => 'Sales'], ['label' => 'Orders', 'url' => route('admin.orders.index')]],
+            Breadcrumbs::forPath('/'.$this->prefix().'/sales/orders', 'Orders')
+        );
+
+        $this->assertSame(
+            [
+                ['label' => 'Sales'],
+                ['label' => 'Orders', 'url' => route('admin.orders.index')],
+                ['label' => 'Edit Order #7'],
+            ],
+            Breadcrumbs::forPath('/'.$this->prefix().'/sales/orders/7/edit', 'Edit Order #7')
+        );
+
+        $this->assertSame(
+            [
+                ['label' => 'Settings', 'url' => route('admin.settings.index')],
+                ['label' => 'Modules', 'url' => route('admin.modules.index')],
+                ['label' => 'Banners', 'url' => url($this->prefix().'/settings/modules/banners')],
+            ],
+            Breadcrumbs::forPath('/'.$this->prefix().'/settings/modules/banners')
+        );
+    }
+
+    /** Asserts each label appears, in order, inside the rendered breadcrumb <nav>. */
+    private function assertBreadcrumbTrail(string $html, array $expectedLabels): void
+    {
+        $found = preg_match('/<nav[^>]*class="[^"]*mb-0\.5 flex items-center[^"]*"[^>]*>(.*?)<\/nav>/s', $html, $matches);
+        $this->assertSame(1, $found, 'Breadcrumb <nav> not found in response HTML.');
+
+        $trailText = trim(preg_replace('/\s+/', ' ', strip_tags($matches[1])));
+
+        $lastPos = -1;
+        foreach ($expectedLabels as $label) {
+            $pos = strpos($trailText, $label, $lastPos + 1);
+            $this->assertNotFalse($pos, "Expected breadcrumb label '{$label}' not found in order within trail: {$trailText}");
+            $lastPos = $pos;
+        }
     }
 
     private function prefix(): string

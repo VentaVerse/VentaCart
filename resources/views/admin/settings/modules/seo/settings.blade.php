@@ -1,6 +1,5 @@
 <x-admin.shell title="SEO Settings">
-    <x-admin.page title="Settings"
-        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Settings']]">
+    <x-admin.page title="Settings">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.marketing.seo.partials.nav-v2')
 

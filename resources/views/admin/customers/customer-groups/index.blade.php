@@ -1,5 +1,5 @@
 <x-admin.shell title="Customer Groups">
-    <x-admin.page title="Customer Groups" :breadcrumb="[['label' => 'Customers']]">
+    <x-admin.page title="Customer Groups">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.customer-groups.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Group

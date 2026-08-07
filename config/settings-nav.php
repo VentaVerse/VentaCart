@@ -32,6 +32,7 @@ return [
             ['key' => 'couriers', 'label' => 'Couriers & Tracking', 'description' => 'Courier list and tracking-URL templates.', 'icon' => 'fulfillment', 'route' => 'admin.shipping-couriers.index', 'section' => null, 'permission' => null, 'keywords' => ['tracking url', 'lbc', 'jnt', 'waybill']],
             ['key' => 'email-templates', 'label' => 'Email Templates', 'description' => 'Transactional email content and test sends.', 'icon' => 'pages', 'route' => 'admin.email-templates.index', 'section' => null, 'permission' => null, 'keywords' => ['order confirmation', 'notification', 'template']],
             ['key' => 'stock-alerts', 'label' => 'Stock Alerts', 'description' => 'Back-in-stock subscriber notifications.', 'icon' => 'warning', 'route' => 'admin.stock-notifications.index', 'section' => null, 'permission' => null, 'keywords' => ['back in stock', 'notify', 'subscribers']],
+            // key equals the URL's modules/{key} segment ({p}/settings/modules/abandoned-carts/settings).
             ['key' => 'abandoned-carts', 'label' => 'Abandoned Carts', 'description' => 'Recovery email rules and cart settings.', 'icon' => 'cart', 'route' => 'admin.abandoned-carts.settings', 'section' => null, 'permission' => null, 'keywords' => ['recovery', 'reminder', 'cart email']],
             ['key' => 'automations', 'label' => 'Automations', 'description' => 'Scheduled jobs: schedules, status, run now.', 'icon' => 'settings', 'route' => 'admin.settings.section', 'section' => 'automations', 'permission' => null, 'keywords' => ['cron', 'schedule', 'jobs', 'sitemap', 'currency update']],
         ],
@@ -44,7 +45,9 @@ return [
             ['key' => 'security', 'label' => 'Security', 'description' => 'Admin URL prefix and Turnstile protection.', 'icon' => 'check', 'route' => 'admin.settings.section', 'section' => 'security', 'permission' => null, 'keywords' => ['turnstile', 'captcha', 'admin prefix', 'login']],
             ['key' => 'api', 'label' => 'API & Sync', 'description' => 'ERP token and sync logging.', 'icon' => 'external', 'route' => 'admin.settings.section', 'section' => 'api', 'permission' => null, 'keywords' => ['erp', 'token', 'sync logs', 'integration']],
             ['key' => 'modules', 'label' => 'Modules', 'description' => 'Installed feature modules and extensions.', 'icon' => 'categories', 'route' => 'admin.modules.index', 'section' => null, 'permission' => null, 'keywords' => ['extensions', 'plugins', 'banners']],
-            ['key' => 'seo-engine', 'label' => 'SEO Engine', 'description' => 'Claude API, generation rules, and strategy.', 'icon' => 'seo', 'route' => 'admin.extensions.seo.settings', 'section' => null, 'permission' => null, 'keywords' => ['claude', 'meta generation', 'suggestions', 'gsc']],
+            // key equals the URL's modules/{key} segment ({p}/settings/modules/seo/settings),
+            // not the display label — see App\Support\Breadcrumbs.
+            ['key' => 'seo', 'label' => 'SEO Engine', 'description' => 'Claude API, generation rules, and strategy.', 'icon' => 'seo', 'route' => 'admin.extensions.seo.settings', 'section' => null, 'permission' => null, 'keywords' => ['claude', 'meta generation', 'suggestions', 'gsc']],
         ],
     ],
 ];

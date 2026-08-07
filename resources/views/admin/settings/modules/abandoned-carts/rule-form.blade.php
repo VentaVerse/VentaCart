@@ -1,6 +1,5 @@
 <x-admin.shell :title="$rule ? 'Edit Rule' : 'Create Rule'">
-    <x-admin.page :title="$rule ? 'Edit Rule' : 'Create Rule'"
-        :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')], ['label' => 'Rules', 'url' => route('admin.abandoned-carts.rules')]]">
+    <x-admin.page :title="$rule ? 'Edit Rule' : 'Create Rule'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.abandoned-carts.rules') }}">Cancel</x-admin.button>
         </x-slot:actions>

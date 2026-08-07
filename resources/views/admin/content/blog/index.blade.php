@@ -1,5 +1,5 @@
 <x-admin.shell title="Blog Posts">
-    <x-admin.page title="Blog Posts" :breadcrumb="[['label' => 'Content']]">
+    <x-admin.page title="Blog Posts">
         <x-slot:actions>
             <x-admin.button variant="secondary" href="{{ route('admin.blog-categories.index') }}">Categories</x-admin.button>
             <x-admin.button variant="primary" href="{{ route('admin.blog.create') }}">

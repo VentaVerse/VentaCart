@@ -1,5 +1,5 @@
 <x-admin.shell title="Banners">
-    <x-admin.page title="Banners" :breadcrumb="[['label' => 'Extensions']]">
+    <x-admin.page title="Banners">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.banners.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> New Group

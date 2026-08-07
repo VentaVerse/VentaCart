@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="localization" title="Localization" :wide="true">
+<x-admin.settings-shell title="Localization" :wide="true">
         <div x-data="localizationPage()">
             <x-admin.tabs default="{{ $tab }}" param="tab" :names="['countries', 'zones', 'geo-zones']">
                 <x-slot:nav>

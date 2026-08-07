@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="shipping" title="Shipping" :wide="true">
+<x-admin.settings-shell title="Shipping" :wide="true">
 
         {{--
             Chain strip — numbered in the REAL evaluation order from

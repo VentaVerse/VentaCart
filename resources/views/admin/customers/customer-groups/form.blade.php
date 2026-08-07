@@ -1,5 +1,5 @@
 <x-admin.shell :title="$group ? 'Edit Customer Group' : 'Create Customer Group'">
-    <x-admin.page :title="$group ? 'Edit Customer Group' : 'Create Customer Group'" :breadcrumb="[['label' => 'Customers'], ['label' => 'Customer Groups', 'url' => route('admin.customer-groups.index')]]">
+    <x-admin.page :title="$group ? 'Edit Customer Group' : 'Create Customer Group'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.customer-groups.index') }}">Back to Groups</x-admin.button>
         </x-slot:actions>

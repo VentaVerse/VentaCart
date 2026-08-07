@@ -1,6 +1,5 @@
 <x-admin.shell title="SEO Redirects">
-    <x-admin.page title="Redirects"
-        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Redirects']]">
+    <x-admin.page title="Redirects">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.marketing.seo.partials.nav-v2')
 

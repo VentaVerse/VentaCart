@@ -1,5 +1,5 @@
 <x-admin.shell :title="$category ? 'Edit Blog Category' : 'New Blog Category'">
-    <x-admin.page :title="$category ? 'Edit Blog Category' : 'New Blog Category'" :breadcrumb="[['label' => 'Content'], ['label' => 'Blog Categories', 'url' => route('admin.blog-categories.index')]]">
+    <x-admin.page :title="$category ? 'Edit Blog Category' : 'New Blog Category'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.blog-categories.index') }}">Back to Categories</x-admin.button>
         </x-slot:actions>

@@ -6,7 +6,7 @@
     $vCheck = 'w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface';
 @endphp
 <x-admin.shell title="{{ $order ? 'Order #' . $order->id : 'Create Order' }}">
-    <x-admin.page :title="$order ? 'Order #' . $order->id : 'Create Order'" :breadcrumb="[['label' => 'Orders', 'url' => route('admin.orders.index')]]">
+    <x-admin.page :title="$order ? 'Order #' . $order->id : 'Create Order'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.orders.index') }}">Back to Orders</x-admin.button>
         </x-slot:actions>

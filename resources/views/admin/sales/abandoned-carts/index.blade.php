@@ -1,5 +1,5 @@
 <x-admin.shell title="Abandoned Carts">
-    <x-admin.page title="Carts" :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')]]">
+    <x-admin.page title="Carts">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.sales.abandoned-carts.partials.nav')
 

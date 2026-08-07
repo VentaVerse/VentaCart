@@ -1,5 +1,5 @@
 <x-admin.shell :title="$tag ? 'Edit Tag' : 'New Tag'">
-    <x-admin.page :title="$tag ? 'Edit Tag' : 'New Tag'" :breadcrumb="[['label' => 'Catalog'], ['label' => 'Tags', 'url' => route('admin.tags.index')]]">
+    <x-admin.page :title="$tag ? 'Edit Tag' : 'New Tag'">
         <div class="max-w-md">
             <x-admin.card>
                 <form method="POST" action="{{ $tag ? route('admin.tags.update', $tag) : route('admin.tags.store') }}" data-v-form class="space-y-4">

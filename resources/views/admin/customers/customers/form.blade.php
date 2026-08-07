@@ -1,5 +1,5 @@
 <x-admin.shell :title="$customer ? 'Edit Customer' : 'Create Customer'">
-    <x-admin.page :title="$customer ? 'Edit Customer' : 'Create Customer'" :breadcrumb="[['label' => 'Customers'], ['label' => 'Customers', 'url' => route('admin.customers.index')]]">
+    <x-admin.page :title="$customer ? 'Edit Customer' : 'Create Customer'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.customers.index') }}">Back to Customers</x-admin.button>
         </x-slot:actions>

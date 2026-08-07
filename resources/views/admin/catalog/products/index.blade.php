@@ -1,5 +1,5 @@
 <x-admin.shell title="Products">
-    <x-admin.page title="Products" :breadcrumb="[['label' => 'Catalog']]">
+    <x-admin.page title="Products">
         <x-slot:actions>
             <x-admin.button type="button" variant="primary" @click="$dispatch('open-product-modal')">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Product

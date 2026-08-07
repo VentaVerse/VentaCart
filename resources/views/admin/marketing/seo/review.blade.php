@@ -17,8 +17,7 @@
     ];
 @endphp
 <x-admin.shell title="SEO Review">
-    <x-admin.page title="Review Queue"
-        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Review']]">
+    <x-admin.page title="Review Queue">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.marketing.seo.partials.nav-v2')
 

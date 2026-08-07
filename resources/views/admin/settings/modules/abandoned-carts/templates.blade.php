@@ -1,5 +1,5 @@
 <x-admin.shell title="Abandoned Cart Templates">
-    <x-admin.page title="Templates" :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')]]">
+    <x-admin.page title="Templates">
         <x-slot:actions>
             <x-admin.button href="{{ route('admin.abandoned-carts.templates.create') }}">Create Template</x-admin.button>
         </x-slot:actions>

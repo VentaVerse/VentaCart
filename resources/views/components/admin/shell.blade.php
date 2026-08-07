@@ -29,8 +29,9 @@
                  x-data="{ open: JSON.parse(localStorage.getItem('vNavOpen') || '{}'),
                            toggle(g) { this.open[g] = !this.isOpen(g); localStorage.setItem('vNavOpen', JSON.stringify(this.open)); },
                            isOpen(g) { return this.open[g] !== false; } }">
+                @php $activeNav = \App\Support\AdminNav::activeItemKey(request()->path()); @endphp
                 @foreach (\App\Support\AdminNav::groups(Auth::user()) as $group)
-                    @php $active = collect($group['items'])->contains(fn ($i) => request()->routeIs($i['pattern'])); @endphp
+                    @php $active = $activeNav && $activeNav['group'] === $group['label']; @endphp
                     @if ($group['label'])
                         <button type="button" @click="toggle('{{ $group['label'] }}')"
                                 class="mt-3 flex w-full items-center justify-between px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-v-muted hover:text-v-secondary">
@@ -40,7 +41,7 @@
                     @endif
                     <div @if ($group['label']) x-show="isOpen('{{ $group['label'] }}') || {{ $active ? 'true' : 'false' }}" @endif class="space-y-0.5">
                         @foreach ($group['items'] as $item)
-                            @php $on = request()->routeIs($item['pattern']); @endphp
+                            @php $on = $active && $activeNav['item'] === $item['key']; @endphp
                             <a href="{{ route($item['route']) }}"
                                class="flex items-center gap-2.5 rounded-v-md px-2 py-1.5 text-[13px] transition-colors
                                    {{ $on ? 'bg-v-accent-weak text-v-accent font-semibold' : 'text-v-secondary hover:bg-v-hover hover:text-v-text' }}">

@@ -1,3 +1,9 @@
+{{--
+    active="api" is an explicit override, not auto-derived: this page's own
+    URL segment is 'api-logs' (settings/api-logs), a sibling of — not nested
+    under — the 'API & Sync' settings-nav card (settings/api). URL-prefix
+    matching can't infer that relationship, so it's pinned here.
+--}}
 <x-admin.settings-shell active="api" title="API Sync Logs" :wide="true">
         <x-admin.card class="mb-6">
             <form method="GET" class="flex flex-wrap items-end gap-3">

@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="stock-alerts" title="Stock Alerts" :wide="true">
+<x-admin.settings-shell title="Stock Alerts" :wide="true">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
             <x-admin.stat label="Waiting" :value="$totalWaiting" tone="warning" />
             <x-admin.stat label="Notified" :value="$totalNotified" tone="accent" />

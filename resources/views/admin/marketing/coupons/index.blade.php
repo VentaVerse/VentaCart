@@ -1,5 +1,5 @@
 <x-admin.shell title="Coupons">
-    <x-admin.page title="Coupons" :breadcrumb="[['label' => 'Marketing']]">
+    <x-admin.page title="Coupons">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.coupons.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Coupon

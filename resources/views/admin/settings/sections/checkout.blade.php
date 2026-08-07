@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="checkout" title="Checkout">
+<x-admin.settings-shell title="Checkout">
     <div class="space-y-6">
         <x-admin.card title="Checkout" description="Guest access and out-of-stock behavior at checkout.">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">

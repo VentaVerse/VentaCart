@@ -1,5 +1,5 @@
 <x-admin.shell title="Categories">
-    <x-admin.page title="Categories" :breadcrumb="[['label' => 'Catalog']]">
+    <x-admin.page title="Categories">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.categories.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Category

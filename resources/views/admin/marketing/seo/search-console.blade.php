@@ -1,6 +1,5 @@
 <x-admin.shell title="SEO Search Console">
-    <x-admin.page title="Search Console"
-        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Search Console']]">
+    <x-admin.page title="Search Console">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.marketing.seo.partials.nav-v2')
 

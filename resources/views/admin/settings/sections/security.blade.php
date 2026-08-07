@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="security" title="Security">
+<x-admin.settings-shell title="Security">
     <div class="space-y-6">
         <x-admin.card title="Admin URL" description="Change the admin panel URL path for security.">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">

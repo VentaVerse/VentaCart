@@ -1,5 +1,5 @@
 <x-admin.shell :title="$coupon ? 'Edit Coupon' : 'New Coupon'">
-    <x-admin.page :title="$coupon ? 'Edit Coupon' : 'New Coupon'" :breadcrumb="[['label' => 'Marketing'], ['label' => 'Coupons', 'url' => route('admin.coupons.index')]]">
+    <x-admin.page :title="$coupon ? 'Edit Coupon' : 'New Coupon'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.coupons.index') }}">Back to Coupons</x-admin.button>
         </x-slot:actions>

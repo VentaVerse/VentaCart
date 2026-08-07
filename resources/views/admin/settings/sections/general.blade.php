@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="general" title="General">
+<x-admin.settings-shell title="General">
     <div class="space-y-6">
         <x-admin.card title="Identity" description="Your store's name. Logo and favicon are managed in Theme.">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">

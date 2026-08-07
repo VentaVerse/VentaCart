@@ -1,5 +1,5 @@
 <x-admin.shell title="Media Manager">
-    <x-admin.page title="Media Manager" :breadcrumb="[['label' => 'Catalog']]">
+    <x-admin.page title="Media Manager">
         <div x-data="mediaManager()" class="bg-v-surface border border-v-border rounded-v-lg" style="min-height: 70vh;">
 
             {{-- Toolbar --}}

@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="modules" title="Modules" :wide="true">
+<x-admin.settings-shell title="Modules" :wide="true">
     <div class="space-y-8">
         <div>
             <p class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">Extensions</p>

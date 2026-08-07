@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="abandoned-carts" title="Abandoned Cart Settings" :wide="true">
+<x-admin.settings-shell title="Abandoned Cart Settings" :wide="true">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.sales.abandoned-carts.partials.nav')
 

@@ -2,8 +2,7 @@
     $slugTypes = ['products' => 'Products', 'categories' => 'Categories', 'brands' => 'Brands', 'blog' => 'Blog', 'pages' => 'Pages'];
 @endphp
 <x-admin.shell title="SEO Slugs">
-    <x-admin.page title="Slugs"
-        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => 'Slugs']]">
+    <x-admin.page title="Slugs">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.marketing.seo.partials.nav-v2')
 

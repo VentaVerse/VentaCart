@@ -1,5 +1,5 @@
 <x-admin.shell :title="$page ? 'Edit Page' : 'New Page'">
-    <x-admin.page :title="$page ? 'Edit Page' : 'New Page'" :breadcrumb="[['label' => 'Content'], ['label' => 'Pages', 'url' => route('admin.pages.index')]]">
+    <x-admin.page :title="$page ? 'Edit Page' : 'New Page'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.pages.index') }}">Back to Pages</x-admin.button>
         </x-slot:actions>

@@ -1,5 +1,5 @@
 <x-admin.shell title="Tags">
-    <x-admin.page title="Tags" :breadcrumb="[['label' => 'Catalog']]">
+    <x-admin.page title="Tags">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.tags.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Tag

@@ -1,5 +1,5 @@
 <x-admin.shell :title="$group->name">
-    <x-admin.page :title="$group->name" :breadcrumb="[['label' => 'Banners', 'url' => route('admin.banners.index')]]">
+    <x-admin.page :title="$group->name">
         <x-slot:actions>
             <x-admin.button variant="secondary" href="{{ route('admin.banners.index') }}">All Groups</x-admin.button>
             <x-admin.button variant="primary" href="{{ route('admin.banners.slides.create', $group) }}">

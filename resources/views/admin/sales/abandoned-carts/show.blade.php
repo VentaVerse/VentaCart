@@ -1,6 +1,5 @@
 <x-admin.shell title="Abandoned Cart #{{ $cart->id }}">
-    <x-admin.page title="Cart #{{ $cart->id }}"
-        :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')], ['label' => 'Carts', 'url' => route('admin.abandoned-carts.index')]]">
+    <x-admin.page title="Cart #{{ $cart->id }}">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.abandoned-carts.index') }}">Back to Abandoned Carts</x-admin.button>
         </x-slot:actions>

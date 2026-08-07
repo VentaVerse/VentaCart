@@ -1,7 +1,18 @@
-@props(['active', 'title', 'wide' => false])
-@php $groups = \App\Support\SettingsNav::groups(Auth::user()); @endphp
+{{--
+    'active' is optional: when omitted it's derived from the request path via
+    SettingsNav::activeKeyForPath() (longest-URL-prefix match, Task 7) —
+    exactly what every settings-nav item's own URL already encodes. Pass it
+    explicitly only where the URL genuinely can't say which sub-sidebar entry
+    a page belongs to (e.g. a page mounted at a different literal path than
+    its conceptual settings-nav home).
+--}}
+@props(['active' => null, 'title', 'wide' => false])
+@php
+    $groups = \App\Support\SettingsNav::groups(Auth::user());
+    $activeKey = $active ?? \App\Support\SettingsNav::activeKeyForPath(request()->path());
+@endphp
 <x-admin.shell :title="$title . ' — Settings'">
-    <x-admin.page :title="$title" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')]]">
+    <x-admin.page :title="$title">
         @isset($actions)
             <x-slot:actions>{{ $actions }}</x-slot:actions>
         @endisset
@@ -19,7 +30,7 @@
                                 @foreach ($group['items'] as $item)
                                     <a href="{{ \App\Support\SettingsNav::url($item) }}"
                                        class="block rounded-v-md px-2 py-1 text-[13px] transition-colors
-                                           {{ $item['key'] === $active ? 'bg-v-accent-weak font-semibold text-v-accent' : 'text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
+                                           {{ $item['key'] === $activeKey ? 'bg-v-accent-weak font-semibold text-v-accent' : 'text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
                                         {{ $item['label'] }}
                                     </a>
                                 @endforeach
@@ -36,7 +47,7 @@
                     @foreach ($groups as $group)
                         <optgroup label="{{ $group['label'] }}">
                             @foreach ($group['items'] as $item)
-                                <option value="{{ \App\Support\SettingsNav::url($item) }}" @selected($item['key'] === $active)>{{ $item['label'] }}</option>
+                                <option value="{{ \App\Support\SettingsNav::url($item) }}" @selected($item['key'] === $activeKey)>{{ $item['label'] }}</option>
                             @endforeach
                         </optgroup>
                     @endforeach

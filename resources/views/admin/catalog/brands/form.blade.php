@@ -2,7 +2,7 @@
     $vLabel = 'block text-[13px] font-medium text-v-text mb-1';
 @endphp
 <x-admin.shell :title="$brand ? 'Edit Brand' : 'New Brand'">
-    <x-admin.page :title="$brand ? 'Edit Brand' : 'New Brand'" :breadcrumb="[['label' => 'Catalog'], ['label' => 'Brands', 'url' => route('admin.brands.index')]]">
+    <x-admin.page :title="$brand ? 'Edit Brand' : 'New Brand'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.brands.index') }}">Back to Brands</x-admin.button>
         </x-slot:actions>

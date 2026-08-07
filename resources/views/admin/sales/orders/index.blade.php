@@ -8,7 +8,7 @@
     ];
 @endphp
 <x-admin.shell title="Orders">
-    <x-admin.page title="Orders" :breadcrumb="[['label' => 'Sales']]">
+    <x-admin.page title="Orders">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.orders.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Create Order

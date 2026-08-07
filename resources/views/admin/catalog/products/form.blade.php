@@ -26,7 +26,7 @@
     $vCheck = 'w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface';
 @endphp
 <x-admin.shell title="{{ $product ? 'Edit Product' : 'Create Product' }}">
-    <x-admin.page :title="$product ? 'Edit Product' : 'Create Product'" :breadcrumb="[['label' => 'Catalog'], ['label' => 'Products', 'url' => route('admin.products.index')]]">
+    <x-admin.page :title="$product ? 'Edit Product' : 'Create Product'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.products.index') }}">Back to Products</x-admin.button>
         </x-slot:actions>

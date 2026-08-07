@@ -1,6 +1,5 @@
 <x-admin.shell :title="$emailTemplate ? 'Edit Template' : 'Create Template'">
-    <x-admin.page :title="$emailTemplate ? 'Edit Template' : 'Create Template'"
-        :breadcrumb="[['label' => 'Abandoned Carts', 'url' => route('admin.abandoned-carts.settings')], ['label' => 'Templates', 'url' => route('admin.abandoned-carts.templates')]]">
+    <x-admin.page :title="$emailTemplate ? 'Edit Template' : 'Create Template'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.abandoned-carts.templates') }}">Cancel</x-admin.button>
         </x-slot:actions>

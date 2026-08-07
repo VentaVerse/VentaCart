@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="payments" title="Payments" :wide="true">
+<x-admin.settings-shell title="Payments" :wide="true">
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         @foreach ($cards as $card)
             @php

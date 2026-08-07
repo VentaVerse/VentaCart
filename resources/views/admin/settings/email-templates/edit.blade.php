@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="email-templates" :title="'Edit: ' . $emailTemplate->name" :wide="true">
+<x-admin.settings-shell :title="'Edit: ' . $emailTemplate->name" :wide="true">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {{-- Main Form --}}
             <div class="lg:col-span-2 space-y-4">

@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="api" title="API">
+<x-admin.settings-shell title="API">
     <div class="space-y-6">
         <x-admin.card title="ERP token" description="Used by the ERP system to authenticate API requests. Keep it secret.">
             <div class="space-y-4">

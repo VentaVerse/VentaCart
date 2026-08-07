@@ -1,5 +1,5 @@
 <x-admin.shell title="Pages">
-    <x-admin.page title="Pages" :breadcrumb="[['label' => 'Content']]">
+    <x-admin.page title="Pages">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.pages.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> New Page

@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="email-templates" title="Email Templates">
+<x-admin.settings-shell title="Email Templates">
         <x-admin.table>
             <x-slot:head>
                 <x-admin.table.th>Name</x-admin.table.th>

@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="users" title="Users" :wide="true">
+<x-admin.settings-shell title="Users" :wide="true">
         <x-slot:actions>
             <x-admin.button variant="primary" href="{{ route('admin.users.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add User

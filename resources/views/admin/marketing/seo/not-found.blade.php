@@ -1,6 +1,5 @@
 <x-admin.shell title="SEO 404s">
-    <x-admin.page title="404s"
-        :breadcrumb="[['label' => 'SEO', 'url' => route('admin.extensions.seo.dashboard')], ['label' => '404s']]">
+    <x-admin.page title="404s">
         <div class="flex flex-col gap-6 lg:flex-row lg:gap-8">
             @include('admin.marketing.seo.partials.nav-v2')
 

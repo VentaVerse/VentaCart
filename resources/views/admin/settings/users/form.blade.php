@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="users" :title="$user ? 'Edit User' : 'Create User'">
+<x-admin.settings-shell :title="$user ? 'Edit User' : 'Create User'">
         <div class="max-w-lg">
             <x-admin.card>
                 <form method="POST" action="{{ $user ? route('admin.users.update', $user) : route('admin.users.store') }}" data-v-form>

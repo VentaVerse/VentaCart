@@ -1,4 +1,4 @@
-<x-admin.settings-shell active="mail" title="Mail">
+<x-admin.settings-shell title="Mail">
     <div class="space-y-6">
         <x-admin.card title="SMTP" description="Outgoing mail server used for order and customer emails.">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
