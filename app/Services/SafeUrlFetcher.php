@@ -160,6 +160,17 @@ class SafeUrlFetcher
 
     protected function isPublicIp(string $ip): bool
     {
+        // filter_var's private/reserved-range flags treat an IPv6 address
+        // that merely *carries* an IPv4 address (NAT64 64:ff9b::/96, or
+        // IPv4-mapped ::ffff:0:0/96) as opaque IPv6 and never look inside
+        // it — so 64:ff9b::a9fe:a9fe (= 169.254.169.254) and
+        // ::ffff:127.0.0.1 (= 127.0.0.1) both pass as "public". Unwrap the
+        // embedded IPv4 first and validate *that* against the same rules.
+        $embedded = $this->extractEmbeddedIpv4($ip);
+        if ($embedded !== null) {
+            $ip = $embedded;
+        }
+
         if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
             return false;
         }
@@ -171,6 +182,39 @@ class SafeUrlFetcher
         }
 
         return true;
+    }
+
+    /**
+     * If $ip is an IPv6 address in the NAT64 well-known prefix
+     * (64:ff9b::/96) or the IPv4-mapped range (::ffff:0:0/96), return the
+     * embedded IPv4 address in dotted-quad form. Returns null for plain
+     * IPv6 or IPv4 input.
+     */
+    protected function extractEmbeddedIpv4(string $ip): ?string
+    {
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) === false) {
+            return null;
+        }
+
+        $bin = @inet_pton($ip);
+        if ($bin === false || strlen($bin) !== 16) {
+            return null;
+        }
+
+        $prefixes = [
+            "\x00\x64\xff\x9b\x00\x00\x00\x00\x00\x00\x00\x00", // 64:ff9b::/96 (NAT64 well-known prefix)
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff", // ::ffff:0:0/96 (IPv4-mapped)
+        ];
+
+        foreach ($prefixes as $prefix) {
+            if (substr($bin, 0, 12) === $prefix) {
+                $v4 = inet_ntop(substr($bin, 12, 4));
+
+                return $v4 === false ? null : $v4;
+            }
+        }
+
+        return null;
     }
 
     protected function ipInCidr(string $ip, string $cidr): bool

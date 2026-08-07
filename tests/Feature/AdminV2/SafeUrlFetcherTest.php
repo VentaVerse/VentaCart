@@ -86,6 +86,48 @@ class SafeUrlFetcherTest extends TestCase
         $this->fetcher()->assertSafeUrl('http://192.168.1.50/x');
     }
 
+    public function test_rejects_nat64_embedded_metadata_address(): void
+    {
+        // 64:ff9b::a9fe:a9fe is 169.254.169.254 under the NAT64 well-known
+        // prefix — filter_var's range flags treat the IPv6 shell as opaque
+        // and don't look inside it, so this must be unwrapped explicitly.
+        Http::fake();
+
+        $this->expectException(UnsafeUrlException::class);
+        $this->fetcher()->assertSafeUrl('http://[64:ff9b::a9fe:a9fe]/x');
+    }
+
+    public function test_rejects_nat64_embedded_loopback_address(): void
+    {
+        // 64:ff9b::7f00:1 is 127.0.0.1 under the NAT64 well-known prefix.
+        Http::fake();
+
+        $this->expectException(UnsafeUrlException::class);
+        $this->fetcher()->assertSafeUrl('http://[64:ff9b::7f00:1]/x');
+    }
+
+    public function test_rejects_ipv4_mapped_loopback_address(): void
+    {
+        // ::ffff:127.0.0.1 is the IPv4-mapped IPv6 form of 127.0.0.1.
+        Http::fake();
+
+        $this->expectException(UnsafeUrlException::class);
+        $this->fetcher()->assertSafeUrl('http://[::ffff:127.0.0.1]/x');
+    }
+
+    public function test_accepts_ipv4_mapped_public_address(): void
+    {
+        // ::ffff:8.8.8.8 is the IPv4-mapped IPv6 form of a public address —
+        // must NOT be rejected just because it's wrapped in an IPv6 shell.
+        // Validation-only: no fetch is performed.
+        Http::fake();
+
+        $this->fetcher()->assertSafeUrl('http://[::ffff:8.8.8.8]/x');
+        $this->addToAssertionCount(1); // no exception thrown = pass
+
+        Http::assertNothingSent();
+    }
+
     public function test_rejects_malformed_url(): void
     {
         Http::fake();
