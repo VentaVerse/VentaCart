@@ -697,7 +697,27 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['ok' => false, 'error' => "SPX label download failed (HTTP {$pdf->status()})."];
         }
 
-        Storage::disk('local')->put($path, $pdf->body());
+        // Live-UAT gate finding, round 3: awb_link can respond HTTP 200 with
+        // a JSON error body instead of a PDF (UAT's label RENDERER failing
+        // server-side, downstream of a perfectly valid awb_link — this is
+        // NOT the same failure class as `$pdf->successful()` catches, which
+        // only sees transport-level success). Content-Type isn't trustworthy
+        // enough on its own (SPX's UAT error response has been observed
+        // still under a generic content type), so the actual bytes are
+        // checked for the PDF magic number before ever touching disk — a
+        // corrupt "PDF" must never reach an admin's download.
+        $body = $pdf->body();
+        if (!str_starts_with($body, '%PDF')) {
+            $decoded = json_decode($body, true);
+            if (is_array($decoded) && (isset($decoded['retcode']) || isset($decoded['message']))) {
+                $retcode = $decoded['retcode'] ?? 'unknown';
+                $message = $decoded['message'] ?? 'unknown error';
+                return ['ok' => false, 'error' => "SPX label service error: {$message} (retcode {$retcode})"];
+            }
+            return ['ok' => false, 'error' => 'SPX returned a label that is not a valid PDF.'];
+        }
+
+        Storage::disk('local')->put($path, $body);
 
         return ['ok' => true];
     }

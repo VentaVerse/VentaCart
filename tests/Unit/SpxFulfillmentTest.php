@@ -869,7 +869,11 @@ class SpxFulfillmentTest extends TestCase
         $this->assertStringContainsString('/label-file', $result['url']);
 
         Storage::disk('local')->assertExists('courier-labels/spx/SPEPH000000000001.pdf');
-        $this->assertSame('%PDF-1.4 fake label bytes', Storage::disk('local')->get('courier-labels/spx/SPEPH000000000001.pdf'));
+        $stored = Storage::disk('local')->get('courier-labels/spx/SPEPH000000000001.pdf');
+        $this->assertSame('%PDF-1.4 fake label bytes', $stored);
+        // Live-UAT gate finding, round 3: only real PDF bytes ever get
+        // stored — this is the magic-number check's happy path.
+        $this->assertTrue(str_starts_with($stored, '%PDF'));
 
         // Exactly two calls: v2 (settled immediately, short-circuiting
         // BEFORE any v1 fallback call) + the PDF download.
@@ -1134,6 +1138,48 @@ class SpxFulfillmentTest extends TestCase
         // same faked ret_code) — 2 total, never the old 1-attempt-only
         // count from round 1 (there was no fallback to try back then).
         Http::assertSentCount(2);
+    }
+
+    /**
+     * Live-UAT gate finding, round 3 (final label finding): the v1
+     * fallback's `awb_link` itself can respond HTTP 200 with a JSON error
+     * body instead of a PDF — SPX's UAT label RENDERER failing
+     * server-side, downstream of an otherwise valid `awb_link` (observed
+     * live: `{"retcode":2501,"message":"invoke rpc failed",...}`, ~193
+     * bytes, consistent across fresh links and retries). `$pdf->successful()`
+     * doesn't catch this — HTTP-level the download genuinely succeeded, it's
+     * just not a PDF. Bytes are checked for the `%PDF` magic number before
+     * ever touching disk, so a corrupt "PDF" can never reach an admin's
+     * download — the JSON body is decoded and its `retcode`/`message`
+     * surfaced honestly instead.
+     */
+    public function test_print_label_surfaces_a_renderer_error_when_the_awb_link_returns_json_instead_of_a_pdf(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+        $this->makeSpxOrder('SPEPH000000000011');
+
+        Http::fake([
+            '*/v2/order/batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'awb_link' => 'https://test-stable.spx.ph/downloads/resource/shipping_label/broken.pdf?access_token=abc',
+                    'fail_list' => [],
+                ],
+            ]),
+            'https://test-stable.spx.ph/downloads/resource/shipping_label/broken.pdf*' => Http::response(
+                json_encode(['retcode' => 2501, 'message' => 'invoke rpc failed']),
+                200,
+                ['Content-Type' => 'application/json']
+            ),
+        ]);
+
+        $result = $this->courier()->printLabel('SPEPH000000000011', 'zebra');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('invoke rpc failed', $result['error']);
+        $this->assertStringContainsString('2501', $result['error']);
+        Storage::disk('local')->assertMissing('courier-labels/spx/SPEPH000000000011.pdf');
     }
 
     // ------------------------------------------------------------------
