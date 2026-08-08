@@ -1100,7 +1100,10 @@ class FulfillmentQueueTest extends TestCase
         $content = $response->getContent();
 
         $response->assertOk();
-        $this->assertStringContainsString('This cancels the courier booking. The order remains rebookable afterward.', $content);
+        // Task 4 wording: an admin booking-cancel now RESETS the courier
+        // fields and returns the order to To Pack (no longer "remains
+        // rebookable" in place under Cancelled).
+        $this->assertStringContainsString('This cancels the courier booking. The order returns to To Pack for rebooking.', $content);
 
         // Pull the confirm-dialog's modal card <div> out of the response
         // and assert it carries whitespace-normal alongside its existing

@@ -308,6 +308,16 @@
                             $rowBucket = \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order);
                             $bookGated = in_array($rowBucket, ['unpaid', 'cancelled'], true) && !$rebookable;
 
+                            // fulfillment-tabs-v3 Task 4: the row's Venta
+                            // order-status STAGE drives the per-tab action
+                            // matrix. 'unpaid' rows get exactly ONE action
+                            // (Cancel order); 'cancelled' rows (a real order
+                            // cancel) are view-only; everything else keeps
+                            // the courier action set, with Cancel order
+                            // added alongside Book on To Pack rows.
+                            $rowStage = $order->status?->fulfillment_stage ?? 'ready';
+                            $offersCancelOrder = $rowStage === 'unpaid' || $rowBucket === 'to_pack';
+
                             $timelineRaw = $meta['timeline'] ?? [];
                             $timeline = [];
                             if (is_array($timelineRaw)) {
@@ -448,7 +458,16 @@
                                     </td>
                                     <td class="cf-col-act" rowspan="{{ $lineCount }}">
                                         <div class="co-actions">
-                                            @if ($creating)
+                                            @if ($rowStage === 'unpaid')
+                                                {{-- Task 4, owner directive: an Unpaid row renders
+                                                     exactly ONE action — Cancel order. No Book (nothing
+                                                     to ship yet), no Tracking/Print (any courier state
+                                                     an admin somehow created is not this row's job). --}}
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
+                                            @elseif ($rowStage === 'cancelled')
+                                                {{-- Task 4: a REAL order cancel is view-only — the
+                                                     order link in the band is the only way in. --}}
+                                            @elseif ($creating)
                                                 {{-- Task T4: honest "Creating…" state — a second Book
                                                      click here would hit FulfillmentService::book()'s
                                                      async-in-progress guard anyway, but showing an
@@ -464,30 +483,45 @@
                                                      one that compiles on a component tag. --}}
                                                 <x-admin.button type="button" size="sm" variant="primary" @click="openBooking({{ \Illuminate\Support\Js::from($rowData) }})">{{ $rebookable ? 'Rebook' : 'Book' }}</x-admin.button>
                                             @endif
-                                            @if ($activelyBooked)
-                                                <x-admin.button size="sm" variant="secondary" href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener">Print waybill</x-admin.button>
+                                            @if ($rowBucket === 'to_pack')
+                                                {{-- Task 4: the real order cancel, alongside Book on
+                                                     a To Pack row. Never on booked rows — the server
+                                                     refuses while a booking is active anyway. --}}
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
                                             @endif
-                                            {{-- Any row that has ever been booked keeps its drawer
-                                                 access — a CANCELLED booking (tracking number present,
-                                                 not actively booked) still has a timeline and the
-                                                 terminal `cancelled` badge to show, and Rebook alone
-                                                 would orphan both (review fix, W2). --}}
-                                            @if ($order->courier_tracking_number)
-                                                <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
-                                            @elseif ($creationFailed)
-                                                {{-- Final-review fix (Finding 2): a creation_failed order has NO
-                                                     tracking number, so the Tracking button above can't carry it —
-                                                     but its drawer is where the full creation_error reads, so it
-                                                     gets its own opener. --}}
-                                                <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</x-admin.button>
-                                            @endif
-                                            @if ($cancelable)
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel</x-admin.button>
+                                            @if (!in_array($rowStage, ['unpaid', 'cancelled'], true))
+                                                @if ($activelyBooked)
+                                                    <x-admin.button size="sm" variant="secondary" href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener">Print waybill</x-admin.button>
+                                                @endif
+                                                {{-- Any row that has ever been booked keeps its drawer
+                                                     access — a CANCELLED booking (tracking number present,
+                                                     not actively booked) still has a timeline and the
+                                                     terminal `cancelled` badge to show, and Rebook alone
+                                                     would orphan both (review fix, W2). Task 4: gated to
+                                                     stage-'ready' rows — unpaid rows carry ONE action
+                                                     and order-cancelled rows are view-only. --}}
+                                                @if ($order->courier_tracking_number)
+                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
+                                                @elseif ($creationFailed)
+                                                    {{-- Final-review fix (Finding 2): a creation_failed order has NO
+                                                         tracking number, so the Tracking button above can't carry it —
+                                                         but its drawer is where the full creation_error reads, so it
+                                                         gets its own opener. --}}
+                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</x-admin.button>
+                                                @endif
+                                                @if ($cancelable)
+                                                    <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel</x-admin.button>
+                                                @endif
                                             @endif
                                         </div>
-                                        @if ($cancelable)
+                                        @if ($offersCancelOrder)
+                                            <x-admin.confirm-dialog name="cancel-order-{{ $order->id }}" title="Cancel order #{{ $order->id }}?"
+                                                message="This sets the order status to your configured cancel status (returning any reserved stock) and moves it to the Cancelled tab. No courier is contacted."
+                                                confirm="Cancel order" :action="route('admin.fulfillment.cancel-order', $order)" method="POST" />
+                                        @endif
+                                        @if ($cancelable && !in_array($rowStage, ['unpaid', 'cancelled'], true))
                                             <x-admin.confirm-dialog name="cancel-fulfillment-{{ $order->id }}" title="Cancel booking for order #{{ $order->id }}?"
-                                                message="This cancels the courier booking. The order remains rebookable afterward."
+                                                message="This cancels the courier booking. The order returns to To Pack for rebooking."
                                                 confirm="Cancel booking" :action="route('admin.fulfillment.cancel', $order)" method="POST" />
                                         @endif
                                     </td>

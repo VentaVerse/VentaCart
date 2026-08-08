@@ -43,11 +43,14 @@ class CourierSettingsController extends Controller
      * they're read by literal key name elsewhere too: 'fulfillment_enabled'
      * by FulfillmentController::index() (opt-out pause toggle — missing/NULL
      * means active, only an explicit '0' pauses the queue), 'cod_payment_methods'
-     * by FulfillmentService::isCodOrder(). ("{courier}_webhook_token" is
-     * neither — it's server-generated below, per registered courier, and
-     * deliberately never part of any allowlist at all.)
+     * by FulfillmentService::isCodOrder(), 'cancel_order_status_id' by
+     * FulfillmentController::cancelOrder() (fulfillment-tabs-v3 Task 4: the
+     * core status a queue "Cancel order" sets; default is the status named
+     * "Canceled"). ("{courier}_webhook_token" is neither — it's
+     * server-generated below, per registered courier, and deliberately never
+     * part of any allowlist at all.)
      */
-    private const MODULE_KEYS = ['fulfillment_enabled', 'cod_payment_methods'];
+    private const MODULE_KEYS = ['fulfillment_enabled', 'cod_payment_methods', 'cancel_order_status_id'];
 
     /**
      * The ONLY keys writable via the given courier's page. Anything else in
@@ -247,11 +250,20 @@ class CourierSettingsController extends Controller
             $codMethods = array_values(array_filter(array_keys($paymentMethodOptions), fn ($m) => str_contains(strtolower($m), 'cod')));
         }
 
+        // fulfillment-tabs-v3 Task 4: the queue's "Cancel order" target
+        // status — pre-selected to the stored setting, defaulting to the
+        // status named "Canceled" (same fallback cancelOrder() applies).
+        $orderStatuses = \App\Models\OrderStatus::orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
+        $cancelOrderStatusId = $settings['cancel_order_status_id']
+            ?? \App\Models\OrderStatus::where('name', 'Canceled')->value('id');
+
         return view('courier-fulfillment::settings', compact(
             'settings',
             'paymentMethodOptions',
             'codMethods',
-            'courierCards'
+            'courierCards',
+            'orderStatuses',
+            'cancelOrderStatusId'
         ));
     }
 
@@ -356,6 +368,13 @@ class CourierSettingsController extends Controller
     /** Hub save: the module-level keys ONLY — never any courier's schema keys. */
     public function update(Request $request)
     {
+        // fulfillment-tabs-v3 Task 4: the cancel-status target must be a
+        // real order status — an arbitrary id would send every queue
+        // "Cancel order" into a silent fallback.
+        $request->validate([
+            'settings.cancel_order_status_id' => ['nullable', 'integer', 'exists:order_statuses,id'],
+        ]);
+
         $data = array_intersect_key(
             $request->input('settings', []),
             array_flip(self::MODULE_KEYS)

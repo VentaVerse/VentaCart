@@ -771,7 +771,17 @@ class FulfillmentTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_rebook_after_cancel_creates_a_fresh_shipment_and_records_the_previous_tracking_number(): void
+    /**
+     * fulfillment-tabs-v3 Task 4 UPDATE (new cancel semantics, not a
+     * weakening): the outbound QuadX calls are byte-identical (book, cancel,
+     * rebook — Http::assertSentCount(3) still holds), but an ADMIN booking
+     * cancel now RESETS the courier fields once QuadX confirms, snapshotting
+     * the old booking into courier_meta.booking_history and returning the
+     * order to To Ship > To Pack. The rebook is therefore a FRESH booking
+     * (no previous_tracking_number, no "Rebooked with courier" history line)
+     * that carries the audit snapshot forward.
+     */
+    public function test_rebook_after_cancel_resets_the_booking_and_books_fresh_with_a_history_snapshot(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -794,10 +804,25 @@ class FulfillmentTest extends TestCase
 
         $this->post($this->cancelUrl($order))->assertSessionHas('success');
         $order->refresh();
-        $this->assertSame('canceled', $order->courier_status);
-        // Cancel does not clear the tracking number — it's what makes the
-        // "previous" value available to capture on the rebook below.
-        $this->assertSame('QX-OLD-001', $order->courier_tracking_number);
+
+        // The reset: live courier fields cleared, the order reads as never
+        // booked (back in To Pack), with the old booking snapshotted.
+        $this->assertNull($order->courier_provider);
+        $this->assertNull($order->courier_status);
+        $this->assertNull($order->courier_tracking_number);
+        $this->assertSame('to_pack', \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order));
+
+        $meta = json_decode($order->courier_meta, true);
+        $this->assertCount(1, $meta['booking_history']);
+        $this->assertSame('quadx', $meta['booking_history'][0]['courier']);
+        $this->assertSame('QX-OLD-001', $meta['booking_history'][0]['tracking_number']);
+        $this->assertTrue($meta['booking_history'][0]['admin_cancelled']);
+        $this->assertNotEmpty($meta['booking_history'][0]['cancelled_at']);
+
+        $this->assertDatabaseHas('order_histories', [
+            'order_id' => $order->id,
+            'comment' => 'Courier booking cancelled: QX-OLD-001 (QuadX). Order returned to To Pack.',
+        ]);
 
         $this->post($this->bookUrl($order), $bookPayload)->assertSessionHas('success');
 
@@ -806,14 +831,15 @@ class FulfillmentTest extends TestCase
         $this->assertSame('for_pickup', $order->courier_status);
 
         $meta = json_decode($order->courier_meta, true);
-        $this->assertSame('QX-OLD-001', $meta['previous_tracking_number']);
-
-        $this->assertDatabaseHas('order_histories', [
+        // Fresh booking, not a rebook-in-place — and the snapshot survives.
+        $this->assertNull($meta['previous_tracking_number']);
+        $this->assertSame('QX-OLD-001', $meta['booking_history'][0]['tracking_number']);
+        $this->assertDatabaseMissing('order_histories', [
             'order_id' => $order->id,
             'comment' => 'Rebooked with courier: QX-OLD-001 superseded by QX-NEW-002',
         ]);
 
-        Http::assertSentCount(3); // book, cancel, rebook
+        Http::assertSentCount(3); // book, cancel, rebook — unchanged contract
     }
 
     // ------------------------------------------------------------------

@@ -4,6 +4,7 @@ namespace Extensions\CourierFulfillment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\OrderHistory;
 use App\Models\Setting;
 use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\CourierManager;
@@ -660,6 +661,24 @@ class FulfillmentController extends Controller
         return response()->json(['ok' => true, 'slots' => $courier->getPickupSlots($order)]);
     }
 
+    /**
+     * Cancel the courier BOOKING (never the order itself — that's
+     * cancelOrder() below). fulfillment-tabs-v3 Task 4 semantics: once the
+     * courier CONFIRMS the cancel (the outbound call itself is unchanged —
+     * QuadX/SPX's own cancelShipment() contracts are frozen by their tests),
+     * the previous booking is snapshotted into courier_meta.booking_history
+     * (courier, tracking number, timeline, booking meta, admin_cancelled,
+     * cancelled_at) and the LIVE courier fields are reset, returning the
+     * order to To Ship > To Pack for rebooking. Pre-Task-4 behavior (write
+     * courier_status='canceled' + StatusMapper::apply()) parked the order in
+     * the Cancelled tab as an interim state — an admin-initiated booking
+     * cancel is NOT an order cancel, so it must not read as one. The
+     * Cancelled tab's courier-exception arm now naturally excludes admin
+     * cancels: they carry no cancelled courier state at all, and a LATE
+     * webhook/poll event for the old tracking number can't resurrect one
+     * (CourierWebhookIngestor's provider/tracking verification ignores
+     * events that don't match the order's CURRENT — now empty — booking).
+     */
     public function cancel(Order $order)
     {
         $courier = CourierManager::get((string) $order->courier_provider);
@@ -672,9 +691,98 @@ class FulfillmentController extends Controller
             return back()->with('error', 'Cancel failed: ' . ($result['error'] ?? 'unknown error'));
         }
 
-        $order->forceFill(['courier_status' => 'canceled'])->save();
-        \Extensions\CourierFulfillment\StatusMapper::apply($order, 'canceled');
-        return back()->with('success', "Cancelled booking for order #{$order->id}.");
+        // The courier confirmed — only NOW does the reset happen.
+        $tracking = $order->courier_tracking_number;
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $history = (isset($meta['booking_history']) && is_array($meta['booking_history']))
+            ? $meta['booking_history']
+            : [];
+        $history[] = [
+            'courier'         => (string) $order->courier_provider,
+            'tracking_number' => $tracking,
+            'status'          => $order->courier_status,
+            'timeline'        => $meta['timeline'] ?? [],
+            // The full booking meta minus the history itself (never nested).
+            'meta'            => \Illuminate\Support\Arr::except($meta, ['booking_history']),
+            'admin_cancelled' => true,
+            'cancelled_at'    => now()->toIso8601String(),
+        ];
+
+        $fill = [
+            'courier_provider'        => null,
+            'courier_status'          => null,
+            'courier_tracking_number' => null,
+            // booking_history is the ONE key that persists through the reset.
+            'courier_meta'            => json_encode(['booking_history' => $history]),
+        ];
+        // Core snapshot columns (Order Historical Snapshots): booked by this
+        // extension at booking time, so cleared here IF they still point at
+        // the shipment just cancelled — a customer must never be shown a
+        // voided AWB. A manually-entered core tracking number (order page's
+        // own courier/tracking flow) is left alone. The cached label PDF of
+        // the old tracking number stays on disk harmlessly — nothing links
+        // to it after the reset (label/label-file resolve via
+        // courier_tracking_number, now null).
+        if ((string) $order->tracking_number === (string) $tracking) {
+            $fill['tracking_number'] = null;
+            $fill['tracking_link']   = null;
+        }
+        $order->forceFill($fill)->save();
+
+        OrderHistory::create([
+            'order_id'        => $order->id,
+            'order_status_id' => $order->order_status_id,
+            'comment'         => 'Courier booking cancelled: ' . $tracking . ' (' . $courier->getName() . '). Order returned to To Pack.',
+            'notify_customer' => false,
+        ]);
+
+        return back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. The order is back in To Ship, To Pack.");
+    }
+
+    /**
+     * fulfillment-tabs-v3 Task 4: the REAL order cancel — sets the core
+     * order status to the module setting `cancel_order_status_id` (default:
+     * the status named "Canceled"; configurable on the fulfillment settings
+     * hub) through the SAME status-change path the admin order page uses
+     * (OrderController::addHistory(): history entry + order_status_id update
+     * + StockService::adjustForStatusChange(), notify OFF here), so stock
+     * and history behave identically. Offered on Unpaid rows (their only
+     * action) and To Pack rows (alongside Book). Never touches any courier:
+     * an order with an ACTIVE booking (or one mid-async-create) is refused
+     * with a friendly message — cancel the booking first.
+     */
+    public function cancelOrder(Order $order)
+    {
+        if (FulfillmentService::isActivelyBooked($order)) {
+            return back()->with('error', "Order #{$order->id} still has an active courier booking ({$order->courier_tracking_number}). Cancel the booking first, then cancel the order.");
+        }
+        if ((string) $order->courier_status === 'creating') {
+            return back()->with('error', "Order #{$order->id} is mid-booking with a courier. Wait for the booking to finish, cancel the booking, then cancel the order.");
+        }
+
+        $configuredId = Setting::where('group', 'courier')->where('key', 'cancel_order_status_id')->value('value');
+        $status = $configuredId ? \App\Models\OrderStatus::find((int) $configuredId) : null;
+        // Default (and fallback for a configured id whose status row was
+        // since deleted): the status named "Canceled" — the same default the
+        // settings hub's select pre-selects.
+        $status = $status ?? \App\Models\OrderStatus::where('name', 'Canceled')->first();
+        if (!$status) {
+            return back()->with('error', 'No cancel status is configured. Choose one under Settings, Modules, Courier Fulfillment.');
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $status) {
+            OrderHistory::create([
+                'order_id'        => $order->id,
+                'order_status_id' => $status->id,
+                'comment'         => 'Order cancelled from the fulfillment queue.',
+                'notify_customer' => false,
+                'created_by'      => Auth::id(),
+            ]);
+            $order->update(['order_status_id' => $status->id]);
+            \App\Services\StockService::adjustForStatusChange($order, $status);
+        });
+
+        return back()->with('success', "Order #{$order->id} cancelled ({$status->name}).");
     }
 
     public function label(Request $request, Order $order)

@@ -37,6 +37,11 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::post('/{order}/estimate', [FulfillmentController::class, 'estimate'])->name('estimate');
         Route::get('/{order}/pickup-slots', [FulfillmentController::class, 'pickupSlots'])->name('pickup-slots');
         Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel');
+        // fulfillment-tabs-v3 Task 4: the REAL order cancel (sets the core
+        // order status to the module's configured cancel status through the
+        // same history + stock path the order page uses) — distinct from
+        // /cancel above, which cancels only the courier BOOKING.
+        Route::post('/{order}/cancel-order', [FulfillmentController::class, 'cancelOrder'])->name('cancel-order');
         Route::get('/{order}/label', [FulfillmentController::class, 'label'])->name('label');
         // Task T3: authenticated, in-app streaming route for a courier
         // (SPX) whose own label link is perishable — printLabel() downloads

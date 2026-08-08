@@ -15,6 +15,18 @@
                     </label>
                 </x-admin.field>
 
+                {{-- fulfillment-tabs-v3 Task 4: the core status a queue
+                     "Cancel order" action sets — applied through the same
+                     history + stock path the order page uses. --}}
+                <x-admin.field name="settings[cancel_order_status_id]" label="Cancel order status"
+                    help="The order status a Cancel order action in the fulfillment queue applies. History and stock behave exactly as if the status were changed from the order page (customer is not notified).">
+                    <x-admin.select name="settings[cancel_order_status_id]">
+                        @foreach ($orderStatuses as $id => $name)
+                            <option value="{{ $id }}" @selected((string) $id === (string) $cancelOrderStatusId)>{{ $name }}</option>
+                        @endforeach
+                    </x-admin.select>
+                </x-admin.field>
+
                 <div>
                     <h3 class="text-[13px] font-semibold text-v-text mb-1">COD payment methods</h3>
                     <p class="text-xs text-v-muted mb-3">Orders paid with a checked method are booked as COD (the rider collects the order total). Everything else books as prepaid.</p>

@@ -275,6 +275,11 @@ class FulfillmentService
         // Captured before booking: null on a first-ever booking, the old
         // (canceled) tracking number on a rebook.
         $previousTracking = $order->courier_tracking_number;
+        // fulfillment-tabs-v3 Task 4: an admin-initiated booking cancel
+        // resets the courier fields but persists the audit trail under
+        // courier_meta.booking_history (FulfillmentController::cancel()) —
+        // carried forward here so a rebook's fresh meta never wipes it.
+        $previousMeta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
 
         $result = $courier->createShipment($order, $opts);
         if (!($result['success'] ?? false)) {
@@ -283,6 +288,9 @@ class FulfillmentService
 
         $meta = $result['meta'] ?? [];
         $meta['previous_tracking_number'] = $previousTracking;
+        if (isset($previousMeta['booking_history']) && is_array($previousMeta['booking_history'])) {
+            $meta['booking_history'] = $previousMeta['booking_history'];
+        }
 
         // forceFill bypasses mass-assignment: courier_* columns are extension-owned
         // and not in core Order::$fillable; courier_meta has no cast so encode it.
