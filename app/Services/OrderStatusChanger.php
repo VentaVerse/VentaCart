@@ -21,7 +21,7 @@ class OrderStatusChanger
      * @return OrderStatus|null the status row actually applied (null only if
      *   $orderStatusId doesn't resolve — the history row and order update
      *   still happen, matching addHistory()'s pre-extraction behavior, but
-     *   no stock adjustment runs without a status row to read stock_action
+     *   no stock adjustment runs without a status row to read deducts_stock
      *   from).
      */
     public static function apply(Order $order, int $orderStatusId, ?string $comment = null, bool $notifyCustomer = false, ?int $createdBy = null): ?OrderStatus

@@ -96,11 +96,11 @@ class FulfillmentCancelSemanticsTest extends TestCase
         return $status;
     }
 
-    private function statusWithStage(string $stage, string $name, ?string $stockAction = null): OrderStatus
+    private function statusWithStage(string $stage, string $name, bool $deductsStock = false): OrderStatus
     {
         $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name],
-            ['sort_order' => 1, 'stock_action' => $stockAction],
+            ['sort_order' => 1, 'deducts_stock' => $deductsStock],
         );
 
         PlacementMap::put($status->id, $stage);
@@ -184,7 +184,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->enableQuadxStaging();
 
         // Default target: the status NAMED "Canceled" (no setting stored).
-        $canceled = $this->statusWithStage('cancelled', 'Canceled', 'increment');
+        $canceled = $this->statusWithStage('cancelled', 'Canceled', deductsStock: false);
 
         $product = Product::create([
             'store_id' => 1,
@@ -222,8 +222,9 @@ class FulfillmentCancelSemanticsTest extends TestCase
             'notify_customer' => false,
         ]);
 
-        // StockService::adjustForStatusChange() ran: 'increment' put the two
-        // units back and cleared the adjusted flag.
+        // StockService::adjustForStatusChange() ran: reaching a non-deducting
+        // status reverses the deduction, so the two units came back and the
+        // adjusted flag cleared.
         $this->assertSame(12, (int) $product->fresh()->quantity);
         $this->assertFalse((bool) $order->stock_adjusted);
 
@@ -920,8 +921,8 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
         // The map the settings page's smart default proposes: courier
         // 'canceled' -> the status named "Canceled" (cancelled stage,
-        // increment stock on entry).
-        $canceled = $this->statusWithStage('cancelled', 'Canceled', 'increment');
+        // non-deducting, so entering it returns the stock).
+        $canceled = $this->statusWithStage('cancelled', 'Canceled', deductsStock: false);
         Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
             'canceled' => ['order_status_id' => $canceled->id, 'notify' => false],
         ])]);

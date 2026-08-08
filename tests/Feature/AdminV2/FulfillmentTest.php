@@ -970,7 +970,7 @@ class FulfillmentTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'quadx_webhook_token', 'value' => 'super-secret-webhook-token']);
 
         $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
-        $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2, 'stock_action' => 'decrement']);
+        $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2, 'deducts_stock' => true]);
 
         Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
             'delivered' => ['order_status_id' => $delivered->id, 'notify' => false],

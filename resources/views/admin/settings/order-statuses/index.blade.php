@@ -18,7 +18,12 @@
                 <x-admin.table>
                     <x-slot:head>
                         <x-admin.table.th>Status</x-admin.table.th>
-                        <x-admin.table.th>Stock action</x-admin.table.th>
+                        {{-- The only genuinely non-obvious consequence of this
+                             control, and the reason it earns a tooltip under the
+                             owner's UI copy rule: clearing it on a status does
+                             not merely stop deducting, it hands the units back
+                             the moment an order reaches that status. --}}
+                        <x-admin.table.th title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">Deducts stock</x-admin.table.th>
                         <x-admin.table.th>Sort</x-admin.table.th>
                         <x-admin.table.th align="right">Actions</x-admin.table.th>
                     </x-slot:head>
@@ -35,16 +40,21 @@
                                 </div>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
-                                {{-- The select IS the whole control: the badge
-                                     that repeated its selected value beside it,
-                                     and the legend card that explained that
-                                     badge, are both gone (owner's UI copy rule,
-                                     2026-08-09). --}}
-                                <select form="{{ $editForm }}" name="stock_action" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                    <option value="" @selected(! $status->stock_action)>None</option>
-                                    <option value="decrement" @selected($status->stock_action === 'decrement')>Decrement</option>
-                                    <option value="increment" @selected($status->stock_action === 'increment')>Increment</option>
-                                </select>
+                                {{-- One checkbox IS the whole control. A status
+                                     either deducts or it does not (owner ruling,
+                                     2026-08-08); the old three-way select, the
+                                     badge that repeated its value beside it and
+                                     the legend card that explained that badge
+                                     are all gone. The hidden 0 makes an
+                                     unchecked box post, so clearing it saves.
+                                     Column header carries the one consequence
+                                     worth stating. --}}
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="hidden" form="{{ $editForm }}" name="deducts_stock" value="0">
+                                    <input type="checkbox" form="{{ $editForm }}" name="deducts_stock" value="1" @checked(old('deducts_stock', $status->deducts_stock))
+                                        aria-label="{{ $status->name }} deducts stock"
+                                        class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                </label>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
                                 <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
@@ -78,22 +88,18 @@
             @endforeach
 
             <x-admin.card title="Add status">
-                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:items-end">
+                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end">
                     @csrf
                     <x-admin.field name="name" label="Name">
                         <x-admin.input name="name" required placeholder="Quality Check" />
                     </x-admin.field>
-                    <x-admin.field name="stock_action" label="Stock action">
-                        <x-admin.select name="stock_action">
-                            <option value="">None</option>
-                            <option value="decrement">Decrement</option>
-                            <option value="increment">Increment</option>
-                        </x-admin.select>
-                    </x-admin.field>
                     <x-admin.field name="sort_order" label="Sort">
                         <x-admin.input name="sort_order" type="number" min="0" value="0" />
                     </x-admin.field>
-                    <div class="flex items-center gap-3">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <input type="hidden" name="deducts_stock" value="0">
+                        <x-admin.checkbox name="deducts_stock" label="Deducts stock"
+                            title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned." />
                         <x-admin.checkbox name="is_default" label="Default" />
                         <x-admin.button variant="primary" type="submit">Add</x-admin.button>
                     </div>

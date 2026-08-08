@@ -20,9 +20,30 @@ use Illuminate\Support\Facades\DB;
  * placement page), and that module deliberately seeds nothing: a merchant
  * configures it at setup. A fresh install therefore has every status unplaced,
  * which the module treats as "All tab only" rather than as an error.
+ *
+ * STOCK, on the other hand, IS core data and is seeded here. A status either
+ * deducts stock or it does not (owner ruling, 2026-08-08); there is no
+ * "increment" counterpart, because returning stock is the automatic reversal
+ * StockService performs when an order whose stock is out reaches a status that
+ * does not deduct. Only the five statuses below where goods have actually left
+ * the shelf are seeded deducting - every terminal money-back status (Canceled,
+ * Refunded, Chargeback and the rest) is left non-deducting precisely so that
+ * reaching it hands the units back.
+ *
+ * These fresh-install defaults are NOT the same lists as the conversion in
+ * 2026_08_09_180000_convert_stock_action_to_deducts_stock, which preserves what
+ * an EXISTING store already had (NGD's Pending, for instance, deducts on live
+ * and stays that way) rather than describing what a new store should start
+ * with. The two must not be merged.
  */
 class OrderStatusSeeder extends Seeder
 {
+    /**
+     * Status names seeded as deducting: at each of these the goods are out of
+     * inventory. Everything else in the list below is non-deducting.
+     */
+    private const DEDUCTS_STOCK = ['Processing', 'Processed', 'Shipped', 'Complete', 'Delivered'];
+
     public function run(): void
     {
         $storeId = 1;
@@ -52,6 +73,7 @@ class OrderStatusSeeder extends Seeder
                 'store_id' => $storeId,
                 'name' => $status['name'],
                 'is_default' => $status['is_default'],
+                'deducts_stock' => in_array($status['name'], self::DEDUCTS_STOCK, true),
                 'sort_order' => $status['sort_order'],
                 'created_at' => $now,
                 'updated_at' => $now,

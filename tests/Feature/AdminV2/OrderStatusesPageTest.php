@@ -41,39 +41,105 @@ class OrderStatusesPageTest extends TestCase
     }
 
     /**
-     * The stock action is the SELECT and nothing else: the badge that
-     * repeated the selected value beside it, and the legend card that existed
-     * only to explain that badge, are both gone (owner's UI copy rule,
-     * 2026-08-09 - no text that restates a control).
+     * Stock is ONE checkbox and nothing else (owner ruling, 2026-08-08): a
+     * status either deducts or it does not, so the three-way select is gone
+     * along with the badge that repeated its value and the legend card that
+     * existed only to explain that badge (owner's UI copy rule, 2026-08-09 -
+     * no text that restates a control).
      */
-    public function test_stock_action_is_a_select_with_no_badge_repeating_it(): void
+    public function test_stock_is_a_single_checkbox_with_no_badge_or_legend(): void
     {
         $this->actingAs(User::factory()->create());
-        OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'stock_action' => 'decrement', 'sort_order' => 2]);
-        OrderStatus::create(['store_id' => 1, 'name' => 'Refunded', 'stock_action' => 'increment', 'sort_order' => 11]);
+        OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'deducts_stock' => true, 'sort_order' => 2]);
+        OrderStatus::create(['store_id' => 1, 'name' => 'Refunded', 'deducts_stock' => false, 'sort_order' => 11]);
 
         $this->get(route('admin.order-statuses.index'))
             ->assertOk()
             ->assertSee('v-admin', false)
             ->assertSee('Processing')->assertSee('Refunded')
-            ->assertSee('name="stock_action"', false)
-            // The badge text and its legend card are both gone; the select
-            // beside them is untouched.
-            ->assertDontSee('Decrements')
-            ->assertDontSee('Increments')
+            ->assertSee('Deducts stock')
+            ->assertSee('name="deducts_stock" value="1"', false)
+            // Nothing left of the retired three-way vocabulary, on the page or
+            // in the markup.
+            ->assertDontSee('stock_action', false)
+            ->assertDontSee('Decrement')
+            ->assertDontSee('Increment')
+            ->assertDontSee('Stock action')
+            // The retired legend card and its two explanatory lines.
+            ->assertDontSee('Stock actions')
             ->assertDontSee('stock committed')
-            ->assertDontSee('stock returned')
-            ->assertDontSee('Stock actions');
+            ->assertDontSee('no inventory effect');
     }
 
-    public function test_create_and_update_round_trip_unchanged(): void
+    /** The checked state reflects the stored flag, per row. */
+    public function test_the_checkbox_reflects_each_statuss_stored_flag(): void
+    {
+        $this->actingAs(User::factory()->create());
+        OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'deducts_stock' => true, 'sort_order' => 1]);
+        OrderStatus::create(['store_id' => 1, 'name' => 'Refunded', 'deducts_stock' => false, 'sort_order' => 2]);
+
+        $content = $this->get(route('admin.order-statuses.index'))->assertOk()->getContent();
+
+        // Three controls: one per row, plus the Add status form's own. Exactly
+        // one is checked - the deducting row - and a brand new status starts
+        // unchecked.
+        $this->assertSame(3, substr_count($content, 'name="deducts_stock" value="1"'));
+        $this->assertSame(1, substr_count($content, 'name="deducts_stock" value="1" checked'));
+    }
+
+    public function test_create_and_update_round_trip_the_stock_flag(): void
     {
         $this->actingAs(User::factory()->create());
 
         $this->post(route('admin.order-statuses.store'), [
-            'name' => 'Quality Check', 'stock_action' => 'decrement', 'sort_order' => 4,
+            'name' => 'Quality Check', 'deducts_stock' => '1', 'sort_order' => 4,
         ])->assertRedirect();
-        $this->assertDatabaseHas('order_statuses', ['name' => 'Quality Check', 'stock_action' => 'decrement']);
+        $this->assertDatabaseHas('order_statuses', ['name' => 'Quality Check', 'deducts_stock' => true]);
+
+        $status = OrderStatus::where('name', 'Quality Check')->firstOrFail();
+
+        // Clearing it saves: the row's hidden 0 companion is what makes an
+        // unchecked box post at all.
+        $this->put(route('admin.order-statuses.update', $status), [
+            'name' => 'Quality Check', 'deducts_stock' => '0', 'sort_order' => 4,
+        ])->assertRedirect();
+        $this->assertFalse((bool) $status->fresh()->deducts_stock);
+
+        $this->put(route('admin.order-statuses.update', $status), [
+            'name' => 'Quality Check', 'deducts_stock' => '1', 'sort_order' => 4,
+        ])->assertRedirect();
+        $this->assertTrue((bool) $status->fresh()->deducts_stock);
+    }
+
+    /**
+     * The flag is two-valued: anything that is not a boolean is refused rather
+     * than quietly coerced to "does not deduct", which would silently hand a
+     * store's stock back.
+     */
+    public function test_a_non_boolean_stock_flag_is_rejected(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'deducts_stock' => true, 'sort_order' => 1]);
+
+        $this->put(route('admin.order-statuses.update', $status), [
+            'name' => 'Processing', 'deducts_stock' => 'increment', 'sort_order' => 1,
+        ])->assertSessionHasErrors('deducts_stock');
+
+        $this->assertTrue((bool) $status->fresh()->deducts_stock);
+
+        $this->post(route('admin.order-statuses.store'), [
+            'name' => 'Bogus Status', 'deducts_stock' => 'decrement', 'sort_order' => 2,
+        ])->assertSessionHasErrors('deducts_stock');
+
+        $this->assertDatabaseMissing('order_statuses', ['name' => 'Bogus Status']);
+    }
+
+    /** A status created without the flag does not deduct. */
+    public function test_a_new_status_defaults_to_not_deducting(): void
+    {
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Some Status', 'sort_order' => 1]);
+
+        $this->assertFalse((bool) $status->fresh()->deducts_stock);
     }
 
     /**

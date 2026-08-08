@@ -59,7 +59,7 @@ class ErpCatalogController extends Controller
     public function orderStatuses(Request $request): JsonResponse
     {
         $statuses = OrderStatus::query()
-            ->select(['id', 'name', 'is_default', 'stock_action', 'sort_order'])
+            ->select(['id', 'name', 'is_default', 'deducts_stock', 'sort_order'])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
@@ -68,7 +68,13 @@ class ErpCatalogController extends Controller
                     'id' => $status->id,
                     'name' => $status->name,
                     'is_default' => $status->is_default,
-                    'stock_action' => $status->stock_action,
+                    'deducts_stock' => (bool) $status->deducts_stock,
+                    // Deprecated alias kept so an ERP already reading
+                    // stock_action does not break on this deploy. There is no
+                    // 'increment' any more - returning stock is the automatic
+                    // reversal of a deduction, never a status tag - so this
+                    // field can now only be 'decrement' or null.
+                    'stock_action' => $status->deducts_stock ? 'decrement' : null,
                     'sort_order' => $status->sort_order,
                 ];
             });

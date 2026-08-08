@@ -49,7 +49,7 @@ class OrderStatusController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'stock_action' => ['nullable', 'in:decrement,increment'],
+            'deducts_stock' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
             // Fulfillment placement left core with the column it lived on
@@ -62,6 +62,9 @@ class OrderStatusController extends Controller
         $validated['store_id'] = $this->storeId;
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
         $validated['is_default'] = $request->boolean('is_default');
+        // Coerced only AFTER validation, so a bogus value is rejected rather
+        // than quietly read as false.
+        $validated['deducts_stock'] = $request->boolean('deducts_stock');
 
         if ($validated['is_default']) {
             OrderStatus::where('store_id', $this->storeId)->update(['is_default' => false]);
@@ -79,7 +82,7 @@ class OrderStatusController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'stock_action' => ['nullable', 'in:decrement,increment'],
+            'deducts_stock' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
             // Fulfillment placement left core with the column it lived on
@@ -91,6 +94,9 @@ class OrderStatusController extends Controller
 
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
         $validated['is_default'] = $request->boolean('is_default');
+        // Coerced only AFTER validation, so a bogus value is rejected rather
+        // than quietly read as false.
+        $validated['deducts_stock'] = $request->boolean('deducts_stock');
 
         if ($validated['is_default']) {
             OrderStatus::where('store_id', $this->storeId)->where('id', '!=', $orderStatus->id)->update(['is_default' => false]);
