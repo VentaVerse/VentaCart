@@ -58,6 +58,54 @@
 }
 
 /* ------------------------------------------------------------------
+   AWB flash - after a SYNCHRONOUS booking success (tracking number
+   already known), the "Open AWB" fallback banner. A companion x-init on
+   this same element (index.blade.php) fires window.open() the moment the
+   banner renders; the button here is what an admin whose browser blocked
+   that popup clicks instead. Accent-toned since it reads as a positive
+   follow-up to the toast's own "Booked, tracking …" message, never a
+   warning. The async 'creating' path never flashes 'label_url', so this
+   banner never renders for a still-pending booking.
+   ------------------------------------------------------------------ */
+
+.cf-awb-flash {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: var(--radius-md);
+}
+
+.cf-awb-flash__text {
+    font-size: 13px;
+    color: var(--text);
+}
+
+.cf-awb-flash__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: var(--control-h-sm);
+    padding: 0 14px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity var(--motion-fast);
+}
+
+.cf-awb-flash__btn:hover { opacity: .9; }
+
+/* ------------------------------------------------------------------
    Segment bar: the spine-phase tabs. Active item lifts onto --surface
    inside a sunken trough — elevation and a hairline ring, never a brand
    colour (colour belongs to the status column alone).

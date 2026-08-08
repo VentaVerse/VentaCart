@@ -472,6 +472,45 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Owner directive (2026-08-08, "AWB opens on a new tab after booking"):
+    // every AWB/waybill anchor opens in a new tab. Locks in the row's
+    // "Print waybill" button and the drawer's static "Print AWB" link so a
+    // future edit can't silently drop target="_blank"/rel="noopener".
+    // ------------------------------------------------------------------
+
+    public function test_awb_anchors_open_in_a_new_tab(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        $order = $this->makeOrder('for_pickup', 'QX-TAB-001');
+
+        $response = $this->get($this->queueUrl() . '?filter=all');
+        $content = $response->getContent();
+
+        // Row action: "Print waybill" -> the authenticated label route,
+        // opened in a new tab so the operator never loses the queue.
+        // x-admin.button's own attribute merge() reorders target/rel after
+        // the generated class="..." attribute (see button.blade.php), so
+        // this pulls the whole rendered anchor out rather than asserting on
+        // one brittle attribute ordering.
+        preg_match('/<a href="' . preg_quote(route('admin.fulfillment.label', $order), '/') . '"[^>]*>Print waybill<\/a>/', $content, $waybillMatch);
+        $this->assertNotEmpty($waybillMatch, 'Expected a "Print waybill" anchor pointing at the label route.');
+        $this->assertStringContainsString('target="_blank"', $waybillMatch[0]);
+        $this->assertStringContainsString('rel="noopener"', $waybillMatch[0]);
+
+        // Drawer: "Print AWB" is bound to labelUrl via Alpine (:href), but
+        // its target/rel are STATIC attributes on the same anchor markup,
+        // present in the response regardless of which row opened it.
+        $this->assertStringContainsString(
+            ':href="labelUrl" target="_blank" rel="noopener"',
+            $content
+        );
+        $this->assertStringContainsString('>Print AWB<', $content);
+    }
+
+    // ------------------------------------------------------------------
     // Interface evolutions #4/#5 — QuadX-safe defaults.
     // ------------------------------------------------------------------
 

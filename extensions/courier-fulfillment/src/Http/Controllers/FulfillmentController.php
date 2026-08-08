@@ -397,8 +397,13 @@ class FulfillmentController extends Controller
 
         // Final-review fix (Finding 2): an async courier (SPX) can return
         // success with NO tracking number yet (courier_status='creating' —
-        // the bounded create-poll window elapsed). "Booked — tracking ."
+        // the bounded create-poll window elapsed). "Booked - tracking ."
         // read as a broken booking; say what actually happened instead.
+        // Owner directive (2026-08-08, "AWB opens on a new tab after
+        // booking"): this async path never carries a 'label_url' flash -
+        // there is no AWB to open yet, so the queue view's auto-open banner
+        // (index.blade.php) never renders here. Unchanged from before this
+        // directive.
         if (empty($res['tracking_number'])) {
             $courierName = CourierManager::get((string) ($res['courier'] ?? ''))?->getName()
                 ?: strtoupper((string) ($res['courier'] ?? '')) ?: 'The courier';
@@ -406,7 +411,18 @@ class FulfillmentController extends Controller
             return back()->with('success', "Booking submitted. {$courierName} is creating the shipment. The tracking number will appear here in a moment (refresh or poll statuses).");
         }
 
-        return back()->with('success', "Booked, tracking {$res['tracking_number']}.");
+        // Owner directive (2026-08-08, "AWB opens on a new tab after
+        // booking"): a synchronous success (tracking number already known)
+        // also flashes the label route's own URL - never the courier's raw
+        // printLabel() URL directly, so this stays the SAME authenticated,
+        // cache-aware route the "Print waybill" button and drawer's "Print
+        // AWB" link already use (see label() below). The queue view reads
+        // this flash key to auto-open the AWB in a new tab, with a visible
+        // "Open AWB" button as the fallback for when a popup blocker
+        // swallows the automatic open.
+        return back()
+            ->with('success', "Booked, tracking {$res['tracking_number']}.")
+            ->with('label_url', route('admin.fulfillment.label', $order));
     }
 
     /**

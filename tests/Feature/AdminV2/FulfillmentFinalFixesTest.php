@@ -281,6 +281,70 @@ class FulfillmentFinalFixesTest extends TestCase
         $this->assertStringContainsString('Stub Async', session('success'));
         $this->assertStringNotContainsString('tracking .', session('success'));
 
+        // Owner directive (2026-08-08, "AWB opens on a new tab after
+        // booking"): the async pending path has no AWB to open yet, so it
+        // must never carry the 'label_url' flash the queue view's auto-open
+        // banner keys off of.
+        $response->assertSessionMissing('label_url');
+
         $this->assertSame('creating', $order->fresh()->courier_status);
+    }
+
+    // ------------------------------------------------------------------
+    // Owner directive (2026-08-08, "AWB opens on a new tab after booking"):
+    // a synchronous booking success (tracking number already known) must
+    // carry the label URL in the flash so the queue view can auto-open the
+    // AWB in a new tab, with a visible fallback button in case a popup
+    // blocker swallows the automatic open.
+    // ------------------------------------------------------------------
+
+    public function test_synchronous_booking_success_flashes_the_label_url_and_the_queue_renders_the_open_awb_button(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpx();
+        $this->configureSpxPickupOrigin();
+
+        $order = $this->makeCompleteOrder();
+
+        // Same batch_create_order -> get_order_create_result fake shape as
+        // FulfillmentQueueTest::test_booking_succeeds_with_the_exact_browser_field_set_for_a_default_drop_off_spx_order()
+        // - a real synchronous success, tracking number already known.
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 207982800897462]]),
+            '*get_order_create_result*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'batch_no' => 207982800897462, 'task_status' => 4, 'description' => 'Done',
+                    'total_count' => 1, 'success_count' => 1, 'fail_count' => 0, 'progress' => '100.00%',
+                    'orders' => [['order_id' => (string) $order->id, 'tracking_no' => 'SPXPH000000000AWB', 'estimated_shipping_fee' => 25]],
+                    'fail_list' => [],
+                ],
+            ]),
+        ]);
+
+        $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
+            'courier' => 'spx', 'service' => 'standard', 'parcel' => 'medium',
+            'shipping_payment' => 'sender_pay', 'insure' => '0', 'pickup_slot' => '',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertStringContainsString('SPXPH000000000AWB', session('success'));
+
+        // The flash carries the SAME authenticated label route the "Print
+        // waybill" button and drawer's "Print AWB" link already use - never
+        // the courier's own raw printLabel() URL directly.
+        $expectedLabelUrl = route('admin.fulfillment.label', $order->fresh());
+        $response->assertSessionHas('label_url', $expectedLabelUrl);
+
+        // Following the redirect renders the queue with the flash still in
+        // session (assertRedirect() alone doesn't follow it) - the banner's
+        // "Open AWB" button must be a real target="_blank" anchor pointing
+        // at that exact URL, never a plain link a middle-click would miss.
+        $queuePage = $this->get($this->queueUrl());
+        $queuePage->assertOk();
+        $queuePage->assertSee('Open AWB');
+        $queuePage->assertSee('href="' . $expectedLabelUrl . '" target="_blank" rel="noopener"', false);
     }
 }

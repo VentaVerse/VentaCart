@@ -71,6 +71,23 @@
 
     <div x-data="fulfillment()">
 
+        @if (session('label_url'))
+            {{-- Owner directive (2026-08-08, "AWB opens on a new tab after
+                 booking"): FulfillmentController::book()'s SYNC success path
+                 (tracking number already known) flashes 'label_url' alongside
+                 the toast's own 'success' message (see toasts.blade.php).
+                 x-init fires the same window.open() a manual "Print waybill"
+                 click would trigger - a popup blocker can silently swallow
+                 that, so this banner ALSO renders a real target="_blank"
+                 "Open AWB" anchor as the fallback that always works. The
+                 async 'creating' path never sets this flash key, so this
+                 banner never renders for a still-pending booking. --}}
+            <div class="cf-awb-flash" x-init="window.open(@js(session('label_url')), '_blank')">
+                <span class="cf-awb-flash__text">Booked. The AWB should have opened in a new tab.</span>
+                <a href="{{ session('label_url') }}" target="_blank" rel="noopener" class="cf-awb-flash__btn">Open AWB</a>
+            </div>
+        @endif
+
         @if (empty($couriers))
             <div class="mb-4 rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-[13px] text-v-warning">
                 No courier is enabled yet.
