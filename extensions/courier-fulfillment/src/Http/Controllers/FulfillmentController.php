@@ -19,8 +19,45 @@ use Illuminate\Support\Facades\Storage;
  */
 class FulfillmentController extends Controller
 {
+    /**
+     * fulfillment-tabs-v3 Task 3: the current URL vocabulary — every value
+     * this page's own segment-bar links can ever set. 'all' stays a valid
+     * (unlisted, no tab of its own) deep-link escape hatch, same as before
+     * this task.
+     */
+    private const VALID_FILTERS = ['unpaid', 'to_ship', 'in_transit', 'delivered', 'failed', 'cancelled', 'all'];
+    private const VALID_SUBS = ['to_pack', 'to_handover'];
+
+    /**
+     * Pre-Task-3 filter values a saved link/bookmark can still carry:
+     * 'to_book' predates Task 2's to_pack rename, 'to_handover' and
+     * 'booking' were their own top-level tabs before this task folded both
+     * into To Ship's sub-tabs. 301 (house convention for a moved resource —
+     * see ShippingSettingController::index()'s TAB_REDIRECTS) so an old
+     * link converges on the new URL instead of staying broken forever.
+     */
+    private const LEGACY_FILTER_REDIRECTS = [
+        'to_book'     => ['filter' => 'to_ship', 'sub' => 'to_pack'],
+        'to_handover' => ['filter' => 'to_ship', 'sub' => 'to_handover'],
+        'booking'     => ['filter' => 'to_ship', 'sub' => 'to_handover'],
+    ];
+
     public function index(Request $request)
     {
+        // fulfillment-tabs-v3 Task 3: legacy alias, resolved BEFORE anything
+        // else (no settings lookup, no query) — a bookmarked old link must
+        // redirect even while the queue is paused. Every OTHER query param
+        // (search, per_page, page) rides along unchanged via except(); only
+        // 'filter' is replaced and 'sub' is added/overwritten.
+        $rawFilter = $request->query('filter');
+        if (is_string($rawFilter) && isset(self::LEGACY_FILTER_REDIRECTS[$rawFilter])) {
+            return redirect()->route(
+                'admin.fulfillment.index',
+                array_merge($request->except(['filter', 'sub']), self::LEGACY_FILTER_REDIRECTS[$rawFilter]),
+                301
+            );
+        }
+
         // "Pause" the queue without touching the extension's install/enable
         // state or any individual courier's own enabled flag — see
         // CourierSettingsController's report for the full history of this
@@ -38,7 +75,29 @@ class FulfillmentController extends Controller
         $couriers = CourierManager::enabled();
         $primary  = $couriers[0] ?? null;
 
-        $filter  = $request->query('filter', 'to_pack');
+        // fulfillment-tabs-v3 Task 3: 'filter' is one of the six top-level
+        // segment-bar tabs (+ 'all' as a deep-link escape hatch); an
+        // unrecognized value (never emitted by this page's own links, and
+        // not one of the legacy aliases handled above) falls back to the
+        // default tab rather than rendering an empty/broken page.
+        $filter = in_array($rawFilter, self::VALID_FILTERS, true) ? $rawFilter : 'to_ship';
+
+        // 'sub' only has meaning under 'to_ship' (spec: "sub ignored
+        // elsewhere") — To Pack is the default sub-tab (where fulfillment
+        // starts).
+        $sub = null;
+        if ($filter === 'to_ship') {
+            $rawSub = $request->query('sub');
+            $sub = in_array($rawSub, self::VALID_SUBS, true) ? $rawSub : 'to_pack';
+        }
+
+        // The bucket the query-building logic below actually filters by:
+        // identical to $filter for every tab except To Ship, which defers to
+        // its ACTIVE sub-tab's own courier-phase bucket name (to_pack /
+        // to_handover — the same bucket names phaseTally() below already
+        // produces; unchanged by this task).
+        $bucket = $filter === 'to_ship' ? $sub : $filter;
+
         $perPage = (int) $request->query('per_page', 25);
         if (!in_array($perPage, [10, 25, 50], true)) {
             $perPage = 25;
@@ -77,6 +136,13 @@ class FulfillmentController extends Controller
         // returns() below — one derivation, never two).
         [$phaseCounts, $phaseStatusGroups, $handoverByCourier] = $this->phaseTally($base);
 
+        // fulfillment-tabs-v3 Task 3: To Ship's own top-level count is the
+        // sum of its two sub-tabs — 'booking' (async create in flight)
+        // never has members of its own here (tabBucketForParts() already
+        // folds it into 'to_handover' for tab membership), so summing just
+        // these two never double-counts a row.
+        $phaseCounts['to_ship'] = ($phaseCounts['to_pack'] ?? 0) + ($phaseCounts['to_handover'] ?? 0);
+
         $query = (clone $base)
             ->with('status:id,name,fulfillment_stage')
             ->with(['products' => function ($q) {
@@ -95,9 +161,15 @@ class FulfillmentController extends Controller
         // stage filters, and every courier-phase filter below is additionally
         // scoped to stage 'ready' so a stage-claimed order never leaks into
         // a courier-phase tab it no longer belongs to.
-        if ($filter === 'unpaid') {
+        //
+        // fulfillment-tabs-v3 Task 3: branches on $bucket, not $filter — for
+        // every tab except To Ship they're the same string, but To Ship
+        // itself has no query shape of its own; its ACTIVE SUB-tab
+        // ($bucket = 'to_pack' or 'to_handover') is what actually narrows
+        // the listing, exactly as it did as a top-level tab before this task.
+        if ($bucket === 'unpaid') {
             $query->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'unpaid'));
-        } elseif ($filter === 'to_pack') {
+        } elseif ($bucket === 'to_pack') {
             // Task T4 fix (+ final-review Finding 2): excludes BOTH async
             // bridging statuses ('creating' AND 'creation_failed' — also
             // tracking-number-null) — those belong to the To Handover/Failed
@@ -109,7 +181,7 @@ class FulfillmentController extends Controller
                     $q->whereNull('courier_status')
                         ->orWhereNotIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
                 });
-        } elseif ($filter === 'cancelled') {
+        } elseif ($bucket === 'cancelled') {
             // Membership per the tab-model spec: stage 'cancelled' (a real
             // order cancel) claims the order regardless of courier state,
             // OR a stage-'ready' order whose courier phase itself bucketed
@@ -129,19 +201,19 @@ class FulfillmentController extends Controller
                         $this->applyPhaseGroups($ready, $groups);
                     });
             });
-        } elseif ($filter !== 'all') {
+        } elseif ($bucket !== 'all') {
             // A spine-phase tab (to_handover, in_transit, delivered, failed):
             // stage 'ready' orders whose (provider, raw status) combo
             // buckets into this phase — the exact combos found by the tally
             // above, so the list always matches its tab's count. ('all'
             // stays supported as a filter value for deep links even though
             // it no longer renders as a tab.)
-            $groups = $phaseStatusGroups[$filter] ?? [];
+            $groups = $phaseStatusGroups[$bucket] ?? [];
             // Task T4 fix (+ final-review Finding 2): a 'creating' or
             // 'creation_failed' order has no tracking number yet but must
             // still be reachable from its tab (To Handover / Failed) —
             // applyPhaseGroups() below narrows to the exact (provider,
-            // status) combos the tally found for $filter, so relaxing this
+            // status) combos the tally found for $bucket, so relaxing this
             // to admit those rows never leaks one into a phase it doesn't
             // belong to.
             $query->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'ready'))
@@ -209,6 +281,7 @@ class FulfillmentController extends Controller
             'primary' => $primary,
             'courierOptions' => $courierOptions,
             'filter' => $filter,
+            'sub' => $sub,
             'perPage' => $perPage,
             'phaseCounts' => $phaseCounts,
             'handoverByCourier' => $handoverByCourier,

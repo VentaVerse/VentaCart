@@ -151,12 +151,26 @@ class FulfillmentQueueTest extends TestCase
         );
     }
 
-    /** An order in the queue; optionally booked with a raw courier status. */
-    private function makeOrder(?string $courierStatus = null, ?string $tracking = null, string $provider = 'quadx'): Order
+    /**
+     * fulfillment-tabs-v3 Task 3: a status row carrying a NON-default
+     * fulfillment_stage (defaultStatus() above is 'ready', the migration's
+     * own default) — for orders that must land in the Unpaid or Cancelled
+     * tab regardless of any courier state.
+     */
+    private function statusWithStage(string $stage, string $name): OrderStatus
+    {
+        return OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => $name],
+            ['sort_order' => 1, 'fulfillment_stage' => $stage],
+        );
+    }
+
+    /** An order in the queue; optionally booked with a raw courier status, optionally on a non-default status/stage. */
+    private function makeOrder(?string $courierStatus = null, ?string $tracking = null, string $provider = 'quadx', ?OrderStatus $status = null): Order
     {
         $order = Order::create([
             'store_id' => 1,
-            'order_status_id' => $this->defaultStatus()->id,
+            'order_status_id' => ($status ?? $this->defaultStatus())->id,
             'first_name' => 'Jane',
             'last_name' => 'Doe',
             'email' => 'jane@example.com',
@@ -183,50 +197,80 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Segment bar: the seven operational spine tabs, each with a mono count.
+    // Segment bar: the six top-level tabs (Unpaid first), stage-first
+    // counts, and the To Ship sub-segment bar (fulfillment-tabs-v3 Task 3).
     // ------------------------------------------------------------------
 
-    public function test_queue_renders_all_seven_phase_tabs_with_counts_from_seeded_orders(): void
+    public function test_queue_renders_the_six_top_level_tabs_with_stage_first_counts_and_the_to_ship_sub_bar(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        // Two never-booked, three awaiting handover, one in transit, one
-        // delivered, one failed, one cancelled — plus one returning, which has
-        // NO tab of its own (Returns is a separate page, W4).
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
+
+        // Unpaid stage claims the order regardless of courier state — one
+        // plain, one with an (unrealistic but spec-mandated) active booking.
+        $this->makeOrder(status: $unpaidStatus);
+        $unpaidWithBooking = $this->makeOrder('in_transit', 'QX-U-001', 'quadx', $unpaidStatus);
+
+        // Ready stage: two never-booked (to_pack), three awaiting handover
+        // (to_handover) plus one still CREATING (async 'booking' phase,
+        // folds into to_handover for TAB membership) — five under To Ship.
         $this->makeOrder();
         $this->makeOrder();
         $this->makeOrder('for_pickup', 'QX-H-001');
         $this->makeOrder('for_pickup', 'QX-H-002');
         $this->makeOrder('searching_for_rider', 'QX-H-003');
+        $creating = $this->makeOrder();
+        $creating->forceFill(['courier_provider' => 'spx', 'courier_status' => 'creating', 'courier_tracking_number' => null])->save();
+
         $this->makeOrder('in_transit', 'QX-T-001');
         $this->makeOrder('delivered', 'QX-D-001');
         $this->makeOrder('failed_delivery', 'QX-F-001');
+
+        // Cancelled tab: a real order-cancel (stage 'cancelled') AND a
+        // courier-side exception (stage 'ready', courier phase 'cancelled')
+        // both count here (tab-model spec).
+        $this->makeOrder(status: $cancelledStatus);
         $this->makeOrder('canceled', 'QX-C-001');
-        $this->makeOrder('returned', 'QX-R-001');
+
+        $this->makeOrder('returned', 'QX-R-001'); // returning has no tab of its own
 
         $response = $this->get($this->queueUrl());
         $response->assertOk();
 
-        foreach (['To Pack', 'Booking', 'To Handover', 'In Transit', 'Delivered', 'Failed', 'Cancelled'] as $label) {
+        foreach (['Unpaid', 'To Ship', 'In Transit', 'Delivered', 'Failed', 'Cancelled'] as $label) {
             $response->assertSee($label);
         }
+        // Top-level Booking tab is dropped entirely (owner directive).
+        $response->assertDontSee('>Booking<', false);
 
-        // Counts, per phase, from the seeded distribution above.
-        $response->assertSee('data-count-for="to_pack">2<', false);
-        $response->assertSee('data-count-for="booking">0<', false);
-        $response->assertSee('data-count-for="to_handover">3<', false);
+        // Top-level counts, stage-first.
+        $response->assertSee('data-count-for="unpaid">2<', false);
+        $response->assertSee('data-count-for="to_ship">6<', false); // 2 to_pack + (2 for_pickup + 1 searching_for_rider + 1 creating)
         $response->assertSee('data-count-for="in_transit">1<', false);
         $response->assertSee('data-count-for="delivered">1<', false);
         $response->assertSee('data-count-for="failed">1<', false);
-        $response->assertSee('data-count-for="cancelled">1<', false);
+        $response->assertSee('data-count-for="cancelled">2<', false);
 
         // `returning` is deliberately not a tab (ERP rule: returns are a
         // sibling page, never an eighth filter).
         $response->assertDontSee('data-count-for="returning"', false);
+
+        // The unpaid order with an active booking still counts as Unpaid,
+        // never leaking into In Transit — same stage-first rule Task 2 built.
+        $this->assertNotNull($unpaidWithBooking->courier_tracking_number);
+
+        // Default landing view (filter defaults to to_ship, sub to_pack):
+        // its own sub-bar renders with both sub counts.
+        $response->assertSee('To Pack');
+        $response->assertSee('To Handover');
+        $response->assertSee('data-count-for="to_pack">2<', false);
+        $response->assertSee('data-count-for="to_handover">4<', false);
     }
 
-    public function test_phase_tabs_filter_the_list_to_that_phase_only(): void
+    public function test_sub_bar_renders_only_under_to_ship_with_correct_counts_and_defaults_to_pack(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -234,21 +278,114 @@ class FulfillmentQueueTest extends TestCase
         $this->makeOrder('for_pickup', 'QX-H-100');
         $this->makeOrder('delivered', 'QX-D-100');
 
+        // Sub-bar renders under To Ship...
+        $toShip = $this->get($this->queueUrl() . '?filter=to_ship');
+        $toShip->assertOk()
+            ->assertSee('data-count-for="to_pack">0<', false)
+            ->assertSee('data-count-for="to_handover">1<', false);
+
+        // ...but not under any other top-level tab.
+        $this->get($this->queueUrl() . '?filter=delivered')
+            ->assertOk()
+            ->assertDontSee('data-count-for="to_pack"', false)
+            ->assertDontSee('data-count-for="to_handover"', false);
+
+        $this->get($this->queueUrl() . '?filter=cancelled')
+            ->assertOk()
+            ->assertDontSee('data-count-for="to_pack"', false);
+    }
+
+    public function test_to_ship_sub_tabs_filter_the_list_and_default_to_pack(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->makeOrder('for_pickup', 'QX-H-100');
+        $this->makeOrder('delivered', 'QX-D-100');
+        $unbooked = $this->makeOrder();
+
         $this->get($this->queueUrl() . '?filter=delivered')
             ->assertOk()
             ->assertSee('QX-D-100')
             ->assertDontSee('QX-H-100');
 
-        $this->get($this->queueUrl() . '?filter=to_handover')
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
             ->assertSee('QX-H-100')
-            ->assertDontSee('QX-D-100');
+            ->assertDontSee('QX-D-100')
+            ->assertDontSee('#' . $unbooked->id, false);
 
-        // Default view is To Pack — neither booked order shows there.
+        // filter=to_ship with NO sub defaults to to_pack.
+        $this->get($this->queueUrl() . '?filter=to_ship')
+            ->assertOk()
+            ->assertSee('#' . $unbooked->id, false)
+            ->assertDontSee('QX-D-100')
+            ->assertDontSee('QX-H-100')
+            ->assertSee('name="sub" value="to_pack"', false);
+
+        // An INVALID sub also defaults to to_pack, never a broken/empty query.
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=bogus')
+            ->assertOk()
+            ->assertSee('#' . $unbooked->id, false)
+            ->assertSee('name="sub" value="to_pack"', false);
+
+        // Bare default (no filter/sub at all) is the same as to_ship/to_pack.
         $this->get($this->queueUrl())
             ->assertOk()
+            ->assertSee('#' . $unbooked->id, false)
             ->assertDontSee('QX-D-100')
             ->assertDontSee('QX-H-100');
+    }
+
+    // ------------------------------------------------------------------
+    // Legacy URL aliases: a bookmarked pre-Task-3 (or pre-Task-2) link
+    // converges on the new filter=to_ship&sub=... shape via a 301,
+    // preserving every other query param.
+    // ------------------------------------------------------------------
+
+    public function test_legacy_filter_to_book_redirects_to_to_ship_and_to_pack_sub_preserving_other_params(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $response = $this->get($this->queueUrl() . '?filter=to_book&q=jane&per_page=10');
+
+        $response->assertStatus(301);
+        $location = $response->headers->get('Location');
+        $this->assertStringContainsString('filter=to_ship', $location);
+        $this->assertStringContainsString('sub=to_pack', $location);
+        $this->assertStringContainsString('q=jane', $location);
+        $this->assertStringContainsString('per_page=10', $location);
+    }
+
+    public function test_legacy_filter_to_handover_redirects_to_to_ship_and_to_handover_sub(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $response = $this->get($this->queueUrl() . '?filter=to_handover&per_page=50');
+
+        $response->assertStatus(301);
+        $location = $response->headers->get('Location');
+        $this->assertStringContainsString('filter=to_ship', $location);
+        $this->assertStringContainsString('sub=to_handover', $location);
+        $this->assertStringContainsString('per_page=50', $location);
+
+        // The redirect target itself renders fine.
+        $this->get($location)->assertOk();
+    }
+
+    public function test_legacy_filter_booking_redirects_to_to_ship_and_to_handover_sub(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $response = $this->get($this->queueUrl() . '?filter=booking');
+
+        $response->assertStatus(301);
+        $location = $response->headers->get('Location');
+        $this->assertStringContainsString('filter=to_ship', $location);
+        $this->assertStringContainsString('sub=to_handover', $location);
     }
 
     // ------------------------------------------------------------------
@@ -272,7 +409,7 @@ class FulfillmentQueueTest extends TestCase
         $order = $this->makeOrder('for_pickup', 'QX-NUM-1');
         $this->makeOrder(); // a second, non-matching order in the same tally
 
-        $response = $this->get($this->queueUrl() . '?filter=to_handover&q=' . $order->id);
+        $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover&q=' . $order->id);
 
         $response->assertOk()
             ->assertSee('#' . $order->id, false)
@@ -280,10 +417,12 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // "Parcels waiting for handover" per-courier chips — only on that tab.
+    // "Parcels waiting for handover" per-courier chips — moved (Task 3) to
+    // render only under To Ship > To Handover, never on To Pack or any
+    // other tab.
     // ------------------------------------------------------------------
 
-    public function test_handover_courier_chips_render_on_the_to_handover_tab_only(): void
+    public function test_handover_courier_chips_render_on_the_to_handover_sub_tab_only(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -291,12 +430,23 @@ class FulfillmentQueueTest extends TestCase
         $this->makeOrder('for_pickup', 'QX-H-201');
         $this->makeOrder('for_pickup', 'QX-H-202');
 
-        $this->get($this->queueUrl() . '?filter=to_handover')
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
             ->assertSee('Parcels waiting for handover')
             ->assertSee('QuadX');
 
+        // Not on To Ship's OTHER sub-tab...
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack')
+            ->assertOk()
+            ->assertDontSee('Parcels waiting for handover');
+
+        // ...nor on the bare default (to_ship/to_pack)...
         $this->get($this->queueUrl())
+            ->assertOk()
+            ->assertDontSee('Parcels waiting for handover');
+
+        // ...nor on any other top-level tab.
+        $this->get($this->queueUrl() . '?filter=in_transit')
             ->assertOk()
             ->assertDontSee('Parcels waiting for handover');
     }
@@ -500,6 +650,76 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // fulfillment-tabs-v3 Task 3: the "small, honest" Book gate — no
+    // FIRST-TIME "Book" button on an Unpaid or Cancelled tab row. A
+    // REBOOKABLE row (courier-side cancel exception, still has a tracking
+    // number) is UNCHANGED — its Rebook button stays (locked in by
+    // test_cancelled_booking_rows_keep_drawer_access_via_a_tracking_button
+    // above); this only gates the plain never-booked case.
+    // ------------------------------------------------------------------
+
+    public function test_unpaid_tab_row_never_offers_a_book_button(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $order = $this->makeOrder(status: $unpaidStatus);
+
+        $response = $this->get($this->queueUrl() . '?filter=unpaid');
+        $response->assertOk()
+            ->assertSee('#' . $order->id, false)
+            // 'openBooking(JSON.parse(' is the ROW button's own call
+            // (carrying this row's payload) — distinct from the booking
+            // modal drawer's static "openBooking(active)" reopen call,
+            // which renders regardless of any row (asserted absent here,
+            // not the drawer markup itself).
+            ->assertDontSee('openBooking(JSON.parse(', false);
+    }
+
+    public function test_cancelled_tab_row_with_no_prior_booking_never_offers_a_book_button(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        // A REAL order cancel (stage 'cancelled') that was never booked at
+        // all — courier_tracking_number null, so $rebookable is false. Per
+        // the tab-model spec this row is "view only", never Book.
+        $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
+        $order = $this->makeOrder(status: $cancelledStatus);
+
+        $response = $this->get($this->queueUrl() . '?filter=cancelled');
+        $response->assertOk()
+            ->assertSee('#' . $order->id, false)
+            ->assertDontSee('openBooking(JSON.parse(', false);
+    }
+
+    public function test_to_pack_and_to_handover_rows_still_offer_book_or_rebook(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        $unbooked = $this->makeOrder();
+        $booked = $this->makeOrder('for_pickup', 'QX-BOOKGATE-001');
+
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack')
+            ->assertOk()
+            ->assertSee('#' . $unbooked->id, false)
+            ->assertSee('openBooking(', false);
+
+        // Booked-and-actively-tracked rows never show Book/Rebook at all
+        // (they show Print waybill/Cancel/Tracking instead) — unaffected
+        // by this task's gate either way.
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
+            ->assertOk()
+            ->assertSee('QX-BOOKGATE-001')
+            ->assertSee('Print waybill');
+    }
+
+    // ------------------------------------------------------------------
     // Owner directive (2026-08-08, "AWB opens on a new tab after booking"):
     // every AWB/waybill anchor opens in a new tab. Locks in the row's
     // "Print waybill" button and the drawer's static "Print AWB" link so a
@@ -564,11 +784,23 @@ class FulfillmentQueueTest extends TestCase
 
         $response = $this->get($this->queueUrl() . '?filter=delivered&q=QX&per_page=10');
         $response->assertOk()
-            // Every other tab link keeps the operator's search + page size.
-            ->assertSee('filter=to_pack&amp;q=QX&amp;per_page=10', false)
+            // The To Ship tab link always lands on its default sub (to_pack),
+            // carrying the search + page size along.
+            ->assertSee('filter=to_ship&amp;sub=to_pack&amp;q=QX&amp;per_page=10', false)
             ->assertSee('filter=in_transit&amp;q=QX&amp;per_page=10', false)
             // The filters form re-submits within the active tab.
             ->assertSee('name="filter" value="delivered"', false);
+    }
+
+    public function test_sub_tab_links_preserve_search_and_per_page_params(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack&q=QX&per_page=10');
+        $response->assertOk()
+            ->assertSee('filter=to_ship&amp;sub=to_handover&amp;q=QX&amp;per_page=10', false)
+            ->assertSee('name="sub" value="to_pack"', false);
     }
 
     // ------------------------------------------------------------------
@@ -715,7 +947,7 @@ class FulfillmentQueueTest extends TestCase
     // internal phase itself is UNCHANGED — only its tab bucket moved).
     // ------------------------------------------------------------------
 
-    public function test_creating_spx_order_counts_and_lists_under_the_to_handover_tab(): void
+    public function test_creating_spx_order_counts_and_lists_under_the_to_handover_sub_tab(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -735,11 +967,13 @@ class FulfillmentQueueTest extends TestCase
         $response = $this->get($this->queueUrl());
         $response->assertOk()
             ->assertSee('data-count-for="to_pack">1<', false)
-            ->assertSee('data-count-for="booking">0<', false)
-            ->assertSee('data-count-for="to_handover">1<', false);
+            ->assertSee('data-count-for="to_handover">1<', false)
+            ->assertSee('data-count-for="to_ship">2<', false);
+        // Top-level Booking tab no longer exists at all.
+        $response->assertDontSee('data-count-for="booking"', false);
 
-        $handoverTab = $this->get($this->queueUrl() . '?filter=to_handover');
-        $handoverTab->assertOk()
+        $handoverSub = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover');
+        $handoverSub->assertOk()
             ->assertSee('#' . $creatingOrder->id, false)
             // The spine badge label (PhaseTone::toneFor('booking') is
             // 'info', label is the humanized phase name) is UNCHANGED —
@@ -752,16 +986,16 @@ class FulfillmentQueueTest extends TestCase
             // contain the plain ASCII substring asserted here).
             ->assertSee('Creating');
 
-        // Default view (To Pack) must NOT show the creating order.
+        // Default view (To Ship > To Pack) must NOT show the creating order.
         $this->get($this->queueUrl())
             ->assertOk()
             ->assertDontSee('#' . $creatingOrder->id, false);
 
-        // The old Booking-tab filter is now empty — its combos all
-        // collapsed into to_handover for tab membership.
-        $this->get($this->queueUrl() . '?filter=booking')
-            ->assertOk()
-            ->assertDontSee('#' . $creatingOrder->id, false);
+        // Legacy ?filter=booking now redirects (301) here rather than
+        // rendering an always-empty phase-group filter.
+        $legacy = $this->get($this->queueUrl() . '?filter=booking');
+        $legacy->assertStatus(301);
+        $this->assertStringContainsString('sub=to_handover', $legacy->headers->get('Location'));
     }
 
     // ------------------------------------------------------------------
@@ -786,7 +1020,7 @@ class FulfillmentQueueTest extends TestCase
         // nowrap-bearing .cf-col-act <td>.
         $order = $this->makeOrder('for_pickup', 'QX-WRAP-001');
 
-        $response = $this->get($this->queueUrl() . '?filter=to_handover');
+        $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover');
         $content = $response->getContent();
 
         $response->assertOk();
@@ -820,7 +1054,7 @@ class FulfillmentQueueTest extends TestCase
             'actual_fee' => ['actual_shipping_fee' => 222.22],
         ])])->save();
 
-        $response = $this->get($this->queueUrl() . '?filter=to_handover');
+        $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover');
         $response->assertOk()
             ->assertSee('SPX-FEE-1')
             ->assertSee('111.11', false)

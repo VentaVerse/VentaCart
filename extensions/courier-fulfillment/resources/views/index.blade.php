@@ -55,17 +55,31 @@
             return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
         };
 
-        // The seven operational spine tabs. `returning` is deliberately NOT a
-        // tab — returns are a sibling page (the aside link), never an eighth
-        // filter (the ERP rule this grammar is copied from).
+        // fulfillment-tabs-v3 Task 3: the six top-level tabs, Unpaid first
+        // (owner directive — gateways auto-advance paid orders past it, so
+        // it's where manual/reseller orders wait). To Ship replaces the old
+        // top-level To Pack/Booking/To Handover trio: its own count is the
+        // sum of those two courier buckets (phaseCounts['to_ship'], the
+        // controller's own composite), and it renders a SUB-segment bar
+        // below (To Pack / To Handover) rather than being a single flat
+        // list. `returning` is deliberately NOT a tab — returns are a
+        // sibling page (the aside link), never an eighth filter (the ERP
+        // rule this grammar is copied from).
         $phaseTabs = [
+            'unpaid'     => 'Unpaid',
+            'to_ship'    => 'To Ship',
+            'in_transit' => 'In Transit',
+            'delivered'  => 'Delivered',
+            'failed'     => 'Failed',
+            'cancelled'  => 'Cancelled',
+        ];
+
+        // To Ship's own two sub-tabs — default sub is To Pack (where
+        // fulfillment starts). Rendered only while the To Ship tab itself
+        // is active (see the sub-segment bar block below).
+        $subTabs = [
             'to_pack'     => 'To Pack',
-            'booking'     => 'Booking',
             'to_handover' => 'To Handover',
-            'in_transit'  => 'In Transit',
-            'delivered'   => 'Delivered',
-            'failed'      => 'Failed',
-            'cancelled'   => 'Cancelled',
         ];
     @endphp
 
@@ -107,12 +121,15 @@
             <p class="cf-cmdbar__hint">Pulls the latest status for every in-flight shipment from each enabled courier, the same pull the scheduled automation runs.</p>
         </div>
 
-        {{-- Segment bar: the spine phases, each with a mono count. Returns is
-             a sibling page on the far side, not an eighth tab. --}}
+        {{-- Segment bar: Unpaid first, then the spine phases, each with a
+             mono count. Returns is a sibling page on the far side, not an
+             eighth tab. To Ship's link always lands on its DEFAULT sub-tab
+             (To Pack) — the active sub-tab's own bar (below) is what lets
+             the operator move to To Handover from there. --}}
         <div class="cf-segment-bar">
             <div class="cf-segment" role="tablist" aria-label="Fulfillment phase">
                 @foreach ($phaseTabs as $key => $label)
-                    <a href="{{ route('admin.fulfillment.index', array_filter(['filter' => $key, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}"
+                    <a href="{{ route('admin.fulfillment.index', array_filter(['filter' => $key, 'sub' => $key === 'to_ship' ? 'to_pack' : null, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}"
                        class="cf-segment__item {{ $filter === $key ? 'is-active' : '' }}"
                        @if ($filter === $key) aria-current="page" @endif>
                         <span>{{ $label }}</span>
@@ -128,9 +145,32 @@
             @endif
         </div>
 
+        {{-- Sub-segment bar: To Ship's own To Pack / To Handover split —
+             ERP x-segment--sub pattern (same segment anatomy, no
+             trough/background, slightly smaller) so it reads as nested
+             under the tab above it, never a second bar of equal weight.
+             Renders ONLY under To Ship; $sub is ignored (and this bar never
+             renders) on every other tab. --}}
+        @if ($filter === 'to_ship')
+            <div class="cf-segment-bar cf-segment-bar--sub">
+                <div class="cf-segment cf-segment--sub" role="tablist" aria-label="To Ship stage">
+                    @foreach ($subTabs as $key => $label)
+                        <a href="{{ route('admin.fulfillment.index', array_filter(['filter' => 'to_ship', 'sub' => $key, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}"
+                           class="cf-segment__item {{ $sub === $key ? 'is-active' : '' }}"
+                           @if ($sub === $key) aria-current="page" @endif>
+                            <span>{{ $label }}</span>
+                            <span class="cf-segment__count" data-count-for="{{ $key }}">{{ number_format($phaseCounts[$key] ?? 0) }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         {{-- Courier tally — the handover step is where the operator counts
-             parcels per courier before each pickup arrives. --}}
-        @if ($filter === 'to_handover' && !empty($handoverByCourier))
+             parcels per courier before each pickup arrives. Moved (Task 3)
+             from the old top-level To Handover tab to its new home: To
+             Ship's To Handover sub-tab, and only there. --}}
+        @if ($filter === 'to_ship' && $sub === 'to_handover' && !empty($handoverByCourier))
             <div class="co-couriers">
                 <span class="co-couriers__label">Parcels waiting for handover</span>
                 @foreach ($handoverByCourier as $courierName => $count)
@@ -145,6 +185,9 @@
         {{-- Filter row: search + page size, one job each. --}}
         <form method="GET" action="{{ route('admin.fulfillment.index') }}" class="cf-filters">
             <input type="hidden" name="filter" value="{{ $filter }}">
+            @if ($filter === 'to_ship')
+                <input type="hidden" name="sub" value="{{ $sub }}">
+            @endif
             <x-admin.input type="search" name="q" :value="request('q')" placeholder="Order #, tracking, customer&hellip;" aria-label="Search orders" class="cf-filters__search" />
             <x-admin.select name="per_page" aria-label="Orders per page" class="cf-filters__select" @change="$event.target.form.submit()">
                 @foreach ([10, 25, 50] as $n)
@@ -153,7 +196,7 @@
             </x-admin.select>
             <x-admin.button type="submit" variant="secondary">Search</x-admin.button>
             @if (request('q'))
-                <a class="cf-filters__reset" href="{{ route('admin.fulfillment.index', ['filter' => $filter, 'per_page' => $perPage]) }}">Reset</a>
+                <a class="cf-filters__reset" href="{{ route('admin.fulfillment.index', array_filter(['filter' => $filter, 'sub' => $filter === 'to_ship' ? $sub : null, 'per_page' => $perPage], fn ($v) => $v !== null && $v !== '')) }}">Reset</a>
             @endif
         </form>
 
@@ -248,6 +291,22 @@
                             // longer registered: it stays non-cancelable instead of erroring.
                             $cancelable = $activelyBooked && $orderCourier
                                 && (!$order->courier_status || in_array($order->courier_status, $orderCourier->cancelableStatuses(), true));
+
+                            // fulfillment-tabs-v3 Task 3: the row's own tab bucket
+                            // (stage-first, same rule the segment bar counts by —
+                            // FulfillmentService::tabBucket()'s docblock) drives a
+                            // small, honest action gate: a FIRST-TIME "Book" button
+                            // makes no sense on an unpaid order (nothing to ship
+                            // yet — the owner's directive is "exactly ONE action:
+                            // Cancel") or on a genuinely order-cancelled one (the
+                            // order itself is off; booking it is not this button's
+                            // job). "Rebook" (a courier-side cancel exception, still
+                            // rebookable per the tab-model spec) is UNCHANGED — only
+                            // the plain, never-booked case is gated here. The full
+                            // per-tab action matrix (Cancel order, admin_cancelled
+                            // split) is Task 4's job.
+                            $rowBucket = \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order);
+                            $bookGated = in_array($rowBucket, ['unpaid', 'cancelled'], true) && !$rebookable;
 
                             $timelineRaw = $meta['timeline'] ?? [];
                             $timeline = [];
@@ -398,7 +457,7 @@
                                                      drawer (same JSON payload every other row action
                                                      uses) so the operator can see what's happening. --}}
                                                 <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</x-admin.button>
-                                            @elseif (!$activelyBooked && !empty($courierOptions))
+                                            @elseif (!$activelyBooked && !empty($courierOptions) && !$bookGated)
                                                 {{-- Component-tag attributes only compile {{ }} echoes, not
                                                      @-directives — @js() here would render as literal text.
                                                      Js::from() is what @js() expands to; the {{ }} form is the

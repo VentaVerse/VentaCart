@@ -188,8 +188,40 @@
 .cf-segment-bar__aside:hover { color: var(--text); }
 
 /* ------------------------------------------------------------------
-   Courier tally — only on the To Handover tab, where the operator counts
-   parcels per courier before the pickup arrives; figure leads, name follows.
+   Sub-segment bar (fulfillment-tabs-v3 Task 3): To Ship > To Pack / To
+   Handover. Same segment anatomy as the top-level bar above, deliberately
+   LIGHTER — no trough/background, no active-item box-shadow ring — so it
+   reads as a second tier nested under To Ship, never a second bar of equal
+   weight (the ERP's own x-segment--sub pattern).
+   ------------------------------------------------------------------ */
+
+.cf-segment-bar--sub {
+    margin: -6px 0 16px;
+}
+
+.cf-segment--sub {
+    padding: 0;
+    gap: 4px;
+    background: transparent;
+    border: none;
+}
+
+.cf-segment--sub .cf-segment__item {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 13px;
+}
+
+.cf-segment--sub .cf-segment__item.is-active {
+    background: var(--surface-sunken);
+    color: var(--text);
+    box-shadow: none;
+}
+
+/* ------------------------------------------------------------------
+   Courier tally — only on the To Ship > To Handover sub-tab, where the
+   operator counts parcels per courier before the pickup arrives; figure
+   leads, name follows.
    ------------------------------------------------------------------ */
 
 .co-couriers {
