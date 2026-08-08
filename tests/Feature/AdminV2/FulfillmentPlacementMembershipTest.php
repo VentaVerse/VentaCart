@@ -22,17 +22,21 @@ use Tests\TestCase;
  * would with no fulfillment module installed, by the per-courier status map
  * moving the order's CORE status, whose placement then names the tab.
  *
- * Actions are hardcoded per tab (owner rulings, 2026-08-09):
+ * ORDER actions are hardcoded per tab (owner rulings, 2026-08-09):
  *
- *   Tracking        every tab except Unpaid
- *   Print waybill   every tab except Unpaid
- *   Cancel booking  To Handover only
  *   Book            To Pack only
  *   Cancel order    Unpaid and To Pack
+ *   Cancel booking  To Handover only
  *
- * with two subtractive gates: a courier action renders only when the row
- * actually carries courier data, and no action renders that the server
- * would refuse.
+ * COURIER actions key on the row's courier data instead, in ANY tab
+ * (owner ruling, fix round): the "every tab except Unpaid" rule was
+ * justified by "since it is not booked yet", so the data is what governs.
+ *
+ *   Tracking        whenever the row carries courier data
+ *   Print waybill   whenever the booking is LIVE (isActivelyBooked())
+ *
+ * over all of which one rule applies, and only ever subtracts: no action
+ * renders that the server would refuse.
  */
 class FulfillmentPlacementMembershipTest extends TestCase
 {
@@ -333,6 +337,12 @@ class FulfillmentPlacementMembershipTest extends TestCase
     // Actions, per tab.
     // ------------------------------------------------------------------
 
+    /**
+     * An ordinary Unpaid order has no parcel, so the courier actions have
+     * nothing to act on and Cancel order is genuinely all it offers. This is
+     * what the "not booked yet" justification behind the original rule was
+     * protecting, and keying on the data preserves it exactly.
+     */
     public function test_unpaid_row_offers_cancel_order_only(): void
     {
         $this->actingAs(User::factory()->create());
@@ -349,6 +359,48 @@ class FulfillmentPlacementMembershipTest extends TestCase
             ->assertDontSee('openDrawer(JSON.parse(', false)
             ->assertDontSee('Print waybill')
             ->assertDontSee("cancel-fulfillment-{$order->id}", false);
+    }
+
+    /**
+     * The dead end this fix round closes (found live on order 29850, which
+     * holds a real SPX AWB while its core status is placed under Unpaid):
+     * an Unpaid-placed order carrying a LIVE booking rendered an EMPTY
+     * actions cell, because the tab subtracted both courier actions and the
+     * live booking subtracted Cancel order. The parcel now carries its own
+     * two buttons wherever its core status sits, while Book stays a To Pack
+     * action and the unbooked Unpaid row beside it is unchanged.
+     */
+    public function test_unpaid_row_with_a_live_booking_offers_its_parcels_own_buttons(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        $unpaid = $this->statusPlaced('unpaid', 'Unpaid');
+        // 'for_pickup' is a live QuadX booking (isActivelyBooked() true).
+        $booked = $this->makeOrder($unpaid, 'QX-U-001', 'for_pickup');
+        // Same tab, no parcel: the ordinary unpaid order, unchanged.
+        $plain = $this->makeOrder($unpaid);
+
+        $response = $this->get($this->queueUrl() . '?filter=unpaid');
+        $response->assertOk()
+            ->assertSee('QX-U-001')
+            // Tracking and Print waybill, both keyed on this row's own data.
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertSee('Print waybill')
+            ->assertSee('/sales/fulfillment/' . $booked->id . '/label', false)
+            // Booking is still a To Pack action, refused server-side here.
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            // Cancel booking stays To Handover only.
+            ->assertDontSee("cancel-fulfillment-{$booked->id}", false)
+            // Cancel order is refused while a booking is live, so the row
+            // does not offer it either (cancel the booking first).
+            ->assertDontSee("cancel-order-{$booked->id}", false);
+
+        // The parcel-less row on the same page keeps exactly its one action
+        // and gains no courier affordance from its neighbour.
+        $response->assertSee("cancel-order-{$plain->id}", false)
+            ->assertDontSee('/sales/fulfillment/' . $plain->id . '/label', false);
     }
 
     public function test_to_pack_row_offers_book_and_cancel_order_only(): void
@@ -411,8 +463,9 @@ class FulfillmentPlacementMembershipTest extends TestCase
 
     /**
      * Owner ruling, 2026-08-09: a real parcel always carries its own
-     * buttons, so Tracking and Print waybill render on every tab except
-     * Unpaid. Neither tab offers Book, Cancel order or Cancel booking.
+     * buttons, so Tracking and Print waybill render wherever the row's
+     * courier data says they can. None of these tabs offers Book, Cancel
+     * order or Cancel booking.
      */
     public function test_shipping_delivered_and_lost_damaged_rows_offer_tracking_and_waybill(): void
     {
@@ -437,9 +490,46 @@ class FulfillmentPlacementMembershipTest extends TestCase
     }
 
     /**
+     * Fix round: Lost & Damaged joins Failed and Cancelled in carrying the
+     * book-again hint, because reshipping after a claim is the normal
+     * outcome there and that tab offers no Book of its own.
+     *
+     * Asserted on the row hint's own class, never on its wording: the same
+     * sentence also lives in the drawer's Alpine template, which is present
+     * in the page markup for every row, so a text assertion here would pass
+     * whether the row rendered the hint or not.
+     */
+    public function test_lost_damaged_row_carries_the_book_again_hint_delivered_does_not(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        // A settled claim: the booking is cancelled, so nothing blocks a
+        // reship and the row's one path forward is the status change.
+        $this->makeOrder($this->statusPlaced('lost_damaged', 'Lost in Transit'), 'QX-L-002', 'canceled');
+        $this->makeOrder($this->statusPlaced('delivered', 'Delivered'), 'QX-D-002', 'canceled');
+
+        $this->get($this->queueUrl() . '?filter=lost_damaged')
+            ->assertOk()
+            ->assertSee('co-actions__hint', false);
+
+        // Delivered is settled, not a rebook candidate: no hint there.
+        $this->get($this->queueUrl() . '?filter=delivered')
+            ->assertOk()
+            ->assertDontSee('co-actions__hint', false);
+    }
+
+    /**
      * Failed rows keep Tracking. Booking is a To Pack action server-side
      * (FulfillmentService::bookingBlockedReason()), so instead of a Rebook
-     * button the server would refuse, the row names the one path forward.
+     * button the server would refuse, the row names the one path forward -
+     * but only once the booking is no longer live, since a live parcel has
+     * to have its booking cancelled before anything can be reshipped.
+     *
+     * The hint is asserted on its own class, not its wording: the same
+     * sentence lives in the drawer's Alpine template too, which is in the
+     * page markup regardless of any row.
      */
     public function test_failed_row_offers_tracking_and_the_book_again_hint_never_a_book_button(): void
     {
@@ -453,11 +543,22 @@ class FulfillmentPlacementMembershipTest extends TestCase
         $response->assertOk()
             ->assertSee('QX-F-001')
             ->assertSee('openDrawer(JSON.parse(', false)
-            // The parcel exists, so its own two buttons come with it.
+            // The parcel exists and is still live, so its own two buttons
+            // come with it - and no hint, because cancelling the booking
+            // comes first.
             ->assertSee('Print waybill')
-            ->assertSee("Change this order's status to one placed under To Pack to book it again.", false)
+            ->assertDontSee('co-actions__hint', false)
             ->assertDontSee('openBooking(JSON.parse(', false)
             ->assertDontSee("cancel-order-{$order->id}", false);
+
+        // Booking cancelled: nothing blocks a reship now, so the row names
+        // the status change that enables it.
+        $order->forceFill(['courier_status' => 'canceled'])->save();
+
+        $this->get($this->queueUrl() . '?filter=failed')
+            ->assertOk()
+            ->assertSee('co-actions__hint', false)
+            ->assertDontSee('openBooking(JSON.parse(', false);
     }
 
     /**

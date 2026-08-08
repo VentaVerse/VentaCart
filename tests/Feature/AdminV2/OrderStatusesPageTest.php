@@ -76,6 +76,12 @@ class OrderStatusesPageTest extends TestCase
         OrderStatus::create(['store_id' => 1, 'name' => 'Unpaid', 'fulfillment_placement' => 'unpaid', 'sort_order' => 1]);
         OrderStatus::create(['store_id' => 1, 'name' => 'Canceled', 'fulfillment_placement' => 'cancelled', 'sort_order' => 2]);
         OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'fulfillment_placement' => 'to_pack', 'sort_order' => 3]);
+        // A row on the RENAMED placement, so the per-row badge and the
+        // selected <option> - the two surfaces that render a placement's
+        // label per status rather than once in the legend - are actually
+        // exercised. Without a shipping-placed status the assertion that
+        // the retired spelling is gone had no row to prove it on.
+        $shipping = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'fulfillment_placement' => 'shipping', 'sort_order' => 4]);
 
         $response = $this->get(route('admin.order-statuses.index'));
         $response->assertOk()
@@ -88,13 +94,17 @@ class OrderStatusesPageTest extends TestCase
             ->assertSee('Lost & Damaged')
             ->assertSee('Delivered')
             ->assertSee('Failed')
-            // The retired spelling is gone from the page entirely.
-            ->assertDontSee('In Transit');
+            // The retired spelling is gone from the page entirely, including
+            // from the shipping-placed row's own badge and selected option.
+            ->assertDontSee('In Transit')
+            ->assertSee('value="shipping" selected>', false);
 
         // Eight <option> values render inside the row selector.
         foreach (['unpaid', 'to_pack', 'to_handover', 'shipping', 'failed', 'lost_damaged', 'delivered', 'cancelled'] as $value) {
             $response->assertSee('value="' . $value . '"', false);
         }
+
+        $this->assertSame('shipping', $shipping->fresh()->fulfillment_placement);
     }
 
     public function test_page_shows_help_text_for_each_placement(): void

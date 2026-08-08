@@ -123,6 +123,16 @@ class FulfillmentTabSetTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
+        // A REAL row on the spine's `in_transit` phase, so the retired-word
+        // assertion below has something to catch. Without it the page
+        // carries no status chip at all and assertDontSee('In Transit')
+        // passes on an empty table, proving nothing. 'out_for_delivery' is
+        // deliberate: QuadX buckets it to the `in_transit` spine phase (the
+        // internal value that deliberately did NOT change), while its own
+        // courier-vocabulary label reads "Out For Delivery", so the only
+        // thing that can put "In Transit" on this page is the spine chip.
+        $this->makeOrder($this->statusPlaced('shipping', 'Shipped'), 'QX-TAB-1', 'out_for_delivery');
+
         $html = $this->get($this->queueUrl())->assertOk()->getContent();
 
         $positions = [];
@@ -140,12 +150,17 @@ class FulfillmentTabSetTest extends TestCase
         asort($ordered);
         $this->assertSame(array_keys($positions), array_keys($ordered), 'The tabs do not render in the ruled order.');
 
-        // Labels, and the retired one.
-        $this->get($this->queueUrl())
+        // Labels, and the retired one - checked on the Shipping tab, where
+        // the seeded row above renders its status chip.
+        $this->get($this->queueUrl() . '?filter=shipping')
+            ->assertOk()
+            ->assertSee('QX-TAB-1')
             ->assertSee('All')
             ->assertSee('Shipping')
             ->assertSee('Lost & Damaged')
+            // The chip reads the tab's word, never the spine's own value.
             ->assertDontSee('In Transit')
+            ->assertSee('Out For Delivery')
             // Returns stays an aside link, never a tab.
             ->assertSee('Returns')
             ->assertDontSee('data-count-for="returns"', false);

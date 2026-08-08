@@ -51,7 +51,10 @@
 
                             $spinePhase = \Extensions\CourierFulfillment\FulfillmentService::phaseFor($order);
                             $spineTone  = \Extensions\CourierFulfillment\Support\PhaseTone::toneFor($spinePhase);
-                            $spineLabel = ucwords(str_replace('_', ' ', $spinePhase));
+                            // Display-only (see PhaseTone::labelFor()): same
+                            // chip vocabulary as the queue, so one shipment
+                            // never reads two different words across pages.
+                            $spineLabel = \Extensions\CourierFulfillment\Support\PhaseTone::labelFor($spinePhase);
 
                             // Most recent timeline entry (courier_meta shape is
                             // per-courier; validated the same way the queue's

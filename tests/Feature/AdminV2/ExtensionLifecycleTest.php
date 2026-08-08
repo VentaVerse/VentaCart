@@ -244,6 +244,16 @@ class ExtensionLifecycleTest extends TestCase
         (new ExtensionManager())->bootEnabled();
 
         $this->assertFalse(Route::has('admin.fulfillment.index'));
+
+        // And the sidebar entry goes with it, exactly as before the module
+        // gained its own 'enabled_setting' gate: the two mechanisms are
+        // independent, and the kernel's is still the one that removes the
+        // ROUTE (the setting only hides the entry, leaving its page live).
+        $keys = collect(\App\Support\AdminNav::groups(null))
+            ->flatMap(fn (array $group) => collect($group['items'])->pluck('key'))
+            ->all();
+        $this->assertNotContains('fulfillment', $keys);
+        $this->assertContains('orders', $keys);
     }
 
     /**

@@ -12,7 +12,7 @@
              page, never a redirect. Bookings triggered by the ERP endpoint are a
              separate code path and keep working regardless of this toggle. --}}
         <x-admin.empty-state icon="fulfillment" title="Fulfillment is paused"
-            description="The manual booking queue is turned off. Orders booked automatically through the ERP integration (if configured) are unaffected. This only hides this page.">
+            description="The manual booking queue is turned off, so Fulfillment is hidden from the Sales menu and this page lists nothing. Orders booked automatically through the ERP integration (if configured) are unaffected. Switch it back on in Courier Settings.">
             @if ($canConfigureCouriers)
                 <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings') }}">Go to Courier Settings</x-admin.button>
             @endif
@@ -290,7 +290,10 @@
                             // fact, never a tab fact (see FulfillmentService::tabBucket()).
                             $spinePhase = \Extensions\CourierFulfillment\FulfillmentService::phaseFor($order);
                             $spineTone  = \Extensions\CourierFulfillment\Support\PhaseTone::toneFor($spinePhase);
-                            $spineLabel = ucwords(str_replace('_', ' ', $spinePhase));
+                            // Display-only: the spine VALUE stays courier-side
+                            // vocabulary ('in_transit'), the chip reads the
+                            // queue's own word for it ("Shipping").
+                            $spineLabel = \Extensions\CourierFulfillment\Support\PhaseTone::labelFor($spinePhase);
 
                             $trackingUrl = null;
                             if ($orderCourier) {
@@ -333,19 +336,34 @@
 
                             // The row's tab: its core status placement, nothing
                             // else (FulfillmentService::tabBucket()). It is the
-                            // ONLY input to the action matrix below, which is
+                            // only input to the ORDER actions below, which are
                             // hardcoded per tab exactly as the owner's
                             // 2026-08-09 rulings state:
                             //
-                            //   Tracking       every tab except Unpaid
-                            //   Print waybill  every tab except Unpaid
-                            //   Cancel booking To Handover only
                             //   Book           To Pack only
                             //   Cancel order   Unpaid and To Pack
+                            //   Cancel booking To Handover only
                             //
-                            // (Both courier actions additionally require the
-                            // row to carry courier data, and Print waybill a
-                            // LIVE booking - see their gates below.)
+                            // The two COURIER actions key on courier data, not
+                            // on the tab (owner ruling, fix round): a parcel
+                            // carries its own tracking and its own waybill
+                            // wherever its core status happens to sit.
+                            //
+                            //   Tracking       any tab, whenever the row has
+                            //                  courier data
+                            //   Print waybill  any tab, whenever the booking
+                            //                  is LIVE (isActivelyBooked())
+                            //
+                            // The original "every tab except Unpaid" rule was
+                            // justified by "since it is not booked yet", and
+                            // that justification is what governs: a normal
+                            // unpaid order has no parcel, so keying on the
+                            // data renders nothing there anyway. Keying on the
+                            // TAB instead was what left an Unpaid-placed order
+                            // holding a live AWB with zero actions - no
+                            // waybill to reprint, no tracking to open, and
+                            // (correctly) no Book either, since booking stays
+                            // a To Pack action.
                             //
                             // Deriving the bucket PER ROW (rather than from
                             // the active tab) is also what makes the All tab
@@ -353,19 +371,9 @@
                             // and each one carries the buttons of the tab it
                             // really belongs to.
                             //
-                            // The two courier actions being everywhere-but-
-                            // Unpaid is this round's refinement, and it closes
-                            // a real dead end: before it, a live parcel whose
-                            // core status sat in an unexpected tab (Failed,
-                            // Cancelled, or any custom placement) rendered NO
-                            // buttons at all - no waybill to reprint, no
-                            // tracking to open. A real parcel always carries
-                            // its own buttons.
-                            //
-                            // Two gates apply on top, and only ever SUBTRACT:
-                            // a courier action renders only when the row
-                            // actually carries courier data, and no action
-                            // renders that the server would refuse.
+                            // One rule applies over all of it, and only ever
+                            // SUBTRACTS: no action renders that the server
+                            // would refuse.
                             $rowBucket = \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order);
 
                             // Book: To Pack only, and only when the server
@@ -391,36 +399,43 @@
                                 && !$creating;
 
                             // Tracking / Creating / Details: one drawer opener,
-                            // on every tab except Unpaid, for any row that has
-                            // courier state worth opening. An Unpaid order has
-                            // not been booked (booking is a To Pack action), so
-                            // there is nothing to track there.
-                            $offersDrawer = $hasCourierData && $rowBucket !== 'unpaid';
+                            // for any row that carries courier state worth
+                            // opening, in ANY tab. Courier data is the whole
+                            // gate - a row with no courier data has nothing to
+                            // show, which is why an ordinary Unpaid order still
+                            // renders no opener while an Unpaid-placed order
+                            // holding a real parcel does. Includes an async
+                            // create still in flight (provider set, tracking
+                            // number not landed yet), whose drawer is the only
+                            // place the "Creating..." state is explained.
+                            $offersDrawer = $hasCourierData;
 
-                            // Print waybill: every tab except Unpaid, whenever
-                            // the row carries a LIVE parcel. "Live" is the
-                            // subtractive gate doing its job, not a narrowing
-                            // of the ruling: a cancelled booking has no
-                            // printable AWB and the couriers refuse it
-                            // server-side (SpxFulfillment::printLabel()
-                            // returns "Cancelled shipments have no printable
-                            // waybill"), so offering the button would be
-                            // offering a refusal. isActivelyBooked() already
-                            // requires a tracking number, and it is
-                            // phase-first, so a courier-vocabulary cancel
-                            // (SPX '7001') reads the same as the literal
-                            // 'canceled' the admin cancel writes.
-                            $offersWaybill = $rowBucket !== 'unpaid' && $activelyBooked;
+                            // Print waybill: any tab, whenever the row carries
+                            // a LIVE parcel. "Live" is the never-render-a-
+                            // refusal rule doing its job: a cancelled booking
+                            // has no printable AWB and the couriers refuse it
+                            // server-side (SpxFulfillment::printLabel() returns
+                            // "Cancelled shipments have no printable waybill",
+                            // even when a PDF is already cached, because that
+                            // AWB is void). isActivelyBooked() is the exact
+                            // server predicate, and it is phase-first, so a
+                            // courier-vocabulary cancel (SPX '7001') reads the
+                            // same as the literal 'canceled' the admin cancel
+                            // writes.
+                            $offersWaybill = $activelyBooked;
 
                             // Cancel booking: To Handover, while the courier
                             // still allows cancelling this shipment.
                             $offersCancelBooking = $rowBucket === 'to_handover' && $cancelable;
 
-                            // Failed and Cancelled rows carry no Book of any
-                            // kind: booking is a To Pack action, server-side
-                            // too. The hint names the one path forward instead
-                            // of rendering a button the server would refuse.
-                            $showBookAgainHint = in_array($rowBucket, ['failed', 'cancelled'], true)
+                            // Failed, Cancelled and Lost & Damaged rows carry
+                            // no Book of any kind: booking is a To Pack action,
+                            // server-side too. The hint names the one path
+                            // forward instead of rendering a button the server
+                            // would refuse. Lost & Damaged is in the list
+                            // because reshipping after a claim is the normal
+                            // outcome there, and that tab offers no Book.
+                            $showBookAgainHint = in_array($rowBucket, ['failed', 'cancelled', 'lost_damaged'], true)
                                 && !$activelyBooked
                                 && !$creating;
 
@@ -583,13 +598,13 @@
                                     </td>
                                     <td class="cf-col-act" rowspan="{{ $lineCount }}">
                                         <div class="co-actions">
-                                            {{-- The per-tab action table, hardcoded. Read the
-                                                 $rowBucket block in this row's @php above for the
-                                                 table itself and for what each gate subtracts. Every
-                                                 branch below is keyed on the tab and nothing else:
-                                                 no courier state decides WHICH actions a tab offers,
-                                                 only whether an offered courier action has anything
-                                                 to act on. --}}
+                                            {{-- The action table. Read the $rowBucket block in this
+                                                 row's @php above for the table itself and for what
+                                                 each gate subtracts: the ORDER actions (Book, Cancel
+                                                 order, Cancel booking) are keyed on the row's tab and
+                                                 nothing else, the COURIER actions (Print waybill,
+                                                 Tracking) are keyed on the row's courier data and
+                                                 nothing else. --}}
                                             @if ($canBook)
                                                 {{-- Component-tag attributes only compile {{ }} echoes, not
                                                      @-directives — @js() here would render as literal text.

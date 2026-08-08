@@ -28,15 +28,15 @@
         @endif
 
         {{-- Module-level card: not owned by any one courier's schema. --}}
-        <x-admin.card title="Fulfillment" description="Pause the manual booking queue, choose which payment methods book as COD, and share your webhook URLs with couriers.">
+        <x-admin.card title="Fulfillment" description="Show or hide the manual booking queue, choose which payment methods book as COD, and share your webhook URLs with couriers.">
             <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" data-v-form class="space-y-6">
                 @csrf
 
                 <x-admin.field name="settings[fulfillment_enabled]"
-                    help="On by default: installing and enabling this extension is already the signal you want it active. Turn off to pause the booking queue (Sales › Fulfillment shows an explanatory page instead) without disabling the extension itself. Bookings triggered by the ERP API keep working either way.">
+                    help="On by default: installing and enabling this extension is already the signal you want it active. Turn off to hide Fulfillment from the Sales menu and pause the booking queue: this page stays reachable so you can switch it back on, and anyone opening a saved Fulfillment link sees a page explaining it is paused rather than an error. Bookings triggered by the ERP API keep working either way, and the extension itself stays installed (uninstall it from Settings, Modules).">
                     <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
                         <x-admin.toggle name="settings[fulfillment_enabled]" :checked="($settings['fulfillment_enabled'] ?? '1') !== '0'" />
-                        Fulfillment queue active
+                        Fulfillment queue active, shown in the Sales menu
                     </label>
                 </x-admin.field>
 

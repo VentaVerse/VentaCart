@@ -430,6 +430,89 @@ class FulfillmentTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Owner request (fix round): the module toggle also owns the MENU.
+    // Switching fulfillment off takes its entry out of the sidebar and the
+    // command palette, while the queue URL keeps answering with the paused
+    // page - hiding a menu entry is not a permission check, and a saved
+    // link has to explain itself rather than 404.
+    // ------------------------------------------------------------------
+
+    /**
+     * Nav item keys the registry currently offers.
+     *
+     * bootEnabled() first: the Fulfillment entry points at an
+     * extension-provided route name, which only exists once the extension's
+     * provider has booted. An HTTP request does that for itself, but a
+     * registry read straight from the test process needs it done explicitly
+     * (the same reason the other fulfillment suites boot it up front).
+     */
+    private function navItemKeys(): array
+    {
+        app(ExtensionManager::class)->bootEnabled();
+
+        return collect(\App\Support\AdminNav::groups(null))
+            ->flatMap(fn (array $group) => collect($group['items'])->pluck('key'))
+            ->all();
+    }
+
+    public function test_fulfillment_nav_entry_renders_while_the_module_setting_is_unset_or_on(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        // Unset means on: a merchant who never touched the toggle must see
+        // the module they just installed.
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'fulfillment_enabled']);
+        $this->assertContains('fulfillment', $this->navItemKeys());
+
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '1']);
+        $this->assertContains('fulfillment', $this->navItemKeys());
+
+        // And it is really in the rendered sidebar, not just the registry.
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee($this->queueUrl(), false);
+    }
+
+    public function test_fulfillment_nav_entry_disappears_when_the_module_is_switched_off(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '0']);
+
+        $this->assertNotContains('fulfillment', $this->navItemKeys());
+        // The command palette reads the same registry, so it goes too.
+        $this->assertNotContains(
+            'Fulfillment',
+            collect(\App\Support\AdminNav::paletteEntries(null))->pluck('label')->all()
+        );
+
+        // Every OTHER Sales entry is untouched: this hides one item, never
+        // its group.
+        $this->assertContains('orders', $this->navItemKeys());
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee($this->queueUrl(), false);
+    }
+
+    public function test_the_queue_url_still_answers_with_the_paused_page_while_the_nav_entry_is_hidden(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'fulfillment_enabled'], ['value' => '0']);
+
+        $this->assertNotContains('fulfillment', $this->navItemKeys());
+
+        // A bookmarked URL explains its own state: 200 and the paused page,
+        // never a 404 and never a redirect.
+        $this->get($this->queueUrl())
+            ->assertOk()
+            ->assertSee('Fulfillment is paused')
+            ->assertSee('hidden from the Sales menu');
+    }
+
+    // ------------------------------------------------------------------
     // Task 5: StatusMapper reads "{courier}_status_map" derived from the
     // courier key — proven with a second, non-QuadX key so this is genuinely
     // courier-agnostic, not just correct for the one key it shipped with.

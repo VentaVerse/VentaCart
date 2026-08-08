@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Models\Setting;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Route;
 
 class AdminNav
@@ -21,23 +23,109 @@ class AdminNav
      * EVERY admin page) throw RouteNotFoundException calling route() on a
      * name nothing registered, taking down the entire admin panel rather
      * than just hiding one link.
+     *
+     * Finally, an item may declare an optional 'enabled_setting' (see
+     * settingAllows() below) and disappears while that setting is switched
+     * off, the module-level "is this feature in use at all" answer, which
+     * is a different question from whether its code is installed.
      */
     public static function groups(?User $user = null): array
     {
-        return collect(config('admin-nav'))
-            ->map(function (array $group) use ($user) {
+        $registry = config('admin-nav');
+        $settings = static::settingValues($registry);
+
+        return collect($registry)
+            ->map(function (array $group) use ($user, $settings) {
                 $group['items'] = array_values(array_filter(
                     $group['items'],
                     fn (array $item) => (
                         $item['permission'] === null
                         || ($user?->hasPermission($item['permission']) ?? true)
                     ) && Route::has($item['route'])
+                        && static::settingAllows($item, $settings)
                 ));
 
                 return $group;
             })
             ->filter(fn (array $group) => $group['items'] !== [])
             ->values()
+            ->all();
+    }
+
+    /**
+     * An item that declares
+     *
+     *     'enabled_setting' => ['group' => 'courier', 'key' => 'fulfillment_enabled']
+     *
+     * renders only while that setting is on. Semantics are opt-OUT to match
+     * every toggle of this kind in the app: a missing row (never configured)
+     * means on, and only an explicit '0' hides the entry. A feature the
+     * merchant has never touched must appear, or a fresh install would ship
+     * with an invisible menu.
+     *
+     * Declared as DATA, never a closure: config/admin-nav.php has to survive
+     * `php artisan config:cache`, which serializes the array (a closure there
+     * is a hard failure), and this keeps the registry the single source of
+     * truth for the sidebar, breadcrumbs and command palette alike instead of
+     * teaching core a list of feature-specific conditions.
+     *
+     * @param  array<string, string|null>  $settings  "group.key" => stored value
+     */
+    protected static function settingAllows(array $item, array $settings): bool
+    {
+        $declared = $item['enabled_setting'] ?? null;
+
+        if (! is_array($declared) || ! isset($declared['group'], $declared['key'])) {
+            return true;
+        }
+
+        return ($settings[$declared['group'] . '.' . $declared['key']] ?? null) !== '0';
+    }
+
+    /**
+     * One query for every 'enabled_setting' the registry declares (today:
+     * one), rather than a query per item.
+     *
+     * @param  array<int, array<string, mixed>>  $registry
+     * @return array<string, string|null>
+     */
+    protected static function settingValues(array $registry): array
+    {
+        $declared = [];
+        foreach ($registry as $group) {
+            foreach ($group['items'] as $item) {
+                $setting = $item['enabled_setting'] ?? null;
+                if (is_array($setting) && isset($setting['group'], $setting['key'])) {
+                    $declared[$setting['group'] . '.' . $setting['key']] = $setting;
+                }
+            }
+        }
+
+        if ($declared === []) {
+            return [];
+        }
+
+        try {
+            $rows = Setting::query()
+                ->where(function ($query) use ($declared) {
+                    foreach ($declared as $setting) {
+                        $query->orWhere(fn ($q) => $q
+                            ->where('group', $setting['group'])
+                            ->where('key', $setting['key']));
+                    }
+                })
+                ->get(['group', 'key', 'value']);
+        } catch (QueryException) {
+            // No settings table yet (a fresh install part-way through its
+            // migrations, or a boot with no database): there is nothing to
+            // hide by, and the sidebar still has to render. Same fail-open
+            // principle as the Route::has() guard above: a nav helper must
+            // never be the thing that takes the admin panel down.
+            return [];
+        }
+
+        return $rows
+            ->mapWithKeys(fn (Setting $row) => [$row->group . '.' . $row->key => $row->value])
             ->all();
     }
 

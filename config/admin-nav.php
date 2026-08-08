@@ -9,6 +9,14 @@
 // matches against — they MUST equal the real URI segment, renamed here
 // wherever the display label diverges from it (e.g. 'Customer Groups' item
 // lives at the 'groups' URL segment, not 'customer-groups').
+//
+// 'enabled_setting' (optional) => ['group' => ..., 'key' => ...] names a row
+// in the settings table that switches the item off: the entry hides while
+// that setting is explicitly '0', and shows whenever it is missing or
+// anything else (opt-out, so a never-configured feature is visible). See
+// App\Support\AdminNav::settingAllows(). Its page must keep working while
+// hidden: hiding a menu entry is not a permission check, and a bookmarked
+// URL should explain its own state rather than 404.
 return [
     [
         'label' => null, // ungrouped
@@ -21,7 +29,7 @@ return [
         'segment' => 'sales',
         'items' => [
             ['key' => 'orders', 'label' => 'Orders', 'route' => 'admin.orders.index', 'icon' => 'orders', 'permission' => null, 'keywords' => ['sales', 'invoices']],
-            ['key' => 'fulfillment', 'label' => 'Fulfillment', 'route' => 'admin.fulfillment.index', 'icon' => 'fulfillment', 'permission' => null, 'keywords' => ['booking', 'waybill', 'awb', 'tracking', 'quadx', 'courier']],
+            ['key' => 'fulfillment', 'label' => 'Fulfillment', 'route' => 'admin.fulfillment.index', 'icon' => 'fulfillment', 'permission' => null, 'keywords' => ['booking', 'waybill', 'awb', 'tracking', 'quadx', 'courier'], 'enabled_setting' => ['group' => 'courier', 'key' => 'fulfillment_enabled']],
             ['key' => 'abandoned-carts', 'label' => 'Abandoned Carts', 'route' => 'admin.abandoned-carts.index', 'icon' => 'cart', 'permission' => null, 'keywords' => ['recovery']],
             ['key' => 'reviews', 'label' => 'Reviews', 'route' => 'admin.reviews.index', 'icon' => 'reviews', 'permission' => null, 'keywords' => ['ratings', 'stars']],
         ],

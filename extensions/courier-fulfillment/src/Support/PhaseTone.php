@@ -67,9 +67,39 @@ class PhaseTone
         'returning'   => 'warning',
     ];
 
+    /**
+     * DISPLAY-ONLY overrides for phases whose internal name is not what an
+     * operator should read (owner ruling, 2026-08-09).
+     *
+     * `in_transit` is the courier-side spine vocabulary and stays exactly
+     * that everywhere it matters (statusPhase() contracts, the tone map
+     * above, every courier adapter). The QUEUE, however, renamed its own tab
+     * to Shipping, and a row chip that said "In Transit" while the tab above
+     * it said "Shipping" was the last place the retired word survived. This
+     * map exists solely so the chip reads the tab's word; nothing internal
+     * ever consults it.
+     *
+     * @var array<string, string>
+     */
+    private const LABELS = [
+        'in_transit' => 'Shipping',
+    ];
+
     /** Badge tone for a spine phase, or 'neutral' for anything unmapped/null. */
     public static function toneFor(?string $phase): string
     {
         return self::TONES[$phase ?? ''] ?? 'neutral';
+    }
+
+    /**
+     * Operator-facing label for a spine phase. Unmapped phases keep the
+     * humanized form of their own name, so a courier adding a phase never
+     * needs an entry here to read acceptably.
+     */
+    public static function labelFor(?string $phase): string
+    {
+        $phase = (string) $phase;
+
+        return self::LABELS[$phase] ?? ucwords(str_replace('_', ' ', $phase));
     }
 }

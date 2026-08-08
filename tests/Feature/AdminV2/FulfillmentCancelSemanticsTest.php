@@ -597,11 +597,23 @@ class FulfillmentCancelSemanticsTest extends TestCase
             ->assertSee('#' . $plainUnpaid->id, false)
             ->assertSee('QX-UNPAID-H1')
             ->assertSee('QX-UNPAID-T1')
-            // The Unpaid tab's single action, on every one of them: no
-            // waybill, no drawer, no booking cancel.
-            ->assertDontSee('Print waybill')
-            ->assertDontSee('openDrawer(JSON.parse(', false)
-            ->assertDontSee('openBooking(JSON.parse(', false);
+            // Booking stays a To Pack action, so no row here offers it -
+            // the invariant this tab exists to protect.
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            // The two live parcels carry their own buttons, wherever their
+            // core status sits (owner ruling, fix round: courier actions
+            // key on courier data, not on the tab). This is the 29850 dead
+            // end: an Unpaid-placed order holding a real AWB used to render
+            // an empty actions cell.
+            ->assertSee('Print waybill')
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertSee('/sales/fulfillment/' . $unpaidHandover->id . '/label', false)
+            ->assertSee('/sales/fulfillment/' . $unpaidTransit->id . '/label', false)
+            // The parcel-less row gains nothing from its neighbours, and no
+            // row here offers Cancel booking (To Handover only).
+            ->assertDontSee('/sales/fulfillment/' . $plainUnpaid->id . '/label', false)
+            ->assertDontSee("cancel-fulfillment-{$unpaidHandover->id}", false)
+            ->assertDontSee("cancel-fulfillment-{$unpaidTransit->id}", false);
 
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
@@ -867,7 +879,13 @@ class FulfillmentCancelSemanticsTest extends TestCase
             ->assertSee('SPX rejected the delivery address')
             ->assertSee("cancel-order-{$order->id}", false)
             ->assertDontSee('openBooking(JSON.parse(', false)
-            ->assertDontSee('openDrawer(JSON.parse(', false);
+            // Its one WORKFLOW action is still Cancel order. The row DOES
+            // open a Details drawer, because a failed create is courier
+            // data and courier actions key on the data rather than the tab
+            // (owner ruling, fix round) - nothing about it is bookable or
+            // printable, so no Book and no waybill.
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertDontSee('/sales/fulfillment/' . $order->id . '/label', false);
     }
 
     // ------------------------------------------------------------------
