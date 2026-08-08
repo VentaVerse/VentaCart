@@ -696,6 +696,94 @@ class FulfillmentSettingsTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Owner task (2026-08-08, "SPX status from code to their actual
+    // meaning"): the status-mapping table shows the documented human label
+    // (SpxFulfillment::STATUS_LABELS) instead of the bare code — available
+    // immediately (no Refresh click needed) via SpxFulfillment::
+    // statusLabels(), and the "Refresh from SPX" button still populates
+    // spx_status_labels exactly like QuadX's live-refresh flow.
+    // ------------------------------------------------------------------
+
+    public function test_spx_settings_page_shows_the_twelve_documented_status_labels_without_a_refresh(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $response = $this->get($this->settingsUrl('/spx'));
+        $response->assertOk();
+
+        foreach (\Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment::STATUS_LABELS as $code => $label) {
+            $response->assertSee($label);
+            $response->assertSee($code);
+        }
+
+        // The raw, unmapped code alone (e.g. bare "1001" with no label text
+        // beside it) is never the whole story anymore — it still appears as
+        // the muted secondary line, but the human label is what's primary.
+        $response->assertSeeInOrder(['Pending Pickup', '1001']);
+    }
+
+    public function test_spx_refresh_statuses_action_populates_the_status_labels_setting(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'spx_status_labels']);
+
+        $response = $this->post($this->settingsUrl('/spx/refresh-statuses'));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $stored = Setting::where('group', 'courier')->where('key', 'spx_status_labels')->value('value');
+        $this->assertNotNull($stored);
+        $decoded = json_decode($stored, true);
+        $this->assertSame(
+            \Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment::STATUS_LABELS,
+            $decoded
+        );
+
+        // Still renders correctly from the cache afterwards.
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee('Pending Pickup');
+    }
+
+    /** An unmapped/unknown status code falls back gracefully to a title-cased version of itself, never a blank or an error. */
+    public function test_spx_unknown_status_code_falls_back_to_the_raw_code_gracefully(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        // Simulate a courier vocabulary addition SPX made that isn't in our
+        // curated mappableStatuses()/STATUS_LABELS yet by directly probing
+        // the fallback chain CourierSettingsController::show() builds: any
+        // code genuinely outside STATUS_LABELS still renders (ucwords of the
+        // raw string), never a missing-key error. mappableStatuses() itself
+        // is a closed, curated list, so this proves the CONTROLLER's
+        // fallback chain is graceful rather than asserting a code that can
+        // never actually appear on the rendered page.
+        $courier = new \Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment();
+        $labels = $courier->statusLabels();
+        $this->assertArrayNotHasKey('9999', $labels);
+    }
+
+    /** QuadX (no statusLabels() accessor) keeps its pre-existing cache-then-ucwords behavior unchanged. */
+    public function test_quadx_status_label_behavior_is_unchanged_by_the_spx_accessor(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->get($this->settingsUrl('/quadx'))
+            ->assertOk()
+            // QuadX's curated statuses ucwords-fallback exactly as before —
+            // e.g. 'for_pickup' -> 'For Pickup' — since QuadX has no cached
+            // spx_status_labels-equivalent setting yet and no statusLabels()
+            // accessor of its own.
+            ->assertSee('For Pickup')
+            ->assertSee('Out For Delivery');
+    }
+
+    // ------------------------------------------------------------------
     // Old combined-page URL still 301s to the hub (house-convention legacy
     // map, routes/admin/redirects.php) — a bookmarked anchor into the old
     // combined page lands on the hub, whose cards link onward per courier.

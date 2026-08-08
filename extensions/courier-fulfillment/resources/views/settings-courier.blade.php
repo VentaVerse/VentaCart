@@ -190,7 +190,12 @@
                             <tbody>
                                 @foreach ($courierStatuses as $statusKey => $label)
                                     <tr class="border-t border-v-border">
-                                        <td class="py-2 text-v-text">{{ $label }}</td>
+                                        <td class="py-2 text-v-text">
+                                            {{ $label }}
+                                            @if ($label !== $statusKey)
+                                                <span class="block text-[11px] text-v-muted">{{ $statusKey }}</span>
+                                            @endif
+                                        </td>
                                         <td class="py-2">
                                             <x-admin.select name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][order_status_id]" class="max-w-xs">
                                                 <option value="">(none)</option>

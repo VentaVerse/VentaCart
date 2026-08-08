@@ -1380,4 +1380,40 @@ class SpxFulfillmentTest extends TestCase
 
         $this->assertFalse($this->courier()->verifyWebhookSignature($request));
     }
+
+    // ------------------------------------------------------------------
+    // Owner task (2026-08-08, "SPX status from code to their actual
+    // meaning"): the documented status vocabulary (docs/spx/guide.md,
+    // "Order status code" table) exposed two ways — refreshStatusLabels()
+    // (the existing "Refresh from SPX" button's contract) and statusLabels()
+    // (available without that click). No Http::fake needed: neither method
+    // makes an outbound call.
+    // ------------------------------------------------------------------
+
+    public function test_refresh_status_labels_returns_the_documented_vocabulary_without_any_http_call(): void
+    {
+        Http::fake();
+
+        $result = $this->courier()->refreshStatusLabels();
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame(SpxFulfillment::STATUS_LABELS, $result['labels']);
+        $this->assertSame('Pending Pickup', $result['labels']['1001']);
+        $this->assertSame('Cancelled', $result['labels']['7001']);
+        Http::assertNothingSent();
+    }
+
+    public function test_status_labels_accessor_returns_the_same_documented_map(): void
+    {
+        $this->assertSame(SpxFulfillment::STATUS_LABELS, $this->courier()->statusLabels());
+    }
+
+    /** Every mappable status code must resolve to a real human label — no gaps in the table. */
+    public function test_every_mappable_status_has_a_label(): void
+    {
+        $labels = $this->courier()->statusLabels();
+        foreach ($this->courier()->mappableStatuses() as $code) {
+            $this->assertArrayHasKey($code, $labels, "Missing label for status code {$code}");
+        }
+    }
 }

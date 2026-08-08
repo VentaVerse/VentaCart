@@ -76,6 +76,32 @@ class SpxFulfillment implements CourierFulfillmentInterface
      */
     private const PARCEL_ITEM_TYPE = 'General merchandise';
 
+    /**
+     * SPX's own "Order status code" table (docs/spx/guide.md, lines
+     * 506-519, "## Order status code", Last Updated 15/04/2025). No live
+     * status-vocabulary endpoint exists in the documented API surface (see
+     * refreshStatusLabels()'s docblock), but this table IS the documented,
+     * stable vocabulary SPX support tickets and the tracking timeline both
+     * speak in, so it ships here as a constant rather than staying a
+     * permanent no-op. Keys match mappableStatuses() exactly (order status
+     * codes only, not the unrelated app/param/create-account/cancel
+     * error-code tables elsewhere in guide.md).
+     */
+    public const STATUS_LABELS = [
+        '1001' => 'Pending Pickup',
+        '2001' => 'In Transit',
+        '2006' => 'Delivering',
+        '3001' => 'On Hold',
+        '4001' => 'Delivered',
+        '5001' => 'Pickup Failed',
+        '5002' => 'Damaged',
+        '5003' => 'Lost',
+        '6001' => 'Returning',
+        '6002' => 'Return Failed',
+        '6003' => 'Returned',
+        '7001' => 'Cancelled',
+    ];
+
     /** api.md §"Order status codes" (also integration-brief.md §5's table), bucketed for statusPhase()/terminalStatuses()/cancelableStatuses(). */
     private const DELIVERED = ['4001'];
     private const CANCELLED = ['7001'];
@@ -1034,10 +1060,44 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return ['ok' => true, 'message' => "Shipper account created (User ID {$userId})."];
     }
 
-    /** No live status-vocabulary endpoint exists in the docs — stays a graceful no-op (unchanged from T1). */
+    /**
+     * No LIVE status-vocabulary endpoint exists in the documented API
+     * surface (unchanged fact from T1), but the vocabulary itself is not
+     * actually unknown — SPX documents it as a stable table (STATUS_LABELS,
+     * sourced from docs/spx/guide.md's "Order status code" section). So
+     * unlike a true no-op, this now succeeds immediately (no HTTP call,
+     * nothing to fail) and hands back that documented map — wiring it
+     * through the EXACT SAME "Refresh from SPX" button -> {ok, labels} ->
+     * `spx_status_labels` setting flow QuadX's live refresh already uses
+     * (CourierSettingsController::refreshStatuses()), so no shared code
+     * needed to change for this courier to participate in it. See
+     * statusLabels() below for the second, complementary half of this
+     * task's wiring: the same map made available WITHOUT requiring that
+     * button click first.
+     */
     public function refreshStatusLabels(): array
     {
-        return ['ok' => false, 'error' => 'SPX status refresh is not implemented yet.'];
+        return ['ok' => true, 'labels' => self::STATUS_LABELS];
+    }
+
+    /**
+     * Owner task (2026-08-08, "SPX status from code to their actual
+     * meaning"): the documented vocabulary made available WITHOUT requiring
+     * the admin to click "Refresh from SPX" first. Not part of
+     * CourierFulfillmentInterface — no other courier has a static,
+     * pre-known vocabulary to expose this way (QuadX's only comes from a
+     * live call) — so callers consult it via method_exists(), the same
+     * dispatch convention this class's own createShipperAccount() already
+     * established for a capability that isn't universal. Consulted by
+     * CourierSettingsController::show() (settings page's status-mapping
+     * table) and index.blade.php's $humanizeStatus (queue row status chip),
+     * both as a fallback BELOW the cached `spx_status_labels` setting (an
+     * admin who clicked Refresh, or a future live endpoint, still wins) and
+     * ABOVE the generic ucwords(raw code) fallback.
+     */
+    public function statusLabels(): array
+    {
+        return self::STATUS_LABELS;
     }
 
     /**

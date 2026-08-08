@@ -50,7 +50,21 @@
             if (!array_key_exists($provider, $statusLabelsByProvider)) {
                 $raw = \App\Models\Setting::where('group', 'courier')->where('key', $provider . '_status_labels')->value('value');
                 $decoded = $raw ? (json_decode($raw, true) ?: []) : [];
-                $statusLabelsByProvider[$provider] = is_array($decoded) ? $decoded : [];
+                $labels = is_array($decoded) ? $decoded : [];
+
+                // Owner task (2026-08-08, "SPX status from code to their
+                // actual meaning"): a courier MAY expose a static, pre-known
+                // vocabulary via statusLabels() (SpxFulfillment does — see
+                // its docblock) so a live order reads its meaningful label
+                // even before an admin ever visits Settings and clicks
+                // Refresh. The cached setting (above) still wins for any
+                // code it already covers — this only fills the gaps.
+                $courierInstance = \Extensions\CourierFulfillment\CourierManager::get($provider);
+                if ($courierInstance && method_exists($courierInstance, 'statusLabels')) {
+                    $labels += $courierInstance->statusLabels();
+                }
+
+                $statusLabelsByProvider[$provider] = $labels;
             }
             return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
         };

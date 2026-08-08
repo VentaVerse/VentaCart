@@ -361,9 +361,20 @@ class CourierSettingsController extends Controller
         $cachedLabels = $cachedLabelsRaw ? json_decode($cachedLabelsRaw, true) : [];
         $cachedLabels = is_array($cachedLabels) ? $cachedLabels : [];
 
+        // Owner task (2026-08-08, "SPX status from code to their actual
+        // meaning"): a courier MAY expose a static, pre-known vocabulary via
+        // statusLabels() (SpxFulfillment does — see its docblock) so the
+        // page reads meaningful text even before the admin ever clicks
+        // Refresh. Dispatched via method_exists() since it isn't part of
+        // CourierFulfillmentInterface (same convention as
+        // createShipperAccount() above) — a courier without it (QuadX) is
+        // unaffected, falling straight through to the cache-then-ucwords
+        // chain exactly as before.
+        $builtinLabels = method_exists($c, 'statusLabels') ? $c->statusLabels() : [];
+
         $courierStatuses = [];
         foreach ($c->mappableStatuses() as $name) {
-            $courierStatuses[$name] = $cachedLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
+            $courierStatuses[$name] = $cachedLabels[$name] ?? $builtinLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
         }
 
         // Smart defaults for the status-mapping table: only applied when this

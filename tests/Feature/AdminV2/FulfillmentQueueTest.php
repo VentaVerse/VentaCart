@@ -1201,6 +1201,52 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Owner task (2026-08-08, "SPX status from code to their actual
+    // meaning"): the row's status-note chip reads the DOCUMENTED human
+    // label (SpxFulfillment::statusLabels()), not the bare code — available
+    // immediately, with no admin visit to Settings needed first, since
+    // index.blade.php's $humanizeStatus() falls back to the courier's own
+    // statusLabels() before ucwords(raw code).
+    // ------------------------------------------------------------------
+
+    public function test_a_live_spx_order_status_note_shows_the_documented_label_not_the_bare_code(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->makeOrder('1001', 'SPX-STATUS-1', 'spx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
+
+        $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover');
+        $response->assertOk()
+            ->assertSee('SPX-STATUS-1')
+            ->assertSee('Pending Pickup');
+
+        // The raw code alone is never what the admin sees for a mapped
+        // status — it always resolves to the human label.
+        $response->assertDontSee('>1001<', false);
+    }
+
+    /** A cached spx_status_labels setting (from an explicit Refresh) still takes precedence over the built-in accessor. */
+    public function test_a_cached_spx_status_label_from_a_prior_refresh_still_wins_over_the_builtin_map(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        Setting::create([
+            'group' => 'courier',
+            'key' => 'spx_status_labels',
+            'value' => json_encode(['1001' => 'Awaiting Rider Pickup (custom)']),
+        ]);
+
+        $this->makeOrder('1001', 'SPX-STATUS-2', 'spx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
+
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
+            ->assertOk()
+            ->assertSee('Awaiting Rider Pickup (custom)')
+            ->assertDontSee('Pending Pickup');
+    }
+
+    // ------------------------------------------------------------------
     // Task T4: the lazy per-order fee-estimate route — Http::fake round
     // trip, and proven auth-guarded (same middleware group as every other
     // fulfillment route).
