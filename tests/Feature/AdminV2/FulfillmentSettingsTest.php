@@ -322,6 +322,133 @@ class FulfillmentSettingsTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Task T1 (spx-courier plan): SPX is a REAL registered courier (not a
+    // test-only fixture like FakeCourierFulfillment), so it needs no
+    // register()/tearDown() dance — installExtension() alone is enough for
+    // it to appear, exactly like QuadX.
+    // ------------------------------------------------------------------
+
+    public function test_spx_card_appears_on_the_hub_and_links_to_its_own_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->get($this->settingsUrl())
+            ->assertOk()
+            ->assertSee('SPX')
+            ->assertSee($this->settingsUrl('/spx'), false)
+            // Disabled/unconfigured by default: no leaked settings key names.
+            ->assertDontSee('name="settings[spx_mode]"', false);
+    }
+
+    public function test_spx_page_renders_its_schema_fields(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee('name="settings[spx_enabled]"', false)
+            ->assertSee('name="settings[spx_mode]"', false)
+            ->assertSee('name="settings[spx_app_id]"', false)
+            ->assertSee('name="settings[spx_secret_key]"', false)
+            ->assertSee('name="settings[spx_user_id]"', false)
+            ->assertSee('name="settings[spx_user_secret]"', false)
+            ->assertSee('name="settings[spx_pouch_presets]"', false)
+            ->assertSee('Test Connection')
+            ->assertSee($this->settingsUrl('/spx/test-connection'), false)
+            // Module fields belong to the hub, not here.
+            ->assertDontSee('name="settings[fulfillment_enabled]"', false);
+    }
+
+    /**
+     * Same W3 isolation guarantee FakeCourierFulfillment already proves, now
+     * demonstrated with a REAL second courier: saving SPX's page can never
+     * touch QuadX's keys or the module keys.
+     */
+    public function test_saving_the_spx_page_never_touches_quadx_or_module_keys(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->post($this->settingsUrl('/spx'), [
+            'settings' => [
+                'spx_enabled' => '1',
+                'spx_mode' => 'uat',
+                'spx_app_id' => '424242',
+                'spx_pouch_presets' => '[]',
+                // QuadX + module + junk keys smuggled into SPX's form.
+                'quadx_enabled' => '1',
+                'quadx_staging_api_key' => 'smuggled-secret',
+                'quadx_status_map' => ['delivered' => ['order_status_id' => '1']],
+                'fulfillment_enabled' => '0',
+                'not_a_real_setting' => 'nope',
+            ],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'spx_enabled', 'value' => '1']);
+        $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'spx_mode', 'value' => 'uat']);
+        $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'quadx_enabled']);
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'quadx_staging_api_key']);
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'quadx_status_map']);
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'fulfillment_enabled']);
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'not_a_real_setting']);
+    }
+
+    /** spx_secret_key / spx_user_secret round-trip encrypted, masked in the UI, same as QuadX's password fields. */
+    public function test_spx_encrypted_fields_round_trip_masked_and_blank_keeps_them(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->post($this->settingsUrl('/spx'), [
+            'settings' => ['spx_secret_key' => 'super-secret-app-key-1234'],
+        ])->assertRedirect();
+
+        $stored = Setting::where('group', 'courier')->where('key', 'spx_secret_key')->value('value');
+        $this->assertNotSame('super-secret-app-key-1234', $stored);
+        $this->assertSame('super-secret-app-key-1234', Crypt::decryptString($stored));
+
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee('1234')
+            ->assertDontSee('super-secret-app-key-1234');
+
+        $this->post($this->settingsUrl('/spx'), [
+            'settings' => ['spx_secret_key' => '', 'spx_mode' => 'uat'],
+        ])->assertRedirect();
+
+        $this->assertSame($stored, Setting::where('group', 'courier')->where('key', 'spx_secret_key')->value('value'));
+    }
+
+    /**
+     * testConnection() must be graceful (never a 500) when credentials are
+     * missing — the settings page's "Test Connection" button hits this
+     * route directly, and an admin will click it long before entering real
+     * SPX credentials.
+     */
+    public function test_spx_test_connection_is_graceful_without_credentials(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->postJson($this->settingsUrl('/spx/test-connection'))
+            ->assertOk()
+            ->assertJson(['ok' => false])
+            ->assertJsonPath('message', 'App ID / App Secret not set.');
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
+
+        $this->postJson($this->settingsUrl('/spx/test-connection'))
+            ->assertOk()
+            ->assertJson(['ok' => false])
+            ->assertJsonPath('message', 'User ID / User Secret not set.');
+    }
+
+    // ------------------------------------------------------------------
     // Old combined-page URL still 301s to the hub (house-convention legacy
     // map, routes/admin/redirects.php) — a bookmarked anchor into the old
     // combined page lands on the hub, whose cards link onward per courier.

@@ -4,6 +4,7 @@ namespace Extensions\CourierFulfillment;
 
 use Extensions\CourierFulfillment\Console\Commands\PollCourierStatus;
 use Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment;
+use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
 use Illuminate\Support\ServiceProvider;
 
@@ -18,6 +19,7 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
 
         // Register couriers. Adding a competitor later = one more line here.
         CourierManager::register(QuadXFulfillment::class);
+        CourierManager::register(SpxFulfillment::class);
 
         // Status updates use the pull/fetch model. The poll runs as a managed
         // automation (Settings > Automations), driven by the global schedule:run
