@@ -197,4 +197,51 @@ class OrderStatusesPageTest extends TestCase
             'name' => 'Backordered', 'fulfillment_placement' => 'ready', 'sort_order' => 5,
         ])->assertSessionHasErrors('fulfillment_placement');
     }
+
+    /**
+     * The page lists (and counts) one store's statuses only, but route-model
+     * binding resolves by id alone: without a scope check, another store's
+     * status was writable and deletable through these endpoints. Placement is
+     * what decides fulfillment queue membership now, so a cross-store write
+     * here would silently re-file another store's orders.
+     */
+    public function test_another_stores_status_cannot_be_updated_or_deleted(): void
+    {
+        $this->actingAs(User::factory()->create());
+        Store::create(['id' => 2, 'name' => 'Other Store', 'code' => 'other']);
+        $foreign = OrderStatus::create([
+            'store_id' => 2, 'name' => 'Foreign Status', 'fulfillment_placement' => 'to_pack', 'sort_order' => 1,
+        ]);
+
+        $this->put(route('admin.order-statuses.update', $foreign), [
+            'name' => 'Hijacked', 'fulfillment_placement' => 'delivered', 'sort_order' => 1,
+        ])->assertNotFound();
+
+        $this->delete(route('admin.order-statuses.destroy', $foreign))->assertNotFound();
+
+        $foreign->refresh();
+        $this->assertSame('Foreign Status', $foreign->name);
+        $this->assertSame('to_pack', $foreign->fulfillment_placement);
+        $this->assertDatabaseHas('order_statuses', ['id' => $foreign->id]);
+    }
+
+    /** The per-status order count describes this store's orders, not every store's. */
+    public function test_order_counts_are_scoped_to_this_store(): void
+    {
+        $this->actingAs(User::factory()->create());
+        Store::create(['id' => 2, 'name' => 'Other Store', 'code' => 'other']);
+        $status = OrderStatus::create([
+            'store_id' => 1, 'name' => 'Counted', 'fulfillment_placement' => 'to_pack', 'sort_order' => 1,
+        ]);
+
+        $this->makeOrder($status->id);
+        $foreignOrder = $this->makeOrder($status->id);
+        $foreignOrder->forceFill(['store_id' => 2])->save();
+
+        $counts = $this->get(route('admin.order-statuses.index'))
+            ->assertOk()
+            ->viewData('orderCounts');
+
+        $this->assertSame(1, (int) $counts[$status->id]);
+    }
 }

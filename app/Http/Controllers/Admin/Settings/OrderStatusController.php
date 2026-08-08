@@ -27,6 +27,18 @@ class OrderStatusController extends Controller
         $this->storeId = (int) config('app.store_id', 1);
     }
 
+    /**
+     * Route-model binding resolves an order status by id alone, so a status
+     * belonging to another store would otherwise be editable and deletable
+     * through this page's own endpoints even though index() never lists it.
+     * 404 (not 403) keeps the answer identical to a status that does not
+     * exist, which is what a caller outside this store is entitled to know.
+     */
+    private function authorizeStore(OrderStatus $orderStatus): void
+    {
+        abort_if((int) $orderStatus->store_id !== $this->storeId, 404);
+    }
+
     public function index()
     {
         $statuses = OrderStatus::where('store_id', $this->storeId)
@@ -35,7 +47,10 @@ class OrderStatusController extends Controller
 
         // Live order count per status, one grouped query (never N+1): lets
         // the owner see the scale of what a placement regrouping moves.
-        $orderCounts = Order::whereNotNull('order_status_id')
+        // Scoped to the same store the list above is scoped to, so the count
+        // beside a status can only ever describe orders that status governs.
+        $orderCounts = Order::where('store_id', $this->storeId)
+            ->whereNotNull('order_status_id')
             ->select('order_status_id', DB::raw('COUNT(*) as n'))
             ->groupBy('order_status_id')
             ->pluck('n', 'order_status_id');
@@ -70,6 +85,8 @@ class OrderStatusController extends Controller
 
     public function update(Request $request, OrderStatus $orderStatus)
     {
+        $this->authorizeStore($orderStatus);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stock_action' => ['nullable', 'in:decrement,increment'],
@@ -94,6 +111,8 @@ class OrderStatusController extends Controller
 
     public function destroy(OrderStatus $orderStatus)
     {
+        $this->authorizeStore($orderStatus);
+
         if ($orderStatus->is_default) {
             return redirect()->route('admin.order-statuses.index')
                 ->with('error', 'Cannot delete the default status.');
