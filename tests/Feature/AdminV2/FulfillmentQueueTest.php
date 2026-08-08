@@ -724,6 +724,45 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Owner-reported bug (2026-08-08, screenshot-confirmed): the cancel
+    // confirm-dialog is rendered inside the queue table's action <td>,
+    // whose CSS carries white-space:nowrap (.cf-col-act) — the modal's
+    // message <p> inherited that and overflowed the card. Fixed at the
+    // shared x-admin.modal card level (whitespace-normal), so any modal
+    // nested in a nowrap ancestor self-heals. This locks in the class on
+    // the rendered card so the fix can't silently regress.
+    // ------------------------------------------------------------------
+
+    public function test_cancel_confirm_dialog_card_carries_whitespace_normal_to_survive_the_nowrap_action_cell(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        // for_pickup + tracking number => activelyBooked && cancelable for
+        // QuadX (QuadXFulfillment::cancelableStatuses()), which is what
+        // renders the Cancel button + its confirm-dialog into the
+        // nowrap-bearing .cf-col-act <td>.
+        $order = $this->makeOrder('for_pickup', 'QX-WRAP-001');
+
+        $response = $this->get($this->queueUrl() . '?filter=to_handover');
+        $content = $response->getContent();
+
+        $response->assertOk();
+        $this->assertStringContainsString('This cancels the courier booking. The order remains rebookable afterward.', $content);
+
+        // Pull the confirm-dialog's modal card <div> out of the response
+        // and assert it carries whitespace-normal alongside its existing
+        // classes — the exact element whose inherited nowrap caused the
+        // overflow.
+        $this->assertMatchesRegularExpression(
+            '/<div x-show="open" x-transition\s+class="relative w-full max-w-sm bg-v-surface border border-v-border rounded-v-lg shadow-2xl whitespace-normal"/',
+            $content,
+            'Expected the modal card to carry whitespace-normal so slot content wraps inside nowrap ancestors (e.g. the fulfillment queue\'s .cf-col-act cell).'
+        );
+    }
+
+    // ------------------------------------------------------------------
     // Task T4: actual vs. estimated fee — two distinctly labeled figures,
     // read from courier_meta (T2's create-response + T2 fix-round's
     // batch_get_asf persistence).
