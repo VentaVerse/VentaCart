@@ -74,8 +74,32 @@ interface CourierFulfillmentInterface
     public function cancelableStatuses(): array;
 
     /**
-     * Coarse visual phase for the fulfillment stepper.
-     * @return array{step:int, failed:bool}  step: 0 Pending,1 Booked,2 Shipped,3 Delivered
+     * Buckets a raw courier status onto Venta's common 8-phase fulfillment
+     * spine, shared by every courier (see Extensions\CourierFulfillment\
+     * Support\PhaseTone for the tone each bucket carries): `to_book`,
+     * `booking` (async create in flight), `to_handover` (booked, awaiting
+     * courier collection/drop-off), `in_transit`, `delivered`, `failed`
+     * (delivery failed / lost / damaged), `cancelled` (booking cancelled),
+     * `returning` (coming back to the seller).
+     *
+     * `to_book` is deliberately NEVER returned here — "no booking exists
+     * yet" isn't a courier status, it's the absence of one, so it's the
+     * caller's job (see FulfillmentService::phaseFor()) to short-circuit to
+     * `to_book` before ever calling this method with a null tracking
+     * number. A synchronous courier (like QuadX, whose createShipment()
+     * always returns a status) never produces `booking` either — that
+     * bucket exists for a courier whose booking creates asynchronously.
+     *
+     * Also returns the legacy 4-step happy-path stepper derivation for
+     * backward compatibility with today's queue view (book -> handover ->
+     * transit -> delivered): `failed`/`cancelled`/`returning` are terminal
+     * BADGE states on that stepper, not steps of their own.
+     *
+     * @return array{
+     *     phase: string,  // one of the 8 spine buckets above
+     *     step: int,      // legacy stepper: 0 Pending,1 Booked,2 Shipped,3 Delivered
+     *     failed: bool,   // legacy stepper: true = render step as a failure marker
+     * }
      */
     public function statusPhase(?string $status): array;
 

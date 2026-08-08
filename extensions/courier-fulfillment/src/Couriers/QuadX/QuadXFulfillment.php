@@ -158,33 +158,97 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         return array_values($events);
     }
 
+    /**
+     * Re-bucketed onto the common 8-phase spine (see
+     * CourierFulfillmentInterface::statusPhase()'s docblock) while keeping
+     * the pre-spine legacy 'step'/'failed' derivation byte-for-byte
+     * unchanged, so today's queue view stepper (which still reads only
+     * those two keys) is provably unaffected by this change.
+     */
     public function statusPhase(?string $status): array
     {
         $s = (string) $status;
+        [$step, $failed] = self::legacyStepAndFailed($s);
 
+        return [
+            'phase'  => self::phaseBucket($s),
+            'step'   => $step,
+            'failed' => $failed,
+        ];
+    }
+
+    /**
+     * UNCHANGED from before the 8-phase spine existed — the exact logic the
+     * queue view's stepper has always rendered off. Kept as its own method,
+     * untouched, rather than derived from the new phase bucket, because a
+     * few raw statuses (e.g. 'failed_pickup' vs 'failed_delivery') land in
+     * the SAME new bucket ('failed') but resolved to DIFFERENT legacy steps
+     * depending on where in the journey they broke — information the new
+     * bucket alone no longer carries.
+     *
+     * @return array{0:int, 1:bool}
+     */
+    private static function legacyStepAndFailed(string $s): array
+    {
         $failed = ['failed_pickup','failed_pickup_attempt','failed_delivery','for_reattempt',
                    'returned','return_in_transit','out_for_return','for_return','canceled','cancelled',
                    'rejected','lost','damaged','disposed'];
         if (in_array($s, $failed, true)) {
             // Keep the node where it broke: pickup failures at step 1, else step 2.
             $atPickup = str_contains($s, 'pickup') || $s === 'canceled' || $s === 'cancelled' || $s === 'rejected';
-            return ['step' => $atPickup ? 1 : 2, 'failed' => true];
+            return [$atPickup ? 1 : 2, true];
         }
 
         if ($s === 'delivered') {
-            return ['step' => 3, 'failed' => false];
+            return [3, false];
         }
 
-        $shipped = ['picked_up','in_transit','out_for_delivery','for_delivery',
-                    'in_transit_to_delivery_area','received_at_delivery_hub',
-                    'received_at_delivery_area','at_sorting_center','at_3pl_facility',
-                    'received_at_pickup_hub','claimed','confirmed_transit'];
-        if (in_array($s, $shipped, true)) {
-            return ['step' => 2, 'failed' => false];
+        if (in_array($s, self::SHIPPED_STATUSES, true)) {
+            return [2, false];
         }
 
         // Everything else that means "booked, awaiting pickup" -> step 1.
-        return ['step' => 1, 'failed' => false];
+        return [1, false];
+    }
+
+    /** Raw statuses meaning "the courier has it" — shared by the legacy step derivation and the new spine bucketing below. */
+    private const SHIPPED_STATUSES = ['picked_up','in_transit','out_for_delivery','for_delivery',
+                'in_transit_to_delivery_area','received_at_delivery_hub',
+                'received_at_delivery_area','at_sorting_center','at_3pl_facility',
+                'received_at_pickup_hub','claimed','confirmed_transit'];
+
+    /**
+     * Buckets a raw QuadX status onto the 8-phase spine. Never returns
+     * 'to_book' (no booking isn't a courier status) or 'booking' (QuadX's
+     * createShipment() is synchronous — see the interface docblock).
+     */
+    private static function phaseBucket(string $s): string
+    {
+        if ($s === 'delivered') {
+            return 'delivered';
+        }
+
+        if (in_array($s, ['canceled', 'cancelled'], true)) {
+            return 'cancelled';
+        }
+
+        if (in_array($s, ['returned', 'return_in_transit', 'out_for_return', 'for_return'], true)) {
+            return 'returning';
+        }
+
+        if (in_array($s, ['failed_pickup', 'failed_pickup_attempt', 'failed_delivery', 'for_reattempt',
+                'rejected', 'lost', 'damaged', 'disposed', 'failed_return'], true)) {
+            return 'failed';
+        }
+
+        if (in_array($s, self::SHIPPED_STATUSES, true)) {
+            return 'in_transit';
+        }
+
+        // Everything else (empty/pending/confirmed/for_pickup/searching_for_rider/
+        // for_acceptance/for_consolidation/for_dropoff/for_payment/paid/...) means
+        // "booked, awaiting courier collection/drop-off".
+        return 'to_handover';
     }
 
     public function printLabel(string $trackingNumber, string $format): array

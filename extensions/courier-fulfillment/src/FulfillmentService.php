@@ -38,6 +38,36 @@ class FulfillmentService
     }
 
     /**
+     * Courier-agnostic entry point onto the common 8-phase spine (see
+     * CourierFulfillmentInterface::statusPhase()'s docblock and
+     * Support\PhaseTone for the tone each bucket carries) — the future queue
+     * tabs (fulfillment-workflow-v2 Task W2) group orders by this.
+     *
+     * `to_book` is resolved HERE, not by any courier: an order with no
+     * tracking number has never been booked, which isn't a courier status at
+     * all. Once a tracking number exists, the bucket comes from the
+     * resolved courier's own statusPhase() — an order booked with a
+     * provider that's since been unregistered, or with a courier whose
+     * statusPhase() predates the spine and carries no 'phase' key, degrades
+     * to `to_handover` rather than throwing: a booked-but-unclassifiable
+     * order should still read as "still needs the seller's attention",
+     * never crash the queue that's trying to list it.
+     */
+    public static function phaseFor(Order $order): string
+    {
+        if (!$order->courier_tracking_number) {
+            return 'to_book';
+        }
+
+        $courier = CourierManager::get((string) $order->courier_provider);
+        if (!$courier) {
+            return 'to_handover';
+        }
+
+        return $courier->statusPhase($order->courier_status)['phase'] ?? 'to_handover';
+    }
+
+    /**
      * Is this order paid via a COD-type method (rider collects the total)?
      * Uses the admin-configured mapping (courier.cod_payment_methods); when the
      * store hasn't configured one, falls back to the name heuristic.
