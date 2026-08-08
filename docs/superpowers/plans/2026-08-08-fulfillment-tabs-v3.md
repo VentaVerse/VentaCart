@@ -27,7 +27,7 @@ Segment bar: Unpaid | To Ship | In Transit | Delivered | Failed | Cancelled (+Re
 - [ ] TDD, commit `feat(fulfillment): real order cancel and booking-cancel reset`.
 
 ### Task 5: sweep
-Full suites (baseline 23), npm run build + clears, browser walk (ONE page, sequential): every tab/sub against the 27k-order dev DB with counts and load time, unpaid single-action check, cancel-order dialog (do NOT confirm on any real order: use the UAT test order 29850 if needed), legacy URL redirects, light+dark, console clean, screenshots to the plan workspace. grep: zero `to_book` residue outside migrations/history docs.
+Full suites (baseline 23), npm run build + clears, browser walk (ONE page, sequential): every tab/sub against the 27k-order dev DB with counts and load time, unpaid single-action check, cancel-order dialog (do NOT confirm on any real order; NEVER touch order 29850 or its shipment SPEPH065515515378, they are evidence in the owner's SPX report: create a fresh throwaway test order via tinker for any live interaction, and note its id for cleanup), legacy URL redirects, light+dark, console clean, screenshots to the plan workspace. grep: zero `to_book` residue outside migrations/history docs.
 - [ ] Commit fixes or report clean.
 
 ## Self-review notes
