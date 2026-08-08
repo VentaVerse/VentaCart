@@ -97,6 +97,24 @@ QuadX `for_pickup` and SPX `1001` to a To Handover status; QuadX `failed_pickup`
 
 **Setup policy (ruling):** the order-status seeder stays exactly as it is. The fulfillment module seeds NO order statuses and ships NO default courier maps, because a merchant should configure this module deliberately at setup. Task 3's seeded "Order Being Shipped" is therefore REMOVED from the seeder, and the fulfillment settings page gains a prominent setup notice when no To Handover-placed status exists, so the booking refusal is never a mystery. The owner configures NGD by hand after deploy; the sandbox is configured by one-off tinker only (never seeder, never migration).
 
+## Owner rulings, 2026-08-09 (decoupling and seeder)
+
+**1. The placement mapping leaves the core Order Statuses page.** Owner: "Remove the mapping inside order status. This is a coupling. Fulfilment is its own module, mapping should be inside the fulfilment setting."
+
+The mapping is module data, so the module owns it:
+- The `fulfillment_placement` column is REMOVED from `order_statuses` (a core table). It becomes a module-owned mapping table created by the extension's install migration and dropped on uninstall, exactly like the module's other schema. Core carries no fulfillment column, and uninstalling the module leaves no trace.
+- The Order Statuses page loses the placement select and the placement help card. It goes back to being a plain core CRUD screen.
+- A new **Status placement** page lives inside fulfillment settings: every order status listed with its tab, editable in one place, with live order counts so the merchant sees the scale of what a change moves. No help card, no explanatory paragraph (see the UI copy rule below).
+- **Unmapped statuses** (the default for a fresh install, since the module seeds nothing) appear in the `All` tab only, and the placement page lists them first as needing attention. Nothing is silently hidden: `All` always holds every order.
+
+**2. The order-status seeder mirrors OpenCart's defaults.** Owner: "mirror Opencart's initial order status. Complete and Delivered should be in the seeder. Put Unpaid also. Everything else, remove."
+
+Seeded set (16): Pending, Processing, Shipped, Complete, Canceled, Denied, Canceled Reversal, Failed, Refunded, Reversed, Chargeback, Expired, Processed, Voided (OpenCart's defaults), plus **Delivered** and **Unpaid**. `Payment Received` is removed. The seeder sets no placements at all, since placements are module data now.
+
+**3. UI copy rule (binding on all view work from here on).** Owner: "Opus 5 and Fable 5 like to put instructional messages inside the interface. Avoid that. It should be tooltips."
+
+No help cards, no "this page lets you..." intros, no explanatory sentence under a control describing what the control does. Name the control well instead. Where a genuine non-obvious consequence must be conveyed, attach it as a tooltip the user opts into. Field-level help is acceptable only when it carries real information (a format, a limit, a consequence), never when it restates the label. The existing "Fulfillment placements" help card is removed under this rule, along with any sibling explanatory blocks in the fulfillment and order-status screens.
+
 ## Out of scope
 New tabs; per-courier tab overrides; RMA; moving the Book button onto the order page (a natural future step under this architecture, not now); merge to main.
 
