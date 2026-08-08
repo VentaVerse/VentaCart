@@ -129,10 +129,27 @@ class FulfillmentController extends Controller
         // via AJAX only when SPX is actually chosen in step 2 (see the new
         // pickup-slots route + chooseCourier()'s JS below), never during
         // this page's own render.
+        // Owner directive (2026-08-08, "unconfigured couriers visible with
+        // configuration gate"): step 1 lists every FLAGGED courier
+        // (CourierManager::flagged() — flag on, regardless of credential
+        // completeness), not just $couriers (enabled() — flag on AND fully
+        // configured). A flag-on-but-unconfigured courier still gets a
+        // card, just a disabled one (see index.blade.php's step-1 markup) —
+        // the bug this fixes was $couriers alone making it vanish with no
+        // explanation. 'configured'/'configIssues' are what the view uses
+        // to tell the two card states apart; every other key keeps its
+        // pre-existing shape for a courier that IS fully configured, so
+        // that card renders byte-identically to before.
         $courierOptions = [];
-        foreach ($couriers as $c) {
+        foreach (CourierManager::flagged() as $c) {
+            $configured = $c->isEnabled();
             $courierOptions[$c->getKey()] = [
                 'name'         => $c->getName(),
+                'configured'   => $configured,
+                // Only meaningful (and only computed) when NOT configured —
+                // a fully configured courier has nothing to report here.
+                'configIssues' => $configured ? [] : $c->configurationIssues(),
+                'settingsUrl'  => route('admin.fulfillment.settings.courier', ['courier' => $c->getKey()]),
                 'services'     => $c->getServiceTypes(),
                 'parcels'      => $c->getParcelOptions(),
                 'payments'     => $c->getShippingPaymentOptions(),
@@ -425,7 +442,15 @@ class FulfillmentController extends Controller
 
         $courier = CourierManager::get((string) $data['courier']);
         if (!$courier || !$courier->isEnabled()) {
-            return response()->json(['ok' => false, 'message' => 'Selected courier is not available.']);
+            // Same gate + same reasoning as FulfillmentService::book()'s
+            // courier_unavailable branch (owner directive, 2026-08-08) — a
+            // flagged-but-unconfigured courier gets a message naming it and
+            // pointing at Settings, never a raw estimateFee()/client error.
+            $message = ($courier && CourierManager::isFlagged($courier->getKey()))
+                ? "{$courier->getName()} is not properly configured — check its credentials in Settings."
+                : 'Selected courier is not available.';
+
+            return response()->json(['ok' => false, 'message' => $message]);
         }
 
         // Review fix (Critical): drop present-but-null keys before they

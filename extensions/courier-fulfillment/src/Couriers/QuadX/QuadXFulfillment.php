@@ -39,6 +39,12 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         return (bool) $on && $this->client->isConfigured();
     }
 
+    /** @see CourierFulfillmentInterface::configurationIssues() */
+    public function configurationIssues(): array
+    {
+        return $this->client->missingCredentialLabels();
+    }
+
     public function getServiceTypes(): array
     {
         return [

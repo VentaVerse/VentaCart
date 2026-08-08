@@ -44,6 +44,30 @@ class SpxClient
         return $this->appId() !== null && $this->appSecret() !== null;
     }
 
+    /**
+     * Which of isConfigured()'s two app-level fields are missing, labeled
+     * exactly as SpxFulfillment::settingsSchema() labels them — backs
+     * SpxFulfillment::configurationIssues() (CourierFulfillmentInterface's
+     * sanctioned evolution #6). Deliberately scoped to the SAME pair
+     * isConfigured() checks (never the user_id/user_secret account pair —
+     * hasAccountCredentials() is a separate, later step), so this can never
+     * disagree with isEnabled()'s own credential check.
+     *
+     * @return string[]
+     */
+    public function missingCredentialLabels(): array
+    {
+        $missing = [];
+        if ($this->appId() === null) {
+            $missing[] = 'App ID';
+        }
+        if ($this->appSecret() === null) {
+            $missing[] = 'App Secret';
+        }
+
+        return $missing;
+    }
+
     /** Body-level account credentials present — required by every order/account endpoint. */
     public function hasAccountCredentials(): bool
     {

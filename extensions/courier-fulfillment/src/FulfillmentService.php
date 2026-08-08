@@ -191,7 +191,24 @@ class FulfillmentService
 
         $courier = CourierManager::get((string) ($opts['courier'] ?? ''));
         if (!$courier || !$courier->isEnabled()) {
-            return ['success' => false, 'code' => 'courier_unavailable', 'error' => 'Selected courier is not available.'];
+            // Owner directive (2026-08-08, "unconfigured couriers visible
+            // with configuration gate"): server-side gate, defense in depth
+            // behind step 1's own card-level block. A courier the admin has
+            // switched ON (CourierManager::isFlagged()) but never finished
+            // configuring gets a message that NAMES it and points at
+            // Settings, instead of the raw signing/API exception its own
+            // client would otherwise throw (see SpxClient::post()'s
+            // "SPX is not configured" RuntimeException) or the generic
+            // "not available" message a genuinely unregistered/flag-off
+            // courier still gets — the two cases read differently on
+            // purpose. 'code' stays 'courier_unavailable' either way (the
+            // ERP endpoint's 409-vs-422 branch keys off this exact string —
+            // ErpFulfillmentController::book()) so only the message differs.
+            $error = ($courier && CourierManager::isFlagged($courier->getKey()))
+                ? "{$courier->getName()} is not properly configured — check its credentials in Settings."
+                : 'Selected courier is not available.';
+
+            return ['success' => false, 'code' => 'courier_unavailable', 'error' => $error];
         }
 
         // Idempotency guard — an ACTIVE booking (tracking number + non-canceled

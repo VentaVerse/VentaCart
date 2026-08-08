@@ -29,6 +29,29 @@ class QuadXClient
         return $this->apiKey() !== null && $this->secretKey() !== null;
     }
 
+    /**
+     * Which of isConfigured()'s two mode-scoped fields are missing, labeled
+     * exactly as QuadXFulfillment::settingsSchema() labels them — backs
+     * QuadXFulfillment::configurationIssues() (CourierFulfillmentInterface's
+     * sanctioned evolution #6). Mode-aware the same way apiKey()/secretKey()
+     * already are: checks whichever mode (staging/production) is currently
+     * selected, never both.
+     *
+     * @return string[]
+     */
+    public function missingCredentialLabels(): array
+    {
+        $missing = [];
+        if ($this->apiKey() === null) {
+            $missing[] = 'API Key';
+        }
+        if ($this->secretKey() === null) {
+            $missing[] = 'Secret Key';
+        }
+
+        return $missing;
+    }
+
     public function baseUrl(): string
     {
         $mode = $this->setting('quadx_mode', 'staging');

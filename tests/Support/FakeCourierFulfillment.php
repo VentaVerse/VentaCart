@@ -32,6 +32,19 @@ class FakeCourierFulfillment implements CourierFulfillmentInterface
         return false;
     }
 
+    /**
+     * No real credential fields to check — this test double's isEnabled()
+     * is hardcoded false for reasons unrelated to configuration (see its
+     * own comment), so [] here just means "nothing specific to name"; a
+     * caller degrades to a generic message when configurationIssues() is
+     * empty but isEnabled() is still false (see CourierFulfillmentInterface::
+     * configurationIssues()'s docblock).
+     */
+    public function configurationIssues(): array
+    {
+        return [];
+    }
+
     public function getServiceTypes(): array
     {
         return [['value' => 'standard', 'label' => 'Standard']];

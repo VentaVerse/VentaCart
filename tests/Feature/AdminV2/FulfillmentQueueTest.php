@@ -87,6 +87,25 @@ class FulfillmentQueueTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'spx_user_secret', 'value' => Crypt::encryptString('fake-user-secret-not-real')]);
     }
 
+    /**
+     * Owner directive (2026-08-08, "unconfigured couriers visible with
+     * configuration gate"): the FLAG on, credentials deliberately absent —
+     * the exact real-world state that confused the owner (SPX's toggle
+     * switched on from the settings page, App ID/App Secret never filled
+     * in). isEnabled() stays false; CourierManager::flagged() must still
+     * include it.
+     */
+    private function enableSpxFlagOnly(): void
+    {
+        Setting::create(['group' => 'courier', 'key' => 'spx_enabled', 'value' => '1']);
+    }
+
+    /** QuadX's version of enableSpxFlagOnly() above — proves the gate is courier-agnostic, not hardcoded to SPX. */
+    private function enableQuadxFlagOnly(): void
+    {
+        Setting::create(['group' => 'courier', 'key' => 'quadx_enabled', 'value' => '1']);
+    }
+
     /** Courier-agnostic pickup origin (settings group=shipping) — SPX's sender_info source, mirrors SpxFulfillmentTest. */
     private function configureSpxPickupOrigin(): void
     {
@@ -274,6 +293,135 @@ class FulfillmentQueueTest extends TestCase
             ->assertSee('How will this order ship?')
             ->assertSee('data-courier-card="quadx"', false)
             ->assertDontSee('data-courier-card="fake"', false);
+    }
+
+    // ------------------------------------------------------------------
+    // Owner directive (2026-08-08, "unconfigured couriers visible with
+    // configuration gate"): a courier whose ENABLED FLAG is on but is
+    // missing credentials must still render a step-1 card — a disabled,
+    // clearly-labeled one — instead of silently vanishing the way
+    // enabled()'s AND-credentials gate alone made it disappear.
+    // ------------------------------------------------------------------
+
+    public function test_booking_modal_step_one_shows_a_flagged_but_unconfigured_courier_as_a_gated_card(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        // SPX's toggle is on but no App ID/App Secret was ever saved — the
+        // exact real-world state that confused the owner.
+        $this->enableSpxFlagOnly();
+
+        $this->makeOrder();
+
+        $response = $this->get($this->queueUrl());
+        $response->assertOk()
+            // SPX now HAS a card (the bug fix) ...
+            ->assertSee('data-courier-card="spx"', false)
+            ->assertSee('data-courier-configured="false"', false)
+            ->assertSee('Not configured')
+            ->assertSee('Missing App ID / App Secret')
+            ->assertSee(route('admin.fulfillment.settings.courier', ['courier' => 'spx']), false)
+            // ... but it is NEVER wired to chooseCourier() — a click can't
+            // advance it to step 2. QuadX's own card (fully configured)
+            // still is.
+            ->assertDontSee("chooseCourier('spx')", false)
+            ->assertSee("chooseCourier('quadx')", false)
+            // QuadX's own card renders exactly as before: a real button.
+            ->assertSee('data-courier-card="quadx"', false)
+            ->assertSee('data-courier-configured="true"', false);
+    }
+
+    /**
+     * The modal (and the row's Book button) must still be reachable even
+     * when EVERY registered courier is flag-on-but-unconfigured — the whole
+     * point is that the owner can open the modal and SEE why nothing is
+     * bookable, not have the entire booking affordance vanish.
+     */
+    public function test_booking_modal_opens_with_only_a_gated_card_when_no_courier_is_fully_configured(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpxFlagOnly();
+
+        $this->makeOrder();
+
+        $response = $this->get($this->queueUrl());
+        $response->assertOk()
+            // The row's Book button renders (openBooking(), not hidden).
+            ->assertSee('openBooking(', false)
+            ->assertSee('data-courier-card="spx"', false)
+            ->assertSee('data-courier-configured="false"', false)
+            ->assertSee('Not configured');
+    }
+
+    /** Proves the gate is courier-agnostic (QuadXClient::missingCredentialLabels()), not just SPX. */
+    public function test_booking_modal_step_one_names_the_missing_quadx_credentials(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxFlagOnly();
+
+        $this->makeOrder();
+
+        $response = $this->get($this->queueUrl());
+        $response->assertOk()
+            ->assertSee('data-courier-card="quadx"', false)
+            ->assertSee('data-courier-configured="false"', false)
+            ->assertSee('Missing API Key / Secret Key');
+    }
+
+    // ------------------------------------------------------------------
+    // Server-side gate (defense in depth): book()/estimate() must reject a
+    // flag-on-but-unconfigured courier with a friendly, named message —
+    // never the raw signing/API exception the courier's own client would
+    // otherwise throw — and must never make an outbound call.
+    // ------------------------------------------------------------------
+
+    public function test_book_route_rejects_a_flagged_but_unconfigured_courier_with_a_friendly_message(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpxFlagOnly();
+
+        $order = $this->makeOrder();
+        Http::fake(); // any outbound call here would itself be a bug
+
+        $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
+            'courier'          => 'spx',
+            'service'          => 'standard',
+            'parcel'           => 'medium',
+            'shipping_payment' => 'sender_pay',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertStringContainsString('SPX is not properly configured', session('error'));
+        $this->assertStringContainsString('Settings', session('error'));
+
+        Http::assertNothingSent();
+        $this->assertNull($order->fresh()->courier_tracking_number);
+        $this->assertNull($order->fresh()->courier_provider);
+    }
+
+    public function test_estimate_route_rejects_a_flagged_but_unconfigured_courier_with_a_friendly_message(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpxFlagOnly();
+
+        $order = $this->makeOrder();
+        Http::fake();
+
+        $response = $this->postJson($this->queueUrl() . '/' . $order->id . '/estimate', [
+            'courier' => 'spx',
+        ]);
+
+        $response->assertOk()
+            ->assertJson(['ok' => false]);
+        $this->assertStringContainsString('SPX is not properly configured', $response->json('message'));
+
+        Http::assertNothingSent();
     }
 
     public function test_booking_modal_step_two_carries_exactly_the_quadx_field_set(): void

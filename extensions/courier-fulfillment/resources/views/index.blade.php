@@ -381,7 +381,7 @@
                                                      drawer (same JSON payload every other row action
                                                      uses) so the operator can see what's happening. --}}
                                                 <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</x-admin.button>
-                                            @elseif (!$activelyBooked && !empty($couriers))
+                                            @elseif (!$activelyBooked && !empty($courierOptions))
                                                 {{-- Component-tag attributes only compile {{ }} echoes, not
                                                      @-directives — @js() here would render as literal text.
                                                      Js::from() is what @js() expands to; the {{ }} form is the
@@ -554,7 +554,7 @@
                                     <p class="mt-1 text-xs text-v-muted">This usually takes a few seconds. Use "Poll courier statuses" or refresh the page shortly to see the tracking number.</p>
                                 </div>
                             </template>
-                            @if (!empty($couriers))
+                            @if (!empty($courierOptions))
                                 <template x-if="!active.activelyBooked && !active.creating">
                                     <div class="space-y-3">
                                         {{-- Final-review fix (Finding 2): the async create's permanent
@@ -654,8 +654,14 @@
 
         {{-- Booking modal — the courier-first two-step flow (the ERP's
              arrange-shipment pattern). Step 1: choose the courier. Step 2:
-             that courier's own form. Titled with the order number. --}}
-        @if (!empty($couriers))
+             that courier's own form. Titled with the order number. Gated on
+             $courierOptions (CourierManager::flagged() — flag ON,
+             regardless of credential completeness), NOT $couriers
+             (enabled() — flag on AND fully configured): a flag-on-but-
+             unconfigured courier must still open this modal so its step-1
+             card (with its "not configured" message + settings link) is
+             reachable — see the step-1 markup below. --}}
+        @if (!empty($courierOptions))
             <div x-show="bookOpen" x-cloak class="fixed inset-0 z-[90] flex items-center justify-center p-4" @keydown.escape.window="closeBooking()">
                 <div class="absolute inset-0 bg-black/50" @click="closeBooking()"></div>
                 <div x-show="bookOpen" x-transition
@@ -670,27 +676,57 @@
                                 </button>
                             </header>
                             <div class="px-5 py-4">
-                                {{-- Step 1: one large choice card per ENABLED courier. Rendered
-                                     server-side from CourierManager::enabled() so the markup IS
-                                     the list of bookable couriers. The fee-estimate slot renders
-                                     only when the courier quoted one (estimateFee() non-null —
-                                     QuadX never does). --}}
+                                {{-- Step 1: one large choice card per FLAGGED courier
+                                     (CourierManager::flagged() — flag ON, regardless of
+                                     credential completeness). Rendered server-side so the
+                                     markup IS the list of choices. The fee-estimate slot
+                                     renders only when the courier quoted one (estimateFee()
+                                     non-null — QuadX never does).
+
+                                     Owner directive (2026-08-08, "unconfigured couriers
+                                     visible with configuration gate"): a courier whose
+                                     ENABLED FLAG is on but isn't fully configured yet
+                                     (missing credentials — $opt['configured'] is false) still
+                                     gets a card here instead of silently vanishing (the bug
+                                     that confused the owner — CourierManager::enabled()'s
+                                     AND-credentials gate made a courier they'd switched on
+                                     disappear with no explanation). That card is a plain
+                                     <div>, never a <button @click="chooseCourier(...)">, so
+                                     it structurally CANNOT advance to step 2 — there is no
+                                     click handler to wire up, not merely a disabled one. --}}
                                 <div x-show="step === 1">
                                     <p class="text-[13px] text-v-secondary mb-3">How will this order ship?</p>
                                     <div class="cf-choice">
                                         @foreach ($courierOptions as $key => $opt)
-                                            <button type="button" class="cf-choice__card" data-courier-card="{{ $key }}" @click="chooseCourier('{{ $key }}')">
-                                                <span>
-                                                    <span class="cf-choice__name">{{ $opt['name'] }}</span>
-                                                    @if (!empty($opt['mode']) && $opt['mode'] !== 'production')
-                                                        <span class="cf-choice__mode">{{ $opt['mode'] }}</span>
-                                                    @endif
-                                                    @if (!empty($opt['fee_estimate']))
-                                                        <span class="cf-choice__fee">{{ $opt['fee_estimate']->label ?? ($opt['fee_estimate']->currency . ' ' . number_format($opt['fee_estimate']->amount, 2)) }}</span>
-                                                    @endif
-                                                </span>
-                                                <x-admin.icon name="chevron-right" class="w-4 h-4 cf-choice__go" />
-                                            </button>
+                                            @if ($opt['configured'])
+                                                <button type="button" class="cf-choice__card" data-courier-card="{{ $key }}" data-courier-configured="true" @click="chooseCourier('{{ $key }}')">
+                                                    <span>
+                                                        <span class="cf-choice__name">{{ $opt['name'] }}</span>
+                                                        @if (!empty($opt['mode']) && $opt['mode'] !== 'production')
+                                                            <span class="cf-choice__mode">{{ $opt['mode'] }}</span>
+                                                        @endif
+                                                        @if (!empty($opt['fee_estimate']))
+                                                            <span class="cf-choice__fee">{{ $opt['fee_estimate']->label ?? ($opt['fee_estimate']->currency . ' ' . number_format($opt['fee_estimate']->amount, 2)) }}</span>
+                                                        @endif
+                                                    </span>
+                                                    <x-admin.icon name="chevron-right" class="w-4 h-4 cf-choice__go" />
+                                                </button>
+                                            @else
+                                                <div class="cf-choice__card cf-choice__card--unconfigured" data-courier-card="{{ $key }}" data-courier-configured="false">
+                                                    <span class="cf-choice__unconfigured-body">
+                                                        <span class="cf-choice__unconfigured-head">
+                                                            <span class="cf-choice__name">{{ $opt['name'] }}</span>
+                                                            <span class="cf-choice__badge-unconfigured">Not configured</span>
+                                                        </span>
+                                                        <span class="cf-choice__unconfigured-msg">
+                                                            @if (!empty($opt['configIssues']))
+                                                                Missing {{ implode(' / ', $opt['configIssues']) }}.
+                                                            @endif
+                                                            Configure in <a href="{{ $opt['settingsUrl'] }}" class="cf-choice__unconfigured-link">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.
+                                                        </span>
+                                                    </span>
+                                                </div>
+                                            @endif
                                         @endforeach
                                     </div>
                                 </div>

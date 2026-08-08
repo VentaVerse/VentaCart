@@ -25,6 +25,31 @@ interface CourierFulfillmentInterface
     public function isEnabled(): bool;
 
     /**
+     * Sanctioned interface evolution #6 (owner directive, 2026-08-08
+     * "unconfigured couriers visible with configuration gate" task): which
+     * of this courier's REQUIRED credential fields — the same fields
+     * isEnabled() itself checks, e.g. SPX's App ID/App Secret pair, QuadX's
+     * API Key/Secret Key pair — are currently empty. isEnabled() only
+     * answers "configured or not" as one bool; this names WHICH fields are
+     * missing, so the booking modal's step 1 (CourierManager::flagged() —
+     * couriers whose ENABLED FLAG is on regardless of credential
+     * completeness) can render a specific, actionable message ("missing App
+     * ID / App Secret") instead of a generic one.
+     *
+     * Empty array = fully configured. Says nothing about whether the
+     * enabled FLAG itself is on — that's flagged() vs isEnabled(), a
+     * separate axis this method doesn't need to know about (a courier can
+     * have zero configurationIssues() and still be flag-off, in which case
+     * it's simply not in flagged() at all and this is never called for it
+     * by the booking modal).
+     *
+     * @return string[] human-readable field labels (matching
+     *   settingsSchema()'s own 'label' text for that field), in the order
+     *   they should be filled in.
+     */
+    public function configurationIssues(): array;
+
+    /**
      * Service levels for the booking form.
      * @return array<int, array{value:string,label:string}>
      */

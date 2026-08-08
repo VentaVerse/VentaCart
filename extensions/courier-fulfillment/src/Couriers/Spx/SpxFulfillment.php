@@ -116,6 +116,12 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return (bool) $on && $this->client->isConfigured();
     }
 
+    /** @see CourierFulfillmentInterface::configurationIssues() */
+    public function configurationIssues(): array
+    {
+        return $this->client->missingCredentialLabels();
+    }
+
     /** SPX only documents one service_type (1: standard service) — see api.md §1.4. */
     public function getServiceTypes(): array
     {

@@ -545,6 +545,70 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
 .cf-choice__go { color: var(--text-muted); flex: none; }
 
 /* ------------------------------------------------------------------
+   Booking modal, step 1: the "not configured" card variant (owner
+   directive, 2026-08-08 — a flag-on-but-unconfigured courier still gets a
+   card here instead of silently vanishing). Muted/dashed, no accent color
+   anywhere — deliberately reads as inert, never as an inviting choice.
+   ------------------------------------------------------------------ */
+
+.cf-choice__card--unconfigured {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    cursor: default;
+    background: var(--surface-sunken);
+    border-style: dashed;
+}
+
+.cf-choice__card--unconfigured:hover {
+    /* No hover affordance at all — this card is not interactive. */
+    background: var(--surface-sunken);
+    border-color: var(--border);
+}
+
+.cf-choice__unconfigured-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.cf-choice__unconfigured-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cf-choice__badge-unconfigured {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--warning) 14%, transparent);
+    color: var(--warning);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.cf-choice__unconfigured-msg {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.cf-choice__unconfigured-link {
+    color: var(--warning);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.cf-choice__unconfigured-link:hover { color: var(--text); }
+
+/* ------------------------------------------------------------------
    Responsive: the two-tier rows keep their table shape (the wrapper
    scrolls); the bars stack.
    ------------------------------------------------------------------ */
