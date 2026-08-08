@@ -47,16 +47,6 @@
     height: var(--control-h);
 }
 
-/* Pushes the actions to the far end while there is room, collapses when
-   the row wraps. */
-.cf-cmdbar__spacer { flex: 1 1 16px; min-width: 0; }
-
-.cf-cmdbar__hint {
-    margin: 12px 0 0;
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
 /* ------------------------------------------------------------------
    AWB flash - after a SYNCHRONOUS booking success (tracking number
    already known), the "Open AWB" fallback banner. A companion x-init on
@@ -606,18 +596,6 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
 
 .co-actions__danger { color: var(--danger) !important; }
 
-/* FINAL-review fix (F1): the cancelled-stage courier-exception hint -
-   explains why no Rebook renders (the stage gate blocks new bookings)
-   and names the one path forward. Muted: guidance, not an alarm. */
-.co-actions__hint {
-    margin-top: 6px;
-    font-size: 11px;
-    line-height: 1.45;
-    color: var(--text-muted);
-    white-space: normal;
-    max-width: 24ch;
-}
-
 /* ------------------------------------------------------------------
    Pager: "1 to N of M" mono left, Prev/Next right.
    ------------------------------------------------------------------ */
@@ -777,7 +755,6 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
     .cf-segment-bar__aside { align-self: flex-start; }
 
     .cf-cmdbar { padding: 12px; }
-    .cf-cmdbar__spacer { display: none; }
 
     .cf-filters__search { max-width: 100%; flex: 1 1 200px; }
 

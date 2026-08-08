@@ -686,13 +686,13 @@ class FulfillmentQueueTest extends TestCase
     /**
      * The other half of the same story: once the courier's status map has
      * moved the CORE status to a cancelled-placed one, the row moves to
-     * Cancelled and offers no workflow action, with the one path forward
-     * named in words rather than a button the server's booking gate would
-     * refuse. Tracking still renders (owner ruling, 2026-08-09: every tab
-     * but Unpaid), the waybill does not (the booking is cancelled, and the
-     * courier refuses to print one).
+     * Cancelled and offers no workflow action at all. Tracking still renders
+     * (owner ruling, 2026-08-09: every tab but Unpaid), the waybill does not
+     * (the booking is cancelled, and the courier refuses to print one). The
+     * row-level "book again" hint (co-actions__hint) was removed on owner
+     * directive (2026-08-09); this asserts it never renders here.
      */
-    public function test_a_cancelled_placed_row_offers_no_workflow_actions_and_names_the_path_back(): void
+    public function test_a_cancelled_placed_row_offers_no_workflow_actions(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -703,7 +703,7 @@ class FulfillmentQueueTest extends TestCase
         $response = $this->get($this->queueUrl() . '?filter=cancelled');
         $response->assertOk()
             ->assertSee('QX-CXL-002')
-            ->assertSee("Change this order's status to one placed under To Pack to book it again.", false)
+            ->assertDontSee('co-actions__hint', false)
             ->assertSee('openDrawer(JSON.parse(', false)
             ->assertDontSee('openBooking(JSON.parse(', false)
             ->assertDontSee('Print waybill')
@@ -977,6 +977,24 @@ class FulfillmentQueueTest extends TestCase
         $response = $this->post($this->queueUrl() . '/poll');
         $response->assertRedirect();
         $response->assertSessionHas('success');
+    }
+
+    /**
+     * Owner directive (2026-08-09): the command-bar button reads "Refresh
+     * from couriers" (the old "Poll courier statuses" label was developer
+     * jargon), and its explanatory paragraph is gone entirely - wasted
+     * space, per the owner.
+     */
+    public function test_command_bar_shows_the_refresh_button_without_the_removed_copy(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $response = $this->get($this->queueUrl());
+        $response->assertOk()
+            ->assertSee('Refresh from couriers')
+            ->assertDontSee('Poll courier statuses')
+            ->assertDontSee('Pulls the latest status for every in-flight shipment');
     }
 
     // ------------------------------------------------------------------

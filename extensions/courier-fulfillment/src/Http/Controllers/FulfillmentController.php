@@ -254,7 +254,7 @@ class FulfillmentController extends Controller
     }
 
     /**
-     * Command-bar "Poll courier statuses" — runs the same courier:poll-status
+     * Command-bar "Refresh from couriers" — runs the same courier:poll-status
      * command the scheduled automation runs, on demand. Registered into the
      * console kernel explicitly first: the extension's ServiceProvider only
      * registers its command when runningInConsole(), so an HTTP-triggered

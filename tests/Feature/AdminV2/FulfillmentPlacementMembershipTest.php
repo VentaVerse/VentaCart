@@ -490,48 +490,14 @@ class FulfillmentPlacementMembershipTest extends TestCase
     }
 
     /**
-     * Fix round: Lost & Damaged joins Failed and Cancelled in carrying the
-     * book-again hint, because reshipping after a claim is the normal
-     * outcome there and that tab offers no Book of its own.
-     *
-     * Asserted on the row hint's own class, never on its wording: the same
-     * sentence also lives in the drawer's Alpine template, which is present
-     * in the page markup for every row, so a text assertion here would pass
-     * whether the row rendered the hint or not.
+     * Failed rows keep Tracking, never a Book button - booking is a To Pack
+     * action server-side (FulfillmentService::bookingBlockedReason()), so a
+     * Failed row can never render one, live parcel or not. The row-level
+     * "book again" hint (co-actions__hint) was removed on owner directive
+     * (2026-08-09); this asserts the class never renders here, guarding
+     * against it quietly coming back.
      */
-    public function test_lost_damaged_row_carries_the_book_again_hint_delivered_does_not(): void
-    {
-        $this->actingAs(User::factory()->create());
-        $this->installExtension();
-        $this->enableQuadxStaging();
-
-        // A settled claim: the booking is cancelled, so nothing blocks a
-        // reship and the row's one path forward is the status change.
-        $this->makeOrder($this->statusPlaced('lost_damaged', 'Lost in Transit'), 'QX-L-002', 'canceled');
-        $this->makeOrder($this->statusPlaced('delivered', 'Delivered'), 'QX-D-002', 'canceled');
-
-        $this->get($this->queueUrl() . '?filter=lost_damaged')
-            ->assertOk()
-            ->assertSee('co-actions__hint', false);
-
-        // Delivered is settled, not a rebook candidate: no hint there.
-        $this->get($this->queueUrl() . '?filter=delivered')
-            ->assertOk()
-            ->assertDontSee('co-actions__hint', false);
-    }
-
-    /**
-     * Failed rows keep Tracking. Booking is a To Pack action server-side
-     * (FulfillmentService::bookingBlockedReason()), so instead of a Rebook
-     * button the server would refuse, the row names the one path forward -
-     * but only once the booking is no longer live, since a live parcel has
-     * to have its booking cancelled before anything can be reshipped.
-     *
-     * The hint is asserted on its own class, not its wording: the same
-     * sentence lives in the drawer's Alpine template too, which is in the
-     * page markup regardless of any row.
-     */
-    public function test_failed_row_offers_tracking_and_the_book_again_hint_never_a_book_button(): void
+    public function test_failed_row_offers_tracking_never_a_book_button(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -544,20 +510,18 @@ class FulfillmentPlacementMembershipTest extends TestCase
             ->assertSee('QX-F-001')
             ->assertSee('openDrawer(JSON.parse(', false)
             // The parcel exists and is still live, so its own two buttons
-            // come with it - and no hint, because cancelling the booking
-            // comes first.
+            // come with it.
             ->assertSee('Print waybill')
             ->assertDontSee('co-actions__hint', false)
             ->assertDontSee('openBooking(JSON.parse(', false)
             ->assertDontSee("cancel-order-{$order->id}", false);
 
-        // Booking cancelled: nothing blocks a reship now, so the row names
-        // the status change that enables it.
+        // Booking cancelled: still no Book button, and still no hint.
         $order->forceFill(['courier_status' => 'canceled'])->save();
 
         $this->get($this->queueUrl() . '?filter=failed')
             ->assertOk()
-            ->assertSee('co-actions__hint', false)
+            ->assertDontSee('co-actions__hint', false)
             ->assertDontSee('openBooking(JSON.parse(', false);
     }
 

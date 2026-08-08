@@ -138,16 +138,17 @@
             </div>
         @endif
 
-        {{-- Command bar: talk to the couriers. One 32px baseline. --}}
+        {{-- Command bar: talk to the couriers. One 32px baseline, button
+             left-aligned so the bar reads as a single-purpose toolbar (same
+             starting edge as the filter row below it) rather than a control
+             stranded in an otherwise-empty box. --}}
         <div class="cf-cmdbar">
             <form method="POST" action="{{ route('admin.fulfillment.poll') }}" data-v-form class="cf-cmdbar__row">
                 @csrf
-                <div class="cf-cmdbar__spacer"></div>
                 <div class="cf-cmdbar__actions">
-                    <x-admin.button type="submit" variant="primary">Poll courier statuses</x-admin.button>
+                    <x-admin.button type="submit" variant="primary">Refresh from couriers</x-admin.button>
                 </div>
             </form>
-            <p class="cf-cmdbar__hint">Pulls the latest status for every in-flight shipment from each enabled courier, the same pull the scheduled automation runs.</p>
         </div>
 
         {{-- Segment bar: the eight tabs above, each with a mono count.
@@ -428,17 +429,6 @@
                             // still allows cancelling this shipment.
                             $offersCancelBooking = $rowBucket === 'to_handover' && $cancelable;
 
-                            // Failed, Cancelled and Lost & Damaged rows carry
-                            // no Book of any kind: booking is a To Pack action,
-                            // server-side too. The hint names the one path
-                            // forward instead of rendering a button the server
-                            // would refuse. Lost & Damaged is in the list
-                            // because reshipping after a claim is the normal
-                            // outcome there, and that tab offers no Book.
-                            $showBookAgainHint = in_array($rowBucket, ['failed', 'cancelled', 'lost_damaged'], true)
-                                && !$activelyBooked
-                                && !$creating;
-
                             $timelineRaw = $meta['timeline'] ?? [];
                             $timeline = [];
                             if (is_array($timelineRaw)) {
@@ -635,14 +625,6 @@
                                                 <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
                                             @endif
                                         </div>
-                                        @if ($showBookAgainHint)
-                                            {{-- Booking is a To Pack action, server-side too
-                                                 (FulfillmentService::bookingBlockedReason()), so a
-                                                 Failed or Cancelled row gets the one path forward
-                                                 in words rather than a button that would be
-                                                 refused. --}}
-                                            <p class="co-actions__hint">Change this order's status to one placed under To Pack to book it again.</p>
-                                        @endif
                                         @if ($offersCancelOrder)
                                             <x-admin.confirm-dialog name="cancel-order-{{ $order->id }}" title="Cancel order #{{ $order->id }}?"
                                                 message="This sets the order status to your configured cancel status (returning any reserved stock) and moves it to the Cancelled tab. No courier is contacted."
@@ -801,7 +783,7 @@
                             <template x-if="active.creating">
                                 <div class="rounded-v-md bg-v-sunken border border-v-border px-4 py-3 text-sm text-v-text">
                                     <span class="font-medium">Creating shipment with <span x-text="active.provider"></span>&hellip;</span>
-                                    <p class="mt-1 text-xs text-v-muted">This usually takes a few seconds. Use "Poll courier statuses" or refresh the page shortly to see the tracking number.</p>
+                                    <p class="mt-1 text-xs text-v-muted">This usually takes a few seconds. Use "Refresh from couriers" or refresh the page shortly to see the tracking number.</p>
                                 </div>
                             </template>
                             @if (!empty($courierOptions))

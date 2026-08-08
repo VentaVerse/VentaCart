@@ -749,8 +749,6 @@ class FulfillmentCancelSemanticsTest extends TestCase
     // the coverage is not lost, only re-pointed.
     // ------------------------------------------------------------------
 
-    private const BOOK_AGAIN_HINT = "Change this order's status to one placed under To Pack to book it again.";
-
     public function test_a_cancelled_placed_row_offers_no_workflow_actions_in_any_courier_state(): void
     {
         $this->actingAs(User::factory()->create());
@@ -815,8 +813,9 @@ class FulfillmentCancelSemanticsTest extends TestCase
             $response->assertDontSee('/sales/fulfillment/' . $order->id . '/label', false);
         }
 
-        // The rows that are not mid-booking name the way back to bookable.
-        $this->assertSame(3, substr_count($response->getContent(), self::BOOK_AGAIN_HINT));
+        // The row-level "book again" hint (co-actions__hint) was removed on
+        // owner directive (2026-08-09) - none of the four rows ever renders it.
+        $response->assertDontSee('co-actions__hint', false);
     }
 
     /**
@@ -958,13 +957,13 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->assertFalse((bool) $order->stock_adjusted);
 
         // The order moved tabs because its CORE STATUS moved, and the
-        // Cancelled tab it landed in offers no workflow action, only the way
-        // back (plus whatever its own parcel state still supports).
+        // Cancelled tab it landed in offers no workflow action (plus
+        // whatever its own parcel state still supports).
         $response = $this->get($this->queueUrl() . '?filter=cancelled');
         $response->assertOk()
             ->assertSee('data-count-for="cancelled">1<', false)
             ->assertSee('QX-COURIER-CXL1')
-            ->assertSee(self::BOOK_AGAIN_HINT, false)
+            ->assertDontSee('co-actions__hint', false)
             // Courier state is still on the order, so Tracking comes with
             // it; the booking is cancelled, so the waybill does not, and no
             // workflow action does either.
