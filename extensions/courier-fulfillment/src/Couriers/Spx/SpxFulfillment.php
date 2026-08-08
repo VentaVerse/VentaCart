@@ -642,13 +642,45 @@ class SpxFulfillment implements CourierFulfillmentInterface
         }
 
         $result = $this->pollLabelResult((int) $batchNo);
+        if ($result instanceof SpxApiException) {
+            return ['ok' => false, 'error' => "SPX label fetch failed: {$result->getMessage()} (ret_code {$result->retCode})"];
+        }
         if ($result === null) {
             return ['ok' => false, 'error' => 'SPX label generation is still in progress — try again shortly.'];
         }
 
-        $taskStatus = (int) ($result['task_status'] ?? 0);
+        // Live-UAT gate finding (fulfillment-workflow-v2 + SPX plan): UAT's
+        // real batch_get_shipping_label response has NO `task_status` key at
+        // all — it returns `{awb_link, fail_list}` immediately, not the
+        // documented submit-then-poll {task_status: 1..5} shape (see
+        // docs/spx/index.md's quirks list). So "done" is decided by
+        // awb_link's PRESENCE (plus this tracking number not appearing in
+        // fail_list), not by task_status alone. The documented shape is
+        // still honored when task_status IS present: 5 (Failed) always
+        // fails regardless of awb_link; 4 (Done) with no awb_link is the
+        // "all orders failed to create" trap createShipment() already knows
+        // about (SpxFulfillment::outcomeFromCreateResult()'s docblock notes
+        // the same "Done but nothing usable" possibility for 1.5 — 1.6
+        // apparently shares it).
+        $taskStatus = array_key_exists('task_status', $result) ? (int) $result['task_status'] : null;
         $awbLink = $result['awb_link'] ?? null;
-        if ($taskStatus !== 4 || empty($awbLink)) {
+
+        $failEntry = null;
+        foreach (($result['fail_list'] ?? []) as $fail) {
+            if (($fail['tracking_no'] ?? null) === $order->courier_tracking_number) {
+                $failEntry = $fail;
+                break;
+            }
+        }
+
+        if ($failEntry !== null) {
+            return ['ok' => false, 'error' => $failEntry['message'] ?? 'SPX could not generate a label for this shipment.'];
+        }
+        if ($taskStatus === 5) {
+            $desc = $result['description'] ?? 'SPX marked this label batch as Failed.';
+            return ['ok' => false, 'error' => "SPX label generation failed: {$desc}"];
+        }
+        if (empty($awbLink)) {
             $desc = $result['description'] ?? 'SPX could not generate a label for this order.';
             return ['ok' => false, 'error' => "SPX label generation failed: {$desc}"];
         }
@@ -671,14 +703,29 @@ class SpxFulfillment implements CourierFulfillmentInterface
     /**
      * Polls 1.6 Get AWB V2 up to ~15s total (same bounded backoff shape as
      * pollCreateResult() — see that method's docblock for why this
-     * particular window). Unlike create-order, there's only ONE endpoint
-     * here (no separate "get result" call) — task_status settling to 4
-     * (Done) or 5 (Failed) on repeat calls to the SAME endpoint IS the poll.
+     * particular window). The DOCUMENTED shape is one endpoint acting as
+     * both submit and poll — task_status settling to 4 (Done) or 5 (Failed)
+     * on repeat calls to the SAME endpoint IS the poll.
      *
-     * @return ?array the raw response data once settled, or null if the
-     *   window elapses first (still New/Waiting/Running).
+     * Live-UAT gate finding: real UAT does NOT return that shape at all —
+     * `batch_get_shipping_label` responds immediately with
+     * `{awb_link, fail_list}` and no `task_status` key whatsoever (see
+     * docs/spx/index.md's quirks list). labelResultSettled() below is what
+     * actually decides "stop polling" and accepts either shape.
+     *
+     * SpxApiException (a well-formed SPX-level error — bad batch_no, auth,
+     * etc.) is surfaced to the caller immediately rather than swallowed
+     * into a generic "still in progress" — retrying the SAME batch_no under
+     * the same error condition for the rest of this window would just
+     * waste ~15s before saying something misleading. A bare network/
+     * transport Throwable is still treated as transient and retried, same
+     * as before.
+     *
+     * @return array|SpxApiException|null the raw response data once
+     *   settled; the caught SpxApiException if SPX returned a well-formed
+     *   error; or null if the window elapses first with nothing settled.
      */
-    private function pollLabelResult(int $batchNo): ?array
+    private function pollLabelResult(int $batchNo): array|SpxApiException|null
     {
         $backoffMs = [1000, 2000, 3000, 4000, 5000];
         $attempts = count($backoffMs) + 1;
@@ -686,11 +733,13 @@ class SpxFulfillment implements CourierFulfillmentInterface
         for ($i = 0; $i < $attempts; $i++) {
             try {
                 $result = $this->client->getShippingLabel($batchNo);
+            } catch (SpxApiException $e) {
+                return $e;
             } catch (\Throwable $e) {
                 $result = null;
             }
 
-            if (is_array($result) && in_array((int) ($result['task_status'] ?? 0), self::CREATE_RESULT_SETTLED, true)) {
+            if (is_array($result) && self::labelResultSettled($result)) {
                 return $result;
             }
 
@@ -700,6 +749,32 @@ class SpxFulfillment implements CourierFulfillmentInterface
         }
 
         return null;
+    }
+
+    /**
+     * "Stop polling" test for 1.6 Get AWB V2's response, covering BOTH the
+     * documented submit-then-poll shape and the real UAT shape (see
+     * pollLabelResult()'s docblock):
+     *  - `awb_link` present -> a label is ready, regardless of whether
+     *    `task_status` exists at all (the UAT shape never sends it).
+     *  - `fail_list` non-empty -> a definitive per-tracking-number failure,
+     *    even with no `awb_link` and no `task_status`.
+     *  - `task_status` present and settled (4 Done / 5 Failed) -> the
+     *    documented shape's own terminal signal, honored even if `awb_link`
+     *    happens to be empty (fetchAndStoreLabel() turns that combination
+     *    into a clear error rather than treating it as still-pending).
+     */
+    private static function labelResultSettled(array $result): bool
+    {
+        if (!empty($result['awb_link'])) {
+            return true;
+        }
+        if (!empty($result['fail_list'])) {
+            return true;
+        }
+
+        return array_key_exists('task_status', $result)
+            && in_array((int) $result['task_status'], self::CREATE_RESULT_SETTLED, true);
     }
 
     /**

@@ -982,6 +982,103 @@ class SpxFulfillmentTest extends TestCase
         Storage::disk('local')->assertMissing('courier-labels/spx/SPEPH000000000007.pdf');
     }
 
+    /**
+     * Live-UAT gate finding (fulfillment-workflow-v2 + SPX plan, Task T3):
+     * the REAL UAT `batch_get_shipping_label` response has no `task_status`
+     * key at all — just `{awb_link, fail_list}` immediately on the first
+     * call. Reproduced live: the documented submit-then-poll shape doesn't
+     * happen on UAT, so requiring `task_status === 4` made printLabel loop
+     * the whole bounded window and always report "still in progress",
+     * even though the label was ready on the very first response. See
+     * docs/spx/index.md's quirks list for the doc-vs-reality note.
+     */
+    public function test_print_label_accepts_the_real_uat_shape_with_no_task_status_key(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+        $this->makeSpxOrder('SPEPH000000000008');
+
+        Http::fake([
+            '*batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                // No `task_status` key anywhere in this payload — exactly
+                // what real UAT returns.
+                'data' => [
+                    'awb_link' => 'https://test-stable.spx.ph/downloads/resource/shipping_label/uat.pdf?access_token=abc',
+                    'fail_list' => [],
+                ],
+            ]),
+            'https://test-stable.spx.ph/downloads/resource/shipping_label/uat.pdf*' => Http::response('%PDF-1.4 uat label bytes', 200),
+        ]);
+
+        $result = $this->courier()->printLabel('SPEPH000000000008', 'zebra');
+
+        $this->assertTrue($result['success']);
+        Storage::disk('local')->assertExists('courier-labels/spx/SPEPH000000000008.pdf');
+        // Settled on the very FIRST call — no bounded-poll retries burned.
+        Http::assertSentCount(2);
+    }
+
+    /**
+     * Live-UAT gate finding: a per-tracking-number entry in `fail_list` is a
+     * definitive failure the poll must stop on immediately, even with no
+     * `awb_link` and no `task_status` present at all (the same UAT shape as
+     * the success case above, just the failure branch of it).
+     */
+    public function test_print_label_surfaces_a_fail_list_entry_for_this_tracking_number(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+        $this->makeSpxOrder('SPEPH000000000009');
+
+        Http::fake([
+            '*batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'fail_list' => [
+                        ['tracking_no' => 'SPEPH000000000009', 'message' => 'Order has been cancelled.'],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $result = $this->courier()->printLabel('SPEPH000000000009', 'zebra');
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('Order has been cancelled.', $result['error']);
+        Storage::disk('local')->assertMissing('courier-labels/spx/SPEPH000000000009.pdf');
+        // Settled (as a failure) on the first call — no retries burned.
+        Http::assertSentCount(1);
+    }
+
+    /**
+     * T3 minor, ledgered and now fixed by the live-UAT gate finding: a
+     * well-formed SpxApiException (SPX rejecting the request itself — bad
+     * batch_no, auth, etc.) used to be swallowed by the poll's generic
+     * `catch (\Throwable)`, producing the same misleading "still in
+     * progress" message as a genuinely pending label. It must now surface
+     * the actual SPX error instead.
+     */
+    public function test_print_label_surfaces_the_spx_api_exception_message_instead_of_still_in_progress(): void
+    {
+        $this->configureAccountCredentials();
+        $this->makeSpxOrder('SPEPH000000000010');
+
+        Http::fake([
+            '*batch_get_shipping_label*' => Http::response([
+                'ret_code' => 13001, 'message' => 'Order not found.',
+            ]),
+        ]);
+
+        $result = $this->courier()->printLabel('SPEPH000000000010', 'zebra');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Order not found.', $result['error']);
+        $this->assertStringNotContainsString('still in progress', $result['error']);
+        // No retries burned on a well-formed API error — surfaced on the first call.
+        Http::assertSentCount(1);
+    }
+
     // ------------------------------------------------------------------
     // Task T3: parseWebhook() — api.md §4.1 payload shapes, verbatim.
     // ------------------------------------------------------------------

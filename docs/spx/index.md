@@ -54,6 +54,7 @@ Note: the nav also has an "Announcement" tab alongside "Guide" and "API" — it 
 - `api.md` → 4.2 Evidence Proofs Webhook: the payload parameter table's last row (`status_code_name`) has no description text in the source, and no JSON example payload is provided (unlike 4.1).
 - `guide.md` → "API authentication guide": the Unix-line-ending and Windows-line-ending "expected result" hashes shown for the test vector are identical in the source text — flagged as a possible documentation copy-paste artifact.
 - Two figures/diagrams (`Introduction` → "Integration process", and `Update Order Flowchart` → the flowchart itself) are rendered images, not extractable as text — noted inline in `guide.md` rather than silently omitted.
+- `api.md` → 1.6 Get AWB V2: **documentation-vs-reality deviation, verified against the real UAT API** (fulfillment-workflow-v2 + SPX plan, Task T3 live-UAT gate). The doc describes a submit-then-poll shape — repeat calls to `batch_get_shipping_label` with the same `batch_no`, inspecting `data.task_status` (1 New/2 Waiting/3 Running/4 Done/5 Failed) until it settles, with `awb_link` only appearing once `task_status` is 4. Real UAT does not do this: the FIRST call returns `data = {awb_link, fail_list}` immediately, with **no `task_status` key present at all**. Venta's `SpxFulfillment::labelResultSettled()` treats a response as done when `awb_link` is present (or `fail_list` is non-empty, or the documented `task_status` shape IS present and settled) — see that method's docblock for the full reconciliation logic.
 
 ## Files in this harvest
 
