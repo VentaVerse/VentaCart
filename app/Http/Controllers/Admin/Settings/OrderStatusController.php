@@ -28,12 +28,14 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stock_action' => ['nullable', 'in:decrement,increment'],
+            'fulfillment_stage' => ['nullable', 'in:unpaid,ready,cancelled'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
         ]);
 
         $validated['store_id'] = $this->storeId;
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        $validated['fulfillment_stage'] = $validated['fulfillment_stage'] ?? 'ready';
         $validated['is_default'] = $request->boolean('is_default');
 
         if ($validated['is_default']) {
@@ -51,11 +53,13 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stock_action' => ['nullable', 'in:decrement,increment'],
+            'fulfillment_stage' => ['nullable', 'in:unpaid,ready,cancelled'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
         ]);
 
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
+        $validated['fulfillment_stage'] = $validated['fulfillment_stage'] ?? 'ready';
         $validated['is_default'] = $request->boolean('is_default');
 
         if ($validated['is_default']) {

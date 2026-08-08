@@ -8,6 +8,14 @@
                 </div>
             </x-admin.card>
 
+            <x-admin.card title="Fulfillment stages" description="Which fulfillment queue tab a status belongs to.">
+                <div class="flex flex-wrap gap-4 text-[13px]">
+                    <span class="flex items-center gap-2"><x-admin.badge tone="warning">Unpaid</x-admin.badge><span class="text-v-secondary">order is waiting on payment</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="success">Ready</x-admin.badge><span class="text-v-secondary">order is paid and moves through courier handling</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">Cancelled</x-admin.badge><span class="text-v-secondary">order will not be fulfilled</span></span>
+                </div>
+            </x-admin.card>
+
             <x-admin.card title="Statuses">
                 {{--
                     A <form> cannot legally wrap table rows/cells (invalid HTML: form is not a
@@ -27,6 +35,7 @@
                     <x-slot:head>
                         <x-admin.table.th>Status</x-admin.table.th>
                         <x-admin.table.th>Stock action</x-admin.table.th>
+                        <x-admin.table.th>Fulfillment stage</x-admin.table.th>
                         <x-admin.table.th>Sort</x-admin.table.th>
                         <x-admin.table.th align="right">Actions</x-admin.table.th>
                     </x-slot:head>
@@ -55,6 +64,22 @@
                                         <x-admin.badge tone="success">▲ Increments</x-admin.badge>
                                     @else
                                         <x-admin.badge tone="neutral">-</x-admin.badge>
+                                    @endif
+                                </div>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell>
+                                <div class="flex items-center gap-2">
+                                    <select form="{{ $editForm }}" name="fulfillment_stage" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        <option value="unpaid" @selected($status->fulfillment_stage === 'unpaid')>Unpaid</option>
+                                        <option value="ready" @selected($status->fulfillment_stage === 'ready')>Ready</option>
+                                        <option value="cancelled" @selected($status->fulfillment_stage === 'cancelled')>Cancelled</option>
+                                    </select>
+                                    @if ($status->fulfillment_stage === 'unpaid')
+                                        <x-admin.badge tone="warning">Unpaid</x-admin.badge>
+                                    @elseif ($status->fulfillment_stage === 'cancelled')
+                                        <x-admin.badge tone="danger">Cancelled</x-admin.badge>
+                                    @else
+                                        <x-admin.badge tone="success">Ready</x-admin.badge>
                                     @endif
                                 </div>
                             </x-admin.table.cell>
@@ -90,7 +115,7 @@
             @endforeach
 
             <x-admin.card title="Add status">
-                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:items-end">
+                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-5 sm:items-end">
                     @csrf
                     <x-admin.field name="name" label="Name">
                         <x-admin.input name="name" required placeholder="Quality Check" />
@@ -100,6 +125,13 @@
                             <option value="">None</option>
                             <option value="decrement">Decrement</option>
                             <option value="increment">Increment</option>
+                        </x-admin.select>
+                    </x-admin.field>
+                    <x-admin.field name="fulfillment_stage" label="Fulfillment stage">
+                        <x-admin.select name="fulfillment_stage">
+                            <option value="unpaid">Unpaid</option>
+                            <option value="ready" selected>Ready</option>
+                            <option value="cancelled">Cancelled</option>
                         </x-admin.select>
                     </x-admin.field>
                     <x-admin.field name="sort_order" label="Sort">

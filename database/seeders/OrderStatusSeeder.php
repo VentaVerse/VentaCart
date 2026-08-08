@@ -7,6 +7,19 @@ use Illuminate\Support\Facades\DB;
 
 class OrderStatusSeeder extends Seeder
 {
+    /**
+     * Status names (case-insensitive) that default to the "unpaid" fulfillment stage.
+     */
+    private const UNPAID_NAMES = ['Unpaid', 'Pending', 'Quote Ready for Payment'];
+
+    /**
+     * Status names (case-insensitive) that default to the "cancelled" fulfillment stage.
+     */
+    private const CANCELLED_NAMES = [
+        'Canceled', 'Canceled Reversal', 'Denied', 'Expired', 'Failed',
+        'Refunded', 'Reversed', 'Voided', 'Chargeback',
+    ];
+
     public function run(): void
     {
         $storeId = 1;
@@ -33,9 +46,28 @@ class OrderStatusSeeder extends Seeder
                 'name' => $status['name'],
                 'is_default' => $status['is_default'],
                 'sort_order' => $status['sort_order'],
+                'fulfillment_stage' => self::stageFor($status['name']),
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
         }
+    }
+
+    /**
+     * Resolve the default fulfillment stage for a status name (case-insensitive match).
+     */
+    public static function stageFor(string $name): string
+    {
+        $needle = mb_strtolower($name);
+
+        if (in_array($needle, array_map('mb_strtolower', self::UNPAID_NAMES), true)) {
+            return 'unpaid';
+        }
+
+        if (in_array($needle, array_map('mb_strtolower', self::CANCELLED_NAMES), true)) {
+            return 'cancelled';
+        }
+
+        return 'ready';
     }
 }
