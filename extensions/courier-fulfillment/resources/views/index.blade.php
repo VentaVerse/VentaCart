@@ -55,15 +55,16 @@
             return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
         };
 
-        // fulfillment-tabs-v3 Task 3: the six top-level tabs, Unpaid first
-        // (owner directive — gateways auto-advance paid orders past it, so
-        // it's where manual/reseller orders wait). To Ship replaces the old
-        // top-level To Pack/Booking/To Handover trio: its own count is the
-        // sum of those two courier buckets (phaseCounts['to_ship'], the
-        // controller's own composite), and it renders a SUB-segment bar
-        // below (To Pack / To Handover) rather than being a single flat
-        // list. `returning` is deliberately NOT a tab — returns are a
-        // sibling page (the aside link), never an eighth filter (the ERP
+        // The six top-level tabs, Unpaid first (owner directive - gateways
+        // auto-advance paid orders past it, so it's where manual/reseller
+        // orders wait). Each is a GROUP that core order statuses are placed
+        // into (Settings, Order Statuses): a tab is never a status, and the
+        // status's placement is the only thing that decides which tab an
+        // order appears in. To Ship is a heading with no placement of its
+        // own: its count is its two sub-tabs added together, and it renders
+        // a SUB-segment bar below (To Pack / To Handover) rather than being
+        // a single flat list. Returns is deliberately NOT a tab - it is a
+        // sibling page (the aside link), never a seventh filter (the ERP
         // rule this grammar is copied from).
         $phaseTabs = [
             'unpaid'     => 'Unpaid',
@@ -247,8 +248,18 @@
                                 ? ($orderCourier?->statusPhase($order->courier_status) ?? ['step' => 0, 'failed' => false])
                                 : ['step' => 0, 'failed' => false];
 
+                            // Does this row carry courier data at all? Everything
+                            // courier-shaped on the row (its badge, its actions)
+                            // hangs off this: an order that was never booked has
+                            // no courier state to report, and the fulfillment
+                            // page must not invent one for it. This is what keeps
+                            // the 24,620 OpenCart-era Delivered orders from
+                            // showing a "To Pack" courier badge they never earned.
+                            $hasCourierData = (bool) ($order->courier_tracking_number || $order->courier_provider);
+
                             // The row's spine bucket + tone: the one shared colour system every
-                            // courier's statuses collapse onto (Support\PhaseTone).
+                            // courier's statuses collapse onto (Support\PhaseTone). A SHIPMENT
+                            // fact, never a tab fact (see FulfillmentService::tabBucket()).
                             $spinePhase = \Extensions\CourierFulfillment\FulfillmentService::phaseFor($order);
                             $spineTone  = \Extensions\CourierFulfillment\Support\PhaseTone::toneFor($spinePhase);
                             $spineLabel = ucwords(str_replace('_', ' ', $spinePhase));
@@ -292,41 +303,70 @@
                             $cancelable = $activelyBooked && $orderCourier
                                 && (!$order->courier_status || in_array($order->courier_status, $orderCourier->cancelableStatuses(), true));
 
-                            // fulfillment-tabs-v3 Task 3 + FINAL-review fix (F1):
-                            // the row's own tab bucket (stage-first, same rule the
-                            // segment bar counts by - FulfillmentService::
-                            // tabBucket()'s docblock) plus the row's raw STAGE
-                            // drive the action matrix below.
+                            // The row's tab: its core status placement, nothing
+                            // else (FulfillmentService::tabBucket()). It is the
+                            // ONLY input to the action matrix below, which is
+                            // hardcoded per tab exactly as the spec's table
+                            // states:
+                            //
+                            //   Unpaid       Cancel order
+                            //   To Pack      Book, Cancel order
+                            //   To Handover  Print waybill, Tracking, Cancel booking
+                            //   In Transit   Tracking
+                            //   Delivered    Tracking
+                            //   Failed       Tracking
+                            //   Cancelled    none
+                            //
+                            // Two gates apply on top, and only ever SUBTRACT:
+                            // a courier action renders only when the row
+                            // actually carries courier data, and no action
+                            // renders that the server would refuse.
                             $rowBucket = \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order);
-                            $rowStage = $order->status?->fulfillment_placement ?? 'to_pack';
 
-                            // FINAL-review fix (F1/F3, the coherent rule): a
-                            // stage-claimed (unpaid or cancelled) order that
-                            // still carries courier state keeps its courier-
-                            // appropriate actions; the stage gate only blocks
-                            // NEW bookings. This mirrors FulfillmentService::
-                            // book()'s own server-side stage gate exactly -
-                            // Book/Rebook on a stage-gated row could never
-                            // succeed, so it never renders (Rebook included:
-                            // rebooking IS a new shipment to the server). A
-                            // stage-'ready' row in the cancelled BUCKET (the
-                            // courier-side exception) is NOT stage-gated and
-                            // keeps its Rebook.
-                            $stageGated = in_array($rowStage, ['unpaid', 'cancelled'], true);
+                            // Book: To Pack only, and only when the server
+                            // would accept it - bookingBlockedReason() is the
+                            // same single rule FulfillmentService::book() and
+                            // the estimate endpoint enforce, so a rendered
+                            // Book button can never be refused for placement,
+                            // and the two idempotency guards (active booking,
+                            // async create in flight) subtract the rest. An
+                            // order with no courier configured at all has
+                            // nothing to book with.
+                            $canBook = \Extensions\CourierFulfillment\FulfillmentService::bookingBlockedReason($order) === null
+                                && !$activelyBooked
+                                && !$creating
+                                && !empty($courierOptions);
 
-                            // fulfillment-tabs-v3 Task 4 (+ owner ruling on
-                            // unpaid precedence): the row's BUCKET drives the
-                            // per-tab action matrix. Bucket 'unpaid' (unpaid
-                            // stage with no live booking — the only rows the
-                            // Unpaid tab now has) gets exactly ONE action,
-                            // Cancel order, and it always works: such a row
-                            // is by definition not actively booked, so the
-                            // server never refuses it for booking reasons.
-                            // An unpaid-STAGE order with an active booking
-                            // buckets by its courier phase and keeps the
-                            // normal courier action set. Cancel order also
-                            // renders alongside Book on To Pack rows.
-                            $offersCancelOrder = in_array($rowBucket, ['unpaid', 'to_pack'], true);
+                            // Cancel order: Unpaid and To Pack rows, minus the
+                            // rows cancelOrder() itself refuses (an active
+                            // booking, or an async create in flight - cancel
+                            // the booking first).
+                            $offersCancelOrder = in_array($rowBucket, ['unpaid', 'to_pack'], true)
+                                && !$activelyBooked
+                                && !$creating;
+
+                            // Tracking / Creating / Details: one drawer opener,
+                            // on the tabs whose action list includes Tracking,
+                            // and only for a row that has courier state worth
+                            // opening.
+                            $offersDrawer = $hasCourierData
+                                && in_array($rowBucket, ['to_handover', 'in_transit', 'delivered', 'failed'], true);
+
+                            // Print waybill: To Handover, live booking only (a
+                            // cancelled shipment has no printable AWB).
+                            $offersWaybill = $rowBucket === 'to_handover' && $activelyBooked;
+
+                            // Cancel booking: To Handover, while the courier
+                            // still allows cancelling this shipment.
+                            $offersCancelBooking = $rowBucket === 'to_handover' && $cancelable;
+
+                            // Failed and Cancelled rows carry no Book of any
+                            // kind: booking is a To Pack action, server-side
+                            // too. The hint names the one path forward instead
+                            // of rendering a button the server would refuse.
+                            $showBookAgainHint = in_array($rowBucket, ['failed', 'cancelled'], true)
+                                && !$activelyBooked
+                                && !$creating;
 
                             $timelineRaw = $meta['timeline'] ?? [];
                             $timeline = [];
@@ -359,10 +399,15 @@
                                 'activelyBooked' => $activelyBooked,
                                 'rebookable' => $rebookable,
                                 'cancelable' => $cancelable,
-                                // FINAL-review fix (F1): lets the drawer suppress
-                                // its own "Book shipment" button for rows the
-                                // server's stage gate would refuse anyway.
-                                'stageGated' => $stageGated,
+                                // The drawer is a VIEWING surface opened from a
+                                // row, so it offers exactly what that row's tab
+                                // offers and never more: these three flags are
+                                // the same ones the row's own buttons render
+                                // from, passed through rather than re-derived
+                                // client-side.
+                                'canBook' => $canBook,
+                                'canPrintWaybill' => $offersWaybill,
+                                'canCancelBooking' => $offersCancelBooking,
                                 'trackingNumber' => $order->courier_tracking_number,
                                 'provider' => strtoupper((string) $order->courier_provider),
                                 'courierStatus' => $order->courier_status,
@@ -461,7 +506,17 @@
                                     </td>
                                     <td class="cf-col-status" rowspan="{{ $lineCount }}">
                                         <div class="co-status">
-                                            <x-admin.badge :tone="$spineTone">{{ $spineLabel }}</x-admin.badge>
+                                            @if ($hasCourierData)
+                                                {{-- A booked row reports its SHIPMENT's spine
+                                                     phase, in that phase's shared tone. --}}
+                                                <x-admin.badge :tone="$spineTone">{{ $spineLabel }}</x-admin.badge>
+                                            @else
+                                                {{-- No courier ever touched this order, so there
+                                                     is no courier state to report: its core order
+                                                     status is the honest answer (and the only
+                                                     thing that decided which tab it is in). --}}
+                                                <x-admin.badge tone="neutral">{{ $order->status?->name ?? 'Missing' }}</x-admin.badge>
+                                            @endif
                                             @if ($order->courier_status)
                                                 <span class="co-status__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
                                             @endif
@@ -472,105 +527,57 @@
                                     </td>
                                     <td class="cf-col-act" rowspan="{{ $lineCount }}">
                                         <div class="co-actions">
-                                            @if ($rowBucket === 'unpaid')
-                                                {{-- Task 4, owner ruling: an Unpaid-bucket row (unpaid
-                                                     stage, no live booking) renders exactly ONE action,
-                                                     Cancel order — no Book (refused server-side anyway),
-                                                     no Tracking/Print. Always actionable: this row is
-                                                     never actively booked. --}}
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
-                                            @elseif ($rowStage === 'cancelled')
-                                                {{-- FINAL-review fix (F1, the coherent rule): a
-                                                     cancelled-stage row that still carries courier
-                                                     state keeps its courier-appropriate actions -
-                                                     the stage claim only blocks NEW bookings. An
-                                                     ACTIVE booking is a live parcel that must stay
-                                                     stoppable from the queue (Tracking + Cancel
-                                                     booking); a courier-CANCELLED booking keeps
-                                                     Tracking plus the rebook hint below (never a
-                                                     Rebook button - the server's stage gate would
-                                                     always refuse it); a mid-async-create row keeps
-                                                     its Creating drawer opener (no tracking number
-                                                     yet, so a booking cancel could not succeed and
-                                                     does not render); a failed async create keeps
-                                                     its Details drawer (where the error reads). A
-                                                     row with NO courier state stays view-only - the
-                                                     order link in the band is the only way in. --}}
-                                                @if ($creating)
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</x-admin.button>
-                                                @elseif ($order->courier_tracking_number)
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
-                                                    @if ($cancelable)
-                                                        <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel</x-admin.button>
-                                                    @endif
-                                                @elseif ($creationFailed)
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</x-admin.button>
-                                                @endif
-                                            @elseif ($creating)
-                                                {{-- Task T4: honest "Creating…" state — a second Book
-                                                     click here would hit FulfillmentService::book()'s
-                                                     async-in-progress guard anyway, but showing an
-                                                     enabled Book/Rebook button on an order that's
-                                                     already mid-booking is misleading. Still opens the
-                                                     drawer (same JSON payload every other row action
-                                                     uses) so the operator can see what's happening. --}}
-                                                <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</x-admin.button>
-                                            @elseif (!$activelyBooked && !empty($courierOptions) && !$stageGated)
+                                            {{-- The per-tab action table, hardcoded. Read the
+                                                 $rowBucket block in this row's @php above for the
+                                                 table itself and for what each gate subtracts. Every
+                                                 branch below is keyed on the tab and nothing else:
+                                                 no courier state decides WHICH actions a tab offers,
+                                                 only whether an offered courier action has anything
+                                                 to act on. --}}
+                                            @if ($canBook)
                                                 {{-- Component-tag attributes only compile {{ }} echoes, not
                                                      @-directives — @js() here would render as literal text.
                                                      Js::from() is what @js() expands to; the {{ }} form is the
                                                      one that compiles on a component tag. --}}
-                                                <x-admin.button type="button" size="sm" variant="primary" @click="openBooking({{ \Illuminate\Support\Js::from($rowData) }})">{{ $rebookable ? 'Rebook' : 'Book' }}</x-admin.button>
+                                                <x-admin.button type="button" size="sm" variant="primary" @click="openBooking({{ \Illuminate\Support\Js::from($rowData) }})">Book</x-admin.button>
                                             @endif
-                                            @if ($rowBucket === 'to_pack')
-                                                {{-- Task 4: the real order cancel, alongside Book on
-                                                     a To Pack row. Never on booked rows — the server
-                                                     refuses while a booking is active anyway. --}}
+                                            @if ($offersWaybill)
+                                                <x-admin.button size="sm" variant="secondary" href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener">Print waybill</x-admin.button>
+                                            @endif
+                                            @if ($offersDrawer)
+                                                {{-- One opener, three honest labels: a booking still
+                                                     in flight says so, a failed async create opens on
+                                                     its error, anything with a tracking number opens
+                                                     on its timeline. --}}
+                                                @if ($creating)
+                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</x-admin.button>
+                                                @elseif ($creationFailed && !$order->courier_tracking_number)
+                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</x-admin.button>
+                                                @else
+                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
+                                                @endif
+                                            @endif
+                                            @if ($offersCancelBooking)
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel booking</x-admin.button>
+                                            @endif
+                                            @if ($offersCancelOrder)
                                                 <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
                                             @endif
-                                            @if ($rowBucket !== 'unpaid' && $rowStage !== 'cancelled')
-                                                @if ($activelyBooked)
-                                                    <x-admin.button size="sm" variant="secondary" href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener">Print waybill</x-admin.button>
-                                                @endif
-                                                {{-- Any row that has ever been booked keeps its drawer
-                                                     access — a CANCELLED booking (tracking number present,
-                                                     not actively booked) still has a timeline and the
-                                                     terminal `cancelled` badge to show, and Rebook alone
-                                                     would orphan both (review fix, W2). Task 4 + owner
-                                                     ruling: gated OFF only for Unpaid-BUCKET rows (one
-                                                     action) and order-cancelled rows (view-only) — an
-                                                     unpaid-stage row with an active booking buckets by
-                                                     courier phase and keeps these. --}}
-                                                @if ($order->courier_tracking_number)
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
-                                                @elseif ($creationFailed)
-                                                    {{-- Final-review fix (Finding 2): a creation_failed order has NO
-                                                         tracking number, so the Tracking button above can't carry it —
-                                                         but its drawer is where the full creation_error reads, so it
-                                                         gets its own opener. --}}
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</x-admin.button>
-                                                @endif
-                                                @if ($cancelable)
-                                                    <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel</x-admin.button>
-                                                @endif
-                                            @endif
                                         </div>
-                                        @if ($rowStage === 'cancelled' && $rebookable)
-                                            {{-- FINAL-review fix (F1): the honest replacement for
-                                                 a Rebook button the stage gate would always refuse
-                                                 - name what happened and the one path forward. --}}
-                                            <p class="co-actions__hint">Booking cancelled by courier. Change the order status to a ready stage to rebook.</p>
+                                        @if ($showBookAgainHint)
+                                            {{-- Booking is a To Pack action, server-side too
+                                                 (FulfillmentService::bookingBlockedReason()), so a
+                                                 Failed or Cancelled row gets the one path forward
+                                                 in words rather than a button that would be
+                                                 refused. --}}
+                                            <p class="co-actions__hint">Change this order's status to one placed under To Pack to book it again.</p>
                                         @endif
                                         @if ($offersCancelOrder)
                                             <x-admin.confirm-dialog name="cancel-order-{{ $order->id }}" title="Cancel order #{{ $order->id }}?"
                                                 message="This sets the order status to your configured cancel status (returning any reserved stock) and moves it to the Cancelled tab. No courier is contacted."
                                                 confirm="Cancel order" :action="route('admin.fulfillment.cancel-order', $order)" method="POST" />
                                         @endif
-                                        @if ($cancelable && $rowBucket !== 'unpaid')
-                                            {{-- FINAL-review fix (F1): rendered for cancelled-stage
-                                                 rows too - $cancelable already requires an ACTIVE
-                                                 booking, and stopping a live parcel is exactly the
-                                                 action a cancelled order needs. --}}
+                                        @if ($offersCancelBooking)
                                             <x-admin.confirm-dialog name="cancel-fulfillment-{{ $order->id }}" title="Cancel booking for order #{{ $order->id }}?"
                                                 message="This cancels the courier booking. The order returns to To Pack for rebooking."
                                                 confirm="Cancel booking" :action="route('admin.fulfillment.cancel', $order)" method="POST" />
@@ -730,27 +737,31 @@
                                 <template x-if="!active.activelyBooked && !active.creating">
                                     <div class="space-y-3">
                                         {{-- Final-review fix (Finding 2): the async create's permanent
-                                             failure reason (courier_meta.creation_error) — surfaced here
-                                             with the Book button right below it, since a creation_failed
-                                             order MUST be rebookable. FINAL-review fix (F1): unless the
-                                             row is stage-gated - then the server's stage gate would
-                                             refuse the booking, so the "book again" tail and the Book
-                                             button below never render (a button that cannot succeed is
-                                             never shown). --}}
+                                             failure reason (courier_meta.creation_error) - surfaced here,
+                                             with the Book button right below it when this order can in
+                                             fact be booked. `canBook` is the row's own answer from the
+                                             SAME rule the server enforces
+                                             (FulfillmentService::bookingBlockedReason()), so the drawer
+                                             never offers a booking the queue would not, and never one
+                                             that would be refused: an order that is not placed under
+                                             To Pack gets the explanation without the button. --}}
                                         <template x-if="active.creationFailed">
                                             <div class="rounded-v-md border border-v-danger bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-xs text-v-danger">
                                                 <span class="font-semibold">Booking failed:</span>
                                                 <span x-text="active.creationError || 'the courier could not create this shipment.'"></span>
-                                                <span x-show="!active.stageGated">Fix the cause and book again below.</span>
+                                                <span x-show="active.canBook">Fix the cause and book again below.</span>
                                             </div>
                                         </template>
-                                        <template x-if="active.rebookable && !active.stageGated">
+                                        <template x-if="active.rebookable && active.canBook">
                                             <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 text-xs text-v-muted">
                                                 Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
                                             </div>
                                         </template>
-                                        <template x-if="!active.stageGated">
+                                        <template x-if="active.canBook">
                                             <x-admin.button type="button" variant="primary" class="w-full" @click="closeDrawer(); openBooking(active)">Book shipment</x-admin.button>
+                                        </template>
+                                        <template x-if="!active.canBook">
+                                            <p class="text-xs text-v-muted">Change this order's status to one placed under To Pack to book it again.</p>
                                         </template>
                                     </div>
                                 </template>
@@ -813,12 +824,14 @@
                                     </div>
 
                                     <div class="flex flex-col gap-2">
-                                        <a :href="labelUrl" target="_blank" rel="noopener" class="text-center px-4 py-2 border border-v-border text-v-text text-sm font-semibold rounded-v-md hover:bg-v-hover">Print AWB</a>
+                                        <template x-if="active.canPrintWaybill">
+                                            <a :href="labelUrl" target="_blank" rel="noopener" class="text-center px-4 py-2 border border-v-border text-v-text text-sm font-semibold rounded-v-md hover:bg-v-hover">Print AWB</a>
+                                        </template>
                                         <form :action="trackAction" method="POST" data-v-form>
                                             @csrf
                                             <x-admin.button type="submit" variant="secondary" class="w-full">Refresh status</x-admin.button>
                                         </form>
-                                        <template x-if="active.cancelable">
+                                        <template x-if="active.canCancelBooking">
                                             <x-admin.button type="button" variant="danger" class="w-full" @click="$dispatch('open-modal', 'cancel-fulfillment-' + active.id)">Cancel booking</x-admin.button>
                                         </template>
                                     </div>

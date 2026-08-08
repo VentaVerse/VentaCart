@@ -1188,12 +1188,19 @@ class ReskinWaveTest extends TestCase
         // Task 4: 'fulfillment_enabled' is opt-out (missing/NULL means active),
         // so no setting write is needed here — see FulfillmentController::index().
 
+        // fulfillment-placement Task 2: which tab an order appears under is
+        // decided by its core status's fulfillment_placement, so this test's
+        // three orders now sit on three placed statuses. Its subject (the
+        // pages render in the new shell, and each filter round-trips its
+        // param into the search form) is unchanged.
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
+        $shippedStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'fulfillment_placement' => 'in_transit']);
+        $deliveredStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 3, 'fulfillment_placement' => 'delivered']);
 
-        $makeOrder = function (string $suffix) use ($status) {
+        $makeOrder = function (string $suffix, ?OrderStatus $on = null) use ($status) {
             return Order::create([
                 'store_id' => 1,
-                'order_status_id' => $status->id,
+                'order_status_id' => ($on ?? $status)->id,
                 'first_name' => 'Jane',
                 'last_name' => 'Doe',
                 'shipping_first_name' => 'Jane',
@@ -1207,14 +1214,14 @@ class ReskinWaveTest extends TestCase
 
         $toPack = $makeOrder('topack');
 
-        $inTransit = $makeOrder('intransit');
+        $inTransit = $makeOrder('intransit', $shippedStatus);
         $inTransit->forceFill([
             'courier_tracking_number' => 'TRACK-IN-TRANSIT',
             'courier_provider' => 'quadx',
             'courier_status' => 'picked_up',
         ])->save();
 
-        $delivered = $makeOrder('delivered');
+        $delivered = $makeOrder('delivered', $deliveredStatus);
         $delivered->forceFill([
             'courier_tracking_number' => 'TRACK-DELIVERED',
             'courier_provider' => 'quadx',

@@ -4,9 +4,8 @@ namespace Extensions\CourierFulfillment\Support;
 
 /**
  * Tone map for the common fulfillment status spine
- * (CourierFulfillmentInterface::statusPhase()'s 'phase' bucket, plus the
- * order-status-stage-level `unpaid` bucket added by the fulfillment-tabs-v3
- * task — see FulfillmentService::tabBucket()).
+ * (CourierFulfillmentInterface::statusPhase()'s 'phase' bucket, plus an
+ * `unpaid` bucket for the order-status side of the queue).
  *
  * Every courier names its statuses differently (QuadX's `for_pickup` says
  * the same physical thing as SPX's own vocabulary will), and every one of

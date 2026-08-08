@@ -131,9 +131,15 @@ interface CourierFulfillmentInterface
      * `booking` (async create in flight), `to_handover` (booked, awaiting
      * courier collection/drop-off), `in_transit`, `delivered`, `failed`
      * (delivery failed / lost / damaged), `cancelled` (booking cancelled),
-     * `returning` (coming back to the seller). (`unpaid` is a further,
-     * order-status-STAGE-level bucket a courier never returns — see
-     * FulfillmentService::tabBucket().)
+     * `returning` (coming back to the seller). (`unpaid` is a further tone
+     * bucket a courier never returns, kept for the order-status side of the
+     * queue.)
+     *
+     * This describes a SHIPMENT, and only a shipment: it drives row badges,
+     * the drawer's stepper and timeline, and cancelable/terminal decisions.
+     * It has NO say in which fulfillment tab an order appears in - that is
+     * the core order status's placement alone
+     * (FulfillmentService::tabBucket()).
      *
      * `to_pack` is deliberately NEVER returned here — "no booking exists
      * yet" isn't a courier status, it's the absence of one, so it's the

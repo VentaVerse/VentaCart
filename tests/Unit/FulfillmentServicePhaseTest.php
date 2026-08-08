@@ -142,100 +142,106 @@ class FulfillmentServicePhaseTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // fulfillment-tabs-v3 Task 2 (amended by the Task 4 owner ruling):
-    // FulfillmentService::tabBucket() — the STAGE-FIRST tab/tally
-    // membership function. Unlike phaseFor() above (which stays a pure
-    // courier-phase derivation, used for row badges), tabBucket() layers
-    // the order's own OrderStatus::$fulfillment_placement on top: 'cancelled'
-    // stage claims the order's bucket absolutely; 'unpaid' stage claims it
-    // only while the order has NO active booking (an actively-booked order
-    // follows its courier phase — the booking puts it in the shipping
-    // pipeline); a 'ready'-stage order buckets by its courier phase, with
-    // 'booking' (async create in flight) collapsing into 'to_handover' for
-    // membership purposes only.
+    // fulfillment-placement Task 2: FulfillmentService::tabBucket() is the
+    // membership function, and it reads ONE thing - the core order status's
+    // fulfillment_placement. The tabs-v3 rules these tests used to assert
+    // (stage-vs-phase arbitration, the absolute cancelled arm, the unpaid
+    // carve-out, the 'booking' collapse) no longer exist as concepts, so
+    // each is replaced here by the equivalent assertion under the new rule:
+    // the SAME courier states must now change nothing at all.
+    //
+    // phaseFor() above is unchanged and still describes the SHIPMENT (row
+    // badge, drawer stepper, returns page). The pairs below assert both at
+    // once, so a future edit cannot quietly re-couple them.
     //
     // $order->setRelation('status', ...) stands in for a real OrderStatus
     // row without touching the DB — same "no real Order row" pattern this
     // file already uses via order()/setRawAttributes() above.
     // ------------------------------------------------------------------
 
-    private function orderWithStage(string $stage, array $attributes): Order
+    private function orderPlaced(string $placement, array $attributes): Order
     {
         $order = $this->order($attributes);
-        $order->setRelation('status', new \App\Models\OrderStatus(['fulfillment_placement' => $stage]));
+        $order->setRelation('status', new \App\Models\OrderStatus(['fulfillment_placement' => $placement]));
 
         return $order;
     }
 
-    public function test_unpaid_stage_claims_the_bucket_only_while_there_is_no_active_booking(): void
+    /** Was: unpaid claims the bucket only while there is no active booking. Now: the placement answers, whatever the booking. */
+    public function test_an_unpaid_placed_order_stays_unpaid_whatever_its_courier_state(): void
     {
-        // Owner ruling (spec amendment 59bd751): an ACTIVE in-transit
-        // booking pulls the order OUT of Unpaid — the booking puts it in
-        // the shipping pipeline, whatever its payment status.
-        $booked = $this->orderWithStage('unpaid', [
-            'courier_tracking_number' => 'QX-ACTIVE-1',
-            'courier_provider' => 'quadx',
-            'courier_status' => 'in_transit',
-        ]);
-        $this->assertSame('in_transit', FulfillmentService::tabBucket($booked));
-
-        // With no booking at all, unpaid claims the order.
-        $unbooked = $this->orderWithStage('unpaid', [
-            'courier_tracking_number' => null,
-            'courier_provider' => null,
-            'courier_status' => null,
-        ]);
-        $this->assertSame('unpaid', FulfillmentService::tabBucket($unbooked));
-
-        // A booking that is no longer live (courier-cancelled) is not an
-        // active booking — unpaid claims the order again.
-        $cancelledBooking = $this->orderWithStage('unpaid', [
-            'courier_tracking_number' => 'QX-ACTIVE-1',
-            'courier_provider' => 'quadx',
-            'courier_status' => 'canceled',
-        ]);
-        $this->assertSame('unpaid', FulfillmentService::tabBucket($cancelledBooking));
+        foreach ([
+            ['QX-ACTIVE-1', 'in_transit'],   // a live booking
+            [null, null],                     // never booked
+            ['QX-ACTIVE-1', 'canceled'],      // a booking that is no longer live
+        ] as [$tracking, $status]) {
+            $order = $this->orderPlaced('unpaid', [
+                'courier_tracking_number' => $tracking,
+                'courier_provider' => $tracking === null ? null : 'quadx',
+                'courier_status' => $status,
+            ]);
+            $this->assertSame('unpaid', FulfillmentService::tabBucket($order), "status={$status}");
+        }
     }
 
-    public function test_cancelled_stage_claims_the_bucket_even_with_an_in_transit_booking(): void
+    /** Was: cancelled stage claims the bucket ABSOLUTELY (a precedence rule). Now: no precedence exists, it is simply the placement. */
+    public function test_a_cancelled_placed_order_is_cancelled_even_with_an_in_transit_booking(): void
     {
-        $order = $this->orderWithStage('cancelled', [
+        $order = $this->orderPlaced('cancelled', [
             'courier_tracking_number' => 'QX-ACTIVE-2',
             'courier_provider' => 'quadx',
             'courier_status' => 'in_transit',
         ]);
         $this->assertSame('cancelled', FulfillmentService::tabBucket($order));
+        // The SHIPMENT is still honestly in transit - that fact just has no
+        // say in which tab the order appears in.
+        $this->assertSame('in_transit', FulfillmentService::phaseFor($order));
     }
 
-    public function test_ready_stage_with_no_tracking_buckets_to_pack(): void
+    /**
+     * The motivating defect, at unit level: a Delivered-placed order with no
+     * courier data at all. phaseFor() answers 'to_pack' (never booked, which
+     * is true of every OpenCart-era order), and under tabs v3 that is what
+     * decided the tab - which is why 24,620 delivered orders sat in To Pack.
+     * Membership now reads the placement and puts it in Delivered.
+     */
+    public function test_a_delivered_placed_order_with_no_courier_data_is_delivered_not_to_pack(): void
     {
-        $order = $this->orderWithStage('to_pack', [
+        $order = $this->orderPlaced('delivered', [
             'courier_tracking_number' => null,
             'courier_provider' => null,
             'courier_status' => null,
         ]);
-        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
+        $this->assertSame('delivered', FulfillmentService::tabBucket($order));
+        $this->assertSame('to_pack', FulfillmentService::phaseFor($order));
     }
 
-    /**
-     * "creating" (an async courier's booking mid-flight, phase 'booking')
-     * counts under 'to_handover' for TAB MEMBERSHIP — but phaseFor() itself
-     * (what a row's own badge reads) keeps reporting 'booking' unchanged,
-     * so the row's own payload never loses the honest in-flight state.
-     */
-    public function test_ready_stage_creating_order_buckets_to_handover_but_keeps_booking_phase_on_the_row(): void
+    /** Was: a ready-stage 'creating' order collapses into to_handover for membership. Now: its placement decides, and the 'booking' phase stays a row-level fact. */
+    public function test_a_creating_order_sits_in_its_placements_tab_while_its_phase_still_reads_booking(): void
     {
-        $order = $this->orderWithStage('to_pack', [
+        $order = $this->orderPlaced('to_pack', [
             'courier_tracking_number' => null,
             'courier_provider' => 'spx',
             'courier_status' => 'creating',
         ]);
-        $this->assertSame('to_handover', FulfillmentService::tabBucket($order));
+        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
         $this->assertSame('booking', FulfillmentService::phaseFor($order));
     }
 
-    /** No explicit status relation loaded (null order_status_id) defaults to 'to_pack', same default the migration itself uses. */
-    public function test_missing_status_relation_defaults_to_ready_stage(): void
+    public function test_every_placement_answers_itself(): void
+    {
+        foreach (FulfillmentService::PLACEMENTS as $placement) {
+            $order = $this->orderPlaced($placement, [
+                'courier_tracking_number' => 'QX-SAME-1',
+                'courier_provider' => 'quadx',
+                'courier_status' => 'for_pickup',
+            ]);
+            $this->assertSame($placement, FulfillmentService::tabBucket($order));
+        }
+    }
+
+    /** No status relation loaded (null order_status_id) defaults to 'to_pack', the placement column's own default. */
+    public function test_missing_status_relation_defaults_to_to_pack(): void
     {
         $order = $this->order([
             'courier_tracking_number' => null,
@@ -245,20 +251,32 @@ class FulfillmentServicePhaseTest extends TestCase
         $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
     }
 
-    public function test_tab_bucket_for_parts_mirrors_the_same_stage_first_rule(): void
+    /** A value outside the enum (unreachable through the column, defensive here) never drops the order out of every tab. */
+    public function test_an_unrecognised_placement_falls_back_to_to_pack(): void
     {
-        // Owner ruling: unpaid claims only the not-in-pipeline phases…
-        $this->assertSame('unpaid', FulfillmentService::tabBucketForParts('unpaid', 'to_pack'));
-        $this->assertSame('unpaid', FulfillmentService::tabBucketForParts('unpaid', 'cancelled'));
-        // …while an active booking's phase wins ('booking' collapses to
-        // to_handover exactly as it does for a ready-stage order).
-        $this->assertSame('in_transit', FulfillmentService::tabBucketForParts('unpaid', 'in_transit'));
-        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('unpaid', 'to_handover'));
-        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('unpaid', 'booking'));
-        // Cancelled stage stays absolute.
-        $this->assertSame('cancelled', FulfillmentService::tabBucketForParts('cancelled', 'in_transit'));
-        $this->assertSame('to_pack', FulfillmentService::tabBucketForParts('to_pack', 'to_pack'));
-        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('to_pack', 'booking'));
-        $this->assertSame('in_transit', FulfillmentService::tabBucketForParts('to_pack', 'in_transit'));
+        $order = $this->orderPlaced('not_a_tab', [
+            'courier_tracking_number' => null,
+            'courier_provider' => null,
+            'courier_status' => null,
+        ]);
+        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
+    }
+
+    // ------------------------------------------------------------------
+    // The booking gate shares that single rule: To Pack placement only.
+    // ------------------------------------------------------------------
+
+    public function test_booking_is_permitted_only_for_a_to_pack_placed_order(): void
+    {
+        $attributes = ['courier_tracking_number' => null, 'courier_provider' => null, 'courier_status' => null];
+
+        $this->assertNull(FulfillmentService::bookingBlockedReason($this->orderPlaced('to_pack', $attributes)));
+
+        foreach (['unpaid', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'] as $placement) {
+            $reason = FulfillmentService::bookingBlockedReason($this->orderPlaced($placement, $attributes));
+            $this->assertNotNull($reason, "placement={$placement}");
+            $this->assertStringContainsString('Set its status to one placed under To Pack before booking.', $reason);
+            $this->assertStringContainsString(FulfillmentService::TAB_LABELS[$placement], $reason);
+        }
     }
 }

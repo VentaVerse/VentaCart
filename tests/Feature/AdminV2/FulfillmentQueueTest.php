@@ -152,10 +152,10 @@ class FulfillmentQueueTest extends TestCase
     }
 
     /**
-     * fulfillment-tabs-v3 Task 3: a status row carrying a NON-default
+     * fulfillment-placement Task 2: a status row carrying a given
      * fulfillment_placement (defaultStatus() above is 'to_pack', the
-     * migration's own default) - for orders that must land in the Unpaid
-     * or Cancelled tab regardless of any courier state.
+     * column's own default). The placement is the ONLY thing that decides
+     * which tab an order on this status appears in.
      */
     private function statusWithStage(string $stage, string $name): OrderStatus
     {
@@ -197,48 +197,60 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Segment bar: the six top-level tabs (Unpaid first), stage-first
-    // counts, and the To Ship sub-segment bar (fulfillment-tabs-v3 Task 3).
+    // Segment bar: the six top-level tabs (Unpaid first), placement counts,
+    // and the To Ship sub-segment bar.
+    //
+    // fulfillment-placement Task 2 REWRITE: this test used to seed one
+    // order per COURIER PHASE and assert the phase decided the tab (plus
+    // the tabs-v3 unpaid carve-out and the 'booking' collapse). Membership
+    // now reads the core status's placement and nothing else, so the same
+    // scenario is expressed the way it now works: statuses are placed, and
+    // the courier states carried along prove they change no count.
     // ------------------------------------------------------------------
 
-    public function test_queue_renders_the_six_top_level_tabs_with_stage_first_counts_and_the_to_ship_sub_bar(): void
+    public function test_queue_renders_the_six_top_level_tabs_with_placement_counts_and_the_to_ship_sub_bar(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
         $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
         $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
+        $handoverStatus = $this->statusWithStage('to_handover', 'Order Being Shipped');
+        $transitStatus = $this->statusWithStage('in_transit', 'Shipped');
+        $deliveredStatus = $this->statusWithStage('delivered', 'Delivered');
+        $failedStatus = $this->statusWithStage('failed', 'Failed Delivery');
 
-        // Owner ruling (Task 4 fix round): unpaid stage claims an order only
-        // while it has NO active booking — one plain unpaid order counts
-        // here, while the unpaid order WITH an active in-transit booking
-        // follows its courier phase into In Transit ("the booking puts it
-        // in the shipping pipeline").
+        // Two Unpaid-placed orders, one of them carrying a live in-transit
+        // booking: under tabs v3 the booking pulled it into In Transit, now
+        // its status keeps it under Unpaid (and Task 3 is what will move the
+        // status when a booking is made).
         $this->makeOrder(status: $unpaidStatus);
         $unpaidWithBooking = $this->makeOrder('in_transit', 'QX-U-001', 'quadx', $unpaidStatus);
 
-        // Ready stage: two never-booked (to_pack), three awaiting handover
-        // (to_handover) plus one still CREATING (async 'booking' phase,
-        // folds into to_handover for TAB membership) — five under To Ship.
+        // To Ship: two To Pack (never booked) plus four To Handover, one of
+        // which is still mid-async-create with no tracking number at all.
         $this->makeOrder();
         $this->makeOrder();
-        $this->makeOrder('for_pickup', 'QX-H-001');
-        $this->makeOrder('for_pickup', 'QX-H-002');
-        $this->makeOrder('searching_for_rider', 'QX-H-003');
-        $creating = $this->makeOrder();
+        $this->makeOrder('for_pickup', 'QX-H-001', 'quadx', $handoverStatus);
+        $this->makeOrder('for_pickup', 'QX-H-002', 'quadx', $handoverStatus);
+        $this->makeOrder('searching_for_rider', 'QX-H-003', 'quadx', $handoverStatus);
+        $creating = $this->makeOrder(status: $handoverStatus);
         $creating->forceFill(['courier_provider' => 'spx', 'courier_status' => 'creating', 'courier_tracking_number' => null])->save();
 
-        $this->makeOrder('in_transit', 'QX-T-001');
-        $this->makeOrder('delivered', 'QX-D-001');
-        $this->makeOrder('failed_delivery', 'QX-F-001');
+        $this->makeOrder('in_transit', 'QX-T-001', 'quadx', $transitStatus);
+        $this->makeOrder('delivered', 'QX-D-001', 'quadx', $deliveredStatus);
+        $this->makeOrder('failed_delivery', 'QX-F-001', 'quadx', $failedStatus);
 
-        // Cancelled tab: a real order-cancel (stage 'cancelled') AND a
-        // courier-side exception (stage 'ready', courier phase 'cancelled')
-        // both count here (tab-model spec).
+        // Cancelled: a real order cancel, and a courier-side cancel whose
+        // status map moved the core status to a cancelled-placed one. Both
+        // arrive here the same way now (their status), never via a union of
+        // a stage arm and a courier-phase arm.
         $this->makeOrder(status: $cancelledStatus);
-        $this->makeOrder('canceled', 'QX-C-001');
+        $this->makeOrder('canceled', 'QX-C-001', 'quadx', $cancelledStatus);
 
-        $this->makeOrder('returned', 'QX-R-001'); // returning has no tab of its own
+        // A returning parcel whose status was never moved: it stays under
+        // its own placement (Returns is a page, not a tab).
+        $this->makeOrder('returned', 'QX-R-001', 'quadx', $transitStatus);
 
         $response = $this->get($this->queueUrl());
         $response->assertOk();
@@ -249,10 +261,9 @@ class FulfillmentQueueTest extends TestCase
         // Top-level Booking tab is dropped entirely (owner directive).
         $response->assertDontSee('>Booking<', false);
 
-        // Top-level counts, stage-first with the unpaid carve-out.
-        $response->assertSee('data-count-for="unpaid">1<', false);
-        $response->assertSee('data-count-for="to_ship">6<', false); // 2 to_pack + (2 for_pickup + 1 searching_for_rider + 1 creating)
-        $response->assertSee('data-count-for="in_transit">2<', false); // the ready one + the actively-booked unpaid one (owner ruling)
+        $response->assertSee('data-count-for="unpaid">2<', false);
+        $response->assertSee('data-count-for="to_ship">6<', false); // 2 to_pack + 4 to_handover
+        $response->assertSee('data-count-for="in_transit">2<', false); // the in-transit one + the returning one, both Shipped-placed
         $response->assertSee('data-count-for="delivered">1<', false);
         $response->assertSee('data-count-for="failed">1<', false);
         $response->assertSee('data-count-for="cancelled">2<', false);
@@ -261,8 +272,7 @@ class FulfillmentQueueTest extends TestCase
         // sibling page, never an eighth filter).
         $response->assertDontSee('data-count-for="returning"', false);
 
-        // The unpaid order with an active booking counts under In Transit
-        // (asserted above), never under Unpaid — the owner-ruled carve-out.
+        // The unpaid order's live booking changed nothing about its tab.
         $this->assertNotNull($unpaidWithBooking->courier_tracking_number);
 
         // Default landing view (filter defaults to to_ship, sub to_pack):
@@ -278,8 +288,8 @@ class FulfillmentQueueTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->makeOrder('for_pickup', 'QX-H-100');
-        $this->makeOrder('delivered', 'QX-D-100');
+        $this->makeOrder('for_pickup', 'QX-H-100', 'quadx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
+        $this->makeOrder('delivered', 'QX-D-100', 'quadx', $this->statusWithStage('delivered', 'Delivered'));
 
         // Sub-bar renders under To Ship...
         $toShip = $this->get($this->queueUrl() . '?filter=to_ship');
@@ -303,8 +313,8 @@ class FulfillmentQueueTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->makeOrder('for_pickup', 'QX-H-100');
-        $this->makeOrder('delivered', 'QX-D-100');
+        $this->makeOrder('for_pickup', 'QX-H-100', 'quadx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
+        $this->makeOrder('delivered', 'QX-D-100', 'quadx', $this->statusWithStage('delivered', 'Delivered'));
         $unbooked = $this->makeOrder();
 
         $this->get($this->queueUrl() . '?filter=delivered')
@@ -409,7 +419,7 @@ class FulfillmentQueueTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $order = $this->makeOrder('for_pickup', 'QX-NUM-1');
+        $order = $this->makeOrder('for_pickup', 'QX-NUM-1', 'quadx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
         $this->makeOrder(); // a second, non-matching order in the same tally
 
         $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover&q=' . $order->id);
@@ -430,8 +440,9 @@ class FulfillmentQueueTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->makeOrder('for_pickup', 'QX-H-201');
-        $this->makeOrder('for_pickup', 'QX-H-202');
+        $handover = $this->statusWithStage('to_handover', 'Order Being Shipped');
+        $this->makeOrder('for_pickup', 'QX-H-201', 'quadx', $handover);
+        $this->makeOrder('for_pickup', 'QX-H-202', 'quadx', $handover);
 
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
@@ -628,37 +639,72 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Review fix: a cancelled booking (tracking number present, not
-    // actively booked) must keep its drawer access — the drawer is the
-    // viewing surface for its timeline and the terminal `cancelled` badge,
-    // and Rebook alone would orphan both.
+    // fulfillment-placement Task 2 REWRITE (was: "cancelled booking rows
+    // keep drawer access via a tracking button"). That test's premise was
+    // the tabs-v3 rule that a courier-cancelled BOOKING pulled the order
+    // into the Cancelled TAB, where it was offered Rebook plus a drawer.
+    // A cancelled booking is not a cancelled order, and it no longer moves
+    // the order anywhere: the row stays in the tab its core status is
+    // placed in, which for an order nobody has re-statused is still To
+    // Pack, and Book (a fresh shipment, which the server permits since the
+    // old booking is not live) is exactly the action it needs there.
     // ------------------------------------------------------------------
 
-    public function test_cancelled_booking_rows_keep_drawer_access_via_a_tracking_button(): void
+    public function test_a_courier_cancelled_booking_leaves_the_order_in_its_own_tab_and_still_bookable(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
-        // Rebook needs an enabled courier (same rule as first-time Book).
+        // Booking again needs an enabled courier (same rule as first-time Book).
         $this->enableQuadxStaging();
 
-        $this->makeOrder('canceled', 'QX-CXL-001');
+        $order = $this->makeOrder('canceled', 'QX-CXL-001');
+
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack')
+            ->assertOk()
+            ->assertSee('QX-CXL-001')
+            ->assertSee('data-count-for="to_pack">1<', false)
+            // Book renders because the server would accept it: the order is
+            // To-Pack-placed and its old booking is not live.
+            ->assertSee('openBooking(JSON.parse(', false)
+            ->assertSee("cancel-order-{$order->id}", false);
+
+        // It is NOT in Cancelled: no courier state ever decides that tab.
+        $this->get($this->queueUrl() . '?filter=cancelled')
+            ->assertOk()
+            ->assertSee('data-count-for="cancelled">0<', false)
+            ->assertDontSee('QX-CXL-001');
+    }
+
+    /**
+     * The other half of the same story: once the courier's status map has
+     * moved the CORE status to a cancelled-placed one, the row moves to
+     * Cancelled and offers nothing at all (spec action table), with the one
+     * path forward named in words rather than a button the server's booking
+     * gate would refuse.
+     */
+    public function test_a_cancelled_placed_row_offers_no_actions_and_names_the_path_back(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        $order = $this->makeOrder('canceled', 'QX-CXL-002', 'quadx', $this->statusWithStage('cancelled', 'Canceled'));
 
         $response = $this->get($this->queueUrl() . '?filter=cancelled');
         $response->assertOk()
-            ->assertSee('QX-CXL-001')
-            // Rebook (opens the booking modal) AND a drawer opener both render:
-            // openDrawer(...) is emitted only by the row's Tracking button.
-            ->assertSee('Rebook')
-            ->assertSee('openDrawer(JSON.parse(', false);
+            ->assertSee('QX-CXL-002')
+            ->assertSee("Change this order's status to one placed under To Pack to book it again.", false)
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            ->assertDontSee('openDrawer(JSON.parse(', false)
+            ->assertDontSee('Print waybill')
+            ->assertDontSee("cancel-order-{$order->id}", false)
+            ->assertDontSee("cancel-fulfillment-{$order->id}", false);
     }
 
     // ------------------------------------------------------------------
-    // fulfillment-tabs-v3 Task 3: the "small, honest" Book gate — no
-    // FIRST-TIME "Book" button on an Unpaid or Cancelled tab row. A
-    // REBOOKABLE row (courier-side cancel exception, still has a tracking
-    // number) is UNCHANGED — its Rebook button stays (locked in by
-    // test_cancelled_booking_rows_keep_drawer_access_via_a_tracking_button
-    // above); this only gates the plain never-booked case.
+    // The Book gate, now the spec's own rule: Book is a To Pack action,
+    // refused server-side anywhere else, so no Unpaid or Cancelled row
+    // offers it - with or without a prior booking.
     // ------------------------------------------------------------------
 
     public function test_unpaid_tab_row_never_offers_a_book_button(): void
@@ -699,23 +745,22 @@ class FulfillmentQueueTest extends TestCase
             ->assertDontSee('openBooking(JSON.parse(', false);
     }
 
-    public function test_to_pack_and_to_handover_rows_still_offer_book_or_rebook(): void
+    public function test_to_pack_rows_offer_book_and_to_handover_rows_offer_the_waybill(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
         $this->enableQuadxStaging();
 
         $unbooked = $this->makeOrder();
-        $booked = $this->makeOrder('for_pickup', 'QX-BOOKGATE-001');
+        $booked = $this->makeOrder('for_pickup', 'QX-BOOKGATE-001', 'quadx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
 
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack')
             ->assertOk()
             ->assertSee('#' . $unbooked->id, false)
             ->assertSee('openBooking(', false);
 
-        // Booked-and-actively-tracked rows never show Book/Rebook at all
-        // (they show Print waybill/Cancel/Tracking instead) — unaffected
-        // by this task's gate either way.
+        // To Handover rows never show Book at all (their tab's actions are
+        // Print waybill / Tracking / Cancel booking).
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
             ->assertSee('QX-BOOKGATE-001')
@@ -735,7 +780,7 @@ class FulfillmentQueueTest extends TestCase
         $this->installExtension();
         $this->enableQuadxStaging();
 
-        $order = $this->makeOrder('for_pickup', 'QX-TAB-001');
+        $order = $this->makeOrder('for_pickup', 'QX-TAB-001', 'quadx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
 
         $response = $this->get($this->queueUrl() . '?filter=all');
         $content = $response->getContent();
@@ -1016,24 +1061,22 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Task T4 + fulfillment-tabs-v3 Task 2: honest "Creating…" state — an
-    // SPX booking that's still mid-flight (courier_status='creating', no
-    // tracking number yet) must count and list under To Handover (Task 2's
-    // stage-first collapse: the standalone Booking tab is dropped, 'booking'
-    // phase orders count under to_handover for TAB MEMBERSHIP), never
-    // To Pack — the exact FulfillmentService::phaseFor() short-circuit T2's
-    // report flagged. The row's own badge/label still reads "Booking" (the
-    // internal phase itself is UNCHANGED — only its tab bucket moved).
+    // fulfillment-placement Task 2 REWRITE (was: "creating spx order counts
+    // and lists under the to handover sub tab"). The tabs-v3 'booking'
+    // collapse - a mid-async-create order counting under To Handover
+    // whatever its status said - is exactly the courier-state membership
+    // this task removes. The honest replacement: an in-flight create shows
+    // its state on the ROW (badge "Booking", label "Creating…") while
+    // sitting in the tab its core status is placed in, and moving that
+    // status is what moves the row.
     // ------------------------------------------------------------------
 
-    public function test_creating_spx_order_counts_and_lists_under_the_to_handover_sub_tab(): void
+    public function test_a_creating_spx_order_shows_its_in_flight_state_in_its_placements_tab(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        // A genuinely never-booked order (QuadX-provider baseline, proves
-        // the fix is scoped to courier_status='creating' specifically, not
-        // "no tracking number" in general).
+        // A genuinely never-booked order alongside it, on the same status.
         $this->makeOrder();
 
         $creatingOrder = $this->makeOrder();
@@ -1045,33 +1088,39 @@ class FulfillmentQueueTest extends TestCase
 
         $response = $this->get($this->queueUrl());
         $response->assertOk()
-            ->assertSee('data-count-for="to_pack">1<', false)
-            ->assertSee('data-count-for="to_handover">1<', false)
-            ->assertSee('data-count-for="to_ship">2<', false);
+            // Both are To-Pack-placed, so both count there. A missing
+            // tracking number is not a tab input either way.
+            ->assertSee('data-count-for="to_pack">2<', false)
+            ->assertSee('data-count-for="to_handover">0<', false)
+            ->assertSee('data-count-for="to_ship">2<', false)
+            ->assertSee('#' . $creatingOrder->id, false)
+            // The row's own courier state is reported honestly: the spine
+            // badge reads Booking (PhaseTone 'info') and the raw-status note
+            // reads Creating.
+            ->assertSee('Booking')
+            ->assertSee('Creating');
         // Top-level Booking tab no longer exists at all.
         $response->assertDontSee('data-count-for="booking"', false);
 
-        $handoverSub = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover');
-        $handoverSub->assertOk()
-            ->assertSee('#' . $creatingOrder->id, false)
-            // The spine badge label (PhaseTone::toneFor('booking') is
-            // 'info', label is the humanized phase name) is UNCHANGED —
-            // the row's own phase still reads 'booking', only its tab
-            // membership moved.
-            ->assertSee('Booking')
-            // The raw-status note + the row's action both say "Creating"
-            // (one via humanizeStatus()'s real ellipsis character, the
-            // other via the button's literal &hellip; entity — both
-            // contain the plain ASCII substring asserted here).
-            ->assertSee('Creating');
+        // Move the core status, and only then does the row move.
+        $creatingOrder->forceFill(['order_status_id' => $this->statusWithStage('to_handover', 'Order Being Shipped')->id])->save();
 
-        // Default view (To Ship > To Pack) must NOT show the creating order.
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
+            ->assertOk()
+            ->assertSee('#' . $creatingOrder->id, false)
+            ->assertSee('data-count-for="to_handover">1<', false)
+            ->assertSee('Booking')
+            // Its drawer opener is the honest "Creating…" one (no tracking
+            // number to track yet).
+            ->assertSee('Creating')
+            ->assertSee('openDrawer(JSON.parse(', false);
+
         $this->get($this->queueUrl())
             ->assertOk()
             ->assertDontSee('#' . $creatingOrder->id, false);
 
-        // Legacy ?filter=booking now redirects (301) here rather than
-        // rendering an always-empty phase-group filter.
+        // Legacy ?filter=booking still redirects (301) to To Ship, To
+        // Handover - unchanged by this task.
         $legacy = $this->get($this->queueUrl() . '?filter=booking');
         $legacy->assertStatus(301);
         $this->assertStringContainsString('sub=to_handover', $legacy->headers->get('Location'));
@@ -1097,7 +1146,7 @@ class FulfillmentQueueTest extends TestCase
         // QuadX (QuadXFulfillment::cancelableStatuses()), which is what
         // renders the Cancel button + its confirm-dialog into the
         // nowrap-bearing .cf-col-act <td>.
-        $order = $this->makeOrder('for_pickup', 'QX-WRAP-001');
+        $order = $this->makeOrder('for_pickup', 'QX-WRAP-001', 'quadx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
 
         $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover');
         $content = $response->getContent();
@@ -1130,7 +1179,7 @@ class FulfillmentQueueTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $order = $this->makeOrder('1001', 'SPX-FEE-1', 'spx');
+        $order = $this->makeOrder('1001', 'SPX-FEE-1', 'spx', $this->statusWithStage('to_handover', 'Order Being Shipped'));
         $order->forceFill(['courier_meta' => json_encode([
             'estimated_shipping_fee' => 111.11,
             'actual_fee' => ['actual_shipping_fee' => 222.22],

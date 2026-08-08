@@ -37,28 +37,46 @@ class FulfillmentService
      * CourierFulfillmentInterface::resolvePendingCreation()). Both must
      * resolve through the courier's own statusPhase() rather than the
      * "no tracking number => never booked => to_pack" short-circuit —
-     * defined once here for phaseFor() and the queue controller's
-     * tally/filter mirrors of that same rule.
+     * defined once here for phaseFor() and for the queue view, which reads
+     * both to render an honest "Creating…" / "Booking failed" row.
      */
     public const ASYNC_CREATE_STATUSES = ['creating', 'creation_failed'];
 
     /**
-     * Fulfillment Placement Task 1: order_statuses.fulfillment_placement
-     * carries seven values now (one per queue tab), replacing the old
-     * three-value fulfillment_stage (unpaid|ready|cancelled). Every
-     * consumer that used to check "stage === 'ready'" must now check
-     * membership in this five-value set instead: the five placements
-     * OTHER than unpaid/cancelled are treated as one interchangeable
-     * "ready-equivalent" group here, EXACTLY as bare 'ready' behaved
-     * before this task: courier phase (booking state), never the status's
-     * own placement, still decides which spine tab a ready-equivalent
-     * order lands in. This is intentionally a placeholder collapse, not
-     * the real membership rule; Task 2 of the fulfillment-placement plan
-     * rewrites tab membership to be placement-first (mirroring how
-     * fulfillment_placement now names its own tab), at which point this
-     * constant and every site that reads it goes away.
+     * The seven values of order_statuses.fulfillment_placement, one per
+     * fulfillment queue tab (To Ship is a heading over to_pack +
+     * to_handover, never a placement of its own). This list IS the tab
+     * vocabulary: membership is nothing more than reading which of these
+     * the order's core status carries (see tabBucket()).
      */
-    public const READY_EQUIVALENT_PLACEMENTS = ['to_pack', 'to_handover', 'in_transit', 'delivered', 'failed'];
+    public const PLACEMENTS = ['unpaid', 'to_pack', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'];
+
+    /**
+     * The placement a status with no explicit value carries (the column's
+     * own DB default) - also the answer for an order with no status row.
+     */
+    public const DEFAULT_PLACEMENT = 'to_pack';
+
+    /**
+     * Booking is offered, and permitted server-side, for exactly one
+     * placement: To Pack. Everything else (unpaid, already handed over, in
+     * transit, delivered, failed, cancelled) has to be moved back to a
+     * To-Pack-placed status first - the same chain that would exist with no
+     * fulfillment module at all. This is also what stops a Delivered-placed
+     * legacy order from being booked by accident.
+     */
+    public const BOOKABLE_PLACEMENT = 'to_pack';
+
+    /** Human tab name per placement, for operator-facing refusals. */
+    public const TAB_LABELS = [
+        'unpaid'      => 'Unpaid',
+        'to_pack'     => 'To Ship, To Pack',
+        'to_handover' => 'To Ship, To Handover',
+        'in_transit'  => 'In Transit',
+        'delivered'   => 'Delivered',
+        'failed'      => 'Failed',
+        'cancelled'   => 'Cancelled',
+    ];
 
     /**
      * True when the order has a tracking number AND its booking isn't
@@ -97,8 +115,12 @@ class FulfillmentService
     /**
      * Courier-agnostic entry point onto the common 8-phase spine (see
      * CourierFulfillmentInterface::statusPhase()'s docblock and
-     * Support\PhaseTone for the tone each bucket carries) — the future queue
-     * tabs (fulfillment-workflow-v2 Task W2) group orders by this.
+     * Support\PhaseTone for the tone each bucket carries).
+     *
+     * This describes a SHIPMENT, never a tab: it feeds the row's courier
+     * badge, the drawer's stepper/timeline, and the returns monitoring page.
+     * Tab membership reads the order's core status placement instead
+     * (tabBucket()) and never calls this.
      *
      * `to_pack` is resolved HERE, not by any courier: an order with no
      * tracking number has never been booked, which isn't a courier status at
@@ -158,65 +180,57 @@ class FulfillmentService
     }
 
     /**
-     * STAGE-FIRST tab/tally membership (fulfillment-tabs-v3 Task 2) — the
-     * bucket the queue's segment bar and phaseTally() count an order under,
-     * as opposed to phaseFor()'s pure courier-phase bucket (which stays the
-     * row's BADGE, unaffected by this). An order's Venta order-status stage
-     * (OrderStatus::$fulfillment_placement, defaulting to 'to_pack' for a
-     * null status or a status row with no override) claims the order FIRST:
+     * TAB MEMBERSHIP, the whole rule (fulfillment-placement spec, section 2):
+     * an order appears in the tab its CORE ORDER STATUS is placed in. Full
+     * stop. No precedence table, no courier-state arbitration, no per-courier
+     * overrides.
      *
-     *   cancelled stage 'cancelled' => bucket 'cancelled', absolute — a
-     *             real order-cancel outranks an in-transit booking.
-     *   unpaid    stage 'unpaid' claims the order ONLY while it has no
-     *             active booking (owner ruling, 2026-08-08 spec amendment:
-     *             "Unpaid should not be booked" — and booking is now
-     *             refused server-side for unpaid orders, see book()'s
-     *             stage gate). An actively-booked order follows its
-     *             courier phase whatever its payment status, because the
-     *             booking puts it in the shipping pipeline. In phase
-     *             terms: 'to_pack' (never booked / reset) and 'cancelled'
-     *             (a booking that is no longer live) keep the order under
-     *             Unpaid; any other phase — including 'booking', an async
-     *             create already in flight — is pipeline state and wins.
-     *   (else)    every other placement (Task 1: to_pack/to_handover/
-     *             in_transit/delivered/failed, see READY_EQUIVALENT_
-     *             PLACEMENTS) buckets by phaseFor()'s courier phase, with
-     *             ONE collapse: the internal 'booking' phase (an async
-     *             create still in flight, see ASYNC_CREATE_STATUSES) counts
-     *             under 'to_handover' for TAB membership — the owner
-     *             dropped the standalone Booking tab (creating orders
-     *             render inside To Handover with a Creating badge) — while
-     *             phaseFor() itself still reports 'booking' unchanged, so a
-     *             row's own badge/stepper keeps showing the honest
-     *             in-flight state.
+     * The courier's influence on tabs is indirect and honest: a courier
+     * status maps to a core order status (the per-courier status map, which
+     * already existed), and that status's placement names the tab. Exactly
+     * the chain that would exist with no fulfillment module at all. A booked
+     * order sits under To Handover because BOOKING SET ITS STATUS to one
+     * placed there (fulfillment-placement Task 3), never because this method
+     * peeked at courier_tracking_number.
+     *
+     * This REPLACES the tabs-v3 blend (stage-vs-phase arbitration, the
+     * cancelled-arm union, the 'booking' collapse) - deleted, not extended.
+     * phaseFor()/statusPhase() stay for what they are genuinely for (the
+     * row badge, the drawer's 4-step stepper, timeline rendering, and
+     * cancelable/terminal decisions on a SHIPMENT); neither is consulted
+     * here or by any other membership path.
+     *
+     * An order with no status row (or an unrecognised placement value, which
+     * the enum column makes unreachable in practice) answers with the
+     * column's own default, To Pack, rather than vanishing from every tab.
      */
     public static function tabBucket(Order $order): string
     {
-        $placement = $order->status?->fulfillment_placement ?? 'to_pack';
+        $placement = (string) ($order->status?->fulfillment_placement ?? self::DEFAULT_PLACEMENT);
 
-        return self::tabBucketForParts((string) $placement, self::phaseFor($order));
+        return in_array($placement, self::PLACEMENTS, true) ? $placement : self::DEFAULT_PLACEMENT;
     }
 
     /**
-     * Same stage-first collapse as tabBucket(), but from an already-resolved
-     * placement + courier phase: lets the queue controller's GROUP BY tally
-     * (which reads order_statuses.fulfillment_placement via a SQL join,
-     * never hydrates an Order per row) reuse the exact same rule.
+     * The booking gate, one rule shared by every caller (admin queue Book,
+     * the fee estimate, and the ERP endpoint): only a To-Pack-placed order
+     * may be booked. Returns null when booking is permitted, otherwise the
+     * operator-facing reason - which always names the path forward, since
+     * changing the order's status is the ONLY way through it.
+     *
+     * Used by the view too, so a Book button is never rendered on a row this
+     * would refuse.
      */
-    public static function tabBucketForParts(string $stage, string $phase): string
+    public static function bookingBlockedReason(Order $order): ?string
     {
-        if ($stage === 'cancelled') {
-            return 'cancelled';
-        }
-        if ($stage === 'unpaid' && in_array($phase, ['to_pack', 'cancelled'], true)) {
-            // No LIVE booking (never booked, reset, or a booking already
-            // cancelled) — unpaid claims the order. Any other phase means
-            // the order is in the shipping pipeline and follows it (owner
-            // ruling — see tabBucket()'s docblock).
-            return 'unpaid';
+        $placement = self::tabBucket($order);
+        if ($placement === self::BOOKABLE_PLACEMENT) {
+            return null;
         }
 
-        return $phase === 'booking' ? 'to_handover' : $phase;
+        $label = self::TAB_LABELS[$placement] ?? $placement;
+
+        return "Order #{$order->id} sits under {$label}. Set its status to one placed under To Pack before booking.";
     }
 
     /**
@@ -304,30 +318,30 @@ class FulfillmentService
             ];
         }
 
-        // Stage gate (owner ruling, 2026-08-08 spec amendment): booking is
-        // refused server-side for unpaid-stage and cancelled-stage orders -
-        // this is what makes the "an actively-booked order is never unpaid-
-        // bucketed" invariant real. The owner's workflow: move a really-paid
-        // order to Processing (ready stage) first, then book. Shared by BOTH
-        // callers of this method (admin queue + ERP endpoint) - the ERP's
-        // 409-vs-422 branch keys off 'courier_unavailable' only, so
-        // 'stage_blocked' answers 422 there.
+        // Placement gate (fulfillment-placement spec, section 3): booking is
+        // permitted for To-Pack-placed orders only, refused server-side for
+        // every other placement - which is what keeps a Delivered-placed
+        // legacy order (24,620 of them from the OpenCart era) unbookable,
+        // and what makes "Book is a To Pack action" true rather than merely
+        // hidden in the UI. Shared by BOTH callers of this method (admin
+        // queue + ERP endpoint) - the ERP's 409-vs-422 branch keys off
+        // 'courier_unavailable' only, so 'placement_blocked' answers 422
+        // there.
         //
-        // FINAL-review fix (F3): checked BELOW the two idempotent branches
-        // above (creation_in_progress + already_booked), never before them -
-        // the gate blocks genuinely NEW bookings only. An ERP retry for an
-        // order that is already booked must keep answering already_booked
-        // (200) even if the order's stage regressed after the booking; a
-        // stage-blocked answer there would read as a failed booking for a
-        // shipment that in fact exists.
-        $stage = $order->status?->fulfillment_placement ?? 'to_pack';
-        if (in_array($stage, ['unpaid', 'cancelled'], true)) {
+        // Ordering is load-bearing (kept verbatim from tabs-v3's F3 fix):
+        // checked BELOW the two idempotent branches above
+        // (creation_in_progress + already_booked), never before them - the
+        // gate blocks genuinely NEW bookings only. An ERP retry for an order
+        // that is already booked must keep answering already_booked (200)
+        // even if the order's status moved after the booking; a blocked
+        // answer there would read as a failed booking for a shipment that in
+        // fact exists.
+        $blocked = self::bookingBlockedReason($order);
+        if ($blocked !== null) {
             return [
                 'success' => false,
-                'code'    => 'stage_blocked',
-                'error'   => $stage === 'unpaid'
-                    ? "Order #{$order->id} is unpaid. Set its status to a ready stage (e.g. Processing) before booking."
-                    : "Order #{$order->id} is cancelled. Restore it to a ready stage (e.g. Processing) before booking.",
+                'code'    => 'placement_blocked',
+                'error'   => $blocked,
             ];
         }
 

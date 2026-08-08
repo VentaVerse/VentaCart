@@ -10,13 +10,17 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Task W4 of the fulfillment-workflow-v2 plan: the returns monitoring page
- * (`Sales > Fulfillment > Returns`) — a sibling PAGE, never an eighth queue
- * tab. Lists orders whose spine phase (CourierFulfillmentInterface::
- * statusPhase()) is 'returning' or 'failed', derived through the SAME
- * (provider, status) tally FulfillmentController::index() uses for its
- * segment-bar counts (FulfillmentController::phaseTally() /
- * applyPhaseGroups(), shared — never a parallel derivation).
+ * The returns monitoring page (`Sales > Fulfillment > Returns`) - a sibling
+ * PAGE, never an eighth queue tab. Lists orders whose LIVE COURIER STATE
+ * (CourierFulfillmentInterface::statusPhase(), via
+ * FulfillmentController::courierPhaseGroups()) is 'returning' or 'failed'.
+ *
+ * fulfillment-placement Task 2: this is the ONE surface that still selects
+ * orders by courier phase, on purpose and documented as such in the
+ * controller. Tabs answer "where does this order sit in my workflow" (core
+ * status placement, nothing else); this page answers "which parcels are
+ * coming back at me", which only the courier can say. It is therefore
+ * independent of placement.
  *
  * This is a monitoring surface only: booking/cancelling/the viewing drawer
  * stay on the main queue. The full customer-initiated RMA process is a
@@ -57,7 +61,7 @@ class FulfillmentReturnsTest extends TestCase
         );
     }
 
-    /** fulfillment-tabs-v3 Task 2: a stage-'cancelled' status (real order cancel), distinct from a courier-phase cancel/return. */
+    /** A cancelled-PLACED status (a real order cancel), distinct from a courier-side cancel/return on the shipment. */
     private function cancelledStageStatus(): OrderStatus
     {
         return OrderStatus::firstOrCreate(
@@ -142,33 +146,43 @@ class FulfillmentReturnsTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // fulfillment-tabs-v3 Task 2: STAGE-FIRST membership — a real order
-    // cancel (stage 'cancelled') outranks whatever courier phase the
-    // shipment happens to carry. A stage-'cancelled' order sitting in a
-    // 'returning'/'failed' courier phase must NOT surface here; it belongs
-    // to the queue's Cancelled bucket instead.
+    // fulfillment-placement Task 2 REWRITE (was: "a cancelled-stage order
+    // does not appear even in a returning or failed courier phase", the
+    // tabs-v3 stage-first rule applied to this page too). This page is not
+    // a tab and deliberately does not follow the tab rule: it answers
+    // "which parcels are coming back at me", which is a fact about the
+    // SHIPMENT, so it reads live courier state and ignores placement
+    // entirely. A cancelled order whose parcel is physically returning is
+    // exactly the row an operator needs here, precisely because no tab
+    // would ever show it.
     // ------------------------------------------------------------------
 
-    public function test_a_cancelled_stage_order_does_not_appear_even_in_a_returning_or_failed_courier_phase(): void
+    public function test_the_page_lists_returning_and_failed_parcels_whatever_the_orders_placement_is(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
         $cancelledStageId = $this->cancelledStageStatus()->id;
 
-        // Real order cancel (stage 'cancelled'), but the courier phase is
-        // still 'returning'/'failed' — the stage must win.
+        // Cancelled-placed orders whose parcels are still returning/failed.
         $this->makeOrder('returned', 'QX-CANCELLED-RETURN', 'quadx', null, $cancelledStageId);
         $this->makeOrder('failed_delivery', 'QX-CANCELLED-FAILED', 'quadx', null, $cancelledStageId);
 
-        // A ready-stage counterpart, same courier phases, DOES belong here.
-        $this->makeOrder('returned', 'QX-READY-RETURN');
+        // A To-Pack-placed counterpart, same courier phases.
+        $this->makeOrder('returned', 'QX-TO-PACK-RETURN');
 
         $response = $this->get($this->returnsUrl());
         $response->assertOk()
-            ->assertSee('QX-READY-RETURN')
-            ->assertDontSee('QX-CANCELLED-RETURN')
-            ->assertDontSee('QX-CANCELLED-FAILED');
+            ->assertSee('QX-TO-PACK-RETURN')
+            ->assertSee('QX-CANCELLED-RETURN')
+            ->assertSee('QX-CANCELLED-FAILED');
+
+        // Those two are simultaneously in the Cancelled TAB, which is not a
+        // contradiction: the tab says where the order sits in the workflow,
+        // this page says which parcels are coming back.
+        $this->get($this->queueUrl() . '?filter=cancelled')
+            ->assertOk()
+            ->assertSee('data-count-for="cancelled">2<', false);
     }
 
     // ------------------------------------------------------------------

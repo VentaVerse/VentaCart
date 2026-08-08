@@ -526,7 +526,13 @@ class FulfillmentTest extends TestCase
         // includes 'for_pickup' and statusPhase('for_pickup') is step 1;
         // FakeCourierFulfillment::cancelableStatuses() is only ['pending']
         // and statusPhase() always returns step 0.
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
+        //
+        // fulfillment-placement Task 2: the status is placed under To
+        // Handover, the tab whose action set includes Cancel booking and
+        // the drawer opener this test reads its payload from. The subject
+        // is unchanged (each row resolves its OWN courier), only the tab
+        // those actions belong to is now named by the order's status.
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Order Being Shipped', 'sort_order' => 1, 'is_default' => true, 'fulfillment_placement' => 'to_handover']);
 
         $quadxOrder = $this->makeBookableOrder(['order_status_id' => $status->id]);
         $quadxOrder->forceFill([

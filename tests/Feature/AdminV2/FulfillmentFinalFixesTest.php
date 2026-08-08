@@ -106,10 +106,18 @@ class FulfillmentFinalFixesTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Finding 1: SPX '7001' — rebookable, no waybill offer, label refused.
+    // Finding 1: SPX '7001' reads as NOT actively booked - no waybill
+    // offer, no cancel affordance, and the label route refusing server-side.
+    //
+    // fulfillment-placement Task 2 REWRITE: the original asserted this row
+    // landed in the Cancelled TAB (tabs-v3 courier-phase membership) with a
+    // Rebook button. Membership now reads the core status's placement, so
+    // the row stays under To Pack (nothing re-statused it), and Finding 1's
+    // actual subject - that a 7001 booking is dead, so no live-booking
+    // action is offered and Book IS - is asserted there instead.
     // ------------------------------------------------------------------
 
-    public function test_spx_7001_order_lists_under_cancelled_offers_rebook_and_never_print_waybill(): void
+    public function test_spx_7001_order_offers_booking_again_and_never_print_waybill_or_cancel(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -124,15 +132,14 @@ class FulfillmentFinalFixesTest extends TestCase
 
         $this->get($this->queueUrl())
             ->assertOk()
-            ->assertSee('data-count-for="cancelled">1<', false)
-            ->assertSee('data-count-for="to_handover">0<', false);
-
-        $this->get($this->queueUrl() . '?filter=cancelled')
-            ->assertOk()
+            ->assertSee('data-count-for="to_pack">1<', false)
+            ->assertSee('data-count-for="cancelled">0<', false)
+            ->assertSee('data-count-for="to_handover">0<', false)
             ->assertSee('SPEPH000000000CXL')
-            ->assertSee('Rebook')
+            // The dead booking does not block a fresh one.
+            ->assertSee('openBooking(JSON.parse(', false)
             ->assertDontSee('Print waybill')
-            // No Cancel affordance either — the booking is already cancelled.
+            // No Cancel affordance either - the booking is already cancelled.
             ->assertDontSee('cancel-fulfillment-' . $order->id, false);
     }
 
@@ -186,7 +193,16 @@ class FulfillmentFinalFixesTest extends TestCase
         return $order;
     }
 
-    public function test_creation_failed_order_counts_and_lists_under_the_failed_tab_with_its_error_and_a_book_action(): void
+    /**
+     * fulfillment-placement Task 2 REWRITE: the original asserted the
+     * creation_failed order counted under the Failed TAB (tabs-v3
+     * courier-phase membership). Finding 2's real subject is that a
+     * permanently failed async create must be VISIBLE and rebookable rather
+     * than silently blending in: it now stays in its own tab (To Pack, since
+     * nothing re-statused it), which is also where Book is offered, and its
+     * badge, label and error still say exactly what happened.
+     */
+    public function test_creation_failed_order_shows_its_error_and_a_book_action_in_its_own_tab(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -194,24 +210,24 @@ class FulfillmentFinalFixesTest extends TestCase
 
         $order = $this->makeCreationFailedOrder();
 
-        // Failed tab counts it; To Pack must NOT reclaim it.
         $this->get($this->queueUrl())
             ->assertOk()
-            ->assertSee('data-count-for="failed">1<', false)
-            ->assertSee('data-count-for="to_pack">0<', false)
-            ->assertDontSee('#' . $order->id, false);
-
-        $this->get($this->queueUrl() . '?filter=failed')
-            ->assertOk()
+            ->assertSee('data-count-for="to_pack">1<', false)
+            ->assertSee('data-count-for="failed">0<', false)
             ->assertSee('#' . $order->id, false)
-            // Spine badge + the honest bridging-status label.
+            // Spine badge + the honest bridging-status label: the SHIPMENT
+            // failed, which the row says plainly even though the tab is
+            // decided by the order's status.
             ->assertSee('Failed')
             ->assertSee('Booking failed')
             // The actual reason (courier_meta.creation_error) is rendered.
             ->assertSee('SPX rejected the delivery address')
-            // Book action present (openBooking payload) + drawer access.
-            ->assertSee('openBooking(JSON.parse(', false)
-            ->assertSee('Details');
+            // Book action present (openBooking payload).
+            ->assertSee('openBooking(JSON.parse(', false);
+
+        $this->get($this->queueUrl() . '?filter=failed')
+            ->assertOk()
+            ->assertDontSee('#' . $order->id, false);
     }
 
     public function test_creation_failed_order_can_be_booked_again(): void
