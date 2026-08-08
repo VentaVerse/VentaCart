@@ -22,6 +22,13 @@ use Tests\TestCase;
  *
  * All credentials below are obviously fake (never used against a real SPX
  * endpoint — Http::fake() intercepts every call in this file).
+ *
+ * install() alone only upserts the extension's registry row; it's
+ * bootEnabled() that actually calls registerAutoloader() (see
+ * ExtensionManager::bootEnabled()), so both are needed here for this file
+ * to pass standalone (`--filter=Spx`), not just as part of the full Unit
+ * suite where an earlier test happens to leak the process-global
+ * autoloader registration.
  */
 class SpxClientTest extends TestCase
 {
@@ -31,6 +38,7 @@ class SpxClientTest extends TestCase
     {
         parent::setUp();
         app(ExtensionManager::class)->install('courier-fulfillment');
+        app(ExtensionManager::class)->bootEnabled();
     }
 
     private function configureCredentials(): void
