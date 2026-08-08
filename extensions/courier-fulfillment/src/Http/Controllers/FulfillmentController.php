@@ -59,35 +59,9 @@ class FulfillmentController extends Controller
             });
         }
 
-        // Phase tallies for the segment bar. Phase is a per-courier PHP
-        // derivation (statusPhase()), which SQL can't group by directly — but
-        // it's a pure function of (provider, raw status, booked-or-not), so
-        // GROUP BY those three and bucket the handful of combos in PHP. Work
-        // stays proportional to the couriers' status vocabularies, never to
-        // the number of orders.
-        $combos = (clone $base)
-            ->selectRaw('courier_provider, courier_status, (courier_tracking_number IS NULL) as unbooked, COUNT(*) as n')
-            ->groupByRaw('courier_provider, courier_status, (courier_tracking_number IS NULL)')
-            ->get();
-
-        $phaseCounts = array_fill_keys(\Extensions\CourierFulfillment\Support\PhaseTone::PHASES, 0);
-        $handoverByCourier = [];      // courier display name => waiting-parcel count (the ERP's co-couriers tally)
-        $phaseStatusGroups = [];      // phase => provider key => raw statuses present in the DB right now
-        foreach ($combos as $row) {
-            $phase = $row->unbooked
-                ? 'to_book'
-                : FulfillmentService::phaseForParts($row->courier_provider, $row->courier_status);
-            $phaseCounts[$phase] = ($phaseCounts[$phase] ?? 0) + (int) $row->n;
-
-            if (!$row->unbooked) {
-                $phaseStatusGroups[$phase][(string) $row->courier_provider][] = $row->courier_status;
-                if ($phase === 'to_handover') {
-                    $name = CourierManager::get((string) $row->courier_provider)?->getName()
-                        ?: (strtoupper((string) $row->courier_provider) ?: 'Unknown courier');
-                    $handoverByCourier[$name] = ($handoverByCourier[$name] ?? 0) + (int) $row->n;
-                }
-            }
-        }
+        // Phase tallies for the segment bar (and, via the same method, for
+        // returns() below — one derivation, never two).
+        [$phaseCounts, $phaseStatusGroups, $handoverByCourier] = $this->phaseTally($base);
 
         $query = (clone $base)
             ->with('status:id,name')
@@ -110,29 +84,7 @@ class FulfillmentController extends Controller
             // though it no longer renders as a tab.)
             $groups = $phaseStatusGroups[$filter] ?? [];
             $query->whereNotNull('courier_tracking_number');
-            if ($groups === []) {
-                $query->whereRaw('1 = 0');
-            } else {
-                $query->where(function ($q) use ($groups) {
-                    foreach ($groups as $provider => $statuses) {
-                        $q->orWhere(function ($x) use ($provider, $statuses) {
-                            $provider === ''
-                                ? $x->whereNull('courier_provider')
-                                : $x->where('courier_provider', $provider);
-                            $withNull = in_array(null, $statuses, true);
-                            $notNull  = array_values(array_filter($statuses, fn ($v) => $v !== null));
-                            $x->where(function ($y) use ($withNull, $notNull) {
-                                if ($notNull !== []) {
-                                    $y->whereIn('courier_status', $notNull);
-                                }
-                                if ($withNull) {
-                                    $y->orWhereNull('courier_status');
-                                }
-                            });
-                        });
-                    }
-                });
-            }
+            $this->applyPhaseGroups($query, $groups);
         }
         // 'all' — no extra constraint.
 
@@ -196,6 +148,43 @@ class FulfillmentController extends Controller
     }
 
     /**
+     * Task W4: returns monitoring — a sibling PAGE, never an eighth queue
+     * tab (see the segment bar's own comment in the view). Lists orders
+     * whose spine phase is 'returning' (a parcel on its way back) or
+     * 'failed' (broke somewhere in its journey) — exactly the two phases
+     * the ERP precedent treats as "coming back", grouped together because
+     * an operator watching this page cares about both the same way.
+     *
+     * Phase membership comes from the SAME (provider, status) tally
+     * index() uses for its tab counts (phaseTally() below) — never a
+     * second, parallel derivation that could disagree with the queue.
+     *
+     * This is a MONITORING surface only. The full customer-initiated RMA
+     * process (refunds, restock guidance) is a distinct product feature,
+     * tracked as a roadmap card rather than built here.
+     */
+    public function returns(Request $request)
+    {
+        $base = Order::query()->whereNotNull('order_status_id');
+
+        [, $phaseStatusGroups] = $this->phaseTally($base);
+
+        $groups = array_merge_recursive(
+            $phaseStatusGroups['returning'] ?? [],
+            $phaseStatusGroups['failed'] ?? []
+        );
+
+        $query = (clone $base)->whereNotNull('courier_tracking_number');
+        $this->applyPhaseGroups($query, $groups);
+
+        $orders = $query->latest()->paginate(25)->withQueryString();
+
+        return view('courier-fulfillment::returns', [
+            'orders' => $orders,
+        ]);
+    }
+
+    /**
      * Whether the current admin can see the "Go to Courier Settings" link on
      * the paused empty-state — same permission the Settings hub itself
      * checks for this page (App\Support\SettingsNav::groups()), so we never
@@ -209,6 +198,86 @@ class FulfillmentController extends Controller
         }
 
         return $item['permission'] === null || (Auth::user()?->hasPermission($item['permission']) ?? false);
+    }
+
+    /**
+     * Phase is a per-courier PHP derivation (statusPhase()), which SQL can't
+     * group by directly — but it's a pure function of (provider, raw status,
+     * booked-or-not), so GROUP BY those three and bucket the handful of
+     * combos in PHP. Work stays proportional to the couriers' status
+     * vocabularies, never to the number of orders. Shared by index()'s
+     * segment-bar tallies and returns()'s listing — the one place either
+     * page turns raw (provider, status) rows into spine phases.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $base
+     * @return array{0: array<string,int>, 1: array<string, array<string, array<int, ?string>>>, 2: array<string,int>}
+     *   [phaseCounts, phaseStatusGroups, handoverByCourier]
+     */
+    private function phaseTally($base): array
+    {
+        $combos = (clone $base)
+            ->selectRaw('courier_provider, courier_status, (courier_tracking_number IS NULL) as unbooked, COUNT(*) as n')
+            ->groupByRaw('courier_provider, courier_status, (courier_tracking_number IS NULL)')
+            ->get();
+
+        $phaseCounts = array_fill_keys(\Extensions\CourierFulfillment\Support\PhaseTone::PHASES, 0);
+        $handoverByCourier = [];      // courier display name => waiting-parcel count (the ERP's co-couriers tally)
+        $phaseStatusGroups = [];      // phase => provider key => raw statuses present in the DB right now
+        foreach ($combos as $row) {
+            $phase = $row->unbooked
+                ? 'to_book'
+                : FulfillmentService::phaseForParts($row->courier_provider, $row->courier_status);
+            $phaseCounts[$phase] = ($phaseCounts[$phase] ?? 0) + (int) $row->n;
+
+            if (!$row->unbooked) {
+                $phaseStatusGroups[$phase][(string) $row->courier_provider][] = $row->courier_status;
+                if ($phase === 'to_handover') {
+                    $name = CourierManager::get((string) $row->courier_provider)?->getName()
+                        ?: (strtoupper((string) $row->courier_provider) ?: 'Unknown courier');
+                    $handoverByCourier[$name] = ($handoverByCourier[$name] ?? 0) + (int) $row->n;
+                }
+            }
+        }
+
+        return [$phaseCounts, $phaseStatusGroups, $handoverByCourier];
+    }
+
+    /**
+     * Constrains a BOOKED-orders query to exactly the (provider, status)
+     * combos in $groups (as produced by phaseTally() above) — the query-side
+     * mirror of the phase bucketing, so a listing's rows always match the
+     * tally that selected them. An empty $groups (phase currently has no
+     * members) constrains to nothing rather than leaving the query open.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array<string, array<int, ?string>> $groups provider key => raw statuses
+     */
+    private function applyPhaseGroups($query, array $groups): void
+    {
+        if ($groups === []) {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+
+        $query->where(function ($q) use ($groups) {
+            foreach ($groups as $provider => $statuses) {
+                $q->orWhere(function ($x) use ($provider, $statuses) {
+                    $provider === ''
+                        ? $x->whereNull('courier_provider')
+                        : $x->where('courier_provider', $provider);
+                    $withNull = in_array(null, $statuses, true);
+                    $notNull  = array_values(array_filter($statuses, fn ($v) => $v !== null));
+                    $x->where(function ($y) use ($withNull, $notNull) {
+                        if ($notNull !== []) {
+                            $y->whereIn('courier_status', $notNull);
+                        }
+                        if ($withNull) {
+                            $y->orWhereNull('courier_status');
+                        }
+                    });
+                });
+            }
+        });
     }
 
     public function book(Request $request, Order $order)

@@ -23,6 +23,10 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // Static segment registered BEFORE the {order} wildcards below so
         // 'poll' can never be captured as an order id.
         Route::post('/poll', [FulfillmentController::class, 'poll'])->name('poll');
+        // Task W4: returns monitoring — a sibling PAGE (never an eighth queue
+        // tab), listing orders whose spine phase is 'returning' or 'failed'.
+        // Static segment, same reasoning as 'poll' above.
+        Route::get('/returns', [FulfillmentController::class, 'returns'])->name('returns');
         Route::post('/{order}/book', [FulfillmentController::class, 'book'])->name('book');
         Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel');
         Route::get('/{order}/label', [FulfillmentController::class, 'label'])->name('label');

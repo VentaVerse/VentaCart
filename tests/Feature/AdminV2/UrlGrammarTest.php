@@ -142,6 +142,19 @@ class UrlGrammarTest extends TestCase
         $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/nope')->assertNotFound();
     }
 
+    /**
+     * Task W4 (spx-courier plan): the returns monitoring page, one segment
+     * deeper than the queue itself — grammar-conformant at
+     * sales/fulfillment/returns.
+     */
+    public function test_fulfillment_returns_page_is_ok_at_new_url(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $this->get('/'.$this->prefix().'/sales/fulfillment/returns')->assertOk();
+    }
+
     // ------------------------------------------------------------------
     // Old URLs: 301 to the new home, Location asserted.
     // ------------------------------------------------------------------
@@ -504,6 +517,22 @@ class UrlGrammarTest extends TestCase
 
         $response->assertOk();
         $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Courier Fulfillment', 'QuadX']);
+    }
+
+    /**
+     * Task W4: the returns page is one segment deeper than the queue's own
+     * admin-nav entry ('fulfillment'), so the "deeper than the entity" rule
+     * appends the page's own title ('Returns') as the trailing crumb.
+     */
+    public function test_breadcrumb_trail_on_fulfillment_returns_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $response = $this->get('/'.$this->prefix().'/sales/fulfillment/returns');
+
+        $response->assertOk();
+        $this->assertBreadcrumbTrail($response->getContent(), ['Sales', 'Fulfillment', 'Returns']);
     }
 
     public function test_breadcrumb_trail_on_admin_nav_create_page(): void
