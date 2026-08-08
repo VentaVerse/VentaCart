@@ -37,6 +37,15 @@ class SpxFulfillmentTest extends TestCase
         parent::setUp();
         app(ExtensionManager::class)->install('courier-fulfillment');
         app(ExtensionManager::class)->bootEnabled();
+
+        // Final-review finding (fulfillment-workflow-v2 + SPX plan, Task
+        // T3): without this, an Http::fake([...]) array with a URL pattern
+        // that doesn't actually match every request the code under test
+        // issues falls through SILENTLY to the real Guzzle handler —
+        // i.e. a genuine outbound call to live SPX UAT on every test run,
+        // rather than a test failure. Scoped to THIS file only (not every
+        // Spx/Unit test file) per that review's explicit instruction.
+        Http::preventStrayRequests();
     }
 
     private function noSleep(): \Closure
@@ -981,11 +990,17 @@ class SpxFulfillmentTest extends TestCase
     /**
      * Round 2 of the live-UAT gate finding: v2 sits at task_status=3
      * ("Running") for BOTH short-window attempts, so the flow falls
-     * through to the v1 fallback — which, in THIS test, is left unfaked
-     * (Http::fake's array has no entry matching it), so it also gets a
-     * default empty 200 response ({} — no awb_link/fail_list/task_status).
-     * Neither phase ever settles -> printLabel must fail cleanly rather
-     * than hang or crash.
+     * through to the v1 fallback — which, in THIS test, is EXPLICITLY
+     * faked to return a well-formed but unsettled array (`ret_code: 0`,
+     * empty `data`: no `awb_link`/`fail_list`/`task_status`), so this
+     * genuinely exercises the "v1 responded, but nothing in it settles"
+     * branch of pollLabelResult()/labelResultSettled(), hermetically — see
+     * this class's setUp() for why an unfaked URL is no longer an option
+     * (a prior version of this test left v1 unmatched, which — without
+     * Http::preventStrayRequests() — silently fell through to a REAL
+     * outbound call to live SPX UAT on every run, per this task's own
+     * final review). Neither phase ever settles -> printLabel must fail
+     * cleanly rather than hang or crash.
      */
     public function test_print_label_fails_when_neither_v2_nor_the_v1_fallback_ever_settles(): void
     {
@@ -998,7 +1013,10 @@ class SpxFulfillmentTest extends TestCase
                 'ret_code' => 0, 'message' => 'success.',
                 'data' => ['batch_no' => 207982800897461, 'task_status' => 3, 'description' => 'Running', 'progress' => '0.00%'],
             ]),
-            // v1 left unmatched on purpose — see docblock above.
+            '*/v1/order/batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [], // well-formed, but no awb_link/fail_list/task_status — never settles.
+            ]),
         ]);
 
         $result = $this->courier()->printLabel('SPEPH000000000007', 'zebra');
