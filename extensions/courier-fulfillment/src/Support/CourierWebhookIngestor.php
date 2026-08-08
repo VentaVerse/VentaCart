@@ -31,6 +31,12 @@ use Illuminate\Support\Facades\Log;
  * OTHER courier's order — harmless with a single courier registered, a real
  * cross-provider data-integrity risk the moment a second one is. See this
  * extension's README ("Add a courier" checklist) for the caveat this closes.
+ *
+ * Final-review fix (Finding 3): the PRIMARY reference_id match is now
+ * verified against the order's CURRENT shipment (provider must match; and
+ * tracking numbers must match when both sides carry one) before any write —
+ * see applyEvent()'s inline comment for the superseded-shipment hazard this
+ * closes.
  */
 class CourierWebhookIngestor
 {
@@ -49,6 +55,40 @@ class CourierWebhookIngestor
         $order = null;
         if (!empty($event['reference_id'])) {
             $order = Order::find($event['reference_id']);
+
+            // Final-review fix (Finding 3): a reference_id hit alone is
+            // neither provider-scoped nor tracking-verified — reference_id
+            // is just the order id, and it's REUSED across shipments (a
+            // cancel -> rebook books the same reference_id again, possibly
+            // with a different courier). A late webhook from a superseded
+            // shipment must not overwrite the CURRENT booking's status, so
+            // the event has to prove it belongs to the order's current
+            // shipment: the order's provider must be this webhook's
+            // provider, AND — when both the order and the event carry a
+            // tracking number — those must match too (events without a
+            // tracking number, or orders still mid-create without one, are
+            // exempt from the tracking check only, never the provider one).
+            // On mismatch: log + ignore, no write, and no fallback lookup —
+            // a stale event must not go shopping for another order to hit.
+            if ($order) {
+                if ((string) $order->courier_provider !== $provider) {
+                    Log::info('Courier webhook: event provider does not match the order\'s current booking — ignored', [
+                        'provider' => $provider, 'order' => $order->id,
+                        'order_provider' => $order->courier_provider, 'event' => $event,
+                    ]);
+                    return;
+                }
+
+                $orderTracking = (string) $order->courier_tracking_number;
+                $eventTracking = (string) ($event['tracking_number'] ?? '');
+                if ($orderTracking !== '' && $eventTracking !== '' && $orderTracking !== $eventTracking) {
+                    Log::info('Courier webhook: event tracking number does not match the order\'s current shipment — ignored (late event from a superseded booking?)', [
+                        'provider' => $provider, 'order' => $order->id,
+                        'order_tracking' => $orderTracking, 'event' => $event,
+                    ]);
+                    return;
+                }
+            }
         }
         if (!$order && !empty($event['tracking_number'])) {
             $order = Order::where('courier_tracking_number', $event['tracking_number'])

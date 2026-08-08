@@ -438,6 +438,16 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
     overflow-wrap: anywhere;
 }
 
+/* Async-create permanent failure reason (courier_meta.creation_error) —
+   the "why" line under the Booking failed note, danger-toned so the row
+   reads as needing action at a glance. */
+.co-status__error {
+    font-size: 11px;
+    color: var(--danger);
+    overflow-wrap: anywhere;
+    max-width: 26ch;
+}
+
 .co-empty-mark { color: var(--text-muted); }
 
 /* Actions: every action a row's status allows is a visible button — the

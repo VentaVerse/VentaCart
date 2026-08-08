@@ -439,7 +439,13 @@ class SpxFulfillment implements CourierFulfillmentInterface
         if (in_array($s, self::DELIVERED, true)) {
             return ['phase' => 'delivered', 'step' => 3, 'failed' => false];
         }
-        if (in_array($s, self::CANCELLED, true)) {
+        // Final-review fix (Finding 1): alongside SPX's own 7001, the
+        // literal 'canceled'/'cancelled' the admin Cancel action stamps
+        // (FulfillmentController::cancel() writes it for EVERY courier)
+        // must bucket to the cancelled phase too — otherwise an
+        // admin-cancelled SPX order read as 'to_handover' until the next
+        // poll/webhook overwrote it with 7001.
+        if (in_array($s, self::CANCELLED, true) || in_array($s, FulfillmentService::CANCELED_STATUSES, true)) {
             return ['phase' => 'cancelled', 'step' => 1, 'failed' => true];
         }
         if (in_array($s, self::RETURNING_STATUSES, true)) {
@@ -581,6 +587,15 @@ class SpxFulfillment implements CourierFulfillmentInterface
             ->first();
         if (!$order) {
             return ['success' => false, 'error' => 'No SPX order found for this tracking number.'];
+        }
+
+        // Final-review fix (Finding 1): api.md §1.6 — a cancelled order's
+        // AWB cannot be printed. Refused server-side (the queue's button
+        // gating is only UI), and BEFORE the cache check: a PDF cached
+        // while the booking was live must not keep serving after the
+        // shipment is cancelled — that label's AWB is void.
+        if (($this->statusPhase($order->courier_status)['phase'] ?? null) === 'cancelled') {
+            return ['success' => false, 'error' => 'This SPX booking is cancelled — cancelled shipments have no printable waybill. Rebook the order to get a fresh label.'];
         }
 
         $path = self::labelStoragePath($trackingNumber);

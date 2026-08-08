@@ -76,12 +76,15 @@ class FulfillmentController extends Controller
             ->latest();
 
         if ($filter === 'to_book') {
-            // Task T4 fix: excludes a 'creating' order (also tracking-
-            // number-null) — that one belongs to the Booking tab now, not
-            // To Book (see phaseTally()'s matching fix above).
+            // Task T4 fix (+ final-review Finding 2): excludes BOTH async
+            // bridging statuses ('creating' AND 'creation_failed' — also
+            // tracking-number-null) — those belong to the Booking/Failed
+            // tabs respectively, never To Book (see phaseTally()'s
+            // matching fix above and FulfillmentService::ASYNC_CREATE_STATUSES).
             $query->whereNull('courier_tracking_number')
                 ->where(function ($q) {
-                    $q->whereNull('courier_status')->orWhere('courier_status', '!=', 'creating');
+                    $q->whereNull('courier_status')
+                        ->orWhereNotIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
                 });
         } elseif ($filter !== 'all') {
             // A spine-phase tab: booked orders whose (provider, raw status)
@@ -90,13 +93,16 @@ class FulfillmentController extends Controller
             // ('all' stays supported as a filter value for deep links even
             // though it no longer renders as a tab.)
             $groups = $phaseStatusGroups[$filter] ?? [];
-            // Task T4 fix: a 'creating' order has no tracking number yet but
-            // must still be reachable from the Booking tab — applyPhaseGroups()
-            // below narrows to the exact (provider, status) combos the tally
-            // found for $filter, so relaxing this to admit 'creating' rows
-            // never leaks one into a phase it doesn't belong to.
+            // Task T4 fix (+ final-review Finding 2): a 'creating' or
+            // 'creation_failed' order has no tracking number yet but must
+            // still be reachable from its tab (Booking / Failed) —
+            // applyPhaseGroups() below narrows to the exact (provider,
+            // status) combos the tally found for $filter, so relaxing this
+            // to admit those rows never leaks one into a phase it doesn't
+            // belong to.
             $query->where(function ($q) {
-                $q->whereNotNull('courier_tracking_number')->orWhere('courier_status', 'creating');
+                $q->whereNotNull('courier_tracking_number')
+                    ->orWhereIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
             });
             $this->applyPhaseGroups($query, $groups);
         }
@@ -253,12 +259,14 @@ class FulfillmentController extends Controller
         $handoverByCourier = [];      // courier display name => waiting-parcel count (the ERP's co-couriers tally)
         $phaseStatusGroups = [];      // phase => provider key => raw statuses present in the DB right now
         foreach ($combos as $row) {
-            // Task T4 fix: a 'creating' order is 'unbooked' by this query's
-            // own definition (courier_tracking_number IS NULL) but IS
+            // Task T4 fix (+ final-review Finding 2): a 'creating' or
+            // 'creation_failed' order is 'unbooked' by this query's own
+            // definition (courier_tracking_number IS NULL) but IS/WAS
             // mid-booking with an async courier (SPX) — same fix as
             // FulfillmentService::phaseFor(), applied here so the segment
             // bar's tally never disagrees with the per-row badge.
-            $treatAsBooked = !$row->unbooked || $row->courier_status === 'creating';
+            $treatAsBooked = !$row->unbooked
+                || in_array((string) $row->courier_status, FulfillmentService::ASYNC_CREATE_STATUSES, true);
             $phase = $treatAsBooked
                 ? FulfillmentService::phaseForParts($row->courier_provider, $row->courier_status)
                 : 'to_book';
@@ -368,6 +376,17 @@ class FulfillmentController extends Controller
 
         if (!$res['success']) {
             return back()->with('error', "Booking failed: " . ($res['error'] ?? 'unknown error'));
+        }
+
+        // Final-review fix (Finding 2): an async courier (SPX) can return
+        // success with NO tracking number yet (courier_status='creating' —
+        // the bounded create-poll window elapsed). "Booked — tracking ."
+        // read as a broken booking; say what actually happened instead.
+        if (empty($res['tracking_number'])) {
+            $courierName = CourierManager::get((string) ($res['courier'] ?? ''))?->getName()
+                ?: strtoupper((string) ($res['courier'] ?? '')) ?: 'The courier';
+
+            return back()->with('success', "Booking submitted — {$courierName} is creating the shipment. The tracking number will appear here in a moment (refresh or poll statuses).");
         }
 
         return back()->with('success', "Booked — tracking {$res['tracking_number']}.");

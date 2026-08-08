@@ -36,6 +36,14 @@
             if ($status === 'creating') {
                 return 'Creating…';
             }
+            // Final-review fix (Finding 2): the async create's permanent-
+            // failure bridging status (see FulfillmentService::
+            // ASYNC_CREATE_STATUSES) — same reasoning as 'creating' above:
+            // never part of any courier's own status-labels cache, so it
+            // gets its honest label here.
+            if ($status === 'creation_failed') {
+                return 'Booking failed';
+            }
             if ($provider === null) {
                 return ucwords(str_replace('_', ' ', $status));
             }
@@ -170,7 +178,12 @@
                             // stepper just because the tracking number hasn't
                             // landed yet.
                             $creating = (string) $order->courier_status === 'creating';
-                            $phase = ($order->courier_tracking_number || $creating)
+                            // Final-review fix (Finding 2): 'creation_failed' (the async
+                            // create's permanent-failure sibling) resolves through the
+                            // courier's statusPhase() the same way — its stepper shows
+                            // the failure at step 1 instead of a blank zero-step row.
+                            $creationFailed = (string) $order->courier_status === 'creation_failed';
+                            $phase = ($order->courier_tracking_number || $creating || $creationFailed)
                                 ? ($orderCourier?->statusPhase($order->courier_status) ?? ['step' => 0, 'failed' => false])
                                 : ['step' => 0, 'failed' => false];
 
@@ -203,6 +216,11 @@
                             // nothing for any other courier.
                             $estimatedFeeRaw = $meta['estimated_shipping_fee'] ?? null;
                             $actualFeeRaw = $meta['actual_fee']['actual_shipping_fee'] ?? null;
+                            // Final-review fix (Finding 2): the courier's permanent
+                            // async-create failure reason (written by
+                            // resolvePendingCreation() into courier_meta.creation_error)
+                            // — rendered in the status cell + drawer, never left invisible.
+                            $creationError = $creationFailed ? ($meta['creation_error'] ?? null) : null;
                             // Canceled bookings are not terminal — a tracking number is still
                             // present but the order is rebookable (see FulfillmentService).
                             $activelyBooked = \Extensions\CourierFulfillment\FulfillmentService::isActivelyBooked($order);
@@ -251,6 +269,8 @@
                                 'trackingUrl' => $trackingUrl,
                                 'estimatedDelivery' => $estimatedDelivery,
                                 'creating' => $creating,
+                                'creationFailed' => $creationFailed,
+                                'creationError' => $creationError,
                                 'estimatedFee' => is_numeric($estimatedFeeRaw) ? ('₱' . number_format((float) $estimatedFeeRaw, 2)) : null,
                                 'actualFee' => is_numeric($actualFeeRaw) ? ('₱' . number_format((float) $actualFeeRaw, 2)) : null,
                                 'phaseStep' => $phase['step'],
@@ -345,6 +365,9 @@
                                             @if ($order->courier_status)
                                                 <span class="co-status__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
                                             @endif
+                                            @if ($creationError)
+                                                <span class="co-status__error" title="{{ $creationError }}">{{ \Illuminate\Support\Str::limit($creationError, 90) }}</span>
+                                            @endif
                                         </div>
                                     </td>
                                     <td class="cf-col-act" rowspan="{{ $lineCount }}">
@@ -375,6 +398,12 @@
                                                  would orphan both (review fix, W2). --}}
                                             @if ($order->courier_tracking_number)
                                                 <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
+                                            @elseif ($creationFailed)
+                                                {{-- Final-review fix (Finding 2): a creation_failed order has NO
+                                                     tracking number, so the Tracking button above can't carry it —
+                                                     but its drawer is where the full creation_error reads, so it
+                                                     gets its own opener. --}}
+                                                <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</x-admin.button>
                                             @endif
                                             @if ($cancelable)
                                                 <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel</x-admin.button>
@@ -528,6 +557,17 @@
                             @if (!empty($couriers))
                                 <template x-if="!active.activelyBooked && !active.creating">
                                     <div class="space-y-3">
+                                        {{-- Final-review fix (Finding 2): the async create's permanent
+                                             failure reason (courier_meta.creation_error) — surfaced here
+                                             with the Book button right below it, since a creation_failed
+                                             order MUST be rebookable. --}}
+                                        <template x-if="active.creationFailed">
+                                            <div class="rounded-v-md border border-v-danger bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-xs text-v-danger">
+                                                <span class="font-semibold">Booking failed:</span>
+                                                <span x-text="active.creationError || 'the courier could not create this shipment.'"></span>
+                                                Fix the cause and book again below.
+                                            </div>
+                                        </template>
                                         <template x-if="active.rebookable">
                                             <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 text-xs text-v-muted">
                                                 Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled — booking again creates a new shipment.

@@ -704,6 +704,13 @@ class SpxFulfillmentTest extends TestCase
             '6002 Return Failed'    => ['6002', 'failed'],
             '6003 Returned'         => ['6003', 'returning'],
             '7001 Cancelled'        => ['7001', 'cancelled'],
+            // Final-review fix (Finding 1): the literal statuses the admin
+            // Cancel action stamps (FulfillmentController::cancel() writes
+            // 'canceled' for every courier) bucket to cancelled too — an
+            // admin-cancelled SPX order must not read as 'to_handover'
+            // until the next poll overwrites it with 7001.
+            'admin cancel literal'  => ['canceled', 'cancelled'],
+            'admin cancel alt spelling' => ['cancelled', 'cancelled'],
         ];
     }
 
@@ -885,6 +892,51 @@ class SpxFulfillmentTest extends TestCase
         $this->assertTrue($second['success']);
         $this->assertSame($first['url'], $second['url']);
         Http::assertSentCount(2); // unchanged
+    }
+
+    /**
+     * Final-review fix (Finding 1): api.md §1.6 — a cancelled order's AWB
+     * cannot be printed. The guard must fire server-side AND before the
+     * cache check: a PDF cached while the booking was live must not keep
+     * serving after the shipment is cancelled (that AWB is void).
+     */
+    public function test_print_label_refuses_a_cancelled_shipment_even_when_a_cached_pdf_exists(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+
+        $order = $this->makeSpxOrder('SPEPH000000000042');
+        $order->forceFill(['courier_status' => '7001'])->save();
+
+        // A label cached back when the booking was still live.
+        Storage::disk('local')->put('courier-labels/spx/SPEPH000000000042.pdf', '%PDF stale voided label');
+
+        Http::fake();
+
+        $result = $this->courier()->printLabel('SPEPH000000000042', 'zebra');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('cancelled', $result['error']);
+        Http::assertNothingSent();
+    }
+
+    public function test_print_label_refuses_an_admin_cancelled_shipment_too(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+
+        // The literal status the admin Cancel action writes, before any
+        // poll/webhook has overwritten it with SPX's own 7001.
+        $order = $this->makeSpxOrder('SPEPH000000000043');
+        $order->forceFill(['courier_status' => 'canceled'])->save();
+
+        Http::fake();
+
+        $result = $this->courier()->printLabel('SPEPH000000000043', 'zebra');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('cancelled', $result['error']);
+        Http::assertNothingSent();
     }
 
     public function test_print_label_fails_gracefully_when_no_order_matches_the_tracking_number(): void

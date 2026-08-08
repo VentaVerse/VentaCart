@@ -30,11 +30,50 @@ class FulfillmentService
      */
     public const CANCELED_STATUSES = ['canceled', 'cancelled'];
 
-    /** True when the order has a tracking number AND its status isn't canceled. */
+    /**
+     * The internal bridging statuses an ASYNC courier's create flow writes
+     * before a tracking number exists ('creating' — create still in flight;
+     * 'creation_failed' — create settled but permanently failed, see
+     * CourierFulfillmentInterface::resolvePendingCreation()). Both must
+     * resolve through the courier's own statusPhase() rather than the
+     * "no tracking number => never booked => to_book" short-circuit —
+     * defined once here for phaseFor() and the queue controller's
+     * tally/filter mirrors of that same rule.
+     */
+    public const ASYNC_CREATE_STATUSES = ['creating', 'creation_failed'];
+
+    /**
+     * True when the order has a tracking number AND its booking isn't
+     * cancelled. "Cancelled" is decided PHASE-first (final-review fix,
+     * Finding 1): the resolved courier's own statusPhase() spine bucket —
+     * so a courier-vocabulary cancel status (SPX's '7001', stamped by its
+     * poll/webhook right after an admin cancel) reads as inactive exactly
+     * like the literal 'canceled' the admin cancel action writes. Without
+     * this, a 7001 order was "actively booked" forever: no Rebook, no
+     * Cancel (7001 isn't cancelable), and a Print-waybill offer on a
+     * shipment SPX can no longer print. The literal spellings remain as
+     * the fallback for a booking whose provider is no longer registered
+     * (or predates the spine and returns no 'phase' key) — QuadX's own
+     * cancelled statuses ARE those literals and bucket to the cancelled
+     * phase anyway, so its behavior is unchanged on either path.
+     */
     public static function isActivelyBooked(Order $order): bool
     {
-        return (bool) $order->courier_tracking_number
-            && !in_array((string) $order->courier_status, self::CANCELED_STATUSES, true);
+        if (!$order->courier_tracking_number) {
+            return false;
+        }
+
+        $status = (string) $order->courier_status;
+        if (in_array($status, self::CANCELED_STATUSES, true)) {
+            return false;
+        }
+
+        $courier = CourierManager::get((string) $order->courier_provider);
+        if ($courier && ($courier->statusPhase($status)['phase'] ?? null) === 'cancelled') {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -66,7 +105,16 @@ class FulfillmentService
         // (which maps it to phase 'booking') same as any other booked
         // status — every other tracking-number-less order (including one
         // that was never booked at all) is still 'to_book' as before.
-        if (!$order->courier_tracking_number && (string) $order->courier_status !== 'creating') {
+        //
+        // Final-review fix (Finding 2): same treatment for
+        // 'creation_failed' — a permanently failed async create is ALSO
+        // tracking-number-less, and short-circuiting it to to_book made
+        // statusPhase('creation_failed') => 'failed' dead code: the order
+        // silently blended into To Book with no badge, tab, or rendered
+        // creation_error anywhere. Both bridging statuses now route
+        // through the courier's own spine mapping (ASYNC_CREATE_STATUSES).
+        if (!$order->courier_tracking_number
+            && !in_array((string) $order->courier_status, self::ASYNC_CREATE_STATUSES, true)) {
             return 'to_book';
         }
 
