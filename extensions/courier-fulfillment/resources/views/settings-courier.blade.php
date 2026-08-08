@@ -18,6 +18,18 @@
                 @csrf
             </form>
 
+            {{-- Same no-nesting rule for the SPX "Create shipper account"
+                 action: its form lives out here, its button (inside the main
+                 form's card below) targets it via form="…". Nesting it where
+                 the button renders made the browser close the main form
+                 early, orphaning every field after it (Alpine's mode scope
+                 included). --}}
+            @if ($courier->getKey() === 'spx' && empty($settings['spx_user_id']))
+                <form id="create-account-form" method="POST" action="{{ route('admin.fulfillment.settings.create-account', $courier->getKey()) }}" data-v-form class="hidden">
+                    @csrf
+                </form>
+            @endif
+
             <form method="POST" action="{{ route('admin.fulfillment.settings.courier.update', $courier->getKey()) }}" data-v-form class="space-y-5"
                 @if ($modeFieldKey) x-data="{ mode: '{{ $initialMode }}' }" @endif>
                 @csrf
@@ -50,10 +62,7 @@
                         <div class="rounded-v-md border border-v-border bg-v-sunken px-4 py-3">
                             <p class="text-[13px] font-medium text-v-text">No SPX shipper account yet</p>
                             <p class="text-xs text-v-muted mt-0.5 mb-2">Creates a User ID / User Secret via SPX's Create Account API using this store's pickup contact number, and saves both here automatically.</p>
-                            <form method="POST" action="{{ route('admin.fulfillment.settings.create-account', $courier->getKey()) }}" data-v-form>
-                                @csrf
-                                <x-admin.button type="submit" variant="secondary" size="sm">Create shipper account</x-admin.button>
-                            </form>
+                            <x-admin.button type="submit" form="create-account-form" variant="secondary" size="sm">Create shipper account</x-admin.button>
                         </div>
                     @endif
                 @endif
