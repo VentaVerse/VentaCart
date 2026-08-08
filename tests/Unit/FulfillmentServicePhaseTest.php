@@ -107,4 +107,36 @@ class FulfillmentServicePhaseTest extends TestCase
         ]);
         $this->assertSame('to_handover', FulfillmentService::phaseFor($order));
     }
+
+    // ------------------------------------------------------------------
+    // Task T4 fix: an async courier's in-flight creation (SPX's
+    // courier_status='creating', no tracking number yet) was previously
+    // short-circuiting to 'to_book' below — this is the regression test
+    // for that fix (see this method's own docblock in FulfillmentService).
+    // SPX is a REAL registered courier (booted via bootEnabled() in
+    // setUp()), so no register()/tearDown() dance is needed for it.
+    // ------------------------------------------------------------------
+
+    public function test_creating_order_with_no_tracking_number_resolves_to_the_booking_phase(): void
+    {
+        $order = $this->order([
+            'courier_tracking_number' => null,
+            'courier_provider' => 'spx',
+            'courier_status' => 'creating',
+        ]);
+        $this->assertSame('booking', FulfillmentService::phaseFor($order));
+    }
+
+    public function test_quadx_orders_are_unaffected_by_the_creating_state_fix(): void
+    {
+        // QuadX's createShipment() is synchronous and never sets
+        // courier_status='creating' — proves the fix is scoped to that
+        // exact status string, not to "no tracking number" in general.
+        $order = $this->order([
+            'courier_tracking_number' => null,
+            'courier_provider' => 'quadx',
+            'courier_status' => null,
+        ]);
+        $this->assertSame('to_book', FulfillmentService::phaseFor($order));
+    }
 }

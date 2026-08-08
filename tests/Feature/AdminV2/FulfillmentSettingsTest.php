@@ -10,6 +10,7 @@ use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\StatusMapper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Http;
 use Tests\Support\FakeCourierFulfillment;
 use Tests\TestCase;
 
@@ -446,6 +447,214 @@ class FulfillmentSettingsTest extends TestCase
             ->assertOk()
             ->assertJson(['ok' => false])
             ->assertJsonPath('message', 'User ID / User Secret not set.');
+    }
+
+    // ------------------------------------------------------------------
+    // Task T4: UAT-mode note card — visible only in UAT mode, names the
+    // whitelist guide's path (the lighter mechanism per the brief — no new
+    // authenticated download route for a repo-only PDF).
+    // ------------------------------------------------------------------
+
+    public function test_spx_uat_note_names_the_whitelist_guide_only_in_uat_mode(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_mode', 'value' => 'uat']);
+
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee('NSS OpenAPI UAT Order Creation Guide.pdf')
+            ->assertSee('UAT mode');
+
+        // A courier that isn't SPX never gets this note.
+        $this->get($this->settingsUrl('/quadx'))
+            ->assertOk()
+            ->assertDontSee('NSS OpenAPI UAT Order Creation Guide.pdf');
+    }
+
+    // ------------------------------------------------------------------
+    // Task T4: "Create shipper account" — only rendered while spx_user_id
+    // is empty, round-trips 3.1 Create Account via Http::fake, stores the
+    // pair encrypted the same way every other SPX secret is stored.
+    // ------------------------------------------------------------------
+
+    public function test_create_shipper_account_button_only_renders_while_user_id_is_empty(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee('Create shipper account')
+            ->assertSee($this->settingsUrl('/spx/create-account'), false);
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_user_id', 'value' => '999999']);
+
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertDontSee('Create shipper account');
+    }
+
+    public function test_create_shipper_account_rejects_without_app_credentials_or_a_pickup_phone(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->post($this->settingsUrl('/spx/create-account'))->assertRedirect();
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'spx_user_id']);
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
+
+        // App credentials present, but no pickup contact number configured yet.
+        $this->post($this->settingsUrl('/spx/create-account'))->assertRedirect();
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'spx_user_id']);
+    }
+
+    public function test_create_shipper_account_round_trips_via_http_fake_and_stores_the_pair_encrypted(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
+        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+
+        Http::fake([
+            '*account/create*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['user_id' => 110592440436149, 'user_secret' => 'd32e4ddc-c979-44a2-bf21-789a80c551d5', 'password' => 'dkjfdkjkdj'],
+            ]),
+        ]);
+
+        $response = $this->post($this->settingsUrl('/spx/create-account'));
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'spx_user_id', 'value' => '110592440436149']);
+
+        $storedSecret = Setting::where('group', 'courier')->where('key', 'spx_user_secret')->value('value');
+        $this->assertNotSame('d32e4ddc-c979-44a2-bf21-789a80c551d5', $storedSecret);
+        $this->assertSame('d32e4ddc-c979-44a2-bf21-789a80c551d5', Crypt::decryptString($storedSecret));
+
+        // The request SPX actually received carried the normalized pickup phone.
+        Http::assertSent(function ($request) {
+            return str_contains((string) $request->url(), 'account/create')
+                && $request['phone'] === '09171112222';
+        });
+
+        // Once a User ID exists, the button disappears from the page.
+        $this->get($this->settingsUrl('/spx'))->assertOk()->assertDontSee('Create shipper account');
+    }
+
+    public function test_create_shipper_account_is_graceful_on_an_spx_error(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
+        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+
+        Http::fake([
+            '*account/create*' => Http::response(['ret_code' => 1009, 'message' => 'Signature expired.', 'data' => []]),
+        ]);
+
+        $response = $this->post($this->settingsUrl('/spx/create-account'));
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'spx_user_id']);
+    }
+
+    /** A courier without createShipperAccount() (e.g. QuadX) gets a clear error, never a 404 or a fatal. */
+    public function test_create_shipper_account_route_is_graceful_for_a_courier_that_does_not_support_it(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $response = $this->post($this->settingsUrl('/quadx/create-account'));
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+    }
+
+    // ------------------------------------------------------------------
+    // Task T4: structured pouch-preset editor — replaces T1's raw-JSON
+    // text field with Alpine rows, serializing to the SAME setting key and
+    // JSON shape (no data-format change, no controller/allowlist change).
+    // ------------------------------------------------------------------
+
+    /**
+     * The editor's seed state is embedded via Illuminate\Support\Js::from(),
+     * which hex-escapes every quote (" -> ") for safe HTML-attribute
+     * embedding — so a literal '"label":"Small"' substring never appears in
+     * the response body. This computes the ACTUAL escaped fragment
+     * Js::from() would produce for a given key/value pair, so assertions
+     * below match the real rendered bytes instead of guessing at them.
+     */
+    private function jsFragment(string $key, mixed $value): string
+    {
+        $encoded = \Illuminate\Support\Js::from([$key => $value])->toHtml();
+        // Js::from() wraps the whole thing as JSON.parse('{...}') — strip
+        // that wrapper and the surrounding braces to get just "key":value.
+        return trim(substr($encoded, strlen("JSON.parse('{"), -strlen("}')")));
+    }
+
+    public function test_pouch_preset_editor_seeds_from_defaults_and_serializes_to_the_hidden_field(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        // Unconfigured: seeded from SpxFulfillment::DEFAULT_POUCH_PRESETS.
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee('name="settings[spx_pouch_presets]"', false)
+            ->assertSee($this->jsFragment('label', 'Small'), false)
+            ->assertSee($this->jsFragment('length_cm', 25), false)
+            ->assertSee($this->jsFragment('label', 'Medium'), false)
+            ->assertSee($this->jsFragment('label', 'Large'), false);
+
+        // A stored custom set seeds the editor from THAT value instead.
+        Setting::create(['group' => 'courier', 'key' => 'spx_pouch_presets', 'value' => json_encode([
+            ['label' => 'Tiny', 'length_cm' => 10, 'width_cm' => 8, 'height_cm' => 5, 'max_weight_kg' => 1],
+        ])]);
+
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee($this->jsFragment('label', 'Tiny'), false)
+            ->assertDontSee($this->jsFragment('label', 'Small'), false);
+    }
+
+    /**
+     * The editor's hidden input posts JSON.stringify(presets) under the
+     * EXACT SAME settings[spx_pouch_presets] name the old raw-JSON text
+     * field used — proving the storage format/allowlist truly didn't
+     * change, by posting the shape the client-side JS would produce and
+     * confirming it round-trips byte-identically to how a hand-typed JSON
+     * string always has.
+     */
+    public function test_pouch_preset_editor_round_trips_through_the_same_setting_key_and_format(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $presets = [
+            ['label' => 'Small', 'length_cm' => 20, 'width_cm' => 15, 'height_cm' => 8, 'max_weight_kg' => 2],
+            ['label' => 'Bulky', 'length_cm' => 60, 'width_cm' => 40, 'height_cm' => 30, 'max_weight_kg' => 15],
+        ];
+
+        $this->post($this->settingsUrl('/spx'), [
+            'settings' => ['spx_pouch_presets' => json_encode($presets)],
+        ])->assertRedirect();
+
+        $stored = Setting::where('group', 'courier')->where('key', 'spx_pouch_presets')->value('value');
+        $this->assertSame(json_encode($presets), $stored);
+
+        // Reflected back into the editor's seed state on the next load.
+        $this->get($this->settingsUrl('/spx'))
+            ->assertOk()
+            ->assertSee($this->jsFragment('label', 'Bulky'), false)
+            ->assertSee($this->jsFragment('length_cm', 60), false);
     }
 
     // ------------------------------------------------------------------

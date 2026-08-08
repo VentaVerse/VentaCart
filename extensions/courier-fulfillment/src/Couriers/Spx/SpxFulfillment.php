@@ -7,6 +7,7 @@ use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\FulfillmentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -777,6 +778,72 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return !empty($data['match_result'])
             ? ['ok' => true, 'message' => 'Connected — SPX reachable and credentials valid.']
             : ['ok' => false, 'message' => 'SPX reachable, but the User ID / User Secret pair did not match.'];
+    }
+
+    /**
+     * Task T4: 3.1 Create Account — self-service creation of the
+     * user_id/user_secret pair every order-related SPX call needs, so an
+     * admin setting up SPX for the first time doesn't have to go dig those
+     * out of an email exchange with SPX staff. Not part of
+     * CourierFulfillmentInterface (no other courier has an equivalent
+     * concept) — the settings page's "Create shipper account" button
+     * (settings-courier.blade.php, only rendered while spx_user_id is
+     * empty) and CourierSettingsController::createShipperAccount() (a
+     * method_exists() dispatch, so a future courier can opt in the same
+     * way) are the only callers.
+     *
+     * phone/email: SPX requires exactly one mandatory phone (PH format) —
+     * this reuses the exact same store pickup-contact number every other
+     * SPX method already treats as ground truth (normalizePhPhone() /
+     * senderInfo()), since there's no dedicated "SPX account contact"
+     * setting and duplicating pickup_contact_number would just be one more
+     * place for the two to drift apart. email is optional per api.md
+     * §3.1; this app's outbound "from" address (config('mail.from.address'))
+     * is the closest existing "the store's own contact email" concept — no
+     * dedicated store-contact-email setting exists either.
+     *
+     * Stores the returned pair using the exact same encrypt-then-upsert
+     * convention CourierSettingsController::persist() uses for every other
+     * SPX credential (user_id plain, user_secret Crypt::encryptString()'d —
+     * matching settingsSchema()'s own 'encrypted' => true declaration for
+     * spx_user_secret) — persist() itself is a private controller method,
+     * so this duplicates its two-line pattern rather than reaching into it.
+     *
+     * @return array{ok:bool, message?:string, error?:string}
+     */
+    public function createShipperAccount(): array
+    {
+        if (!$this->client->isConfigured()) {
+            return ['ok' => false, 'error' => 'Set the App ID / App Secret before creating a shipper account.'];
+        }
+
+        $phone = $this->normalizePhPhone(
+            (string) (Setting::where('group', 'shipping')->where('key', 'pickup_contact_number')->value('value') ?? '')
+        );
+        if ($phone === null) {
+            return ['ok' => false, 'error' => 'Set a valid PH mobile number as the pickup contact number (Settings > Shipping) before creating a shipper account.'];
+        }
+
+        $email = config('mail.from.address');
+
+        try {
+            $data = $this->client->createAccount($phone, is_string($email) && $email !== '' ? $email : null);
+        } catch (SpxApiException $e) {
+            return ['ok' => false, 'error' => "SPX account creation failed: {$e->getMessage()} (ret_code {$e->retCode})"];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => 'SPX account creation failed: ' . $e->getMessage()];
+        }
+
+        $userId = $data['user_id'] ?? null;
+        $userSecret = $data['user_secret'] ?? null;
+        if (!$userId || !$userSecret) {
+            return ['ok' => false, 'error' => 'SPX did not return a user id/secret.'];
+        }
+
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'spx_user_id'], ['value' => (string) $userId]);
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'spx_user_secret'], ['value' => Crypt::encryptString((string) $userSecret)]);
+
+        return ['ok' => true, 'message' => "Shipper account created (User ID {$userId})."];
     }
 
     /** No live status-vocabulary endpoint exists in the docs — stays a graceful no-op (unchanged from T1). */

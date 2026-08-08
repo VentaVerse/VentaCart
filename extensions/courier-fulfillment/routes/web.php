@@ -28,6 +28,14 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // Static segment, same reasoning as 'poll' above.
         Route::get('/returns', [FulfillmentController::class, 'returns'])->name('returns');
         Route::post('/{order}/book', [FulfillmentController::class, 'book'])->name('book');
+        // Task T4: lazy, per-order/per-selection AJAX endpoints the booking
+        // modal's step 2 hits on demand (SPX's estimate button / pickup-slot
+        // fetch on courier choice) — never called during the queue's own
+        // page load. See FulfillmentController::estimate()/pickupSlots()'s
+        // docblocks for why these are lazy rather than baked into
+        // index()'s courierOptions payload.
+        Route::post('/{order}/estimate', [FulfillmentController::class, 'estimate'])->name('estimate');
+        Route::get('/{order}/pickup-slots', [FulfillmentController::class, 'pickupSlots'])->name('pickup-slots');
         Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel');
         Route::get('/{order}/label', [FulfillmentController::class, 'label'])->name('label');
         // Task T3: authenticated, in-app streaming route for a courier
@@ -60,6 +68,11 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::post('/{courier}', [CourierSettingsController::class, 'updateCourier'])->name('settings.courier.update');
         Route::post('/{courier}/test-connection', [CourierSettingsController::class, 'testConnection'])->name('test-connection');
         Route::post('/{courier}/refresh-statuses', [CourierSettingsController::class, 'refreshStatuses'])->name('settings.refresh-statuses');
+        // Task T4: SPX-specific action (3.1 Create Account) — courier-
+        // agnostic dispatch (method_exists check in the controller, see its
+        // docblock), so unknown/non-supporting couriers get a clear error
+        // rather than a 404 or a hardcoded 'spx' literal in the route file.
+        Route::post('/{courier}/create-account', [CourierSettingsController::class, 'createShipperAccount'])->name('settings.create-account');
     });
 
 // Public webhook receiver — per-store token guarded, CSRF-exempt (external POST).

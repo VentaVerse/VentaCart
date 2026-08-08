@@ -76,7 +76,13 @@ class FulfillmentController extends Controller
             ->latest();
 
         if ($filter === 'to_book') {
-            $query->whereNull('courier_tracking_number');
+            // Task T4 fix: excludes a 'creating' order (also tracking-
+            // number-null) — that one belongs to the Booking tab now, not
+            // To Book (see phaseTally()'s matching fix above).
+            $query->whereNull('courier_tracking_number')
+                ->where(function ($q) {
+                    $q->whereNull('courier_status')->orWhere('courier_status', '!=', 'creating');
+                });
         } elseif ($filter !== 'all') {
             // A spine-phase tab: booked orders whose (provider, raw status)
             // combo buckets into this phase — the exact combos found by the
@@ -84,7 +90,14 @@ class FulfillmentController extends Controller
             // ('all' stays supported as a filter value for deep links even
             // though it no longer renders as a tab.)
             $groups = $phaseStatusGroups[$filter] ?? [];
-            $query->whereNotNull('courier_tracking_number');
+            // Task T4 fix: a 'creating' order has no tracking number yet but
+            // must still be reachable from the Booking tab — applyPhaseGroups()
+            // below narrows to the exact (provider, status) combos the tally
+            // found for $filter, so relaxing this to admit 'creating' rows
+            // never leaks one into a phase it doesn't belong to.
+            $query->where(function ($q) {
+                $q->whereNotNull('courier_tracking_number')->orWhere('courier_status', 'creating');
+            });
             $this->applyPhaseGroups($query, $groups);
         }
         // 'all' — no extra constraint.
@@ -95,6 +108,21 @@ class FulfillmentController extends Controller
         // 'mode' feeds step 1's mode chip (shown only when not production);
         // 'fee_estimate' is the per-courier estimate slot — always null until a
         // courier that can quote (SPX, Task T4) populates it at modal-open time.
+        // Task T4 decision (deviates from the brief's stated PREFERENCE for
+        // server-side rendering — documented here, not silently): pickup
+        // slots are courier-level, not order-level, for every courier so
+        // far (SPX's own getPickupSlots() — api.md §1.1 get_pickup_time —
+        // ignores the Order argument entirely), so calling it once per
+        // ENABLED courier here would be cheap in volume. But SpxClient::post()
+        // has a 40s HTTP timeout, and this loop runs on EVERY queue page
+        // load — if SPX is unreachable, every admin visiting the queue
+        // (whether or not they ever open the booking modal) would stall on
+        // that timeout. That's a strictly worse failure mode than the
+        // "hammer SPX on page load" volume concern the brief raises for the
+        // fee estimate, so pickup slots get the SAME lazy treatment: fetched
+        // via AJAX only when SPX is actually chosen in step 2 (see the new
+        // pickup-slots route + chooseCourier()'s JS below), never during
+        // this page's own render.
         $courierOptions = [];
         foreach ($couriers as $c) {
             $courierOptions[$c->getKey()] = [
@@ -225,12 +253,18 @@ class FulfillmentController extends Controller
         $handoverByCourier = [];      // courier display name => waiting-parcel count (the ERP's co-couriers tally)
         $phaseStatusGroups = [];      // phase => provider key => raw statuses present in the DB right now
         foreach ($combos as $row) {
-            $phase = $row->unbooked
-                ? 'to_book'
-                : FulfillmentService::phaseForParts($row->courier_provider, $row->courier_status);
+            // Task T4 fix: a 'creating' order is 'unbooked' by this query's
+            // own definition (courier_tracking_number IS NULL) but IS
+            // mid-booking with an async courier (SPX) — same fix as
+            // FulfillmentService::phaseFor(), applied here so the segment
+            // bar's tally never disagrees with the per-row badge.
+            $treatAsBooked = !$row->unbooked || $row->courier_status === 'creating';
+            $phase = $treatAsBooked
+                ? FulfillmentService::phaseForParts($row->courier_provider, $row->courier_status)
+                : 'to_book';
             $phaseCounts[$phase] = ($phaseCounts[$phase] ?? 0) + (int) $row->n;
 
-            if (!$row->unbooked) {
+            if ($treatAsBooked) {
                 $phaseStatusGroups[$phase][(string) $row->courier_provider][] = $row->courier_status;
                 if ($phase === 'to_handover') {
                     $name = CourierManager::get((string) $row->courier_provider)?->getName()
@@ -289,6 +323,20 @@ class FulfillmentController extends Controller
             'parcel'           => 'required|string',
             'shipping_payment' => 'required|string',
             'insure'           => 'sometimes|boolean',
+            // Task T4: SPX's step-2 escape hatches — the base QuadX field
+            // set above is completely unchanged (still the only fields it
+            // submits), these are purely additive/optional so an SPX
+            // booking can pass its custom-dims parcel + chosen pickup slot
+            // through to SpxFulfillment::createShipment()'s existing
+            // $opts['length_cm'|'width_cm'|'height_cm'|'weight_kg'|
+            // 'pickup_slot'] reads (see resolveParcelDims()/
+            // fulfillmentInfo() — both already handled these keys since
+            // T2, they just never had a way to arrive from this form).
+            'length_cm'        => 'sometimes|numeric|min:0.01',
+            'width_cm'         => 'sometimes|numeric|min:0.01',
+            'height_cm'        => 'sometimes|numeric|min:0.01',
+            'weight_kg'        => 'sometimes|numeric|min:0.01',
+            'pickup_slot'      => 'sometimes|string',
         ]);
 
         if (FulfillmentService::isActivelyBooked($order)) {
@@ -303,6 +351,70 @@ class FulfillmentController extends Controller
         }
 
         return back()->with('success', "Booked — tracking {$res['tracking_number']}.");
+    }
+
+    /**
+     * Task T4: the LAZY per-order fee estimate — a small "Get estimate"
+     * button in the booking modal's step 2 (SPX section), never called on
+     * page load. Reuses the exact same option set book() accepts (plus the
+     * chosen courier) so estimateFee() sees exactly what createShipment()
+     * would if the admin clicked Book right now. Courier-agnostic on
+     * purpose (any courier whose estimateFee() returns non-null works
+     * here, not just SPX) — CourierFulfillmentInterface::estimateFee()
+     * already exists (W2's interface evolution #4); this is simply its
+     * first real caller. JSON-only: this is an AJAX endpoint, never a page.
+     */
+    public function estimate(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'courier'          => 'required|string',
+            'service'          => 'sometimes|string',
+            'parcel'           => 'sometimes|string',
+            'shipping_payment' => 'sometimes|string',
+            'insure'           => 'sometimes|boolean',
+            'length_cm'        => 'sometimes|numeric|min:0.01',
+            'width_cm'         => 'sometimes|numeric|min:0.01',
+            'height_cm'        => 'sometimes|numeric|min:0.01',
+            'weight_kg'        => 'sometimes|numeric|min:0.01',
+            'pickup_slot'      => 'sometimes|string',
+        ]);
+
+        $courier = CourierManager::get((string) $data['courier']);
+        if (!$courier || !$courier->isEnabled()) {
+            return response()->json(['ok' => false, 'message' => 'Selected courier is not available.']);
+        }
+
+        $opts = collect($data)->except('courier')->all();
+        $opts['insure'] = $request->boolean('insure');
+
+        $estimate = $courier->estimateFee($order, $opts);
+        if (!$estimate) {
+            return response()->json(['ok' => false, 'message' => 'An estimate is not available yet — check the pickup address and this order\'s shipping address are complete.']);
+        }
+
+        return response()->json([
+            'ok'       => true,
+            'amount'   => $estimate->amount,
+            'currency' => $estimate->currency,
+            'label'    => $estimate->label ?? ($estimate->currency . ' ' . number_format($estimate->amount, 2)),
+        ]);
+    }
+
+    /**
+     * Task T4: pickup slots, fetched lazily (see index()'s courierOptions
+     * comment for why this ISN'T rendered eagerly into that payload) —
+     * called once when the admin actually picks a courier with slots to
+     * offer (SPX) in the booking modal's step 2. Courier-agnostic: any
+     * registered courier's getPickupSlots() works here.
+     */
+    public function pickupSlots(Request $request, Order $order)
+    {
+        $courier = CourierManager::get((string) $request->query('courier', ''));
+        if (!$courier || !$courier->isEnabled()) {
+            return response()->json(['ok' => false, 'slots' => []]);
+        }
+
+        return response()->json(['ok' => true, 'slots' => $courier->getPickupSlots($order)]);
     }
 
     public function cancel(Order $order)

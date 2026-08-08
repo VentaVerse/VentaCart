@@ -55,7 +55,18 @@ class FulfillmentService
      */
     public static function phaseFor(Order $order): string
     {
-        if (!$order->courier_tracking_number) {
+        // Task T4 fix: a courier whose createShipment() is genuinely async
+        // (SPX) can be mid-flight with courier_status='creating' and NO
+        // tracking number yet (see CourierFulfillmentInterface::
+        // resolvePendingCreation()'s docblock). That state was falling into
+        // the "never booked" bucket below purely because the tracking
+        // number hasn't landed yet, hiding it from the queue's Booking tab
+        // entirely (T2's report flagged this short-circuit explicitly).
+        // 'creating' must resolve through the courier's own statusPhase()
+        // (which maps it to phase 'booking') same as any other booked
+        // status — every other tracking-number-less order (including one
+        // that was never booked at all) is still 'to_book' as before.
+        if (!$order->courier_tracking_number && (string) $order->courier_status !== 'creating') {
             return 'to_book';
         }
 

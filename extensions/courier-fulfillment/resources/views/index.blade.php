@@ -25,6 +25,17 @@
         // live call. Memoized per provider since a page of orders can span couriers.
         $statusLabelsByProvider = [];
         $humanizeStatus = function (string $status, ?string $provider) use (&$statusLabelsByProvider) {
+            // Task T4: the internal bridging status an async courier
+            // (SPX) sets while a booking is still mid-flight (see
+            // FulfillmentService::phaseFor()'s docblock) — never part of
+            // any courier's own {provider}_status_labels cache, so it
+            // gets its own honest, courier-agnostic label here rather than
+            // falling through to a generic ucwords() of the raw string
+            // (which would've said "Creating" anyway, but naming it
+            // explicitly keeps this the one place that decides how it reads).
+            if ($status === 'creating') {
+                return 'Creating…';
+            }
             if ($provider === null) {
                 return ucwords(str_replace('_', ' ', $status));
             }
@@ -150,7 +161,16 @@
                             // courier, never $primary — a mixed-courier queue must not apply one
                             // courier's cancel rules/stepper to another courier's order. An
                             // unregistered provider degrades to the neutral phase and non-cancelable.
-                            $phase = $order->courier_tracking_number
+                            //
+                            // Task T4: a 'creating' order (async courier, no
+                            // tracking number yet — see FulfillmentService::
+                            // phaseFor()'s docblock) must resolve through the
+                            // courier's own statusPhase() same as any booked
+                            // order, not fall into the default zero-step
+                            // stepper just because the tracking number hasn't
+                            // landed yet.
+                            $creating = (string) $order->courier_status === 'creating';
+                            $phase = ($order->courier_tracking_number || $creating)
                                 ? ($orderCourier?->statusPhase($order->courier_status) ?? ['step' => 0, 'failed' => false])
                                 : ['step' => 0, 'failed' => false];
 
@@ -171,6 +191,18 @@
                             }
 
                             $estimatedDelivery = $meta['booked_response']['estimated_delivery_date'] ?? null;
+                            // Task T4: fee display — two DISTINCT figures,
+                            // never conflated. estimatedFee comes from T2's
+                            // create-response (courier_meta.estimated_shipping_fee,
+                            // written once at booking time); actualFee comes
+                            // from T2's fix-round persistence of 2.2's
+                            // batch_get_asf (courier_meta.actual_fee.actual_shipping_fee,
+                            // refreshed on every courier:poll-status cycle).
+                            // Both are courier-agnostic reads — only SPX
+                            // writes either key today, so this renders
+                            // nothing for any other courier.
+                            $estimatedFeeRaw = $meta['estimated_shipping_fee'] ?? null;
+                            $actualFeeRaw = $meta['actual_fee']['actual_shipping_fee'] ?? null;
                             // Canceled bookings are not terminal — a tracking number is still
                             // present but the order is rebookable (see FulfillmentService).
                             $activelyBooked = \Extensions\CourierFulfillment\FulfillmentService::isActivelyBooked($order);
@@ -218,6 +250,9 @@
                                 'courierStatus' => $order->courier_status,
                                 'trackingUrl' => $trackingUrl,
                                 'estimatedDelivery' => $estimatedDelivery,
+                                'creating' => $creating,
+                                'estimatedFee' => is_numeric($estimatedFeeRaw) ? ('₱' . number_format((float) $estimatedFeeRaw, 2)) : null,
+                                'actualFee' => is_numeric($actualFeeRaw) ? ('₱' . number_format((float) $actualFeeRaw, 2)) : null,
                                 'phaseStep' => $phase['step'],
                                 'phaseFailed' => $phase['failed'],
                                 'phase' => $spinePhase,
@@ -314,7 +349,16 @@
                                     </td>
                                     <td class="cf-col-act" rowspan="{{ $lineCount }}">
                                         <div class="co-actions">
-                                            @if (!$activelyBooked && !empty($couriers))
+                                            @if ($creating)
+                                                {{-- Task T4: honest "Creating…" state — a second Book
+                                                     click here would hit FulfillmentService::book()'s
+                                                     async-in-progress guard anyway, but showing an
+                                                     enabled Book/Rebook button on an order that's
+                                                     already mid-booking is misleading. Still opens the
+                                                     drawer (same JSON payload every other row action
+                                                     uses) so the operator can see what's happening. --}}
+                                                <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</x-admin.button>
+                                            @elseif (!$activelyBooked && !empty($couriers))
                                                 {{-- Component-tag attributes only compile {{ }} echoes, not
                                                      @-directives — @js() here would render as literal text.
                                                      Js::from() is what @js() expands to; the {{ }} form is the
@@ -467,8 +511,22 @@
 
                         {{-- Tracking body / booking hand-off --}}
                         <div class="px-5 py-4 flex-1 overflow-y-auto">
+                            {{-- Task T4: honest "Creating…" state — an async
+                                 courier's booking is mid-flight (no tracking
+                                 number yet, courier_status='creating'). Never
+                                 shows a "Book shipment" button here (that
+                                 would just get rejected by
+                                 FulfillmentService::book()'s async-in-progress
+                                 guard) — this is a status message, not an
+                                 action. --}}
+                            <template x-if="active.creating">
+                                <div class="rounded-v-md bg-v-sunken border border-v-border px-4 py-3 text-sm text-v-text">
+                                    <span class="font-medium">Creating shipment with <span x-text="active.provider"></span>&hellip;</span>
+                                    <p class="mt-1 text-xs text-v-muted">This usually takes a few seconds. Use "Poll courier statuses" or refresh the page shortly to see the tracking number.</p>
+                                </div>
+                            </template>
                             @if (!empty($couriers))
-                                <template x-if="!active.activelyBooked">
+                                <template x-if="!active.activelyBooked && !active.creating">
                                     <div class="space-y-3">
                                         <template x-if="active.rebookable">
                                             <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 text-xs text-v-muted">
@@ -511,6 +569,22 @@
                                             <div class="flex justify-between text-sm">
                                                 <span class="text-v-muted">Est. delivery</span>
                                                 <span class="font-medium text-v-text" x-text="active.estimatedDelivery"></span>
+                                            </div>
+                                        </template>
+                                        {{-- Task T4: two DISTINCTLY labeled figures, shown only
+                                             when present — an ESTIMATED fee (quoted at booking time)
+                                             is never confused with the ACTUAL fee (SPX's post-booking
+                                             batch_get_asf, refreshed on every poll). --}}
+                                        <template x-if="active.estimatedFee">
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-v-muted">Estimated shipping fee</span>
+                                                <span class="font-medium text-v-text" x-text="active.estimatedFee"></span>
+                                            </div>
+                                        </template>
+                                        <template x-if="active.actualFee">
+                                            <div class="flex justify-between text-sm">
+                                                <span class="text-v-muted">Actual shipping fee</span>
+                                                <span class="font-medium text-v-text" x-text="active.actualFee"></span>
                                             </div>
                                         </template>
                                         <template x-if="active.trackingUrl">
@@ -586,7 +660,15 @@
                                      service, parcel, insure, shipping_payment — posting to the
                                      same route, so the request the server receives is unchanged. --}}
                                 <div x-show="step === 2">
-                                    <form :action="bookAction" method="POST" data-v-form class="space-y-4">
+                                    {{-- Task T4: x-ref (for the estimate button's FormData read)
+                                         and x-model="parcel" (so the SPX-only section below can
+                                         react to the custom-dims sentinel) are the ONLY two
+                                         additions to this form's own markup — both inert for
+                                         submission (the browser still posts by name= regardless of
+                                         x-model/x-ref), so QuadX's POST body is unchanged. Every
+                                         field name, value vocabulary, and the action URL stay
+                                         byte-identical to the pre-T4 form. --}}
+                                    <form :action="bookAction" method="POST" data-v-form class="space-y-4" x-ref="bookForm">
                                         @csrf
                                         <input type="hidden" name="courier" :value="courier">
                                         <p class="text-[13px] text-v-secondary">Shipping with <span class="font-semibold text-v-text" x-text="current.name"></span></p>
@@ -602,7 +684,7 @@
                                                 </x-admin.select>
                                             </x-admin.field>
                                             <x-admin.field name="parcel" label="Parcel">
-                                                <x-admin.select name="parcel">
+                                                <x-admin.select name="parcel" x-model="parcel">
                                                     <template x-for="o in current.parcels" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                                 </x-admin.select>
                                             </x-admin.field>
@@ -620,6 +702,65 @@
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                             </x-admin.select>
                                         </x-admin.field>
+
+                                        {{-- Task T4: SPX-only step-2 additions — rendered at all
+                                             only when SPX is actually an enabled courier (never
+                                             dead markup for a store that's never touched SPX). Uses
+                                             x-if (a real template, not x-show/CSS display:none) —
+                                             load-bearing, not cosmetic: an x-show'd block STAYS in
+                                             the DOM and its inputs STILL POST even while hidden,
+                                             which would (a) corrupt QuadX's POST body with spurious
+                                             pickup_slot/length_cm etc. fields the moment SPX is ALSO
+                                             enabled, and (b) 422 every non-custom SPX booking (the
+                                             hidden, empty length_cm/width_cm/height_cm/weight_kg
+                                             inputs would still submit '' against a `numeric` rule).
+                                             x-if removes the fields from the DOM (and therefore the
+                                             form) entirely whenever this courier isn't the chosen
+                                             one — the ONLY safe way to make fields conditional on a
+                                             shared <form>. --}}
+                                        @if (isset($courierOptions['spx']))
+                                        <template x-if="courier === 'spx'">
+                                        <div class="space-y-4">
+                                            <template x-if="parcel === 'custom'">
+                                                <div class="grid grid-cols-2 gap-3">
+                                                    <x-admin.field name="length_cm" label="Length (cm)">
+                                                        <x-admin.input name="length_cm" type="number" step="0.1" min="0.1" />
+                                                    </x-admin.field>
+                                                    <x-admin.field name="width_cm" label="Width (cm)">
+                                                        <x-admin.input name="width_cm" type="number" step="0.1" min="0.1" />
+                                                    </x-admin.field>
+                                                    <x-admin.field name="height_cm" label="Height (cm)">
+                                                        <x-admin.input name="height_cm" type="number" step="0.1" min="0.1" />
+                                                    </x-admin.field>
+                                                    <x-admin.field name="weight_kg" label="Weight (kg)">
+                                                        <x-admin.input name="weight_kg" type="number" step="0.01" min="0.01" />
+                                                    </x-admin.field>
+                                                </div>
+                                            </template>
+
+                                            <x-admin.field name="pickup_slot" label="Pickup slot (optional)" help="Leave as drop-off if you'll bring this parcel to SPX yourself.">
+                                                <x-admin.select name="pickup_slot">
+                                                    <option value="">Drop off myself</option>
+                                                    <template x-for="o in spxPickupSlots" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
+                                                </x-admin.select>
+                                            </x-admin.field>
+                                            <p x-show="spxPickupSlotsLoading" x-cloak class="text-xs text-v-muted">Loading pickup slots&hellip;</p>
+
+                                            <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 flex items-center justify-between gap-3">
+                                                <div>
+                                                    <div class="text-xs font-medium text-v-muted">Estimated shipping fee</div>
+                                                    <div class="text-sm font-semibold text-v-text" x-show="spxEstimate" x-text="spxEstimate ? spxEstimate.label : ''"></div>
+                                                    <div class="text-xs text-v-danger" x-show="spxEstimateError" x-text="spxEstimateError"></div>
+                                                    <div class="text-xs text-v-muted" x-show="!spxEstimate && !spxEstimateError">Not checked yet.</div>
+                                                </div>
+                                                <x-admin.button type="button" size="sm" variant="secondary" @click="getSpxEstimate()" x-bind:disabled="spxEstimateLoading">
+                                                    <span x-show="!spxEstimateLoading">Get estimate</span><span x-show="spxEstimateLoading" x-cloak>Checking&hellip;</span>
+                                                </x-admin.button>
+                                            </div>
+                                        </div>
+                                        </template>
+                                        @endif
+
                                         <div class="flex gap-2 pt-1">
                                             <x-admin.button type="button" variant="ghost" @click="backToCouriers()">Back</x-admin.button>
                                             <x-admin.button type="submit" variant="primary" class="flex-1" x-bind:disabled="!courier">Book shipment</x-admin.button>
@@ -643,6 +784,16 @@
                 step: 1,
                 active: null,
                 courier: '',
+                parcel: '',
+                // Task T4: SPX-only step-2 state. Fetched LAZILY (never on
+                // page load — see FulfillmentController::index()'s
+                // courierOptions comment for why) so a queue page visit
+                // never costs an outbound SPX call.
+                spxPickupSlots: [],
+                spxPickupSlotsLoading: false,
+                spxEstimate: null,
+                spxEstimateError: null,
+                spxEstimateLoading: false,
                 options: @js($courierOptions),
                 // Same tone -> class map x-admin.badge renders server-side,
                 // for the drawer's Alpine-driven terminal phase badge.
@@ -658,6 +809,8 @@
                 get bookAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/book'; },
                 get trackAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/track'; },
                 get labelUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/label'; },
+                get estimateAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/estimate'; },
+                get pickupSlotsUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/pickup-slots'; },
                 openDrawer(order) {
                     this.active = order;
                     this.drawerOpen = true;
@@ -672,10 +825,19 @@
                     this.courier = '';
                     this.step = 1;
                     this.bookOpen = true;
+                    this.resetSpxState();
                 },
                 chooseCourier(key) {
                     this.courier = key;
                     this.step = 2;
+                    this.parcel = '';
+                    this.resetSpxState();
+                    // Task T4: pickup slots are fetched HERE — the moment the
+                    // admin actually picks SPX — never during the queue's
+                    // own page load (see index()'s courierOptions comment).
+                    if (key === 'spx') {
+                        this.loadSpxPickupSlots();
+                    }
                 },
                 backToCouriers() {
                     this.step = 1;
@@ -683,6 +845,47 @@
                 closeBooking() {
                     this.bookOpen = false;
                     this.step = 1;
+                },
+                resetSpxState() {
+                    this.spxPickupSlots = [];
+                    this.spxPickupSlotsLoading = false;
+                    this.spxEstimate = null;
+                    this.spxEstimateError = null;
+                    this.spxEstimateLoading = false;
+                },
+                loadSpxPickupSlots() {
+                    if (!this.active) return;
+                    this.spxPickupSlotsLoading = true;
+                    fetch(this.pickupSlotsUrl + '?courier=spx', { headers: { 'Accept': 'application/json' } })
+                        .then(r => r.json())
+                        .then(d => { this.spxPickupSlots = (d && d.slots) ? d.slots : []; })
+                        .catch(() => { this.spxPickupSlots = []; })
+                        .finally(() => { this.spxPickupSlotsLoading = false; });
+                },
+                // Task T4: lazy fee estimate — reads the form's OWN current
+                // values (via x-ref="bookForm") so the estimate always
+                // reflects whatever parcel/payment/insure choice is
+                // currently selected, without duplicating that state here.
+                getSpxEstimate() {
+                    if (!this.active || !this.$refs.bookForm) return;
+                    this.spxEstimateLoading = true;
+                    this.spxEstimateError = null;
+                    this.spxEstimate = null;
+                    fetch(this.estimateAction, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        body: new FormData(this.$refs.bookForm),
+                    })
+                        .then(r => r.json())
+                        .then(d => {
+                            if (d && d.ok) {
+                                this.spxEstimate = d;
+                            } else {
+                                this.spxEstimateError = (d && d.message) ? d.message : 'Estimate unavailable.';
+                            }
+                        })
+                        .catch(() => { this.spxEstimateError = 'Estimate request failed.'; })
+                        .finally(() => { this.spxEstimateLoading = false; });
                 },
             };
         }

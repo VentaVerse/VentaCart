@@ -72,6 +72,24 @@ class SpxClient
     // --- Endpoints ------------------------------------------------------
 
     /**
+     * Task T4: 3.1 Create Account (account/create) — issues the user_id/
+     * user_secret pair every order-related SPX call needs, so a fresh
+     * install doesn't have to go dig those out of an email. Deliberately
+     * takes no user_id/user_secret (that pair is what THIS call produces,
+     * not what it authenticates with) — only app-id/app-secret via post()'s
+     * usual signing. $email is optional per api.md §3.1.
+     */
+    public function createAccount(string $phone, ?string $email = null): array
+    {
+        $body = ['phone' => $phone];
+        if ($email !== null && $email !== '') {
+            $body['email'] = $email;
+        }
+
+        return $this->post('/open/api/v1/account/create', $body);
+    }
+
+    /**
      * 3.2 Check Account Credentials — the cheapest authenticated call in the
      * API surface (no order side-effects), used as SPX's "test connection".
      */

@@ -22,7 +22,48 @@
                 @if ($modeFieldKey) x-data="{ mode: '{{ $initialMode }}' }" @endif>
                 @csrf
 
+                {{-- Task T4: SPX-specific page sections. Per W3's own note
+                     ("T4's SPX-specific page sections... will extend
+                     settings-courier.blade.php via per-courier action
+                     slots"), the lighter mechanism was chosen over a
+                     schema-declared slot type: a plain key check, since
+                     exactly one courier needs either of these today and a
+                     new abstraction for a single caller would be
+                     speculative. --}}
+                @if ($courier->getKey() === 'spx')
+                    {{-- UAT-mode note: SPX's UAT environment only accepts
+                         orders addressed to the recipients whitelisted in
+                         the harvested onboarding guide. That PDF lives in
+                         this repo's docs (not a public/servable path), so
+                         this links nowhere — it names the file so whoever
+                         is configuring UAT knows exactly where to look. --}}
+                    <div x-show="mode === 'uat'" x-cloak class="rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-[13px] text-v-warning">
+                        <p class="font-semibold">UAT mode — whitelisted test orders only</p>
+                        <p class="mt-1">SPX's UAT environment only accepts bookings for the recipient details listed in <code class="font-mono">docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf</code> in this codebase's repo — a real customer address will fail with an unrelated-looking SPX error. Switch to Production mode once SPX has approved this integration.</p>
+                    </div>
+
+                    {{-- Create shipper account: only meaningful before a
+                         User ID exists — once one is on file, this
+                         disappears and the User ID / User Secret fields
+                         below are the way to change it. --}}
+                    @if (empty($settings['spx_user_id']))
+                        <div class="rounded-v-md border border-v-border bg-v-sunken px-4 py-3">
+                            <p class="text-[13px] font-medium text-v-text">No SPX shipper account yet</p>
+                            <p class="text-xs text-v-muted mt-0.5 mb-2">Creates a User ID / User Secret via SPX's Create Account API using this store's pickup contact number, and saves both here automatically.</p>
+                            <form method="POST" action="{{ route('admin.fulfillment.settings.create-account', $courier->getKey()) }}" data-v-form>
+                                @csrf
+                                <x-admin.button type="submit" variant="secondary" size="sm">Create shipper account</x-admin.button>
+                            </form>
+                        </div>
+                    @endif
+                @endif
+
                 @foreach ($topFields as $field)
+                    {{-- Task T4: spx_pouch_presets gets a structured editor
+                         (below) instead of the generic raw-JSON text field —
+                         same setting key, same stored JSON format, so
+                         courierAllowedKeys()/persist() need no change. --}}
+                    @continue($field['key'] === 'spx_pouch_presets')
                     @include('courier-fulfillment::partials.schema-field', [
                         'field' => $field,
                         'value' => $settings[$field['key']] ?? null,
@@ -30,6 +71,67 @@
                         'isModeField' => $field['key'] === $modeFieldKey,
                     ])
                 @endforeach
+
+                @if ($courier->getKey() === 'spx')
+                    @php
+                        $pouchField = collect($topFields)->firstWhere('key', 'spx_pouch_presets');
+                        $pouchRaw = $settings['spx_pouch_presets'] ?? null;
+                        $pouchDecoded = $pouchRaw ? json_decode($pouchRaw, true) : null;
+                        $pouchPresets = (is_array($pouchDecoded) && $pouchDecoded !== [])
+                            ? array_values($pouchDecoded)
+                            : \Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment::DEFAULT_POUCH_PRESETS;
+                    @endphp
+                    {{-- Task T4: structured pouch-preset editor (replaces
+                         T1's raw-JSON text field). Rows live in local Alpine
+                         state, seeded from the stored value; the ONLY thing
+                         that reaches the server is the hidden input below,
+                         JSON-serialized client-side into the SAME
+                         settings[spx_pouch_presets] field name/format the
+                         old text field posted — no controller/allowlist
+                         change needed, no data-shape change. --}}
+                    <div x-data="{ presets: {{ \Illuminate\Support\Js::from($pouchPresets) }} }">
+                        <x-admin.field name="pouch_presets_editor" label="Pouch presets" :help="$pouchField['help'] ?? null">
+                            <div class="space-y-2">
+                                <template x-for="(p, idx) in presets" :key="idx">
+                                    <div class="grid grid-cols-12 gap-2 items-end">
+                                        <div class="col-span-4">
+                                            <label class="block text-[11px] text-v-muted mb-0.5">Label</label>
+                                            <input type="text" x-model="p.label" placeholder="e.g. Medium"
+                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        </div>
+                                        <div class="col-span-2">
+                                            <label class="block text-[11px] text-v-muted mb-0.5">Length (cm)</label>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.length_cm"
+                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        </div>
+                                        <div class="col-span-2">
+                                            <label class="block text-[11px] text-v-muted mb-0.5">Width (cm)</label>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.width_cm"
+                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        </div>
+                                        <div class="col-span-2">
+                                            <label class="block text-[11px] text-v-muted mb-0.5">Height (cm)</label>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.height_cm"
+                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        </div>
+                                        <div class="col-span-1">
+                                            <label class="block text-[11px] text-v-muted mb-0.5">Max kg</label>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.max_weight_kg"
+                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        </div>
+                                        <div class="col-span-1">
+                                            <button type="button" class="w-full h-[var(--control-h-sm)] text-v-danger hover:bg-v-hover rounded-v-md text-sm"
+                                                @click="presets.splice(idx, 1)" :disabled="presets.length <= 1" title="Remove preset">&times;</button>
+                                        </div>
+                                    </div>
+                                </template>
+                                <x-admin.button type="button" variant="secondary" size="sm"
+                                    @click="presets.push({label:'', length_cm:null, width_cm:null, height_cm:null, max_weight_kg:null})">+ Add preset</x-admin.button>
+                            </div>
+                        </x-admin.field>
+                        <input type="hidden" name="settings[spx_pouch_presets]" :value="JSON.stringify(presets)">
+                    </div>
+                @endif
 
                 @foreach ($modeGroups as $modeValue => $fields)
                     <div x-show="mode === '{{ $modeValue }}'" x-cloak class="space-y-4 border-l-2 border-v-border pl-4">

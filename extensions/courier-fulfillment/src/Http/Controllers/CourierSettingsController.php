@@ -438,6 +438,34 @@ class CourierSettingsController extends Controller
     }
 
     /**
+     * Task T4: "Create shipper account" — dispatches to a courier's own
+     * createShipperAccount() (SPX's 3.1 Create Account) IF it has one.
+     * Not part of CourierFulfillmentInterface (no other courier has an
+     * equivalent concept — see SpxFulfillment::createShipperAccount()'s
+     * docblock for why it lives there instead), so this is a
+     * method_exists() dispatch rather than an interface call: a future
+     * courier can opt into the same button/route by adding the same method,
+     * without any change here. Unknown courier key -> 404, same as every
+     * other per-courier route in this controller.
+     */
+    public function createShipperAccount(string $courier)
+    {
+        $c = CourierManager::get($courier);
+        abort_if(!$c, 404);
+
+        if (!method_exists($c, 'createShipperAccount')) {
+            return back()->with('error', $c->getName() . ' does not support creating a shipper account.');
+        }
+
+        $result = $c->createShipperAccount();
+        if (!($result['ok'] ?? false)) {
+            return back()->with('error', $result['error'] ?? 'Account creation failed.');
+        }
+
+        return back()->with('success', $result['message'] ?? ($c->getName() . ' shipper account created.'));
+    }
+
+    /**
      * Verify the given courier's saved credentials by delegating to its own
      * CourierFulfillmentInterface::testConnection() — this controller never
      * talks to a courier's client directly.
