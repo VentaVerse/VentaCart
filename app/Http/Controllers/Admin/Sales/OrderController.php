@@ -10,6 +10,7 @@ use App\Models\OrderStatus;
 use App\Models\Product;
 use App\Models\ShippingCourier;
 use Illuminate\Http\Request;
+use App\Services\OrderStatusChanger;
 use App\Services\StockService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -345,13 +346,18 @@ class OrderController extends Controller
         }
 
         $validated['comment'] = $comment ?: null;
-        $order->histories()->create($validated);
-        $order->update(['order_status_id' => $validated['order_status_id']]);
 
-        $newStatus = OrderStatus::find($validated['order_status_id']);
-        if ($newStatus) {
-            StockService::adjustForStatusChange($order, $newStatus);
-        }
+        // Shared status-change core (history row + status update + stock
+        // adjustment) — the same mechanics the fulfillment queue's Cancel
+        // order action applies (App\Services\OrderStatusChanger). The
+        // notification email below stays at THIS layer.
+        $newStatus = OrderStatusChanger::apply(
+            $order,
+            (int) $validated['order_status_id'],
+            $validated['comment'],
+            (bool) $validated['notify_customer'],
+            $validated['created_by'],
+        );
 
         // Send email notification if requested
         if ($validated['notify_customer'] && $order->email) {

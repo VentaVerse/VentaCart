@@ -21,6 +21,11 @@
                 <x-admin.field name="settings[cancel_order_status_id]" label="Cancel order status"
                     help="The order status a Cancel order action in the fulfillment queue applies. History and stock behave exactly as if the status were changed from the order page (customer is not notified).">
                     <x-admin.select name="settings[cancel_order_status_id]">
+                        {{-- Fix-round minor: an unset value keeps this
+                             placeholder selected so saving the hub never
+                             silently persists a status the admin did not
+                             choose. --}}
+                        <option value="" @selected($cancelOrderStatusId === null)>Use default (Canceled)</option>
                         @foreach ($orderStatuses as $id => $name)
                             <option value="{{ $id }}" @selected((string) $id === (string) $cancelOrderStatusId)>{{ $name }}</option>
                         @endforeach

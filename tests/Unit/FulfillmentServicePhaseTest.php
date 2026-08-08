@@ -142,14 +142,17 @@ class FulfillmentServicePhaseTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // fulfillment-tabs-v3 Task 2: FulfillmentService::tabBucket() — the
-    // STAGE-FIRST tab/tally membership function. Unlike phaseFor() above
-    // (which stays a pure courier-phase derivation, used for row badges),
-    // tabBucket() layers the order's own OrderStatus::$fulfillment_stage on
-    // top: 'unpaid'/'cancelled' stages claim the order's bucket regardless
-    // of courier state; only a 'ready'-stage order buckets by its courier
-    // phase, with 'booking' (async create in flight) collapsing into
-    // 'to_handover' for membership purposes only.
+    // fulfillment-tabs-v3 Task 2 (amended by the Task 4 owner ruling):
+    // FulfillmentService::tabBucket() — the STAGE-FIRST tab/tally
+    // membership function. Unlike phaseFor() above (which stays a pure
+    // courier-phase derivation, used for row badges), tabBucket() layers
+    // the order's own OrderStatus::$fulfillment_stage on top: 'cancelled'
+    // stage claims the order's bucket absolutely; 'unpaid' stage claims it
+    // only while the order has NO active booking (an actively-booked order
+    // follows its courier phase — the booking puts it in the shipping
+    // pipeline); a 'ready'-stage order buckets by its courier phase, with
+    // 'booking' (async create in flight) collapsing into 'to_handover' for
+    // membership purposes only.
     //
     // $order->setRelation('status', ...) stands in for a real OrderStatus
     // row without touching the DB — same "no real Order row" pattern this
@@ -164,17 +167,34 @@ class FulfillmentServicePhaseTest extends TestCase
         return $order;
     }
 
-    public function test_unpaid_stage_claims_the_bucket_even_with_an_active_booking(): void
+    public function test_unpaid_stage_claims_the_bucket_only_while_there_is_no_active_booking(): void
     {
-        // Spec, verbatim: "unpaid and cancelled stages claim the order
-        // regardless of courier state" — an ACTIVE in-transit booking must
-        // NOT pull this order out of Unpaid.
-        $order = $this->orderWithStage('unpaid', [
+        // Owner ruling (spec amendment 59bd751): an ACTIVE in-transit
+        // booking pulls the order OUT of Unpaid — the booking puts it in
+        // the shipping pipeline, whatever its payment status.
+        $booked = $this->orderWithStage('unpaid', [
             'courier_tracking_number' => 'QX-ACTIVE-1',
             'courier_provider' => 'quadx',
             'courier_status' => 'in_transit',
         ]);
-        $this->assertSame('unpaid', FulfillmentService::tabBucket($order));
+        $this->assertSame('in_transit', FulfillmentService::tabBucket($booked));
+
+        // With no booking at all, unpaid claims the order.
+        $unbooked = $this->orderWithStage('unpaid', [
+            'courier_tracking_number' => null,
+            'courier_provider' => null,
+            'courier_status' => null,
+        ]);
+        $this->assertSame('unpaid', FulfillmentService::tabBucket($unbooked));
+
+        // A booking that is no longer live (courier-cancelled) is not an
+        // active booking — unpaid claims the order again.
+        $cancelledBooking = $this->orderWithStage('unpaid', [
+            'courier_tracking_number' => 'QX-ACTIVE-1',
+            'courier_provider' => 'quadx',
+            'courier_status' => 'canceled',
+        ]);
+        $this->assertSame('unpaid', FulfillmentService::tabBucket($cancelledBooking));
     }
 
     public function test_cancelled_stage_claims_the_bucket_even_with_an_in_transit_booking(): void
@@ -227,7 +247,15 @@ class FulfillmentServicePhaseTest extends TestCase
 
     public function test_tab_bucket_for_parts_mirrors_the_same_stage_first_rule(): void
     {
-        $this->assertSame('unpaid', FulfillmentService::tabBucketForParts('unpaid', 'in_transit'));
+        // Owner ruling: unpaid claims only the not-in-pipeline phases…
+        $this->assertSame('unpaid', FulfillmentService::tabBucketForParts('unpaid', 'to_pack'));
+        $this->assertSame('unpaid', FulfillmentService::tabBucketForParts('unpaid', 'cancelled'));
+        // …while an active booking's phase wins ('booking' collapses to
+        // to_handover exactly as it does for a ready-stage order).
+        $this->assertSame('in_transit', FulfillmentService::tabBucketForParts('unpaid', 'in_transit'));
+        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('unpaid', 'to_handover'));
+        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('unpaid', 'booking'));
+        // Cancelled stage stays absolute.
         $this->assertSame('cancelled', FulfillmentService::tabBucketForParts('cancelled', 'in_transit'));
         $this->assertSame('to_pack', FulfillmentService::tabBucketForParts('ready', 'to_pack'));
         $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('ready', 'booking'));

@@ -147,11 +147,19 @@ class FulfillmentService
      * (OrderStatus::$fulfillment_stage, defaulting to 'ready' for a null
      * status or a status row with no override) claims the order FIRST:
      *
-     *   unpaid    stage 'unpaid' => bucket 'unpaid', regardless of any
-     *             courier state an admin somehow already created (spec:
-     *             "stage claims the order regardless of courier state").
-     *   cancelled stage 'cancelled' => bucket 'cancelled', same override —
-     *             a real order-cancel outranks an in-transit booking.
+     *   cancelled stage 'cancelled' => bucket 'cancelled', absolute — a
+     *             real order-cancel outranks an in-transit booking.
+     *   unpaid    stage 'unpaid' claims the order ONLY while it has no
+     *             active booking (owner ruling, 2026-08-08 spec amendment:
+     *             "Unpaid should not be booked" — and booking is now
+     *             refused server-side for unpaid orders, see book()'s
+     *             stage gate). An actively-booked order follows its
+     *             courier phase whatever its payment status, because the
+     *             booking puts it in the shipping pipeline. In phase
+     *             terms: 'to_pack' (never booked / reset) and 'cancelled'
+     *             (a booking that is no longer live) keep the order under
+     *             Unpaid; any other phase — including 'booking', an async
+     *             create already in flight — is pipeline state and wins.
      *   ready     everything else buckets by phaseFor()'s courier phase,
      *             with ONE collapse: the internal 'booking' phase (an async
      *             create still in flight, see ASYNC_CREATE_STATUSES) counts
@@ -177,11 +185,15 @@ class FulfillmentService
      */
     public static function tabBucketForParts(string $stage, string $phase): string
     {
-        if ($stage === 'unpaid') {
-            return 'unpaid';
-        }
         if ($stage === 'cancelled') {
             return 'cancelled';
+        }
+        if ($stage === 'unpaid' && in_array($phase, ['to_pack', 'cancelled'], true)) {
+            // No LIVE booking (never booked, reset, or a booking already
+            // cancelled) — unpaid claims the order. Any other phase means
+            // the order is in the shipping pipeline and follows it (owner
+            // ruling — see tabBucket()'s docblock).
+            return 'unpaid';
         }
 
         return $phase === 'booking' ? 'to_handover' : $phase;
@@ -212,6 +224,26 @@ class FulfillmentService
      */
     public function book(Order $order, array $opts): array
     {
+        // Stage gate (owner ruling, 2026-08-08 spec amendment): booking is
+        // refused server-side for unpaid-stage and cancelled-stage orders —
+        // this is what makes the "an actively-booked order is never unpaid-
+        // bucketed" invariant real. The owner's workflow: move a really-paid
+        // order to Processing (ready stage) first, then book. Checked FIRST
+        // (before any courier is resolved) and shared by BOTH callers of
+        // this method (admin queue + ERP endpoint) — the ERP's 409-vs-422
+        // branch keys off 'courier_unavailable' only, so 'stage_blocked'
+        // answers 422 there.
+        $stage = $order->status?->fulfillment_stage ?? 'ready';
+        if (in_array($stage, ['unpaid', 'cancelled'], true)) {
+            return [
+                'success' => false,
+                'code'    => 'stage_blocked',
+                'error'   => $stage === 'unpaid'
+                    ? "Order #{$order->id} is unpaid. Set its status to a ready stage (e.g. Processing) before booking."
+                    : "Order #{$order->id} is cancelled. Restore it to a ready stage (e.g. Processing) before booking.",
+            ];
+        }
+
         // Async-create-in-progress guard (T2 review, CRITICAL 2). An async
         // courier (SPX) can return success from createShipment() with NO
         // tracking number yet — courier_status='creating', batch_no stashed

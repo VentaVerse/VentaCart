@@ -209,8 +209,11 @@ class FulfillmentQueueTest extends TestCase
         $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
         $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
 
-        // Unpaid stage claims the order regardless of courier state — one
-        // plain, one with an (unrealistic but spec-mandated) active booking.
+        // Owner ruling (Task 4 fix round): unpaid stage claims an order only
+        // while it has NO active booking — one plain unpaid order counts
+        // here, while the unpaid order WITH an active in-transit booking
+        // follows its courier phase into In Transit ("the booking puts it
+        // in the shipping pipeline").
         $this->makeOrder(status: $unpaidStatus);
         $unpaidWithBooking = $this->makeOrder('in_transit', 'QX-U-001', 'quadx', $unpaidStatus);
 
@@ -246,10 +249,10 @@ class FulfillmentQueueTest extends TestCase
         // Top-level Booking tab is dropped entirely (owner directive).
         $response->assertDontSee('>Booking<', false);
 
-        // Top-level counts, stage-first.
-        $response->assertSee('data-count-for="unpaid">2<', false);
+        // Top-level counts, stage-first with the unpaid carve-out.
+        $response->assertSee('data-count-for="unpaid">1<', false);
         $response->assertSee('data-count-for="to_ship">6<', false); // 2 to_pack + (2 for_pickup + 1 searching_for_rider + 1 creating)
-        $response->assertSee('data-count-for="in_transit">1<', false);
+        $response->assertSee('data-count-for="in_transit">2<', false); // the ready one + the actively-booked unpaid one (owner ruling)
         $response->assertSee('data-count-for="delivered">1<', false);
         $response->assertSee('data-count-for="failed">1<', false);
         $response->assertSee('data-count-for="cancelled">2<', false);
@@ -258,8 +261,8 @@ class FulfillmentQueueTest extends TestCase
         // sibling page, never an eighth filter).
         $response->assertDontSee('data-count-for="returning"', false);
 
-        // The unpaid order with an active booking still counts as Unpaid,
-        // never leaking into In Transit — same stage-first rule Task 2 built.
+        // The unpaid order with an active booking counts under In Transit
+        // (asserted above), never under Unpaid — the owner-ruled carve-out.
         $this->assertNotNull($unpaidWithBooking->courier_tracking_number);
 
         // Default landing view (filter defaults to to_ship, sub to_pack):

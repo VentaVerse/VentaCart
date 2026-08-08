@@ -275,17 +275,44 @@ class FulfillmentCancelSemanticsTest extends TestCase
     // Hub settings field: save + validation.
     // ------------------------------------------------------------------
 
-    public function test_hub_renders_the_cancel_status_select_defaulting_to_the_status_named_canceled(): void
+    public function test_hub_renders_the_cancel_status_select_with_a_use_default_placeholder_selected_when_unset(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
         $canceled = $this->statusWithStage('cancelled', 'Canceled');
 
+        // Fix-round minor: with NO stored setting the placeholder is what's
+        // selected — never a concrete status the admin did not choose (the
+        // old pre-selected default silently persisted on first hub save).
         $this->get($this->settingsUrl())
             ->assertOk()
             ->assertSee('name="settings[cancel_order_status_id]"', false)
-            ->assertSee('<option value="' . $canceled->id . '" selected', false);
+            ->assertSee('<option value="" selected', false)
+            ->assertSee('Use default (Canceled)')
+            ->assertDontSee('<option value="' . $canceled->id . '" selected', false);
+    }
+
+    public function test_hub_save_with_the_placeholder_never_persists_a_status_and_clears_an_existing_override(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $void = $this->statusWithStage('cancelled', 'Voided');
+        $this->get($this->settingsUrl())->assertOk(); // prime routes
+
+        // Saving with the placeholder ("" -> null) stores nothing.
+        $this->post($this->settingsUrl(), [
+            'settings' => ['cancel_order_status_id' => ''],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'cancel_order_status_id']);
+
+        // An explicit choice stores; re-saving the placeholder clears it.
+        $this->post($this->settingsUrl(), ['settings' => ['cancel_order_status_id' => (string) $void->id]]);
+        $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'cancel_order_status_id', 'value' => (string) $void->id]);
+
+        $this->post($this->settingsUrl(), ['settings' => ['cancel_order_status_id' => '']]);
+        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'cancel_order_status_id']);
     }
 
     public function test_hub_saves_a_valid_cancel_status_id_and_rejects_an_unknown_one(): void
@@ -480,6 +507,181 @@ class FulfillmentCancelSemanticsTest extends TestCase
             ->assertSee('SPXPH000000000001')
             ->assertSee('Rebook')
             ->assertSee('openDrawer(JSON.parse(', false);
+    }
+
+    // ------------------------------------------------------------------
+    // Owner ruling (spec amendment 59bd751, "Stage precedence"): unpaid
+    // stage claims an order ONLY while it has no active booking; an
+    // actively-booked order buckets by its courier phase regardless of
+    // payment status. Cancelled stage precedence stays absolute. The
+    // grouped tally and the per-row bucket must agree.
+    // ------------------------------------------------------------------
+
+    public function test_actively_booked_unpaid_order_buckets_by_courier_phase_not_unpaid(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        app(ExtensionManager::class)->bootEnabled();
+        $this->enableQuadxStaging();
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+
+        $plainUnpaid = $this->makeOrder($unpaidStatus);
+        $unpaidHandover = $this->makeOrder($unpaidStatus);
+        $unpaidHandover->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-UNPAID-H1',
+            'courier_status' => 'for_pickup',
+        ])->save();
+        $unpaidTransit = $this->makeOrder($unpaidStatus);
+        $unpaidTransit->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-UNPAID-T1',
+            'courier_status' => 'in_transit',
+        ])->save();
+
+        // Per-row bucket: the shared rule.
+        $this->assertSame('unpaid', \Extensions\CourierFulfillment\FulfillmentService::tabBucket($plainUnpaid));
+        $this->assertSame('to_handover', \Extensions\CourierFulfillment\FulfillmentService::tabBucket($unpaidHandover));
+        $this->assertSame('in_transit', \Extensions\CourierFulfillment\FulfillmentService::tabBucket($unpaidTransit));
+
+        // Tally agrees with the per-row buckets.
+        $response = $this->get($this->queueUrl());
+        $response->assertOk()
+            ->assertSee('data-count-for="unpaid">1<', false)
+            ->assertSee('data-count-for="to_handover">1<', false)
+            ->assertSee('data-count-for="in_transit">1<', false);
+
+        // Membership: the booked ones list under their courier-phase tabs
+        // (with the normal courier action set, not the unpaid one-action
+        // row), never under Unpaid.
+        $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
+            ->assertOk()
+            ->assertSee('QX-UNPAID-H1')
+            ->assertSee('Print waybill')
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertDontSee('Cancel order');
+
+        $this->get($this->queueUrl() . '?filter=in_transit')
+            ->assertOk()
+            ->assertSee('QX-UNPAID-T1');
+
+        $this->get($this->queueUrl() . '?filter=unpaid')
+            ->assertOk()
+            ->assertSee('#' . $plainUnpaid->id, false)
+            ->assertDontSee('QX-UNPAID-H1')
+            ->assertDontSee('QX-UNPAID-T1');
+    }
+
+    public function test_unpaid_order_with_a_cancelled_booking_stays_under_unpaid(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        app(ExtensionManager::class)->bootEnabled();
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $order = $this->makeOrder($unpaidStatus);
+        // A booking that is no longer live (courier-cancelled) is not an
+        // ACTIVE booking — unpaid still claims the order.
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-UNPAID-C1',
+            'courier_status' => 'canceled',
+        ])->save();
+
+        $this->assertSame('unpaid', \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order));
+
+        $this->get($this->queueUrl() . '?filter=unpaid')
+            ->assertOk()
+            ->assertSee('data-count-for="unpaid">1<', false)
+            ->assertSee('#' . $order->id, false);
+        $this->get($this->queueUrl() . '?filter=cancelled')
+            ->assertOk()
+            ->assertSee('data-count-for="cancelled">0<', false)
+            ->assertDontSee('#' . $order->id, false);
+    }
+
+    // ------------------------------------------------------------------
+    // Owner ruling: the server-side book gate that makes the invariant
+    // real — unpaid/cancelled-stage orders cannot be booked (or quoted).
+    // ------------------------------------------------------------------
+
+    public function test_book_route_refuses_an_unpaid_stage_order_with_no_outbound_call_and_no_mutation(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        Http::fake(); // any outbound call would itself be a bug
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $order = $this->makeOrder($unpaidStatus);
+
+        $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
+            'courier' => 'quadx',
+            'service' => 'next_day',
+            'parcel' => 'box',
+            'shipping_payment' => 'net_off',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertStringContainsString('unpaid', session('error'));
+        $this->assertStringContainsString('ready stage', session('error'));
+
+        Http::assertNothingSent();
+        $order->refresh();
+        $this->assertNull($order->courier_provider);
+        $this->assertNull($order->courier_tracking_number);
+        $this->assertNull($order->courier_status);
+    }
+
+    public function test_book_route_refuses_a_cancelled_stage_order(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        Http::fake();
+
+        $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
+        $order = $this->makeOrder($cancelledStatus);
+
+        $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
+            'courier' => 'quadx',
+            'service' => 'next_day',
+            'parcel' => 'box',
+            'shipping_payment' => 'net_off',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+        $this->assertStringContainsString('cancelled', session('error'));
+
+        Http::assertNothingSent();
+        $this->assertNull($order->fresh()->courier_tracking_number);
+    }
+
+    public function test_estimate_route_refuses_unpaid_and_cancelled_stage_orders(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        Http::fake();
+
+        $unpaid = $this->makeOrder($this->statusWithStage('unpaid', 'Unpaid'));
+        $cancelled = $this->makeOrder($this->statusWithStage('cancelled', 'Canceled'));
+
+        $r1 = $this->postJson($this->queueUrl() . '/' . $unpaid->id . '/estimate', ['courier' => 'quadx']);
+        $r1->assertOk()->assertJson(['ok' => false]);
+        $this->assertStringContainsString('unpaid', $r1->json('message'));
+
+        $r2 = $this->postJson($this->queueUrl() . '/' . $cancelled->id . '/estimate', ['courier' => 'quadx']);
+        $r2->assertOk()->assertJson(['ok' => false]);
+        $this->assertStringContainsString('cancelled', $r2->json('message'));
+
+        Http::assertNothingSent();
     }
 
     // ------------------------------------------------------------------

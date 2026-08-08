@@ -251,11 +251,14 @@ class CourierSettingsController extends Controller
         }
 
         // fulfillment-tabs-v3 Task 4: the queue's "Cancel order" target
-        // status — pre-selected to the stored setting, defaulting to the
-        // status named "Canceled" (same fallback cancelOrder() applies).
+        // status. Null when unset — the view renders a "Use default"
+        // placeholder for that case (fix-round minor: pre-selecting the
+        // default status here made the first hub save silently PERSIST it,
+        // turning "never chose" into "explicitly chose"). The default
+        // itself (the status named "Canceled") is resolved at cancel time
+        // by FulfillmentController::cancelOrder().
         $orderStatuses = \App\Models\OrderStatus::orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
-        $cancelOrderStatusId = $settings['cancel_order_status_id']
-            ?? \App\Models\OrderStatus::where('name', 'Canceled')->value('id');
+        $cancelOrderStatusId = $settings['cancel_order_status_id'] ?? null;
 
         return view('courier-fulfillment::settings', compact(
             'settings',
@@ -379,6 +382,15 @@ class CourierSettingsController extends Controller
             $request->input('settings', []),
             array_flip(self::MODULE_KEYS)
         );
+
+        // "Use default" placeholder submitted (empty -> null via
+        // ConvertEmptyStringsToNull): unset the stored override entirely so
+        // cancelOrder() falls back to the status named "Canceled" — never
+        // persist an empty/placeholder value.
+        if (array_key_exists('cancel_order_status_id', $data) && ($data['cancel_order_status_id'] === null || $data['cancel_order_status_id'] === '')) {
+            Setting::where('group', 'courier')->where('key', 'cancel_order_status_id')->delete();
+            unset($data['cancel_order_status_id']);
+        }
 
         $this->persist($data, []);
 

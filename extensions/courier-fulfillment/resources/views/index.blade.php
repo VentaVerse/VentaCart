@@ -308,15 +308,22 @@
                             $rowBucket = \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order);
                             $bookGated = in_array($rowBucket, ['unpaid', 'cancelled'], true) && !$rebookable;
 
-                            // fulfillment-tabs-v3 Task 4: the row's Venta
-                            // order-status STAGE drives the per-tab action
-                            // matrix. 'unpaid' rows get exactly ONE action
-                            // (Cancel order); 'cancelled' rows (a real order
-                            // cancel) are view-only; everything else keeps
-                            // the courier action set, with Cancel order
-                            // added alongside Book on To Pack rows.
+                            // fulfillment-tabs-v3 Task 4 (+ owner ruling on
+                            // unpaid precedence): the row's BUCKET drives the
+                            // per-tab action matrix. Bucket 'unpaid' (unpaid
+                            // stage with no live booking — the only rows the
+                            // Unpaid tab now has) gets exactly ONE action,
+                            // Cancel order, and it always works: such a row
+                            // is by definition not actively booked, so the
+                            // server never refuses it for booking reasons.
+                            // Stage 'cancelled' rows (a real order cancel,
+                            // absolute precedence) are view-only. An unpaid-
+                            // STAGE order with an active booking buckets by
+                            // its courier phase and keeps the normal courier
+                            // action set. Cancel order also renders alongside
+                            // Book on To Pack rows.
                             $rowStage = $order->status?->fulfillment_stage ?? 'ready';
-                            $offersCancelOrder = $rowStage === 'unpaid' || $rowBucket === 'to_pack';
+                            $offersCancelOrder = in_array($rowBucket, ['unpaid', 'to_pack'], true);
 
                             $timelineRaw = $meta['timeline'] ?? [];
                             $timeline = [];
@@ -458,11 +465,12 @@
                                     </td>
                                     <td class="cf-col-act" rowspan="{{ $lineCount }}">
                                         <div class="co-actions">
-                                            @if ($rowStage === 'unpaid')
-                                                {{-- Task 4, owner directive: an Unpaid row renders
-                                                     exactly ONE action — Cancel order. No Book (nothing
-                                                     to ship yet), no Tracking/Print (any courier state
-                                                     an admin somehow created is not this row's job). --}}
+                                            @if ($rowBucket === 'unpaid')
+                                                {{-- Task 4, owner ruling: an Unpaid-bucket row (unpaid
+                                                     stage, no live booking) renders exactly ONE action,
+                                                     Cancel order — no Book (refused server-side anyway),
+                                                     no Tracking/Print. Always actionable: this row is
+                                                     never actively booked. --}}
                                                 <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
                                             @elseif ($rowStage === 'cancelled')
                                                 {{-- Task 4: a REAL order cancel is view-only — the
@@ -489,7 +497,7 @@
                                                      refuses while a booking is active anyway. --}}
                                                 <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
                                             @endif
-                                            @if (!in_array($rowStage, ['unpaid', 'cancelled'], true))
+                                            @if ($rowBucket !== 'unpaid' && $rowStage !== 'cancelled')
                                                 @if ($activelyBooked)
                                                     <x-admin.button size="sm" variant="secondary" href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener">Print waybill</x-admin.button>
                                                 @endif
@@ -497,9 +505,11 @@
                                                      access — a CANCELLED booking (tracking number present,
                                                      not actively booked) still has a timeline and the
                                                      terminal `cancelled` badge to show, and Rebook alone
-                                                     would orphan both (review fix, W2). Task 4: gated to
-                                                     stage-'ready' rows — unpaid rows carry ONE action
-                                                     and order-cancelled rows are view-only. --}}
+                                                     would orphan both (review fix, W2). Task 4 + owner
+                                                     ruling: gated OFF only for Unpaid-BUCKET rows (one
+                                                     action) and order-cancelled rows (view-only) — an
+                                                     unpaid-stage row with an active booking buckets by
+                                                     courier phase and keeps these. --}}
                                                 @if ($order->courier_tracking_number)
                                                     <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
                                                 @elseif ($creationFailed)
@@ -519,7 +529,7 @@
                                                 message="This sets the order status to your configured cancel status (returning any reserved stock) and moves it to the Cancelled tab. No courier is contacted."
                                                 confirm="Cancel order" :action="route('admin.fulfillment.cancel-order', $order)" method="POST" />
                                         @endif
-                                        @if ($cancelable && !in_array($rowStage, ['unpaid', 'cancelled'], true))
+                                        @if ($cancelable && $rowBucket !== 'unpaid' && $rowStage !== 'cancelled')
                                             <x-admin.confirm-dialog name="cancel-fulfillment-{{ $order->id }}" title="Cancel booking for order #{{ $order->id }}?"
                                                 message="This cancels the courier booking. The order returns to To Pack for rebooking."
                                                 confirm="Cancel booking" :action="route('admin.fulfillment.cancel', $order)" method="POST" />
