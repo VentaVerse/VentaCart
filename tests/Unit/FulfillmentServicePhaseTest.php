@@ -146,7 +146,7 @@ class FulfillmentServicePhaseTest extends TestCase
     // FulfillmentService::tabBucket() — the STAGE-FIRST tab/tally
     // membership function. Unlike phaseFor() above (which stays a pure
     // courier-phase derivation, used for row badges), tabBucket() layers
-    // the order's own OrderStatus::$fulfillment_stage on top: 'cancelled'
+    // the order's own OrderStatus::$fulfillment_placement on top: 'cancelled'
     // stage claims the order's bucket absolutely; 'unpaid' stage claims it
     // only while the order has NO active booking (an actively-booked order
     // follows its courier phase — the booking puts it in the shipping
@@ -162,7 +162,7 @@ class FulfillmentServicePhaseTest extends TestCase
     private function orderWithStage(string $stage, array $attributes): Order
     {
         $order = $this->order($attributes);
-        $order->setRelation('status', new \App\Models\OrderStatus(['fulfillment_stage' => $stage]));
+        $order->setRelation('status', new \App\Models\OrderStatus(['fulfillment_placement' => $stage]));
 
         return $order;
     }
@@ -209,7 +209,7 @@ class FulfillmentServicePhaseTest extends TestCase
 
     public function test_ready_stage_with_no_tracking_buckets_to_pack(): void
     {
-        $order = $this->orderWithStage('ready', [
+        $order = $this->orderWithStage('to_pack', [
             'courier_tracking_number' => null,
             'courier_provider' => null,
             'courier_status' => null,
@@ -225,7 +225,7 @@ class FulfillmentServicePhaseTest extends TestCase
      */
     public function test_ready_stage_creating_order_buckets_to_handover_but_keeps_booking_phase_on_the_row(): void
     {
-        $order = $this->orderWithStage('ready', [
+        $order = $this->orderWithStage('to_pack', [
             'courier_tracking_number' => null,
             'courier_provider' => 'spx',
             'courier_status' => 'creating',
@@ -234,7 +234,7 @@ class FulfillmentServicePhaseTest extends TestCase
         $this->assertSame('booking', FulfillmentService::phaseFor($order));
     }
 
-    /** No explicit stage relation loaded (null order_status_id) defaults to 'ready' — same default the migration itself uses. */
+    /** No explicit status relation loaded (null order_status_id) defaults to 'to_pack', same default the migration itself uses. */
     public function test_missing_status_relation_defaults_to_ready_stage(): void
     {
         $order = $this->order([
@@ -257,8 +257,8 @@ class FulfillmentServicePhaseTest extends TestCase
         $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('unpaid', 'booking'));
         // Cancelled stage stays absolute.
         $this->assertSame('cancelled', FulfillmentService::tabBucketForParts('cancelled', 'in_transit'));
-        $this->assertSame('to_pack', FulfillmentService::tabBucketForParts('ready', 'to_pack'));
-        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('ready', 'booking'));
-        $this->assertSame('in_transit', FulfillmentService::tabBucketForParts('ready', 'in_transit'));
+        $this->assertSame('to_pack', FulfillmentService::tabBucketForParts('to_pack', 'to_pack'));
+        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('to_pack', 'booking'));
+        $this->assertSame('in_transit', FulfillmentService::tabBucketForParts('to_pack', 'in_transit'));
     }
 }

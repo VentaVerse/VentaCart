@@ -62,7 +62,7 @@ class FulfillmentReturnsTest extends TestCase
     {
         return OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Canceled'],
-            ['sort_order' => 2, 'is_default' => false, 'fulfillment_stage' => 'cancelled'],
+            ['sort_order' => 2, 'is_default' => false, 'fulfillment_placement' => 'cancelled'],
         );
     }
 

@@ -298,7 +298,7 @@
                             // tabBucket()'s docblock) plus the row's raw STAGE
                             // drive the action matrix below.
                             $rowBucket = \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order);
-                            $rowStage = $order->status?->fulfillment_stage ?? 'ready';
+                            $rowStage = $order->status?->fulfillment_placement ?? 'to_pack';
 
                             // FINAL-review fix (F1/F3, the coherent rule): a
                             // stage-claimed (unpaid or cancelled) order that

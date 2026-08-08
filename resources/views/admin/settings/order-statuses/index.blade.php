@@ -8,11 +8,15 @@
                 </div>
             </x-admin.card>
 
-            <x-admin.card title="Fulfillment stages" description="Which fulfillment queue tab a status belongs to.">
+            <x-admin.card title="Fulfillment placements" description="Which fulfillment queue tab a status belongs to.">
                 <div class="flex flex-wrap gap-4 text-[13px]">
-                    <span class="flex items-center gap-2"><x-admin.badge tone="warning">Unpaid</x-admin.badge><span class="text-v-secondary">order is waiting on payment</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="success">Ready</x-admin.badge><span class="text-v-secondary">order is paid and moves through courier handling</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">Cancelled</x-admin.badge><span class="text-v-secondary">order will not be fulfilled</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="warning">Unpaid</x-admin.badge><span class="text-v-secondary">waiting on payment, appears in the Unpaid tab</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="success">To Pack</x-admin.badge><span class="text-v-secondary">paid and awaiting packing, appears in To Ship &gt; To Pack</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="success">To Handover</x-admin.badge><span class="text-v-secondary">packed and awaiting courier pickup, appears in To Ship &gt; To Handover</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="success">In Transit</x-admin.badge><span class="text-v-secondary">with the courier en route, appears in the In Transit tab</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="success">Delivered</x-admin.badge><span class="text-v-secondary">delivered to the customer, appears in the Delivered tab</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">Failed</x-admin.badge><span class="text-v-secondary">delivery failed or is returning, appears in the Failed tab</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">Cancelled</x-admin.badge><span class="text-v-secondary">will not be fulfilled, appears in the Cancelled tab</span></span>
                 </div>
             </x-admin.card>
 
@@ -31,11 +35,26 @@
                     </form>
                 @endforeach
 
+                @php
+                    // Label + badge tone per placement, kept next to the table
+                    // that renders them so the two never drift apart.
+                    $placementMeta = [
+                        'unpaid'      => ['label' => 'Unpaid', 'tone' => 'warning'],
+                        'to_pack'     => ['label' => 'To Pack', 'tone' => 'success'],
+                        'to_handover' => ['label' => 'To Handover', 'tone' => 'success'],
+                        'in_transit'  => ['label' => 'In Transit', 'tone' => 'success'],
+                        'delivered'   => ['label' => 'Delivered', 'tone' => 'success'],
+                        'failed'      => ['label' => 'Failed', 'tone' => 'danger'],
+                        'cancelled'   => ['label' => 'Cancelled', 'tone' => 'danger'],
+                    ];
+                @endphp
+
                 <x-admin.table>
                     <x-slot:head>
                         <x-admin.table.th>Status</x-admin.table.th>
                         <x-admin.table.th>Stock action</x-admin.table.th>
-                        <x-admin.table.th>Fulfillment stage</x-admin.table.th>
+                        <x-admin.table.th>Fulfillment placement</x-admin.table.th>
+                        <x-admin.table.th>Orders</x-admin.table.th>
                         <x-admin.table.th>Sort</x-admin.table.th>
                         <x-admin.table.th align="right">Actions</x-admin.table.th>
                     </x-slot:head>
@@ -69,19 +88,18 @@
                             </x-admin.table.cell>
                             <x-admin.table.cell>
                                 <div class="flex items-center gap-2">
-                                    <select form="{{ $editForm }}" name="fulfillment_stage" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        <option value="unpaid" @selected($status->fulfillment_stage === 'unpaid')>Unpaid</option>
-                                        <option value="ready" @selected($status->fulfillment_stage === 'ready')>Ready</option>
-                                        <option value="cancelled" @selected($status->fulfillment_stage === 'cancelled')>Cancelled</option>
+                                    <select form="{{ $editForm }}" name="fulfillment_placement" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        @foreach ($placementMeta as $value => $meta)
+                                            <option value="{{ $value }}" @selected($status->fulfillment_placement === $value)>{{ $meta['label'] }}</option>
+                                        @endforeach
                                     </select>
-                                    @if ($status->fulfillment_stage === 'unpaid')
-                                        <x-admin.badge tone="warning">Unpaid</x-admin.badge>
-                                    @elseif ($status->fulfillment_stage === 'cancelled')
-                                        <x-admin.badge tone="danger">Cancelled</x-admin.badge>
-                                    @else
-                                        <x-admin.badge tone="success">Ready</x-admin.badge>
-                                    @endif
+                                    <x-admin.badge :tone="$placementMeta[$status->fulfillment_placement]['tone'] ?? 'success'">
+                                        {{ $placementMeta[$status->fulfillment_placement]['label'] ?? $status->fulfillment_placement }}
+                                    </x-admin.badge>
                                 </div>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell>
+                                <span class="text-v-secondary">{{ $orderCounts[$status->id] ?? 0 }}</span>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
                                 <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
@@ -127,10 +145,14 @@
                             <option value="increment">Increment</option>
                         </x-admin.select>
                     </x-admin.field>
-                    <x-admin.field name="fulfillment_stage" label="Fulfillment stage">
-                        <x-admin.select name="fulfillment_stage">
+                    <x-admin.field name="fulfillment_placement" label="Fulfillment placement">
+                        <x-admin.select name="fulfillment_placement">
                             <option value="unpaid">Unpaid</option>
-                            <option value="ready" selected>Ready</option>
+                            <option value="to_pack" selected>To Pack</option>
+                            <option value="to_handover">To Handover</option>
+                            <option value="in_transit">In Transit</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="failed">Failed</option>
                             <option value="cancelled">Cancelled</option>
                         </x-admin.select>
                     </x-admin.field>

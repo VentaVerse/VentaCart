@@ -8,17 +8,32 @@ use Illuminate\Support\Facades\DB;
 class OrderStatusSeeder extends Seeder
 {
     /**
-     * Status names (case-insensitive) that default to the "unpaid" fulfillment stage.
+     * Status names (case-insensitive) that default to the "unpaid" fulfillment placement.
      */
     private const UNPAID_NAMES = ['Unpaid', 'Pending', 'Quote Ready for Payment'];
 
     /**
-     * Status names (case-insensitive) that default to the "cancelled" fulfillment stage.
+     * Status names (case-insensitive) that default to the "cancelled" fulfillment placement.
      */
     private const CANCELLED_NAMES = [
         'Canceled', 'Canceled Reversal', 'Denied', 'Expired', 'Failed',
         'Refunded', 'Reversed', 'Voided', 'Chargeback',
     ];
+
+    /**
+     * Status names (case-insensitive) that default to the "delivered" fulfillment placement.
+     */
+    private const DELIVERED_NAMES = ['Delivered', 'Complete'];
+
+    /**
+     * Status names (case-insensitive) that default to the "in_transit" fulfillment placement.
+     */
+    private const IN_TRANSIT_NAMES = ['Shipped', 'In Transit to Manila'];
+
+    /**
+     * Status names (case-insensitive) that default to the "to_handover" fulfillment placement.
+     */
+    private const TO_HANDOVER_NAMES = ['Order Being Shipped', 'Done Pickup', 'Start Pickup'];
 
     public function run(): void
     {
@@ -46,7 +61,7 @@ class OrderStatusSeeder extends Seeder
                 'name' => $status['name'],
                 'is_default' => $status['is_default'],
                 'sort_order' => $status['sort_order'],
-                'fulfillment_stage' => self::stageFor($status['name']),
+                'fulfillment_placement' => self::placementFor($status['name']),
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
@@ -54,9 +69,9 @@ class OrderStatusSeeder extends Seeder
     }
 
     /**
-     * Resolve the default fulfillment stage for a status name (case-insensitive match).
+     * Resolve the default fulfillment placement for a status name (case-insensitive match).
      */
-    public static function stageFor(string $name): string
+    public static function placementFor(string $name): string
     {
         $needle = mb_strtolower($name);
 
@@ -68,6 +83,18 @@ class OrderStatusSeeder extends Seeder
             return 'cancelled';
         }
 
-        return 'ready';
+        if (in_array($needle, array_map('mb_strtolower', self::DELIVERED_NAMES), true)) {
+            return 'delivered';
+        }
+
+        if (in_array($needle, array_map('mb_strtolower', self::IN_TRANSIT_NAMES), true)) {
+            return 'in_transit';
+        }
+
+        if (in_array($needle, array_map('mb_strtolower', self::TO_HANDOVER_NAMES), true)) {
+            return 'to_handover';
+        }
+
+        return 'to_pack';
     }
 }

@@ -262,7 +262,7 @@ class CourierSettingsController extends Controller
         // they are the only coherent targets (a Cancel order that lands the
         // order anywhere but the Cancelled tab would contradict the whole
         // stage model). update() enforces the same scope server-side.
-        $orderStatuses = \App\Models\OrderStatus::where('fulfillment_stage', 'cancelled')
+        $orderStatuses = \App\Models\OrderStatus::where('fulfillment_placement', 'cancelled')
             ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
         $cancelOrderStatusId = $settings['cancel_order_status_id'] ?? null;
 
@@ -387,7 +387,7 @@ class CourierSettingsController extends Controller
             'settings.cancel_order_status_id' => [
                 'nullable',
                 'integer',
-                \Illuminate\Validation\Rule::exists('order_statuses', 'id')->where('fulfillment_stage', 'cancelled'),
+                \Illuminate\Validation\Rule::exists('order_statuses', 'id')->where('fulfillment_placement', 'cancelled'),
             ],
         ]);
 

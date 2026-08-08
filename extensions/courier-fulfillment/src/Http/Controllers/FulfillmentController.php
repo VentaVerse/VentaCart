@@ -145,7 +145,7 @@ class FulfillmentController extends Controller
         $phaseCounts['to_ship'] = ($phaseCounts['to_pack'] ?? 0) + ($phaseCounts['to_handover'] ?? 0);
 
         $query = (clone $base)
-            ->with('status:id,name,fulfillment_stage')
+            ->with('status:id,name,fulfillment_placement')
             ->with(['products' => function ($q) {
                 // Item rows for the two-tier table: snapshot name/sku/image on
                 // the line itself, live product image as the fallback.
@@ -177,7 +177,7 @@ class FulfillmentController extends Controller
             // async-creating), OR booked but with a booking whose phase is
             // 'cancelled' (the exact combos the tally already found for
             // unpaid-stage rows, so listing and count always agree).
-            $query->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'unpaid'))
+            $query->whereHas('status', fn ($q) => $q->where('fulfillment_placement', 'unpaid'))
                 ->where(function ($q) use ($unpaidClaimedGroups) {
                     $q->where(function ($unbooked) {
                         $unbooked->whereNull('courier_tracking_number')
@@ -198,7 +198,15 @@ class FulfillmentController extends Controller
             // tracking-number-null) — those belong to the To Handover/Failed
             // buckets respectively, never To Pack (see phaseTally()'s
             // matching fix above and FulfillmentService::ASYNC_CREATE_STATUSES).
-            $query->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'ready'))
+            //
+            // Fulfillment Placement Task 1: the old column's bare 'ready'
+            // check becomes membership in FulfillmentService::
+            // READY_EQUIVALENT_PLACEMENTS (the placement itself no longer
+            // decides to_pack vs to_handover vs in_transit etc, courier
+            // phase still does, exactly as before; see that constant's
+            // docblock for why this is a Task 1 placeholder, not the real
+            // placement-first rule Task 2 will apply here).
+            $query->whereHas('status', fn ($q) => $q->whereIn('fulfillment_placement', FulfillmentService::READY_EQUIVALENT_PLACEMENTS))
                 ->whereNull('courier_tracking_number')
                 ->where(function ($q) {
                     $q->whereNull('courier_status')
@@ -214,9 +222,9 @@ class FulfillmentController extends Controller
             // never disagrees with its own count.
             $groups = $phaseStatusGroups['cancelled'] ?? [];
             $query->where(function ($q) use ($groups) {
-                $q->whereHas('status', fn ($s) => $s->where('fulfillment_stage', 'cancelled'))
+                $q->whereHas('status', fn ($s) => $s->where('fulfillment_placement', 'cancelled'))
                     ->orWhere(function ($ready) use ($groups) {
-                        $ready->whereHas('status', fn ($s) => $s->where('fulfillment_stage', 'ready'))
+                        $ready->whereHas('status', fn ($s) => $s->whereIn('fulfillment_placement', FulfillmentService::READY_EQUIVALENT_PLACEMENTS))
                             ->where(function ($q2) {
                                 $q2->whereNotNull('courier_tracking_number')
                                     ->orWhereIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
@@ -245,8 +253,11 @@ class FulfillmentController extends Controller
             // follows its courier phase. It can only match via a BOOKED
             // combo the tally bucketed into this phase, so plain unpaid
             // orders never leak in. Stage 'cancelled' stays excluded
-            // (absolute precedence).
-            $query->whereHas('status', fn ($q) => $q->whereIn('fulfillment_stage', ['ready', 'unpaid']))
+            // (absolute precedence). Fulfillment Placement Task 1: 'ready'
+            // becomes membership in READY_EQUIVALENT_PLACEMENTS (see that
+            // constant's docblock, a Task 1 placeholder, not the placement-
+            // first rule Task 2 applies here).
+            $query->whereHas('status', fn ($q) => $q->whereIn('fulfillment_placement', [...FulfillmentService::READY_EQUIVALENT_PLACEMENTS, 'unpaid']))
                 ->where(function ($q) {
                     $q->whereNotNull('courier_tracking_number')
                         ->orWhereIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
@@ -389,9 +400,11 @@ class FulfillmentController extends Controller
         // 'ready', same as the queue's spine-phase tabs — an actively-booked
         // order follows its courier phase (a returning/failed parcel is
         // coming back regardless of payment status). 'cancelled' stays
-        // excluded (absolute precedence).
+        // excluded (absolute precedence). Fulfillment Placement Task 1:
+        // 'ready' becomes membership in READY_EQUIVALENT_PLACEMENTS (see
+        // that constant's docblock, a Task 1 placeholder).
         $query = (clone $base)
-            ->whereHas('status', fn ($q) => $q->whereIn('fulfillment_stage', ['ready', 'unpaid']))
+            ->whereHas('status', fn ($q) => $q->whereIn('fulfillment_placement', [...FulfillmentService::READY_EQUIVALENT_PLACEMENTS, 'unpaid']))
             ->whereNotNull('courier_tracking_number');
         $this->applyPhaseGroups($query, $groups);
 
@@ -465,8 +478,8 @@ class FulfillmentController extends Controller
     {
         $combos = (clone $base)
             ->join('order_statuses', 'orders.order_status_id', '=', 'order_statuses.id')
-            ->selectRaw('order_statuses.fulfillment_stage as fulfillment_stage, orders.courier_provider as courier_provider, orders.courier_status as courier_status, (orders.courier_tracking_number IS NULL) as unbooked, COUNT(*) as n')
-            ->groupByRaw('order_statuses.fulfillment_stage, orders.courier_provider, orders.courier_status, (orders.courier_tracking_number IS NULL)')
+            ->selectRaw('order_statuses.fulfillment_placement as fulfillment_placement, orders.courier_provider as courier_provider, orders.courier_status as courier_status, (orders.courier_tracking_number IS NULL) as unbooked, COUNT(*) as n')
+            ->groupByRaw('order_statuses.fulfillment_placement, orders.courier_provider, orders.courier_status, (orders.courier_tracking_number IS NULL)')
             ->get();
 
         $phaseCounts = array_fill_keys(\Extensions\CourierFulfillment\Support\PhaseTone::PHASES, 0);
@@ -474,7 +487,7 @@ class FulfillmentController extends Controller
         $phaseStatusGroups = [];      // bucket => provider key => raw statuses present in the DB right now (booked combos that bucketed into a courier phase)
         $unpaidClaimedGroups = [];    // provider key => raw statuses: BOOKED unpaid-stage combos whose booking is no longer live (owner ruling — these stay under Unpaid)
         foreach ($combos as $row) {
-            $stage = (string) $row->fulfillment_stage;
+            $stage = (string) $row->fulfillment_placement;
 
             // Task T4 fix (+ final-review Finding 2): a 'creating' or
             // 'creation_failed' order is 'unbooked' by this query's own
@@ -676,7 +689,7 @@ class FulfillmentController extends Controller
         // FulfillmentService::book() applies — an unpaid/cancelled-stage
         // order is not bookable, so quoting a fee for it is misleading and
         // would still hit the courier's API for nothing.
-        $stage = $order->status?->fulfillment_stage ?? 'ready';
+        $stage = $order->status?->fulfillment_placement ?? 'to_pack';
         if (in_array($stage, ['unpaid', 'cancelled'], true)) {
             $message = $stage === 'unpaid'
                 ? "Order #{$order->id} is unpaid. Set its status to a ready stage (e.g. Processing) before booking."

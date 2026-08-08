@@ -3,10 +3,18 @@
 namespace App\Http\Controllers\Admin\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\OrderStatus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
 class OrderStatusController extends Controller
 {
+    /**
+     * The seven fulfillment_placement values, one per fulfillment queue tab.
+     */
+    private const PLACEMENTS = ['unpaid', 'to_pack', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'];
+
     private int $storeId;
 
     public function __construct()
@@ -20,7 +28,14 @@ class OrderStatusController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('admin.settings.order-statuses.index', compact('statuses'));
+        // Live order count per status, one grouped query (never N+1): lets
+        // the owner see the scale of what a placement regrouping moves.
+        $orderCounts = Order::whereNotNull('order_status_id')
+            ->select('order_status_id', DB::raw('COUNT(*) as n'))
+            ->groupBy('order_status_id')
+            ->pluck('n', 'order_status_id');
+
+        return view('admin.settings.order-statuses.index', compact('statuses', 'orderCounts'));
     }
 
     public function store(Request $request)
@@ -28,14 +43,14 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stock_action' => ['nullable', 'in:decrement,increment'],
-            'fulfillment_stage' => ['nullable', 'in:unpaid,ready,cancelled'],
+            'fulfillment_placement' => ['nullable', 'in:' . implode(',', self::PLACEMENTS)],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
         ]);
 
         $validated['store_id'] = $this->storeId;
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $validated['fulfillment_stage'] = $validated['fulfillment_stage'] ?? 'ready';
+        $validated['fulfillment_placement'] = $validated['fulfillment_placement'] ?? 'to_pack';
         $validated['is_default'] = $request->boolean('is_default');
 
         if ($validated['is_default']) {
@@ -53,13 +68,13 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stock_action' => ['nullable', 'in:decrement,increment'],
-            'fulfillment_stage' => ['nullable', 'in:unpaid,ready,cancelled'],
+            'fulfillment_placement' => ['nullable', 'in:' . implode(',', self::PLACEMENTS)],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
         ]);
 
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $validated['fulfillment_stage'] = $validated['fulfillment_stage'] ?? 'ready';
+        $validated['fulfillment_placement'] = $validated['fulfillment_placement'] ?? 'to_pack';
         $validated['is_default'] = $request->boolean('is_default');
 
         if ($validated['is_default']) {

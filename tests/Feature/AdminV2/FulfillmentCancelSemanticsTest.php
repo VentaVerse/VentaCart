@@ -84,7 +84,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
     {
         return OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name],
-            ['sort_order' => 1, 'fulfillment_stage' => $stage, 'stock_action' => $stockAction],
+            ['sort_order' => 1, 'fulfillment_placement' => $stage, 'stock_action' => $stockAction],
         );
     }
 
@@ -904,7 +904,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         // The map applied: core status moved to the cancelled stage and the
         // mapped status restocked the two units. Courier state STAYS.
         $this->assertSame($canceled->id, $order->order_status_id);
-        $this->assertSame('cancelled', $order->status->fulfillment_stage);
+        $this->assertSame('cancelled', $order->status->fulfillment_placement);
         $this->assertSame('canceled', $order->courier_status);
         $this->assertSame('QX-COURIER-CXL1', $order->courier_tracking_number);
         $this->assertSame(12, (int) $product->fresh()->quantity);
@@ -997,7 +997,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
         $canceled = $this->statusWithStage('cancelled', 'Canceled');
         $void = $this->statusWithStage('cancelled', 'Voided');
-        $this->statusWithStage('ready', 'ReadyStageStatus');
+        $this->statusWithStage('to_pack', 'ReadyStageStatus');
 
         $this->get($this->settingsUrl())
             ->assertOk()
@@ -1013,7 +1013,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->installExtension();
 
         $this->statusWithStage('cancelled', 'Canceled');
-        $ready = $this->statusWithStage('ready', 'ReadyStageStatus');
+        $ready = $this->statusWithStage('to_pack', 'ReadyStageStatus');
 
         $this->get($this->settingsUrl())->assertOk(); // prime routes
 

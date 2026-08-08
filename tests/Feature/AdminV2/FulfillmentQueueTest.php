@@ -153,15 +153,15 @@ class FulfillmentQueueTest extends TestCase
 
     /**
      * fulfillment-tabs-v3 Task 3: a status row carrying a NON-default
-     * fulfillment_stage (defaultStatus() above is 'ready', the migration's
-     * own default) — for orders that must land in the Unpaid or Cancelled
-     * tab regardless of any courier state.
+     * fulfillment_placement (defaultStatus() above is 'to_pack', the
+     * migration's own default) - for orders that must land in the Unpaid
+     * or Cancelled tab regardless of any courier state.
      */
     private function statusWithStage(string $stage, string $name): OrderStatus
     {
         return OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name],
-            ['sort_order' => 1, 'fulfillment_stage' => $stage],
+            ['sort_order' => 1, 'fulfillment_placement' => $stage],
         );
     }
 

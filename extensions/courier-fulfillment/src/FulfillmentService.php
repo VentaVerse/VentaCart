@@ -43,6 +43,24 @@ class FulfillmentService
     public const ASYNC_CREATE_STATUSES = ['creating', 'creation_failed'];
 
     /**
+     * Fulfillment Placement Task 1: order_statuses.fulfillment_placement
+     * carries seven values now (one per queue tab), replacing the old
+     * three-value fulfillment_stage (unpaid|ready|cancelled). Every
+     * consumer that used to check "stage === 'ready'" must now check
+     * membership in this five-value set instead: the five placements
+     * OTHER than unpaid/cancelled are treated as one interchangeable
+     * "ready-equivalent" group here, EXACTLY as bare 'ready' behaved
+     * before this task: courier phase (booking state), never the status's
+     * own placement, still decides which spine tab a ready-equivalent
+     * order lands in. This is intentionally a placeholder collapse, not
+     * the real membership rule; Task 2 of the fulfillment-placement plan
+     * rewrites tab membership to be placement-first (mirroring how
+     * fulfillment_placement now names its own tab), at which point this
+     * constant and every site that reads it goes away.
+     */
+    public const READY_EQUIVALENT_PLACEMENTS = ['to_pack', 'to_handover', 'in_transit', 'delivered', 'failed'];
+
+    /**
      * True when the order has a tracking number AND its booking isn't
      * cancelled. "Cancelled" is decided PHASE-first (final-review fix,
      * Finding 1): the resolved courier's own statusPhase() spine bucket —
@@ -144,8 +162,8 @@ class FulfillmentService
      * bucket the queue's segment bar and phaseTally() count an order under,
      * as opposed to phaseFor()'s pure courier-phase bucket (which stays the
      * row's BADGE, unaffected by this). An order's Venta order-status stage
-     * (OrderStatus::$fulfillment_stage, defaulting to 'ready' for a null
-     * status or a status row with no override) claims the order FIRST:
+     * (OrderStatus::$fulfillment_placement, defaulting to 'to_pack' for a
+     * null status or a status row with no override) claims the order FIRST:
      *
      *   cancelled stage 'cancelled' => bucket 'cancelled', absolute — a
      *             real order-cancel outranks an in-transit booking.
@@ -160,8 +178,10 @@ class FulfillmentService
      *             (a booking that is no longer live) keep the order under
      *             Unpaid; any other phase — including 'booking', an async
      *             create already in flight — is pipeline state and wins.
-     *   ready     everything else buckets by phaseFor()'s courier phase,
-     *             with ONE collapse: the internal 'booking' phase (an async
+     *   (else)    every other placement (Task 1: to_pack/to_handover/
+     *             in_transit/delivered/failed, see READY_EQUIVALENT_
+     *             PLACEMENTS) buckets by phaseFor()'s courier phase, with
+     *             ONE collapse: the internal 'booking' phase (an async
      *             create still in flight, see ASYNC_CREATE_STATUSES) counts
      *             under 'to_handover' for TAB membership — the owner
      *             dropped the standalone Booking tab (creating orders
@@ -172,16 +192,16 @@ class FulfillmentService
      */
     public static function tabBucket(Order $order): string
     {
-        $stage = $order->status?->fulfillment_stage ?? 'ready';
+        $placement = $order->status?->fulfillment_placement ?? 'to_pack';
 
-        return self::tabBucketForParts((string) $stage, self::phaseFor($order));
+        return self::tabBucketForParts((string) $placement, self::phaseFor($order));
     }
 
     /**
      * Same stage-first collapse as tabBucket(), but from an already-resolved
-     * stage + courier phase — lets the queue controller's GROUP BY tally
-     * (which reads order_statuses.fulfillment_stage via a SQL join, never
-     * hydrates an Order per row) reuse the exact same rule.
+     * placement + courier phase: lets the queue controller's GROUP BY tally
+     * (which reads order_statuses.fulfillment_placement via a SQL join,
+     * never hydrates an Order per row) reuse the exact same rule.
      */
     public static function tabBucketForParts(string $stage, string $phase): string
     {
@@ -300,7 +320,7 @@ class FulfillmentService
         // (200) even if the order's stage regressed after the booking; a
         // stage-blocked answer there would read as a failed booking for a
         // shipment that in fact exists.
-        $stage = $order->status?->fulfillment_stage ?? 'ready';
+        $stage = $order->status?->fulfillment_placement ?? 'to_pack';
         if (in_array($stage, ['unpaid', 'cancelled'], true)) {
             return [
                 'success' => false,
