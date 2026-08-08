@@ -42,13 +42,16 @@ Cross-checking Shopee (`UNPAID…READY_TO_SHIP…PROCESSED…SHIPPED…COMPLETED
 6. **Actions all visible buttons** — Book / Print waybill / Tracking / Cancel per state; no overflow menus ("this is the packing desk's working surface").
 7. **Pager**: "1 to N of M" mono left, Prev/Next right.
 
-### The courier-first booking flow (two-step, in the existing drawer)
+### The courier-first booking flow (two-step modal)
+
+Booking happens in a **modal** (owner's call, 2026-08-08 — the ERP's arrange-shipment `co-modal` pattern, not a drawer). The Book/Rebook row and detail actions open it, titled with the order number.
 
 - **Step 1 — "How will this order ship?"**: one large choice card per **enabled** courier (name, mode chip if UAT/staging, fee estimate placeholder). Only step 1 is universal.
 - **Step 2 — the courier's own form**, rendered from the courier's option methods:
   - **QuadX**: service type, pouch (native catalog), who-pays, COD auto-derived — exactly today's fields, restyled.
   - **SPX**: pouch preset (see below) or custom dims, who-pays (`payment_role` sender/receiver), COD auto-derived (`cod_collection`/`cod_amount`), pickup time slot (from SPX's pickup-time endpoint), and an **estimated shipping fee** (SPX `batch_check_order`) shown before the operator commits.
   - Back (ghost) + "Book shipment" (primary, disabled until valid) — the Shopee arrange-shipment modal pattern.
+- The existing drawer remains the **viewing** surface (stepper, timeline, tracking, cancel); booking moves out of it into the modal.
 - **Pouches are a first-class generic concept**: `getParcelOptions()` already serves them. For couriers with no native pouch catalog (SPX), Venta defines **pouch presets** (label + L×W×H + max weight), configurable on that courier's settings page, seeded with sensible defaults (Small/Medium/Large). Choosing a pouch **overrides** product-computed dimensions — the owner's explicit requirement ("not limited or restricted to the dimension of the product").
 - Post-booking, orders show the **actual** shipping fee where the courier exposes it (SPX `batch_get_asf`) — estimated vs actual, honestly labeled.
 
@@ -74,7 +77,7 @@ Cross-checking Shopee (`UNPAID…READY_TO_SHIP…PROCESSED…SHIPPED…COMPLETED
 ## Verification
 
 - All existing suites green (Fulfillment, AdminV2 209, baseline 26); QuadX raw behavior frozen (grep + suites).
-- Browser walk: queue tabs with counts, courier-first drawer both steps (QuadX form intact), returns page, settings hub → per-courier pages, breadcrumbs, light+dark.
+- Browser walk: queue tabs with counts, courier-first booking modal both steps (QuadX form intact), viewing drawer, returns page, settings hub → per-courier pages, breadcrumbs, light+dark.
 - SPX spec's live UAT gate then exercises the whole v2 flow end-to-end (courier choice → pouch preset → fee estimate → book → handover → cancel).
 
 ## Out of scope

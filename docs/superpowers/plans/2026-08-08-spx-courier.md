@@ -27,11 +27,11 @@
 **Tests:** every QuadX raw status lands in exactly one bucket; tone map total (unknown phase → neutral); FulfillmentService phase queries return the new buckets; existing 4-step stepper derivation still resolves for the happy path.
 - [ ] TDD, commit `feat(fulfillment): common 8-phase status spine with tone model`.
 
-### Task W2: Queue on the ERP grammar + courier-first drawer
+### Task W2: Queue on the ERP grammar + courier-first booking modal
 
-**Files:** `extensions/courier-fulfillment/resources/views/index.blade.php` + extension CSS — re-shell per spec Part 2: cmdbar (Poll statuses), segment bar with per-phase mono counts + far-right Returns aside link, "Parcels waiting for handover" per-courier chips on that tab, filters row (search/per-page, autosubmit), two-tier `co-band`/`co-itemrow` table (band per order; item rows with thumbs/SKU; total/courier/status/actions rowspanned; status = tone badge + raw label), visible-buttons action cell, mono pager. **Drawer becomes two-step**: step 1 = enabled-courier choice cards (name, mode chip; fee-estimate slot renders only when `estimateFee()` returns non-null); step 2 = the chosen courier's form from its option methods (QuadX: today's fields byte-identical payload), Back ghost + Book primary. Interface gains sanctioned #4 `estimateFee(Order, array): ?Money` (default null) and #5 `getPickupSlots(Order): array` (default `[]`) — QuadX inherits defaults, so step 2 for QuadX shows neither.
-**Tests:** queue renders all phase tabs with counts from seeded orders; handover chips; two-step drawer markup (step 1 lists exactly enabled couriers); QuadX booking POST payload byte-identical (whitespace-normalized diff bar from the Orders wave); filter/tab params preserved.
-- [ ] TDD, commit `feat(fulfillment): erp-grammar queue and courier-first booking drawer`.
+**Files:** `extensions/courier-fulfillment/resources/views/index.blade.php` + extension CSS — re-shell per spec Part 2: cmdbar (Poll statuses), segment bar with per-phase mono counts + far-right Returns aside link, "Parcels waiting for handover" per-courier chips on that tab, filters row (search/per-page, autosubmit), two-tier `co-band`/`co-itemrow` table (band per order; item rows with thumbs/SKU; total/courier/status/actions rowspanned; status = tone badge + raw label), visible-buttons action cell, mono pager. **Booking moves into a two-step MODAL** (ERP arrange-shipment pattern; the drawer stays the viewing surface — stepper/timeline/tracking/cancel): step 1 = enabled-courier choice cards (name, mode chip; fee-estimate slot renders only when `estimateFee()` returns non-null); step 2 = the chosen courier's form from its option methods (QuadX: today's fields byte-identical payload), Back ghost + Book primary, titled with the order number. Interface gains sanctioned #4 `estimateFee(Order, array): ?Money` (default null) and #5 `getPickupSlots(Order): array` (default `[]`) — QuadX inherits defaults, so step 2 for QuadX shows neither.
+**Tests:** queue renders all phase tabs with counts from seeded orders; handover chips; two-step modal markup (step 1 lists exactly enabled couriers); QuadX booking POST payload byte-identical (whitespace-normalized diff bar from the Orders wave); filter/tab params preserved.
+- [ ] TDD, commit `feat(fulfillment): erp-grammar queue and courier-first booking modal`.
 
 ### Task W3: Per-courier settings pages
 
@@ -79,7 +79,7 @@
 
 ### Task 5: Fake-HTTP verification sweep
 
-- [ ] Full suites; `npm run build` + clears. Browser (Playwright, 8001): queue tabs/counts, two-step drawer (QuadX step 2 unchanged; SPX step 2 with dummy creds via UI, flipped back after), returns page, settings hub → both courier pages, breadcrumbs, light+dark, console clean, screenshots. QuadX grep + suite frozenness proof. Commit fixes or report clean.
+- [ ] Full suites; `npm run build` + clears. Browser (Playwright, 8001): queue tabs/counts, two-step booking modal (QuadX step 2 unchanged; SPX step 2 with dummy creds via UI, flipped back after), viewing drawer, returns page, settings hub → both courier pages, breadcrumbs, light+dark, console clean, screenshots. QuadX grep + suite frozenness proof. Commit fixes or report clean.
 
 ### Task 6: Live UAT gate (sanctioned real outbound; owner-in-the-loop)
 
@@ -96,4 +96,4 @@
 
 - Directive coverage: unified ERP look → W2 (+W3/W4 same grammar); common status spine → W1 (validated against Shopee/Lazada/TikTok vocab); returns separate → W4; per-courier settings → W3; courier-first workflow → W2 step 1; pouch-for-SPX with dims override → T1 presets + T2 parcel_info + T4 UI; who-pays → existing option method (QuadX) + payment_role (SPX); "how SPX charges me" → estimateFee pre-book + batch_get_asf actual.
 - Interface evolution ledger (all five sanctioned, all QuadX-safe defaults): resolvePendingCreation (T2), printLabel note (T3), statusPhase re-bucket (W1), estimateFee (W2/T2), getPickupSlots (W2/T2).
-- Risks for reviewers: W2 payload byte-identity for QuadX through a rebuilt drawer (the hard gate); W3 allowlist derivation must stay per-courier airtight; T1 signer byte-exactness; T3 ack mechanism on no-worker dev; T6 only real-HTTP task.
+- Risks for reviewers: W2 payload byte-identity for QuadX through the booking-form move from drawer to modal (the hard gate); W3 allowlist derivation must stay per-courier airtight; T1 signer byte-exactness; T3 ack mechanism on no-worker dev; T6 only real-HTTP task.
