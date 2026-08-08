@@ -809,10 +809,25 @@ class SpxFulfillment implements CourierFulfillmentInterface
      * spx_user_secret) — persist() itself is a private controller method,
      * so this duplicates its two-line pattern rather than reaching into it.
      *
+     * Review fix (Important): "only while spx_user_id is empty" was
+     * previously UI-only (the settings page just doesn't render the button
+     * once a User ID is on file) — a direct POST (stale tab, double-submit,
+     * a re-issued request) still reached SPX and REPLACED the stored
+     * user_id/user_secret, silently orphaning whatever account existing
+     * bookings were made under (their tracking/cancel/label calls all send
+     * the NEW user_secret against orders SPX associates with the OLD
+     * account). Guarded here, server-side, first — before even checking
+     * app credentials — so a repeat/direct POST makes NO outbound call and
+     * changes nothing once an account already exists.
+     *
      * @return array{ok:bool, message?:string, error?:string}
      */
     public function createShipperAccount(): array
     {
+        if (!empty(Setting::where('group', 'courier')->where('key', 'spx_user_id')->value('value'))) {
+            return ['ok' => false, 'error' => 'An SPX shipper account is already on file (User ID set) — remove it first if you really need to replace it, so existing bookings are not silently orphaned.'];
+        }
+
         if (!$this->client->isConfigured()) {
             return ['ok' => false, 'error' => 'Set the App ID / App Secret before creating a shipper account.'];
         }

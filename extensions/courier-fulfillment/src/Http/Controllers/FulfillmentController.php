@@ -332,12 +332,32 @@ class FulfillmentController extends Controller
             // 'pickup_slot'] reads (see resolveParcelDims()/
             // fulfillmentInfo() — both already handled these keys since
             // T2, they just never had a way to arrive from this form).
-            'length_cm'        => 'sometimes|numeric|min:0.01',
-            'width_cm'         => 'sometimes|numeric|min:0.01',
-            'height_cm'        => 'sometimes|numeric|min:0.01',
-            'weight_kg'        => 'sometimes|numeric|min:0.01',
-            'pickup_slot'      => 'sometimes|string',
+            //
+            // Review fix (Critical): the browser ALWAYS submits
+            // pickup_slot (pre-selected "Drop off myself", value="") even
+            // when SPX isn't the chosen courier at all (the field lives in
+            // the shared form's DOM whenever it exists — see the
+            // x-if-not-x-show fix's own docblock). Laravel's
+            // ConvertEmptyStringsToNull middleware turns that "" into null
+            // BEFORE validation runs, so `sometimes|string` (present but
+            // not a string) rejected EVERY booking with a 422 — this was
+            // never exercised by a test because every test posted the key
+            // as absent, not as "". `nullable` is required alongside
+            // `sometimes` so a present-but-null value passes.
+            'length_cm'        => 'sometimes|nullable|numeric|min:0.01',
+            'width_cm'         => 'sometimes|nullable|numeric|min:0.01',
+            'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
+            'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
+            'pickup_slot'      => 'sometimes|nullable|string',
         ]);
+
+        // Review fix (Critical): drop any of the optional keys above that
+        // validated as present-but-null (the blank "Drop off myself" /
+        // empty custom-dims case) BEFORE they reach FulfillmentService::
+        // book() -> createShipment()'s $opts — so every downstream read
+        // sees either a real value or a genuinely ABSENT key, never an
+        // explicit null muddying `$opts['x'] ?? $default` fallbacks.
+        $data = array_filter($data, fn ($v) => $v !== null);
 
         if (FulfillmentService::isActivelyBooked($order)) {
             return back()->with('error', "Order #{$order->id} is already booked ({$order->courier_tracking_number}).");
@@ -366,17 +386,22 @@ class FulfillmentController extends Controller
      */
     public function estimate(Request $request, Order $order)
     {
+        // Review fix (Critical): same nullable fix as book() above — the
+        // browser always submits pickup_slot="" (-> null after
+        // ConvertEmptyStringsToNull) even for a drop-off booking, and this
+        // endpoint is hit by the SAME form's "Get estimate" button via
+        // FormData(bookForm), so it 422'd identically.
         $data = $request->validate([
             'courier'          => 'required|string',
             'service'          => 'sometimes|string',
             'parcel'           => 'sometimes|string',
             'shipping_payment' => 'sometimes|string',
             'insure'           => 'sometimes|boolean',
-            'length_cm'        => 'sometimes|numeric|min:0.01',
-            'width_cm'         => 'sometimes|numeric|min:0.01',
-            'height_cm'        => 'sometimes|numeric|min:0.01',
-            'weight_kg'        => 'sometimes|numeric|min:0.01',
-            'pickup_slot'      => 'sometimes|string',
+            'length_cm'        => 'sometimes|nullable|numeric|min:0.01',
+            'width_cm'         => 'sometimes|nullable|numeric|min:0.01',
+            'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
+            'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
+            'pickup_slot'      => 'sometimes|nullable|string',
         ]);
 
         $courier = CourierManager::get((string) $data['courier']);
@@ -384,7 +409,9 @@ class FulfillmentController extends Controller
             return response()->json(['ok' => false, 'message' => 'Selected courier is not available.']);
         }
 
-        $opts = collect($data)->except('courier')->all();
+        // Review fix (Critical): drop present-but-null keys before they
+        // reach estimateFee()'s $opts — same reasoning as book() above.
+        $opts = collect($data)->except('courier')->filter(fn ($v) => $v !== null)->all();
         $opts['insure'] = $request->boolean('insure');
 
         $estimate = $courier->estimateFee($order, $opts);

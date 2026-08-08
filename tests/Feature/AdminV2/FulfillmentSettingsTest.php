@@ -567,6 +567,44 @@ class FulfillmentSettingsTest extends TestCase
         $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'spx_user_id']);
     }
 
+    /**
+     * Review fix (Important): "only while spx_user_id is empty" was UI-only
+     * — the settings page just doesn't render the button once a User ID is
+     * on file, but nothing stopped a direct POST (a stale tab, a
+     * double-submitted form) from calling SPX and REPLACING the stored
+     * user_id/user_secret, orphaning whatever account existing bookings
+     * were made under. This proves the server-side guard: with a User ID
+     * already on file, a direct POST makes NO outbound HTTP call and
+     * changes NOTHING — not the stored credentials, not any other setting.
+     */
+    public function test_create_shipper_account_refuses_a_direct_post_when_a_user_id_is_already_on_file(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
+        Setting::create(['group' => 'courier', 'key' => 'spx_user_id', 'value' => '999999']);
+        $originalSecret = Crypt::encryptString('original-user-secret-not-real');
+        Setting::create(['group' => 'courier', 'key' => 'spx_user_secret', 'value' => $originalSecret]);
+        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+
+        // Http::fake() with NO stub registered — any outbound call this
+        // test didn't anticipate throws, so Http::assertNothingSent() below
+        // is a genuine proof, not just an unasserted absence.
+        Http::fake();
+
+        $response = $this->post($this->settingsUrl('/spx/create-account'));
+        $response->assertRedirect();
+        $response->assertSessionHas('error');
+
+        Http::assertNothingSent();
+
+        // Nothing changed: same user_id, same (still-encrypted) secret.
+        $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'spx_user_id', 'value' => '999999']);
+        $this->assertSame($originalSecret, Setting::where('group', 'courier')->where('key', 'spx_user_secret')->value('value'));
+    }
+
     /** A courier without createShipperAccount() (e.g. QuadX) gets a clear error, never a 404 or a fatal. */
     public function test_create_shipper_account_route_is_graceful_for_a_courier_that_does_not_support_it(): void
     {

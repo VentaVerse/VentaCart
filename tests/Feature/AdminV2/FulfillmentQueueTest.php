@@ -629,4 +629,143 @@ class FulfillmentQueueTest extends TestCase
         $response->assertOk()->assertJson(['ok' => false]);
         Http::assertNothingSent();
     }
+
+    // ------------------------------------------------------------------
+    // Review fix (Critical): the SPX step-2 form ALWAYS submits
+    // pickup_slot="" (the pre-selected "Drop off myself" option) for a
+    // default drop-off booking — never absent — and
+    // ConvertEmptyStringsToNull turns that "" into null BEFORE validation
+    // runs. `sometimes|string` (without `nullable`) rejected a present
+    // null with a 422, blocking EVERY default SPX booking/estimate. These
+    // tests post the EXACT field set the browser sends (through the full
+    // HTTP stack, not a direct method call) so this class of bug can't
+    // silently return.
+    // ------------------------------------------------------------------
+
+    public function test_booking_succeeds_with_the_exact_browser_field_set_for_a_default_drop_off_spx_order(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpx();
+        $this->configureSpxPickupOrigin();
+
+        $order = $this->makeCompleteOrder();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 207982800897461]]),
+            '*get_order_create_result*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'batch_no' => 207982800897461, 'task_status' => 4, 'description' => 'Done',
+                    'total_count' => 1, 'success_count' => 1, 'fail_count' => 0, 'progress' => '100.00%',
+                    'orders' => [['order_id' => (string) $order->id, 'tracking_no' => 'SPXPH000000000001', 'estimated_shipping_fee' => 25]],
+                    'fail_list' => [],
+                ],
+            ]),
+        ]);
+
+        // Exactly what the browser posts for a default (non-custom,
+        // drop-off) SPX booking: pickup_slot present as "" — the
+        // pre-selected "Drop off myself" <option value="">, never absent.
+        // No dims fields — they're outside the DOM entirely unless
+        // parcel === 'custom' (the x-if fix), so a real browser never
+        // sends them here, but ConvertEmptyStringsToNull's effect on
+        // pickup_slot alone was already enough to 422 every booking.
+        $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
+            'courier'          => 'spx',
+            'service'          => 'standard',
+            'parcel'           => 'medium',
+            'shipping_payment' => 'sender_pay',
+            'insure'           => '0',
+            'pickup_slot'      => '',
+        ]);
+
+        $response->assertSessionDoesntHaveErrors();
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertSame('SPXPH000000000001', $order->courier_tracking_number);
+    }
+
+    public function test_booking_succeeds_when_blank_dims_strings_are_also_present(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpx();
+        $this->configureSpxPickupOrigin();
+
+        $order = $this->makeCompleteOrder();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 207982800897462]]),
+            '*get_order_create_result*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'batch_no' => 207982800897462, 'task_status' => 4, 'description' => 'Done',
+                    'total_count' => 1, 'success_count' => 1, 'fail_count' => 0, 'progress' => '100.00%',
+                    'orders' => [['order_id' => (string) $order->id, 'tracking_no' => 'SPXPH000000000002', 'estimated_shipping_fee' => 25]],
+                    'fail_list' => [],
+                ],
+            ]),
+        ]);
+
+        // Defense-in-depth: even if all four dims fields somehow arrive as
+        // blank strings (-> null) alongside a NON-custom preset, the
+        // booking must still succeed via the preset — not 422 on the dims
+        // rules, and not mistake nulled dims for a custom-dims attempt.
+        $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [
+            'courier'          => 'spx',
+            'service'          => 'standard',
+            'parcel'           => 'medium',
+            'shipping_payment' => 'sender_pay',
+            'insure'           => '0',
+            'pickup_slot'      => '',
+            'length_cm'        => '',
+            'width_cm'         => '',
+            'height_cm'        => '',
+            'weight_kg'        => '',
+        ]);
+
+        $response->assertSessionDoesntHaveErrors();
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertSame('SPXPH000000000002', $order->courier_tracking_number);
+    }
+
+    public function test_estimate_route_200s_with_the_exact_browser_field_set_for_a_default_drop_off_spx_order(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableSpx();
+        $this->configureSpxPickupOrigin();
+
+        $order = $this->makeCompleteOrder();
+
+        Http::fake([
+            '*batch_check_order*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['orders' => [['order_id' => (string) $order->id, 'estimated_shipping_fee' => 55.5]]],
+            ]),
+        ]);
+
+        $response = $this->postJson($this->queueUrl() . '/' . $order->id . '/estimate', [
+            'courier'          => 'spx',
+            'service'          => 'standard',
+            'parcel'           => 'medium',
+            'shipping_payment' => 'sender_pay',
+            'insure'           => '0',
+            'pickup_slot'      => '',
+            'length_cm'        => '',
+            'width_cm'         => '',
+            'height_cm'        => '',
+            'weight_kg'        => '',
+        ]);
+
+        $response->assertOk();
+        $response->assertJson(['ok' => true]);
+        $response->assertJsonPath('amount', 55.5);
+    }
 }
