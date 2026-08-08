@@ -129,10 +129,10 @@ class SendAbandonedCartNotifications extends Command
             $cartItemsHtml = $cart->items->map(function ($item) {
                 $label = $item->name;
                 if ($item->variant_label) {
-                    $label .= ' — ' . $item->variant_label;
+                    $label .= ' (' . $item->variant_label . ')';
                 }
                 return '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">'
-                    . e($item->quantity) . 'x ' . e($label) . ' — '
+                    . e($item->quantity) . 'x ' . e($label) . ': '
                     . number_format($item->price * $item->quantity, 2)
                     . '</p>';
             })->implode('');

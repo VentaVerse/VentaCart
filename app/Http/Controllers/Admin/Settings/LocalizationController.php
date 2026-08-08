@@ -130,7 +130,7 @@ class LocalizationController extends Controller
 
         $geoZone = GeoZone::create($validated);
 
-        return redirect()->route('admin.localization.edit-geo-zone', $geoZone)->with('success', 'Geo zone created — now add entries.');
+        return redirect()->route('admin.localization.edit-geo-zone', $geoZone)->with('success', 'Geo zone created, now add entries.');
     }
 
     public function editGeoZone(GeoZone $geoZone)

@@ -28,7 +28,7 @@ class StockNotificationMail extends Mailable
             'customer_name' => $notification->name,
             'product_name' => $product->name,
             'product_url' => route('product.show', $product->slug),
-            'variant_name' => $variant ? ' — ' . $variant->name : '',
+            'variant_name' => $variant ? ' (' . $variant->name . ')' : '',
             'product_image' => $product->images->first()
                 ? asset('storage/' . $product->images->first()->path)
                 : '',

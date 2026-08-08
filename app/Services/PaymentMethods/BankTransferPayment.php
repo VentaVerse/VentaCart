@@ -56,7 +56,7 @@ class BankTransferPayment implements PaymentMethodInterface
         if ($this->bankAccount) {
             $desc = $this->bankAccount->account_name . ' | ' . $this->bankAccount->account_number;
             if ($this->bankAccount->instructions) {
-                $desc .= ' — ' . $this->bankAccount->instructions;
+                $desc .= '. ' . $this->bankAccount->instructions;
             }
             return $desc;
         }

@@ -66,7 +66,7 @@ class ShippingCourierController extends Controller
         $hasOrders = \App\Models\Order::where('shipping_courier_id', $shippingCourier->id)->exists();
         if ($hasOrders) {
             return redirect()->route('admin.shipping-couriers.index')
-                ->with('error', 'Cannot delete — courier is used by existing orders.');
+                ->with('error', 'Cannot delete: courier is used by existing orders.');
         }
 
         $shippingCourier->delete();

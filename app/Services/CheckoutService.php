@@ -108,7 +108,7 @@ class CheckoutService
 
                 if ($item->productVariant) {
                     if ($item->productVariant->quantity < $item->quantity) {
-                        $label = $item->name . ($item->variant_label ? ' — ' . $item->variant_label : '');
+                        $label = $item->name . ($item->variant_label ? ' (' . $item->variant_label . ')' : '');
                         $outOfStock[] = $label;
                     }
                 } elseif ($product->quantity < $item->quantity) {
@@ -457,7 +457,7 @@ class CheckoutService
                     . '<td style="padding: 2px 0 8px 0; font-size: 13px; color: #e8e8e8; text-align: right;">' . e($bankAcct->account_number) . '</td></tr>'
                     . '<tr><td colspan="2" style="padding: 8px 0 0 0; font-size: 13px; color: #999; border-top: 1px solid #333;">Instructions:</td></tr>'
                     . '<tr><td colspan="2" style="padding: 4px 0 0 0; font-size: 13px; color: #e8e8e8; line-height: 1.5;">'
-                    . ($bankAcct->instructions ? nl2br(e($bankAcct->instructions)) : '<span style="color: #666;">—</span>')
+                    . ($bankAcct->instructions ? nl2br(e($bankAcct->instructions)) : '<span style="color: #666;">-</span>')
                     . '</td></tr></table>';
 
                 if ($bankAcct->qr_image) {
@@ -477,7 +477,7 @@ class CheckoutService
     {
         $noteText = $order->comment
             ? nl2br(e($order->comment))
-            : '<span style="color: #666;">—</span>';
+            : '<span style="color: #666;">-</span>';
 
         return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;">'
             . '<tr><td style="padding: 16px 20px;">'
@@ -500,7 +500,7 @@ class CheckoutService
             }
 
             $textHtml = e($item->name)
-                . ($item->variant_label ? ' — ' . e($item->variant_label) : '')
+                . ($item->variant_label ? ' (' . e($item->variant_label) . ')' : '')
                 . ' &times; ' . $item->quantity
                 . ' = ' . $currency . number_format($item->total, 2);
 

@@ -382,7 +382,7 @@
                                     <option value="">-- Please Select --</option>
                                     @foreach ($type->values as $option)
                                         @php $optStock = $valueStockMap[$option->id] ?? null; @endphp
-                                        <option value="{{ $option->id }}">{{ $option->value }}{{ $optStock !== null ? ($optStock > 0 ? " — In Stock ({$optStock})" : ' — Out of Stock') : '' }}</option>
+                                        <option value="{{ $option->id }}">{{ $option->value }}{{ $optStock !== null ? ($optStock > 0 ? ": In Stock ({$optStock})" : ': Out of Stock') : '' }}</option>
                                     @endforeach
                                 </select>
                             </div>

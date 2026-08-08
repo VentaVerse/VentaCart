@@ -673,7 +673,7 @@ class SeoExtensionController extends Controller
                 return back()->with('success', 'Claude API connection successful! Model: ' . $model);
             }
 
-            return back()->with('error', 'Claude API error: ' . $response->status() . ' — ' . ($response->json('error.message') ?? $response->body()));
+            return back()->with('error', 'Claude API error: ' . $response->status() . ': ' . ($response->json('error.message') ?? $response->body()));
         } catch (\Throwable $e) {
             return back()->with('error', 'Claude API test failed: ' . $e->getMessage());
         }

@@ -236,7 +236,7 @@
                             <div>
                                 <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
                                 <div class="flex gap-2">
-                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
+                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '-'"></span>
                                     <input type="tel" x-model="newAddr.phone" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                             </div>
@@ -391,7 +391,7 @@
                             <div>
                                 <label class="account-label">Mobile Number</label>
                                 <div class="flex gap-2">
-                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '—'"></span>
+                                    <span class="inline-flex items-center px-3 rounded-md bg-gray-100 border border-gray-300 text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '-'"></span>
                                     <input type="tel" x-model="$data.billing.phone" class="account-input flex-1" placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                             </div>
@@ -447,7 +447,7 @@
                     {{-- Place Order --}}
                     @if ($activeCurrency && !$activeCurrency->is_default)
                         <p class="text-xs text-[var(--color-text-muted)] text-right mb-3">
-                            Prices shown in {{ $activeCurrency->code }} — your order is charged in {{ $defaultCurrency->code }}.
+                            Prices shown in {{ $activeCurrency->code }}. Your order is charged in {{ $defaultCurrency->code }}.
                         </p>
                     @endif
                     <div class="flex items-center justify-end gap-3">

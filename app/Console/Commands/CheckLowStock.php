@@ -88,7 +88,7 @@ class CheckLowStock extends Command
             }
 
             TemplateMailService::send('low_stock_admin', $alertEmail, [
-                'product_name' => $variant->product->name . ' — ' . ($variant->name ?? $variant->sku),
+                'product_name' => $variant->product->name . ' (' . ($variant->name ?? $variant->sku) . ')',
                 'product_sku' => $variant->sku ?? 'N/A',
                 'current_qty' => $variant->quantity,
                 'threshold' => $threshold,

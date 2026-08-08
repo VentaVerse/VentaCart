@@ -22,7 +22,7 @@ class AbandonedCartController extends Controller
     {
         return [
             'customer_name' => 'John Doe',
-            'cart_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal — 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft — 2,100.00</p>',
+            'cart_items' => '<p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Boss DS-1 Distortion Pedal: 2,499.00</p><p style="margin: 4px 0; font-size: 14px; color: #e8e8e8;">1x Mogami Gold Cable 10ft: 2,100.00</p>',
             'cart_total' => '4,599.00',
             'cart_url' => '#',
             'store_name' => config('app.name'),
@@ -165,7 +165,7 @@ class AbandonedCartController extends Controller
         $inUse = AbandonedCartRule::where('email_template_id', $emailTemplate->id)->exists();
 
         if ($inUse) {
-            return back()->with('error', 'Cannot delete — this template is used by a rule.');
+            return back()->with('error', 'Cannot delete: this template is used by a rule.');
         }
 
         $emailTemplate->delete();

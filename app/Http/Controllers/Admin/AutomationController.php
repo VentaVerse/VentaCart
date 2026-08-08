@@ -65,7 +65,7 @@ class AutomationController extends Controller
         if (!$automation->enabled) {
             return response()->json([
                 'success' => false,
-                'message' => 'Enable the automation first — disabled tasks cannot be run manually.',
+                'message' => 'Enable the automation first. Disabled tasks cannot be run manually.',
             ], 422);
         }
 

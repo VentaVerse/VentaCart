@@ -137,7 +137,7 @@ class Order extends Model
             $accountId = (int) preg_replace('/^bank_transfer_?/', '', $key);
             if ($accountId) {
                 $bankName = BankAccount::where('id', $accountId)->value('bank_name');
-                return 'Bank Transfer' . ($bankName ? ' — ' . $bankName : '');
+                return 'Bank Transfer' . ($bankName ? ': ' . $bankName : '');
             }
             return 'Bank Transfer';
         }

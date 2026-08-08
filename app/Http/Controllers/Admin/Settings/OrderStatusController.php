@@ -78,7 +78,7 @@ class OrderStatusController extends Controller
         $hasOrders = \App\Models\Order::where('order_status_id', $orderStatus->id)->exists();
         if ($hasOrders) {
             return redirect()->route('admin.order-statuses.index')
-                ->with('error', 'Cannot delete — status is used by existing orders.');
+                ->with('error', 'Cannot delete: status is used by existing orders.');
         }
 
         $orderStatus->delete();

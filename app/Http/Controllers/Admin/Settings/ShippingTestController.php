@@ -45,8 +45,8 @@ class ShippingTestController extends Controller
             'quotes' => $results,
             'winner' => $results[0]['key'] ?? null,
             'explanation' => $results === []
-                ? 'No methods quoted — check provider enablement, zones, and weight tiers.'
-                : ($freeMatched ? 'A free-shipping rule matched — all paid methods are suppressed.' : 'Methods sorted by the quote chain; the customer sees all of these.'),
+                ? 'No methods quoted. Check provider enablement, zones, and weight tiers.'
+                : ($freeMatched ? 'A free-shipping rule matched. All paid methods are suppressed.' : 'Methods sorted by the quote chain; the customer sees all of these.'),
         ]);
     }
 }

@@ -144,7 +144,7 @@ class ModuleController extends Controller
         $state = $this->manager->state($name);
 
         if (! in_array($state, self::ALLOWED_FROM_STATE[$action], true)) {
-            return back()->with('error', "Can't {$action} \"{$manifest['title']}\" — it's currently {$state}.");
+            return back()->with('error', "Can't {$action} \"{$manifest['title']}\". It's currently {$state}.");
         }
 
         $wasCacheStale = $this->manager->routesCacheStale();
