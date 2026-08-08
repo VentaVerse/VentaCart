@@ -778,7 +778,8 @@ class SpxFulfillmentTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_get_pickup_slots_returns_the_documented_shape(): void
+    /** Date-based picker (owner call: no time-window picker, one option per date): a single date with "Now" offered collapses to one option carrying that "Now" slot, labeled as a readable date (not a time window). */
+    public function test_get_pickup_slots_returns_one_dated_option_preferring_now(): void
     {
         $this->configureAccountCredentials();
         Http::fake(['*get_pickup_time*' => Http::response([
@@ -794,11 +795,76 @@ class SpxFulfillmentTest extends TestCase
 
         $slots = $this->courier()->getPickupSlots($this->makeOrder());
 
-        $this->assertCount(2, $slots);
+        $this->assertCount(1, $slots);
         $decoded = json_decode($slots[0]['value'], true);
         $this->assertSame(1645088400, $decoded['pickup_time']);
         $this->assertSame(0, $decoded['pickup_time_range_id']);
-        $this->assertStringContainsString('Now', $slots[0]['label']);
+        $this->assertSame('Now', $decoded['pickup_time_range']);
+        // Readable date label, e.g. "Thu, Feb 17" — no time window in the label.
+        $this->assertMatchesRegularExpression('/^[A-Za-z]{3}, [A-Za-z]{3} \d{2}$/', $slots[0]['label']);
+        $this->assertStringNotContainsString('Now', $slots[0]['label']);
+    }
+
+    /** Collapse-by-date: 2 dates x 2 windows each yields exactly 2 options (one per date), not 4. */
+    public function test_get_pickup_slots_collapses_multiple_windows_per_date(): void
+    {
+        $this->configureAccountCredentials();
+        Http::fake(['*get_pickup_time*' => Http::response([
+            'ret_code' => 0, 'message' => 'success.',
+            'data' => [
+                [
+                    'date' => '2022-02-17', 'pickup_time' => 1645088400,
+                    'slots' => [
+                        ['pickup_time_range_id' => 1, 'pickup_time_range' => '10:00am-12:00am'],
+                        ['pickup_time_range_id' => 2, 'pickup_time_range' => '2:00pm-4:00pm'],
+                    ],
+                ],
+                [
+                    'date' => '2022-02-18', 'pickup_time' => 1645174800,
+                    'slots' => [
+                        ['pickup_time_range_id' => 1, 'pickup_time_range' => '10:00am-12:00am'],
+                        ['pickup_time_range_id' => 2, 'pickup_time_range' => '2:00pm-4:00pm'],
+                    ],
+                ],
+            ],
+        ])]);
+
+        $slots = $this->courier()->getPickupSlots($this->makeOrder());
+
+        $this->assertCount(2, $slots);
+
+        // No range id 0 offered on either date -> earliest falls back to the
+        // FIRST slot in that date's own slots[] array (SPX's own ordering).
+        $first = json_decode($slots[0]['value'], true);
+        $this->assertSame(1645088400, $first['pickup_time']);
+        $this->assertSame(1, $first['pickup_time_range_id']);
+        $this->assertSame('10:00am-12:00am', $first['pickup_time_range']);
+
+        $second = json_decode($slots[1]['value'], true);
+        $this->assertSame(1645174800, $second['pickup_time']);
+        $this->assertSame(1, $second['pickup_time_range_id']);
+    }
+
+    /** A date with no usable slots (empty slots[]) is skipped entirely, never a phantom/blocked date. */
+    public function test_get_pickup_slots_skips_dates_with_no_slots(): void
+    {
+        $this->configureAccountCredentials();
+        Http::fake(['*get_pickup_time*' => Http::response([
+            'ret_code' => 0, 'message' => 'success.',
+            'data' => [
+                ['date' => '2022-02-17', 'pickup_time' => 1645088400, 'slots' => []],
+                [
+                    'date' => '2022-02-18', 'pickup_time' => 1645174800,
+                    'slots' => [['pickup_time_range_id' => 0, 'pickup_time_range' => 'Now']],
+                ],
+            ],
+        ])]);
+
+        $slots = $this->courier()->getPickupSlots($this->makeOrder());
+
+        $this->assertCount(1, $slots);
+        $decoded = json_decode($slots[0]['value'], true);
+        $this->assertSame(1645174800, $decoded['pickup_time']);
     }
 
     public function test_get_pickup_slots_is_empty_without_user_credentials(): void
@@ -806,6 +872,51 @@ class SpxFulfillmentTest extends TestCase
         Http::fake();
         $this->assertSame([], (new SpxFulfillment())->getPickupSlots($this->makeOrder()));
         Http::assertNothingSent();
+    }
+
+    /** createShipment still sends the three pickup fields exactly as returned by a chosen date option (collapsed pickup_slot value flows through unchanged), switching collect_type to pickup. */
+    public function test_create_shipment_sends_pickup_fields_from_a_chosen_date_option(): void
+    {
+        $this->configureAccountCredentials();
+        $this->configurePickupOrigin();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 207982800897461]]),
+            '*get_order_create_result*' => Http::response($this->doneCreateResultResponse('SPEPH000000000002')),
+        ]);
+
+        $order = $this->makeOrder();
+        OrderProduct::create([
+            'order_id' => $order->id, 'name' => 'Guitar Strap', 'price' => 500, 'quantity' => 2, 'total' => 1000,
+        ]);
+
+        // The exact JSON blob a chosen date option's `value` carries (see
+        // getPickupSlots()) — createShipment() must decode and forward it
+        // unchanged, same as before the date-collapse change.
+        $pickupSlot = json_encode([
+            'pickup_time'          => 1645088400,
+            'pickup_time_range_id' => 0,
+            'pickup_time_range'    => 'Now',
+        ]);
+
+        $this->courier()->createShipment($order, [
+            'service' => 'standard',
+            'parcel'  => 'medium',
+            'shipping_payment' => 'sender_pay',
+            'pickup_slot' => $pickupSlot,
+        ]);
+
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), 'batch_create_order')) {
+                return false;
+            }
+            $o = $request->data()['orders'][0];
+
+            return $o['fulfillment_info']['collect_type'] === 1
+                && $o['fulfillment_info']['pickup_time'] === 1645088400
+                && $o['fulfillment_info']['pickup_time_range_id'] === 0
+                && $o['fulfillment_info']['pickup_time_range'] === 'Now';
+        });
     }
 
     // ------------------------------------------------------------------

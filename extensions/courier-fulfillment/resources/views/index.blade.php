@@ -814,13 +814,13 @@
                                                 </div>
                                             </template>
 
-                                            <x-admin.field name="pickup_slot" label="Pickup slot (optional)" help="Leave as drop-off if you'll bring this parcel to SPX yourself.">
+                                            <x-admin.field name="pickup_slot" label="Pickup date (optional)" help="Drop-off is the default. SPX decides which dates are available for pickup.">
                                                 <x-admin.select name="pickup_slot">
                                                     <option value="">Drop off myself</option>
                                                     <template x-for="o in spxPickupSlots" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                                 </x-admin.select>
                                             </x-admin.field>
-                                            <p x-show="spxPickupSlotsLoading" x-cloak class="text-xs text-v-muted">Loading pickup slots&hellip;</p>
+                                            <p x-show="spxPickupSlotsLoading" x-cloak class="text-xs text-v-muted">Loading pickup dates&hellip;</p>
 
                                             <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 flex items-center justify-between gap-3">
                                                 <div>

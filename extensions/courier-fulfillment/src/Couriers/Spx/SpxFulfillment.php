@@ -510,12 +510,20 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * 1.1 Get Pickup Timeslot (get_pickup_time). Each option's `value` is a
-     * small JSON blob carrying exactly the three fields SPX's create/update
-     * endpoints need (pickup_time, pickup_time_range_id, pickup_time_range)
-     * — createShipment() decodes that same shape back out of
-     * $opts['pickup_slot'] the moment a future booking-form UI wires a slot
-     * picker in (see fulfillmentInfo()'s docblock).
+     * 1.1 Get Pickup Timeslot (get_pickup_time), collapsed to ONE option per
+     * DATE (owner call: date-only, no time-window picker in the booking
+     * form). Each option's `value` is still the same small JSON blob
+     * carrying exactly the three fields SPX's create/update endpoints need
+     * (pickup_time, pickup_time_range_id, pickup_time_range) — createShipment()
+     * decodes that same shape back out of $opts['pickup_slot'] unchanged
+     * (see fulfillmentInfo()'s docblock) — it's just now populated with that
+     * date's EARLIEST available window rather than a window the admin chose
+     * directly: SPX's own range id 0 ("Now") when offered, else the first
+     * entry in that date's slots[] array (SPX's own ordering, never
+     * re-sorted). Which dates appear at all is entirely SPX's own decision
+     * (its own cutoff, e.g. same-day pickup only offered before some cutoff
+     * time) — this never synthesizes a date SPX didn't return. A day with no
+     * usable slot is skipped, never shown as an empty option.
      */
     public function getPickupSlots(Order $order): array
     {
@@ -535,25 +543,39 @@ class SpxFulfillment implements CourierFulfillmentInterface
 
         $options = [];
         foreach ($days as $day) {
-            $date = $day['date'] ?? null;
             $pickupTime = $day['pickup_time'] ?? null;
-            if ($date === null || $pickupTime === null) {
+            $slots = $day['slots'] ?? [];
+            if ($pickupTime === null || empty($slots)) {
                 continue;
             }
-            foreach ($day['slots'] ?? [] as $slot) {
+
+            $earliest = null;
+            foreach ($slots as $slot) {
                 if (!isset($slot['pickup_time_range_id'])) {
                     continue;
                 }
-                $range = (string) ($slot['pickup_time_range'] ?? '');
-                $options[] = [
-                    'value' => json_encode([
-                        'pickup_time'          => (int) $pickupTime,
-                        'pickup_time_range_id' => (int) $slot['pickup_time_range_id'],
-                        'pickup_time_range'    => $range,
-                    ]),
-                    'label' => "{$date} · {$range}",
-                ];
+                if ((int) $slot['pickup_time_range_id'] === 0) {
+                    $earliest = $slot;
+                    break;
+                }
+                if ($earliest === null) {
+                    $earliest = $slot;
+                }
             }
+            if ($earliest === null) {
+                continue;
+            }
+
+            $options[] = [
+                'value' => json_encode([
+                    'pickup_time'          => (int) $pickupTime,
+                    'pickup_time_range_id' => (int) $earliest['pickup_time_range_id'],
+                    'pickup_time_range'    => (string) ($earliest['pickup_time_range'] ?? ''),
+                ]),
+                'label' => \Carbon\Carbon::createFromTimestamp((int) $pickupTime)
+                    ->timezone(config('app.timezone'))
+                    ->format('D, M d'),
+            ];
         }
         return $options;
     }
