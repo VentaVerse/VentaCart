@@ -83,6 +83,88 @@ class SpxClient
         ]);
     }
 
+    /**
+     * 1.4 Create Order V2 (batch_create_order) — submits up to 100 orders,
+     * returns only `batch_no` (data.batch_no). Genuinely async: the caller
+     * must poll getOrderCreateResult() for the real tracking number(s).
+     *
+     * @param array<int,array> $orders each shaped per api.md §1.4's orders[] table
+     */
+    public function createOrders(array $orders): array
+    {
+        return $this->post('/open/api/v2/order/batch_create_order', [
+            'user_id'     => (int) $this->userId(),
+            'user_secret' => (string) $this->userSecret(),
+            'orders'      => $orders,
+        ]);
+    }
+
+    /** 1.5 Get Order Create Result V2 (get_order_create_result) — poll with the batch_no from createOrders(). */
+    public function getOrderCreateResult(int $batchNo): array
+    {
+        return $this->post('/open/api/v2/order/get_order_create_result', [
+            'user_id'     => (int) $this->userId(),
+            'user_secret' => (string) $this->userSecret(),
+            'batch_no'    => $batchNo,
+        ]);
+    }
+
+    /** 1.3 Cancel Order (batch_cancel_order) — tracking_no_list MUST be a real JSON array, never a comma-joined string. */
+    public function cancelOrders(array $trackingNumbers): array
+    {
+        return $this->post('/open/api/v1/order/batch_cancel_order', [
+            'user_id'          => (int) $this->userId(),
+            'user_secret'      => (string) $this->userSecret(),
+            'tracking_no_list' => array_values($trackingNumbers),
+        ]);
+    }
+
+    /** 1.2 Track Order (batch_search_order). */
+    public function trackOrders(array $trackingNumbers): array
+    {
+        return $this->post('/open/api/v1/order/batch_search_order', [
+            'user_id'          => (int) $this->userId(),
+            'user_secret'      => (string) $this->userSecret(),
+            'tracking_no_list' => array_values($trackingNumbers),
+        ]);
+    }
+
+    /** 2.1 Check Shipping Fee (batch_check_order) — estimated fee BEFORE order creation. */
+    public function checkOrderFee(array $orders): array
+    {
+        return $this->post('/open/api/v1/order/batch_check_order', [
+            'user_id'     => (int) $this->userId(),
+            'user_secret' => (string) $this->userSecret(),
+            'orders'      => $orders,
+        ]);
+    }
+
+    /** 2.2 Get Order Fee (batch_get_asf) — ACTUAL fee AFTER order creation. */
+    public function getActualFee(array $trackingNumbers): array
+    {
+        return $this->post('/open/api/v1/order/batch_get_asf', [
+            'user_id'          => (int) $this->userId(),
+            'user_secret'      => (string) $this->userSecret(),
+            'tracking_no_list' => array_values($trackingNumbers),
+        ]);
+    }
+
+    /** 1.1 Get Pickup Timeslot (get_pickup_time). $serviceType: 1 = standard service (the only documented value). */
+    public function getPickupTime(int $serviceType = 1): array
+    {
+        return $this->post('/open/api/v1/order/get_pickup_time', [
+            'user_id'      => (int) $this->userId(),
+            'user_secret'  => (string) $this->userSecret(),
+            'service_type' => $serviceType,
+        ]);
+    }
+
+    /** 5.1 Get Address file download link (get_address_download_url) — no request body beyond the standard headers. */
+    public function getAddressDownloadUrl(): array
+    {
+        return $this->post('/open/api/address/get_address_download_url', []);
+    }
+
     // --- HTTP core --------------------------------------------------------
 
     /**
@@ -103,7 +185,17 @@ class SpxClient
         $url = rtrim($this->baseUrl(), '/') . '/' . ltrim($path, '/');
 
         // Encoded ONCE — this exact string is what gets signed AND sent.
+        // Order bodies carry raw customer-entered addresses (name, address
+        // lines, delivery instructions) — invalid UTF-8 in any of those makes
+        // json_encode() return false silently rather than throwing, which
+        // would otherwise sign/send the literal string "false" as the body.
         $payload = json_encode($body);
+        if ($payload === false) {
+            Log::error('SPX request body failed to encode as JSON', [
+                'path' => $path, 'json_error' => json_last_error_msg(),
+            ]);
+            throw new \RuntimeException('SPX request body could not be encoded as JSON: ' . json_last_error_msg());
+        }
 
         $timestamp = time();
         $randomNum = random_int(1, PHP_INT_MAX);

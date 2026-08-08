@@ -107,6 +107,17 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             : ['success' => false, 'error' => $res['error'] ?? 'Cancel failed.'];
     }
 
+    /**
+     * QuadX's createShipment() is synchronous (POST /orders returns the
+     * tracking number directly) — it never produces courier_status='creating',
+     * so there is never anything for the poll command's pending-creation pass
+     * to resolve here. Sanctioned interface evolution #1's QuadX-safe default.
+     */
+    public function resolvePendingCreation(Order $order): ?string
+    {
+        return null;
+    }
+
     public function getTracking(string $trackingNumber): array
     {
         $res = $this->client->getOrder($trackingNumber);

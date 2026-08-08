@@ -29,6 +29,8 @@ class PollCourierStatus extends Command
             return self::SUCCESS;
         }
 
+        [$pendingChecked, $pendingResolved] = $this->resolvePendingCreations();
+
         $checked = 0;
         $updated = 0;
         $failed = 0;
@@ -126,8 +128,86 @@ class PollCourierStatus extends Command
             }
         }
 
-        $this->info("Polled {$checked} in-flight order(s): {$updated} updated, {$failed} failed.");
+        $summary = "Polled {$checked} in-flight order(s): {$updated} updated, {$failed} failed.";
+        if ($pendingChecked > 0) {
+            $summary = "Resolved {$pendingResolved}/{$pendingChecked} pending async creation(s). " . $summary;
+        }
+        $this->info($summary);
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Task T2 (fulfillment-workflow-v2 + SPX plan): resolves orders stuck in
+     * courier_status='creating' — a booking whose courier's own create call
+     * is a submit-then-poll async flow (SPX's batch_create_order) that
+     * didn't finish inside createShipment()'s own bounded poll window. Runs
+     * BEFORE the main getTracking() loop below so a creation resolved in
+     * this same command run (now has a tracking number, courier_status still
+     * null) gets its first real status in the SAME cycle rather than waiting
+     * for the next scheduled run.
+     *
+     * Every registered courier is checked here (not just enabled() ones) —
+     * an admin who disables a courier mid-flight should still see its
+     * already-submitted creations resolve rather than getting stuck in
+     * 'creating' forever. This is safe for every courier: QuadX/Fake's
+     * resolvePendingCreation() is a permanent no-op (their createShipment()
+     * is synchronous and never sets courier_status='creating' in the first
+     * place), so the query below simply finds nothing for them.
+     *
+     * @return array{0:int,1:int} [checked, resolved]
+     */
+    private function resolvePendingCreations(): array
+    {
+        $checked = 0;
+        $resolved = 0;
+
+        foreach (CourierManager::all() as $courier) {
+            $pending = Order::query()
+                ->where('courier_provider', $courier->getKey())
+                ->where('courier_status', 'creating')
+                ->whereNull('courier_tracking_number')
+                ->get();
+
+            foreach ($pending as $order) {
+                $checked++;
+
+                try {
+                    $trackingNumber = $courier->resolvePendingCreation($order);
+                } catch (\Throwable $e) {
+                    Log::warning('courier:poll-status resolvePendingCreation threw', [
+                        'order' => $order->id, 'courier' => $courier->getKey(), 'error' => $e->getMessage(),
+                    ]);
+                    continue;
+                }
+
+                if ($trackingNumber === null) {
+                    // Still pending, or resolvePendingCreation() already
+                    // recorded a terminal failure itself (see its docblock).
+                    continue;
+                }
+
+                // Complete the booking state exactly as createShipment()'s
+                // sync path would via FulfillmentService::book()'s forceFill
+                // — same columns, same "courier_meta is a raw JSON string,
+                // not array-cast" convention.
+                $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+                $meta['pending'] = false;
+                $order->forceFill([
+                    'courier_tracking_number' => $trackingNumber,
+                    // Unknown yet — the main loop below (same run) or the
+                    // next scheduled run fetches the real status via
+                    // getTracking().
+                    'courier_status'          => null,
+                    'courier_meta'            => json_encode($meta),
+                    'tracking_number'         => $trackingNumber,
+                ])->save();
+
+                $resolved++;
+                $this->line("  order {$order->id}: pending {$courier->getName()} creation resolved -> tracking {$trackingNumber}");
+            }
+        }
+
+        return [$checked, $resolved];
     }
 }

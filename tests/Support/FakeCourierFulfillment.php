@@ -57,6 +57,12 @@ class FakeCourierFulfillment implements CourierFulfillmentInterface
         return ['success' => false, 'error' => 'not implemented'];
     }
 
+    /** Never produces courier_status='creating' — nothing async to resolve. */
+    public function resolvePendingCreation(Order $order): ?string
+    {
+        return null;
+    }
+
     public function getTracking(string $trackingNumber): array
     {
         return ['success' => false, 'error' => 'not implemented'];

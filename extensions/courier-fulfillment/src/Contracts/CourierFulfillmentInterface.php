@@ -57,6 +57,32 @@ interface CourierFulfillmentInterface
     /** @return array{success:bool, error?:string} */
     public function cancelShipment(string $trackingNumber): array;
 
+    /**
+     * Sanctioned interface evolution #1 (Task T2, fulfillment-workflow-v2 +
+     * SPX plan): resolves an in-flight ASYNC shipment creation — a booking
+     * whose createShipment() returned success with courier_status='creating'
+     * because the courier's own create call is a submit-then-poll flow (SPX's
+     * batch_create_order -> get_order_create_result) that didn't finish
+     * within createShipment()'s own bounded poll window.
+     *
+     * Called by the `courier:poll-status` command's pending-creation pass for
+     * every order sitting in courier_status='creating', in ADDITION to (and
+     * before) that command's existing getTracking() pass. A synchronous
+     * courier (QuadX) never produces courier_status='creating' in the first
+     * place, so its implementation is a permanent no-op default: return null.
+     *
+     * @return ?string the real tracking number if creation has now completed
+     *   (the caller then persists it exactly as createShipment()'s sync path
+     *   would — see PollCourierStatus); null if still pending, OR if creation
+     *   has permanently failed (an implementation that can tell the two
+     *   apart — as SpxFulfillment can, via fail_list/fail_count — should
+     *   record that failure itself before returning null, since this
+     *   signature has no third value to carry "never coming back": SPX flips
+     *   courier_status away from 'creating' when it does, so the pending pass
+     *   naturally stops re-checking a permanently failed order).
+     */
+    public function resolvePendingCreation(Order $order): ?string;
+
     /** @return array{success:bool, status?:string, raw?:array, error?:string} */
     public function getTracking(string $trackingNumber): array;
 
