@@ -4,6 +4,8 @@
 **Branch:** `feat/quadx` (the fulfillment foundation lives here; nothing merges to main)
 **Ground truth:** `docs/spx/` — harvested SPX Open API docs (guide.md, api.md, integration-brief.md) + `NSS OpenAPI UAT Order Creation Guide.pdf` (UAT address whitelist). UAT app credentials provided by Paolo (held outside the repo; entered via the encrypted courier settings UI only).
 
+> **Amended 2026-08-08:** SPX now lands on the Fulfillment Workflow v2 foundation (`2026-08-08-fulfillment-workflow-v2-design.md`) — courier-first booking (step 1 choose courier, step 2 SPX's own form), a per-courier settings PAGE (not a card on a combined page), pouch presets with dims override, who-pays via `payment_role`, pickup slots, and estimated (`batch_check_order`) + actual (`batch_get_asf`) shipping fees. The combined plan sequences workflow v2 (W1–W4) before SPX (T1–T4).
+
 ## Why
 
 SPX has provided UAT docs and credentials — it's the first courier to land on the polished courier-agnostic foundation, proving the "one folder + one register line" promise. QuadX awaits prod keys; LBC awaits our permission request.

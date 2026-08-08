@@ -1,76 +1,99 @@
-# SPX Courier Extension Implementation Plan
+# Fulfillment Workflow v2 + SPX Courier Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Execute `docs/superpowers/specs/2026-08-08-spx-courier-design.md` — SPX as the second courier on the fulfillment foundation, proven by a live UAT round-trip.
+**Goal:** Execute BOTH `docs/superpowers/specs/2026-08-08-fulfillment-workflow-v2-design.md` (ERP-unified interface, common status spine, courier-first booking, per-courier settings pages, returns page) and `docs/superpowers/specs/2026-08-08-spx-courier-design.md` (SPX as the second courier), proven by a live UAT round-trip through the v2 flow.
 
-**Architecture:** Client+signer first (the risky cryptography, test-vector-proven), then the adapter in two halves (booking/cancel/tracking, then AWB+webhook+F2), then fake-HTTP feature tests, then the live UAT gate. Interface evolves in exactly two sanctioned places (`resolvePendingCreation`, printLabel stored-asset contract note) — each with a QuadX-safe default.
+**Architecture:** Workflow v2 first on QuadX alone (W1–W4) so the courier-first flow, spine, and per-courier settings pages exist and are proven against the frozen courier before SPX arrives; then SPX (T1–T4) drops into ready-made slots; then sweep + live gate. Interface evolves ONLY in the five sanctioned places listed in the workflow spec — each with a QuadX-safe default.
 
-**Tech Stack:** unchanged. Ground truth for every payload/endpoint/error code: `docs/spx/api.md` + `integration-brief.md` — implementers copy shapes from there, never invent.
+**Tech Stack:** unchanged. Ground truth: `docs/spx/api.md` + `integration-brief.md` for all SPX shapes (copy, never invent); the workflow-v2 spec's Part 2 for interface grammar; reskin protocol binds all view work.
 
 ## Global Constraints
 
-- Branch `feat/quadx`; nothing merges to main. Suites: Fulfillment 35 + AdminV2 209 green after every task; full-suite baseline 26 held.
-- QuadX FROZEN: its behavior, settings keys/values, and tests must be untouched (grep + suite proof per task).
-- `Http::fake` everywhere except Task 6's sanctioned live-UAT gate. Credentials NEVER appear in code, tests, fixtures, or commits — the live gate enters them via the encrypted settings UI at runtime.
-- Design system + reskin protocol bind any view work. No destructive live-DB queries (Task 6's cleanup of its own test order's courier_* fields is the sanctioned exception, scoped to that one order id).
-- Commit per task, no Co-Authored-By, usual exclusions (`package-lock.json`, `docs/Screenshot*`, `docs/*.zip`, `docs/superpowers/plans/2026-05-01-*`, `public/pricing-mockup.html` — note `docs/spx/*.pdf` IS committed already, leave it).
+- Branch `feat/quadx`; nothing merges to main. Suites: Fulfillment (35 at start) + AdminV2 209 green after every task; full-suite baseline 26 held.
+- QuadX FROZEN in behavior and stored settings keys/values (its `statusPhase()` re-bucketing and settings-page relocation are the two sanctioned touches — raw maps/labels/payloads byte-identical; grep + suite proof per task).
+- `Http::fake` everywhere except Task 6's sanctioned live-UAT gate. Credentials NEVER in code/tests/fixtures/commits — live gate enters them via the encrypted settings UI at runtime.
+- Design system + reskin protocol bind view work. No destructive live-DB queries (T6's cleanup of its own test order's courier_* fields is the sanctioned, order-id-scoped exception).
+- Commit per task, no Co-Authored-By, usual exclusions (`package-lock.json`, `docs/Screenshot*`, `docs/*.zip`, `docs/superpowers/plans/2026-05-01-*`, `public/pricing-mockup.html`).
 - Port 8001; dev@venta.test / venta_dev_2026; prefix `opensesame`.
 
 ---
 
-### Task 1: SpxClient + signer + settings schema + registration
+## Phase W — Workflow v2 (QuadX-only, SPX-ready)
 
-**Files:** create `extensions/courier-fulfillment/src/Couriers/Spx/{SpxClient,SpxFulfillment}.php`; one `CourierManager::register(SpxFulfillment::class)` line in the provider. SpxFulfillment starts with: `getKey()='spx'`, `getName()`, `isEnabled()` (flag + credential completeness like QuadX), full `settingsSchema()` per the spec (`spx_enabled`, `spx_mode` uat|production, `spx_app_id`, `spx_secret_key` encrypted, `spx_user_id`, `spx_user_secret` encrypted), `testConnection()` (cheap authenticated call — pick from docs, e.g. address or pickup-time endpoint), stubs throwing `NotImplemented` for the rest (Task 2/3 fill them).
-**SpxClient:** base URLs per mode from `docs/spx/integration-brief.md`; request builder that (1) JSON-encodes the body ONCE, (2) signs those exact bytes (HMAC-SHA256 over `{app_id}_{timestamp}_{random_num}_{payload}`, hex), (3) sends the SAME string via `Http::withBody()` — never re-serialized; headers per docs (`app-id`, `timestamp`, `random-num`, `check-sign`); envelope unwrap (`ret_code`/`message`/`data`) with a typed `SpxApiException` carrying the code.
-**Tests (TDD):** the signer against the VERIFIED TEST VECTOR in integration-brief.md (this is the point of the task — byte-exactness proven); settings card renders for SPX automatically (FakeCourier pattern precedent); testConnection graceful without creds; QuadX settings untouched.
+### Task W1: Common status spine
+
+**Files:** `src/Contracts/CourierFulfillmentInterface.php` — `statusPhase()` docblock re-specifies the 8 buckets (`to_book, booking, to_handover, in_transit, delivered, failed, cancelled, returning`); `Couriers/QuadX/QuadXFulfillment.php` re-buckets its raw statuses onto the spine (raw map/labels untouched); a small `src/Support/PhaseTone.php` (or equivalent) maps phase → tone per the spec table (success ONLY for to_book; delivered neutral; failed/cancelled danger; returning warning; rest info) with the tone philosophy documented in the class docblock verbatim-adapted from the ERP's ChannelStatusTone.
+**Tests:** every QuadX raw status lands in exactly one bucket; tone map total (unknown phase → neutral); FulfillmentService phase queries return the new buckets; existing 4-step stepper derivation still resolves for the happy path.
+- [ ] TDD, commit `feat(fulfillment): common 8-phase status spine with tone model`.
+
+### Task W2: Queue on the ERP grammar + courier-first drawer
+
+**Files:** `extensions/courier-fulfillment/resources/views/index.blade.php` + extension CSS — re-shell per spec Part 2: cmdbar (Poll statuses), segment bar with per-phase mono counts + far-right Returns aside link, "Parcels waiting for handover" per-courier chips on that tab, filters row (search/per-page, autosubmit), two-tier `co-band`/`co-itemrow` table (band per order; item rows with thumbs/SKU; total/courier/status/actions rowspanned; status = tone badge + raw label), visible-buttons action cell, mono pager. **Drawer becomes two-step**: step 1 = enabled-courier choice cards (name, mode chip; fee-estimate slot renders only when `estimateFee()` returns non-null); step 2 = the chosen courier's form from its option methods (QuadX: today's fields byte-identical payload), Back ghost + Book primary. Interface gains sanctioned #4 `estimateFee(Order, array): ?Money` (default null) and #5 `getPickupSlots(Order): array` (default `[]`) — QuadX inherits defaults, so step 2 for QuadX shows neither.
+**Tests:** queue renders all phase tabs with counts from seeded orders; handover chips; two-step drawer markup (step 1 lists exactly enabled couriers); QuadX booking POST payload byte-identical (whitespace-normalized diff bar from the Orders wave); filter/tab params preserved.
+- [ ] TDD, commit `feat(fulfillment): erp-grammar queue and courier-first booking drawer`.
+
+### Task W3: Per-courier settings pages
+
+**Files:** extension routes — `settings/modules/courier-fulfillment` stays (hub), add `settings/modules/courier-fulfillment/{courier}` (route name new under `admin.fulfillment.settings.*`, grammar-conformant); `CourierSettingsController` splits hub (module keys: `fulfillment_enabled`, `cod_payment_methods`, webhook token) vs per-courier (that courier's schema keys + its Test Connection / Refresh statuses / status-mapping UI move here); `settings.blade.php` → hub with courier cards (name, enabled, mode chip, credential-completeness hint); new `settings-courier.blade.php` rendered from `settingsSchema()` + per-courier action slots. Old combined-page anchors 301 per house convention. SettingsNav/Breadcrumbs pick up the sub-page (`Settings › Modules › Courier Fulfillment › QuadX`).
+**Tests:** hub shows module fields + one card per registered courier; per-courier page saves ONLY that courier's keys through the derived allowlist (FakeCourier proof: saving fake's page never touches quadx_*); masking + blank-keeps intact; status-map save round-trip from the new location; 301s; UrlGrammarTest additions.
+- [ ] TDD, commit `feat(fulfillment): settings hub with per-courier pages`.
+
+### Task W4: Returns monitoring page
+
+**Files:** route `admin/sales/fulfillment/returns` (name under `admin.fulfillment.returns`), controller method listing orders in `returning`/`failed` phases (order no link, courier, raw status + tone badge, last timeline event, created), view on the same grammar (segment aside on the queue links here; this page's aside links back "All shipments"); empty state honest ("Nothing coming back").
+**Tests:** page 200 + breadcrumb; only returning/failed-phase orders listed; queue aside link present.
+- [ ] TDD, commit `feat(fulfillment): returns monitoring page`. Also: add roadmap card "RMA / customer returns process" to the boards backlog (one high-level card, no sub-cards).
+
+---
+
+## Phase T — SPX on the v2 foundation
+
+### Task T1: SpxClient + signer + settings schema + registration
+
+**Files:** `extensions/courier-fulfillment/src/Couriers/Spx/{SpxClient,SpxFulfillment}.php`; one `CourierManager::register` line. SpxFulfillment starts with `getKey()='spx'`, `getName()`, `isEnabled()` (flag + credential completeness), full `settingsSchema()` (`spx_enabled`, `spx_mode` uat|production, `spx_app_id`, `spx_secret_key` encrypted, `spx_user_id`, `spx_user_secret` encrypted, `spx_pouch_presets` JSON with S/M/L defaults), `testConnection()` (cheap authenticated call from the docs), stubs for the rest.
+**SpxClient:** base URLs per mode; JSON-encode body ONCE → sign those exact bytes (HMAC-SHA256 over `{app_id}_{timestamp}_{random_num}_{payload}`, hex) → send the SAME string via `Http::withBody()`; headers per docs; envelope unwrap with typed `SpxApiException` carrying `ret_code`.
+**Tests (TDD):** signer against the VERIFIED TEST VECTOR in integration-brief.md; SPX card appears on the W3 settings hub + its per-courier page renders from schema (incl. pouch-presets editor); testConnection graceful without creds; QuadX settings untouched.
 - [ ] TDD, commit `feat(spx): signed client, schema, registration`.
 
----
+### Task T2: Booking, cancel, tracking, fees
 
-### Task 2: Booking, cancel, tracking
+**Files:** `SpxFulfillment` fills `createShipment/cancelShipment/getTracking/terminalStatuses/cancelableStatuses/statusPhase/mappableStatuses/getServiceTypes/getParcelOptions/getShippingPaymentOptions/trackingLinks` + v2 methods `estimateFee` (2.1 `batch_check_order`) and `getPickupSlots` (3.2 pickup-time endpoint); interface gains sanctioned #1 `resolvePendingCreation(Order): ?string` default null; `PollCourierStatus` gains the pending-creation pass (courier_status `creating` → resolve via `batch_no` in courier_meta).
+**Shapes from docs/spx/api.md verbatim:** 1.2 batch_create_order (sender/deliver hierarchy via 5.1 Address API data cached settings-style; fulfillment_info: `payment_role` from who-pays choice, `cod_collection`/`cod_amount` from cod_payment_methods mapping; parcel dims from the chosen pouch preset OVERRIDING product dims, or custom dims); polling get_order_create_result bounded ~15s → else persist `creating`+batch_no; batch_cancel_order (real array; 13002 friendly); batch_search_order (13251 backoff; routes[] → timeline); status-codes table → mappableStatuses + 8-phase statusPhase; 2.2 `batch_get_asf` actual fee surfaced into courier_meta post-booking.
+**Tests:** Http::fake round-trips asserting payload shapes; pouch preset dims land in parcel_info; async both paths; cancel success+13002; tracking success+13251-retry; estimateFee and getPickupSlots shapes; mixed-queue FakeCourier still green.
+- [ ] TDD, commit `feat(spx): booking, cancellation, tracking, fees with async create`.
 
-**Files:** `SpxFulfillment` fills `createShipment/cancelShipment/getTracking/terminalStatuses/cancelableStatuses/statusPhase/mappableStatuses/getServiceTypes/getParcelOptions/getShippingPaymentOptions/trackingLinks`; interface gains `resolvePendingCreation(Order $order): ?string` with a default no-op (QuadXFulfillment inherits/returns null); `PollCourierStatus` gains the pending-creation pass (orders with courier_status `creating` → resolve via batch_no in courier_meta).
-**Shapes from docs/spx/api.md verbatim:** 1.2 batch_create_order (payload incl. sender/deliver info hierarchy, fulfillment_info with cod_collection/cod_amount from the existing cod_payment_methods mapping, parcel dims/weight from the booking form), 1.x get_order_create_result polling (bounded ~15s in-request backoff → else persist `creating` + batch_no), batch_cancel_order (real JSON array; 13002 → friendly message), batch_search_order (13251 backoff; routes[] → timeline entries), status codes table → mappableStatuses + statusPhase buckets. Address mapping: 5.1 Address API data cached (settings-cache pattern like quadx_status_labels) feeding state/city/district/town resolution from order fields, QuadX-resolver-style.
-**Tests:** Http::fake round-trips asserting payload shapes against the documented schemas; async both paths (fast-complete and pending→poll-command-completes); cancel success + 13002; tracking success + 13251-retry; mixed-queue FakeCourier test still green (per-row derivation).
-- [ ] TDD, commit `feat(spx): booking, cancellation, tracking with async create`.
+### Task T3: AWB storage, webhook, F2 fix
 
----
-
-### Task 3: AWB storage, webhook, F2 fix
-
-**Files:** `SpxFulfillment::printLabel()` — async label batch → download PDF to `storage/app/courier-labels/spx/{tracking}.pdf` (Storage facade, local disk) → serve via a new authenticated extension route (stream response); interface docblock updated: printLabel MAY serve a stored asset (contract note, no signature change). Webhook: SPX branch of the `{provider}` dispatch — verify HMAC per docs (same scheme; reject on mismatch), **return 200 immediately and process via a queued job** (`dispatch()->afterResponse()` acceptable if no queue worker runs on dev — check how the app queues; pick the mechanism that guarantees sub-3s ack on this stack and document it). F2 fix while in the webhook layer: the tracking-number fallback lookup adds a `courier_provider` scope (README caveat updated to "fixed").
-**Tests:** label download + storage + second-request-serves-cached; webhook signature pass/fail; ack-fast mechanism asserted (response returned before processing side effects where testable); F2 — two orders with the same tracking number under different providers resolve to the right one.
+**Files:** `printLabel()` — async label batch → PDF to `storage/app/courier-labels/spx/{tracking}.pdf` → authenticated streaming route; interface docblock note (sanctioned #2). Webhook: SPX branch of `{provider}` dispatch — HMAC verify, **200 immediately + queued processing** (mechanism chosen for sub-3s ack on this stack, documented). F2: tracking-number fallback lookup gains `courier_provider` scope; README caveat → "fixed".
+**Tests:** label download/store/serve-cached; webhook signature pass/fail; fast-ack asserted; F2 collision test (same tracking no, two providers).
 - [ ] TDD, commit `feat(spx): perishable AWB storage, signed fast-ack webhook, courier-scoped lookups`.
 
----
+### Task T4: SPX in the v2 UX
 
-### Task 4: Queue + settings UX polish for SPX
-
-**Files:** verify (and only where needed, adjust) the queue drawer for SPX: courier options include SPX when enabled, service/parcel/payment options render from SPX's `get*Options()`, "Creating…" state renders honestly on the stepper/status chip, SPX tracking links render. Settings card: UAT-mode note linking `docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf` (the whitelist), Create-shipper-account action (calls 3.1 when user_id empty, stores encrypted, schema-driven so it appears only for SPX via an `actions` schema extension OR a courier-specific partial — pick the lighter mechanism, document).
-**Tests:** queue renders SPX options; creating-state render; settings action round-trip (Http::fake).
-- [ ] TDD, commit `feat(spx): queue and settings UX`.
+**Files:** verify/adjust only where needed: step 1 shows SPX card when enabled; step 2 renders SPX's form (pouch presets + custom-dims escape, who-pays, pickup slots, estimated fee before Book); "Creating…" (booking phase) honest on chip/stepper; actual fee (`batch_get_asf`) shown on booked orders where present; SPX settings page: UAT-mode note linking `docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf`, Create-shipper-account action (3.1 when user_id empty, stores encrypted).
+**Tests:** step-2 SPX render (Http::fake for slots/fee); creating-state render; create-account round-trip; actual-fee display.
+- [ ] TDD, commit `feat(spx): booking flow and settings page UX`.
 
 ---
 
 ### Task 5: Fake-HTTP verification sweep
 
-- [ ] Full suites (Fulfillment ~50 expected, AdminV2 all, baseline 26). `npm run build`, clears. Browser (Playwright, port 8001): settings shows SPX card (enter NO real creds in this task); queue drawer shows SPX in courier options once enabled-with-dummy-creds via the UI (flip back after); paused/creating states; console clean; screenshots. QuadX grep + suite proof of frozenness. Commit fixes or report clean.
+- [ ] Full suites; `npm run build` + clears. Browser (Playwright, 8001): queue tabs/counts, two-step drawer (QuadX step 2 unchanged; SPX step 2 with dummy creds via UI, flipped back after), returns page, settings hub → both courier pages, breadcrumbs, light+dark, console clean, screenshots. QuadX grep + suite frozenness proof. Commit fixes or report clean.
 
----
+### Task 6: Live UAT gate (sanctioned real outbound; owner-in-the-loop)
 
-### Task 6: Live UAT gate (sanctioned real outbound)
-
-**Owner-in-the-loop task — coordinate, don't improvise:**
-- [ ] Enter the SPX UAT credentials via the encrypted settings UI (from the coordinator at runtime — NEVER files/commits). Test Connection → expect success.
-- [ ] If `spx_user_id` empty: run Create shipper account (3.1) once; record success in the report (values stay in the DB, encrypted, unlogged).
-- [ ] Create a dev test order whose shipping address is UAT-whitelist lane #3 (Metro Manila Intramuros Barangay 654 → Metro Manila Ermita Barangay 659 — both-Manila lane, simplest), weight/dims within limits.
-- [ ] Book it via the real queue drawer → async create resolves → tracking number appears; poll/track (expect propagation backoff to engage); download AWB (stored PDF opens); cancel the shipment (pre-pickup — expect success); verify the full timeline rendered.
-- [ ] Evidence: screenshots at each step + the report. Cleanup: clear that one order's courier_* fields (sanctioned, scoped); leave settings creds in place (owner's call to keep).
-- [ ] Commit any fixes surfaced as `fix(spx): uat gate fixes`. Report: what SPX's UAT actually returned vs the docs (deviations recorded in docs/spx/index.md quirks list).
+- [ ] Enter SPX UAT creds via the encrypted settings UI (from coordinator at runtime). Test Connection → success.
+- [ ] If `spx_user_id` empty: run Create shipper account once (values stay encrypted in DB, unlogged).
+- [ ] Dev test order on UAT-whitelist lane #3 (Intramuros Barangay 654 → Ermita Barangay 659), within limits; book through the REAL v2 flow: choose SPX → pouch preset → see estimated fee → book.
+- [ ] Async create resolves → tracking number; poll/track (expect 13251 backoff to engage); AWB downloads and opens; actual fee appears; cancel pre-pickup (success); timeline + returns page spot-check.
+- [ ] Evidence screenshots + report (doc deviations → docs/spx/index.md quirks). Cleanup: clear that one order's courier_* fields (scoped); creds stay (owner's call).
+- [ ] Commit fixes as `fix(spx): uat gate fixes`.
 
 ---
 
 ## Self-review notes
-- Spec coverage: two-tier creds ✅ T1, async create ✅ T2 (+interface accommodation w/ QuadX-safe default), AWB ✅ T3, 3s webhook ✅ T3, F2 ✅ T3, UAT whitelist ✅ T6 (lane #3), README recipe validation ✅ T1 registration + interface-evolution callouts.
-- Risks for reviewers: signer byte-exactness (T1 test vector is the gate); interface addition must not break QuadX (default impl + frozen tests); webhook ack mechanism on a no-worker dev stack (T3 documents choice); T6 is the only real-HTTP task and touches the live dev DB only via the UI flows the owner sanctioned.
+
+- Directive coverage: unified ERP look → W2 (+W3/W4 same grammar); common status spine → W1 (validated against Shopee/Lazada/TikTok vocab); returns separate → W4; per-courier settings → W3; courier-first workflow → W2 step 1; pouch-for-SPX with dims override → T1 presets + T2 parcel_info + T4 UI; who-pays → existing option method (QuadX) + payment_role (SPX); "how SPX charges me" → estimateFee pre-book + batch_get_asf actual.
+- Interface evolution ledger (all five sanctioned, all QuadX-safe defaults): resolvePendingCreation (T2), printLabel note (T3), statusPhase re-bucket (W1), estimateFee (W2/T2), getPickupSlots (W2/T2).
+- Risks for reviewers: W2 payload byte-identity for QuadX through a rebuilt drawer (the hard gate); W3 allowlist derivation must stay per-courier airtight; T1 signer byte-exactness; T3 ack mechanism on no-worker dev; T6 only real-HTTP task.
