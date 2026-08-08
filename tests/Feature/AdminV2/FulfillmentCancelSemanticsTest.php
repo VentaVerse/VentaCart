@@ -368,7 +368,12 @@ class FulfillmentCancelSemanticsTest extends TestCase
         ]);
 
         $timeline = [['status' => 'for_pickup', 'at' => 1754600000]];
-        $order = $this->makeOrder();
+        // fulfillment-placement Task 3: a booked order sits on a
+        // To-Handover-placed status (booking put it there), and cancelling
+        // the booking is what brings it back. defaultStatus() ('Processing',
+        // To Pack placed) is created here so there is somewhere to return to.
+        $this->defaultStatus();
+        $order = $this->makeOrder($this->statusWithStage('to_handover', 'Order Being Shipped'));
         $order->forceFill([
             'courier_provider' => 'quadx',
             'courier_tracking_number' => 'QX-RESET-001',
@@ -403,12 +408,16 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->assertNotEmpty($snapshot['cancelled_at']);
         $this->assertSame(555, $snapshot['meta']['booked_response']['id']);
 
-        // Audit trail on the order itself.
+        // Audit trail on the order itself. fulfillment-placement Task 3: the
+        // return to To Pack is now a real CORE STATUS change (the order came
+        // from To Handover), so the history line names the status it landed
+        // on rather than claiming a move that never happened.
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $order->id,
-            'comment' => 'Courier booking cancelled: QX-RESET-001 (QuadX). Order returned to To Pack.',
+            'comment' => 'Courier booking cancelled: QX-RESET-001 (QuadX). Order status set to Processing, back under To Ship, To Pack.',
             'notify_customer' => false,
         ]);
+        $this->assertSame('to_pack', \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order));
 
         // Back in To Ship > To Pack, and NOT a Cancelled-tab exception.
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack')
@@ -430,6 +439,11 @@ class FulfillmentCancelSemanticsTest extends TestCase
         Http::fake([
             'api.staging.quadx.xyz/v2/orders' => Http::response(['tracking_number' => 'QX-FRESH-002', 'status' => 'for_pickup'], 200),
         ]);
+
+        // fulfillment-placement Task 3: the rebook below moves the order onto
+        // a To-Handover-placed status, so the store needs one (booking is
+        // refused otherwise - see FulfillmentService::bookedStatus()).
+        $this->statusWithStage('to_handover', 'Order Being Shipped');
 
         $order = $this->makeOrder();
         // The exact post-reset state the test above proves cancel() writes.
@@ -1006,14 +1020,20 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
         $canceled = $this->statusWithStage('cancelled', 'Canceled');
         $void = $this->statusWithStage('cancelled', 'Voided');
-        $this->statusWithStage('to_pack', 'ReadyStageStatus');
+        // The negative case is a DELIVERED-placed status on purpose:
+        // fulfillment-placement Task 3 added two more selects to this same
+        // hub (booked = To Handover placed, unbooked = To Pack placed), so a
+        // To-Pack-placed status now legitimately appears elsewhere on the
+        // page. 'delivered' is offered by no select at all, which is what
+        // keeps this an honest assertion about scoping.
+        $this->statusWithStage('delivered', 'DeliveredStageStatus');
 
         $this->get($this->settingsUrl())
             ->assertOk()
             ->assertSee('Use default (Canceled)')
             ->assertSee('<option value="' . $canceled->id . '"', false)
             ->assertSee('<option value="' . $void->id . '"', false)
-            ->assertDontSee('ReadyStageStatus');
+            ->assertDontSee('DeliveredStageStatus');
     }
 
     public function test_hub_save_rejects_a_non_cancelled_stage_status_id(): void

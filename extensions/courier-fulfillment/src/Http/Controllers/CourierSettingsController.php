@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\CourierManager;
+use Extensions\CourierFulfillment\FulfillmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -46,11 +47,21 @@ class CourierSettingsController extends Controller
      * by FulfillmentService::isCodOrder(), 'cancel_order_status_id' by
      * FulfillmentController::cancelOrder() (fulfillment-tabs-v3 Task 4: the
      * core status a queue "Cancel order" sets; default is the status named
-     * "Canceled"). ("{courier}_webhook_token" is neither — it's
-     * server-generated below, per registered courier, and deliberately never
-     * part of any allowlist at all.)
+     * "Canceled"), 'booked_order_status_id' / 'unbooked_order_status_id' by
+     * FulfillmentService::bookedStatus()/unbookedStatus()
+     * (fulfillment-placement Task 3: the core status a successful booking
+     * sets, and the one a cancelled booking returns the order to).
+     * ("{courier}_webhook_token" is neither: it is server-generated below,
+     * per registered courier, and deliberately never part of any allowlist
+     * at all.)
      */
-    private const MODULE_KEYS = ['fulfillment_enabled', 'cod_payment_methods', 'cancel_order_status_id'];
+    private const MODULE_KEYS = [
+        'fulfillment_enabled',
+        'cod_payment_methods',
+        'cancel_order_status_id',
+        'booked_order_status_id',
+        'unbooked_order_status_id',
+    ];
 
     /**
      * The ONLY keys writable via the given courier's page. Anything else in
@@ -266,13 +277,38 @@ class CourierSettingsController extends Controller
             ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
         $cancelOrderStatusId = $settings['cancel_order_status_id'] ?? null;
 
+        // fulfillment-placement Task 3: the two statuses that carry an order
+        // ACROSS the To Pack / To Handover line, each select scoped to the
+        // placement that makes it coherent (update() enforces the same scope
+        // server-side). Same "never pre-select" convention as the cancel
+        // select above: an unset value keeps the placeholder selected so
+        // saving the hub cannot turn "never chose" into "explicitly chose" -
+        // the placeholder NAMES the status that would be used instead, which
+        // is resolved by FulfillmentService and shown here so the admin can
+        // see the default without having to save it.
+        $handoverStatuses = \App\Models\OrderStatus::where('fulfillment_placement', FulfillmentService::BOOKED_PLACEMENT)
+            ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
+        $packStatuses = \App\Models\OrderStatus::where('fulfillment_placement', FulfillmentService::UNBOOKED_PLACEMENT)
+            ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
+
+        $bookedOrderStatusId = $settings[FulfillmentService::BOOKED_STATUS_SETTING] ?? null;
+        $unbookedOrderStatusId = $settings[FulfillmentService::UNBOOKED_STATUS_SETTING] ?? null;
+        $bookedDefaultName = FulfillmentService::bookedStatus()?->name;
+        $unbookedDefaultName = FulfillmentService::unbookedStatus()?->name;
+
         return view('courier-fulfillment::settings', compact(
             'settings',
             'paymentMethodOptions',
             'codMethods',
             'courierCards',
             'orderStatuses',
-            'cancelOrderStatusId'
+            'cancelOrderStatusId',
+            'handoverStatuses',
+            'packStatuses',
+            'bookedOrderStatusId',
+            'unbookedOrderStatusId',
+            'bookedDefaultName',
+            'unbookedDefaultName'
         ));
     }
 
@@ -389,6 +425,24 @@ class CourierSettingsController extends Controller
                 'integer',
                 \Illuminate\Validation\Rule::exists('order_statuses', 'id')->where('fulfillment_placement', 'cancelled'),
             ],
+            // fulfillment-placement Task 3: each target must not only exist,
+            // it must carry the placement that makes it do its job - a
+            // booked status placed anywhere but To Handover would book
+            // orders straight out of the queue's working tabs, and an
+            // unbooked status placed anywhere but To Pack would leave a
+            // cancelled booking unbookable.
+            'settings.' . FulfillmentService::BOOKED_STATUS_SETTING => [
+                'nullable',
+                'integer',
+                \Illuminate\Validation\Rule::exists('order_statuses', 'id')
+                    ->where('fulfillment_placement', FulfillmentService::BOOKED_PLACEMENT),
+            ],
+            'settings.' . FulfillmentService::UNBOOKED_STATUS_SETTING => [
+                'nullable',
+                'integer',
+                \Illuminate\Validation\Rule::exists('order_statuses', 'id')
+                    ->where('fulfillment_placement', FulfillmentService::UNBOOKED_PLACEMENT),
+            ],
         ]);
 
         $data = array_intersect_key(
@@ -398,11 +452,20 @@ class CourierSettingsController extends Controller
 
         // "Use default" placeholder submitted (empty -> null via
         // ConvertEmptyStringsToNull): unset the stored override entirely so
-        // cancelOrder() falls back to the status named "Canceled" — never
-        // persist an empty/placeholder value.
-        if (array_key_exists('cancel_order_status_id', $data) && ($data['cancel_order_status_id'] === null || $data['cancel_order_status_id'] === '')) {
-            Setting::where('group', 'courier')->where('key', 'cancel_order_status_id')->delete();
-            unset($data['cancel_order_status_id']);
+        // each reader falls back to its own default (cancelOrder() to the
+        // status named "Canceled", FulfillmentService::bookedStatus()/
+        // unbookedStatus() to their own resolution chains). Never persist an
+        // empty/placeholder value.
+        $clearable = [
+            'cancel_order_status_id',
+            FulfillmentService::BOOKED_STATUS_SETTING,
+            FulfillmentService::UNBOOKED_STATUS_SETTING,
+        ];
+        foreach ($clearable as $key) {
+            if (array_key_exists($key, $data) && ($data[$key] === null || $data[$key] === '')) {
+                Setting::where('group', 'courier')->where('key', $key)->delete();
+                unset($data[$key]);
+            }
         }
 
         $this->persist($data, []);

@@ -121,6 +121,14 @@ class FulfillmentQueueTest extends TestCase
     /** An order with a COMPLETE shipping address — the estimate round-trip needs buildOrderPayload() to succeed, unlike makeOrder()'s minimal shape. */
     private function makeCompleteOrder(): Order
     {
+        // fulfillment-placement Task 3: a successful booking moves the order
+        // onto a To-Handover-placed status, and is refused when the store has
+        // none (FulfillmentService::bookedStatus()). OrderStatusSeeder ships
+        // this status on a real install; the fixture carries it so the
+        // booking round-trips below exercise a store that can actually
+        // complete a fulfillment.
+        $this->statusWithStage('to_handover', 'Order Being Shipped');
+
         return Order::create([
             'store_id' => 1,
             'order_status_id' => $this->defaultStatus()->id,

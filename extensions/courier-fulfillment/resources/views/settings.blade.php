@@ -32,6 +32,37 @@
                     </x-admin.select>
                 </x-admin.field>
 
+                {{-- fulfillment-placement Task 3: the two statuses that carry
+                     an order across the To Pack / To Handover line. Booking is
+                     the store's own action, so nothing but this move can take
+                     a booked order out of To Pack. --}}
+                <x-admin.field name="settings[booked_order_status_id]" label="Booked order status"
+                    help="Applied automatically when a booking succeeds. This is what moves the order from To Pack to To Handover, so the queue offers its waybill and its cancel next. Only statuses placed under To Handover can be chosen. History and stock behave exactly as if the status were changed from the order page (customer is not notified).">
+                    <x-admin.select name="settings[booked_order_status_id]">
+                        <option value="" @selected($bookedOrderStatusId === null)>
+                            {{ $bookedDefaultName ? 'Use default (' . $bookedDefaultName . ')' : 'No status is placed under To Handover' }}
+                        </option>
+                        @foreach ($handoverStatuses as $id => $name)
+                            <option value="{{ $id }}" @selected((string) $id === (string) $bookedOrderStatusId)>{{ $name }}</option>
+                        @endforeach
+                    </x-admin.select>
+                    @if (empty($handoverStatuses))
+                        <p class="text-xs text-v-danger mt-2">Booking is refused until at least one order status is placed under To Handover. Place one under Sales, Order Statuses.</p>
+                    @endif
+                </x-admin.field>
+
+                <x-admin.field name="settings[unbooked_order_status_id]" label="Unbooked order status"
+                    help="Applied when a courier booking is cancelled, returning the order to To Pack so it can be booked again. The status the order held before it was booked wins when it is still placed under To Pack; this is the fallback. Only statuses placed under To Pack can be chosen.">
+                    <x-admin.select name="settings[unbooked_order_status_id]">
+                        <option value="" @selected($unbookedOrderStatusId === null)>
+                            {{ $unbookedDefaultName ? 'Use default (' . $unbookedDefaultName . ')' : 'No status is placed under To Pack' }}
+                        </option>
+                        @foreach ($packStatuses as $id => $name)
+                            <option value="{{ $id }}" @selected((string) $id === (string) $unbookedOrderStatusId)>{{ $name }}</option>
+                        @endforeach
+                    </x-admin.select>
+                </x-admin.field>
+
                 <div>
                     <h3 class="text-[13px] font-semibold text-v-text mb-1">COD payment methods</h3>
                     <p class="text-xs text-v-muted mb-3">Orders paid with a checked method are booked as COD (the rider collects the order total). Everything else books as prepaid.</p>

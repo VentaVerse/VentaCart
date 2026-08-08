@@ -215,6 +215,18 @@ class PollCourierStatus extends Command
                     'tracking_number'         => $trackingNumber,
                 ])->save();
 
+                // fulfillment-placement Task 3: the async half of "booking
+                // sets the core status". The shipment only becomes real
+                // here, so this is where an async booking earns its move to
+                // a To-Handover-placed status - the same shared helper the
+                // synchronous FulfillmentService::book() calls, idempotent
+                // so a repeat cycle never writes a second history row.
+                \Extensions\CourierFulfillment\FulfillmentService::applyBookedStatus(
+                    $order,
+                    $courier->getName(),
+                    $trackingNumber,
+                );
+
                 $resolved++;
                 $this->line("  order {$order->id}: pending {$courier->getName()} creation resolved -> tracking {$trackingNumber}");
             }

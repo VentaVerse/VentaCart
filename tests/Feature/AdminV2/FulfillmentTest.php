@@ -166,6 +166,16 @@ class FulfillmentTest extends TestCase
     private function makeBookableOrder(array $overrides = []): Order
     {
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        // fulfillment-placement Task 3: a store must have somewhere to put a
+        // booked order (a To-Handover-placed status), or FulfillmentService::
+        // book() refuses before the outbound call rather than leaving a
+        // booked order actionless in To Pack. OrderStatusSeeder seeds this
+        // status on a real install; these tests build their statuses by hand,
+        // so the fixture carries it too.
+        OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => 'Order Being Shipped'],
+            ['sort_order' => 4, 'fulfillment_placement' => 'to_handover'],
+        );
 
         return Order::create(array_merge([
             'store_id' => 1,
@@ -825,9 +835,14 @@ class FulfillmentTest extends TestCase
         $this->assertTrue($meta['booking_history'][0]['admin_cancelled']);
         $this->assertNotEmpty($meta['booking_history'][0]['cancelled_at']);
 
+        // fulfillment-placement Task 3: "returned to To Pack" is no longer a
+        // claim about the courier fields alone - the cancel now actually
+        // moves the CORE STATUS back (here to 'Pending', the To-Pack-placed
+        // status this order held before booking), and the history line names
+        // the status it landed on.
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $order->id,
-            'comment' => 'Courier booking cancelled: QX-OLD-001 (QuadX). Order returned to To Pack.',
+            'comment' => 'Courier booking cancelled: QX-OLD-001 (QuadX). Order status set to Pending, back under To Ship, To Pack.',
         ]);
 
         $this->post($this->bookUrl($order), $bookPayload)->assertSessionHas('success');

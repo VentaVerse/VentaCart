@@ -44,6 +44,14 @@ class OrderStatusSeeder extends Seeder
             ['name' => 'Pending', 'is_default' => true, 'sort_order' => 1],
             ['name' => 'Processing', 'is_default' => false, 'sort_order' => 2],
             ['name' => 'Shipped', 'is_default' => false, 'sort_order' => 3],
+            // fulfillment-placement Task 3: the one To-Handover-placed status
+            // a fresh install needs. Booking moves an order onto a status
+            // placed under To Handover (FulfillmentService::bookedStatus()),
+            // and refuses when no such status exists - so seeding this makes
+            // the courier queue work out of the box instead of on the second
+            // trip through Sales, Order Statuses. Placement comes from
+            // placementFor() below, which already knows this name.
+            ['name' => 'Order Being Shipped', 'is_default' => false, 'sort_order' => 4],
             ['name' => 'Complete', 'is_default' => false, 'sort_order' => 5],
             ['name' => 'Canceled', 'is_default' => false, 'sort_order' => 7],
             ['name' => 'Denied', 'is_default' => false, 'sort_order' => 8],

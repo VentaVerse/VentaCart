@@ -52,6 +52,13 @@ class FulfillmentServiceCreatingGuardTest extends TestCase
     private function makeOrder(array $overrides = []): Order
     {
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        // fulfillment-placement Task 3: booking needs a To-Handover-placed
+        // status to move the order to, or it is refused before any outbound
+        // call (FulfillmentService::bookedStatus()).
+        OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => 'Order Being Shipped'],
+            ['sort_order' => 4, 'fulfillment_placement' => 'to_handover'],
+        );
 
         return Order::create(array_merge([
             'store_id' => 1, 'order_status_id' => $status->id,

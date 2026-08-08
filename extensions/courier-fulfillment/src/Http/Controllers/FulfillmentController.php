@@ -668,6 +668,13 @@ class FulfillmentController extends Controller
         $history = (isset($meta['booking_history']) && is_array($meta['booking_history']))
             ? $meta['booking_history']
             : [];
+        // The status this order sat on before it was booked, recorded by
+        // FulfillmentService::book() (fulfillment-placement Task 3). Absent
+        // on a booking made before that shipped, which is exactly what the
+        // fallback in unbookedStatus() is for.
+        $preBookingStatusId = isset($meta['pre_booking_order_status_id'])
+            ? (int) $meta['pre_booking_order_status_id']
+            : null;
         $history[] = [
             'courier'         => (string) $order->courier_provider,
             'tracking_number' => $tracking,
@@ -675,6 +682,10 @@ class FulfillmentController extends Controller
             'timeline'        => $meta['timeline'] ?? [],
             // The full booking meta minus the history itself (never nested).
             'meta'            => \Illuminate\Support\Arr::except($meta, ['booking_history']),
+            // Named at the top level of the snapshot too (not only inside
+            // 'meta'), since this is the one value the NEXT cancel of a
+            // rebooked order reads back.
+            'previous_order_status_id' => $preBookingStatusId,
             'admin_cancelled' => true,
             'cancelled_at'    => now()->toIso8601String(),
         ];
@@ -700,14 +711,52 @@ class FulfillmentController extends Controller
         }
         $order->forceFill($fill)->save();
 
+        // fulfillment-placement Task 3: the symmetric half of "booking sets
+        // the core status". Booking moved this order to a To-Handover-placed
+        // status; cancelling the booking must move it back, or the row stays
+        // under To Handover with no parcel to hand over (and, since the reset
+        // above cleared every courier field, with no courier action either).
+        //
+        // Preference order lives in FulfillmentService::unbookedStatus():
+        // the status the order held before booking, else the configured
+        // `unbooked_order_status_id`, else the first To-Pack-placed status.
+        // Null only in a store with no To-Pack-placed status at all, where
+        // the honest answer is to say the status did not move.
+        $target = FulfillmentService::unbookedStatus($preBookingStatusId);
+        $comment = 'Courier booking cancelled: ' . $tracking . ' (' . $courier->getName() . ').';
+
+        if ($target && (int) $order->order_status_id !== (int) $target->id) {
+            // ONE history row for the whole event: the shared status-change
+            // path writes it (with the stock rules the status carries),
+            // notify OFF - a booking cancel is internal, never a customer
+            // email from here.
+            \Illuminate\Support\Facades\DB::transaction(function () use ($order, $target, $comment) {
+                \App\Services\OrderStatusChanger::apply(
+                    $order,
+                    $target->id,
+                    $comment . ' Order status set to ' . $target->name . ', back under To Ship, To Pack.',
+                    false,
+                    Auth::id(),
+                );
+            });
+
+            return back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. The order is back in To Ship, To Pack as {$target->name}.");
+        }
+
+        // Nowhere to move it to, or it is already there: the audit row still
+        // has to exist, and both flashes say exactly what happened rather
+        // than repeating a return that did not occur.
+        $currentName = $order->status?->name ?? 'its current status';
         OrderHistory::create([
             'order_id'        => $order->id,
             'order_status_id' => $order->order_status_id,
-            'comment'         => 'Courier booking cancelled: ' . $tracking . ' (' . $courier->getName() . '). Order returned to To Pack.',
+            'comment'         => $comment . ' Order status unchanged (' . $currentName . ').',
             'notify_customer' => false,
         ]);
 
-        return back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. The order is back in To Ship, To Pack.");
+        return $target
+            ? back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. The order stays on {$currentName}, in To Ship, To Pack.")
+            : back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Sales, Order Statuses.");
     }
 
     /**

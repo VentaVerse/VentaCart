@@ -33,6 +33,13 @@ class OrderStatusChanger
             'created_by'      => $createdBy,
         ]);
         $order->update(['order_status_id' => $orderStatusId]);
+        // The status relation (if it was loaded) now describes the OLD status.
+        // Anything reading $order->status right after a change would get a
+        // stale answer - and since fulfillment tab membership is nothing but
+        // $order->status->fulfillment_placement, a stale read there is a row
+        // in the wrong tab. Dropping the loaded relation makes the next read
+        // re-resolve.
+        $order->unsetRelation('status');
 
         $newStatus = OrderStatus::find($orderStatusId);
         if ($newStatus) {

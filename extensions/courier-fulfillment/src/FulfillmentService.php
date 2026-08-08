@@ -4,7 +4,11 @@ namespace Extensions\CourierFulfillment;
 
 use App\Models\Order;
 use App\Models\OrderHistory;
+use App\Models\OrderStatus;
 use App\Models\Setting;
+use App\Services\OrderStatusChanger;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Shared booking core, used by BOTH the admin Fulfillment page and the ERP API
@@ -66,6 +70,33 @@ class FulfillmentService
      * legacy order from being booked by accident.
      */
     public const BOOKABLE_PLACEMENT = 'to_pack';
+
+    /**
+     * The placement a successful booking moves the order INTO, and the one a
+     * cancelled booking moves it back OUT of (fulfillment-placement Task 3).
+     *
+     * Booking is OUR action: no courier status announces "this seller has
+     * booked a shipment", so nothing else in the chain can move the order
+     * out of To Pack. Since Task 2 made tab membership nothing but the core
+     * status's placement, a booking that did not move the status would leave
+     * a booked order sitting in To Pack forever, where the tab offers Book
+     * (refused while actively booked) and Cancel order (refused likewise) -
+     * an actionless row for the one state that most needs the waybill and
+     * the cancel. That is the hole these two constants close.
+     */
+    public const BOOKED_PLACEMENT = 'to_handover';
+    public const UNBOOKED_PLACEMENT = 'to_pack';
+
+    /** Module settings (group 'courier') naming each target status. */
+    public const BOOKED_STATUS_SETTING = 'booked_order_status_id';
+    public const UNBOOKED_STATUS_SETTING = 'unbooked_order_status_id';
+
+    /**
+     * The status name preferred when `booked_order_status_id` is unset - the
+     * one OrderStatusSeeder places under To Handover out of the box, and the
+     * name the OpenCart-era stores already use for exactly this step.
+     */
+    public const DEFAULT_BOOKED_STATUS_NAME = 'Order Being Shipped';
 
     /** Human tab name per placement, for operator-facing refusals. */
     public const TAB_LABELS = [
@@ -234,6 +265,131 @@ class FulfillmentService
     }
 
     /**
+     * The core status a successful booking moves the order to: the one whose
+     * placement (to_handover) carries the row from To Pack to To Handover.
+     * Null ONLY when the store has no To-Handover-placed status at all, which
+     * book() refuses on rather than creating a shipment it cannot represent.
+     *
+     * Resolution order, most explicit first:
+     *
+     *  1. the configured `booked_order_status_id`, but only while that status
+     *     is still placed under To Handover (an admin who later re-places it
+     *     must not silently keep booking orders into the wrong tab);
+     *  2. the status named "Order Being Shipped" when it is placed there;
+     *  3. the first To-Handover-placed status by sort order, then name.
+     *
+     * Steps 2 and 3 are why "unset" is a working configuration rather than a
+     * broken one (fulfillment-placement Task 3, review IMPORTANT 2): the
+     * setting exists to OVERRIDE this answer, never to enable it.
+     */
+    public static function bookedStatus(): ?OrderStatus
+    {
+        return self::resolveStatusSetting(
+            self::BOOKED_STATUS_SETTING,
+            self::BOOKED_PLACEMENT,
+            self::DEFAULT_BOOKED_STATUS_NAME,
+        );
+    }
+
+    /**
+     * The core status a cancelled booking returns the order to.
+     *
+     * $preferredId is the status the order held BEFORE it was booked (see
+     * book(), which records it under courier_meta.pre_booking_order_status_id):
+     * honoured when it still exists and is still placed under To Pack, so a
+     * store with several To Pack statuses ("Awaiting Packing", "Custom Build
+     * Queue") gets a genuine RETURN rather than a reset to whichever status
+     * happens to sort first. Otherwise the configured
+     * `unbooked_order_status_id`, otherwise the first To-Pack-placed status.
+     */
+    public static function unbookedStatus(?int $preferredId = null): ?OrderStatus
+    {
+        if ($preferredId) {
+            $preferred = OrderStatus::where('id', $preferredId)
+                ->where('fulfillment_placement', self::UNBOOKED_PLACEMENT)
+                ->first();
+            if ($preferred) {
+                return $preferred;
+            }
+        }
+
+        return self::resolveStatusSetting(self::UNBOOKED_STATUS_SETTING, self::UNBOOKED_PLACEMENT, null);
+    }
+
+    /**
+     * Shared resolution for both settings above: configured id (scoped to the
+     * required placement), then an optional preferred NAME, then the first
+     * status carrying that placement. Every arm is scoped to $placement, so
+     * the answer either carries it or is null.
+     */
+    private static function resolveStatusSetting(string $key, string $placement, ?string $preferredName): ?OrderStatus
+    {
+        $configured = Setting::where('group', 'courier')->where('key', $key)->value('value');
+        if ($configured) {
+            $status = OrderStatus::where('id', (int) $configured)
+                ->where('fulfillment_placement', $placement)
+                ->first();
+            if ($status) {
+                return $status;
+            }
+        }
+
+        if ($preferredName !== null) {
+            $named = OrderStatus::where('name', $preferredName)
+                ->where('fulfillment_placement', $placement)
+                ->first();
+            if ($named) {
+                return $named;
+            }
+        }
+
+        return OrderStatus::where('fulfillment_placement', $placement)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->first();
+    }
+
+    /**
+     * Applies the booked status to an order whose shipment now genuinely
+     * exists - called from BOTH paths a tracking number can arrive by: the
+     * synchronous book() below, and courier:poll-status's resolution of an
+     * async creation (PollCourierStatus::resolvePendingCreations()).
+     *
+     * Deliberately NOT called for a booking that is still in flight
+     * (courier_status='creating', no tracking number): nothing has been
+     * booked yet, the row honestly reads "Creating" in To Pack, and a create
+     * that later fails permanently must stay bookable there rather than sit
+     * in To Handover with no shipment to hand over.
+     *
+     * Idempotent: an order already on the booked status is left alone, so a
+     * repeat poll (or a courier status map that reached the same status
+     * first) can never write a second identical history row.
+     *
+     * Notify is OFF: the customer is told about a shipment by the status
+     * map's own notify flag or the order page, never by this internal move.
+     */
+    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null): ?OrderStatus
+    {
+        $status = self::bookedStatus();
+        if (!$status || (int) $order->order_status_id === (int) $status->id) {
+            return null;
+        }
+
+        $comment = 'Courier booking confirmed'
+            . ($courierName ? ' with ' . $courierName : '')
+            . ($tracking ? ' (' . $tracking . ')' : '')
+            . '. Order status set to ' . $status->name . ' by fulfillment.';
+
+        // History row + status update + stock adjustment either all land or
+        // none do, same as every other status change in the app.
+        DB::transaction(function () use ($order, $status, $comment) {
+            OrderStatusChanger::apply($order, $status->id, $comment, false, Auth::id());
+        });
+
+        return $status;
+    }
+
+    /**
      * Is this order paid via a COD-type method (rider collects the total)?
      * Uses the admin-configured mapping (courier.cod_payment_methods); when the
      * store hasn't configured one, falls back to the name heuristic.
@@ -345,9 +501,48 @@ class FulfillmentService
             ];
         }
 
+        // Destination gate (fulfillment-placement Task 3, review IMPORTANT 2).
+        // A booking that cannot move the order's status would leave it in To
+        // Pack carrying a live shipment, where the tab's own actions (Book,
+        // Cancel order) are both refused for exactly that reason - an
+        // actionless row, with no waybill and no way to cancel the parcel
+        // from the queue. So the shipment is never created in the first
+        // place: refused BEFORE the outbound call, naming the one fix.
+        //
+        // Unreachable in a normally configured store: bookedStatus() falls
+        // back through "Order Being Shipped" to the first To-Handover-placed
+        // status, and OrderStatusSeeder places one out of the box. This
+        // answers only for a store that has re-placed or deleted every one
+        // of them.
+        //
+        // Ordering: BELOW the placement gate, whose per-row message is the
+        // one an operator can act on, and below both idempotent branches for
+        // the same reason those come first.
+        //
+        // Deliberately NOT part of bookingBlockedReason() (which the queue
+        // view calls per row to decide whether to render Book): this is a
+        // store-wide configuration fault, not a fact about any one order.
+        // Hiding every Book button would leave the admin with no button to
+        // click and no explanation; the refusal message IS the explanation,
+        // and it costs one refused click rather than a silent dead queue.
+        // The fee estimate stays on the placement gate alone for the same
+        // reason - quoting a fee creates nothing.
+        if (self::bookedStatus() === null) {
+            return [
+                'success' => false,
+                'code'    => 'no_booked_status',
+                'error'   => 'No order status is placed under To Handover, so a booked order would have nowhere to go. Place one under Sales, Order Statuses, then pick it as the booked order status under Settings, Modules, Courier Fulfillment.',
+            ];
+        }
+
         // Captured before booking: null on a first-ever booking, the old
         // (canceled) tracking number on a rebook.
         $previousTracking = $order->courier_tracking_number;
+        // The status the order sits on right now (a To-Pack-placed one, per
+        // the gate above) - recorded in courier_meta so cancelling this
+        // booking can return the order to exactly where it came from rather
+        // than to a generic fallback (see FulfillmentController::cancel()).
+        $preBookingStatusId = (int) $order->order_status_id;
         // fulfillment-tabs-v3 Task 4: an admin-initiated booking cancel
         // resets the courier fields but persists the audit trail under
         // courier_meta.booking_history (FulfillmentController::cancel()) —
@@ -361,6 +556,7 @@ class FulfillmentService
 
         $meta = $result['meta'] ?? [];
         $meta['previous_tracking_number'] = $previousTracking;
+        $meta['pre_booking_order_status_id'] = $preBookingStatusId;
         if (isset($previousMeta['booking_history']) && is_array($previousMeta['booking_history'])) {
             $meta['booking_history'] = $previousMeta['booking_history'];
         }
@@ -386,6 +582,15 @@ class FulfillmentService
                 'comment'         => 'Rebooked with courier: ' . $previousTracking . ' superseded by ' . ($result['tracking_number'] ?? 'unknown'),
                 'notify_customer' => false,
             ]);
+        }
+
+        // The shipment exists, so the order moves to To Handover. Only when a
+        // tracking number actually landed: an async courier can return
+        // success with courier_status='creating' and nothing to hand over yet
+        // (see applyBookedStatus()'s docblock) - courier:poll-status applies
+        // the status when that creation resolves instead.
+        if (!empty($result['tracking_number'])) {
+            self::applyBookedStatus($order, $courier->getName(), $result['tracking_number']);
         }
 
         return [

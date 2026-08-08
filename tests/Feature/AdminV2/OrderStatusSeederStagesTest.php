@@ -60,6 +60,22 @@ class OrderStatusSeederStagesTest extends TestCase
         $this->assertSame('in_transit', OrderStatus::where('store_id', 1)->where('name', 'Shipped')->value('fulfillment_placement'));
     }
 
+    /**
+     * fulfillment-placement Task 3: a fresh install must ship ONE
+     * To-Handover-placed status, because booking refuses when there is
+     * nowhere to move a booked order to (FulfillmentService::bookedStatus()).
+     */
+    public function test_seeder_seeds_a_to_handover_placed_status_for_booked_orders(): void
+    {
+        (new OrderStatusSeeder())->run();
+
+        $this->assertSame(
+            'to_handover',
+            OrderStatus::where('store_id', 1)->where('name', 'Order Being Shipped')->value('fulfillment_placement'),
+        );
+        $this->assertTrue(OrderStatus::where('store_id', 1)->where('fulfillment_placement', 'to_handover')->exists());
+    }
+
     public function test_placement_for_is_case_insensitive(): void
     {
         $this->assertSame('unpaid', OrderStatusSeeder::placementFor('unpaid'));
