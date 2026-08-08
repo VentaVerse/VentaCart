@@ -512,12 +512,23 @@
                 <span class="cf-pager__count">{{ number_format($orders->firstItem() ?? 0) }} to {{ number_format($orders->lastItem() ?? 0) }} of {{ number_format($orders->total()) }}</span>
                 <div class="cf-pager__nav">
                     @if ($orders->previousPageUrl())
-                        <x-admin.button size="sm" variant="secondary" href="{{ $orders->previousPageUrl() }}">Previous</x-admin.button>
+                        {{-- Review fix: bind (:href), don't echo ({{ }}) — the shared
+                             x-admin.button component ALSO escapes its href when it
+                             renders the <a> tag (button.blade.php's own
+                             {{ $href }}), so an already-escaped {{ }} here
+                             double-escapes the paginator's own query string
+                             (&amp; -> &amp;amp;). A real browser then sends the
+                             LITERAL param name "amp;sub" instead of "sub" on
+                             click — silently dropping sub/q/per_page from every
+                             Next/Previous click. :href passes the raw URL through
+                             Blade's attribute binding, which the component's
+                             {{ }} still escapes exactly once. --}}
+                        <x-admin.button size="sm" variant="secondary" :href="$orders->previousPageUrl()">Previous</x-admin.button>
                     @else
                         <span class="v-btn inline-flex items-center justify-center gap-1.5 font-medium rounded-v-md h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border border-v-border" aria-disabled="true">Previous</span>
                     @endif
                     @if ($orders->nextPageUrl())
-                        <x-admin.button size="sm" variant="secondary" href="{{ $orders->nextPageUrl() }}">Next</x-admin.button>
+                        <x-admin.button size="sm" variant="secondary" :href="$orders->nextPageUrl()">Next</x-admin.button>
                     @else
                         <span class="v-btn inline-flex items-center justify-center gap-1.5 font-medium rounded-v-md h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border border-v-border" aria-disabled="true">Next</span>
                     @endif

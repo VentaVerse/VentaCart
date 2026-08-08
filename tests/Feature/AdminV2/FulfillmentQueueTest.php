@@ -826,6 +826,82 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Review fix: the pager's Previous/Next anchors were DOUBLE-escaped —
+    // x-admin.button's own <a href="{{ $href }}"> (button.blade.php:19)
+    // escapes once, and index.blade.php was ALSO echoing ({{ }}) an
+    // already-HTML-safe URL onto the component tag, escaping it a second
+    // time. A real browser then requested the LITERAL param name
+    // "amp;sub" (and "amp;q", "amp;per_page") instead of "sub"/"q"/
+    // "per_page" on click — silently dropping every one of them from
+    // Next/Previous. This test doesn't just assertSee() a substring (that
+    // passed even with the bug, since the FIRST escape pass alone reads
+    // fine to a naive assertion) — it extracts the rendered href, decodes
+    // it exactly once (html_entity_decode(), what a browser does), and
+    // FOLLOWS it, so a regression back to double-escaping is caught by an
+    // actual failed navigation, not a string match.
+    // ------------------------------------------------------------------
+
+    public function test_pager_next_link_is_single_escaped_and_preserves_filter_sub_and_search(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        // 12 unbooked (to_pack) orders, all matching q=Doe (makeOrder()'s
+        // fixed shipping_last_name) — enough for two pages at per_page=10.
+        for ($i = 0; $i < 12; $i++) {
+            $this->makeOrder();
+        }
+
+        $page1 = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack&q=Doe&per_page=10');
+        $page1->assertOk();
+        $content = $page1->getContent();
+
+        // The bug's exact signature: a doubly-escaped '&' reads as
+        // '&amp;amp;' in the raw response body.
+        $this->assertStringNotContainsString('&amp;amp;', $content);
+
+        // Pull the Next anchor's href attribute out of the rendered page.
+        $this->assertMatchesRegularExpression('/Next<\/a>/', $content, 'Expected a real (non-disabled) Next anchor with two pages available.');
+        preg_match('/<a href="([^"]+)"[^>]*>Next<\/a>/', $content, $match);
+        $this->assertNotEmpty($match, 'Could not find the Next pager anchor in the response.');
+
+        // Exactly what a browser does with an href attribute: HTML-entity
+        // decode it ONCE before issuing the request. If the view still
+        // double-escaped, this single decode leaves a literal '&amp;' in
+        // the URL, which becomes the query param name "amp;sub" etc. below.
+        $nextHref = html_entity_decode($match[1], ENT_QUOTES | ENT_HTML5);
+
+        $page2 = $this->get($nextHref);
+        $page2->assertOk()
+            ->assertSee('11 to 12 of 12')
+            // filter/sub/q/per_page all survived the click.
+            ->assertSee('name="filter" value="to_ship"', false)
+            ->assertSee('name="sub" value="to_pack"', false)
+            ->assertSee('value="Doe"', false)
+            ->assertSee('10 per page');
+    }
+
+    // ------------------------------------------------------------------
+    // Review fix (coverage gap): an unrecognized top-level filter value
+    // must degrade gracefully to the default tab, never a broken/empty
+    // page — same "defaults rather than breaks" contract as an invalid
+    // ?sub= already has its own test.
+    // ------------------------------------------------------------------
+
+    public function test_garbage_top_level_filter_defaults_to_to_ship(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $unbooked = $this->makeOrder();
+
+        $response = $this->get($this->queueUrl() . '?filter=garbage');
+        $response->assertOk()
+            ->assertSee('name="filter" value="to_ship"', false)
+            ->assertSee('#' . $unbooked->id, false);
+    }
+
+    // ------------------------------------------------------------------
     // Command bar: Poll statuses action.
     // ------------------------------------------------------------------
 
