@@ -68,14 +68,14 @@
                             <div class="text-[13px] font-medium text-v-text">{{ $post->title }}</div>
                             <div class="text-xs text-v-muted">{{ $post->slug }}</div>
                         </x-admin.table.cell>
-                        <x-admin.table.cell>{{ $post->category?->name ?? '—' }}</x-admin.table.cell>
+                        <x-admin.table.cell>{{ $post->category?->name ?? '-' }}</x-admin.table.cell>
                         <x-admin.table.cell>
                             <x-admin.badge :tone="$post->is_published ? 'success' : 'warning'">
                                 {{ $post->is_published ? 'Published' : 'Draft' }}
                             </x-admin.badge>
                         </x-admin.table.cell>
                         <x-admin.table.cell align="right" mono>{{ number_format($post->view_count) }}</x-admin.table.cell>
-                        <x-admin.table.cell>{{ $post->published_at?->format('M d, Y') ?? '—' }}</x-admin.table.cell>
+                        <x-admin.table.cell>{{ $post->published_at?->format('M d, Y') ?? '-' }}</x-admin.table.cell>
                         <x-admin.table.cell align="right">
                             <div class="flex items-center justify-end gap-3">
                                 <a href="{{ route('admin.blog.edit', $post) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>

@@ -6,7 +6,7 @@
                 <input type="hidden" name="group" value="security">
                 <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'security') }}">
                 <x-admin.field name="settings[admin_prefix]" label="Admin path"
-                    help="Current: /{{ $settings['security']['admin_prefix'] ?? 'admin' }} — lowercase letters, numbers, and hyphens only, starting with a letter. You'll be redirected to the new URL after saving.">
+                    help="Current: /{{ $settings['security']['admin_prefix'] ?? 'admin' }}. Lowercase letters, numbers, and hyphens only, starting with a letter. You'll be redirected to the new URL after saving.">
                     <div class="flex items-center gap-1">
                         <span class="text-[13px] text-v-secondary">/</span>
                         <x-admin.input name="settings[admin_prefix]" class="font-mono" pattern="[a-z][a-z0-9\-]*" required
@@ -34,7 +34,7 @@
                     <x-admin.input name="settings[turnstile_site_key]" class="font-mono" placeholder="0x4AAAAAAA..." :value="$settings['security']['turnstile_site_key'] ?? ''" />
                 </x-admin.field>
                 <x-admin.field name="settings[turnstile_secret_key]" label="Secret key"
-                    :help="!empty($maskedKeys['turnstile_secret_key'] ?? null) ? 'Current: '.$maskedKeys['turnstile_secret_key'].' — leave blank to keep it.' : 'Blank keeps no key set.'">
+                    :help="!empty($maskedKeys['turnstile_secret_key'] ?? null) ? 'Current: '.$maskedKeys['turnstile_secret_key'].'. Leave blank to keep it.' : 'Blank keeps no key set.'">
                     <x-admin.input name="settings[turnstile_secret_key]" type="password" autocomplete="new-password" class="font-mono"
                         :placeholder="!empty($maskedKeys['turnstile_secret_key'] ?? null) ? 'Leave blank to keep current' : 'Enter secret key'" />
                 </x-admin.field>

@@ -4,7 +4,7 @@
                 <div class="flex flex-wrap gap-4 text-[13px]">
                     <span class="flex items-center gap-2"><x-admin.badge tone="danger">▼ Decrements</x-admin.badge><span class="text-v-secondary">stock committed (e.g. Processing)</span></span>
                     <span class="flex items-center gap-2"><x-admin.badge tone="success">▲ Increments</x-admin.badge><span class="text-v-secondary">stock returned (e.g. Refunded, Canceled)</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="neutral">—</x-admin.badge><span class="text-v-secondary">no inventory effect</span></span>
+                    <span class="flex items-center gap-2"><x-admin.badge tone="neutral">-</x-admin.badge><span class="text-v-secondary">no inventory effect</span></span>
                 </div>
             </x-admin.card>
 
@@ -54,7 +54,7 @@
                                     @elseif ($status->stock_action === 'increment')
                                         <x-admin.badge tone="success">▲ Increments</x-admin.badge>
                                     @else
-                                        <x-admin.badge tone="neutral">—</x-admin.badge>
+                                        <x-admin.badge tone="neutral">-</x-admin.badge>
                                     @endif
                                 </div>
                             </x-admin.table.cell>

@@ -75,7 +75,7 @@
                             @elseif ($coupon->type === 'fixed')
                                 {{ number_format($coupon->discount_value, 2) }}
                             @else
-                                &mdash;
+                                -
                             @endif
                         </x-admin.table.cell>
                         <x-admin.table.cell>

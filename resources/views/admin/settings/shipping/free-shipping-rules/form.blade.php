@@ -10,7 +10,7 @@
             foreach ($categories as $cat) {
                 $categoryItems[] = ['id' => $cat->id, 'name' => $cat->name];
                 foreach ($cat->children as $child) {
-                    $categoryItems[] = ['id' => $child->id, 'name' => '— ' . $child->name];
+                    $categoryItems[] = ['id' => $child->id, 'name' => '- ' . $child->name];
                 }
             }
             $groupItems = $customerGroups->map(fn($g) => ['id' => $g->id, 'name' => $g->name])->values()->all();
@@ -54,7 +54,7 @@
                             <x-admin.toggle name="apply_whole_cart" :checked="$rule?->apply_whole_cart ?? false" class="mt-0.5" />
                             <div>
                                 <span class="text-[13px] text-v-text font-medium">Apply to whole cart</span>
-                                <p class="text-xs text-v-muted">If ANY qualifying product is in the cart, the entire cart gets free shipping — even if other products don't match the brand/category conditions.</p>
+                                <p class="text-xs text-v-muted">If ANY qualifying product is in the cart, the entire cart gets free shipping, even if other products don't match the brand/category conditions.</p>
                             </div>
                         </label>
                         <label class="flex items-start gap-2 cursor-pointer">

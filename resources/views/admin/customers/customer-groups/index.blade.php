@@ -33,7 +33,7 @@
                             @if ($group->customers_count === 0)
                                 <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-group-{{ $group->id }}')">Delete</button>
                             @else
-                                <span class="text-xs text-v-muted" title="Cannot delete — group has customers">{{ $group->customers_count }} customer{{ $group->customers_count > 1 ? 's' : '' }}</span>
+                                <span class="text-xs text-v-muted" title="Cannot delete: group has customers">{{ $group->customers_count }} customer{{ $group->customers_count > 1 ? 's' : '' }}</span>
                             @endif
                         </div>
                     </x-admin.table.cell>

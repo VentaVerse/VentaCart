@@ -157,7 +157,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
     public function getShippingPaymentOptions(): array
     {
         return [
-            ['value' => 'sender_pay',   'label' => "I'll shoulder it — Sender pays the shipping fee"],
+            ['value' => 'sender_pay',   'label' => "I'll shoulder it: Sender pays the shipping fee"],
             ['value' => 'receiver_pay', 'label' => 'Customer pays the shipping fee (Receiver pay)'],
         ];
     }
@@ -281,7 +281,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return ['success' => false, 'error' => 'SPX did not confirm the cancellation.'];
     }
 
-    private const CANCEL_TOO_LATE_MESSAGE = 'This shipment has already been picked up (or it is too late to cancel) — SPX only allows cancelling orders still pending pickup/drop-off.';
+    private const CANCEL_TOO_LATE_MESSAGE = 'This shipment has already been picked up (or it is too late to cancel). SPX only allows cancelling orders still pending pickup/drop-off.';
 
     /**
      * 1.2 Track Order (batch_search_order). Retries a bounded 2x on 13251
@@ -625,7 +625,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         // while the booking was live must not keep serving after the
         // shipment is cancelled — that label's AWB is void.
         if (($this->statusPhase($order->courier_status)['phase'] ?? null) === 'cancelled') {
-            return ['success' => false, 'error' => 'This SPX booking is cancelled — cancelled shipments have no printable waybill. Rebook the order to get a fresh label.'];
+            return ['success' => false, 'error' => 'This SPX booking is cancelled. Cancelled shipments have no printable waybill. Rebook the order to get a fresh label.'];
         }
 
         $path = self::labelStoragePath($trackingNumber);
@@ -662,7 +662,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
         $batchNo = $meta['batch_no'] ?? null;
         if (!$batchNo) {
-            return ['ok' => false, 'error' => 'No SPX batch number on file for this order — cannot fetch a label.'];
+            return ['ok' => false, 'error' => 'No SPX batch number on file for this order. Cannot fetch a label.'];
         }
 
         $result = $this->pollLabelResult((int) $batchNo, $order->courier_tracking_number);
@@ -670,7 +670,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['ok' => false, 'error' => "SPX label fetch failed: {$result->getMessage()} (ret_code {$result->retCode})"];
         }
         if ($result === null) {
-            return ['ok' => false, 'error' => 'SPX label generation is still in progress — try again shortly.'];
+            return ['ok' => false, 'error' => 'SPX label generation is still in progress, try again shortly.'];
         }
 
         // Live-UAT gate finding (fulfillment-workflow-v2 + SPX plan): UAT's
@@ -949,7 +949,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         }
 
         return !empty($data['match_result'])
-            ? ['ok' => true, 'message' => 'Connected — SPX reachable and credentials valid.']
+            ? ['ok' => true, 'message' => 'Connected. SPX reachable and credentials valid.']
             : ['ok' => false, 'message' => 'SPX reachable, but the User ID / User Secret pair did not match.'];
     }
 
@@ -998,7 +998,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
     public function createShipperAccount(): array
     {
         if (!empty(Setting::where('group', 'courier')->where('key', 'spx_user_id')->value('value'))) {
-            return ['ok' => false, 'error' => 'An SPX shipper account is already on file (User ID set) — remove it first if you really need to replace it, so existing bookings are not silently orphaned.'];
+            return ['ok' => false, 'error' => 'An SPX shipper account is already on file (User ID set). Remove it first if you really need to replace it, so existing bookings are not silently orphaned.'];
         }
 
         if (!$this->client->isConfigured()) {
@@ -1055,7 +1055,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
     public function refreshAddressTree(): array
     {
         if (!$this->client->hasAccountCredentials()) {
-            return ['ok' => false, 'error' => 'User ID / User Secret not set — cannot fetch the SPX address file.'];
+            return ['ok' => false, 'error' => 'User ID / User Secret not set. Cannot fetch the SPX address file.'];
         }
 
         try {
@@ -1152,7 +1152,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
                 'type'  => 'text',
                 'help'  => 'JSON array of {label, length_cm, width_cm, height_cm, max_weight_kg}. '
                     . 'Defaults: Small 25×20×10cm/3kg, Medium 35×25×15cm/5kg, Large 45×35×20cm/10kg. '
-                    . 'No structured editor yet (Task T4) — edit the raw JSON here.',
+                    . 'No structured editor yet (Task T4): edit the raw JSON here.',
             ],
         ];
     }
@@ -1314,7 +1314,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
         $phone    = $this->normalizePhPhone($order->shipping_phone ?: $order->phone);
 
         if ($state === '' || $city === '' || $postCode === '' || $phone === null) {
-            return ['ok' => false, 'error' => 'This order is missing a shipping province/city/postal code/valid PH mobile number — cannot book with SPX until the shipping address is complete.'];
+            return ['ok' => false, 'error' => 'This order is missing a shipping province/city/postal code/valid PH mobile number. Cannot book with SPX until the shipping address is complete.'];
         }
         if ($district === '') {
             // SPX marks district mandatory for PH; fall back to the city

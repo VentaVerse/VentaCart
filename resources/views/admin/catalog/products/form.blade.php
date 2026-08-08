@@ -125,7 +125,7 @@
                                 @error('price') <p class="mt-1 text-xs text-v-danger">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label for="cost" class="{{ $vLabel }}">Cost (₱) <span class="font-normal text-v-muted">— optional</span></label>
+                                <label for="cost" class="{{ $vLabel }}">Cost (₱) <span class="font-normal text-v-muted">(optional)</span></label>
                                 <input type="number" name="cost" id="cost" step="0.01" min="0" value="{{ old('cost', $product?->cost ?? '0.00') }}" class="{{ $vInput }}">
                             </div>
                             <div>

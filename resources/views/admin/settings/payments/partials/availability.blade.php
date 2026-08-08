@@ -4,7 +4,7 @@
     foreach ($categories as $cat) {
         $categoryItems[] = ['id' => $cat->id, 'name' => $cat->name];
         foreach ($cat->children as $child) {
-            $categoryItems[] = ['id' => $child->id, 'name' => '— ' . $child->name];
+            $categoryItems[] = ['id' => $child->id, 'name' => '- ' . $child->name];
         }
     }
     $groupItems = $customerGroups->map(function ($g) { return ['id' => $g->id, 'name' => $g->name]; })->values()->all();
@@ -101,7 +101,7 @@
                 @endforeach
             </ul>
         @else
-            <p class="text-[13px] text-v-secondary">No restrictions — available everywhere</p>
+            <p class="text-[13px] text-v-secondary">No restrictions: available everywhere</p>
         @endif
     </x-admin.card>
 
@@ -401,7 +401,7 @@
             <x-admin.form-actions>
                 @if ($restriction)
                     <x-admin.button variant="danger" type="button"
-                        onclick="if(confirm('Delete the availability rule for {{ $name }}? This removes ALL conditions listed above — {{ $name }} will become available everywhere.')) document.getElementById('delete-restriction-{{ $method }}').submit()">
+                        onclick="if(confirm('Delete the availability rule for {{ $name }}? This removes ALL conditions listed above. {{ $name }} will become available everywhere.')) document.getElementById('delete-restriction-{{ $method }}').submit()">
                         Delete rule
                     </x-admin.button>
                 @endif

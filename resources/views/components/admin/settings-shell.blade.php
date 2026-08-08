@@ -11,7 +11,7 @@
     $groups = \App\Support\SettingsNav::groups(Auth::user());
     $activeKey = $active ?? \App\Support\SettingsNav::activeKeyForPath(request()->path());
 @endphp
-<x-admin.shell :title="$title . ' — Settings'">
+<x-admin.shell :title="$title . ': Settings'">
     <x-admin.page :title="$title">
         @isset($actions)
             <x-slot:actions>{{ $actions }}</x-slot:actions>

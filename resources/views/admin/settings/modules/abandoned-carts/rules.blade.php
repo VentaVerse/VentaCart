@@ -21,7 +21,7 @@
                     @forelse ($rules as $rule)
                         <x-admin.table.row>
                             <x-admin.table.cell mono class="font-medium text-v-text">{{ $rule->priority }}</x-admin.table.cell>
-                            <x-admin.table.cell class="text-v-text">{{ $rule->emailTemplate->name ?? '—' }}</x-admin.table.cell>
+                            <x-admin.table.cell class="text-v-text">{{ $rule->emailTemplate->name ?? '-' }}</x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary">{{ $rule->customerGroup->name ?? 'All Groups' }}</x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary">{{ $rule->max_sends }}</x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary">{{ $rule->min_cart_age_hours }}h</x-admin.table.cell>

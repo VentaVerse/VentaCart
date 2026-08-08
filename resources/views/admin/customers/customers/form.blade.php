@@ -229,7 +229,7 @@
                                         <label class="block text-xs font-medium text-v-muted mb-1">Phone</label>
                                         <div class="flex gap-2">
                                             <span class="inline-flex items-center px-3 rounded-v-md border border-v-border bg-v-sunken text-[13px] text-v-muted"
-                                                x-text="phoneCodes[addr.country_id] ? '+' + phoneCodes[addr.country_id] : '—'"></span>
+                                                x-text="phoneCodes[addr.country_id] ? '+' + phoneCodes[addr.country_id] : '-'"></span>
                                             <input type="text" x-model="addr.phone" :name="'addresses['+aIndex+'][phone]'"
                                                 class="v-control flex-1 h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md"
                                                 placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">

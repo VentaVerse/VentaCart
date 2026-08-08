@@ -7,12 +7,12 @@
                 <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.dhl') }}">
 
                 <x-admin.field name="settings[dhl_site_id]" label="Site ID"
-                    :help="!empty($maskedKeys['dhl_site_id'] ?? null) ? 'Current key ends in ' . $maskedKeys['dhl_site_id'] . ' — leave blank to keep it.' : null">
+                    :help="!empty($maskedKeys['dhl_site_id'] ?? null) ? 'Current key ends in ' . $maskedKeys['dhl_site_id'] . '. Leave blank to keep it.' : null">
                     <x-admin.input name="settings[dhl_site_id]" autocomplete="off" placeholder="Enter Site ID" />
                 </x-admin.field>
 
                 <x-admin.field name="settings[dhl_password]" label="Password"
-                    :help="!empty($maskedKeys['dhl_password'] ?? null) ? 'Current password ends in ' . $maskedKeys['dhl_password'] . ' — leave blank to keep it.' : null">
+                    :help="!empty($maskedKeys['dhl_password'] ?? null) ? 'Current password ends in ' . $maskedKeys['dhl_password'] . '. Leave blank to keep it.' : null">
                     <x-admin.input type="password" name="settings[dhl_password]" autocomplete="new-password" placeholder="Enter Password" />
                 </x-admin.field>
 

@@ -8,7 +8,7 @@
                 @csrf
 
                 <x-admin.field name="settings[fulfillment_enabled]"
-                    help="On by default — installing and enabling this extension is already the signal you want it active. Turn off to pause the booking queue (Sales › Fulfillment shows an explanatory page instead) without disabling the extension itself. Bookings triggered by the ERP API keep working either way.">
+                    help="On by default: installing and enabling this extension is already the signal you want it active. Turn off to pause the booking queue (Sales › Fulfillment shows an explanatory page instead) without disabling the extension itself. Bookings triggered by the ERP API keep working either way.">
                     <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
                         <x-admin.toggle name="settings[fulfillment_enabled]" :checked="($settings['fulfillment_enabled'] ?? '1') !== '0'" />
                         Fulfillment queue active
@@ -42,7 +42,7 @@
 
         {{-- Webhook URLs: module-level plumbing (the tokens are
              server-generated, never editable), one per registered courier. --}}
-        <x-admin.card title="Webhook URLs" description="Couriers have no UI to set these — email/Slack each courier its URL so they push status updates here. Unique to this store.">
+        <x-admin.card title="Webhook URLs" description="Couriers have no UI to set these. Email/Slack each courier its URL so they push status updates here. Unique to this store.">
             <div class="space-y-4">
                 @foreach ($courierCards as $key => $card)
                     <div x-data="{ copied: false }">

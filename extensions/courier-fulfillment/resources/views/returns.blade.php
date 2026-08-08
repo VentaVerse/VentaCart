@@ -12,7 +12,7 @@
              queue; the full customer-initiated RMA process (refunds,
              restock) is a distinct product feature, tracked separately. --}}
         <p class="text-[13px] text-v-secondary mb-4">
-            Orders on their way back to you, or stuck in a failed courier state. Book, cancel, and track shipments from the main queue &mdash; this page is for watching what needs attention.
+            Orders on their way back to you, or stuck in a failed courier state. Book, cancel, and track shipments from the main queue: this page is for watching what needs attention.
         </p>
 
         @php
@@ -73,7 +73,7 @@
                                 <a class="co-sn" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
                             </td>
                             <td class="cf-col-courier">
-                                <span class="co-carrier">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '—') }}</span>
+                                <span class="co-carrier">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
                                 @if ($order->courier_tracking_number)
                                     <span class="co-ship__no">{{ $order->courier_tracking_number }}</span>
                                 @endif
@@ -91,7 +91,7 @@
                                     <span class="block text-[13px] text-v-text">{{ $humanizeStatus((string) $lastEvent['status'], $order->courier_provider) }}</span>
                                     <span class="block text-xs text-v-muted">{{ \Carbon\Carbon::createFromTimestamp($lastEvent['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia') }}</span>
                                 @else
-                                    <span class="co-empty-mark">&mdash;</span>
+                                    <span class="co-empty-mark">-</span>
                                 @endif
                             </td>
                             <td>

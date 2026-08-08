@@ -139,7 +139,7 @@
                                             </span>
                                         </template>
                                     </div>
-                                    <p class="text-xs text-v-muted mt-1" x-show="items.length === 0">No restrictions &mdash; applies to all {{ strtolower($r['label']) }}.</p>
+                                    <p class="text-xs text-v-muted mt-1" x-show="items.length === 0">No restrictions: applies to all {{ strtolower($r['label']) }}.</p>
                                 </div>
                             @endforeach
                         </div>

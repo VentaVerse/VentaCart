@@ -403,10 +403,10 @@ class FulfillmentController extends Controller
             $courierName = CourierManager::get((string) ($res['courier'] ?? ''))?->getName()
                 ?: strtoupper((string) ($res['courier'] ?? '')) ?: 'The courier';
 
-            return back()->with('success', "Booking submitted — {$courierName} is creating the shipment. The tracking number will appear here in a moment (refresh or poll statuses).");
+            return back()->with('success', "Booking submitted. {$courierName} is creating the shipment. The tracking number will appear here in a moment (refresh or poll statuses).");
         }
 
-        return back()->with('success', "Booked — tracking {$res['tracking_number']}.");
+        return back()->with('success', "Booked, tracking {$res['tracking_number']}.");
     }
 
     /**
@@ -447,7 +447,7 @@ class FulfillmentController extends Controller
             // flagged-but-unconfigured courier gets a message naming it and
             // pointing at Settings, never a raw estimateFee()/client error.
             $message = ($courier && CourierManager::isFlagged($courier->getKey()))
-                ? "{$courier->getName()} is not properly configured — check its credentials in Settings."
+                ? "{$courier->getName()} is not properly configured. Check its credentials in Settings."
                 : 'Selected courier is not available.';
 
             return response()->json(['ok' => false, 'message' => $message]);
@@ -460,7 +460,7 @@ class FulfillmentController extends Controller
 
         $estimate = $courier->estimateFee($order, $opts);
         if (!$estimate) {
-            return response()->json(['ok' => false, 'message' => 'An estimate is not available yet — check the pickup address and this order\'s shipping address are complete.']);
+            return response()->json(['ok' => false, 'message' => 'An estimate is not available yet. Check the pickup address and this order\'s shipping address are complete.']);
         }
 
         return response()->json([

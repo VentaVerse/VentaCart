@@ -19,7 +19,7 @@
             <input type="hidden" name="group" value="payment">
             <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'bank_transfer') }}">
             <x-admin.field name="settings[bank_transfer_display_name]" label="Checkout label"
-                help="Shown at checkout. Bank name (e.g. “— BDO”) is appended automatically per account. Leave blank for default.">
+                help="Shown at checkout. Bank name (e.g. “BDO”) is appended automatically per account. Leave blank for default.">
                 <x-admin.input name="settings[bank_transfer_display_name]"
                     :value="$settings['payment']['bank_transfer_display_name'] ?? ''" placeholder="{{ $defaultName }}" />
             </x-admin.field>
@@ -54,7 +54,7 @@
                             <img src="{{ storage_url($acct->qr_image) }}" alt="QR code for {{ $acct->bank_name }}"
                                 class="h-8 w-8 rounded object-contain border border-v-border">
                         @else
-                            <span class="text-v-muted">—</span>
+                            <span class="text-v-muted">-</span>
                         @endif
                     </x-admin.table.cell>
                     <x-admin.table.cell>{{ $acct->bank_name }}</x-admin.table.cell>

@@ -4,7 +4,7 @@
             <div class="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                     <h3 class="text-[13px] font-semibold text-v-text">Active Theme</h3>
-                    <p class="text-[13px] text-v-secondary mt-1">{{ $installedThemes[$activeTheme]['name'] ?? $activeTheme }} — {{ $installedThemes[$activeTheme]['description'] ?? '' }}</p>
+                    <p class="text-[13px] text-v-secondary mt-1">{{ $installedThemes[$activeTheme]['name'] ?? $activeTheme }}: {{ $installedThemes[$activeTheme]['description'] ?? '' }}</p>
                 </div>
                 <form method="POST" action="{{ route('admin.theme.switch') }}" data-v-form class="flex items-center gap-3">
                     @csrf
@@ -208,7 +208,7 @@
                                             </div>
                                             <hr class="border-v-border">
                                             <div :style="'font-family: \'' + bodyFont + '\', sans-serif'" class="space-y-2">
-                                                <div class="text-[13px] text-v-text" x-text="bodyFont + ' — Body Font'">Body Font</div>
+                                                <div class="text-[13px] text-v-text" x-text="bodyFont + ': Body Font'">Body Font</div>
                                                 <p class="text-[13px] text-v-secondary leading-relaxed">This is how your product descriptions, paragraphs, and general content will look on the storefront. The quick brown fox jumps over the lazy dog.</p>
                                                 <p class="text-xs text-v-muted">Hints and small descriptions appear like this.</p>
                                             </div>
@@ -514,10 +514,10 @@
                             @csrf
                             <input type="hidden" name="group" value="badges">
                             <div class="space-y-4 max-w-md">
-                                <x-admin.field name="settings[new_count]" label="NEW Badge — Last X products" help="Products added most recently. Set 0 to disable.">
+                                <x-admin.field name="settings[new_count]" label="NEW Badge: Last X products" help="Products added most recently. Set 0 to disable.">
                                     <x-admin.input type="number" name="settings[new_count]" :value="$settings['badges']['new_count'] ?? '10'" min="0" max="100" class="w-32" />
                                 </x-admin.field>
-                                <x-admin.field name="settings[hot_count]" label="HOT Badge — Top X best sellers" help="Products with the most orders. Set 0 to disable.">
+                                <x-admin.field name="settings[hot_count]" label="HOT Badge: Top X best sellers" help="Products with the most orders. Set 0 to disable.">
                                     <x-admin.input type="number" name="settings[hot_count]" :value="$settings['badges']['hot_count'] ?? '5'" min="0" max="100" class="w-32" />
                                 </x-admin.field>
                             </div>

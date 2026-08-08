@@ -45,7 +45,7 @@
                 @if ($suggestions->isEmpty())
                     <x-admin.card>
                         <x-admin.empty-state icon="check" title="Queue clear"
-                            :description="'Next generation run: ' . ($seoAutomation?->schedule_description ?? 'not scheduled — configure a cadence in Settings → Automations.')" />
+                            :description="'Next generation run: ' . ($seoAutomation?->schedule_description ?? 'not scheduled. Configure a cadence in Settings → Automations.')" />
                     </x-admin.card>
                 @else
                     <div x-data="{ selected: [] }" class="space-y-4 pb-20">
@@ -115,7 +115,7 @@
                                                 </div>
                                             </div>
                                         @empty
-                                            <p class="text-[13px] text-v-muted">No changed fields — every suggested value matches the current one.</p>
+                                            <p class="text-[13px] text-v-muted">No changed fields. Every suggested value matches the current one.</p>
                                         @endforelse
 
                                         @if (! empty($unchangedFields))

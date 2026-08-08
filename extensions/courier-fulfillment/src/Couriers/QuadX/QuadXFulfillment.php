@@ -74,9 +74,9 @@ class QuadXFulfillment implements CourierFulfillmentInterface
     public function getShippingPaymentOptions(): array
     {
         return [
-            ['value' => 'cash',    'label' => "I'll shoulder it — Cash on pickup"],
-            ['value' => 'gcash',   'label' => "I'll shoulder it — GCash at pickup"],
-            ['value' => 'net_off', 'label' => "I'll shoulder it — Deduct from my remittance / bill me"],
+            ['value' => 'cash',    'label' => "I'll shoulder it: Cash on pickup"],
+            ['value' => 'gcash',   'label' => "I'll shoulder it: GCash at pickup"],
+            ['value' => 'net_off', 'label' => "I'll shoulder it: Deduct from my remittance / bill me"],
         ];
     }
 
@@ -446,14 +446,14 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         }
         $res = $this->client->getStatuses();
         return $res['ok']
-            ? ['ok' => true, 'message' => 'Connected — QuadX reachable and credentials valid.']
+            ? ['ok' => true, 'message' => 'Connected. QuadX reachable and credentials valid.']
             : ['ok' => false, 'message' => 'Failed: ' . ($res['error'] ?? 'unknown (HTTP ' . $res['status'] . ')')];
     }
 
     public function refreshStatusLabels(): array
     {
         if (!$this->client->isConfigured()) {
-            return ['ok' => false, 'error' => 'API key/secret not set — cannot refresh statuses.'];
+            return ['ok' => false, 'error' => 'API key/secret not set. Cannot refresh statuses.'];
         }
 
         $res = $this->client->getStatuses();

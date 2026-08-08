@@ -283,7 +283,7 @@
                                             <x-admin.badge id="status-badge-{{ $entity->id }}" :tone="$badgeTone">{{ $badgeLabel }}</x-admin.badge>
                                         </td>
                                         <td class="px-4 py-2 align-middle text-xs text-v-secondary" id="meta-title-{{ $entity->id }}">
-                                            {{ $entity->meta_title ? Str::limit($entity->meta_title, 40) : '—' }}
+                                            {{ $entity->meta_title ? Str::limit($entity->meta_title, 40) : '-' }}
                                         </td>
                                         <td class="px-4 py-2 align-middle text-right" @click.stop>
                                             <x-admin.button type="button" variant="secondary" size="sm"

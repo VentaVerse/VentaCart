@@ -19,7 +19,7 @@
                 <div class="space-y-6">
                     <x-admin.card>
                         <div class="space-y-4">
-                            <x-admin.field name="admin_name" label="Admin Reference Name" help="Internal label for admin — not shown to customers. Leave blank to copy from Method Name.">
+                            <x-admin.field name="admin_name" label="Admin Reference Name" help="Internal label for admin, not shown to customers. Leave blank to copy from Method Name.">
                                 <x-admin.input type="text" name="admin_name" :value="$method?->admin_name" placeholder="e.g. WB - Metro Manila Default, WB - Provincial Resellers" />
                             </x-admin.field>
                             <x-admin.field name="name" label="Method Name" help="This name appears in checkout exactly as you type it">

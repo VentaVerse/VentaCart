@@ -53,7 +53,7 @@
                                     <x-admin.table.cell class="text-v-text">{{ $item->name }}</x-admin.table.cell>
                                     <x-admin.table.cell class="text-v-secondary">{{ $item->email }}</x-admin.table.cell>
                                     <x-admin.table.cell class="text-v-text">{{ $item->product?->name ?? 'Deleted' }}</x-admin.table.cell>
-                                    <x-admin.table.cell class="text-v-secondary">{{ $item->variant?->name ?? '—' }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-secondary">{{ $item->variant?->name ?? '-' }}</x-admin.table.cell>
                                     <x-admin.table.cell class="text-v-muted">{{ $item->created_at->format('M j, Y') }}</x-admin.table.cell>
                                     <x-admin.table.cell align="right">
                                         <button type="button" class="text-v-danger hover:underline text-[13px]"
@@ -128,7 +128,7 @@
                                 <x-admin.table.cell class="text-v-text">{{ $item->name }}</x-admin.table.cell>
                                 <x-admin.table.cell class="text-v-secondary">{{ $item->email }}</x-admin.table.cell>
                                 <x-admin.table.cell class="text-v-text">{{ $item->product?->name ?? 'Deleted' }}</x-admin.table.cell>
-                                <x-admin.table.cell class="text-v-secondary">{{ $item->variant?->name ?? '—' }}</x-admin.table.cell>
+                                <x-admin.table.cell class="text-v-secondary">{{ $item->variant?->name ?? '-' }}</x-admin.table.cell>
                                 <x-admin.table.cell class="text-v-muted">{{ $item->created_at->format('M j, Y') }}</x-admin.table.cell>
                                 <x-admin.table.cell class="text-v-accent">{{ $item->notified_at?->format('M j, Y g:i A') }}</x-admin.table.cell>
                             </x-admin.table.row>

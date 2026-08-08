@@ -27,13 +27,13 @@
 
                 {{-- Scheduling --}}
                 <x-admin.card title="Scheduling"
-                    description="Abandoned cart notifications run automatically via the Venta scheduler. Change how often they fire — or run them manually — in the Automations panel.">
+                    description="Abandoned cart notifications run automatically via the Venta scheduler. Change how often they fire, or run them manually, in the Automations panel.">
                     <x-admin.button variant="secondary" size="sm" :href="route('admin.settings.section', 'automations')">
                         Manage in Settings → Automations
                     </x-admin.button>
 
                     <div class="mt-4 rounded-v-md border border-v-border bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] p-3 text-xs text-v-warning">
-                        <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="rounded bg-v-sunken px-1">cart:notify</code> directly, remove it — the command now fires through the universal scheduler and the old line will cause duplicate runs.
+                        <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="rounded bg-v-sunken px-1">cart:notify</code> directly, remove it. The command now fires through the universal scheduler and the old line will cause duplicate runs.
                     </div>
                 </x-admin.card>
         </div>

@@ -185,7 +185,7 @@ class FulfillmentService
             return [
                 'success' => false,
                 'code'    => 'creation_in_progress',
-                'error'   => "Order #{$order->id} is already being booked with {$inProgressWith} — please wait for it to finish (usually a few seconds) and try again.",
+                'error'   => "Order #{$order->id} is already being booked with {$inProgressWith}. Please wait for it to finish (usually a few seconds) and try again.",
             ];
         }
 
@@ -205,7 +205,7 @@ class FulfillmentService
             // ERP endpoint's 409-vs-422 branch keys off this exact string —
             // ErpFulfillmentController::book()) so only the message differs.
             $error = ($courier && CourierManager::isFlagged($courier->getKey()))
-                ? "{$courier->getName()} is not properly configured — check its credentials in Settings."
+                ? "{$courier->getName()} is not properly configured. Check its credentials in Settings."
                 : 'Selected courier is not available.';
 
             return ['success' => false, 'code' => 'courier_unavailable', 'error' => $error];

@@ -12,7 +12,7 @@
              page, never a redirect. Bookings triggered by the ERP endpoint are a
              separate code path and keep working regardless of this toggle. --}}
         <x-admin.empty-state icon="fulfillment" title="Fulfillment is paused"
-            description="The manual booking queue is turned off. Orders booked automatically through the ERP integration (if configured) are unaffected — this only hides this page.">
+            description="The manual booking queue is turned off. Orders booked automatically through the ERP integration (if configured) are unaffected. This only hides this page.">
             @if ($canConfigureCouriers)
                 <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings') }}">Go to Courier Settings</x-admin.button>
             @endif
@@ -87,7 +87,7 @@
                     <x-admin.button type="submit" variant="primary">Poll courier statuses</x-admin.button>
                 </div>
             </form>
-            <p class="cf-cmdbar__hint">Pulls the latest status for every in-flight shipment from each enabled courier — the same pull the scheduled automation runs.</p>
+            <p class="cf-cmdbar__hint">Pulls the latest status for every in-flight shipment from each enabled courier, the same pull the scheduled automation runs.</p>
         </div>
 
         {{-- Segment bar: the spine phases, each with a mono count. Returns is
@@ -250,14 +250,14 @@
                             // admin — prevents mis-shipping a COD order as prepaid.
                             $isCod = \Extensions\CourierFulfillment\FulfillmentService::isCodOrder($order);
                             $buyerPaymentLabel = $isCod
-                                ? 'COD — rider collects ₱' . number_format($order->total, 2)
-                                : 'Prepaid — no collection';
+                                ? 'COD: rider collects ₱' . number_format($order->total, 2)
+                                : 'Prepaid, no collection';
 
                             $rowData = [
                                 'id' => $order->id,
                                 'date' => optional($order->created_at)->format('M d, Y g:ia'),
-                                'customerName' => trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '—',
-                                'address' => trim(collect([$order->shipping_address_1, $order->shipping_city, $order->shipping_state])->filter()->implode(', ')) ?: '—',
+                                'customerName' => trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-',
+                                'address' => trim(collect([$order->shipping_address_1, $order->shipping_city, $order->shipping_state])->filter()->implode(', ')) ?: '-',
                                 'statusName' => $order->status?->name ?? 'Missing',
                                 'itemsCount' => $order->products_count ?? 0,
                                 'activelyBooked' => $activelyBooked,
@@ -294,7 +294,7 @@
                                 <div class="co-band__row">
                                     <div class="co-band__left">
                                         <span class="co-band__label">Customer</span>
-                                        <span class="co-band__value">{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '—' }}</span>
+                                        <span class="co-band__value">{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</span>
                                         <span class="co-band__label">Order</span>
                                         <a class="co-sn" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
                                         <span class="co-band__muted">({{ $order->products_count ?? 0 }} {{ ($order->products_count ?? 0) === 1 ? 'item' : 'items' }})</span>
@@ -339,7 +339,7 @@
                                     @if ($item)
                                         <span class="co-qty">&times;{{ max(1, (int) $item->quantity) }}</span>
                                     @else
-                                        <span class="co-empty-mark">&mdash;</span>
+                                        <span class="co-empty-mark">-</span>
                                     @endif
                                 </td>
                                 @if ($idx === 0)
@@ -356,7 +356,7 @@
                                                 <span class="co-ship__no">{{ $order->courier_tracking_number }}</span>
                                             @endif
                                         @else
-                                            <span class="co-empty-mark">&mdash;</span>
+                                            <span class="co-empty-mark">-</span>
                                         @endif
                                     </td>
                                     <td class="cf-col-status" rowspan="{{ $lineCount }}">
@@ -570,7 +570,7 @@
                                         </template>
                                         <template x-if="active.rebookable">
                                             <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 text-xs text-v-muted">
-                                                Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled — booking again creates a new shipment.
+                                                Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
                                             </div>
                                         </template>
                                         <x-admin.button type="button" variant="primary" class="w-full" @click="closeDrawer(); openBooking(active)">Book shipment</x-admin.button>
@@ -603,7 +603,7 @@
                                         </div>
                                         <div class="flex justify-between text-sm">
                                             <span class="text-v-muted">Status</span>
-                                            <span class="font-medium text-v-text" x-text="active.courierStatus || '—'"></span>
+                                            <span class="font-medium text-v-text" x-text="active.courierStatus || '-'"></span>
                                         </div>
                                         <template x-if="active.estimatedDelivery">
                                             <div class="flex justify-between text-sm">
@@ -750,7 +750,7 @@
                                         <p class="text-[13px] text-v-secondary">Shipping with <span class="font-semibold text-v-text" x-text="current.name"></span></p>
                                         <template x-if="active.rebookable">
                                             <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 text-xs text-v-muted">
-                                                Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled — booking again creates a new shipment.
+                                                Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
                                             </div>
                                         </template>
                                         <div class="grid grid-cols-2 gap-3">

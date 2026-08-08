@@ -49,7 +49,7 @@
                                         <td class="px-4 py-2.5 text-xs text-v-secondary v-num">{{ $country->iso3 }}</td>
                                     </template>
                                     <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-xs text-v-secondary">{{ $country->phone_code ? '+' . $country->phone_code : '—' }}</td>
+                                        <td class="px-4 py-2.5 text-xs text-v-secondary">{{ $country->phone_code ? '+' . $country->phone_code : '-' }}</td>
                                     </template>
                                     <template x-if="!editing">
                                         <td class="px-4 py-2.5 text-xs text-v-muted text-right v-num">{{ $country->sort_order }}</td>
@@ -65,7 +65,7 @@
                                                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
                                                 :class="active ? 'bg-v-accent' : 'bg-v-strong'"
                                                 role="switch" :aria-checked="active"
-                                                :title="active ? 'Enabled — click to disable' : 'Disabled — click to enable'">
+                                                :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
                                                 <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="active ? 'translate-x-4' : ''"></span>
                                             </button>
                                         </td>
@@ -138,7 +138,7 @@
                                             <td class="px-4 py-2.5 text-[13px] text-v-text">{{ $zone->name }}</td>
                                         </template>
                                         <template x-if="!editing">
-                                            <td class="px-4 py-2.5 text-xs text-v-secondary v-num">{{ $zone->code ?? '—' }}</td>
+                                            <td class="px-4 py-2.5 text-xs text-v-secondary v-num">{{ $zone->code ?? '-' }}</td>
                                         </template>
                                         <template x-if="!editing">
                                             <td class="px-4 py-2.5 text-right">
@@ -148,7 +148,7 @@
                                                     class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
                                                     :class="active ? 'bg-v-accent' : 'bg-v-strong'"
                                                     role="switch" :aria-checked="active"
-                                                    :title="active ? 'Enabled — click to disable' : 'Disabled — click to enable'">
+                                                    :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
                                                     <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="active ? 'translate-x-4' : ''"></span>
                                                 </button>
                                             </td>
@@ -224,7 +224,7 @@
                                 @forelse ($geoZones as $gz)
                                     <tr class="v-row group" x-data="{ active: {{ $gz->is_active ? 'true' : 'false' }}, toggling: false }">
                                         <td class="px-4 py-2.5 text-[13px] font-medium text-v-text">{{ $gz->name }}</td>
-                                        <td class="px-4 py-2.5 text-xs text-v-secondary">{{ $gz->description ?? '—' }}</td>
+                                        <td class="px-4 py-2.5 text-xs text-v-secondary">{{ $gz->description ?? '-' }}</td>
                                         <td class="px-4 py-2.5 text-[13px] text-v-secondary">{{ $gz->entries_count }}</td>
                                         <td class="px-4 py-2.5 text-[13px] text-v-secondary v-num">{{ $gz->sort_order }}</td>
                                         <td class="px-4 py-2.5 text-right">
@@ -234,7 +234,7 @@
                                                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
                                                 :class="active ? 'bg-v-accent' : 'bg-v-strong'"
                                                 role="switch" :aria-checked="active"
-                                                :title="active ? 'Enabled — click to disable' : 'Disabled — click to enable'">
+                                                :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
                                                 <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="active ? 'translate-x-4' : ''"></span>
                                             </button>
                                         </td>

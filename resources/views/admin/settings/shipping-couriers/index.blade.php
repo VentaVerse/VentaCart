@@ -18,7 +18,7 @@
                                 <td class="px-4 py-2 align-middle text-[13px] font-medium text-v-text">{{ $courier->name }}</td>
                             </template>
                             <template x-if="editing !== {{ $courier->id }}">
-                                <td class="px-4 py-2 align-middle text-xs text-v-secondary font-mono truncate max-w-xs" title="{{ $courier->tracking_url }}">{{ $courier->tracking_url ?? '—' }}</td>
+                                <td class="px-4 py-2 align-middle text-xs text-v-secondary font-mono truncate max-w-xs" title="{{ $courier->tracking_url }}">{{ $courier->tracking_url ?? '-' }}</td>
                             </template>
                             <template x-if="editing !== {{ $courier->id }}">
                                 <td class="px-4 py-2 align-middle text-right text-[13px] text-v-secondary v-num">{{ $courier->sort_order }}</td>

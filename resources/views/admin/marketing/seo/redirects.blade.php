@@ -91,7 +91,7 @@
                                                 <span class="rounded bg-v-sunken px-2 py-0.5 font-mono text-xs text-v-secondary">{{ $r->status_code }}</span>
                                             </x-admin.table.cell>
                                             <x-admin.table.cell align="right" mono>{{ number_format($r->hits) }}</x-admin.table.cell>
-                                            <x-admin.table.cell class="text-xs text-v-muted">{{ $r->last_hit_at?->diffForHumans() ?? '—' }}</x-admin.table.cell>
+                                            <x-admin.table.cell class="text-xs text-v-muted">{{ $r->last_hit_at?->diffForHumans() ?? '-' }}</x-admin.table.cell>
                                             <x-admin.table.cell align="right">
                                                 <div class="flex items-center justify-end gap-2">
                                                     <button type="button" @click="editing = !editing" class="text-xs text-v-accent hover:opacity-80">Edit</button>
@@ -160,9 +160,9 @@
 
                                 <x-slot name="footer">
                                     <div class="space-y-1 text-[11px] text-v-secondary">
-                                        <p><strong class="text-v-text">301 Permanent</strong> — preserves SEO link equity to the new URL. Use for moved content.</p>
-                                        <p><strong class="text-v-text">302 Temporary</strong> — Google may keep indexing the old URL. Use for short-term moves.</p>
-                                        <p><strong class="text-v-text">410 Gone</strong> — tells search engines the URL is permanently removed. Drops from index faster than 404.</p>
+                                        <p><strong class="text-v-text">301 Permanent</strong>: preserves SEO link equity to the new URL. Use for moved content.</p>
+                                        <p><strong class="text-v-text">302 Temporary</strong>: Google may keep indexing the old URL. Use for short-term moves.</p>
+                                        <p><strong class="text-v-text">410 Gone</strong>: tells search engines the URL is permanently removed. Drops from index faster than 404.</p>
                                     </div>
                                 </x-slot>
                             </x-admin.card>

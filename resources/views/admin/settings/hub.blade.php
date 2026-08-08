@@ -35,7 +35,7 @@
             @endforeach
 
             <div x-show="q && !@js(collect($groups)->flatMap(fn ($g) => collect($g['items'])->map(fn ($i) => strtolower($i['label'] . ' ' . $i['description'] . ' ' . implode(' ', $i['keywords']))))->values()).some(h => h.includes(q))" x-cloak>
-                <x-admin.empty-state icon="search" title="Nothing matches" description="No setting matches that search. Try a different word — cards also match hidden synonyms like “smtp” or “gcash”." />
+                <x-admin.empty-state icon="search" title="Nothing matches" description="No setting matches that search. Try a different word: cards also match hidden synonyms like “smtp” or “gcash”." />
             </div>
         </div>
     </x-admin.page>

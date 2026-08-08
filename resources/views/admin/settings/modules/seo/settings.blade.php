@@ -45,10 +45,10 @@
                                 </div>
                                 <x-admin.field name="claude_model" label="Model">
                                     <x-admin.select name="claude_model">
-                                        <option value="claude-opus-4-6" {{ ($seoSettings['claude_model'] ?? '') === 'claude-opus-4-6' ? 'selected' : '' }}>Opus 4.6 — most capable</option>
-                                        <option value="claude-sonnet-4-6" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-6' || empty($seoSettings['claude_model']) ? 'selected' : '' }}>Sonnet 4.6 — recommended</option>
-                                        <option value="claude-sonnet-4-5-20250514" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-5-20250514' ? 'selected' : '' }}>Sonnet 4.5 — balanced</option>
-                                        <option value="claude-haiku-4-5-20251001" {{ ($seoSettings['claude_model'] ?? '') === 'claude-haiku-4-5-20251001' ? 'selected' : '' }}>Haiku 4.5 — fast, cheap</option>
+                                        <option value="claude-opus-4-6" {{ ($seoSettings['claude_model'] ?? '') === 'claude-opus-4-6' ? 'selected' : '' }}>Opus 4.6: most capable</option>
+                                        <option value="claude-sonnet-4-6" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-6' || empty($seoSettings['claude_model']) ? 'selected' : '' }}>Sonnet 4.6: recommended</option>
+                                        <option value="claude-sonnet-4-5-20250514" {{ ($seoSettings['claude_model'] ?? '') === 'claude-sonnet-4-5-20250514' ? 'selected' : '' }}>Sonnet 4.5: balanced</option>
+                                        <option value="claude-haiku-4-5-20251001" {{ ($seoSettings['claude_model'] ?? '') === 'claude-haiku-4-5-20251001' ? 'selected' : '' }}>Haiku 4.5: fast, cheap</option>
                                     </x-admin.select>
                                 </x-admin.field>
                             </div>
@@ -89,11 +89,11 @@
                     </x-admin.card>
 
                     {{-- ==================== Optimization Rules ==================== --}}
-                    <x-admin.card title="Optimization Rules" description="Control when the cron job should skip or re-optimize entities. These rules apply to automated (cron) runs only — manual &quot;Optimize&quot; buttons always work.">
+                    <x-admin.card title="Optimization Rules" description="Control when the cron job should skip or re-optimize entities. These rules apply to automated (cron) runs only. Manual &quot;Optimize&quot; buttons always work.">
                         <div class="max-w-2xl space-y-5">
                             {{-- Skip rules --}}
                             <div class="rounded-v-lg border border-v-border p-4">
-                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Skip Rules <span class="font-normal text-xs text-v-muted">— when to leave entities alone</span></h4>
+                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Skip Rules <span class="font-normal text-xs text-v-muted">(when to leave entities alone)</span></h4>
                                 <div class="space-y-3">
                                     <label class="flex cursor-pointer items-start gap-3">
                                         <input type="hidden" name="rule_skip_pending" value="0">
@@ -129,7 +129,7 @@
 
                             {{-- Process rules --}}
                             <div class="rounded-v-lg border border-v-border p-4">
-                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Process Rules <span class="font-normal text-xs text-v-muted">— when to always optimize</span></h4>
+                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Process Rules <span class="font-normal text-xs text-v-muted">(when to always optimize)</span></h4>
                                 <div class="space-y-3">
                                     <label class="flex cursor-pointer items-start gap-3">
                                         <input type="hidden" name="rule_process_empty" value="0">
@@ -165,7 +165,7 @@
 
                             {{-- Scope --}}
                             <div class="rounded-v-lg border border-v-border p-4">
-                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Scope <span class="font-normal text-xs text-v-muted">— which entity types to include in cron runs</span></h4>
+                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Scope <span class="font-normal text-xs text-v-muted">(which entity types to include in cron runs)</span></h4>
                                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                     @foreach (['products' => 'Products', 'categories' => 'Categories', 'brands' => 'Brands', 'blog_posts' => 'Blog Posts', 'pages' => 'Pages'] as $key => $label)
                                         <label class="flex cursor-pointer items-center gap-2">
@@ -180,7 +180,7 @@
 
                             {{-- Batch --}}
                             <div class="rounded-v-lg border border-v-border p-4">
-                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Batch Limit <span class="font-normal text-xs text-v-muted">— max entities per cron run</span></h4>
+                                <h4 class="mb-3 text-[13px] font-medium text-v-text">Batch Limit <span class="font-normal text-xs text-v-muted">(max entities per cron run)</span></h4>
                                 <div>
                                     <x-admin.input type="number" name="rule_batch_limit" :value="$seoSettings['rule_batch_limit'] ?? '0'" min="0" class="w-24" />
                                     <span class="ml-1 text-xs text-v-muted">per entity type (0 = unlimited)</span>
@@ -228,7 +228,7 @@
                         </x-admin.button>
 
                         <div class="mt-4 rounded-v-md border border-v-border bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] p-3 text-xs text-v-warning">
-                            <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="rounded bg-v-sunken px-1 text-v-text">seo:generate</code> directly, remove it — the command now fires through the universal scheduler and the old line will cause duplicate runs.
+                            <strong>Upgrading from an older Venta install?</strong> If your server's crontab still has a line running <code class="rounded bg-v-sunken px-1 text-v-text">seo:generate</code> directly, remove it. The command now fires through the universal scheduler and the old line will cause duplicate runs.
                         </div>
                     </div>
                 </x-admin.card>

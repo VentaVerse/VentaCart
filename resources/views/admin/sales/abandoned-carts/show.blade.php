@@ -23,7 +23,7 @@
                                     <div class="text-xs text-v-muted">SKU: {{ $item->sku }}</div>
                                 @endif
                             </x-admin.table.cell>
-                            <x-admin.table.cell class="text-v-secondary">{{ $item->variant_label ?? '—' }}</x-admin.table.cell>
+                            <x-admin.table.cell class="text-v-secondary">{{ $item->variant_label ?? '-' }}</x-admin.table.cell>
                             <x-admin.table.cell mono class="text-v-text">{{ number_format($item->price, 2) }}</x-admin.table.cell>
                             <x-admin.table.cell mono class="text-v-text">{{ $item->quantity }}</x-admin.table.cell>
                             <x-admin.table.cell align="right" mono class="font-medium text-v-text">{{ number_format($item->line_total, 2) }}</x-admin.table.cell>

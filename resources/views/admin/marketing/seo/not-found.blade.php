@@ -67,7 +67,7 @@
                                 <x-admin.table.cell class="text-xs text-v-muted" title="{{ $log->last_hit_at }}">{{ $log->last_hit_at->diffForHumans() }}</x-admin.table.cell>
                                 <x-admin.table.cell class="text-xs text-v-muted" title="{{ $log->first_hit_at }}">{{ $log->first_hit_at->diffForHumans() }}</x-admin.table.cell>
                                 <x-admin.table.cell class="max-w-xs text-xs text-v-muted">
-                                    <div class="truncate" title="{{ $log->last_referer }}">{{ $log->last_referer ?: '—' }}</div>
+                                    <div class="truncate" title="{{ $log->last_referer }}">{{ $log->last_referer ?: '-' }}</div>
                                 </x-admin.table.cell>
                                 <x-admin.table.cell align="right">
                                     <div class="flex items-center justify-end gap-3">

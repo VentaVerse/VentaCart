@@ -29,7 +29,7 @@
                 </div>
 
                 {{-- Automation status --}}
-                <x-admin.card title="Automation" description="Suggestions are generated on a schedule — configure cadence in Settings.">
+                <x-admin.card title="Automation" description="Suggestions are generated on a schedule. Configure cadence in Settings.">
                     <x-slot name="headerActions">
                         <x-admin.button variant="ghost" size="sm" :href="route('admin.settings.section', 'automations')">
                             Runs via Automations →
@@ -62,7 +62,7 @@
                         </div>
                     @else
                         <x-admin.empty-state icon="warning" title="Automation not configured"
-                            description="The seo_generate automation row hasn't been seeded yet — run the AutomationSeeder to enable scheduled generation." />
+                            description="The seo_generate automation row hasn't been seeded yet. Run the AutomationSeeder to enable scheduled generation." />
                     @endif
                 </x-admin.card>
 
@@ -95,7 +95,7 @@
                                         <x-admin.badge :tone="$statusTones[$suggestion->status] ?? 'neutral'">{{ ucfirst($suggestion->status) }}</x-admin.badge>
                                     </x-admin.table.cell>
                                     <x-admin.table.cell align="right" class="text-v-muted">
-                                        {{ $suggestion->generated_at?->format('M d, Y') ?? '—' }}
+                                        {{ $suggestion->generated_at?->format('M d, Y') ?? '-' }}
                                     </x-admin.table.cell>
                                 </x-admin.table.row>
                             @endforeach

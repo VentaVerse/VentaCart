@@ -49,7 +49,7 @@
                         <x-admin.table.cell>
                             <input type="number" form="{{ $editForm }}" name="rate" value="{{ $cur->rate }}" step="0.000001" min="0.000001" required
                                 @if ($cur->is_default) readonly @endif
-                                title="{{ $cur->is_default ? 'Base currency — its rate is always 1.' : 'Units of '.$cur->code.' per 1 '.($defaultCurrency?->code ?? 'base') }}"
+                                title="{{ $cur->is_default ? 'Base currency: its rate is always 1.' : 'Units of '.$cur->code.' per 1 '.($defaultCurrency?->code ?? 'base') }}"
                                 class="v-control w-32 h-[var(--control-h-sm)] px-2 text-[13px] border border-v-border rounded-v-md {{ $cur->is_default ? 'bg-v-sunken text-v-muted cursor-not-allowed' : 'bg-v-surface text-v-text' }}">
                         </x-admin.table.cell>
                         <x-admin.table.cell>

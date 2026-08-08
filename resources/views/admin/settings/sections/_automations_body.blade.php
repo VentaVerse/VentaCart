@@ -196,7 +196,7 @@
                          x-cloak
                          class="mt-2 rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_10%,transparent)] p-3 text-xs text-v-warning">
                         <span class="font-medium">Fires every minute.</span>
-                        This puts steady load on your server — use sparingly, only for time-sensitive tasks.
+                        This puts steady load on your server, use sparingly, only for time-sensitive tasks.
                     </div>
                 </div>
 
@@ -298,7 +298,7 @@
             showToast(type, title, message = '', output = '') {
                 const tone = type === 'error' ? 'danger' : 'success';
                 let text = message ? `${title}: ${message}` : title;
-                if (output) text += ` — ${output.slice(0, 150)}`;
+                if (output) text += `: ${output.slice(0, 150)}`;
                 window.Alpine.store('toasts').push(text, tone);
             },
 

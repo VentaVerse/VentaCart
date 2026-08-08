@@ -50,8 +50,8 @@
                          this links nowhere — it names the file so whoever
                          is configuring UAT knows exactly where to look. --}}
                     <div x-show="mode === 'uat'" x-cloak class="rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-[13px] text-v-warning">
-                        <p class="font-semibold">UAT mode — whitelisted test orders only</p>
-                        <p class="mt-1">SPX's UAT environment only accepts bookings for the recipient details listed in <code class="font-mono">docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf</code> in this codebase's repo — a real customer address will fail with an unrelated-looking SPX error. Switch to Production mode once SPX has approved this integration.</p>
+                        <p class="font-semibold">UAT mode: whitelisted test orders only</p>
+                        <p class="mt-1">SPX's UAT environment only accepts bookings for the recipient details listed in <code class="font-mono">docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf</code> in this codebase's repo. A real customer address will fail with an unrelated-looking SPX error. Switch to Production mode once SPX has approved this integration.</p>
                     </div>
 
                     {{-- Create shipper account: only meaningful before a
@@ -193,7 +193,7 @@
                                         <td class="py-2 text-v-text">{{ $label }}</td>
                                         <td class="py-2">
                                             <x-admin.select name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][order_status_id]" class="max-w-xs">
-                                                <option value="">&mdash; none &mdash;</option>
+                                                <option value="">(none)</option>
                                                 @foreach ($orderStatuses as $id => $name)
                                                     <option value="{{ $id }}" {{ (string) ($statusMap[$statusKey]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
                                                 @endforeach

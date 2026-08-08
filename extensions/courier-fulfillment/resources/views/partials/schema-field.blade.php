@@ -40,7 +40,7 @@
     </x-admin.field>
 @elseif ($field['type'] === 'password')
     <x-admin.field :name="$name" :label="$field['label']"
-        :help="!empty($masked) ? 'Current value ends in ' . $masked . ' — leave blank to keep it.' : $help">
+        :help="!empty($masked) ? 'Current value ends in ' . $masked . '. Leave blank to keep it.' : $help">
         <x-admin.input :name="$name" type="password" autocomplete="off" placeholder="Enter to change" />
     </x-admin.field>
 @else

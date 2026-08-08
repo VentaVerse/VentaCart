@@ -258,7 +258,7 @@
                                         <div class="flex items-start justify-between">
                                             <div class="min-w-0">
                                                 <div class="flex flex-wrap items-center gap-2">
-                                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->status?->name ?? '—' }}</x-admin.badge>
+                                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->status?->name ?? '-' }}</x-admin.badge>
                                                     @if ($history->notify_customer)
                                                         <span class="text-[10px] font-medium text-v-accent">Notified</span>
                                                     @endif
@@ -268,7 +268,7 @@
                                                 @endif
                                                 <p class="mt-1 text-[11px] text-v-muted">
                                                     {{ $history->created_at->format('M d, Y g:i A') }}
-                                                    @if ($history->createdByUser) &mdash; {{ $history->createdByUser->name }} @endif
+                                                    @if ($history->createdByUser) by {{ $history->createdByUser->name }} @endif
                                                 </p>
                                             </div>
                                             <button type="button" class="ml-2 rounded p-1 text-v-muted transition-colors hover:bg-v-hover hover:text-v-danger" title="Delete"

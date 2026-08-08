@@ -87,7 +87,7 @@
                                 @if ($quote['service_type'] === 'free_shipping')
                                     <span class="text-v-accent font-medium">Free Shipping</span>
                                 @else
-                                    {{ $quote['service_type'] ?? '—' }}
+                                    {{ $quote['service_type'] ?? '-' }}
                                 @endif
                             </x-admin.table.cell>
                             <x-admin.table.cell align="right" mono>

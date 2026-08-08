@@ -152,7 +152,7 @@
                     {{-- Category --}}
                     <x-admin.card title="Category">
                         <x-admin.select name="blog_category_id">
-                            <option value="">— None —</option>
+                            <option value="">(None)</option>
                             @foreach ($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ old('blog_category_id', $post?->blog_category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                             @endforeach

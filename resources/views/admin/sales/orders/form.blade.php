@@ -91,7 +91,7 @@
                                         <button type="button" @click="clearCustomer()" class="shrink-0 text-xs font-medium text-v-danger hover:opacity-80">Change</button>
                                     </div>
                                     <div x-show="isNewCustomer && !customerId" class="col-span-2 mb-1 flex items-center gap-2 rounded-v-md bg-[color-mix(in_srgb,var(--success,var(--accent))_10%,transparent)] px-3 py-2">
-                                        <span class="text-[13px] font-medium text-v-accent">New customer — account will be created on save</span>
+                                        <span class="text-[13px] font-medium text-v-accent">New customer: account will be created on save</span>
                                     </div>
                                     <div>
                                         <label class="{{ $vLabel }}">First Name</label>
@@ -313,7 +313,7 @@
                                     <label class="{{ $vLabel }}">Phone</label>
                                     <div class="flex gap-2">
                                         <span class="inline-flex items-center rounded-v-md border border-v-border bg-v-sunken px-3 text-xs text-v-muted"
-                                            x-text="countriesPhoneCodes[billing.country_id] ? '+' + countriesPhoneCodes[billing.country_id] : '—'"></span>
+                                            x-text="countriesPhoneCodes[billing.country_id] ? '+' + countriesPhoneCodes[billing.country_id] : '-'"></span>
                                         <input type="tel" name="billing_phone" x-model="billing.phone" class="{{ $vInput }} flex-1"
                                             placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                     </div>
@@ -334,7 +334,7 @@
                                     <select x-show="!loadingShipping" x-model="shippingMethod" @change="onShippingMethodChange()" class="{{ $vSelect }}">
                                         <option value="">Select...</option>
                                         <template x-for="sm in availableShippingMethods" :key="sm.key">
-                                            <option :value="sm.name" x-text="sm.name + ' — ₱' + parseFloat(sm.cost).toFixed(2)"></option>
+                                            <option :value="sm.name" x-text="sm.name + ': ₱' + parseFloat(sm.cost).toFixed(2)"></option>
                                         </template>
                                         <option value="custom">Other (type below)</option>
                                     </select>
@@ -415,7 +415,7 @@
                                         <template x-for="p in productResults" :key="(p.product_id || '') + '-' + (p.product_variant_id || '')">
                                             <button type="button" @click="addProduct(p)" class="w-full border-b border-v-border px-3 py-2 text-left text-[13px] transition-colors last:border-0 hover:bg-v-hover">
                                                 <div class="flex items-center justify-between">
-                                                    <span class="font-medium" x-text="p.name + (p.variant_label ? ' — ' + p.variant_label : '')"></span>
+                                                    <span class="font-medium" x-text="p.name + (p.variant_label ? ' (' + p.variant_label + ')' : '')"></span>
                                                     <span x-show="p.stock <= 0" class="ml-2 text-xs font-medium text-v-danger">Out of stock</span>
                                                     <span x-show="p.stock > 0 && p.stock <= 5" class="ml-2 text-xs font-medium text-v-warning" x-text="p.stock + ' left'"></span>
                                                 </div>

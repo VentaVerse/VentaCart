@@ -15,7 +15,7 @@
         @if ($bannerGroups->isNotEmpty())
             <x-admin.field name="config[banner_group]" label="Banner Group">
                 <x-admin.select name="config[banner_group]">
-                    <option value="">— Select a banner group —</option>
+                    <option value="">Select a banner group</option>
                     @foreach ($bannerGroups as $group)
                         <option value="{{ $group->slug }}" {{ ($config['banner_group'] ?? '') === $group->slug ? 'selected' : '' }}>
                             {{ $group->name }} ({{ $group->slides()->count() }} slides)
@@ -125,6 +125,6 @@
 
 @elseif ($section->type === 'recently_viewed')
     <div>
-        <p class="text-xs text-v-muted">Shows products the visitor has recently browsed. Data comes from the browser — no configuration needed. The section only appears when the visitor has viewed at least one product.</p>
+        <p class="text-xs text-v-muted">Shows products the visitor has recently browsed. Data comes from the browser, no configuration needed. The section only appears when the visitor has viewed at least one product.</p>
     </div>
 @endif

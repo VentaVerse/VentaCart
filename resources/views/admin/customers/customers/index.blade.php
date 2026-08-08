@@ -63,7 +63,7 @@
                             @endif
                         </x-admin.table.cell>
                         <x-admin.table.cell>{{ $customer->email }}</x-admin.table.cell>
-                        <x-admin.table.cell>{{ $customer->customerGroup?->name ?? '—' }}</x-admin.table.cell>
+                        <x-admin.table.cell>{{ $customer->customerGroup?->name ?? '-' }}</x-admin.table.cell>
                         <x-admin.table.cell>
                             <x-admin.badge :tone="$customer->is_active ? 'success' : 'neutral'">
                                 {{ $customer->is_active ? 'Active' : 'Inactive' }}

@@ -37,7 +37,7 @@
                                     <div class="font-medium text-v-text">{{ $notification->customer->full_name }}</div>
                                     <div class="text-xs text-v-muted">{{ $notification->customer->email }}</div>
                                 @else
-                                    <span class="text-v-muted">—</span>
+                                    <span class="text-v-muted">-</span>
                                 @endif
                             </x-admin.table.cell>
                             <x-admin.table.cell>
@@ -49,9 +49,9 @@
                                     <span class="text-v-muted">Deleted</span>
                                 @endif
                             </x-admin.table.cell>
-                            <x-admin.table.cell class="text-v-secondary">{{ $notification->emailTemplate->name ?? '—' }}</x-admin.table.cell>
+                            <x-admin.table.cell class="text-v-secondary">{{ $notification->emailTemplate->name ?? '-' }}</x-admin.table.cell>
                             <x-admin.table.cell mono class="text-v-text">{{ $notification->send_count }}</x-admin.table.cell>
-                            <x-admin.table.cell class="text-v-secondary">{{ $notification->last_sent_at?->diffForHumans() ?? '—' }}</x-admin.table.cell>
+                            <x-admin.table.cell class="text-v-secondary">{{ $notification->last_sent_at?->diffForHumans() ?? '-' }}</x-admin.table.cell>
                         </x-admin.table.row>
                     @empty
                         <tr><td colspan="5" class="px-4 py-2"><x-admin.empty-state icon="cart" title="No notifications sent yet" /></td></tr>

@@ -11,7 +11,7 @@
                              });
                              $refs.newTokenInput.select();
                          } }">
-                        <p class="text-[13px] font-medium text-v-warning">New token generated — copy it now. It will not be shown again in full.</p>
+                        <p class="text-[13px] font-medium text-v-warning">New token generated. Copy it now. It will not be shown again in full.</p>
                         <div class="mt-2 flex items-center gap-2">
                             <input type="text" x-ref="newTokenInput" readonly value="{{ session('new_erp_token') }}"
                                    onclick="this.select()"

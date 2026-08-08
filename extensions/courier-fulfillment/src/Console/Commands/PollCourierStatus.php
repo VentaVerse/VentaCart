@@ -25,7 +25,7 @@ class PollCourierStatus extends Command
     {
         $couriers = CourierManager::enabled();
         if (empty($couriers)) {
-            $this->info('No enabled couriers — nothing to poll.');
+            $this->info('No enabled couriers, nothing to poll.');
             return self::SUCCESS;
         }
 
