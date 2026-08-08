@@ -30,7 +30,7 @@ way; everything below is what a second one actually requires.
    | `statusPhase(?string $status): array` | Coarse `{step, failed}` for the queue's 4-step visual stepper. |
    | `printLabel(string $trackingNumber, string $format): array` | Shipping-label URL. |
    | `parseWebhook(array $payload): array` | Normalize your webhook's payload shape into `{reference_id, tracking_number, status, occurred_at, remarks}` events. |
-   | `settingsSchema(): array` | Declares every `settings` row (group `courier`) this courier reads/writes — generates its settings card and the save-endpoint's write-allowlist. See the interface's docblock for the field shape and the `"_mode"`-suffixed-key convention that drives mode-scoped credential groups (e.g. staging/production). |
+   | `settingsSchema(): array` | Declares every `settings` row (group `courier`) this courier reads/writes — generates its settings page and the save-endpoint's write-allowlist. See the interface's docblock for the field shape and the `"_mode"`-suffixed-key convention that drives mode-scoped credential groups (e.g. staging/production). |
    | `trackingLinks(Order $order): array` | Extract tracking URL(s) from `$order->courier_meta`, in **your own** shape — nothing outside your class ever parses `courier_meta`. Return `[{label, url}, …]` in preference order; the queue page just loops it and uses the first entry. |
    | `testConnection(): array` | Ping your API with the saved credentials. Backs the settings page's "Test Connection" button — return `{ok, message}`. |
    | `refreshStatusLabels(): array` | Pull your live status vocabulary + display labels, for the settings page's "Refresh from {courier}" button. Return `{ok, labels?, error?}` — `labels` is cached as `{key}_status_labels` and also used to humanize raw statuses in the queue view. |
@@ -47,18 +47,23 @@ Blade views, not the poll command — references a courier by name.
 
 ## What appears automatically once registered
 
-- **Settings card** at `Settings > Modules > Courier Fulfillment`, one per
-  registered courier, rendered entirely from `settingsSchema()`: fields,
-  mode-scoped credential groups, encrypted-and-masked secrets, save
-  round-trip through the derived write-allowlist.
+- **Hub card + own settings page**: the hub at
+  `Settings > Modules > Courier Fulfillment` shows one card per registered
+  courier (name, enabled state, mode chip, credential-completeness hint)
+  linking to that courier's OWN page at
+  `settings/modules/courier-fulfillment/{key}`, rendered entirely from
+  `settingsSchema()`: fields, mode-scoped credential groups,
+  encrypted-and-masked secrets, save round-trip through the write-allowlist
+  derived from that courier's schema alone (saving one courier's page can
+  never touch another's keys).
 - **Webhook URL + token**: a `{key}_webhook_token` is generated the first
-  time the settings page loads, shown as a copy-able URL
-  (`/webhooks/courier/{key}?token=…`) on that courier's own card. The
+  time the hub loads, shown as a copy-able URL
+  (`/webhooks/courier/{key}?token=…`) on the hub's Webhook URLs card. The
   receiving route (`CourierWebhookController`) is fully generic — it resolves
   `{provider}` from the URL segment, checks the token, and calls your
   `parseWebhook()`.
-- **Test Connection** button on the card, wired to your `testConnection()`.
-- **Order status mapping** table on the card: rows from `mappableStatuses()`,
+- **Test Connection** button on the courier's page, wired to your `testConnection()`.
+- **Order status mapping** table on the courier's page: rows from `mappableStatuses()`,
   labels from `refreshStatusLabels()` (cached), saved under
   `{key}_status_map` and applied by `StatusMapper` whenever a status arrives
   (webhook, poll, or manual Refresh) — moves the core order status + records
@@ -113,7 +118,7 @@ Blade views, not the poll command — references a courier by name.
   booking and confirm it's rebookable afterward.
 - `tests/Support/FakeCourierFulfillment.php` is a minimal second courier
   registered only inside the test suite — it's the fastest way to see
-  whether your new courier's settings card, tracking links, and
+  whether your new courier's settings page, tracking links, and
   status-mapping table are genuinely schema-driven rather than accidentally
   QuadX-shaped. Copy its shape as a starting point for smoke-testing a new
   courier's admin surface before wiring real API calls.

@@ -128,6 +128,20 @@ class UrlGrammarTest extends TestCase
         $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment')->assertOk();
     }
 
+    /**
+     * Task W3 (spx-courier plan): per-courier settings pages under the hub,
+     * grammar-conformant at settings/modules/courier-fulfillment/{courier}.
+     * An unregistered courier key is a 404, never a rendered page.
+     */
+    public function test_fulfillment_courier_settings_page_is_ok_at_new_url(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/quadx')->assertOk();
+        $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/nope')->assertNotFound();
+    }
+
     // ------------------------------------------------------------------
     // Old URLs: 301 to the new home, Location asserted.
     // ------------------------------------------------------------------
@@ -473,6 +487,23 @@ class UrlGrammarTest extends TestCase
 
         $response->assertOk();
         $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Courier Fulfillment']);
+    }
+
+    /**
+     * Task W3: a per-courier settings page is one segment deeper than the
+     * extension's settings/modules/{name} mount, so the derivation's
+     * "deeper than the module" rule appends the page's own title (the
+     * courier's name) as the trailing crumb — no new plumbing.
+     */
+    public function test_breadcrumb_trail_on_fulfillment_courier_settings_page(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('courier-fulfillment');
+
+        $response = $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/quadx');
+
+        $response->assertOk();
+        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Courier Fulfillment', 'QuadX']);
     }
 
     public function test_breadcrumb_trail_on_admin_nav_create_page(): void

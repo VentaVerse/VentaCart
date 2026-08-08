@@ -160,7 +160,12 @@ class FulfillmentTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Save round-trip through the derived allowlist.
+    // Save round-trip through the derived allowlist. Task W3 (spx-courier
+    // plan) split the combined settings page into a hub + per-courier
+    // pages — a sanctioned relocation, so these tests now post each
+    // courier's keys to ITS page and module keys to the hub. Stored keys
+    // and values are unchanged (FulfillmentSettingsTest proves the split's
+    // own guarantees).
     // ------------------------------------------------------------------
 
     public function test_settings_save_round_trips_through_the_derived_allowlist(): void
@@ -168,20 +173,24 @@ class FulfillmentTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->post($this->settingsUrl(), [
+        $this->post($this->settingsUrl('/quadx'), [
             'settings' => [
                 'quadx_enabled' => '1',
                 'quadx_mode' => 'production',
                 'quadx_default_service' => 'same_day_pickup',
                 'quadx_default_parcel' => 'box',
-                'fulfillment_enabled' => '1',
             ],
+        ])->assertRedirect();
+
+        $this->post($this->settingsUrl(), [
+            'settings' => ['fulfillment_enabled' => '1'],
         ])->assertRedirect();
 
         $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'quadx_enabled', 'value' => '1']);
         $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'production']);
         $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'quadx_default_service', 'value' => 'same_day_pickup']);
         $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'quadx_default_parcel', 'value' => 'box']);
+        $this->assertDatabaseHas('settings', ['group' => 'courier', 'key' => 'fulfillment_enabled', 'value' => '1']);
     }
 
     public function test_unknown_keys_are_discarded(): void
@@ -189,7 +198,7 @@ class FulfillmentTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->post($this->settingsUrl(), [
+        $this->post($this->settingsUrl('/quadx'), [
             'settings' => [
                 'quadx_enabled' => '1',
                 'not_a_real_setting' => 'sneaky',
@@ -211,7 +220,7 @@ class FulfillmentTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->post($this->settingsUrl(), [
+        $this->post($this->settingsUrl('/quadx'), [
             'settings' => ['quadx_staging_api_key' => 'super-secret-key-1234'],
         ])->assertRedirect();
 
@@ -219,7 +228,7 @@ class FulfillmentTest extends TestCase
         $this->assertNotSame('super-secret-key-1234', $stored);
         $this->assertSame('super-secret-key-1234', Crypt::decryptString($stored));
 
-        $this->get($this->settingsUrl())
+        $this->get($this->settingsUrl('/quadx'))
             ->assertOk()
             ->assertSee('1234') // last 4 of the mask
             ->assertDontSee('super-secret-key-1234');
@@ -230,13 +239,13 @@ class FulfillmentTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->post($this->settingsUrl(), [
+        $this->post($this->settingsUrl('/quadx'), [
             'settings' => ['quadx_staging_api_key' => 'original-secret'],
         ])->assertRedirect();
         $original = Setting::where('group', 'courier')->where('key', 'quadx_staging_api_key')->value('value');
 
         // Re-save with the field left blank (nothing typed to change it).
-        $this->post($this->settingsUrl(), [
+        $this->post($this->settingsUrl('/quadx'), [
             'settings' => ['quadx_staging_api_key' => '', 'quadx_mode' => 'staging'],
         ])->assertRedirect();
 
@@ -256,21 +265,30 @@ class FulfillmentTest extends TestCase
         $this->installExtension();
         CourierManager::register(FakeCourierFulfillment::class);
 
-        $response = $this->get($this->settingsUrl());
+        // Hub: one card per registered courier (W3 split); the schema fields
+        // themselves render on the courier's own page.
+        $this->get($this->settingsUrl())->assertOk()->assertSee('Fake Courier');
+
+        $response = $this->get($this->settingsUrl('/fake'));
         $response->assertOk()
-            ->assertSee('Fake Courier')                                  // card title, from getName()
+            ->assertSee('Fake Courier')                                  // page title, from getName()
             ->assertSee('name="settings[fake_enabled]"', false)
             ->assertSee('name="settings[fake_mode]"', false)
             ->assertSee('name="settings[fake_staging_token]"', false)
             ->assertSee('name="settings[fake_production_token]"', false)
             ->assertSee('name="settings[fake_note]"', false);
 
-        $this->post($this->settingsUrl(), [
+        // Each courier's keys posted through its OWN page, proving neither
+        // allowlist/encryption pass touches the other courier's data.
+        $this->post($this->settingsUrl('/quadx'), [
             'settings' => [
-                // QuadX keys and fake_ keys posted together, proving neither
-                // allowlist/encryption pass touches the other courier's data.
                 'quadx_enabled' => '1',
                 'quadx_staging_api_key' => 'quadx-secret',
+            ],
+        ])->assertRedirect();
+
+        $this->post($this->settingsUrl('/fake'), [
+            'settings' => [
                 'fake_enabled' => '1',
                 'fake_mode' => 'production',
                 'fake_note' => 'hello from fake',
@@ -548,10 +566,14 @@ class FulfillmentTest extends TestCase
         $this->installExtension();
         CourierManager::register(FakeCourierFulfillment::class);
 
-        $response = $this->get($this->settingsUrl());
+        // Webhook URL section renders per-courier on the HUB (module-level
+        // per the W3 split), generically, not just for QuadX.
+        $this->get($this->settingsUrl())
+            ->assertOk()
+            ->assertSee('/webhooks/courier/fake?token=', false);
+
+        $response = $this->get($this->settingsUrl('/fake'));
         $response->assertOk()
-            // Webhook URL section renders per-courier, generically, not just for QuadX.
-            ->assertSee('/webhooks/courier/fake?token=', false)
             // Status-mapping table renders FakeCourierFulfillment::mappableStatuses().
             ->assertSee('name="settings[fake_status_map][pending][order_status_id]"', false)
             ->assertSee('name="settings[fake_status_map][delivered][order_status_id]"', false)

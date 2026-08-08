@@ -38,8 +38,16 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/settings/modules/courier-fulfillment')
     ->name('admin.fulfillment.')
     ->group(function () {
+        // Hub (Task W3 split): module-level settings + one card per
+        // registered courier. Name frozen at 'admin.fulfillment.settings'.
         Route::get('/', [CourierSettingsController::class, 'index'])->name('settings');
         Route::post('/', [CourierSettingsController::class, 'update'])->name('settings.update');
+        // Per-courier page: that courier's own schema fields, actions, and
+        // status mapping. Unknown {courier} keys 404 in the controller
+        // (CourierManager::get() miss), so this wildcard can never render
+        // a page for a courier that isn't registered.
+        Route::get('/{courier}', [CourierSettingsController::class, 'show'])->name('settings.courier');
+        Route::post('/{courier}', [CourierSettingsController::class, 'updateCourier'])->name('settings.courier.update');
         Route::post('/{courier}/test-connection', [CourierSettingsController::class, 'testConnection'])->name('test-connection');
         Route::post('/{courier}/refresh-statuses', [CourierSettingsController::class, 'refreshStatuses'])->name('settings.refresh-statuses');
     });
