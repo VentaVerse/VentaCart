@@ -699,7 +699,7 @@
                                     <div class="cf-choice">
                                         @foreach ($courierOptions as $key => $opt)
                                             @if ($opt['configured'])
-                                                <button type="button" class="cf-choice__card" data-courier-card="{{ $key }}" data-courier-configured="true" @click="chooseCourier('{{ $key }}')">
+                                                <button type="button" class="cf-choice__card" data-courier-card="{{ $key }}" @click="chooseCourier('{{ $key }}')">
                                                     <span>
                                                         <span class="cf-choice__name">{{ $opt['name'] }}</span>
                                                         @if (!empty($opt['mode']) && $opt['mode'] !== 'production')

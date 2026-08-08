@@ -326,10 +326,12 @@ class FulfillmentQueueTest extends TestCase
             // advance it to step 2. QuadX's own card (fully configured)
             // still is.
             ->assertDontSee("chooseCourier('spx')", false)
-            ->assertSee("chooseCourier('quadx')", false)
-            // QuadX's own card renders exactly as before: a real button.
-            ->assertSee('data-courier-card="quadx"', false)
-            ->assertSee('data-courier-configured="true"', false);
+            // QuadX's card renders BYTE-IDENTICALLY to before this task —
+            // the exact pre-existing <button> tag, with no new attribute
+            // added to the frozen configured branch (review fix: a prior
+            // draft of this task added `data-courier-configured="true"`
+            // here, which this exact-tag assertion would now catch).
+            ->assertSee('<button type="button" class="cf-choice__card" data-courier-card="quadx" @click="chooseCourier(\'quadx\')">', false);
     }
 
     /**
