@@ -6,11 +6,25 @@ use App\Models\OrderStatus;
 use App\Models\Store;
 use Database\Seeders\OrderStatusSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
+/**
+ * The baseline order statuses (owner ruling, 2026-08-09): OpenCart's own
+ * fourteen defaults plus Delivered and Unpaid, and NOTHING else - no
+ * fulfillment-shaped statuses, and no placement data of any kind, because the
+ * mapping is owned by the courier-fulfillment module now.
+ */
 class OrderStatusSeederStagesTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** Exactly what a fresh install gets. */
+    private const SEEDED = [
+        'Pending', 'Processing', 'Shipped', 'Complete', 'Canceled', 'Denied',
+        'Canceled Reversal', 'Failed', 'Refunded', 'Reversed', 'Chargeback',
+        'Expired', 'Processed', 'Voided', 'Delivered', 'Unpaid',
+    ];
 
     protected function setUp(): void
     {
@@ -19,94 +33,61 @@ class OrderStatusSeederStagesTest extends TestCase
         Store::create(['id' => 1, 'name' => 'Test Store', 'code' => 'test']);
     }
 
-    public function test_seeder_assigns_unpaid_placement_to_named_statuses(): void
+    public function test_seeder_creates_exactly_the_sixteen_baseline_statuses(): void
     {
         (new OrderStatusSeeder())->run();
 
-        foreach (['Unpaid', 'Pending'] as $name) {
-            $this->assertSame('unpaid', OrderStatus::where('store_id', 1)->where('name', $name)->value('fulfillment_placement'), "$name should be unpaid");
-        }
+        $names = OrderStatus::where('store_id', 1)->pluck('name')->sort()->values()->all();
+        $expected = collect(self::SEEDED)->sort()->values()->all();
+
+        $this->assertSame($expected, $names);
+        $this->assertCount(16, $names);
     }
 
-    public function test_seeder_assigns_cancelled_placement_to_named_statuses(): void
+    /** Pending is the one default, exactly as OpenCart ships it. */
+    public function test_pending_is_the_only_default(): void
     {
         (new OrderStatusSeeder())->run();
 
-        foreach (['Canceled', 'Denied', 'Failed', 'Refunded', 'Expired'] as $name) {
-            $this->assertSame('cancelled', OrderStatus::where('store_id', 1)->where('name', $name)->value('fulfillment_placement'), "$name should be cancelled");
-        }
-    }
-
-    public function test_seeder_assigns_delivered_placement_to_named_statuses(): void
-    {
-        (new OrderStatusSeeder())->run();
-
-        $this->assertSame('delivered', OrderStatus::where('store_id', 1)->where('name', 'Delivered')->value('fulfillment_placement'));
-    }
-
-    public function test_seeder_defaults_unlisted_statuses_to_to_pack(): void
-    {
-        (new OrderStatusSeeder())->run();
-
-        foreach (['Processing', 'Payment Received'] as $name) {
-            $this->assertSame('to_pack', OrderStatus::where('store_id', 1)->where('name', $name)->value('fulfillment_placement'), "$name should be to_pack");
-        }
-    }
-
-    public function test_seeder_assigns_shipping_placement_to_shipped(): void
-    {
-        (new OrderStatusSeeder())->run();
-
-        $this->assertSame('shipping', OrderStatus::where('store_id', 1)->where('name', 'Shipped')->value('fulfillment_placement'));
-    }
-
-    /**
-     * SETUP POLICY (owner ruling, 2026-08-09): the seeder ships NO
-     * fulfillment-specific statuses. "Order Being Shipped" was seeded by an
-     * earlier task so booking would work out of the box; the owner reverted
-     * that, because the fulfillment module is configured deliberately at
-     * setup. A fresh install therefore has nothing placed under To Handover
-     * (booking refuses, and the settings hub says so with a setup notice).
-     */
-    public function test_seeder_seeds_no_fulfillment_specific_statuses(): void
-    {
-        (new OrderStatusSeeder())->run();
-
-        $this->assertFalse(
-            OrderStatus::where('store_id', 1)->where('name', 'Order Being Shipped')->exists(),
-            'The seeder must not create fulfillment-specific statuses.',
-        );
-        $this->assertFalse(
-            OrderStatus::where('store_id', 1)->where('fulfillment_placement', 'to_handover')->exists(),
-            'A fresh install has no To Handover-placed status until the merchant places one.',
+        $this->assertSame(
+            ['Pending'],
+            OrderStatus::where('store_id', 1)->where('is_default', true)->pluck('name')->all(),
         );
     }
 
     /**
-     * placementFor() keeps its name lists regardless: it classifies whatever
-     * names DO exist (a merchant's own status, or one an OpenCart-era store
-     * brings with it), which is a different job from seeding them.
+     * "Payment Received" was a Venta invention, not an OpenCart default; the
+     * owner removed it. The fulfillment-shaped names were never seeded either
+     * (the module is configured deliberately at setup).
      */
-    public function test_placement_for_still_classifies_unseeded_fulfillment_names(): void
+    public function test_seeder_creates_no_payment_received_and_no_fulfillment_statuses(): void
     {
-        $this->assertSame('to_handover', OrderStatusSeeder::placementFor('Order Being Shipped'));
-        $this->assertSame('shipping', OrderStatusSeeder::placementFor('Shipped'));
+        (new OrderStatusSeeder())->run();
+
+        foreach (['Payment Received', 'Order Being Shipped', 'Done Pickup', 'Start Pickup', 'In Transit to Manila'] as $name) {
+            $this->assertFalse(
+                OrderStatus::where('store_id', 1)->where('name', $name)->exists(),
+                "The seeder must not create [{$name}].",
+            );
+        }
     }
 
-    public function test_placement_for_is_case_insensitive(): void
+    /**
+     * No placement data at all: core has no column to hold it, and the
+     * seeder writes nothing into the module's table either (which does not
+     * even exist until the module is installed).
+     */
+    public function test_seeder_writes_no_placement_data(): void
     {
-        $this->assertSame('unpaid', OrderStatusSeeder::placementFor('unpaid'));
-        $this->assertSame('unpaid', OrderStatusSeeder::placementFor('UNPAID'));
-        $this->assertSame('unpaid', OrderStatusSeeder::placementFor('Quote Ready For Payment'));
-        $this->assertSame('cancelled', OrderStatusSeeder::placementFor('chargeback'));
-        $this->assertSame('cancelled', OrderStatusSeeder::placementFor('VOIDED'));
-        $this->assertSame('delivered', OrderStatusSeeder::placementFor('delivered'));
-        $this->assertSame('delivered', OrderStatusSeeder::placementFor('COMPLETE'));
-        $this->assertSame('shipping', OrderStatusSeeder::placementFor('shipped'));
-        $this->assertSame('shipping', OrderStatusSeeder::placementFor('In Transit To Manila'));
-        $this->assertSame('to_handover', OrderStatusSeeder::placementFor('order being shipped'));
-        $this->assertSame('to_handover', OrderStatusSeeder::placementFor('DONE PICKUP'));
-        $this->assertSame('to_handover', OrderStatusSeeder::placementFor('Start Pickup'));
-        $this->assertSame('to_pack', OrderStatusSeeder::placementFor('Something Else'));
+        (new OrderStatusSeeder())->run();
+
+        $this->assertFalse(Schema::hasColumn('order_statuses', 'fulfillment_placement'));
+        $this->assertFalse(Schema::hasTable('courier_fulfillment_status_placements'));
+    }
+
+    /** The name-list machinery left core with the placements it used to seed. */
+    public function test_the_seeder_no_longer_carries_placement_name_lists(): void
+    {
+        $this->assertFalse(method_exists(OrderStatusSeeder::class, 'placementFor'));
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Setting;
 use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\PlacementMap;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -28,7 +29,7 @@ class FulfillmentController extends Controller
      * 'all' and 'to_ship' are the two entries that are NOT placements:
      * 'all' is a VIEW over every order (no status is ever placed there),
      * 'to_ship' is a heading over the to_pack / to_handover sub-tabs. Every
-     * other value is an order_statuses.fulfillment_placement value.
+     * other value is a placement from the module's own mapping (PlacementMap).
      */
     private const VALID_FILTERS = [
         'all', 'unpaid', 'to_ship', 'shipping',
@@ -106,9 +107,9 @@ class FulfillmentController extends Controller
         // The bucket the query-building logic below actually filters by:
         // identical to $filter for every tab except To Ship, which is a
         // HEADING with no membership of its own and defers to its ACTIVE
-        // sub-tab's placement (to_pack / to_handover). Every value here is
-        // an order_statuses.fulfillment_placement value, one per tab, with
-        // the single exception of 'all', a VIEW that constrains nothing.
+        // sub-tab's placement (to_pack / to_handover). Every value here is a
+        // placement from the module's own mapping, one per tab, with the
+        // single exception of 'all', a VIEW that constrains nothing.
         $bucket = $filter === 'to_ship' ? $sub : $filter;
 
         $perPage = (int) $request->query('per_page', 25);
@@ -119,8 +120,12 @@ class FulfillmentController extends Controller
         // One base scope shared by the tab tallies and the listing, so the
         // segment-bar counts always describe exactly the set the operator is
         // paging through (search included).
+        // 'orders.' qualification is load-bearing, not cosmetic: the tallies
+        // below clone this scope and join the module's placement table, which
+        // has its own order_status_id column - an unqualified name there is
+        // ambiguous and 500s every page load.
         $base = Order::query()
-            ->whereNotNull('order_status_id'); // Ghost/abandoned orders (no status) are never fulfilled — same default as the core Orders page.
+            ->whereNotNull('orders.order_status_id'); // Ghost/abandoned orders (no status) are never fulfilled — same default as the core Orders page.
 
         if ($s = $request->query('q')) {
             // Task 2 fix (code review, Critical): 'orders.' qualification is
@@ -145,15 +150,12 @@ class FulfillmentController extends Controller
         }
 
         // Segment-bar tallies: ONE grouped query over the placement of each
-        // order's core status. Nothing else feeds a count.
+        // order's core status. Nothing else feeds a count. 'all' comes out of
+        // that same query (see placementTally()), so it can never disagree
+        // with the tabs it sits above, and it includes the orders whose
+        // status is UNPLACED - they belong to no tab but are still orders.
         $phaseCounts = $this->placementTally($base);
         $handoverByCourier = $this->handoverByCourier($base);
-
-        // All is a VIEW, not a placement: its count is every order in scope,
-        // summed from the placement tally itself so it can never disagree
-        // with the tabs it sits above. Computed BEFORE the To Ship line
-        // below, which would otherwise be counted a second time.
-        $phaseCounts['all'] = array_sum($phaseCounts);
 
         // To Ship is a HEADING, not a placement: its count is exactly its
         // two sub-tabs added together, and the two are disjoint placements,
@@ -161,7 +163,7 @@ class FulfillmentController extends Controller
         $phaseCounts['to_ship'] = ($phaseCounts['to_pack'] ?? 0) + ($phaseCounts['to_handover'] ?? 0);
 
         $query = (clone $base)
-            ->with('status:id,name,fulfillment_placement')
+            ->with('status:id,name')
             ->with(['products' => function ($q) {
                 // Item rows for the two-tier table: snapshot name/sku/image on
                 // the line itself, live product image as the fallback.
@@ -172,20 +174,29 @@ class FulfillmentController extends Controller
             ->latest();
 
         // MEMBERSHIP, the whole listing rule (fulfillment-placement spec,
-        // section 2): the rows of a tab are the orders whose core status
-        // carries that tab's placement. One where clause, no courier column
+        // section 2): the rows of a tab are the orders whose core status is
+        // mapped to that tab's placement. One where clause, no courier column
         // anywhere in it, and it is the exact SQL counterpart of the tally
         // above and of FulfillmentService::tabBucket() per row - the three
-        // cannot disagree because all three read the same single column.
+        // cannot disagree because all three read the same module table.
+        //
+        // A sub-select against the module's mapping table (never a join onto
+        // order_statuses, which no longer carries a placement column): an
+        // order whose status has NO mapping matches no bucket here, which is
+        // exactly why an unplaced order shows up in All and nowhere else.
         //
         // Branches on $bucket, not $filter: they are the same string for
         // every tab except To Ship, which is a heading whose ACTIVE SUB-tab
         // ('to_pack' or 'to_handover') is what narrows the listing. The All
-        // tab adds no constraint at all: it lists every order in scope, and
-        // each row still renders the actions of the tab it really belongs
-        // to (the view derives that per row from tabBucket()).
+        // tab adds no constraint at all: it lists every order in scope,
+        // placed or not, and each row still renders the actions of the tab it
+        // really belongs to (the view derives that per row from tabBucket()).
         if ($bucket !== 'all') {
-            $query->whereHas('status', fn ($q) => $q->where('fulfillment_placement', $bucket));
+            $query->whereIn('orders.order_status_id', function ($q) use ($bucket) {
+                $q->select('order_status_id')
+                    ->from(PlacementMap::TABLE)
+                    ->where('placement', $bucket);
+            });
         }
 
         $orders = $query->paginate($perPage)->withQueryString();
@@ -340,35 +351,58 @@ class FulfillmentController extends Controller
     }
 
     /**
-     * The segment bar's counts: ONE grouped query over
-     * order_statuses.fulfillment_placement. No courier column is read, no
-     * PHP bucketing happens, and no phase is derived - because membership
-     * is the placement and nothing else (FulfillmentService::tabBucket()).
-     * Work is proportional to the number of DISTINCT placements (eight),
+     * The segment bar's counts: ONE grouped query over the module's own
+     * placement mapping. No courier column is read, no PHP bucketing happens,
+     * and no phase is derived - because membership is the placement and
+     * nothing else (FulfillmentService::tabBucket()). Work is proportional to
+     * the number of DISTINCT placements (nine, counting the unplaced group),
      * never to the number of orders.
      *
-     * The join is a safe INNER join: $base always carries
-     * whereNotNull('order_status_id'), and orders.order_status_id is a
-     * nullOnDelete foreign key onto order_statuses.id — a non-null value is
-     * therefore guaranteed to match exactly one row, never dropped or
-     * duplicated by the join.
+     * A LEFT join, deliberately: an order whose status carries no mapping
+     * must not be dropped from the tally, or the All count would quietly
+     * disagree with the list underneath it. Those rows group under a NULL
+     * placement, land in 'all' and in no tab - the same rule tabBucket()
+     * applies per row.
+     *
+     * 'all' is produced HERE, from this one query's own row set, rather than
+     * summed from the eight tab counts afterwards: summing would silently
+     * drop the unplaced orders that the All tab does in fact list.
      *
      * @param \Illuminate\Database\Eloquent\Builder $base
-     * @return array<string,int> placement => count, every placement present (0 when empty)
+     * @return array<string,int> placement => count (every placement present, 0 when empty) plus 'all'
      */
     private function placementTally($base): array
     {
         $rows = (clone $base)
-            ->join('order_statuses', 'orders.order_status_id', '=', 'order_statuses.id')
-            ->selectRaw('order_statuses.fulfillment_placement as placement, COUNT(*) as n')
-            ->groupBy('order_statuses.fulfillment_placement')
+            ->leftJoin(
+                PlacementMap::TABLE . ' as cf_placements',
+                'orders.order_status_id',
+                '=',
+                'cf_placements.order_status_id',
+            )
+            ->selectRaw('cf_placements.placement as placement, COUNT(*) as n')
+            ->groupBy('cf_placements.placement')
             ->get();
 
         $counts = array_fill_keys(FulfillmentService::PLACEMENTS, 0);
+        $total = 0;
+
         foreach ($rows as $row) {
+            $n = (int) $row->n;
+            $total += $n;
+
+            if ($row->placement === null) {
+                continue; // unplaced: counted in All only
+            }
+
             $placement = (string) $row->placement;
-            $counts[$placement] = ($counts[$placement] ?? 0) + (int) $row->n;
+            if (array_key_exists($placement, $counts)) {
+                $counts[$placement] += $n;
+            }
         }
+
+        // All is a VIEW, not a placement: every order in scope, placed or not.
+        $counts['all'] = $total;
 
         return $counts;
     }
@@ -388,8 +422,13 @@ class FulfillmentController extends Controller
     private function handoverByCourier($base): array
     {
         $rows = (clone $base)
-            ->join('order_statuses', 'orders.order_status_id', '=', 'order_statuses.id')
-            ->where('order_statuses.fulfillment_placement', 'to_handover')
+            ->join(
+                PlacementMap::TABLE . ' as cf_placements',
+                'orders.order_status_id',
+                '=',
+                'cf_placements.order_status_id',
+            )
+            ->where('cf_placements.placement', FulfillmentService::BOOKED_PLACEMENT)
             ->whereNotNull('orders.courier_provider')
             ->selectRaw('orders.courier_provider as provider, COUNT(*) as n')
             ->groupBy('orders.courier_provider')
@@ -775,7 +814,7 @@ class FulfillmentController extends Controller
 
         return $target
             ? back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. The order stays on {$currentName}, in To Ship, To Pack.")
-            : back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Sales, Order Statuses.");
+            : back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Settings, Modules, Courier Fulfillment, Status placement.");
     }
 
     /**

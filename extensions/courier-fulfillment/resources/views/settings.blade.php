@@ -5,35 +5,45 @@
 
     <div class="space-y-6">
 
-        {{-- Setup notice (owner ruling, 2026-08-09). The seeder ships no
-             fulfillment-specific statuses on purpose, so a fresh install has
-             nowhere to move a booked order to and booking refuses outright
-             (FulfillmentService::book()'s no_booked_status branch). That
-             refusal must never be a mystery: this is the one screen an admin
-             configuring the module is already on, so it says what is missing
-             and links straight to the page that fixes it. Disappears the
-             moment any status is placed under To Handover. --}}
+        {{-- Setup notice (owner ruling, 2026-08-09). The module places no
+             status on its own, so a fresh install has nowhere to move a booked
+             order to and booking refuses outright
+             (FulfillmentService::book()'s no_booked_status branch). This is a
+             STATE, not an instruction: it names what is missing and links to
+             the page that fixes it, and disappears the moment any status is
+             placed under To Handover. --}}
         @if (empty($handoverStatuses))
             <div class="cf-setup-notice" role="status">
                 <div class="cf-setup-notice__body">
-                    <p class="cf-setup-notice__title">Finish setup: no order status is placed under To Handover</p>
-                    <p class="cf-setup-notice__text">
-                        Booking a courier moves the order onto a status placed under To Handover, and it is refused while no such status exists.
-                        Open Sales, Order Statuses, then set the fulfillment placement of the status you use for packed orders awaiting pickup
-                        (for example "Order Being Shipped") to To Handover. Come back here to pick it as the booked order status if you keep more than one.
-                    </p>
+                    <p class="cf-setup-notice__title">No order status is placed under To Handover, so booking is refused</p>
                 </div>
-                <a class="cf-setup-notice__btn" href="{{ route('admin.order-statuses.index') }}">Go to Order Statuses</a>
+                <a class="cf-setup-notice__btn" href="{{ route('admin.fulfillment.settings.placement') }}">Status placement</a>
             </div>
         @endif
 
+        {{-- Status placement lives on its own page: every order status, the
+             queue tab it belongs to, and the live order count behind each. --}}
+        <x-admin.card title="Status placement">
+            <x-slot:headerActions>
+                <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings.placement') }}">Configure</x-admin.button>
+            </x-slot:headerActions>
+            <div class="flex flex-wrap items-center gap-2">
+                <x-admin.badge :tone="$unplacedStatusCount > 0 ? 'warning' : 'success'">
+                    {{ $placedStatusCount }} placed
+                </x-admin.badge>
+                @if ($unplacedStatusCount > 0)
+                    <span class="text-xs text-v-warning">{{ $unplacedStatusCount }} not placed, All tab only</span>
+                @endif
+            </div>
+        </x-admin.card>
+
         {{-- Module-level card: not owned by any one courier's schema. --}}
-        <x-admin.card title="Fulfillment" description="Show or hide the manual booking queue, choose which payment methods book as COD, and share your webhook URLs with couriers.">
+        <x-admin.card title="Fulfillment">
             <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" data-v-form class="space-y-6">
                 @csrf
 
                 <x-admin.field name="settings[fulfillment_enabled]"
-                    help="On by default: installing and enabling this extension is already the signal you want it active. Turn off to hide Fulfillment from the Sales menu and pause the booking queue: this page stays reachable so you can switch it back on, and anyone opening a saved Fulfillment link sees a page explaining it is paused rather than an error. Bookings triggered by the ERP API keep working either way, and the extension itself stays installed (uninstall it from Settings, Modules).">
+                    help="Turning this off hides Fulfillment from the Sales menu and pauses the queue. Bookings triggered by the ERP API keep working, and the extension stays installed.">
                     <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
                         <x-admin.toggle name="settings[fulfillment_enabled]" :checked="($settings['fulfillment_enabled'] ?? '1') !== '0'" />
                         Fulfillment queue active, shown in the Sales menu
@@ -44,7 +54,7 @@
                      "Cancel order" action sets — applied through the same
                      history + stock path the order page uses. --}}
                 <x-admin.field name="settings[cancel_order_status_id]" label="Cancel order status"
-                    help="The order status a Cancel order action in the fulfillment queue applies. History and stock behave exactly as if the status were changed from the order page (customer is not notified).">
+                    help="Applied by a Cancel order action in the queue. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
                     <x-admin.select name="settings[cancel_order_status_id]">
                         {{-- Fix-round minor: an unset value keeps this
                              placeholder selected so saving the hub never
@@ -62,7 +72,7 @@
                      the store's own action, so nothing but this move can take
                      a booked order out of To Pack. --}}
                 <x-admin.field name="settings[booked_order_status_id]" label="Booked order status"
-                    help="Applied automatically when a booking succeeds. This is what moves the order from To Pack to To Handover, so the queue offers its waybill and its cancel next. Only statuses placed under To Handover can be chosen. History and stock behave exactly as if the status were changed from the order page (customer is not notified).">
+                    help="Applied when a booking succeeds, moving the order from To Pack to To Handover. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
                     <x-admin.select name="settings[booked_order_status_id]">
                         <option value="" @selected($bookedOrderStatusId === null)>
                             {{ $bookedDefaultName ? 'Use default (' . $bookedDefaultName . ')' : 'No status is placed under To Handover' }}
@@ -71,13 +81,10 @@
                             <option value="{{ $id }}" @selected((string) $id === (string) $bookedOrderStatusId)>{{ $name }}</option>
                         @endforeach
                     </x-admin.select>
-                    @if (empty($handoverStatuses))
-                        <p class="text-xs text-v-danger mt-2">Booking is refused until at least one order status is placed under To Handover. Place one under Sales, Order Statuses.</p>
-                    @endif
                 </x-admin.field>
 
                 <x-admin.field name="settings[unbooked_order_status_id]" label="Unbooked order status"
-                    help="Applied when a courier booking is cancelled, returning the order to To Pack so it can be booked again. The status the order held before it was booked wins when it is still placed under To Pack; this is the fallback. Only statuses placed under To Pack can be chosen.">
+                    help="The fallback applied when a courier booking is cancelled. The status the order held before it was booked wins whenever it is still placed under To Pack.">
                     <x-admin.select name="settings[unbooked_order_status_id]">
                         <option value="" @selected($unbookedOrderStatusId === null)>
                             {{ $unbookedDefaultName ? 'Use default (' . $unbookedDefaultName . ')' : 'No status is placed under To Pack' }}
@@ -115,7 +122,7 @@
 
         {{-- Webhook URLs: module-level plumbing (the tokens are
              server-generated, never editable), one per registered courier. --}}
-        <x-admin.card title="Webhook URLs" description="Couriers have no UI to set these. Email/Slack each courier its URL so they push status updates here. Unique to this store.">
+        <x-admin.card title="Webhook URLs" description="Unique to this store. Send each courier its own URL so they push status updates here.">
             <div class="space-y-4">
                 @foreach ($courierCards as $key => $card)
                     <div x-data="{ copied: false }">

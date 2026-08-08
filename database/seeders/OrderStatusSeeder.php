@@ -6,49 +6,23 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The store's baseline order statuses.
+ * The store's baseline order statuses: OpenCart's own fourteen defaults, plus
+ * Delivered and Unpaid (owner ruling, 2026-08-09 - "mirror Opencart's initial
+ * order status. Complete and Delivered should be in the seeder. Put Unpaid
+ * also. Everything else, remove.").
  *
- * SETUP POLICY (owner ruling, 2026-08-09): this seeder ships NO
- * fulfillment-specific statuses. The courier fulfillment module is
- * configured deliberately at setup, so a fresh install deliberately has no
- * To-Handover-placed status until the merchant creates one under Sales,
- * Order Statuses - and the fulfillment settings hub carries a setup notice
- * saying exactly that, because booking refuses without one.
+ * Sixteen rows, nothing else. Sort orders match OpenCart's own status ids for
+ * the fourteen it contributes, so a migrated store's list reads in the order
+ * its operators already know.
  *
- * placementFor() below still classifies whatever names DO exist (including
- * fulfillment-shaped names a merchant creates, or an OpenCart-era store
- * brings with it), which is a different job from seeding them.
+ * NO PLACEMENT DATA. Which fulfillment queue tab a status belongs to is data
+ * owned by the courier-fulfillment module (its own table, its own Status
+ * placement page), and that module deliberately seeds nothing: a merchant
+ * configures it at setup. A fresh install therefore has every status unplaced,
+ * which the module treats as "All tab only" rather than as an error.
  */
 class OrderStatusSeeder extends Seeder
 {
-    /**
-     * Status names (case-insensitive) that default to the "unpaid" fulfillment placement.
-     */
-    private const UNPAID_NAMES = ['Unpaid', 'Pending', 'Quote Ready for Payment'];
-
-    /**
-     * Status names (case-insensitive) that default to the "cancelled" fulfillment placement.
-     */
-    private const CANCELLED_NAMES = [
-        'Canceled', 'Canceled Reversal', 'Denied', 'Expired', 'Failed',
-        'Refunded', 'Reversed', 'Voided', 'Chargeback',
-    ];
-
-    /**
-     * Status names (case-insensitive) that default to the "delivered" fulfillment placement.
-     */
-    private const DELIVERED_NAMES = ['Delivered', 'Complete'];
-
-    /**
-     * Status names (case-insensitive) that default to the "shipping" fulfillment placement.
-     */
-    private const SHIPPING_NAMES = ['Shipped', 'In Transit to Manila'];
-
-    /**
-     * Status names (case-insensitive) that default to the "to_handover" fulfillment placement.
-     */
-    private const TO_HANDOVER_NAMES = ['Order Being Shipped', 'Done Pickup', 'Start Pickup'];
-
     public function run(): void
     {
         $storeId = 1;
@@ -61,12 +35,16 @@ class OrderStatusSeeder extends Seeder
             ['name' => 'Complete', 'is_default' => false, 'sort_order' => 5],
             ['name' => 'Canceled', 'is_default' => false, 'sort_order' => 7],
             ['name' => 'Denied', 'is_default' => false, 'sort_order' => 8],
+            ['name' => 'Canceled Reversal', 'is_default' => false, 'sort_order' => 9],
             ['name' => 'Failed', 'is_default' => false, 'sort_order' => 10],
             ['name' => 'Refunded', 'is_default' => false, 'sort_order' => 11],
+            ['name' => 'Reversed', 'is_default' => false, 'sort_order' => 12],
+            ['name' => 'Chargeback', 'is_default' => false, 'sort_order' => 13],
             ['name' => 'Expired', 'is_default' => false, 'sort_order' => 14],
-            ['name' => 'Payment Received', 'is_default' => false, 'sort_order' => 17],
-            ['name' => 'Unpaid', 'is_default' => false, 'sort_order' => 24],
+            ['name' => 'Processed', 'is_default' => false, 'sort_order' => 15],
+            ['name' => 'Voided', 'is_default' => false, 'sort_order' => 16],
             ['name' => 'Delivered', 'is_default' => false, 'sort_order' => 26],
+            ['name' => 'Unpaid', 'is_default' => false, 'sort_order' => 24],
         ];
 
         foreach ($statuses as $status) {
@@ -75,40 +53,9 @@ class OrderStatusSeeder extends Seeder
                 'name' => $status['name'],
                 'is_default' => $status['is_default'],
                 'sort_order' => $status['sort_order'],
-                'fulfillment_placement' => self::placementFor($status['name']),
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
         }
-    }
-
-    /**
-     * Resolve the default fulfillment placement for a status name (case-insensitive match).
-     */
-    public static function placementFor(string $name): string
-    {
-        $needle = mb_strtolower($name);
-
-        if (in_array($needle, array_map('mb_strtolower', self::UNPAID_NAMES), true)) {
-            return 'unpaid';
-        }
-
-        if (in_array($needle, array_map('mb_strtolower', self::CANCELLED_NAMES), true)) {
-            return 'cancelled';
-        }
-
-        if (in_array($needle, array_map('mb_strtolower', self::DELIVERED_NAMES), true)) {
-            return 'delivered';
-        }
-
-        if (in_array($needle, array_map('mb_strtolower', self::SHIPPING_NAMES), true)) {
-            return 'shipping';
-        }
-
-        if (in_array($needle, array_map('mb_strtolower', self::TO_HANDOVER_NAMES), true)) {
-            return 'to_handover';
-        }
-
-        return 'to_pack';
     }
 }

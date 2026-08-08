@@ -5,6 +5,7 @@ namespace Tests\Feature\AdminV2;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
@@ -66,6 +67,10 @@ class FulfillmentCancelSemanticsTest extends TestCase
     private function installExtension(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
+        // Registers the extension's runtime PSR-4 autoloader up front, so
+        // this file can reference Extensions\CourierFulfillment\* (the
+        // module-owned placement mapping) before its first HTTP request.
+        app(ExtensionManager::class)->bootEnabled();
     }
 
     private function enableQuadxStaging(): void
@@ -78,18 +83,29 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
     private function defaultStatus(): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Processing'],
             ['sort_order' => 1, 'is_default' => true],
         );
+
+        // Placement is module data with NO default (owner ruling,
+        // 2026-08-09): an unplaced status belongs to no tab, so this fixture
+        // places its own default status under To Pack.
+        PlacementMap::put($status->id, 'to_pack');
+
+        return $status;
     }
 
     private function statusWithStage(string $stage, string $name, ?string $stockAction = null): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name],
-            ['sort_order' => 1, 'fulfillment_placement' => $stage, 'stock_action' => $stockAction],
+            ['sort_order' => 1, 'stock_action' => $stockAction],
         );
+
+        PlacementMap::put($status->id, $stage);
+
+        return $status;
     }
 
     private function makeOrder(?OrderStatus $status = null): Order
@@ -949,7 +965,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         // The map applied: core status moved to the cancelled stage and the
         // mapped status restocked the two units. Courier state STAYS.
         $this->assertSame($canceled->id, $order->order_status_id);
-        $this->assertSame('cancelled', $order->status->fulfillment_placement);
+        $this->assertSame('cancelled', PlacementMap::placementFor($order->order_status_id));
         $this->assertSame('cancelled', \Extensions\CourierFulfillment\FulfillmentService::tabBucket($order));
         $this->assertSame('canceled', $order->courier_status);
         $this->assertSame('QX-COURIER-CXL1', $order->courier_tracking_number);

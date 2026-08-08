@@ -4,6 +4,7 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
@@ -63,6 +64,10 @@ class FulfillmentFinalFixesTest extends TestCase
     private function installExtension(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
+        // Registers the extension's runtime PSR-4 autoloader up front, so
+        // this file can reference Extensions\CourierFulfillment\* (the
+        // module-owned placement mapping) before its first HTTP request.
+        app(ExtensionManager::class)->bootEnabled();
     }
 
     private function enableSpx(): void
@@ -92,14 +97,15 @@ class FulfillmentFinalFixesTest extends TestCase
             ['store_id' => 1, 'name' => 'Processing'],
             ['sort_order' => 1, 'is_default' => true],
         );
+        PlacementMap::put($status->id, 'to_pack');
         // fulfillment-placement Task 3: booking moves the order onto a
         // To-Handover-placed status and is refused when the store has none
         // (FulfillmentService::bookedStatus()). Seeded on a real install by
         // OrderStatusSeeder; built by hand here, same as the other statuses.
-        OrderStatus::firstOrCreate(
+        PlacementMap::put(OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Order Being Shipped'],
-            ['sort_order' => 4, 'fulfillment_placement' => 'to_handover'],
-        );
+            ['sort_order' => 4],
+        )->id, 'to_handover');
 
         return Order::create([
             'store_id' => 1, 'order_status_id' => $status->id,

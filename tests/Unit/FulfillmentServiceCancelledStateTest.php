@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Setting;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\FulfillmentService;
@@ -66,14 +67,17 @@ class FulfillmentServiceCancelledStateTest extends TestCase
             ['store_id' => 1, 'name' => 'Pending'],
             ['sort_order' => 1, 'is_default' => true],
         );
+        // Placement is module data with NO default (owner ruling,
+        // 2026-08-09), so a bookable fixture places its own status.
+        PlacementMap::put($status->id, 'to_pack');
         // fulfillment-placement Task 3: a successful booking moves the order
         // onto a To-Handover-placed status, and is refused when the store has
         // none (FulfillmentService::bookedStatus()). Seeded on a real install
         // by OrderStatusSeeder; built by hand here like every other status.
-        OrderStatus::firstOrCreate(
+        PlacementMap::put(OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Order Being Shipped'],
-            ['sort_order' => 4, 'fulfillment_placement' => 'to_handover'],
-        );
+            ['sort_order' => 4],
+        )->id, 'to_handover');
 
         $order = Order::create([
             'store_id' => 1, 'order_status_id' => $status->id,

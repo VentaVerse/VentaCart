@@ -3,6 +3,7 @@
 use Extensions\CourierFulfillment\Http\Controllers\CourierSettingsController;
 use Extensions\CourierFulfillment\Http\Controllers\CourierWebhookController;
 use Extensions\CourierFulfillment\Http\Controllers\FulfillmentController;
+use Extensions\CourierFulfillment\Http\Controllers\StatusPlacementController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
@@ -65,6 +66,13 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // registered courier. Name frozen at 'admin.fulfillment.settings'.
         Route::get('/', [CourierSettingsController::class, 'index'])->name('settings');
         Route::post('/', [CourierSettingsController::class, 'update'])->name('settings.update');
+        // Status placement: which queue tab each core order status belongs to
+        // (owner ruling, 2026-08-09 - the mapping is module data, so it is
+        // edited here rather than on core's Order Statuses page). STATIC
+        // segment, declared BEFORE the '/{courier}' wildcard below so it can
+        // never be captured as a courier key.
+        Route::get('/status-placement', [StatusPlacementController::class, 'index'])->name('settings.placement');
+        Route::post('/status-placement', [StatusPlacementController::class, 'update'])->name('settings.placement.update');
         // Per-courier page: that courier's own schema fields, actions, and
         // status mapping. Unknown {courier} keys 404 in the controller
         // (CourierManager::get() miss), so this wildcard can never render

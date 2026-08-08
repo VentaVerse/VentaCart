@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\PlacementMap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -17,7 +18,8 @@ use Tests\TestCase;
  * fulfillment-placement Task 2: MEMBERSHIP BY CORE STATUS PLACEMENT.
  *
  * One rule, no exceptions: an order appears in the tab its core order
- * status is placed in (order_statuses.fulfillment_placement). Courier state
+ * status is placed in - a mapping the MODULE owns (PlacementMap, owner
+ * ruling 2026-08-09), never a column on core order_statuses. Courier state
  * is not an input to membership at all - it reaches the tabs only the way it
  * would with no fulfillment module installed, by the per-courier status map
  * moving the order's CORE status, whose placement then names the tab.
@@ -82,11 +84,29 @@ class FulfillmentPlacementMembershipTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'quadx_staging_secret_key', 'value' => Crypt::encryptString('test-secret-key')]);
     }
 
+    /**
+     * A status placed under $placement. The mapping is MODULE data now (owner
+     * ruling, 2026-08-09): the status row is plain core CRUD, and the
+     * placement is written to the module's own table through PlacementMap.
+     */
     private function statusPlaced(string $placement, ?string $name = null): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name ?? ('Status ' . $placement)],
-            ['sort_order' => 1, 'fulfillment_placement' => $placement],
+            ['sort_order' => 1],
+        );
+
+        PlacementMap::put($status->id, $placement);
+
+        return $status;
+    }
+
+    /** A status with NO placement: it belongs to no tab, only to All. */
+    private function statusUnplaced(string $name): OrderStatus
+    {
+        return OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => $name],
+            ['sort_order' => 1],
         );
     }
 
@@ -271,12 +291,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
         $this->installExtension();
         $this->enableQuadxStaging();
 
-        $repacking = OrderStatus::create([
-            'store_id' => 1,
-            'name' => 'Repacking',
-            'sort_order' => 9,
-            'fulfillment_placement' => 'to_pack',
-        ]);
+        $repacking = $this->statusPlaced('to_pack', 'Repacking');
         $order = $this->makeOrder($repacking);
 
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_pack')
@@ -287,7 +302,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
 
         // Re-placing the SAME status moves every order on it, with no order
         // row touched: this is the whole point of the placement setting.
-        $repacking->update(['fulfillment_placement' => 'to_handover']);
+        PlacementMap::put($repacking->id, 'to_handover');
 
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
@@ -580,6 +595,90 @@ class FulfillmentPlacementMembershipTest extends TestCase
             ->assertDontSee('Print waybill')
             ->assertDontSee("cancel-order-{$order->id}", false)
             ->assertDontSee("cancel-fulfillment-{$order->id}", false);
+    }
+
+    // ------------------------------------------------------------------
+    // UNPLACED: the fresh-install state, since the module seeds nothing.
+    // Nothing is ever hidden by it - All holds every order.
+    // ------------------------------------------------------------------
+
+    public function test_an_unplaced_status_appears_in_all_and_in_no_other_tab(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $unplaced = $this->makeOrder($this->statusUnplaced('Awaiting Review'));
+        // A placed neighbour, so "All lists everything" is not true by the
+        // page simply being empty.
+        $packed = $this->makeOrder($this->statusPlaced('to_pack', 'Processing'));
+
+        $this->assertSame(
+            FulfillmentService::UNPLACED,
+            FulfillmentService::tabBucket($unplaced->fresh()),
+        );
+
+        $all = $this->get($this->queueUrl() . '?filter=all');
+        $all->assertOk()
+            ->assertSee($this->rowMarker($unplaced->id), false)
+            ->assertSee($this->rowMarker($packed->id), false);
+
+        foreach (FulfillmentService::PLACEMENTS as $placement) {
+            $this->get($this->tabUrl($placement))
+                ->assertOk()
+                ->assertDontSee($this->rowMarker($unplaced->id), false);
+        }
+    }
+
+    /**
+     * The counts follow the rows: an unplaced order is counted in All and in
+     * nothing else, so the All count can never be the sum of the eight tabs.
+     */
+    public function test_an_unplaced_order_is_counted_in_all_only(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->makeOrder($this->statusUnplaced('Awaiting Review'));
+        $this->makeOrder($this->statusUnplaced('Awaiting Review'));
+        $this->makeOrder($this->statusPlaced('to_pack', 'Processing'));
+
+        $this->get($this->queueUrl())
+            ->assertOk()
+            ->assertSee('data-count-for="all">3<', false)
+            ->assertSee('data-count-for="to_pack">1<', false)
+            ->assertSee('data-count-for="to_ship">1<', false)
+            ->assertSee('data-count-for="unpaid">0<', false)
+            ->assertSee('data-count-for="delivered">0<', false)
+            ->assertSee('data-count-for="cancelled">0<', false);
+    }
+
+    /**
+     * The whole segment bar is ONE grouped query over the module's mapping,
+     * whatever the number of statuses or orders. A regression to per-tab
+     * counting would show up here as several.
+     */
+    public function test_the_segment_bar_tally_is_a_single_grouped_query(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        foreach (FulfillmentService::PLACEMENTS as $placement) {
+            $this->makeOrder($this->statusPlaced($placement));
+            $this->makeOrder($this->statusPlaced($placement));
+        }
+        $this->makeOrder($this->statusUnplaced('Awaiting Review'));
+
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $this->get($this->queueUrl() . '?filter=all')->assertOk();
+        $queries = \Illuminate\Support\Facades\DB::getQueryLog();
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+
+        $tally = array_filter(
+            $queries,
+            fn ($q) => str_contains($q['query'], 'group by "cf_placements"."placement"'),
+        );
+
+        $this->assertCount(1, $tally, 'The segment-bar tally must stay one grouped query.');
     }
 
     // ------------------------------------------------------------------

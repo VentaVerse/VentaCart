@@ -47,12 +47,12 @@ class FulfillmentService
     public const ASYNC_CREATE_STATUSES = ['creating', 'creation_failed'];
 
     /**
-     * The eight values of order_statuses.fulfillment_placement, listed in
-     * tab order. Two tabs are NOT in this list, for opposite reasons: To
-     * Ship is a heading over to_pack + to_handover, and All is a VIEW over
-     * every order. Neither is ever a placement a status can be put into.
-     * This list IS the tab vocabulary: membership is nothing more than
-     * reading which of these the order's core status carries (tabBucket()).
+     * The eight placement values a status can be mapped to, listed in tab
+     * order. Two tabs are NOT in this list, for opposite reasons: To Ship is
+     * a heading over to_pack + to_handover, and All is a VIEW over every
+     * order. Neither is ever a placement a status can be put into. This list
+     * IS the tab vocabulary: membership is nothing more than reading which of
+     * these the order's core status is mapped to (tabBucket()).
      */
     public const PLACEMENTS = [
         'unpaid', 'to_pack', 'to_handover', 'shipping',
@@ -60,10 +60,18 @@ class FulfillmentService
     ];
 
     /**
-     * The placement a status with no explicit value carries (the column's
-     * own DB default) - also the answer for an order with no status row.
+     * The answer for a status carrying NO mapping, and for an order with no
+     * status row at all. Not a placement and never storable as one: it means
+     * "this order belongs to no tab", which is a real state now that the
+     * mapping is module-owned and seeded by nothing (owner ruling,
+     * 2026-08-09).
+     *
+     * An unplaced order still appears in the All tab, because All is a VIEW
+     * over every order rather than a placement - nothing is ever hidden by
+     * being unplaced, it simply has no worklist of its own until the merchant
+     * places its status.
      */
-    public const DEFAULT_PLACEMENT = 'to_pack';
+    public const UNPLACED = 'unplaced';
 
     /**
      * Booking is offered, and permitted server-side, for exactly one
@@ -242,15 +250,22 @@ class FulfillmentService
      * cancelable/terminal decisions on a SHIPMENT); neither is consulted
      * here or by any other membership path.
      *
-     * An order with no status row (or an unrecognised placement value, which
-     * the enum column makes unreachable in practice) answers with the
-     * column's own default, To Pack, rather than vanishing from every tab.
+     * The mapping is MODULE data (PlacementMap, owner ruling 2026-08-09), not
+     * a column on the core order_statuses table: uninstalling this extension
+     * takes the whole vocabulary with it and leaves core untouched.
+     *
+     * An order whose status carries no mapping (the state of every status on
+     * a fresh install, since the module seeds nothing) answers UNPLACED: it
+     * belongs to no tab, appears in All - which constrains nothing - and is
+     * counted only there.
      */
     public static function tabBucket(Order $order): string
     {
-        $placement = (string) ($order->status?->fulfillment_placement ?? self::DEFAULT_PLACEMENT);
+        $placement = PlacementMap::placementFor($order->order_status_id ? (int) $order->order_status_id : null);
 
-        return in_array($placement, self::PLACEMENTS, true) ? $placement : self::DEFAULT_PLACEMENT;
+        return ($placement !== null && in_array($placement, self::PLACEMENTS, true))
+            ? $placement
+            : self::UNPLACED;
     }
 
     /**
@@ -268,6 +283,13 @@ class FulfillmentService
         $placement = self::tabBucket($order);
         if ($placement === self::BOOKABLE_PLACEMENT) {
             return null;
+        }
+
+        // An unplaced status has no tab to name, so the refusal says what is
+        // actually true rather than inventing one - the path forward is the
+        // same sentence either way.
+        if ($placement === self::UNPLACED) {
+            return "Order #{$order->id} sits on a status with no fulfillment placement. Set its status to one placed under To Pack before booking.";
         }
 
         $label = self::TAB_LABELS[$placement] ?? $placement;
@@ -315,10 +337,8 @@ class FulfillmentService
      */
     public static function unbookedStatus(?int $preferredId = null): ?OrderStatus
     {
-        if ($preferredId) {
-            $preferred = OrderStatus::where('id', $preferredId)
-                ->where('fulfillment_placement', self::UNBOOKED_PLACEMENT)
-                ->first();
+        if ($preferredId && PlacementMap::placementFor((int) $preferredId) === self::UNBOOKED_PLACEMENT) {
+            $preferred = OrderStatus::find($preferredId);
             if ($preferred) {
                 return $preferred;
             }
@@ -335,26 +355,31 @@ class FulfillmentService
      */
     private static function resolveStatusSetting(string $key, string $placement, ?string $preferredName): ?OrderStatus
     {
+        // The ids carrying this placement, straight off the module's own
+        // mapping (PlacementMap) - core order_statuses has no placement
+        // column to filter on any more. Empty means the store has placed
+        // nothing there, and every arm below then answers null.
+        $ids = PlacementMap::statusIdsFor($placement);
+        if ($ids === []) {
+            return null;
+        }
+
         $configured = Setting::where('group', 'courier')->where('key', $key)->value('value');
-        if ($configured) {
-            $status = OrderStatus::where('id', (int) $configured)
-                ->where('fulfillment_placement', $placement)
-                ->first();
+        if ($configured && in_array((int) $configured, $ids, true)) {
+            $status = OrderStatus::find((int) $configured);
             if ($status) {
                 return $status;
             }
         }
 
         if ($preferredName !== null) {
-            $named = OrderStatus::where('name', $preferredName)
-                ->where('fulfillment_placement', $placement)
-                ->first();
+            $named = OrderStatus::whereIn('id', $ids)->where('name', $preferredName)->first();
             if ($named) {
                 return $named;
             }
         }
 
-        return OrderStatus::where('fulfillment_placement', $placement)
+        return OrderStatus::whereIn('id', $ids)
             ->orderBy('sort_order')
             ->orderBy('name')
             ->first();
@@ -544,7 +569,7 @@ class FulfillmentService
             return [
                 'success' => false,
                 'code'    => 'no_booked_status',
-                'error'   => 'No order status is placed under To Handover, so a booked order would have nowhere to go. Place one under Sales, Order Statuses, then pick it as the booked order status under Settings, Modules, Courier Fulfillment.',
+                'error'   => 'No order status is placed under To Handover, so a booked order would have nowhere to go. Place one under Settings, Modules, Courier Fulfillment, Status placement.',
             ];
         }
 

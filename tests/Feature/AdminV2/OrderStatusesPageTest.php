@@ -40,7 +40,13 @@ class OrderStatusesPageTest extends TestCase
         ]);
     }
 
-    public function test_page_shows_stock_action_badges(): void
+    /**
+     * The stock action is the SELECT and nothing else: the badge that
+     * repeated the selected value beside it, and the legend card that existed
+     * only to explain that badge, are both gone (owner's UI copy rule,
+     * 2026-08-09 - no text that restates a control).
+     */
+    public function test_stock_action_is_a_select_with_no_badge_repeating_it(): void
     {
         $this->actingAs(User::factory()->create());
         OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'stock_action' => 'decrement', 'sort_order' => 2]);
@@ -49,8 +55,15 @@ class OrderStatusesPageTest extends TestCase
         $this->get(route('admin.order-statuses.index'))
             ->assertOk()
             ->assertSee('v-admin', false)
-            ->assertSee('Decrements')->assertSee('Increments')
-            ->assertSee('Processing')->assertSee('Refunded');
+            ->assertSee('Processing')->assertSee('Refunded')
+            ->assertSee('name="stock_action"', false)
+            // The badge text and its legend card are both gone; the select
+            // beside them is untouched.
+            ->assertDontSee('Decrements')
+            ->assertDontSee('Increments')
+            ->assertDontSee('stock committed')
+            ->assertDontSee('stock returned')
+            ->assertDontSee('Stock actions');
     }
 
     public function test_create_and_update_round_trip_unchanged(): void
@@ -63,185 +76,103 @@ class OrderStatusesPageTest extends TestCase
         $this->assertDatabaseHas('order_statuses', ['name' => 'Quality Check', 'stock_action' => 'decrement']);
     }
 
-    public function test_fulfillment_placement_column_defaults_to_to_pack(): void
-    {
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Some Status', 'sort_order' => 1]);
-
-        $this->assertSame('to_pack', $status->fresh()->fulfillment_placement);
-    }
-
-    public function test_page_shows_all_eight_placement_options_and_badges(): void
+    /**
+     * Fulfillment placement left this page with the column it lived on (owner
+     * ruling, 2026-08-09): the select, the badge and the legend card are all
+     * gone, and so is the per-status order count that existed only to show
+     * the scale of a placement change. Core is plain CRUD again.
+     */
+    public function test_page_offers_no_fulfillment_placement_at_all(): void
     {
         $this->actingAs(User::factory()->create());
-        OrderStatus::create(['store_id' => 1, 'name' => 'Unpaid', 'fulfillment_placement' => 'unpaid', 'sort_order' => 1]);
-        OrderStatus::create(['store_id' => 1, 'name' => 'Canceled', 'fulfillment_placement' => 'cancelled', 'sort_order' => 2]);
-        OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'fulfillment_placement' => 'to_pack', 'sort_order' => 3]);
-        // A row on the RENAMED placement, so the per-row badge and the
-        // selected <option> - the two surfaces that render a placement's
-        // label per status rather than once in the legend - are actually
-        // exercised. Without a shipping-placed status the assertion that
-        // the retired spelling is gone had no row to prove it on.
-        $shipping = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'fulfillment_placement' => 'shipping', 'sort_order' => 4]);
+        OrderStatus::create(['store_id' => 1, 'name' => 'Unpaid', 'sort_order' => 1]);
+        OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 4]);
 
         $response = $this->get(route('admin.order-statuses.index'));
         $response->assertOk()
-            ->assertSee('fulfillment_placement', false)
             ->assertSee('Unpaid')
-            ->assertSee('Cancelled')
-            ->assertSee('To Pack')
-            ->assertSee('To Handover')
-            ->assertSee('Shipping')
-            ->assertSee('Lost & Damaged')
-            ->assertSee('Delivered')
-            ->assertSee('Failed')
-            // The retired spelling is gone from the page entirely, including
-            // from the shipping-placed row's own badge and selected option.
-            ->assertDontSee('In Transit')
-            ->assertSee('value="shipping" selected>', false);
+            ->assertSee('Shipped')
+            ->assertDontSee('fulfillment_placement', false)
+            ->assertDontSee('Fulfillment placement')
+            ->assertDontSee('To Handover')
+            ->assertDontSee('Lost & Damaged', false);
 
-        // Eight <option> values render inside the row selector.
-        foreach (['unpaid', 'to_pack', 'to_handover', 'shipping', 'failed', 'lost_damaged', 'delivered', 'cancelled'] as $value) {
-            $response->assertSee('value="' . $value . '"', false);
+        foreach (['to_pack', 'to_handover', 'lost_damaged'] as $value) {
+            $response->assertDontSee('value="' . $value . '"', false);
         }
-
-        $this->assertSame('shipping', $shipping->fresh()->fulfillment_placement);
     }
 
-    public function test_page_shows_help_text_for_each_placement(): void
+    /** The order count column went with the placement UI it served. */
+    public function test_page_no_longer_renders_a_per_status_order_count(): void
     {
         $this->actingAs(User::factory()->create());
-
-        $this->get(route('admin.order-statuses.index'))
-            ->assertOk()
-            ->assertSee('waiting on payment')
-            ->assertSee('awaiting packing')
-            ->assertSee('awaiting courier pickup')
-            ->assertSee('with the courier en route')
-            ->assertSee('parcel lost or damaged')
-            ->assertSee('delivered to the customer')
-            ->assertSee('delivery failed or is returning')
-            ->assertSee('will not be fulfilled');
-    }
-
-    public function test_page_shows_live_order_count_per_status_with_a_single_grouped_query(): void
-    {
-        $this->actingAs(User::factory()->create());
-        $processing = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'fulfillment_placement' => 'to_pack', 'sort_order' => 3]);
-        $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'fulfillment_placement' => 'delivered', 'sort_order' => 4]);
-
+        $processing = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 3]);
         $this->makeOrder($processing->id);
-        $this->makeOrder($processing->id);
-        $this->makeOrder($delivered->id);
 
-        \Illuminate\Support\Facades\DB::enableQueryLog();
         $response = $this->get(route('admin.order-statuses.index'));
-        $queries = \Illuminate\Support\Facades\DB::getQueryLog();
-        \Illuminate\Support\Facades\DB::disableQueryLog();
+        $response->assertOk();
 
-        $countQueries = array_filter($queries, fn ($q) => stripos($q['query'], 'group by') !== false && str_contains($q['query'], 'order_status_id'));
-        $this->assertCount(1, $countQueries, 'Expected exactly one grouped count query, not N+1.');
-
-        $response->assertOk()->assertSee('2')->assertSee('1');
+        $this->assertArrayNotHasKey('orderCounts', $response->original->getData());
     }
 
-    public function test_fulfillment_placement_save_round_trip(): void
+    /**
+     * The endpoint REFUSES a placement field rather than silently dropping
+     * it: the mapping is module data now, and a stale form (or a script that
+     * predates the move) must be told so instead of appearing to save.
+     */
+    public function test_a_placement_field_is_rejected_by_both_endpoints(): void
     {
         $this->actingAs(User::factory()->create());
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Backordered', 'fulfillment_placement' => 'to_pack', 'sort_order' => 5]);
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Backordered', 'sort_order' => 5]);
 
         $this->put(route('admin.order-statuses.update', $status), [
             'name' => 'Backordered', 'fulfillment_placement' => 'unpaid', 'sort_order' => 5,
-        ])->assertRedirect();
-
-        $this->assertSame('unpaid', $status->fresh()->fulfillment_placement);
-    }
-
-    public function test_placement_save_round_trip_covers_the_new_values(): void
-    {
-        $this->actingAs(User::factory()->create());
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Backordered', 'fulfillment_placement' => 'to_pack', 'sort_order' => 5]);
-
-        foreach (['to_handover', 'shipping', 'lost_damaged', 'delivered', 'failed', 'cancelled'] as $value) {
-            $this->put(route('admin.order-statuses.update', $status), [
-                'name' => 'Backordered', 'fulfillment_placement' => $value, 'sort_order' => 5,
-            ])->assertRedirect();
-
-            $this->assertSame($value, $status->fresh()->fulfillment_placement);
-        }
-    }
-
-    public function test_unknown_fulfillment_placement_value_is_rejected(): void
-    {
-        $this->actingAs(User::factory()->create());
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Backordered', 'fulfillment_placement' => 'to_pack', 'sort_order' => 5]);
-
-        $this->put(route('admin.order-statuses.update', $status), [
-            'name' => 'Backordered', 'fulfillment_placement' => 'bogus', 'sort_order' => 5,
         ])->assertSessionHasErrors('fulfillment_placement');
 
-        $this->assertSame('to_pack', $status->fresh()->fulfillment_placement);
-
         $this->post(route('admin.order-statuses.store'), [
-            'name' => 'Another Status', 'fulfillment_placement' => 'bogus', 'sort_order' => 6,
+            'name' => 'Another Status', 'fulfillment_placement' => 'unpaid', 'sort_order' => 6,
         ])->assertSessionHasErrors('fulfillment_placement');
 
         $this->assertDatabaseMissing('order_statuses', ['name' => 'Another Status']);
     }
 
-    public function test_ready_is_no_longer_a_valid_placement_value(): void
+    /** Ordinary CRUD is untouched by the removal. */
+    public function test_name_and_sort_order_still_round_trip(): void
     {
         $this->actingAs(User::factory()->create());
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Backordered', 'fulfillment_placement' => 'to_pack', 'sort_order' => 5]);
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Backordered', 'sort_order' => 5]);
 
         $this->put(route('admin.order-statuses.update', $status), [
-            'name' => 'Backordered', 'fulfillment_placement' => 'ready', 'sort_order' => 5,
-        ])->assertSessionHasErrors('fulfillment_placement');
+            'name' => 'Back Ordered', 'sort_order' => 7,
+        ])->assertRedirect();
+
+        $status->refresh();
+        $this->assertSame('Back Ordered', $status->name);
+        $this->assertSame(7, (int) $status->sort_order);
     }
 
     /**
-     * The page lists (and counts) one store's statuses only, but route-model
-     * binding resolves by id alone: without a scope check, another store's
-     * status was writable and deletable through these endpoints. Placement is
-     * what decides fulfillment queue membership now, so a cross-store write
-     * here would silently re-file another store's orders.
+     * The page lists one store's statuses only, but route-model binding
+     * resolves by id alone: without a scope check, another store's status was
+     * writable and deletable through these endpoints.
      */
     public function test_another_stores_status_cannot_be_updated_or_deleted(): void
     {
         $this->actingAs(User::factory()->create());
         Store::create(['id' => 2, 'name' => 'Other Store', 'code' => 'other']);
         $foreign = OrderStatus::create([
-            'store_id' => 2, 'name' => 'Foreign Status', 'fulfillment_placement' => 'to_pack', 'sort_order' => 1,
+            'store_id' => 2, 'name' => 'Foreign Status', 'sort_order' => 1,
         ]);
 
         $this->put(route('admin.order-statuses.update', $foreign), [
-            'name' => 'Hijacked', 'fulfillment_placement' => 'delivered', 'sort_order' => 1,
+            'name' => 'Hijacked', 'sort_order' => 1,
         ])->assertNotFound();
 
         $this->delete(route('admin.order-statuses.destroy', $foreign))->assertNotFound();
 
         $foreign->refresh();
         $this->assertSame('Foreign Status', $foreign->name);
-        $this->assertSame('to_pack', $foreign->fulfillment_placement);
         $this->assertDatabaseHas('order_statuses', ['id' => $foreign->id]);
     }
 
-    /** The per-status order count describes this store's orders, not every store's. */
-    public function test_order_counts_are_scoped_to_this_store(): void
-    {
-        $this->actingAs(User::factory()->create());
-        Store::create(['id' => 2, 'name' => 'Other Store', 'code' => 'other']);
-        $status = OrderStatus::create([
-            'store_id' => 1, 'name' => 'Counted', 'fulfillment_placement' => 'to_pack', 'sort_order' => 1,
-        ]);
-
-        $this->makeOrder($status->id);
-        $foreignOrder = $this->makeOrder($status->id);
-        $foreignOrder->forceFill(['store_id' => 2])->save();
-
-        $counts = $this->get(route('admin.order-statuses.index'))
-            ->assertOk()
-            ->viewData('orderCounts');
-
-        $this->assertSame(1, (int) $counts[$status->id]);
-    }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\User;
 use App\Services\ExtensionManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,23 +52,35 @@ class FulfillmentReturnsTest extends TestCase
     private function installExtension(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
+        // Registers the extension's runtime PSR-4 autoloader up front, so
+        // this file can reference Extensions\CourierFulfillment\* (the
+        // module-owned placement mapping) before its first HTTP request.
+        app(ExtensionManager::class)->bootEnabled();
     }
 
     private function defaultStatus(): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Processing'],
             ['sort_order' => 1, 'is_default' => true],
         );
+
+        PlacementMap::put($status->id, 'to_pack');
+
+        return $status;
     }
 
     /** A cancelled-PLACED status (a real order cancel), distinct from a courier-side cancel/return on the shipment. */
     private function cancelledStageStatus(): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Canceled'],
-            ['sort_order' => 2, 'is_default' => false, 'fulfillment_placement' => 'cancelled'],
+            ['sort_order' => 2, 'is_default' => false],
         );
+
+        PlacementMap::put($status->id, 'cancelled');
+
+        return $status;
     }
 
     /** An order in the queue; optionally booked with a raw courier status. */

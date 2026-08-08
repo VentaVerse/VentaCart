@@ -4,6 +4,7 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
@@ -98,10 +99,14 @@ class FulfillmentBookedStatusTest extends TestCase
 
     private function statusPlaced(string $placement, string $name, int $sort = 1): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name],
-            ['sort_order' => $sort, 'fulfillment_placement' => $placement],
+            ['sort_order' => $sort],
         );
+
+        PlacementMap::put($status->id, $placement);
+
+        return $status;
     }
 
     private function makeOrder(?OrderStatus $status = null): Order
@@ -288,7 +293,7 @@ class FulfillmentBookedStatusTest extends TestCase
         $this->assertFalse($res['success']);
         $this->assertSame('no_booked_status', $res['code']);
         $this->assertStringContainsString('To Handover', $res['error']);
-        $this->assertStringContainsString('Order Statuses', $res['error']);
+        $this->assertStringContainsString('Status placement', $res['error']);
 
         Http::assertNothingSent();
         $order->refresh();

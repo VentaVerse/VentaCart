@@ -4,6 +4,7 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
@@ -61,6 +62,10 @@ class FulfillmentQueueTest extends TestCase
     private function installExtension(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
+        // Registers the extension's runtime PSR-4 autoloader up front, so
+        // this file can reference Extensions\CourierFulfillment\* (the
+        // module-owned placement mapping) before its first HTTP request.
+        app(ExtensionManager::class)->bootEnabled();
     }
 
     private function enableQuadxStaging(): void
@@ -153,24 +158,31 @@ class FulfillmentQueueTest extends TestCase
 
     private function defaultStatus(): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Processing'],
             ['sort_order' => 1, 'is_default' => true],
         );
+
+        PlacementMap::put($status->id, 'to_pack');
+
+        return $status;
     }
 
     /**
-     * fulfillment-placement Task 2: a status row carrying a given
-     * fulfillment_placement (defaultStatus() above is 'to_pack', the
-     * column's own default). The placement is the ONLY thing that decides
-     * which tab an order on this status appears in.
+     * fulfillment-placement Task 2: a status placed under a given placement.
+     * The mapping is module data (PlacementMap), and it is the ONLY thing
+     * that decides which tab an order on this status appears in.
      */
     private function statusWithStage(string $stage, string $name): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name],
-            ['sort_order' => 1, 'fulfillment_placement' => $stage],
+            ['sort_order' => 1],
         );
+
+        PlacementMap::put($status->id, $stage);
+
+        return $status;
     }
 
     /** An order in the queue; optionally booked with a raw courier status, optionally on a non-default status/stage. */

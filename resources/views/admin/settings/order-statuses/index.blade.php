@@ -1,42 +1,5 @@
 <x-admin.settings-shell title="Order Statuses" :wide="true">
-        @php
-            // The fulfillment placement vocabulary, in the queue's own tab
-            // order (owner rulings, 2026-08-09). Declared once here and used
-            // by all three surfaces on this page - the legend, the per-row
-            // select and badge, and the Add status select - so none of them
-            // can drift apart. The queue's All tab is deliberately absent:
-            // it is a VIEW over every order, never a placement.
-            $placementMeta = [
-                'unpaid'       => ['label' => 'Unpaid', 'tone' => 'warning', 'hint' => 'waiting on payment, appears in the Unpaid tab'],
-                'to_pack'      => ['label' => 'To Pack', 'tone' => 'success', 'hint' => 'paid and awaiting packing, appears in To Ship > To Pack'],
-                'to_handover'  => ['label' => 'To Handover', 'tone' => 'success', 'hint' => 'packed and awaiting courier pickup, appears in To Ship > To Handover'],
-                'shipping'     => ['label' => 'Shipping', 'tone' => 'success', 'hint' => 'with the courier en route, appears in the Shipping tab'],
-                'failed'       => ['label' => 'Failed', 'tone' => 'danger', 'hint' => 'delivery failed or is returning, appears in the Failed tab'],
-                'lost_damaged' => ['label' => 'Lost & Damaged', 'tone' => 'danger', 'hint' => 'parcel lost or damaged, appears in the Lost & Damaged tab for insurance claims'],
-                'delivered'    => ['label' => 'Delivered', 'tone' => 'success', 'hint' => 'delivered to the customer, appears in the Delivered tab'],
-                'cancelled'    => ['label' => 'Cancelled', 'tone' => 'danger', 'hint' => 'will not be fulfilled, appears in the Cancelled tab'],
-            ];
-        @endphp
         <div class="space-y-5">
-            <x-admin.card title="Stock actions" description="What happens to inventory when an order enters a status.">
-                <div class="flex flex-wrap gap-4 text-[13px]">
-                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">▼ Decrements</x-admin.badge><span class="text-v-secondary">stock committed (e.g. Processing)</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="success">▲ Increments</x-admin.badge><span class="text-v-secondary">stock returned (e.g. Refunded, Canceled)</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="neutral">-</x-admin.badge><span class="text-v-secondary">no inventory effect</span></span>
-                </div>
-            </x-admin.card>
-
-            <x-admin.card title="Fulfillment placements" description="Which fulfillment queue tab a status belongs to.">
-                <div class="flex flex-wrap gap-4 text-[13px]">
-                    @foreach ($placementMeta as $meta)
-                        <span class="flex items-center gap-2">
-                            <x-admin.badge :tone="$meta['tone']">{{ $meta['label'] }}</x-admin.badge>
-                            <span class="text-v-secondary">{{ $meta['hint'] }}</span>
-                        </span>
-                    @endforeach
-                </div>
-            </x-admin.card>
-
             <x-admin.card title="Statuses">
                 {{--
                     A <form> cannot legally wrap table rows/cells (invalid HTML: form is not a
@@ -56,8 +19,6 @@
                     <x-slot:head>
                         <x-admin.table.th>Status</x-admin.table.th>
                         <x-admin.table.th>Stock action</x-admin.table.th>
-                        <x-admin.table.th>Fulfillment placement</x-admin.table.th>
-                        <x-admin.table.th>Orders</x-admin.table.th>
                         <x-admin.table.th>Sort</x-admin.table.th>
                         <x-admin.table.th align="right">Actions</x-admin.table.th>
                     </x-slot:head>
@@ -74,35 +35,16 @@
                                 </div>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
-                                <div class="flex items-center gap-2">
-                                    <select form="{{ $editForm }}" name="stock_action" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        <option value="" @selected(! $status->stock_action)>None</option>
-                                        <option value="decrement" @selected($status->stock_action === 'decrement')>Decrement</option>
-                                        <option value="increment" @selected($status->stock_action === 'increment')>Increment</option>
-                                    </select>
-                                    @if ($status->stock_action === 'decrement')
-                                        <x-admin.badge tone="danger">▼ Decrements</x-admin.badge>
-                                    @elseif ($status->stock_action === 'increment')
-                                        <x-admin.badge tone="success">▲ Increments</x-admin.badge>
-                                    @else
-                                        <x-admin.badge tone="neutral">-</x-admin.badge>
-                                    @endif
-                                </div>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <div class="flex items-center gap-2">
-                                    <select form="{{ $editForm }}" name="fulfillment_placement" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        @foreach ($placementMeta as $value => $meta)
-                                            <option value="{{ $value }}" @selected($status->fulfillment_placement === $value)>{{ $meta['label'] }}</option>
-                                        @endforeach
-                                    </select>
-                                    <x-admin.badge :tone="$placementMeta[$status->fulfillment_placement]['tone'] ?? 'success'">
-                                        {{ $placementMeta[$status->fulfillment_placement]['label'] ?? $status->fulfillment_placement }}
-                                    </x-admin.badge>
-                                </div>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <span class="text-v-secondary">{{ number_format($orderCounts[$status->id] ?? 0) }}</span>
+                                {{-- The select IS the whole control: the badge
+                                     that repeated its selected value beside it,
+                                     and the legend card that explained that
+                                     badge, are both gone (owner's UI copy rule,
+                                     2026-08-09). --}}
+                                <select form="{{ $editForm }}" name="stock_action" class="v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                    <option value="" @selected(! $status->stock_action)>None</option>
+                                    <option value="decrement" @selected($status->stock_action === 'decrement')>Decrement</option>
+                                    <option value="increment" @selected($status->stock_action === 'increment')>Increment</option>
+                                </select>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
                                 <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
@@ -136,7 +78,7 @@
             @endforeach
 
             <x-admin.card title="Add status">
-                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-5 sm:items-end">
+                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-4 sm:items-end">
                     @csrf
                     <x-admin.field name="name" label="Name">
                         <x-admin.input name="name" required placeholder="Quality Check" />
@@ -146,17 +88,6 @@
                             <option value="">None</option>
                             <option value="decrement">Decrement</option>
                             <option value="increment">Increment</option>
-                        </x-admin.select>
-                    </x-admin.field>
-                    <x-admin.field name="fulfillment_placement" label="Fulfillment placement">
-                        {{-- Same vocabulary, same order as the per-row select
-                             above: driven from $placementMeta so the two can
-                             never drift apart. To Pack is the default for a
-                             brand new status. --}}
-                        <x-admin.select name="fulfillment_placement">
-                            @foreach ($placementMeta as $value => $meta)
-                                <option value="{{ $value }}" @selected($value === 'to_pack')>{{ $meta['label'] }}</option>
-                            @endforeach
                         </x-admin.select>
                     </x-admin.field>
                     <x-admin.field name="sort_order" label="Sort">

@@ -4,6 +4,7 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
@@ -72,10 +73,14 @@ class FulfillmentTabSetTest extends TestCase
 
     private function statusPlaced(string $placement, ?string $name = null): OrderStatus
     {
-        return OrderStatus::firstOrCreate(
+        $status = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => $name ?? ('Status ' . $placement)],
-            ['sort_order' => 1, 'fulfillment_placement' => $placement],
+            ['sort_order' => 1],
         );
+
+        PlacementMap::put($status->id, $placement);
+
+        return $status;
     }
 
     private function makeOrder(OrderStatus $status, ?string $tracking = null, ?string $courierStatus = null): Order
@@ -294,13 +299,14 @@ class FulfillmentTabSetTest extends TestCase
         $this->actingAs($user);
         $this->installExtension();
 
-        // Placed by the owner on the Order Statuses page, the only way a
-        // status ever gets a placement.
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Lost in Transit', 'sort_order' => 6, 'fulfillment_placement' => 'to_pack']);
-        $this->put(route('admin.order-statuses.update', $status), [
-            'name' => 'Lost in Transit', 'fulfillment_placement' => 'lost_damaged', 'sort_order' => 6,
+        // Placed by the owner on the module's Status placement page, the
+        // only way a status ever gets a placement (owner ruling, 2026-08-09:
+        // core's Order Statuses page no longer offers one).
+        $status = $this->statusPlaced('to_pack', 'Lost in Transit');
+        $this->post(route('admin.fulfillment.settings.placement.update'), [
+            'placements' => [$status->id => 'lost_damaged'],
         ])->assertRedirect();
-        $this->assertSame('lost_damaged', $status->fresh()->fulfillment_placement);
+        $this->assertSame('lost_damaged', PlacementMap::placementFor($status->id));
 
         $order = $this->makeOrder($status->fresh(), 'QX-LOST-1', 'in_transit');
         $this->assertSame('lost_damaged', FulfillmentService::tabBucket($order->fresh()));
@@ -331,8 +337,10 @@ class FulfillmentTabSetTest extends TestCase
 
         $this->get($this->settingsUrl())
             ->assertOk()
-            ->assertSee('Finish setup: no order status is placed under To Handover')
-            ->assertSee(route('admin.order-statuses.index'), false);
+            ->assertSee('No order status is placed under To Handover, so booking is refused')
+            // The notice points at the module's OWN placement page, not at
+            // core's Order Statuses page (owner ruling, 2026-08-09).
+            ->assertSee(route('admin.fulfillment.settings.placement'), false);
     }
 
     public function test_the_setup_notice_disappears_once_a_status_is_placed_under_to_handover(): void
@@ -344,6 +352,6 @@ class FulfillmentTabSetTest extends TestCase
 
         $this->get($this->settingsUrl())
             ->assertOk()
-            ->assertDontSee('Finish setup: no order status is placed under To Handover');
+            ->assertDontSee('No order status is placed under To Handover, so booking is refused');
     }
 }

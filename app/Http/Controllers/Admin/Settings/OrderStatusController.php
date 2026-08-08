@@ -3,23 +3,20 @@
 namespace App\Http\Controllers\Admin\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
 use App\Models\OrderStatus;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
+/**
+ * Plain core CRUD for order statuses.
+ *
+ * It carries NO fulfillment concepts (owner ruling, 2026-08-09): the
+ * status-to-queue-tab mapping the courier-fulfillment module needs is module
+ * data, edited on that module's own Status placement page and stored in its
+ * own table. Core has no fulfillment column and no placement field here, so an
+ * install without the module is identical to one with it.
+ */
 class OrderStatusController extends Controller
 {
-    /**
-     * The eight fulfillment_placement values, one per fulfillment queue tab,
-     * in tab order. The queue's All tab is deliberately absent: it is a VIEW
-     * over every order, never a placement a status can be put into.
-     */
-    private const PLACEMENTS = [
-        'unpaid', 'to_pack', 'to_handover', 'shipping',
-        'failed', 'lost_damaged', 'delivered', 'cancelled',
-    ];
-
     private int $storeId;
 
     public function __construct()
@@ -45,17 +42,7 @@ class OrderStatusController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        // Live order count per status, one grouped query (never N+1): lets
-        // the owner see the scale of what a placement regrouping moves.
-        // Scoped to the same store the list above is scoped to, so the count
-        // beside a status can only ever describe orders that status governs.
-        $orderCounts = Order::where('store_id', $this->storeId)
-            ->whereNotNull('order_status_id')
-            ->select('order_status_id', DB::raw('COUNT(*) as n'))
-            ->groupBy('order_status_id')
-            ->pluck('n', 'order_status_id');
-
-        return view('admin.settings.order-statuses.index', compact('statuses', 'orderCounts'));
+        return view('admin.settings.order-statuses.index', compact('statuses'));
     }
 
     public function store(Request $request)
@@ -63,14 +50,17 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stock_action' => ['nullable', 'in:decrement,increment'],
-            'fulfillment_placement' => ['nullable', 'in:' . implode(',', self::PLACEMENTS)],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
+            // Fulfillment placement left core with the column it lived on
+            // (owner ruling, 2026-08-09). Refused outright rather than
+            // silently dropped, so a stale form or a hand-rolled request
+            // gets told the field moved instead of appearing to save.
+            'fulfillment_placement' => ['prohibited'],
         ]);
 
         $validated['store_id'] = $this->storeId;
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $validated['fulfillment_placement'] = $validated['fulfillment_placement'] ?? 'to_pack';
         $validated['is_default'] = $request->boolean('is_default');
 
         if ($validated['is_default']) {
@@ -90,13 +80,16 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'stock_action' => ['nullable', 'in:decrement,increment'],
-            'fulfillment_placement' => ['nullable', 'in:' . implode(',', self::PLACEMENTS)],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
+            // Fulfillment placement left core with the column it lived on
+            // (owner ruling, 2026-08-09). Refused outright rather than
+            // silently dropped, so a stale form or a hand-rolled request
+            // gets told the field moved instead of appearing to save.
+            'fulfillment_placement' => ['prohibited'],
         ]);
 
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $validated['fulfillment_placement'] = $validated['fulfillment_placement'] ?? 'to_pack';
         $validated['is_default'] = $request->boolean('is_default');
 
         if ($validated['is_default']) {

@@ -7,6 +7,7 @@ use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\PlacementMap;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -273,7 +274,7 @@ class CourierSettingsController extends Controller
         // they are the only coherent targets (a Cancel order that lands the
         // order anywhere but the Cancelled tab would contradict the whole
         // stage model). update() enforces the same scope server-side.
-        $orderStatuses = \App\Models\OrderStatus::where('fulfillment_placement', 'cancelled')
+        $orderStatuses = \App\Models\OrderStatus::whereIn('id', PlacementMap::statusIdsFor('cancelled'))
             ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
         $cancelOrderStatusId = $settings['cancel_order_status_id'] ?? null;
 
@@ -286,10 +287,16 @@ class CourierSettingsController extends Controller
         // the placeholder NAMES the status that would be used instead, which
         // is resolved by FulfillmentService and shown here so the admin can
         // see the default without having to save it.
-        $handoverStatuses = \App\Models\OrderStatus::where('fulfillment_placement', FulfillmentService::BOOKED_PLACEMENT)
+        $handoverStatuses = \App\Models\OrderStatus::whereIn('id', PlacementMap::statusIdsFor(FulfillmentService::BOOKED_PLACEMENT))
             ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
-        $packStatuses = \App\Models\OrderStatus::where('fulfillment_placement', FulfillmentService::UNBOOKED_PLACEMENT)
+        $packStatuses = \App\Models\OrderStatus::whereIn('id', PlacementMap::statusIdsFor(FulfillmentService::UNBOOKED_PLACEMENT))
             ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
+
+        // Status placement summary for the hub's own card: how much of the
+        // mapping is done, without duplicating the page that owns it.
+        $storeStatusIds = \App\Models\OrderStatus::where('store_id', (int) config('app.store_id', 1))->pluck('id');
+        $placedStatusCount = $storeStatusIds->filter(fn ($id) => PlacementMap::isMapped((int) $id))->count();
+        $unplacedStatusCount = $storeStatusIds->count() - $placedStatusCount;
 
         $bookedOrderStatusId = $settings[FulfillmentService::BOOKED_STATUS_SETTING] ?? null;
         $unbookedOrderStatusId = $settings[FulfillmentService::UNBOOKED_STATUS_SETTING] ?? null;
@@ -305,6 +312,8 @@ class CourierSettingsController extends Controller
             'cancelOrderStatusId',
             'handoverStatuses',
             'packStatuses',
+            'placedStatusCount',
+            'unplacedStatusCount',
             'bookedOrderStatusId',
             'unbookedOrderStatusId',
             'bookedDefaultName',
@@ -434,7 +443,7 @@ class CourierSettingsController extends Controller
             'settings.cancel_order_status_id' => [
                 'nullable',
                 'integer',
-                \Illuminate\Validation\Rule::exists('order_statuses', 'id')->where('fulfillment_placement', 'cancelled'),
+                \Illuminate\Validation\Rule::exists(PlacementMap::TABLE, 'order_status_id')->where('placement', 'cancelled'),
             ],
             // fulfillment-placement Task 3: each target must not only exist,
             // it must carry the placement that makes it do its job - a
@@ -445,14 +454,14 @@ class CourierSettingsController extends Controller
             'settings.' . FulfillmentService::BOOKED_STATUS_SETTING => [
                 'nullable',
                 'integer',
-                \Illuminate\Validation\Rule::exists('order_statuses', 'id')
-                    ->where('fulfillment_placement', FulfillmentService::BOOKED_PLACEMENT),
+                \Illuminate\Validation\Rule::exists(PlacementMap::TABLE, 'order_status_id')
+                    ->where('placement', FulfillmentService::BOOKED_PLACEMENT),
             ],
             'settings.' . FulfillmentService::UNBOOKED_STATUS_SETTING => [
                 'nullable',
                 'integer',
-                \Illuminate\Validation\Rule::exists('order_statuses', 'id')
-                    ->where('fulfillment_placement', FulfillmentService::UNBOOKED_PLACEMENT),
+                \Illuminate\Validation\Rule::exists(PlacementMap::TABLE, 'order_status_id')
+                    ->where('placement', FulfillmentService::UNBOOKED_PLACEMENT),
             ],
         ]);
 

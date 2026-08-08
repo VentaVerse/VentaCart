@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\PlacementMap;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Support\FakeCourierFulfillment;
 use Tests\TestCase;
@@ -143,8 +144,8 @@ class FulfillmentServicePhaseTest extends TestCase
 
     // ------------------------------------------------------------------
     // fulfillment-placement Task 2: FulfillmentService::tabBucket() is the
-    // membership function, and it reads ONE thing - the core order status's
-    // fulfillment_placement. The tabs-v3 rules these tests used to assert
+    // membership function, and it reads ONE thing - the placement the MODULE
+    // maps the core order status to. The tabs-v3 rules these tests used to assert
     // (stage-vs-phase arbitration, the absolute cancelled arm, the unpaid
     // carve-out, the 'booking' collapse) no longer exist as concepts, so
     // each is replaced here by the equivalent assertion under the new rule:
@@ -154,17 +155,31 @@ class FulfillmentServicePhaseTest extends TestCase
     // badge, drawer stepper, returns page). The pairs below assert both at
     // once, so a future edit cannot quietly re-couple them.
     //
-    // $order->setRelation('status', ...) stands in for a real OrderStatus
-    // row without touching the DB — same "no real Order row" pattern this
-    // file already uses via order()/setRawAttributes() above.
+    // The status row is real (the mapping is keyed by order_status_id), the
+    // ORDER still is not — same "no real Order row" pattern this file already
+    // uses via order()/setRawAttributes() above.
     // ------------------------------------------------------------------
 
     private function orderPlaced(string $placement, array $attributes): Order
     {
-        $order = $this->order($attributes);
-        $order->setRelation('status', new \App\Models\OrderStatus(['fulfillment_placement' => $placement]));
+        $status = \App\Models\OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => 'Status ' . $placement],
+            ['sort_order' => 1],
+        );
+        PlacementMap::put($status->id, $placement);
 
-        return $order;
+        return $this->order($attributes + ['order_status_id' => $status->id]);
+    }
+
+    /** A status the merchant has never placed: it belongs to no tab at all. */
+    private function orderUnplaced(array $attributes): Order
+    {
+        $status = \App\Models\OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => 'Never Placed'],
+            ['sort_order' => 1],
+        );
+
+        return $this->order($attributes + ['order_status_id' => $status->id]);
     }
 
     /** Was: unpaid claims the bucket only while there is no active booking. Now: the placement answers, whatever the booking. */
@@ -240,26 +255,51 @@ class FulfillmentServicePhaseTest extends TestCase
         }
     }
 
-    /** No status relation loaded (null order_status_id) defaults to 'to_pack', the placement column's own default. */
-    public function test_missing_status_relation_defaults_to_to_pack(): void
+    /** An order with no status at all is unplaced: it belongs to no tab, and All still lists it. */
+    public function test_an_order_with_no_status_is_unplaced(): void
     {
         $order = $this->order([
             'courier_tracking_number' => null,
             'courier_provider' => null,
             'courier_status' => null,
         ]);
-        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
+        $this->assertSame(FulfillmentService::UNPLACED, FulfillmentService::tabBucket($order));
     }
 
-    /** A value outside the enum (unreachable through the column, defensive here) never drops the order out of every tab. */
-    public function test_an_unrecognised_placement_falls_back_to_to_pack(): void
+    /**
+     * A value outside the vocabulary (only reachable by writing the module
+     * table by hand) reads as unplaced rather than silently claiming a tab.
+     */
+    public function test_an_unrecognised_placement_reads_as_unplaced(): void
     {
         $order = $this->orderPlaced('not_a_tab', [
             'courier_tracking_number' => null,
             'courier_provider' => null,
             'courier_status' => null,
         ]);
-        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
+        $this->assertSame(FulfillmentService::UNPLACED, FulfillmentService::tabBucket($order));
+    }
+
+    /**
+     * The fresh-install state (the module seeds nothing): a status with no
+     * mapping belongs to no tab, and booking is refused for it exactly as it
+     * is for every other non-To-Pack placement.
+     */
+    public function test_an_unmapped_status_reads_as_unplaced_and_cannot_be_booked(): void
+    {
+        $order = $this->orderUnplaced([
+            'id' => 77,
+            'courier_tracking_number' => null,
+            'courier_provider' => null,
+            'courier_status' => null,
+        ]);
+
+        $this->assertSame(FulfillmentService::UNPLACED, FulfillmentService::tabBucket($order));
+
+        $reason = FulfillmentService::bookingBlockedReason($order);
+        $this->assertNotNull($reason);
+        $this->assertStringContainsString('no fulfillment placement', $reason);
+        $this->assertStringContainsString('Set its status to one placed under To Pack before booking.', $reason);
     }
 
     // ------------------------------------------------------------------

@@ -1185,17 +1185,26 @@ class ReskinWaveTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         app(\App\Services\ExtensionManager::class)->install('courier-fulfillment');
+        // Registers the extension's runtime PSR-4 autoloader up front, so this
+        // test can reference Extensions\CourierFulfillment\* (the
+        // module-owned placement mapping) before its first HTTP request.
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         // Task 4: 'fulfillment_enabled' is opt-out (missing/NULL means active),
         // so no setting write is needed here — see FulfillmentController::index().
 
         // fulfillment-placement Task 2: which tab an order appears under is
-        // decided by its core status's fulfillment_placement, so this test's
+        // decided by the module's placement mapping, so this test's
         // three orders now sit on three placed statuses. Its subject (the
         // pages render in the new shell, and each filter round-trips its
         // param into the search form) is unchanged.
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
-        $shippedStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'fulfillment_placement' => 'shipping']);
-        $deliveredStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 3, 'fulfillment_placement' => 'delivered']);
+        $shippedStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
+        $deliveredStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 3]);
+        // Placement is module data with NO default (owner ruling,
+        // 2026-08-09), so every status this test relies on is placed here.
+        \Extensions\CourierFulfillment\PlacementMap::put($status->id, 'to_pack');
+        \Extensions\CourierFulfillment\PlacementMap::put($shippedStatus->id, 'shipping');
+        \Extensions\CourierFulfillment\PlacementMap::put($deliveredStatus->id, 'delivered');
 
         $makeOrder = function (string $suffix, ?OrderStatus $on = null) use ($status) {
             return Order::create([

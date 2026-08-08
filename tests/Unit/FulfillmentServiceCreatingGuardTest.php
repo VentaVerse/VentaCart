@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Models\Order;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Setting;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\FulfillmentService;
@@ -52,13 +53,17 @@ class FulfillmentServiceCreatingGuardTest extends TestCase
     private function makeOrder(array $overrides = []): Order
     {
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        // Placement is module data with NO default (owner ruling, 2026-08-09):
+        // an unplaced status belongs to no tab, so a bookable fixture has to
+        // place its own status under To Pack.
+        PlacementMap::put($status->id, 'to_pack');
         // fulfillment-placement Task 3: booking needs a To-Handover-placed
         // status to move the order to, or it is refused before any outbound
         // call (FulfillmentService::bookedStatus()).
-        OrderStatus::firstOrCreate(
+        PlacementMap::put(OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Order Being Shipped'],
-            ['sort_order' => 4, 'fulfillment_placement' => 'to_handover'],
-        );
+            ['sort_order' => 4],
+        )->id, 'to_handover');
 
         return Order::create(array_merge([
             'store_id' => 1, 'order_status_id' => $status->id,

@@ -5,6 +5,7 @@ namespace Tests\Feature\AdminV2;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
+use Extensions\CourierFulfillment\PlacementMap;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
@@ -94,6 +95,10 @@ class FulfillmentTest extends TestCase
     private function installExtension(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
+        // Registers the extension's runtime PSR-4 autoloader up front, so
+        // this file can reference Extensions\CourierFulfillment\* (the
+        // module-owned placement mapping) before its first HTTP request.
+        app(ExtensionManager::class)->bootEnabled();
     }
 
     // ------------------------------------------------------------------
@@ -166,16 +171,19 @@ class FulfillmentTest extends TestCase
     private function makeBookableOrder(array $overrides = []): Order
     {
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        // Placement is module data with NO default (owner ruling,
+        // 2026-08-09), so a bookable fixture places its own status.
+        PlacementMap::put($status->id, 'to_pack');
         // fulfillment-placement Task 3: a store must have somewhere to put a
         // booked order (a To-Handover-placed status), or FulfillmentService::
         // book() refuses before the outbound call rather than leaving a
         // booked order actionless in To Pack. OrderStatusSeeder seeds this
         // status on a real install; these tests build their statuses by hand,
         // so the fixture carries it too.
-        OrderStatus::firstOrCreate(
+        PlacementMap::put(OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Order Being Shipped'],
-            ['sort_order' => 4, 'fulfillment_placement' => 'to_handover'],
-        );
+            ['sort_order' => 4],
+        )->id, 'to_handover');
 
         return Order::create(array_merge([
             'store_id' => 1,
@@ -527,6 +535,8 @@ class FulfillmentTest extends TestCase
 
         $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
         $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2]);
+        PlacementMap::put($pending->id, 'to_pack');
+        PlacementMap::put($delivered->id, 'delivered');
 
         // Two different couriers' maps, saved under their own derived keys —
         // proves no cross-talk between "fake_status_map" and "quadx_status_map".
@@ -578,6 +588,7 @@ class FulfillmentTest extends TestCase
         CourierManager::register(FakeCourierFulfillment::class);
 
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
+        PlacementMap::put($status->id, 'to_pack');
         $order = Order::create([
             'store_id' => 1,
             'order_status_id' => $status->id,
@@ -625,7 +636,8 @@ class FulfillmentTest extends TestCase
         // the drawer opener this test reads its payload from. The subject
         // is unchanged (each row resolves its OWN courier), only the tab
         // those actions belong to is now named by the order's status.
-        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Order Being Shipped', 'sort_order' => 1, 'is_default' => true, 'fulfillment_placement' => 'to_handover']);
+        $status = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Order Being Shipped'], ['sort_order' => 1, 'is_default' => true]);
+        PlacementMap::put($status->id, 'to_handover');
 
         $quadxOrder = $this->makeBookableOrder(['order_status_id' => $status->id]);
         $quadxOrder->forceFill([
