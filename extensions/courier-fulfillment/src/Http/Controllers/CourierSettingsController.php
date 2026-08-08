@@ -105,7 +105,16 @@ class CourierSettingsController extends Controller
         // matches CourierWebhookController's generic "{provider}_webhook_token"
         // lookup, so every registered courier gets a working webhook URL
         // without this controller knowing any courier's literal key.
+        // Task T3 exception: SPX authenticates its webhook via a signed
+        // `check-sign` header (its own app-secret), not this shared
+        // `?token=` scheme — see CourierWebhookController's SPX branch — so
+        // no token is generated for it; the webhook URL built below omits
+        // the query string entirely rather than showing a value that's
+        // never actually checked.
         foreach (CourierManager::all() as $courier) {
+            if ($courier->getKey() === 'spx') {
+                continue;
+            }
             $tokenKey = $courier->getKey() . '_webhook_token';
             if (empty($settings[$tokenKey])) {
                 $token = Str::random(40);
@@ -164,9 +173,13 @@ class CourierSettingsController extends Controller
                         : $credMissing . ' of ' . $credTotal . ' credentials missing'),
                 // This store's own webhook URL — copy and send to the courier.
                 // Module-level plumbing (server-generated token), so it lives
-                // on the hub, not the courier's own form.
+                // on the hub, not the courier's own form. SPX gets no
+                // `?token=` (see the loop above) — its auth is a signed
+                // header SPX computes itself from the app-secret it was
+                // issued, nothing this store needs to hand it via the URL.
                 'webhookUrl'     => rtrim((string) config('app.url'), '/')
-                    . '/webhooks/courier/' . $key . '?token=' . $settings[$key . '_webhook_token'],
+                    . '/webhooks/courier/' . $key
+                    . ($key === 'spx' ? '' : ('?token=' . $settings[$key . '_webhook_token'])),
                 'url'            => route('admin.fulfillment.settings.courier', $key),
             ];
         }

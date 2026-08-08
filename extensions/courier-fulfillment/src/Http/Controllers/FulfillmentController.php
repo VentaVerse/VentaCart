@@ -10,6 +10,7 @@ use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * The dedicated Fulfillment page. Self-contained in the extension — the generic
@@ -335,8 +336,38 @@ class FulfillmentController extends Controller
             return back()->with('error', 'Label not available: ' . ($result['error'] ?? 'no URL returned'));
         }
 
-        // Presigned courier URL (e.g. S3) — send the admin straight to the PDF.
+        // Either the provider's own presigned URL (e.g. QuadX's S3 link), or
+        // (Task T3) this app's own label-file route when the courier's
+        // printLabel() chose to cache the asset instead — see
+        // CourierFulfillmentInterface::printLabel()'s docblock, sanctioned
+        // evolution #2. redirect()->away() works identically either way.
         return redirect()->away($result['url']);
+    }
+
+    /**
+     * Task T3: streams a courier label PDF this app already downloaded +
+     * cached locally (see SpxFulfillment::printLabel()/labelStoragePath()).
+     * Same admin-auth middleware as every other route in this group — the
+     * whole POINT of caching server-side instead of exposing the
+     * provider's own (perishable, e.g. SPX: 30-minute / 10-open) link is
+     * that this route is the only way to reach the file. 404s (rather than
+     * an error flash) when nothing has been cached yet — this route is
+     * never linked to before printLabel() has run at least once via /label.
+     */
+    public function labelFile(Order $order)
+    {
+        if (!$order->courier_provider || !$order->courier_tracking_number) {
+            abort(404);
+        }
+
+        $path = "courier-labels/{$order->courier_provider}/{$order->courier_tracking_number}.pdf";
+        $disk = Storage::disk('local');
+
+        if (!$disk->exists($path)) {
+            abort(404);
+        }
+
+        return $disk->download($path, "label-order-{$order->id}.pdf");
     }
 
     public function track(Order $order)

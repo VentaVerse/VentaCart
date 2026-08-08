@@ -30,6 +30,12 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::post('/{order}/book', [FulfillmentController::class, 'book'])->name('book');
         Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel');
         Route::get('/{order}/label', [FulfillmentController::class, 'label'])->name('label');
+        // Task T3: authenticated, in-app streaming route for a courier
+        // (SPX) whose own label link is perishable — printLabel() downloads
+        // + caches the PDF once, then hands this URL back instead of the
+        // provider's own (30-minute, 10-open) link. Same auth as every
+        // other route in this group; NOT a public/signed URL.
+        Route::get('/{order}/label-file', [FulfillmentController::class, 'labelFile'])->name('label-file');
         Route::post('/{order}/track', [FulfillmentController::class, 'track'])->name('track');
     });
 

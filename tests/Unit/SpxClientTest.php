@@ -169,4 +169,107 @@ class SpxClientTest extends TestCase
         $this->expectException(\RuntimeException::class);
         (new SpxClient())->post('/open/api/v1/account/verify', ['user_id' => 1, 'user_secret' => 'x']);
     }
+
+    // ------------------------------------------------------------------
+    // Task T3: 1.6 Get AWB V2 (batch_get_shipping_label).
+    // ------------------------------------------------------------------
+
+    public function test_get_shipping_label_posts_the_documented_batch_no_shape(): void
+    {
+        $this->configureCredentials();
+
+        Http::fake([
+            '*batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['batch_no' => 207982800897461, 'task_status' => 4, 'awb_link' => 'https://test-stable.spx.co.th/downloads/x.pdf'],
+            ]),
+        ]);
+
+        $data = (new SpxClient())->getShippingLabel(207982800897461);
+
+        $this->assertSame(4, $data['task_status']);
+        Http::assertSent(function ($request) {
+            $body = json_decode($request->body(), true);
+            return str_contains($request->url(), 'batch_get_shipping_label')
+                && $body['batch_no'] === 207982800897461
+                && $body['user_id'] === 999999
+                && $body['user_secret'] === 'fake-user-secret-not-real';
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3: webhook signature verification — same algorithm/test vector
+    // as SpxSignerTest (integration-brief.md §2's "Every request (including
+    // webhook verification) is signed" the same way).
+    // ------------------------------------------------------------------
+
+    private function configureWebhookAppCredentials(): void
+    {
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '100000']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('H25HY53GO4BA2GQ')]);
+    }
+
+    public function test_verify_webhook_signature_accepts_the_verified_integration_brief_test_vector(): void
+    {
+        $this->configureWebhookAppCredentials();
+
+        $client = new SpxClient();
+        $payload = '{"user_id":239404781503925,"user_secret":"85f0d570-a265-4d9d-857e-b30aa57c4fbe","service_type":1}';
+        $expectedSign = '97e21b23940e4ddc96fb4d2474f02425353d2b0e23aee384f3f94c3d0b9ba17d';
+
+        $this->assertTrue($client->verifyWebhookSignature($payload, '100000', $expectedSign, '1677918414', '926611981'));
+    }
+
+    public function test_verify_webhook_signature_rejects_a_tampered_check_sign(): void
+    {
+        $this->configureWebhookAppCredentials();
+
+        $client = new SpxClient();
+        $payload = '{"user_id":239404781503925,"user_secret":"85f0d570-a265-4d9d-857e-b30aa57c4fbe","service_type":1}';
+
+        $this->assertFalse($client->verifyWebhookSignature($payload, '100000', str_repeat('a', 64), '1677918414', '926611981'));
+    }
+
+    public function test_verify_webhook_signature_rejects_a_tampered_body(): void
+    {
+        $this->configureWebhookAppCredentials();
+
+        $client = new SpxClient();
+        $tamperedPayload = '{"user_id":239404781503925,"user_secret":"85f0d570-a265-4d9d-857e-b30aa57c4fbe","service_type":2}';
+        $expectedSign = '97e21b23940e4ddc96fb4d2474f02425353d2b0e23aee384f3f94c3d0b9ba17d'; // signed over service_type:1
+
+        $this->assertFalse($client->verifyWebhookSignature($tamperedPayload, '100000', $expectedSign, '1677918414', '926611981'));
+    }
+
+    public function test_verify_webhook_signature_rejects_an_app_id_that_does_not_match_our_own(): void
+    {
+        $this->configureWebhookAppCredentials();
+
+        $client = new SpxClient();
+        $payload = '{"user_id":239404781503925,"user_secret":"85f0d570-a265-4d9d-857e-b30aa57c4fbe","service_type":1}';
+        // Recompute a VALID signature, but for a different app-id than the
+        // one this store is configured with — must still be rejected.
+        $spoofedSign = SpxClient::sign(999999, 1677918414, 926611981, $payload, 'H25HY53GO4BA2GQ');
+
+        $this->assertFalse($client->verifyWebhookSignature($payload, '999999', $spoofedSign, '1677918414', '926611981'));
+    }
+
+    public function test_verify_webhook_signature_rejects_missing_headers(): void
+    {
+        $this->configureWebhookAppCredentials();
+
+        $client = new SpxClient();
+        $payload = '{"foo":"bar"}';
+
+        $this->assertFalse($client->verifyWebhookSignature($payload, null, 'x', '123', '456'));
+        $this->assertFalse($client->verifyWebhookSignature($payload, '100000', null, '123', '456'));
+        $this->assertFalse($client->verifyWebhookSignature($payload, '100000', 'x', null, '456'));
+        $this->assertFalse($client->verifyWebhookSignature($payload, '100000', 'x', '123', null));
+    }
+
+    public function test_verify_webhook_signature_rejects_when_app_not_configured(): void
+    {
+        $client = new SpxClient(); // no credentials stored at all
+        $this->assertFalse($client->verifyWebhookSignature('{}', '100000', 'x', '123', '456'));
+    }
 }

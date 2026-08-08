@@ -59,9 +59,13 @@ Blade views, not the poll command — references a courier by name.
 - **Webhook URL + token**: a `{key}_webhook_token` is generated the first
   time the hub loads, shown as a copy-able URL
   (`/webhooks/courier/{key}?token=…`) on the hub's Webhook URLs card. The
-  receiving route (`CourierWebhookController`) is fully generic — it resolves
-  `{provider}` from the URL segment, checks the token, and calls your
-  `parseWebhook()`.
+  receiving route (`CourierWebhookController`) resolves `{provider}` from the
+  URL segment, checks the token, and calls your `parseWebhook()` — this is
+  the DEFAULT auth for a courier with no signing scheme of its own. If your
+  provider signs its webhook payloads (SPX does — see below), add a
+  provider-branch in `CourierWebhookController::handle()` instead of relying
+  on the shared token; the URL segment / registration mechanism is still
+  generic, only the auth check differs.
 - **Test Connection** button on the courier's page, wired to your `testConnection()`.
 - **Order status mapping** table on the courier's page: rows from `mappableStatuses()`,
   labels from `refreshStatusLabels()` (cached), saved under
@@ -91,14 +95,24 @@ Blade views, not the poll command — references a courier by name.
 - Data migration for a renamed `getKey()`. The key is the prefix for every
   stored setting (`{key}_*`) and the webhook URL segment — treat it as
   permanent once shipped.
-- Provider-scoped webhook matching on tracking-number fallback.
-  `CourierWebhookController::applyEvent` falls back to matching an order by
-  `courier_tracking_number` alone (no `courier_provider` filter) when a
-  webhook event lacks a usable `reference_id`. With a single courier this is
-  moot; once a second courier is registered, a tracking-number collision
-  across providers could apply one courier's webhook to another courier's
-  order. Scope that fallback query to `->where('courier_provider', $provider)`
-  before (or as part of) wiring up your courier.
+- **Fixed (Task T3)**: provider-scoped webhook matching on tracking-number
+  fallback. `Extensions\CourierFulfillment\Support\CourierWebhookIngestor`
+  (the shared logic every courier's webhook path — sync or queued — routes
+  through) now scopes that fallback query to
+  `->where('courier_provider', $provider)` before falling back to
+  `courier_tracking_number` alone, so a tracking-number collision between two
+  registered couriers can no longer apply one courier's webhook event to
+  another courier's order. Nothing left to do here when wiring up a new
+  courier — this is automatic.
+- A fast-ack webhook path (queued processing, sub-3s response). The generic
+  `CourierWebhookController::handle()` above processes events INLINE,
+  synchronously, before responding — fine for a courier with no documented
+  response-time budget. If your provider imposes one (SPX permanently stops
+  sending webhooks after repeated slow/timeout acks — see `SpxFulfillment`'s
+  webhook docblocks + `CourierWebhookController`'s SPX branch for the pattern:
+  verify auth, parse events, `dispatch(new ProcessCourierWebhookJob(...))
+  ->afterResponse()`, return 200), that's a per-courier branch you add the
+  same way, not something declared through the interface.
 
 ## UAT / staging guidance
 

@@ -6,7 +6,10 @@ use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -14,10 +17,15 @@ use Illuminate\Support\Str;
  * plan (`docs/superpowers/plans/2026-08-08-spx-courier.md`). Fills in every
  * method Task T1 left as a deliberate stub: createShipment/cancelShipment/
  * getTracking, the status-vocabulary/phase methods, the option lists, and
- * the v2 estimateFee()/getPickupSlots() methods. printLabel()/parseWebhook()
- * remain Task T3's job. Ground truth for every shape is docs/spx/api.md
- * (verbatim endpoint tables) + docs/spx/integration-brief.md — see each
- * method's docblock for which section it implements.
+ * the v2 estimateFee()/getPickupSlots() methods. Ground truth for every shape
+ * is docs/spx/api.md (verbatim endpoint tables) + docs/spx/integration-brief.md
+ * — see each method's docblock for which section it implements.
+ *
+ * Task T3 additions: printLabel() (1.6 Get AWB V2 — download+store the
+ * perishable label PDF, serve it through this app's own authenticated
+ * route), parseWebhook() + verifyWebhookSignature() (4.1 Tracking Web Hook —
+ * signed fast-ack dispatch, see CourierWebhookController's SPX branch and
+ * Extensions\CourierFulfillment\Jobs\ProcessCourierWebhookJob).
  *
  * Load-bearing decisions made in THIS task (documented in the T2 report too):
  *  - Sender address reuses the store-wide `settings(group=shipping,
@@ -537,16 +545,182 @@ class SpxFulfillment implements CourierFulfillmentInterface
         return $options;
     }
 
-    /** User-action path — genuinely not implemented until Task T3 (AWB storage). */
+    /**
+     * 1.6 Get AWB V2 (batch_get_shipping_label) — Task T3. SPX's own label
+     * link is PERISHABLE (api.md §1.6: "valid within half an hour, and can
+     * be opened up to 10 times"), so this never hands that raw link back to
+     * an admin who might revisit the page later and find it dead or
+     * exhausted. Instead:
+     *
+     *  1. Look up the order this tracking number belongs to (SPX's
+     *     batch_get_shipping_label needs the batch_no from booking — this
+     *     interface only gives us a tracking number, so the order is the
+     *     only place that batch_no is still available; see
+     *     buildOrderPayload()/createShipment() for where it's first stored
+     *     into courier_meta).
+     *  2. If we already downloaded+stored the PDF for this tracking number
+     *     (Storage::disk('local')->exists()), skip straight to step 4 — no
+     *     SPX call at all on repeat visits.
+     *  3. Otherwise poll batch_get_shipping_label (bounded, same backoff
+     *     shape as pollCreateResult()) until task_status settles, then
+     *     download the awb_link PDF bytes and store them at
+     *     `courier-labels/spx/{tracking}.pdf`.
+     *  4. Return the URL of THIS APP'S OWN authenticated serving route
+     *     (admin.fulfillment.label-file) — never SPX's own link — per the
+     *     interface's sanctioned evolution #2 (see its docblock).
+     *
+     * $format is accepted for interface-contract compatibility but ignored:
+     * SPX documents exactly one label shape (a single PDF), unlike QuadX's
+     * zebra/fuji choice.
+     */
     public function printLabel(string $trackingNumber, string $format): array
     {
-        throw new \RuntimeException('SPX::printLabel() is not implemented yet — see Task T3 of the fulfillment-workflow-v2 + SPX plan.');
+        $order = Order::where('courier_tracking_number', $trackingNumber)
+            ->where('courier_provider', $this->getKey())
+            ->first();
+        if (!$order) {
+            return ['success' => false, 'error' => 'No SPX order found for this tracking number.'];
+        }
+
+        $path = self::labelStoragePath($trackingNumber);
+        $disk = Storage::disk('local');
+
+        if (!$disk->exists($path)) {
+            $stored = $this->fetchAndStoreLabel($order, $path);
+            if (!$stored['ok']) {
+                return ['success' => false, 'error' => $stored['error']];
+            }
+        }
+
+        return [
+            'success' => true,
+            'url'     => route('admin.fulfillment.label-file', ['order' => $order->id]),
+        ];
     }
 
-    /** T3 fills this (signed webhook dispatch, status_code -> event mapping). */
+    /** Storage path convention this task's brief specifies verbatim — also read back by FulfillmentController::labelFile(). */
+    public static function labelStoragePath(string $trackingNumber): string
+    {
+        return "courier-labels/spx/{$trackingNumber}.pdf";
+    }
+
+    /**
+     * @return array{ok:bool, error?:string}
+     */
+    private function fetchAndStoreLabel(Order $order, string $path): array
+    {
+        if (!$this->client->hasAccountCredentials()) {
+            return ['ok' => false, 'error' => 'SPX User ID / User Secret not configured.'];
+        }
+
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $batchNo = $meta['batch_no'] ?? null;
+        if (!$batchNo) {
+            return ['ok' => false, 'error' => 'No SPX batch number on file for this order — cannot fetch a label.'];
+        }
+
+        $result = $this->pollLabelResult((int) $batchNo);
+        if ($result === null) {
+            return ['ok' => false, 'error' => 'SPX label generation is still in progress — try again shortly.'];
+        }
+
+        $taskStatus = (int) ($result['task_status'] ?? 0);
+        $awbLink = $result['awb_link'] ?? null;
+        if ($taskStatus !== 4 || empty($awbLink)) {
+            $desc = $result['description'] ?? 'SPX could not generate a label for this order.';
+            return ['ok' => false, 'error' => "SPX label generation failed: {$desc}"];
+        }
+
+        try {
+            $pdf = Http::timeout(30)->get($awbLink);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => 'Failed to download the SPX label PDF: ' . $e->getMessage()];
+        }
+
+        if (!$pdf->successful() || $pdf->body() === '') {
+            return ['ok' => false, 'error' => "SPX label download failed (HTTP {$pdf->status()})."];
+        }
+
+        Storage::disk('local')->put($path, $pdf->body());
+
+        return ['ok' => true];
+    }
+
+    /**
+     * Polls 1.6 Get AWB V2 up to ~15s total (same bounded backoff shape as
+     * pollCreateResult() — see that method's docblock for why this
+     * particular window). Unlike create-order, there's only ONE endpoint
+     * here (no separate "get result" call) — task_status settling to 4
+     * (Done) or 5 (Failed) on repeat calls to the SAME endpoint IS the poll.
+     *
+     * @return ?array the raw response data once settled, or null if the
+     *   window elapses first (still New/Waiting/Running).
+     */
+    private function pollLabelResult(int $batchNo): ?array
+    {
+        $backoffMs = [1000, 2000, 3000, 4000, 5000];
+        $attempts = count($backoffMs) + 1;
+
+        for ($i = 0; $i < $attempts; $i++) {
+            try {
+                $result = $this->client->getShippingLabel($batchNo);
+            } catch (\Throwable $e) {
+                $result = null;
+            }
+
+            if (is_array($result) && in_array((int) ($result['task_status'] ?? 0), self::CREATE_RESULT_SETTLED, true)) {
+                return $result;
+            }
+
+            if ($i < $attempts - 1) {
+                ($this->sleeper)($backoffMs[$i]);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * 4.1 Tracking Web Hook (api.md §4.1) — SPX's callback body is ALREADY
+     * one event (unlike QuadX's `{data:[...]}` batch shape), so this always
+     * returns at most one normalized event. `order_id` is what WE sent as
+     * `order_id` at booking time (buildOrderPayload(): `(string) $order->id`)
+     * — SPX's docs call it "customer order id", which is exactly this
+     * interface's `reference_id`. A payload missing `status_code` entirely
+     * (malformed/unexpected) yields no events rather than a guessed one.
+     */
     public function parseWebhook(array $payload): array
     {
-        return [];
+        if (!isset($payload['status_code'])) {
+            return [];
+        }
+
+        $timestamp = $payload['timestamp'] ?? null;
+
+        return [[
+            'reference_id'    => isset($payload['order_id']) ? (string) $payload['order_id'] : null,
+            'tracking_number' => isset($payload['tracking_no']) ? (string) $payload['tracking_no'] : null,
+            'status'          => (string) $payload['status_code'],
+            'occurred_at'     => is_numeric($timestamp) ? date(DATE_ATOM, (int) $timestamp) : null,
+            'remarks'         => isset($payload['message']) ? (string) $payload['message'] : null,
+        ]];
+    }
+
+    /**
+     * Task T3: verifies an inbound SPX webhook request's signature —
+     * see SpxClient::verifyWebhookSignature()'s docblock for the algorithm.
+     * Uses $request->getContent() (the raw wire bytes), never
+     * $request->all() (which would re-encode and could byte-mismatch).
+     */
+    public function verifyWebhookSignature(Request $request): bool
+    {
+        return $this->client->verifyWebhookSignature(
+            $request->getContent(),
+            $request->header('app-id'),
+            $request->header('check-sign'),
+            $request->header('timestamp'),
+            $request->header('random-num'),
+        );
     }
 
     /**

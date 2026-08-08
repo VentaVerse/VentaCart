@@ -10,10 +10,14 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\CourierManager;
+use Extensions\CourierFulfillment\Couriers\Spx\SpxClient;
+use Extensions\CourierFulfillment\Jobs\ProcessCourierWebhookJob;
 use Extensions\CourierFulfillment\StatusMapper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\FakeCourierFulfillment;
 use Tests\TestCase;
 
@@ -104,6 +108,58 @@ class FulfillmentTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'staging']);
         Setting::create(['group' => 'courier', 'key' => 'quadx_staging_api_key', 'value' => Crypt::encryptString('test-api-key')]);
         Setting::create(['group' => 'courier', 'key' => 'quadx_staging_secret_key', 'value' => Crypt::encryptString('test-secret-key')]);
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3 helpers — SPX app-level webhook credentials (app-id/secret
+    // only; the webhook signature check never touches user_id/user_secret)
+    // plus a header builder that signs a given body EXACTLY the way
+    // SpxClient::sign() (and, in production, real SPX) would.
+    // ------------------------------------------------------------------
+
+    private const SPX_TEST_APP_ID = 424242;
+    private const SPX_TEST_APP_SECRET = 'fake-app-secret-not-real';
+
+    private function enableSpxWebhookCredentials(): void
+    {
+        Setting::create(['group' => 'courier', 'key' => 'spx_enabled', 'value' => '1']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_mode', 'value' => 'uat']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => (string) self::SPX_TEST_APP_ID]);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString(self::SPX_TEST_APP_SECRET)]);
+    }
+
+    /**
+     * Signs $body exactly as SpxClient::post() signs an outbound request
+     * (integration-brief.md §2) — since SPX's webhook uses the SAME
+     * algorithm to sign ITS request to us, this doubles as "what SPX itself
+     * would send". $rawBody must be the SAME string postJson() will encode
+     * (json_encode($body, 0)) so the signature isn't computed over bytes
+     * different from what actually hits the wire — see SpxClient::post()'s
+     * own docblock for why that byte-fidelity matters.
+     *
+     * @return array{headers:array<string,string>, appId:int, timestamp:int, randomNum:int}
+     */
+    private function spxSignedHeaders(array $body, ?int $appId = null, ?string $appSecret = null): array
+    {
+        $appId = $appId ?? self::SPX_TEST_APP_ID;
+        $appSecret = $appSecret ?? self::SPX_TEST_APP_SECRET;
+        $timestamp = time();
+        $randomNum = 918273645;
+        $payload = json_encode($body);
+
+        $sign = SpxClient::sign($appId, $timestamp, $randomNum, $payload, $appSecret);
+
+        return [
+            'headers' => [
+                'app-id'     => (string) $appId,
+                'check-sign' => $sign,
+                'timestamp'  => (string) $timestamp,
+                'random-num' => (string) $randomNum,
+            ],
+            'appId'     => $appId,
+            'timestamp' => $timestamp,
+            'randomNum' => $randomNum,
+        ];
     }
 
     /** Cebu (non-NCR) address deliberately, so QuadXLocationResolver's NCR "City" suffix rewriting never kicks in and payload assertions can compare raw strings. */
@@ -853,6 +909,243 @@ class FulfillmentTest extends TestCase
         // Neither rejected call touched the order.
         $this->assertSame('for_pickup', $order->fresh()->courier_status);
         $this->assertSame($order->order_status_id, $order->fresh()->order_status_id);
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3: SPX's signed, fast-ack webhook branch. No `?token=` query
+    // param — auth is the `check-sign` header (see spxSignedHeaders()).
+    // ------------------------------------------------------------------
+
+    public function test_spx_webhook_with_valid_signature_is_processed_end_to_end(): void
+    {
+        $this->installExtension();
+        $this->enableSpxWebhookCredentials();
+
+        $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
+        $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2]);
+
+        Setting::create(['group' => 'courier', 'key' => 'spx_status_map', 'value' => json_encode([
+            '4001' => ['order_status_id' => $delivered->id, 'notify' => false],
+        ])]);
+
+        $order = $this->makeBookableOrder(['order_status_id' => $pending->id]);
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => 'SPEPH000000000001',
+            'courier_status' => '2001',
+        ])->save();
+
+        $body = [
+            'status' => 'Delivered',
+            'status_code' => '4001',
+            'message' => 'Parcel delivered',
+            'tracking_no' => 'SPEPH000000000001',
+            'order_id' => (string) $order->id,
+            'timestamp' => now()->getTimestamp(),
+            'id' => 'evt-001',
+        ];
+        $signed = $this->spxSignedHeaders($body);
+
+        // No ->afterResponse() fake here: MakesHttpRequests::call() DOES
+        // invoke $kernel->terminate() (see that method), so the queued job
+        // has already run by the time postJson() returns — genuinely
+        // end-to-end, not just "the controller said ok".
+        $response = $this->postJson('/webhooks/courier/spx', $body, $signed['headers']);
+
+        $response->assertOk()->assertJson(['ok' => true]);
+
+        $order->refresh();
+        $this->assertSame('4001', $order->courier_status);
+        $this->assertSame($delivered->id, $order->order_status_id);
+        $this->assertDatabaseHas('order_histories', [
+            'order_id' => $order->id,
+            'order_status_id' => $delivered->id,
+            'comment' => 'Courier status: 4001',
+        ]);
+    }
+
+    public function test_spx_webhook_dispatches_the_ingest_job_after_the_response_rather_than_inline(): void
+    {
+        $this->installExtension();
+        $this->enableSpxWebhookCredentials();
+        Bus::fake();
+
+        $order = $this->makeBookableOrder();
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => 'SPEPH000000000099',
+            'courier_status' => '2001',
+        ])->save();
+
+        $body = [
+            'status' => 'Delivered', 'status_code' => '4001', 'tracking_no' => 'SPEPH000000000099',
+            'order_id' => (string) $order->id, 'timestamp' => now()->getTimestamp(), 'id' => 'evt-002',
+        ];
+        $signed = $this->spxSignedHeaders($body);
+
+        $response = $this->postJson('/webhooks/courier/spx', $body, $signed['headers']);
+        $response->assertOk()->assertJson(['ok' => true]);
+
+        // The mechanism this task's brief requires: dispatched via
+        // ->afterResponse(), not a plain synchronous dispatch — and with
+        // Bus faked, it genuinely never ran, so the order is untouched even
+        // though the HTTP response already came back "ok".
+        Bus::assertDispatchedAfterResponse(
+            ProcessCourierWebhookJob::class,
+            fn (ProcessCourierWebhookJob $job) => $job->provider === 'spx'
+                && ($job->events[0]['tracking_number'] ?? null) === 'SPEPH000000000099'
+                && ($job->events[0]['status'] ?? null) === '4001'
+        );
+        $this->assertSame('2001', $order->fresh()->courier_status);
+    }
+
+    public function test_spx_webhook_with_invalid_signature_is_rejected_and_writes_nothing(): void
+    {
+        $this->installExtension();
+        $this->enableSpxWebhookCredentials();
+
+        $order = $this->makeBookableOrder();
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => 'SPEPH000000000002',
+            'courier_status' => '2001',
+        ])->save();
+
+        $body = [
+            'status' => 'Delivered', 'status_code' => '4001', 'tracking_no' => 'SPEPH000000000002',
+            'order_id' => (string) $order->id, 'timestamp' => now()->getTimestamp(), 'id' => 'evt-003',
+        ];
+
+        // Tampered check-sign (right shape, wrong value).
+        $signed = $this->spxSignedHeaders($body);
+        $tamperedHeaders = $signed['headers'];
+        $tamperedHeaders['check-sign'] = str_repeat('0', 64);
+
+        $this->postJson('/webhooks/courier/spx', $body, $tamperedHeaders)
+            ->assertStatus(401)
+            ->assertJson(['error' => 'unauthorized']);
+
+        // Missing signature headers entirely.
+        $this->postJson('/webhooks/courier/spx', $body)
+            ->assertStatus(401)
+            ->assertJson(['error' => 'unauthorized']);
+
+        // Signed with the WRONG app-secret (a stolen/guessed body signed by
+        // someone who doesn't actually hold our app-secret).
+        $wrongSecret = $this->spxSignedHeaders($body, appSecret: 'not-the-real-secret');
+        $this->postJson('/webhooks/courier/spx', $body, $wrongSecret['headers'])
+            ->assertStatus(401)
+            ->assertJson(['error' => 'unauthorized']);
+
+        $order->refresh();
+        $this->assertSame('2001', $order->courier_status);
+        $this->assertDatabaseMissing('order_histories', ['order_id' => $order->id]);
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3 (F2 fix): tracking-number-fallback webhook matching is scoped
+    // to courier_provider — a tracking-number collision between two
+    // registered couriers can no longer cross-apply. Proven both directions
+    // (QuadX event never touches the SPX order sharing its tracking number,
+    // and vice versa).
+    // ------------------------------------------------------------------
+
+    public function test_webhook_tracking_number_fallback_never_crosses_courier_providers(): void
+    {
+        $this->installExtension();
+        Setting::create(['group' => 'courier', 'key' => 'quadx_webhook_token', 'value' => 'quadx-secret-token']);
+        $this->enableSpxWebhookCredentials();
+
+        $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2]);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
+            'delivered' => ['order_status_id' => $delivered->id, 'notify' => false],
+        ])]);
+        Setting::create(['group' => 'courier', 'key' => 'spx_status_map', 'value' => json_encode([
+            '4001' => ['order_status_id' => $delivered->id, 'notify' => false],
+        ])]);
+
+        $sharedTrackingNumber = 'COLLIDE-000001';
+
+        $quadxOrder = $this->makeBookableOrder();
+        $quadxOrder->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => $sharedTrackingNumber,
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        $spxOrder = $this->makeBookableOrder();
+        $spxOrder->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => $sharedTrackingNumber,
+            'courier_status' => '1001',
+        ])->save();
+
+        // Direction 1: a QuadX webhook event carrying only the (colliding)
+        // tracking number — no reference_id — must resolve to the QuadX
+        // order only.
+        $this->postJson('/webhooks/courier/quadx?token=quadx-secret-token', [
+            'data' => [[
+                'tracking_number' => $sharedTrackingNumber,
+                'status' => 'delivered',
+            ]],
+        ])->assertOk();
+
+        $this->assertSame('delivered', $quadxOrder->fresh()->courier_status);
+        $this->assertSame($delivered->id, $quadxOrder->fresh()->order_status_id);
+        // The SPX order sharing the same tracking number is untouched.
+        $this->assertSame('1001', $spxOrder->fresh()->courier_status);
+        $this->assertNotSame($delivered->id, $spxOrder->fresh()->order_status_id);
+
+        // Direction 2: an SPX webhook event carrying only the (colliding)
+        // tracking number — must resolve to the SPX order only.
+        $body = ['status' => 'Delivered', 'status_code' => '4001', 'tracking_no' => $sharedTrackingNumber, 'timestamp' => now()->getTimestamp()];
+        $signed = $this->spxSignedHeaders($body);
+        $this->postJson('/webhooks/courier/spx', $body, $signed['headers'])->assertOk();
+
+        $this->assertSame('4001', $spxOrder->fresh()->courier_status);
+        $this->assertSame($delivered->id, $spxOrder->fresh()->order_status_id);
+        // The QuadX order (already 'delivered' from direction 1) is
+        // untouched by this second event — still exactly what direction 1
+        // left it as, not re-applied or altered by the SPX event.
+        $this->assertSame('delivered', $quadxOrder->fresh()->courier_status);
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3: the label-file serving route requires authentication —
+    // guests never reach a cached label PDF directly.
+    // ------------------------------------------------------------------
+
+    public function test_label_file_route_requires_authentication(): void
+    {
+        $this->installExtension();
+
+        $order = $this->makeBookableOrder();
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => 'SPEPH000000000003',
+        ])->save();
+
+        // Not actingAs() anyone — a genuine guest request.
+        $response = $this->get($this->queueUrl() . '/' . $order->id . '/label-file');
+
+        $response->assertRedirect();
+    }
+
+    public function test_label_file_route_404s_when_no_label_has_been_cached_yet(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $order = $this->makeBookableOrder();
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => 'SPEPH000000000004',
+        ])->save();
+
+        Storage::fake('local');
+
+        $this->get($this->queueUrl() . '/' . $order->id . '/label-file')
+            ->assertStatus(404);
     }
 
     // ------------------------------------------------------------------

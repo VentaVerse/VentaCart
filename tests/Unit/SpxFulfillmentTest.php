@@ -8,9 +8,12 @@ use App\Models\OrderStatus;
 use App\Models\Setting;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxApiException;
+use Extensions\CourierFulfillment\Couriers\Spx\SpxClient;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -809,5 +812,191 @@ class SpxFulfillmentTest extends TestCase
 
         $options = (new SpxFulfillment())->getParcelOptions();
         $this->assertSame(['tiny', 'custom'], array_column($options, 'value'));
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3: printLabel() — 1.6 Get AWB V2, download+store, serve cached.
+    // ------------------------------------------------------------------
+
+    private function makeSpxOrder(string $trackingNumber, ?int $batchNo = 207982800897461): Order
+    {
+        $order = $this->makeOrder();
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_tracking_number' => $trackingNumber,
+            'courier_meta' => $batchNo !== null ? json_encode(['batch_no' => $batchNo]) : null,
+        ])->save();
+
+        return $order;
+    }
+
+    public function test_print_label_downloads_and_stores_the_awb_on_first_request(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+        $this->makeSpxOrder('SPEPH000000000001');
+
+        Http::fake([
+            '*batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'batch_no' => 207982800897461, 'task_status' => 4, 'description' => 'Done',
+                    'awb_link' => 'https://test-stable.spx.co.th/downloads/resource/shipping_label/abc.pdf',
+                    'orders' => [['order_id' => '1', 'tracking_no' => 'SPEPH000000000001']],
+                ],
+            ]),
+            'https://test-stable.spx.co.th/downloads/resource/shipping_label/abc.pdf' => Http::response('%PDF-1.4 fake label bytes', 200),
+        ]);
+
+        $result = $this->courier()->printLabel('SPEPH000000000001', 'zebra');
+
+        $this->assertTrue($result['success']);
+        $this->assertStringContainsString('/label-file', $result['url']);
+
+        Storage::disk('local')->assertExists('courier-labels/spx/SPEPH000000000001.pdf');
+        $this->assertSame('%PDF-1.4 fake label bytes', Storage::disk('local')->get('courier-labels/spx/SPEPH000000000001.pdf'));
+
+        // Exactly two calls: 1.6 submit/poll (settled immediately) + the PDF download.
+        Http::assertSentCount(2);
+    }
+
+    public function test_print_label_serves_the_cached_file_on_a_second_request_without_any_http_call(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+        $this->makeSpxOrder('SPEPH000000000005');
+
+        Http::fake([
+            '*batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['batch_no' => 207982800897461, 'task_status' => 4, 'description' => 'Done', 'awb_link' => 'https://test-stable.spx.co.th/downloads/x.pdf'],
+            ]),
+            'https://test-stable.spx.co.th/downloads/x.pdf' => Http::response('%PDF fake bytes', 200),
+        ]);
+
+        $courier = $this->courier();
+        $first = $courier->printLabel('SPEPH000000000005', 'zebra');
+        $this->assertTrue($first['success']);
+        Http::assertSentCount(2);
+
+        // Second request: file already cached — zero additional HTTP calls,
+        // same URL returned.
+        $second = $courier->printLabel('SPEPH000000000005', 'zebra');
+        $this->assertTrue($second['success']);
+        $this->assertSame($first['url'], $second['url']);
+        Http::assertSentCount(2); // unchanged
+    }
+
+    public function test_print_label_fails_gracefully_when_no_order_matches_the_tracking_number(): void
+    {
+        $this->configureAccountCredentials();
+        Http::fake();
+
+        $result = $this->courier()->printLabel('NO-SUCH-TRACKING', 'zebra');
+
+        $this->assertFalse($result['success']);
+        Http::assertNothingSent();
+    }
+
+    public function test_print_label_fails_gracefully_when_the_order_has_no_batch_no_on_file(): void
+    {
+        $this->configureAccountCredentials();
+        $this->makeSpxOrder('SPEPH000000000006', batchNo: null);
+        Http::fake();
+
+        $result = $this->courier()->printLabel('SPEPH000000000006', 'zebra');
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('batch number', $result['error']);
+        Http::assertNothingSent();
+    }
+
+    public function test_print_label_fails_when_the_poll_window_elapses_without_settling(): void
+    {
+        $this->configureAccountCredentials();
+        Storage::fake('local');
+        $this->makeSpxOrder('SPEPH000000000007');
+
+        Http::fake([
+            '*batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['batch_no' => 207982800897461, 'task_status' => 3, 'description' => 'Running'],
+            ]),
+        ]);
+
+        $result = $this->courier()->printLabel('SPEPH000000000007', 'zebra');
+
+        $this->assertFalse($result['success']);
+        Storage::disk('local')->assertMissing('courier-labels/spx/SPEPH000000000007.pdf');
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3: parseWebhook() — api.md §4.1 payload shapes, verbatim.
+    // ------------------------------------------------------------------
+
+    public function test_parse_webhook_normalizes_the_documented_pending_pickup_payload(): void
+    {
+        $events = (new SpxFulfillment())->parseWebhook([
+            'status' => 'Pending Pickup',
+            'status_code' => '1001',
+            'message' => 'xxx',
+            'tracking_no' => 'SPXTH026817968592',
+            'tracking_link' => 'https://test.spx.co.th/track?SPXTH026817968592',
+            'order_id' => 'GW123456789',
+            'order_id_link' => 'https://test.spx.co.th/track?GW123456789',
+            'timestamp' => 1639385434,
+            'id' => 'd4dcfea1-5286-4921-8fd3-7ded133f8579',
+        ]);
+
+        $this->assertCount(1, $events);
+        $this->assertSame([
+            'reference_id' => 'GW123456789',
+            'tracking_number' => 'SPXTH026817968592',
+            'status' => '1001',
+            'occurred_at' => date(DATE_ATOM, 1639385434),
+            'remarks' => 'xxx',
+        ], $events[0]);
+    }
+
+    public function test_parse_webhook_returns_no_events_for_a_payload_without_a_status_code(): void
+    {
+        $this->assertSame([], (new SpxFulfillment())->parseWebhook(['foo' => 'bar']));
+    }
+
+    // ------------------------------------------------------------------
+    // Task T3: verifyWebhookSignature() — same HMAC scheme as outbound
+    // calls (see SpxClientTest for the low-level SpxClient::
+    // verifyWebhookSignature() coverage); this proves SpxFulfillment wires
+    // the RAW request bytes + all four headers through correctly.
+    // ------------------------------------------------------------------
+
+    public function test_verify_webhook_signature_accepts_a_correctly_signed_request(): void
+    {
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => \Illuminate\Support\Facades\Crypt::encryptString('fake-app-secret-not-real')]);
+
+        $payload = '{"status_code":"4001","tracking_no":"SPEPH1"}';
+        $timestamp = 1700000000;
+        $randomNum = 42;
+        $sign = SpxClient::sign(424242, $timestamp, $randomNum, $payload, 'fake-app-secret-not-real');
+
+        $request = Request::create('/webhooks/courier/spx', 'POST', content: $payload, server: [
+            'HTTP_APP_ID' => '424242',
+            'HTTP_CHECK_SIGN' => $sign,
+            'HTTP_TIMESTAMP' => (string) $timestamp,
+            'HTTP_RANDOM_NUM' => (string) $randomNum,
+        ]);
+
+        $this->assertTrue($this->courier()->verifyWebhookSignature($request));
+    }
+
+    public function test_verify_webhook_signature_rejects_a_request_with_no_signature_headers(): void
+    {
+        Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
+        Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => \Illuminate\Support\Facades\Crypt::encryptString('fake-app-secret-not-real')]);
+
+        $request = Request::create('/webhooks/courier/spx', 'POST', content: '{"status_code":"4001"}');
+
+        $this->assertFalse($this->courier()->verifyWebhookSignature($request));
     }
 }

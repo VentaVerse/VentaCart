@@ -165,6 +165,70 @@ class SpxClient
         return $this->post('/open/api/address/get_address_download_url', []);
     }
 
+    /**
+     * 1.6 Get AWB V2 (batch_get_shipping_label) — same submit-then-poll shape
+     * as 1.4/1.5 create-order, except it's a SINGLE endpoint acting as both:
+     * call it with the batch_no from 1.4 Create Order V2, inspect
+     * data.task_status (1 New / 2 Waiting / 3 Running / 4 Done / 5 Failed),
+     * and call it again on the same batch_no until it settles — data.awb_link
+     * only appears once task_status is 4. See SpxFulfillment::printLabel()
+     * for the bounded poll loop built on top of this.
+     */
+    public function getShippingLabel(int $batchNo): array
+    {
+        return $this->post('/open/api/v2/order/batch_get_shipping_label', [
+            'user_id'     => (int) $this->userId(),
+            'user_secret' => (string) $this->userSecret(),
+            'batch_no'    => $batchNo,
+        ]);
+    }
+
+    // --- Webhook signature verification -------------------------------
+
+    /**
+     * Task T3: verifies an INBOUND SPX webhook's `check-sign` header.
+     * api.md §4.1/§4.2 + integration-brief.md §2: "Every request (including
+     * webhook verification) is signed" using the exact same algorithm as
+     * outbound calls (sign()) — SPX signs the callback body with OUR
+     * app-secret, so we recompute the same HMAC over the four header values
+     * + the raw request bytes and compare with hash_equals().
+     *
+     * $rawBody MUST be the literal bytes SPX sent (Request::getContent()) —
+     * never a re-encoded array — for exactly the same byte-fidelity reason
+     * post() never lets Guzzle re-serialize an outbound body (see this
+     * class's docblock).
+     *
+     * Also checks the app-id header matches OUR configured app-id — a valid
+     * signature computed with the right secret already proves that, but this
+     * gives an early explicit rejection instead of a signature mismatch on a
+     * spoofed app-id that happens to guess right (defense in depth, appears
+     * first so a malformed/missing header never reaches sign()'s int casts).
+     */
+    public function verifyWebhookSignature(
+        string $rawBody,
+        ?string $appIdHeader,
+        ?string $checkSignHeader,
+        ?string $timestampHeader,
+        ?string $randomNumHeader
+    ): bool {
+        if (!$this->isConfigured()) {
+            return false;
+        }
+        if ($appIdHeader === null || $checkSignHeader === null || $timestampHeader === null || $randomNumHeader === null) {
+            return false;
+        }
+        if (!ctype_digit($appIdHeader) || !ctype_digit($timestampHeader) || !ctype_digit(ltrim($randomNumHeader, '-'))) {
+            return false;
+        }
+        if ((int) $appIdHeader !== (int) $this->appId()) {
+            return false;
+        }
+
+        $expected = self::sign((int) $appIdHeader, (int) $timestampHeader, (int) $randomNumHeader, $rawBody, (string) $this->appSecret());
+
+        return hash_equals($expected, $checkSignHeader);
+    }
+
     // --- HTTP core --------------------------------------------------------
 
     /**

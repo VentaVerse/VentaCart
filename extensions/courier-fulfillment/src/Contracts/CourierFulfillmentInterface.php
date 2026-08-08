@@ -158,6 +158,18 @@ interface CourierFulfillmentInterface
     /**
      * @param string $format provider format hint (e.g. 'zebra'|'fuji')
      * @return array{success:bool, url?:string, manifest_url?:string, error?:string}
+     *
+     * Sanctioned interface evolution #2 (Task T3, fulfillment-workflow-v2 +
+     * SPX plan): `url` does NOT have to be the provider's own (possibly
+     * perishable) link. A courier whose label link expires quickly and/or
+     * has a limited open-count (SPX's AWB: valid 30 minutes, openable at
+     * most 10 times — api.md §1.6) MAY instead download+store the asset
+     * itself on first request and return the URL of THIS APP'S OWN
+     * authenticated serving route, which streams the cached file on every
+     * subsequent call without hitting the provider again. Same signature,
+     * same `{success, url, error}` shape the caller (FulfillmentController::
+     * label(), which just redirects to `url`) already expects — nothing
+     * downstream needs to know which strategy a given courier chose.
      */
     public function printLabel(string $trackingNumber, string $format): array;
 

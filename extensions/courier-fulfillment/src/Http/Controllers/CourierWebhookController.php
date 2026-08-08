@@ -3,11 +3,12 @@
 namespace Extensions\CourierFulfillment\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\CourierManager;
+use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
+use Extensions\CourierFulfillment\Jobs\ProcessCourierWebhookJob;
+use Extensions\CourierFulfillment\Support\CourierWebhookIngestor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Generic courier webhook receiver: /webhooks/courier/{provider}?token=...
@@ -16,48 +17,70 @@ use Illuminate\Support\Facades\Log;
  * normalized events. We match each event back to a Venta order by reference_id
  * (we sent the order id at booking) and update courier_status. Always returns
  * 200 quickly so the courier doesn't retry needlessly.
+ *
+ * Task T3: SPX gets its own branch (handleSpx()) rather than sharing the
+ * generic path above, for two reasons SPX's docs make load-bearing (api.md
+ * §4.1 + integration-brief.md §7):
+ *  - Auth is a signed `check-sign` header (the same HMAC-SHA256 scheme as
+ *    every outbound SPX call), NOT the shared-secret `?token=` query param
+ *    every other courier here uses — SPX never sends that query param, and
+ *    reusing that check would just always reject.
+ *  - SPX imposes a hard 3-second response budget and PERMANENTLY stops
+ *    sending webhooks after repeated slow/failed acks — so the actual
+ *    order-matching + StatusMapper work must not block the response. See
+ *    ProcessCourierWebhookJob's docblock for why `dispatch()->afterResponse()`
+ *    (not this app's configured `database` queue connection) is the
+ *    mechanism chosen.
+ * Every other courier (QuadX) keeps the original inline, synchronous path —
+ * unchanged in every observable way (same token check, same
+ * CourierWebhookIngestor::ingest() call the code used to inline as a private
+ * method) — its own tests are the contract for that.
  */
 class CourierWebhookController extends Controller
 {
     public function handle(Request $request, string $provider)
     {
-        // Unguessable per-store token check.
-        $expected = Setting::where('group', 'courier')->where('key', "{$provider}_webhook_token")->value('value');
-        if (!$expected || !hash_equals($expected, (string) $request->query('token'))) {
-            return response()->json(['error' => 'unauthorized'], 403);
-        }
-
         $courier = CourierManager::get($provider);
         if (!$courier) {
             return response()->json(['error' => 'unknown provider'], 404);
         }
 
-        $events = $courier->parseWebhook($request->all());
-
-        foreach ($events as $event) {
-            $this->applyEvent($provider, $event);
+        if ($provider === 'spx' && $courier instanceof SpxFulfillment) {
+            return $this->handleSpx($request, $courier);
         }
+
+        // Unguessable per-store token check (every non-SPX provider).
+        $expected = Setting::where('group', 'courier')->where('key', "{$provider}_webhook_token")->value('value');
+        if (!$expected || !hash_equals($expected, (string) $request->query('token'))) {
+            return response()->json(['error' => 'unauthorized'], 403);
+        }
+
+        $events = $courier->parseWebhook($request->all());
+        CourierWebhookIngestor::ingest($provider, $events);
 
         return response()->json(['ok' => true]);
     }
 
-    private function applyEvent(string $provider, array $event): void
+    /**
+     * SPX's signed, fast-ack branch. Rejects with 401 on a bad/missing
+     * signature (never 403 — reserved for the shared-token couriers above,
+     * so a log/monitoring split between "wrong secret" (401, signature
+     * schemes) and "wrong token" (403, shared-secret schemes) stays clean).
+     * On a valid signature: parse the events NOW (cheap, no I/O), hand them
+     * to the queued job via `->afterResponse()`, and return 200 immediately
+     * — the actual order-matching/StatusMapper work happens only after
+     * Laravel has already flushed the HTTP response to SPX.
+     */
+    private function handleSpx(Request $request, SpxFulfillment $courier)
     {
-        // Match by reference_id (order id we sent at booking); fall back to tracking number.
-        $order = null;
-        if (!empty($event['reference_id'])) {
-            $order = Order::find($event['reference_id']);
-        }
-        if (!$order && !empty($event['tracking_number'])) {
-            $order = Order::where('courier_tracking_number', $event['tracking_number'])->first();
+        if (!$courier->verifyWebhookSignature($request)) {
+            return response()->json(['error' => 'unauthorized'], 401);
         }
 
-        if (!$order) {
-            Log::info('Courier webhook: no matching order', ['provider' => $provider, 'event' => $event]);
-            return;
-        }
+        $events = $courier->parseWebhook($request->all());
 
-        $order->forceFill(['courier_status' => $event['status']])->save();
-        \Extensions\CourierFulfillment\StatusMapper::apply($order, $event['status'] ?? null);
+        dispatch(new ProcessCourierWebhookJob('spx', $events))->afterResponse();
+
+        return response()->json(['ok' => true]);
     }
 }
