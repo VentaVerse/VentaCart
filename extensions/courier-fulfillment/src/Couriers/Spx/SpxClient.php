@@ -225,6 +225,30 @@ class SpxClient
         ]);
     }
 
+    /**
+     * UNDOCUMENTED — absent from api.md entirely, discovered by live-probing
+     * the real SPX UAT API (fulfillment-workflow-v2 + SPX plan, Task T3
+     * round 2 — see docs/spx/index.md's quirks list). The documented v2
+     * endpoint above (getShippingLabel()) reliably sits at `task_status: 3`
+     * ("Running", `progress: "0.00%"`) indefinitely on UAT — live-probed
+     * 8+ minutes with no change, never settling. This v1 sibling — same
+     * `batch_no`, PLUS `tracking_no_list` — returns
+     * `{awb_link, fail_list}` SYNCHRONOUSLY on UAT instead. Kept as a
+     * fallback SpxFulfillment::pollLabelResult() only reaches for after
+     * giving the documented v2 endpoint a short, fair chance to settle on
+     * its own — being undocumented, its shape/behavior on PRODUCTION is
+     * unverified; worth re-testing there before leaning on it long-term.
+     */
+    public function getShippingLabelV1(int $batchNo, array $trackingNumbers): array
+    {
+        return $this->post('/open/api/v1/order/batch_get_shipping_label', [
+            'user_id'          => (int) $this->userId(),
+            'user_secret'      => (string) $this->userSecret(),
+            'batch_no'         => $batchNo,
+            'tracking_no_list' => array_values($trackingNumbers),
+        ]);
+    }
+
     // --- Webhook signature verification -------------------------------
 
     /**

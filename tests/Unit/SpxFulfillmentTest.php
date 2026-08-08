@@ -837,6 +837,14 @@ class SpxFulfillmentTest extends TestCase
         return $order;
     }
 
+    /**
+     * Round 2 of the live-UAT gate finding requires the DOCUMENTED v2
+     * endpoint to still short-circuit the whole flow when it settles on its
+     * first attempt — no v1 fallback call at all. Fakes ONLY the v2 URL
+     * (not v1) so a v1 call, if one wrongly happened, would hit an
+     * unfaked/default response and this test's exact-count assertion would
+     * catch it.
+     */
     public function test_print_label_downloads_and_stores_the_awb_on_first_request(): void
     {
         $this->configureAccountCredentials();
@@ -844,7 +852,7 @@ class SpxFulfillmentTest extends TestCase
         $this->makeSpxOrder('SPEPH000000000001');
 
         Http::fake([
-            '*batch_get_shipping_label*' => Http::response([
+            '*/v2/order/batch_get_shipping_label*' => Http::response([
                 'ret_code' => 0, 'message' => 'success.',
                 'data' => [
                     'batch_no' => 207982800897461, 'task_status' => 4, 'description' => 'Done',
@@ -863,8 +871,11 @@ class SpxFulfillmentTest extends TestCase
         Storage::disk('local')->assertExists('courier-labels/spx/SPEPH000000000001.pdf');
         $this->assertSame('%PDF-1.4 fake label bytes', Storage::disk('local')->get('courier-labels/spx/SPEPH000000000001.pdf'));
 
-        // Exactly two calls: 1.6 submit/poll (settled immediately) + the PDF download.
+        // Exactly two calls: v2 (settled immediately, short-circuiting
+        // BEFORE any v1 fallback call) + the PDF download.
         Http::assertSentCount(2);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v2/order/batch_get_shipping_label'));
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/v1/order/batch_get_shipping_label'));
     }
 
     public function test_print_label_serves_the_cached_file_on_a_second_request_without_any_http_call(): void
@@ -874,7 +885,7 @@ class SpxFulfillmentTest extends TestCase
         $this->makeSpxOrder('SPEPH000000000005');
 
         Http::fake([
-            '*batch_get_shipping_label*' => Http::response([
+            '*/v2/order/batch_get_shipping_label*' => Http::response([
                 'ret_code' => 0, 'message' => 'success.',
                 'data' => ['batch_no' => 207982800897461, 'task_status' => 4, 'description' => 'Done', 'awb_link' => 'https://test-stable.spx.co.th/downloads/x.pdf'],
             ]),
@@ -963,46 +974,66 @@ class SpxFulfillmentTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_print_label_fails_when_the_poll_window_elapses_without_settling(): void
+    /**
+     * Round 2 of the live-UAT gate finding: v2 sits at task_status=3
+     * ("Running") for BOTH short-window attempts, so the flow falls
+     * through to the v1 fallback — which, in THIS test, is left unfaked
+     * (Http::fake's array has no entry matching it), so it also gets a
+     * default empty 200 response ({} — no awb_link/fail_list/task_status).
+     * Neither phase ever settles -> printLabel must fail cleanly rather
+     * than hang or crash.
+     */
+    public function test_print_label_fails_when_neither_v2_nor_the_v1_fallback_ever_settles(): void
     {
         $this->configureAccountCredentials();
         Storage::fake('local');
         $this->makeSpxOrder('SPEPH000000000007');
 
         Http::fake([
-            '*batch_get_shipping_label*' => Http::response([
+            '*/v2/order/batch_get_shipping_label*' => Http::response([
                 'ret_code' => 0, 'message' => 'success.',
-                'data' => ['batch_no' => 207982800897461, 'task_status' => 3, 'description' => 'Running'],
+                'data' => ['batch_no' => 207982800897461, 'task_status' => 3, 'description' => 'Running', 'progress' => '0.00%'],
             ]),
+            // v1 left unmatched on purpose — see docblock above.
         ]);
 
         $result = $this->courier()->printLabel('SPEPH000000000007', 'zebra');
 
         $this->assertFalse($result['success']);
         Storage::disk('local')->assertMissing('courier-labels/spx/SPEPH000000000007.pdf');
+        // v2's SHORT window (2 attempts) + exactly ONE v1 fallback attempt —
+        // never the original ~15s/6-attempt window.
+        Http::assertSentCount(3);
     }
 
     /**
-     * Live-UAT gate finding (fulfillment-workflow-v2 + SPX plan, Task T3):
-     * the REAL UAT `batch_get_shipping_label` response has no `task_status`
-     * key at all — just `{awb_link, fail_list}` immediately on the first
-     * call. Reproduced live: the documented submit-then-poll shape doesn't
-     * happen on UAT, so requiring `task_status === 4` made printLabel loop
-     * the whole bounded window and always report "still in progress",
-     * even though the label was ready on the very first response. See
-     * docs/spx/index.md's quirks list for the doc-vs-reality note.
+     * Round 2 of the live-UAT gate finding, THE core scenario: v2 (the
+     * DOCUMENTED endpoint) reliably sits at `task_status: 3` ("Running",
+     * `progress: "0.00%"`) indefinitely on real UAT — live-probed 8+
+     * minutes with no change — so after its short window elapses without
+     * settling, pollLabelResult() falls through to the UNDOCUMENTED v1
+     * endpoint (absent from api.md; batch_no + tracking_no_list), which
+     * live-probing found returns `{awb_link, fail_list}` SYNCHRONOUSLY.
+     * That response is run through the exact same settled/parse logic as
+     * v2's (round 1's shape-handling fix), so the label still downloads and
+     * stores normally. See docs/spx/index.md's quirks list.
      */
-    public function test_print_label_accepts_the_real_uat_shape_with_no_task_status_key(): void
+    public function test_print_label_falls_back_to_v1_when_v2_stalls_at_running_and_stores_the_awb(): void
     {
         $this->configureAccountCredentials();
         Storage::fake('local');
         $this->makeSpxOrder('SPEPH000000000008');
 
         Http::fake([
-            '*batch_get_shipping_label*' => Http::response([
+            '*/v2/order/batch_get_shipping_label*' => Http::response([
                 'ret_code' => 0, 'message' => 'success.',
-                // No `task_status` key anywhere in this payload — exactly
-                // what real UAT returns.
+                // v2 never settles — exactly the live-probed stall.
+                'data' => ['batch_no' => 207982800897461, 'task_status' => 3, 'description' => 'Running', 'progress' => '0.00%'],
+            ]),
+            '*/v1/order/batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                // No `task_status` key at all — exactly what the
+                // undocumented v1 fallback returns on real UAT.
                 'data' => [
                     'awb_link' => 'https://test-stable.spx.ph/downloads/resource/shipping_label/uat.pdf?access_token=abc',
                     'fail_list' => [],
@@ -1015,24 +1046,43 @@ class SpxFulfillmentTest extends TestCase
 
         $this->assertTrue($result['success']);
         Storage::disk('local')->assertExists('courier-labels/spx/SPEPH000000000008.pdf');
-        // Settled on the very FIRST call — no bounded-poll retries burned.
-        Http::assertSentCount(2);
+        $this->assertSame('%PDF-1.4 uat label bytes', Storage::disk('local')->get('courier-labels/spx/SPEPH000000000008.pdf'));
+
+        // v2's short window (2 attempts) + the v1 fallback call + the PDF download.
+        Http::assertSentCount(4);
+        // The v1 fallback carries batch_no AND tracking_no_list (unlike v2,
+        // which only ever sends batch_no) — proves the tracking number is
+        // actually threaded through, not just the batch_no.
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), '/v1/order/batch_get_shipping_label')) {
+                return false;
+            }
+            $body = $request->data();
+
+            return $body['batch_no'] === 207982800897461
+                && $body['tracking_no_list'] === ['SPEPH000000000008'];
+        });
     }
 
     /**
      * Live-UAT gate finding: a per-tracking-number entry in `fail_list` is a
-     * definitive failure the poll must stop on immediately, even with no
-     * `awb_link` and no `task_status` present at all (the same UAT shape as
-     * the success case above, just the failure branch of it).
+     * definitive failure to stop on immediately — reached here via the v1
+     * fallback (the endpoint that actually returns fail_list on UAT),
+     * after v2's short window stalls at Running exactly as in the success
+     * case above.
      */
-    public function test_print_label_surfaces_a_fail_list_entry_for_this_tracking_number(): void
+    public function test_print_label_surfaces_a_fail_list_entry_from_the_v1_fallback(): void
     {
         $this->configureAccountCredentials();
         Storage::fake('local');
         $this->makeSpxOrder('SPEPH000000000009');
 
         Http::fake([
-            '*batch_get_shipping_label*' => Http::response([
+            '*/v2/order/batch_get_shipping_label*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['batch_no' => 207982800897461, 'task_status' => 3, 'description' => 'Running', 'progress' => '0.00%'],
+            ]),
+            '*/v1/order/batch_get_shipping_label*' => Http::response([
                 'ret_code' => 0, 'message' => 'success.',
                 'data' => [
                     'fail_list' => [
@@ -1047,8 +1097,8 @@ class SpxFulfillmentTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertSame('Order has been cancelled.', $result['error']);
         Storage::disk('local')->assertMissing('courier-labels/spx/SPEPH000000000009.pdf');
-        // Settled (as a failure) on the first call — no retries burned.
-        Http::assertSentCount(1);
+        // v2's short window (2 attempts) + exactly ONE v1 fallback attempt.
+        Http::assertSentCount(3);
     }
 
     /**
@@ -1057,7 +1107,11 @@ class SpxFulfillmentTest extends TestCase
      * batch_no, auth, etc.) used to be swallowed by the poll's generic
      * `catch (\Throwable)`, producing the same misleading "still in
      * progress" message as a genuinely pending label. It must now surface
-     * the actual SPX error instead.
+     * the actual SPX error instead. Round 2: v2 throws immediately (no
+     * pointless 2nd v2 attempt against the same batch_no), the v1 fallback
+     * is still given its own chance — and, faked identically here, throws
+     * too, so ITS error (the more recent, more specific one) is what
+     * surfaces.
      */
     public function test_print_label_surfaces_the_spx_api_exception_message_instead_of_still_in_progress(): void
     {
@@ -1075,8 +1129,11 @@ class SpxFulfillmentTest extends TestCase
         $this->assertFalse($result['success']);
         $this->assertStringContainsString('Order not found.', $result['error']);
         $this->assertStringNotContainsString('still in progress', $result['error']);
-        // No retries burned on a well-formed API error — surfaced on the first call.
-        Http::assertSentCount(1);
+        // v2 throws on its FIRST attempt (no 2nd v2 attempt burned on a
+        // well-formed API error) + one v1 fallback attempt (also throws,
+        // same faked ret_code) — 2 total, never the old 1-attempt-only
+        // count from round 1 (there was no fallback to try back then).
+        Http::assertSentCount(2);
     }
 
     // ------------------------------------------------------------------

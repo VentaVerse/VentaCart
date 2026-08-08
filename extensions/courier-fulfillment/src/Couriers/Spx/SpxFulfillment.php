@@ -574,9 +574,11 @@ class SpxFulfillment implements CourierFulfillmentInterface
      *  2. If we already downloaded+stored the PDF for this tracking number
      *     (Storage::disk('local')->exists()), skip straight to step 4 — no
      *     SPX call at all on repeat visits.
-     *  3. Otherwise poll batch_get_shipping_label (bounded, same backoff
-     *     shape as pollCreateResult()) until task_status settles, then
-     *     download the awb_link PDF bytes and store them at
+     *  3. Otherwise fetch it via pollLabelResult()'s two-phase strategy
+     *     (documented v2 endpoint first, short window; an UNDOCUMENTED v1
+     *     fallback if that doesn't settle — see that method's docblock for
+     *     why, this is a live-UAT gate finding, not documented behavior),
+     *     then download the resulting awb_link PDF bytes and store them at
      *     `courier-labels/spx/{tracking}.pdf`.
      *  4. Return the URL of THIS APP'S OWN authenticated serving route
      *     (admin.fulfillment.label-file) — never SPX's own link — per the
@@ -641,7 +643,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['ok' => false, 'error' => 'No SPX batch number on file for this order — cannot fetch a label.'];
         }
 
-        $result = $this->pollLabelResult((int) $batchNo);
+        $result = $this->pollLabelResult((int) $batchNo, $order->courier_tracking_number);
         if ($result instanceof SpxApiException) {
             return ['ok' => false, 'error' => "SPX label fetch failed: {$result->getMessage()} (ret_code {$result->retCode})"];
         }
@@ -701,54 +703,87 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * Polls 1.6 Get AWB V2 up to ~15s total (same bounded backoff shape as
-     * pollCreateResult() — see that method's docblock for why this
-     * particular window). The DOCUMENTED shape is one endpoint acting as
-     * both submit and poll — task_status settling to 4 (Done) or 5 (Failed)
-     * on repeat calls to the SAME endpoint IS the poll.
+     * Two-phase label fetch — see docs/spx/index.md's quirks list for the
+     * full live-UAT gate history behind this shape (round 1 AND round 2 of
+     * the finding).
      *
-     * Live-UAT gate finding: real UAT does NOT return that shape at all —
-     * `batch_get_shipping_label` responds immediately with
-     * `{awb_link, fail_list}` and no `task_status` key whatsoever (see
-     * docs/spx/index.md's quirks list). labelResultSettled() below is what
-     * actually decides "stop polling" and accepts either shape.
+     * Phase 1 — 1.6 Get AWB V2 (the DOCUMENTED endpoint, SpxClient::
+     * getShippingLabel()): a SHORT window only (2 attempts, one brief
+     * backoff between them) rather than the original ~15s bounded poll.
+     * Round 2's live-probing refined round 1's finding: this endpoint DOES
+     * return the documented shape on UAT (task_status present) — it just
+     * reliably sits at `task_status: 3` ("Running", `progress: "0.00%"`)
+     * INDEFINITELY (probed 8+ minutes, never changes), so the original full
+     * poll window only ever burned ~15s to arrive at the same "still stuck"
+     * outcome a short window reaches just as certainly, faster. A short
+     * window still gives v2 every fair chance to settle immediately, in
+     * case it behaves as documented after all (plausible on production,
+     * unverified — see SpxClient::getShippingLabelV1()'s docblock) — it
+     * just no longer BLOCKS on the assumption that it will.
      *
-     * SpxApiException (a well-formed SPX-level error — bad batch_no, auth,
-     * etc.) is surfaced to the caller immediately rather than swallowed
-     * into a generic "still in progress" — retrying the SAME batch_no under
-     * the same error condition for the rest of this window would just
-     * waste ~15s before saying something misleading. A bare network/
-     * transport Throwable is still treated as transient and retried, same
-     * as before.
+     * Phase 2 — the UNDOCUMENTED v1 fallback (SpxClient::
+     * getShippingLabelV1(), batch_no + tracking_no_list): reached only if
+     * phase 1 never settled (whether by timing out on "Running" for the
+     * whole short window, or by v2 throwing an SpxApiException — a
+     * well-formed error there doesn't rule out the fallback succeeding, so
+     * it's still attempted). Live-probed to return `{awb_link, fail_list}`
+     * SYNCHRONOUSLY. Its response is run through the EXACT SAME
+     * labelResultSettled()/fetchAndStoreLabel() parse logic as v2's — the
+     * shape-handling fix from round 1 already covers it unchanged.
      *
-     * @return array|SpxApiException|null the raw response data once
-     *   settled; the caught SpxApiException if SPX returned a well-formed
-     *   error; or null if the window elapses first with nothing settled.
+     * Error precedence when NEITHER phase settles: an SpxApiException from
+     * v1 (the more recent, more specific attempt) wins; otherwise an
+     * SpxApiException from v2 (if one was seen) is surfaced; otherwise null
+     * ("still in progress" — genuinely nothing usable came back from
+     * either endpoint). A bare network/transport Throwable (either phase)
+     * is treated as transient, never surfaced directly.
+     *
+     * @return array|SpxApiException|null the raw response data (v2 OR v1
+     *   shape — both parsed identically downstream) once settled; the most
+     *   relevant caught SpxApiException if neither settled but SPX returned
+     *   a well-formed error; or null if truly nothing usable came back.
      */
-    private function pollLabelResult(int $batchNo): array|SpxApiException|null
+    private function pollLabelResult(int $batchNo, string $trackingNumber): array|SpxApiException|null
     {
-        $backoffMs = [1000, 2000, 3000, 4000, 5000];
-        $attempts = count($backoffMs) + 1;
+        $v2BackoffMs = [1500];
+        $v2Attempts = count($v2BackoffMs) + 1;
+        $v2Exception = null;
 
-        for ($i = 0; $i < $attempts; $i++) {
+        for ($i = 0; $i < $v2Attempts; $i++) {
             try {
                 $result = $this->client->getShippingLabel($batchNo);
             } catch (SpxApiException $e) {
-                return $e;
+                // A well-formed v2 error settles NOTHING but isn't worth
+                // retrying against the same batch_no either — stop this
+                // phase now and let phase 2 have its shot.
+                $v2Exception = $e;
+                break;
             } catch (\Throwable $e) {
                 $result = null;
             }
 
-            if (is_array($result) && self::labelResultSettled($result)) {
+            if (isset($result) && is_array($result) && self::labelResultSettled($result)) {
                 return $result;
             }
 
-            if ($i < $attempts - 1) {
-                ($this->sleeper)($backoffMs[$i]);
+            if ($i < $v2Attempts - 1) {
+                ($this->sleeper)($v2BackoffMs[$i]);
             }
         }
 
-        return null;
+        try {
+            $v1Result = $this->client->getShippingLabelV1($batchNo, [$trackingNumber]);
+        } catch (SpxApiException $e) {
+            return $e;
+        } catch (\Throwable $e) {
+            $v1Result = null;
+        }
+
+        if (is_array($v1Result) && self::labelResultSettled($v1Result)) {
+            return $v1Result;
+        }
+
+        return $v2Exception;
     }
 
     /**
