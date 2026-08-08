@@ -90,6 +90,18 @@ class PollCourierStatus extends Command
                     $meta['timeline'] = $timeline;
                     $metaChanged = true;
                 }
+                // Task T2 fix (review IMPORTANT 4): SPX's getTracking() also
+                // fetches the actual post-booking fee (2.2 batch_get_asf) on
+                // every call — this scheduled loop is the ONE hook that
+                // actually persists it (was previously fetched every poll
+                // and silently discarded by every caller, doubling outbound
+                // HTTP for data nobody stored). A courier that doesn't
+                // support this (fee_info absent/null) leaves meta untouched.
+                $feeInfo = $result['fee_info'] ?? null;
+                if (!empty($feeInfo) && ($meta['actual_fee'] ?? null) !== $feeInfo) {
+                    $meta['actual_fee'] = $feeInfo;
+                    $metaChanged = true;
+                }
 
                 // Core tracking_link snapshot: prefer the delivery URL, then pickup.
                 // When this poll cycle returned no usable link, keep whatever core

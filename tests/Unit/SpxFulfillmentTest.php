@@ -154,20 +154,35 @@ class SpxFulfillmentTest extends TestCase
                 && $body['user_secret'] === 'fake-user-secret-not-real'
                 && $o['order_id'] === (string) $order->id
                 && $o['base_info']['service_type'] === 1
-                // sender_info from the shared pickup_* origin.
+                // sender_info from the shared pickup_* origin. Address
+                // hierarchy per api.md's own worked examples (T2 review,
+                // IMPORTANT 5): *_street <- barangay, *_district <- city
+                // (no separate pickup "district" setting exists),
+                // *_detail_address <- the actual address text, never
+                // duplicated with street.
                 && $o['sender_info']['sender_state'] === 'Metro Manila'
                 && $o['sender_info']['sender_city'] === 'Makati'
-                && $o['sender_info']['sender_district'] === 'Bel-Air'
-                && $o['sender_info']['sender_street'] === '456 Warehouse Ave'
+                && $o['sender_info']['sender_district'] === 'Makati'
+                && $o['sender_info']['sender_street'] === 'Bel-Air'
+                && $o['sender_info']['sender_detail_address'] === '456 Warehouse Ave'
                 && $o['sender_info']['sender_post_code'] === '1200'
+                // Already valid PH format (11 digits, starts with 0) -> passes through unchanged.
                 && $o['sender_info']['sender_phone'] === '09171112222'
-                // deliver_info from the order's own shipping address.
+                // deliver_info from the order's own shipping address — same
+                // hierarchy fix: street <- barangay, district <- Venta's own
+                // (blank) shipping_district falling back to city,
+                // detail_address <- address_1.
                 && $o['deliver_info']['deliver_state'] === 'Cebu'
                 && $o['deliver_info']['deliver_city'] === 'Cebu City'
-                && $o['deliver_info']['deliver_district'] === 'Lahug'
-                && $o['deliver_info']['deliver_street'] === '123 Mango St'
+                && $o['deliver_info']['deliver_district'] === 'Cebu City'
+                && $o['deliver_info']['deliver_street'] === 'Lahug'
+                && $o['deliver_info']['deliver_detail_address'] === '123 Mango St'
                 && $o['deliver_info']['deliver_post_code'] === '6000'
                 && $o['deliver_info']['deliver_name'] === 'Jane Doe'
+                // "+639171234567" stripped of non-digits -> 12 digits starting with 63 -> passes through as-is.
+                && $o['deliver_info']['deliver_phone'] === '639171234567'
+                // deliver_instruction is optional and nothing collects one yet -> omitted entirely, never a JSON null.
+                && !array_key_exists('deliver_instruction', $o['deliver_info'])
                 // fulfillment_info: sender_pay -> payment_role 1; not COD -> cod_collection 0; no pickup slot -> drop-off.
                 && $o['fulfillment_info']['payment_role'] === 1
                 && $o['fulfillment_info']['cod_collection'] === 0
@@ -180,6 +195,70 @@ class SpxFulfillmentTest extends TestCase
                 && (float) $o['parcel_info']['parcel_weight'] === 5.0
                 && (int) $o['parcel_info']['express_insured_value'] === 0
                 && $o['parcel_info']['parcel_item_type'] === 'General merchandise';
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Phone normalization (T2 review, CRITICAL 1).
+    // ------------------------------------------------------------------
+
+    public function test_create_shipment_normalizes_a_bare_10_digit_mobile_number(): void
+    {
+        $this->configureAccountCredentials();
+        $this->configurePickupOrigin();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 1]]),
+            '*get_order_create_result*' => Http::response($this->doneCreateResultResponse('SPEPH000000000010', 1)),
+        ]);
+
+        // Real dev-DB shape: 10 digits, no leading 0.
+        $order = $this->makeOrder(['shipping_phone' => '9171234567', 'phone' => '9171234567']);
+
+        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+
+        $this->assertTrue($result['success']);
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), 'batch_create_order')) {
+                return false;
+            }
+            return $request->data()['orders'][0]['deliver_info']['deliver_phone'] === '09171234567';
+        });
+    }
+
+    public function test_create_shipment_fails_clearly_on_an_empty_or_unresolvable_phone(): void
+    {
+        $this->configureAccountCredentials();
+        $this->configurePickupOrigin();
+        Http::fake();
+
+        $order = $this->makeOrder(['shipping_phone' => '', 'phone' => '']);
+        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('valid PH mobile number', $result['error']);
+        Http::assertNothingSent();
+    }
+
+    public function test_create_shipment_falls_back_to_the_bare_phone_field_when_shipping_phone_is_blank(): void
+    {
+        $this->configureAccountCredentials();
+        $this->configurePickupOrigin();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 1]]),
+            '*get_order_create_result*' => Http::response($this->doneCreateResultResponse('SPEPH000000000011', 1)),
+        ]);
+
+        $order = $this->makeOrder(['shipping_phone' => '', 'phone' => '09171234567']);
+        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+
+        $this->assertTrue($result['success']);
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), 'batch_create_order')) {
+                return false;
+            }
+            return $request->data()['orders'][0]['deliver_info']['deliver_phone'] === '09171234567';
         });
     }
 
@@ -356,6 +435,42 @@ class SpxFulfillmentTest extends TestCase
         $this->assertStringContainsString('Address invalid.', $result['error']);
     }
 
+    /**
+     * T2 review, IMPORTANT 3: task_status 5 (Failed) is a SETTLED outcome,
+     * exactly as final as 4 (Done) — polling further gains nothing.
+     * pollCreateResult() must stop at the FIRST poll that returns it
+     * (asserted via the exact HTTP call count: 1 create + 1 poll, not the
+     * full bounded 6), and createShipment() must report it as a failure
+     * immediately rather than persisting 'creating' and waiting out the
+     * rest of the ~15s window for a batch that will never become Done.
+     */
+    public function test_create_shipment_stops_polling_immediately_on_task_status_5_failed(): void
+    {
+        $this->configureAccountCredentials();
+        $this->configurePickupOrigin();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 9]]),
+            '*get_order_create_result*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'batch_no' => 9, 'task_status' => 5, 'description' => 'Failed',
+                    'total_count' => 1, 'success_count' => 0, 'fail_count' => 0, 'progress' => '0%',
+                    'orders' => [], 'fail_list' => [],
+                ],
+            ]),
+        ]);
+
+        $order = $this->makeOrder();
+        $result = $this->courier()->createShipment($order, ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);
+
+        $this->assertFalse($result['success']);
+        $this->assertStringContainsString('Failed', $result['error']);
+        // 1 create + exactly 1 poll — proves it stopped immediately rather
+        // than exhausting the full bounded backoff window.
+        Http::assertSentCount(2);
+    }
+
     // ------------------------------------------------------------------
     // resolvePendingCreation — the courier:poll-status pending-creation pass.
     // ------------------------------------------------------------------
@@ -420,6 +535,41 @@ class SpxFulfillmentTest extends TestCase
         $meta = json_decode($order->courier_meta, true);
         $this->assertTrue($meta['creation_failed']);
         $this->assertSame('Weight exceeds limit.', $meta['creation_error']);
+    }
+
+    /**
+     * T2 review, IMPORTANT 3: without recognizing task_status 5 as settled,
+     * this order would stay in courier_status='creating' forever — every
+     * scheduled courier:poll-status run re-polls a batch that will never
+     * become Done, and the admin can never re-book (blocked by the
+     * creating-state guard in FulfillmentService::book()).
+     */
+    public function test_resolve_pending_creation_treats_task_status_5_as_a_permanent_failure(): void
+    {
+        $this->configureAccountCredentials();
+
+        Http::fake([
+            '*get_order_create_result*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => [
+                    'batch_no' => 11, 'task_status' => 5, 'description' => 'Failed',
+                    'total_count' => 1, 'success_count' => 0, 'fail_count' => 0, 'progress' => '0%',
+                    'orders' => [], 'fail_list' => [],
+                ],
+            ]),
+        ]);
+
+        $order = $this->makeOrder();
+        $order->forceFill(['courier_provider' => 'spx', 'courier_status' => 'creating', 'courier_meta' => json_encode(['batch_no' => 11])])->save();
+
+        $this->assertNull($this->courier()->resolvePendingCreation($order));
+
+        $order->refresh();
+        $this->assertSame('creation_failed', $order->courier_status);
+        $this->assertNull($order->courier_tracking_number);
+        $meta = json_decode($order->courier_meta, true);
+        $this->assertTrue($meta['creation_failed']);
+        $this->assertStringContainsString('Failed', $meta['creation_error']);
     }
 
     // ------------------------------------------------------------------

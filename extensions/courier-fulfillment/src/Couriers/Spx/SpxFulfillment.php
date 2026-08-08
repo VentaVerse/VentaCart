@@ -36,9 +36,14 @@ use Illuminate\Support\Str;
  *    doesn't collect a pickup-slot choice yet; getPickupSlots() is fully
  *    implemented and createShipment() already switches to collect_type=1
  *    the moment a future UI passes back $opts['pickup_slot'].
- *  - Actual post-booking fee (2.2 batch_get_asf) is fetched on every
- *    getTracking() call (the one hook shared by both the scheduled poll and
- *    the manual Refresh button) — see getTracking()'s docblock.
+ *  - Actual post-booking fee (2.2 batch_get_asf) is fetched inside every
+ *    getTracking() call, but PERSISTED at exactly one place:
+ *    PollCourierStatus's scheduled loop (courier:poll-status, a T2 file),
+ *    which writes it into courier_meta.actual_fee alongside links/timeline —
+ *    see that command's docblock and getTracking()'s own. The manual
+ *    per-order Refresh button (FulfillmentController::track(), NOT a T2
+ *    file) still receives fee_info back but doesn't persist it yet — a
+ *    documented follow-up, not silently dropped by design.
  */
 class SpxFulfillment implements CourierFulfillmentInterface
 {
@@ -272,9 +277,9 @@ class SpxFulfillment implements CourierFulfillmentInterface
      * tracking number landed in the per-item data.fail_list with that code
      * — so both surfaces are checked before deciding whether to back off and
      * retry (mirrors how cancelShipment() checks both surfaces for 13002).
-     * Also fetches 2.2's actual fee on every call — see this method's
-     * dedicated comment below for why that's the one consistent hook chosen
-     * for surfacing it.
+     * Also fetches 2.2's actual fee on every call (returned as `fee_info`) —
+     * see this method's dedicated comment below, and courier:poll-status's
+     * docblock, for where that value is actually PERSISTED.
      */
     public function getTracking(string $trackingNumber): array
     {
@@ -337,14 +342,15 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['success' => false, 'error' => 'SPX returned no data for this tracking number.'];
         }
 
-        // 2.2 Get Order Fee (batch_get_asf) — the ONE consistent hook chosen
-        // for surfacing the actual (post-booking) shipping fee into
-        // courier_meta (documented in this task's report): every
-        // getTracking() call, since this method is stateless (no access to
-        // the Order/courier_meta to detect "already have it") and is the one
-        // path both the scheduled poll (PollCourierStatus) and the manual
-        // per-order Refresh button share. Best-effort — a fee lookup failure
-        // (e.g. not yet available pre-pickup) never breaks tracking itself.
+        // 2.2 Get Order Fee (batch_get_asf) — fetched here on every call
+        // since this method is stateless (no access to the Order/
+        // courier_meta to detect "already have it"). PollCourierStatus's
+        // scheduled loop is the ONE place that actually persists the
+        // returned `fee_info` into courier_meta.actual_fee (see that
+        // command's docblock + this task's report) — the manual per-order
+        // Refresh button also receives it back but doesn't persist it yet.
+        // Best-effort — a fee lookup failure (e.g. not yet available
+        // pre-pickup) never breaks tracking itself.
         $feeInfo = null;
         try {
             $feeData = $this->client->getActualFee([$trackingNumber]);
@@ -752,7 +758,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return null; // transient — the next scheduled poll tries again.
         }
 
-        if (!is_array($resultData) || (int) ($resultData['task_status'] ?? 0) !== 4) {
+        if (!is_array($resultData) || !in_array((int) ($resultData['task_status'] ?? 0), self::CREATE_RESULT_SETTLED, true)) {
             return null; // still New/Waiting/Running.
         }
 
@@ -811,6 +817,19 @@ class SpxFulfillment implements CourierFulfillmentInterface
      * and DHL already read (see this class's docblock for why) rather than a
      * new spx_sender_* settings block.
      *
+     * Address hierarchy fix (T2 review, IMPORTANT 5): every worked example in
+     * api.md puts the BARANGAY in `*_street` (e.g. "Barangay 294") and a
+     * city-level administrative district in `*_district` (e.g. "Binondo",
+     * "Intramuros") — the reverse of what this method originally sent.
+     * Venta's pickup settings have no separate "district" field distinct
+     * from barangay/city (only pickup_barangay + pickup_city exist), so
+     * sender_district falls back to city — the same fallback deliverInfo()
+     * uses when an order has no shipping_district on file, keeping both
+     * sides resolve the same way when the finer field doesn't exist.
+     * sender_street and sender_detail_address are no longer the same value
+     * duplicated — street is the barangay, detail_address is the actual
+     * unit/building text (pickup_address).
+     *
      * @return array{ok:bool, info?:array, error?:string}
      */
     private function senderInfo(): array
@@ -819,21 +838,21 @@ class SpxFulfillment implements CourierFulfillmentInterface
 
         $state    = (string) $s('pickup_province', '');
         $city     = (string) $s('pickup_city', '');
-        $district = (string) $s('pickup_barangay', '');
+        $barangay = (string) $s('pickup_barangay', '');
         $address  = (string) $s('pickup_address', '');
         $postCode = (string) $s('pickup_postal_code', '');
         $name     = (string) $s('pickup_contact_name', 'Sender');
-        $phone    = (string) $s('pickup_contact_number', '');
+        $phone    = $this->normalizePhPhone($s('pickup_contact_number', ''));
 
-        if ($state === '' || $city === '' || $district === '' || $address === '' || $postCode === '' || $phone === '') {
-            return ['ok' => false, 'error' => 'Set a complete pickup address (Settings > Shipping: province, city, barangay, address, postal code, contact number) before booking with SPX.'];
+        if ($state === '' || $city === '' || $barangay === '' || $address === '' || $postCode === '' || $phone === null) {
+            return ['ok' => false, 'error' => 'Set a complete pickup address (Settings > Shipping: province, city, barangay, address, postal code, a valid PH mobile number) before booking with SPX.'];
         }
 
         return ['ok' => true, 'info' => [
             'sender_state'          => $state,
             'sender_city'           => $city,
-            'sender_district'       => $district,
-            'sender_street'         => $address,
+            'sender_district'       => $city,
+            'sender_street'         => $barangay,
             'sender_post_code'      => $postCode,
             'sender_name'           => $name,
             'sender_phone'          => $phone,
@@ -846,43 +865,93 @@ class SpxFulfillment implements CourierFulfillmentInterface
      * SPX's state/city/district/street hierarchy (see this class's docblock
      * for why this is direct mapping rather than a parsed address tree).
      *
+     * Address hierarchy fix (T2 review, IMPORTANT 5) — see senderInfo()'s
+     * docblock for the underlying evidence from api.md's worked examples:
+     * deliver_street now maps from the order's barangay (not address_1),
+     * deliver_detail_address maps from address_1 (not duplicated from
+     * street), and deliver_district uses Venta's own optional 'district'
+     * field, falling back to city (not barangay, which street now owns).
+     *
      * @return array{ok:bool, info?:array, error?:string}
      */
     private function deliverInfo(Order $order): array
     {
         $state = trim((string) $order->shipping_state);
         $city  = trim((string) $order->shipping_city);
-        // District: Venta's own optional 'district' field first (closest
-        // name match to SPX's), else barangay (PH's finer-grained
-        // equivalent) so a barangay-only address still resolves.
-        $district = trim((string) $order->shipping_district) ?: trim((string) $order->shipping_barangay);
+        $district = trim((string) $order->shipping_district);
+        $barangay = trim((string) $order->shipping_barangay);
         $postCode = trim((string) $order->shipping_postcode);
         $address  = trim((string) $order->shipping_address_1);
+        $phone    = $this->normalizePhPhone($order->shipping_phone ?: $order->phone);
 
-        if ($state === '' || $city === '' || $postCode === '') {
-            return ['ok' => false, 'error' => 'This order is missing a shipping province/city/postal code — cannot book with SPX until the shipping address is complete.'];
+        if ($state === '' || $city === '' || $postCode === '' || $phone === null) {
+            return ['ok' => false, 'error' => 'This order is missing a shipping province/city/postal code/valid PH mobile number — cannot book with SPX until the shipping address is complete.'];
         }
         if ($district === '') {
             // SPX marks district mandatory for PH; fall back to the city
             // name rather than failing bookings for orders with no
-            // barangay/district on file (pre-dates the PH barangay rollout).
+            // district on file.
             $district = $city;
         }
+        if ($barangay === '') {
+            // SPX marks street mandatory for PH; fall back to the city name
+            // rather than failing bookings for orders with no barangay on
+            // file (pre-dates the PH barangay rollout).
+            $barangay = $city;
+        }
         if ($address === '') {
-            $address = $city;
+            // detail_address mandatory; fall back to whatever granular text
+            // we do have rather than sending an empty string.
+            $address = $barangay;
         }
 
-        return ['ok' => true, 'info' => [
+        $info = [
             'deliver_state'          => $state,
             'deliver_city'           => $city,
             'deliver_district'       => $district,
-            'deliver_street'         => $address,
+            'deliver_street'         => $barangay,
             'deliver_post_code'      => $postCode,
             'deliver_name'           => trim($order->shipping_first_name . ' ' . $order->shipping_last_name) ?: 'Customer',
-            'deliver_phone'          => $order->shipping_phone ?: ($order->phone ?: ''),
+            'deliver_phone'          => $phone,
             'deliver_detail_address' => $address,
-            'deliver_instruction'    => null,
-        ]];
+        ];
+        // deliver_instruction is optional (api.md §1.4: N) — omit entirely
+        // rather than sending a JSON null SPX never asked for. No delivery
+        // instruction is collected from the booking form today.
+
+        return ['ok' => true, 'info' => $info];
+    }
+
+    /**
+     * Normalizes a raw phone number to SPX's mandatory PH format (api.md
+     * §1.4: "11 digits starting with 0, or 12 digits starting with 63" for
+     * both sender_phone and deliver_phone). Strips everything but digits
+     * first, so the common raw shapes actually seen in the dev DB all
+     * resolve: `+63 917 123 4567` / `639171234567` (already 12 digits
+     * starting with 63) pass through as-is; a bare 10-digit mobile with no
+     * leading 0 (`9171234567`) gets a `0` prepended to become the 11-digit
+     * form. Returns null when nothing salvageable remains (empty, too
+     * short, garbage) — every caller turns that into a clear pre-flight
+     * failure rather than sending SPX a value it's guaranteed to reject.
+     */
+    private function normalizePhPhone(?string $raw): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $raw);
+        if ($digits === '') {
+            return null;
+        }
+
+        if (strlen($digits) === 12 && str_starts_with($digits, '63')) {
+            return $digits;
+        }
+        if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+            return $digits;
+        }
+        if (strlen($digits) === 10 && str_starts_with($digits, '9')) {
+            return '0' . $digits;
+        }
+
+        return null;
     }
 
     /**
@@ -1026,14 +1095,20 @@ class SpxFulfillment implements CourierFulfillmentInterface
 
     // --- Async create polling -------------------------------------------
 
+    /** data.task_status values (api.md §1.5) that mean "stop polling, the batch is settled" — 4 Done, 5 Failed. Both New(1)/Waiting(2)/Running(3) keep polling. */
+    private const CREATE_RESULT_SETTLED = [4, 5];
+
     /**
      * Polls 1.5 Get Order Create Result up to ~15s total (backoff between
      * attempts: 1s, 2s, 3s, 4s, 5s — 6 attempts, 5 waits), bounded so an
      * admin clicking "Book" never hangs indefinitely on SPX's async create.
-     * Returns the raw result data once task_status reaches 4 (Done), or null
-     * if the window elapses first (still New/Waiting/Running) —
-     * createShipment() persists 'creating' in that case and
-     * courier:poll-status finishes the job later.
+     * Returns the raw result data once task_status settles (4 Done or 5
+     * Failed — see CREATE_RESULT_SETTLED; a Failed batch is over just as
+     * definitively as a Done one, so there is nothing to gain by continuing
+     * to poll it for the rest of the window), or null if the window elapses
+     * first (still New/Waiting/Running) — createShipment() persists
+     * 'creating' in that case and courier:poll-status finishes the job
+     * later.
      */
     private function pollCreateResult(int $batchNo): ?array
     {
@@ -1047,7 +1122,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
                 $result = null;
             }
 
-            if (is_array($result) && (int) ($result['task_status'] ?? 0) === 4) {
+            if (is_array($result) && in_array((int) ($result['task_status'] ?? 0), self::CREATE_RESULT_SETTLED, true)) {
                 return $result;
             }
 
@@ -1062,18 +1137,25 @@ class SpxFulfillment implements CourierFulfillmentInterface
     /**
      * "Be careful: if all orders failed to be created, the task status is
      * still Done" (api.md §1.5) — success is NEVER inferred from task_status
-     * alone, only from fail_list/fail_count, per this task's brief.
+     * alone, only from fail_list/fail_count, per this task's brief. An
+     * explicit task_status 5 (Failed) is treated the same way — it's simply
+     * another way this batch can be settled-but-unsuccessful, folded into
+     * the same "no usable order" branch below via $failed.
      *
      * @return array{ok:bool, order?:array, error?:string}
      */
     private function outcomeFromCreateResult(array $resultData): array
     {
-        $failCount = (int) ($resultData['fail_count'] ?? 0);
-        $failList  = $resultData['fail_list'] ?? [];
-        $orders    = $resultData['orders'] ?? [];
+        $taskFailed = (int) ($resultData['task_status'] ?? 0) === 5;
+        $failCount  = (int) ($resultData['fail_count'] ?? 0);
+        $failList   = $resultData['fail_list'] ?? [];
+        $orders     = $resultData['orders'] ?? [];
 
-        if ($failCount > 0 || !empty($failList) || empty($orders)) {
-            $reason = $failList[0]['message'] ?? 'SPX could not create this shipment.';
+        if ($taskFailed || $failCount > 0 || !empty($failList) || empty($orders)) {
+            $reason = $failList[0]['message']
+                ?? ($taskFailed
+                    ? ('SPX marked this batch as Failed' . (!empty($resultData['description']) ? ": {$resultData['description']}" : '.'))
+                    : 'SPX could not create this shipment.');
             return ['ok' => false, 'error' => $reason];
         }
 

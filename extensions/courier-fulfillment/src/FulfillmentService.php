@@ -105,6 +105,31 @@ class FulfillmentService
      */
     public function book(Order $order, array $opts): array
     {
+        // Async-create-in-progress guard (T2 review, CRITICAL 2). An async
+        // courier (SPX) can return success from createShipment() with NO
+        // tracking number yet — courier_status='creating', batch_no stashed
+        // in courier_meta (see CourierFulfillmentInterface::
+        // resolvePendingCreation()'s docblock for the full contract). That
+        // state is invisible to isActivelyBooked() below (it requires a
+        // tracking number), so without this guard a second "Book" click
+        // would submit a SECOND batch_create_order for the same order,
+        // silently orphaning the first — a real SPX shipment with no
+        // tracking number on file, so it's neither trackable nor
+        // cancellable from Venta. Checked FIRST, before even resolving the
+        // requested courier, so it protects ANY courier whose
+        // createShipment() can return this pending state (not just SPX) and
+        // blocks the attempt regardless of which courier the admin picks
+        // the second time — an order mid-flight with one courier must never
+        // be booked out from under it by a different one.
+        if ((string) $order->courier_status === 'creating') {
+            $inProgressWith = CourierManager::get((string) $order->courier_provider)?->getName() ?: (string) $order->courier_provider;
+            return [
+                'success' => false,
+                'code'    => 'creation_in_progress',
+                'error'   => "Order #{$order->id} is already being booked with {$inProgressWith} — please wait for it to finish (usually a few seconds) and try again.",
+            ];
+        }
+
         $courier = CourierManager::get((string) ($opts['courier'] ?? ''));
         if (!$courier || !$courier->isEnabled()) {
             return ['success' => false, 'code' => 'courier_unavailable', 'error' => 'Selected courier is not available.'];

@@ -102,7 +102,10 @@ class SpxPollCourierStatusTest extends TestCase
                     'tracking_link' => 'https://uat.spx.ph/track?SPEPH000000000099', 'routes' => [],
                 ]], 'fail_list' => []],
             ]),
-            '*batch_get_asf*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['orders' => [], 'fail_list' => []]]),
+            '*batch_get_asf*' => Http::response([
+                'ret_code' => 0, 'message' => 'success.',
+                'data' => ['orders' => [['tracking_no' => 'SPEPH000000000099', 'fee_info' => ['actual_shipping_fee' => 27.5]]], 'fail_list' => []],
+            ]),
         ]);
 
         $this->artisan('courier:poll-status')->assertSuccessful();
@@ -113,6 +116,12 @@ class SpxPollCourierStatusTest extends TestCase
         // The main loop (same run) already tracked it, since it now has a
         // tracking number and a null status.
         $this->assertSame('1001', $order->courier_status);
+
+        // T2 review, IMPORTANT 4: getTracking() fetches 2.2's actual fee on
+        // every call, but courier:poll-status's main loop is the ONE hook
+        // that actually persists it — proves it's no longer fetched-and-dropped.
+        $meta = json_decode($order->courier_meta, true);
+        $this->assertSame(['actual_shipping_fee' => 27.5], $meta['actual_fee']);
     }
 
     public function test_pending_creation_pass_leaves_a_still_running_order_untouched(): void
