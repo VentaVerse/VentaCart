@@ -243,6 +243,31 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // Review fix: a cancelled booking (tracking number present, not
+    // actively booked) must keep its drawer access — the drawer is the
+    // viewing surface for its timeline and the terminal `cancelled` badge,
+    // and Rebook alone would orphan both.
+    // ------------------------------------------------------------------
+
+    public function test_cancelled_booking_rows_keep_drawer_access_via_a_tracking_button(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        // Rebook needs an enabled courier (same rule as first-time Book).
+        $this->enableQuadxStaging();
+
+        $this->makeOrder('canceled', 'QX-CXL-001');
+
+        $response = $this->get($this->queueUrl() . '?filter=cancelled');
+        $response->assertOk()
+            ->assertSee('QX-CXL-001')
+            // Rebook (opens the booking modal) AND a drawer opener both render:
+            // openDrawer(...) is emitted only by the row's Tracking button.
+            ->assertSee('Rebook')
+            ->assertSee('openDrawer(JSON.parse(', false);
+    }
+
+    // ------------------------------------------------------------------
     // Interface evolutions #4/#5 — QuadX-safe defaults.
     // ------------------------------------------------------------------
 

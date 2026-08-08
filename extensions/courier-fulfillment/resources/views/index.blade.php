@@ -323,10 +323,17 @@
                                             @endif
                                             @if ($activelyBooked)
                                                 <x-admin.button size="sm" variant="secondary" href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener">Print waybill</x-admin.button>
+                                            @endif
+                                            {{-- Any row that has ever been booked keeps its drawer
+                                                 access — a CANCELLED booking (tracking number present,
+                                                 not actively booked) still has a timeline and the
+                                                 terminal `cancelled` badge to show, and Rebook alone
+                                                 would orphan both (review fix, W2). --}}
+                                            @if ($order->courier_tracking_number)
                                                 <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
-                                                @if ($cancelable)
-                                                    <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel</x-admin.button>
-                                                @endif
+                                            @endif
+                                            @if ($cancelable)
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel</x-admin.button>
                                             @endif
                                         </div>
                                         @if ($cancelable)
@@ -421,8 +428,10 @@
                             </template>
                         </div>
 
-                        {{-- Tracking history --}}
-                        <template x-if="active.activelyBooked && active.timeline && active.timeline.length">
+                        {{-- Tracking history. Gated on the tracking number, not
+                             activelyBooked, so a CANCELLED booking's timeline
+                             stays viewable (review fix, W2). --}}
+                        <template x-if="active.trackingNumber && active.timeline && active.timeline.length">
                             <div class="px-5 py-4 border-b border-v-border">
                                 <h4 class="text-xs font-semibold text-v-muted uppercase tracking-wider mb-2">Tracking history</h4>
                                 <ul class="space-y-1.5">
