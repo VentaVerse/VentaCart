@@ -77,6 +77,26 @@ Cancel booking symmetrically returns the order to a `to_pack`-placed status: the
 
 Nothing else, and no drag-and-drop invention: the mapping is one dropdown on a page the owner already edits.
 
+## Owner rulings, 2026-08-09 (tab set and setup policy)
+
+**Tabs** (order matters): `All` · `Unpaid` · `To Ship` (sub: `To Pack` | `To Handover`) · `Shipping` · `Failed` · `Lost & Damaged` · `Delivered` · `Cancelled`.
+
+- `All` lists every order regardless of placement; it is a VIEW, not a placement (no status is ever placed there). Rows keep the actions of the tab they really belong to.
+- `In Transit` is renamed `Shipping` everywhere: label, URL filter value, placement enum value, code identifiers.
+- `Lost & Damaged` is a new tab and a new placement (`lost_damaged`), the worklist for insurance claims: neither courier exposes a claims API, so this is where a human chases the money.
+- `Failed` sits before `Delivered`.
+
+**Actions** (hardcoded, refining the earlier table with the owner's rule "a real parcel always carries its own buttons"):
+- Tracking: every tab except Unpaid, whenever the order has courier data.
+- Print waybill: every tab except Unpaid, whenever the order has courier data.
+- Cancel booking: To Handover only.
+- Book: To Pack only. Cancel order: Unpaid and To Pack.
+
+**Courier status to core status** (the owner's mapping intent, realised through the editable map, never in code):
+QuadX `for_pickup` and SPX `1001` to a To Handover status; QuadX `failed_pickup` and SPX `5001` to a To Handover status; QuadX `picked_up`/`in_transit`/`out_for_delivery` and SPX `2001`/`2006`/`3001` to a Shipping status; QuadX `failed_delivery` to a Shipping status (a retry is the common case; a genuine give-up arrives separately as `returned`); QuadX `delivered` and SPX `4001` to a Delivered status; SPX `5002`/`5003` to Lost and Damaged statuses; SPX `6001`/`6002`/`6003` and QuadX `returned` to Failed statuses; QuadX `canceled` and SPX `7001` to a Cancelled status.
+
+**Setup policy (ruling):** the order-status seeder stays exactly as it is. The fulfillment module seeds NO order statuses and ships NO default courier maps, because a merchant should configure this module deliberately at setup. Task 3's seeded "Order Being Shipped" is therefore REMOVED from the seeder, and the fulfillment settings page gains a prominent setup notice when no To Handover-placed status exists, so the booking refusal is never a mystery. The owner configures NGD by hand after deploy; the sandbox is configured by one-off tinker only (never seeder, never migration).
+
 ## Out of scope
 New tabs; per-courier tab overrides; RMA; moving the Book button onto the order page (a natural future step under this architecture, not now); merge to main.
 
