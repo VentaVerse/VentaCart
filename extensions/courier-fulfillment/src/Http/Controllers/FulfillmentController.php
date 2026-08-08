@@ -37,27 +37,20 @@ class FulfillmentController extends Controller
         $couriers = CourierManager::enabled();
         $primary  = $couriers[0] ?? null;
 
-        $filter = $request->query('filter', 'to_book');
-        $query  = Order::query()
-            ->whereNotNull('order_status_id') // Ghost/abandoned orders (no status) are never fulfilled — same default as the core Orders page.
-            ->with('status:id,name')
-            ->withCount('products')
-            ->latest();
-
-        if ($filter === 'to_book') {
-            $query->whereNull('courier_tracking_number');
-        } elseif ($filter === 'in_transit') {
-            $query->whereNotNull('courier_tracking_number')
-                ->where(function ($q) {
-                    $q->whereNull('courier_status')->orWhere('courier_status', '!=', 'delivered');
-                });
-        } elseif ($filter === 'delivered') {
-            $query->where('courier_status', 'delivered');
+        $filter  = $request->query('filter', 'to_book');
+        $perPage = (int) $request->query('per_page', 25);
+        if (!in_array($perPage, [10, 25, 50], true)) {
+            $perPage = 25;
         }
-        // 'all' — no extra constraint.
+
+        // One base scope shared by the tab tallies and the listing, so the
+        // segment-bar counts always describe exactly the set the operator is
+        // paging through (search included).
+        $base = Order::query()
+            ->whereNotNull('order_status_id'); // Ghost/abandoned orders (no status) are never fulfilled — same default as the core Orders page.
 
         if ($s = $request->query('q')) {
-            $query->where(function ($x) use ($s) {
+            $base->where(function ($x) use ($s) {
                 if (is_numeric($s)) {
                     $x->orWhere('id', $s);
                 }
@@ -66,16 +59,98 @@ class FulfillmentController extends Controller
             });
         }
 
-        $orders = $query->paginate(25)->withQueryString();
+        // Phase tallies for the segment bar. Phase is a per-courier PHP
+        // derivation (statusPhase()), which SQL can't group by directly — but
+        // it's a pure function of (provider, raw status, booked-or-not), so
+        // GROUP BY those three and bucket the handful of combos in PHP. Work
+        // stays proportional to the couriers' status vocabularies, never to
+        // the number of orders.
+        $combos = (clone $base)
+            ->selectRaw('courier_provider, courier_status, (courier_tracking_number IS NULL) as unbooked, COUNT(*) as n')
+            ->groupByRaw('courier_provider, courier_status, (courier_tracking_number IS NULL)')
+            ->get();
 
-        // Build provider option sets for the booking form (courier-agnostic).
+        $phaseCounts = array_fill_keys(\Extensions\CourierFulfillment\Support\PhaseTone::PHASES, 0);
+        $handoverByCourier = [];      // courier display name => waiting-parcel count (the ERP's co-couriers tally)
+        $phaseStatusGroups = [];      // phase => provider key => raw statuses present in the DB right now
+        foreach ($combos as $row) {
+            $phase = $row->unbooked
+                ? 'to_book'
+                : FulfillmentService::phaseForParts($row->courier_provider, $row->courier_status);
+            $phaseCounts[$phase] = ($phaseCounts[$phase] ?? 0) + (int) $row->n;
+
+            if (!$row->unbooked) {
+                $phaseStatusGroups[$phase][(string) $row->courier_provider][] = $row->courier_status;
+                if ($phase === 'to_handover') {
+                    $name = CourierManager::get((string) $row->courier_provider)?->getName()
+                        ?: (strtoupper((string) $row->courier_provider) ?: 'Unknown courier');
+                    $handoverByCourier[$name] = ($handoverByCourier[$name] ?? 0) + (int) $row->n;
+                }
+            }
+        }
+
+        $query = (clone $base)
+            ->with('status:id,name')
+            ->with(['products' => function ($q) {
+                // Item rows for the two-tier table: snapshot name/sku/image on
+                // the line itself, live product image as the fallback.
+                $q->select('id', 'order_id', 'product_id', 'name', 'sku', 'image', 'variant_label', 'quantity')
+                    ->with('product:id,image');
+            }])
+            ->withCount('products')
+            ->latest();
+
+        if ($filter === 'to_book') {
+            $query->whereNull('courier_tracking_number');
+        } elseif ($filter !== 'all') {
+            // A spine-phase tab: booked orders whose (provider, raw status)
+            // combo buckets into this phase — the exact combos found by the
+            // tally above, so the list always matches its tab's count.
+            // ('all' stays supported as a filter value for deep links even
+            // though it no longer renders as a tab.)
+            $groups = $phaseStatusGroups[$filter] ?? [];
+            $query->whereNotNull('courier_tracking_number');
+            if ($groups === []) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where(function ($q) use ($groups) {
+                    foreach ($groups as $provider => $statuses) {
+                        $q->orWhere(function ($x) use ($provider, $statuses) {
+                            $provider === ''
+                                ? $x->whereNull('courier_provider')
+                                : $x->where('courier_provider', $provider);
+                            $withNull = in_array(null, $statuses, true);
+                            $notNull  = array_values(array_filter($statuses, fn ($v) => $v !== null));
+                            $x->where(function ($y) use ($withNull, $notNull) {
+                                if ($notNull !== []) {
+                                    $y->whereIn('courier_status', $notNull);
+                                }
+                                if ($withNull) {
+                                    $y->orWhereNull('courier_status');
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+        }
+        // 'all' — no extra constraint.
+
+        $orders = $query->paginate($perPage)->withQueryString();
+
+        // Build provider option sets for the booking modal (courier-agnostic).
+        // 'mode' feeds step 1's mode chip (shown only when not production);
+        // 'fee_estimate' is the per-courier estimate slot — always null until a
+        // courier that can quote (SPX, Task T4) populates it at modal-open time.
         $courierOptions = [];
         foreach ($couriers as $c) {
             $courierOptions[$c->getKey()] = [
-                'name'     => $c->getName(),
-                'services' => $c->getServiceTypes(),
-                'parcels'  => $c->getParcelOptions(),
-                'payments' => $c->getShippingPaymentOptions(),
+                'name'         => $c->getName(),
+                'services'     => $c->getServiceTypes(),
+                'parcels'      => $c->getParcelOptions(),
+                'payments'     => $c->getShippingPaymentOptions(),
+                'mode'         => Setting::where('group', 'courier')->where('key', $c->getKey() . '_mode')->value('value'),
+                'fee_estimate' => null,
             ];
         }
 
@@ -85,9 +160,39 @@ class FulfillmentController extends Controller
             'primary' => $primary,
             'courierOptions' => $courierOptions,
             'filter' => $filter,
+            'perPage' => $perPage,
+            'phaseCounts' => $phaseCounts,
+            'handoverByCourier' => $handoverByCourier,
             'paused' => false,
             'canConfigureCouriers' => $this->canConfigureCouriers(),
         ]);
+    }
+
+    /**
+     * Command-bar "Poll courier statuses" — runs the same courier:poll-status
+     * command the scheduled automation runs, on demand. Registered into the
+     * console kernel explicitly first: the extension's ServiceProvider only
+     * registers its command when runningInConsole(), so an HTTP-triggered
+     * Artisan::call() would otherwise hit "command not found".
+     */
+    public function poll()
+    {
+        app(\Illuminate\Contracts\Console\Kernel::class)
+            ->registerCommand(new \Extensions\CourierFulfillment\Console\Commands\PollCourierStatus());
+
+        @set_time_limit(300); // same cap the Automations "Run now" applies
+
+        try {
+            \Illuminate\Support\Facades\Artisan::call('courier:poll-status');
+            $lines = array_values(array_filter(array_map('trim', explode("\n", \Illuminate\Support\Facades\Artisan::output()))));
+            $summary = $lines !== [] ? end($lines) : 'Poll finished.';
+
+            return back()->with('success', $summary);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Fulfillment poll action failed', ['error' => $e->getMessage()]);
+
+            return back()->with('error', 'Poll failed: ' . $e->getMessage());
+        }
     }
 
     /**

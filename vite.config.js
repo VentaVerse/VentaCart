@@ -22,6 +22,27 @@ function getThemeEntries() {
     return entries;
 }
 
+// Extensions ship their own page CSS (never inline in Blade — house rule) as
+// extensions/{slug}/resources/css/*.css, each compiled as its own entry and
+// pulled in by that extension's view via @push('head') + @vite(...).
+function getExtensionEntries() {
+    const extensionsDir = path.resolve(__dirname, 'extensions');
+    const entries = [];
+
+    if (fs.existsSync(extensionsDir)) {
+        for (const ext of fs.readdirSync(extensionsDir)) {
+            const cssDir = path.join(extensionsDir, ext, 'resources/css');
+            if (!fs.existsSync(cssDir) || !fs.statSync(cssDir).isDirectory()) continue;
+
+            for (const file of fs.readdirSync(cssDir)) {
+                if (file.endsWith('.css')) entries.push(`extensions/${ext}/resources/css/${file}`);
+            }
+        }
+    }
+
+    return entries;
+}
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -31,6 +52,7 @@ export default defineConfig({
                 'resources/css/admin/admin.css',
                 'resources/js/admin/admin.js',
                 ...getThemeEntries(),
+                ...getExtensionEntries(),
             ],
             refresh: true,
         }),

@@ -59,12 +59,25 @@ class FulfillmentService
             return 'to_book';
         }
 
-        $courier = CourierManager::get((string) $order->courier_provider);
+        return self::phaseForParts($order->courier_provider, $order->courier_status);
+    }
+
+    /**
+     * Same resolution as phaseFor() for an already-BOOKED order, but from the
+     * raw column values instead of an Order instance — lets the queue
+     * controller bucket a GROUP BY (courier_provider, courier_status) tally
+     * into phases without hydrating one model per order. Callers own the
+     * "no tracking number => to_book" short-circuit; this only answers for
+     * rows that have a booking.
+     */
+    public static function phaseForParts(?string $provider, ?string $status): string
+    {
+        $courier = CourierManager::get((string) $provider);
         if (!$courier) {
             return 'to_handover';
         }
 
-        return $courier->statusPhase($order->courier_status)['phase'] ?? 'to_handover';
+        return $courier->statusPhase($status)['phase'] ?? 'to_handover';
     }
 
     /**

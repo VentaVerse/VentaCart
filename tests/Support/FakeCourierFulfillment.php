@@ -82,6 +82,16 @@ class FakeCourierFulfillment implements CourierFulfillmentInterface
         return ['success' => false, 'error' => 'not implemented'];
     }
 
+    public function estimateFee(Order $order, array $options): ?object
+    {
+        return null;
+    }
+
+    public function getPickupSlots(Order $order): array
+    {
+        return [];
+    }
+
     public function parseWebhook(array $payload): array
     {
         return [];

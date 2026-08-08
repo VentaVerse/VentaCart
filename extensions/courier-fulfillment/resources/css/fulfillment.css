@@ -1,0 +1,557 @@
+/* Courier Fulfillment — the queue on the ERP grammar (Task W2).
+   -------------------------------------------------------------------
+   Venta's fulfillment queue re-shelled onto the anatomy the VentaSync ERP
+   settled through packing-desk feedback (its channel-orders.css / segment.css,
+   audited 2026-08-08): a command bar that talks to the courier, a segmented
+   phase filter with mono counts, one filter row, and a two-tier table where
+   each order is a band of order-level facts above one row per item, with
+   total, courier, status and actions rowspanned beside them. Class names
+   keep the ERP's `co-` vocabulary for the shared table idiom (co-band /
+   co-itemrow / co-couriers…) so the two surfaces stay reviewable against
+   each other; page-structural pieces are `cf-` (courier fulfillment) since
+   an extension shouldn't claim the design system's namespace.
+
+   All colors come from the v-admin token set (resources/css/admin/tokens.css)
+   — same token names the ERP uses, so the look converges by construction.
+   Three rules carried over verbatim:
+
+   1. Colour has one job: telling the operator which orders are waiting on
+      them (see Support/PhaseTone). No courier identity colour anywhere.
+   2. Elevation is flat: hairlines, not card stacks.
+   3. Every numeral is mono with tabular figures. */
+
+/* ------------------------------------------------------------------
+   Command bar. Every child of the row ends in a box exactly --control-h
+   (32px) tall and the row is bottom-aligned, so controls share a baseline.
+   ------------------------------------------------------------------ */
+
+.cf-cmdbar {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.cf-cmdbar__row {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.cf-cmdbar__actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: var(--control-h);
+}
+
+/* Pushes the actions to the far end while there is room, collapses when
+   the row wraps. */
+.cf-cmdbar__spacer { flex: 1 1 16px; min-width: 0; }
+
+.cf-cmdbar__hint {
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------
+   Segment bar: the spine-phase tabs. Active item lifts onto --surface
+   inside a sunken trough — elevation and a hairline ring, never a brand
+   colour (colour belongs to the status column alone).
+   ------------------------------------------------------------------ */
+
+.cf-segment-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    min-width: 0;
+}
+
+.cf-segment {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 3px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+.cf-segment::-webkit-scrollbar { display: none; }
+
+.cf-segment__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color var(--motion-fast), background var(--motion-fast);
+}
+
+.cf-segment__item:hover { color: var(--text); }
+
+.cf-segment__item.is-active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 0 0 1px var(--border-strong), 0 1px 2px rgba(0, 0, 0, .05);
+}
+
+/* Counts are reference information, not emphasis: muted, mono, tabular. */
+.cf-segment__count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.cf-segment__item.is-active .cf-segment__count { color: var(--text-secondary); }
+
+/* Returns is a sibling page, never an eighth filter — plain-link weight on
+   the far side of the bar. */
+.cf-segment-bar__aside {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--motion-fast);
+}
+
+.cf-segment-bar__aside:hover { color: var(--text); }
+
+/* ------------------------------------------------------------------
+   Courier tally — only on the To Handover tab, where the operator counts
+   parcels per courier before the pickup arrives; figure leads, name follows.
+   ------------------------------------------------------------------ */
+
+.co-couriers {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.co-couriers__label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    color: var(--text-muted);
+}
+
+.co-courier {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 3px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.co-courier__count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* ------------------------------------------------------------------
+   Filter row.
+   ------------------------------------------------------------------ */
+
+.cf-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.cf-filters__search { max-width: 280px; }
+.cf-filters__select { width: auto; min-width: 132px; }
+
+.cf-filters__reset {
+    display: inline-flex;
+    align-items: center;
+    height: var(--control-h);
+    padding: 0 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color var(--motion-fast);
+}
+
+.cf-filters__reset:hover { color: var(--text); text-decoration: underline; }
+
+/* ------------------------------------------------------------------
+   Two-tier table. Verification-grade density: fulfillment rows carry an
+   image the packer actually looks at, so cells get real vertical padding
+   and top alignment for multi-item stacks.
+   ------------------------------------------------------------------ */
+
+.cf-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.cf-table__scroll { overflow-x: auto; }
+
+.cf-table table {
+    width: 100%;
+    font-size: 13px;
+    border-collapse: collapse;
+}
+
+.cf-table thead tr { background: var(--surface-sunken); }
+
+.cf-table th {
+    padding: 0 16px;
+    height: var(--row-h);
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.cf-table tbody td {
+    padding: 12px 16px;
+    vertical-align: top;
+    border-top: 1px solid var(--border);
+}
+
+/* Column sizing: Products is the one variable-width field and takes the
+   remainder; the bounded columns hold their shape. */
+.cf-col-qty     { width: 64px; }
+.cf-col-total   { width: 130px; text-align: right; }
+.cf-col-courier { width: 170px; }
+.cf-col-status  { width: 170px; }
+.cf-col-act     { width: 1%; white-space: nowrap; }
+
+td.cf-col-total { text-align: right; }
+
+.cf-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* The order band: customer, order number, item count, create time above
+   each order's item rows. */
+.co-band td {
+    background: var(--surface-sunken);
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.co-band__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+}
+
+.co-band__left,
+.co-band__right {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.co-band__label { font-size: 12px; color: var(--text-muted); }
+
+.co-band__value { font-size: 13px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+
+.co-band__value--mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+
+.co-band__muted { font-size: 12px; color: var(--text-muted); }
+
+/* Order number: the identity of the row. */
+.co-sn {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+.co-sn:hover { color: var(--accent); }
+
+/* Item rows inside one order divide with a soft dashed line; the solid row
+   border belongs to the next order's band, so orders read as blocks. */
+.cf-table tbody tr.co-itemrow td { border-top: 0; }
+
+.cf-table tbody tr.co-itemrow:not(.co-itemrow--last) td {
+    border-bottom: 1px dashed var(--border);
+}
+
+/* Item line: thumb the packer verifies against, name clamped to two lines,
+   SKU/variant as identification data (not fine print). */
+.co-item { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+
+.co-item .order-img-wrap {
+    /* 96px, the ERP's measured packing-desk size: the packer verifies the
+       physical item against this image, so it is an operational control,
+       not decoration. */
+    width: 96px;
+    height: 96px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.co-item .order-img { width: 100%; height: 100%; object-fit: cover; }
+
+.co-item__none {
+    font-size: 9px;
+    line-height: 1.1;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.co-item__body { min-width: 0; flex: 1; }
+
+.co-item__name {
+    font-size: 14px;
+    color: var(--text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.co-item__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.co-item__sku { font-family: var(--font-mono); overflow-wrap: anywhere; }
+
+.co-item__var {
+    padding: 1px 8px;
+    background: var(--surface-sunken);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+}
+
+/* Qty in its own column so every multiplier shares one edge down the page.
+   Bold, full contrast: a wrong count is the second way to mispack. */
+.co-qty {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* Total: right aligned, mono, compares on the decimal; the payment method
+   is context and sits beneath it. */
+.co-total {
+    display: block;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+}
+
+.co-total__method {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+/* Courier column: name leads, tracking number beneath it on its own line
+   (an unbroken 15–25 char token must never push into Status). */
+.co-carrier {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+.co-ship__no {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
+
+/* Status: spine-tone badge above the courier's own raw words. */
+.co-status { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+
+.co-status__note {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+.co-empty-mark { color: var(--text-muted); }
+
+/* Actions: every action a row's status allows is a visible button — the
+   packing desk's working surface, no overflow menus. */
+.co-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.co-actions form { margin: 0; }
+
+.co-actions__danger { color: var(--danger) !important; }
+
+/* ------------------------------------------------------------------
+   Pager: "1 to N of M" mono left, Prev/Next right.
+   ------------------------------------------------------------------ */
+
+.cf-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.cf-pager__count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.cf-pager__nav { display: flex; gap: 8px; }
+
+.cf-pager__nav [aria-disabled="true"] { opacity: .5; cursor: default; }
+
+/* ------------------------------------------------------------------
+   Booking modal, step 1: one large choice card per enabled courier.
+   ------------------------------------------------------------------ */
+
+.cf-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cf-choice__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.cf-choice__card:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-hover);
+}
+
+.cf-choice__name { font-size: 14px; font-weight: 600; color: var(--text); }
+
+.cf-choice__mode {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--warning) 12%, transparent);
+    color: var(--warning);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+.cf-choice__fee {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.cf-choice__go { color: var(--text-muted); flex: none; }
+
+/* ------------------------------------------------------------------
+   Responsive: the two-tier rows keep their table shape (the wrapper
+   scrolls); the bars stack.
+   ------------------------------------------------------------------ */
+
+@media (max-width: 640px) {
+    .cf-segment-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .cf-segment-bar__aside { align-self: flex-start; }
+
+    .cf-cmdbar { padding: 12px; }
+    .cf-cmdbar__spacer { display: none; }
+
+    .cf-filters__search { max-width: 100%; flex: 1 1 200px; }
+
+    .co-item .order-img-wrap { width: 64px; height: 64px; }
+}

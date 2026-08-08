@@ -104,6 +104,32 @@ interface CourierFulfillmentInterface
     public function statusPhase(?string $status): array;
 
     /**
+     * Estimated shipping fee for booking this order with the given options
+     * (same shape as createShipment()'s $opts) — shown to the operator on the
+     * booking modal BEFORE they commit, where a courier can quote one (SPX's
+     * batch_check_order). Sanctioned interface evolution #4
+     * (fulfillment-workflow-v2 spec) with a QuadX-safe default: couriers with
+     * no quoting API return null and the UI simply renders no estimate slot —
+     * "not supported" is silence, never a fake zero.
+     *
+     * @return object|null null = unsupported/unavailable; otherwise an object
+     *   with `amount` (float), `currency` (string ISO code, e.g. 'PHP') and
+     *   optionally `label` (string, pre-formatted display text).
+     */
+    public function estimateFee(Order $order, array $options): ?object;
+
+    /**
+     * Pickup time slots the operator can choose from when booking this order
+     * (SPX's pickup-time endpoint). Sanctioned interface evolution #5
+     * (fulfillment-workflow-v2 spec) with a QuadX-safe default: couriers
+     * without slot scheduling return [] and the booking form renders no slot
+     * picker at all.
+     *
+     * @return array<int, array{value:string,label:string}>
+     */
+    public function getPickupSlots(Order $order): array;
+
+    /**
      * @param string $format provider format hint (e.g. 'zebra'|'fuji')
      * @return array{success:bool, url?:string, manifest_url?:string, error?:string}
      */

@@ -251,6 +251,28 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         return 'to_handover';
     }
 
+    /**
+     * QuadX has no fee-quoting API (it prices by parcel category at
+     * remittance time), so no estimate is ever shown for it — the interface's
+     * sanctioned null default. Deliberately NOT derived from any rate table:
+     * inventing a figure QuadX never quoted would be a lie on a screen the
+     * operator commits money from.
+     */
+    public function estimateFee(Order $order, array $options): ?object
+    {
+        return null;
+    }
+
+    /**
+     * QuadX schedules pickup on its own side after booking (no slot choice in
+     * its API), so the booking form renders no slot picker — the interface's
+     * sanctioned empty default.
+     */
+    public function getPickupSlots(Order $order): array
+    {
+        return [];
+    }
+
     public function printLabel(string $trackingNumber, string $format): array
     {
         $type = in_array($format, ['zebra', 'fuji'], true) ? $format : 'zebra';

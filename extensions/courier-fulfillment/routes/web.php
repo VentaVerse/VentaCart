@@ -19,6 +19,10 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->name('admin.fulfillment.')
     ->group(function () {
         Route::get('/', [FulfillmentController::class, 'index'])->name('index');
+        // Command-bar action: run the courier:poll-status pull on demand.
+        // Static segment registered BEFORE the {order} wildcards below so
+        // 'poll' can never be captured as an order id.
+        Route::post('/poll', [FulfillmentController::class, 'poll'])->name('poll');
         Route::post('/{order}/book', [FulfillmentController::class, 'book'])->name('book');
         Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel');
         Route::get('/{order}/label', [FulfillmentController::class, 'label'])->name('label');
