@@ -36,7 +36,7 @@ New column `order_statuses.fulfillment_stage` enum `unpaid | ready | cancelled`,
 | **Cancelled** | stage = cancelled (real order cancels) OR courier-cancelled shipments the admin did not initiate (exceptions, e.g. webhook 7001) | order-cancelled: view only; courier-cancelled exception: Rebook, Tracking |
 | Returns (aside link) | unchanged | unchanged |
 
-Stage precedence: unpaid and cancelled stages claim the order regardless of courier state; ready orders bucket by courier phase.
+Stage precedence (amended by owner ruling, 2026-08-08): **cancelled** stage claims the order regardless of courier state. **Unpaid** stage claims the order only while it has NO active booking ("Unpaid should not be booked"); an actively-booked order follows its courier phase whatever its payment status, because the booking puts it in the shipping pipeline. Booking is refused server-side for unpaid-stage and cancelled-stage orders, making the invariant real: the owner moves a really-paid order to Processing (ready stage) before booking, per his workflow. Ready orders bucket by courier phase. Unpaid rows therefore always render exactly one action, Cancel order, and it always works.
 
 ### Renames (labels, URLs, variables)
 
