@@ -194,11 +194,11 @@ class FulfillmentFinalFixesTest extends TestCase
 
         $order = $this->makeCreationFailedOrder();
 
-        // Failed tab counts it; To Book must NOT reclaim it.
+        // Failed tab counts it; To Pack must NOT reclaim it.
         $this->get($this->queueUrl())
             ->assertOk()
             ->assertSee('data-count-for="failed">1<', false)
-            ->assertSee('data-count-for="to_book">0<', false)
+            ->assertSee('data-count-for="to_pack">0<', false)
             ->assertDontSee('#' . $order->id, false);
 
         $this->get($this->queueUrl() . '?filter=failed')

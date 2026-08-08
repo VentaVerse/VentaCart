@@ -57,12 +57,21 @@ class FulfillmentReturnsTest extends TestCase
         );
     }
 
+    /** fulfillment-tabs-v3 Task 2: a stage-'cancelled' status (real order cancel), distinct from a courier-phase cancel/return. */
+    private function cancelledStageStatus(): OrderStatus
+    {
+        return OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => 'Canceled'],
+            ['sort_order' => 2, 'is_default' => false, 'fulfillment_stage' => 'cancelled'],
+        );
+    }
+
     /** An order in the queue; optionally booked with a raw courier status. */
-    private function makeOrder(?string $courierStatus = null, ?string $tracking = null, string $provider = 'quadx', ?array $meta = null): Order
+    private function makeOrder(?string $courierStatus = null, ?string $tracking = null, string $provider = 'quadx', ?array $meta = null, ?int $statusId = null): Order
     {
         $order = Order::create([
             'store_id' => 1,
-            'order_status_id' => $this->defaultStatus()->id,
+            'order_status_id' => $statusId ?? $this->defaultStatus()->id,
             'first_name' => 'Jane',
             'last_name' => 'Doe',
             'email' => 'jane@example.com',
@@ -114,7 +123,7 @@ class FulfillmentReturnsTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $this->makeOrder(); // to_book — never booked, no tracking number to assert against
+        $this->makeOrder(); // to_pack — never booked, no tracking number to assert against
         $this->makeOrder('for_pickup', 'QX-H-001');            // to_handover
         $this->makeOrder('in_transit', 'QX-T-001');             // in_transit
         $this->makeOrder('delivered', 'QX-D-001');               // delivered
@@ -130,6 +139,36 @@ class FulfillmentReturnsTest extends TestCase
             ->assertDontSee('QX-T-001')
             ->assertDontSee('QX-D-001')
             ->assertDontSee('QX-C-001');
+    }
+
+    // ------------------------------------------------------------------
+    // fulfillment-tabs-v3 Task 2: STAGE-FIRST membership — a real order
+    // cancel (stage 'cancelled') outranks whatever courier phase the
+    // shipment happens to carry. A stage-'cancelled' order sitting in a
+    // 'returning'/'failed' courier phase must NOT surface here; it belongs
+    // to the queue's Cancelled bucket instead.
+    // ------------------------------------------------------------------
+
+    public function test_a_cancelled_stage_order_does_not_appear_even_in_a_returning_or_failed_courier_phase(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $cancelledStageId = $this->cancelledStageStatus()->id;
+
+        // Real order cancel (stage 'cancelled'), but the courier phase is
+        // still 'returning'/'failed' — the stage must win.
+        $this->makeOrder('returned', 'QX-CANCELLED-RETURN', 'quadx', null, $cancelledStageId);
+        $this->makeOrder('failed_delivery', 'QX-CANCELLED-FAILED', 'quadx', null, $cancelledStageId);
+
+        // A ready-stage counterpart, same courier phases, DOES belong here.
+        $this->makeOrder('returned', 'QX-READY-RETURN');
+
+        $response = $this->get($this->returnsUrl());
+        $response->assertOk()
+            ->assertSee('QX-READY-RETURN')
+            ->assertDontSee('QX-CANCELLED-RETURN')
+            ->assertDontSee('QX-CANCELLED-FAILED');
     }
 
     // ------------------------------------------------------------------

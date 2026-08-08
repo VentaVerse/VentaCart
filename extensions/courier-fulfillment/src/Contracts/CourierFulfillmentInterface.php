@@ -125,18 +125,20 @@ interface CourierFulfillmentInterface
     public function cancelableStatuses(): array;
 
     /**
-     * Buckets a raw courier status onto Venta's common 8-phase fulfillment
-     * spine, shared by every courier (see Extensions\CourierFulfillment\
-     * Support\PhaseTone for the tone each bucket carries): `to_book`,
+     * Buckets a raw courier status onto Venta's common fulfillment spine,
+     * shared by every courier (see Extensions\CourierFulfillment\
+     * Support\PhaseTone for the tone each bucket carries): `to_pack`,
      * `booking` (async create in flight), `to_handover` (booked, awaiting
      * courier collection/drop-off), `in_transit`, `delivered`, `failed`
      * (delivery failed / lost / damaged), `cancelled` (booking cancelled),
-     * `returning` (coming back to the seller).
+     * `returning` (coming back to the seller). (`unpaid` is a further,
+     * order-status-STAGE-level bucket a courier never returns — see
+     * FulfillmentService::tabBucket().)
      *
-     * `to_book` is deliberately NEVER returned here — "no booking exists
+     * `to_pack` is deliberately NEVER returned here — "no booking exists
      * yet" isn't a courier status, it's the absence of one, so it's the
      * caller's job (see FulfillmentService::phaseFor()) to short-circuit to
-     * `to_book` before ever calling this method with a null tracking
+     * `to_pack` before ever calling this method with a null tracking
      * number. A synchronous courier (like QuadX, whose createShipment()
      * always returns a status) never produces `booking` either — that
      * bucket exists for a courier whose booking creates asynchronously.

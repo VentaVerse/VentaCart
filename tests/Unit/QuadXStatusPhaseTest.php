@@ -108,12 +108,12 @@ class QuadXStatusPhaseTest extends TestCase
         $this->assertSame($expectedPhase, $result['phase']);
         $this->assertContains($result['phase'], PhaseTone::PHASES, 'phase must be one of the 8 spine buckets');
 
-        // QuadX never produces 'to_book' or 'booking' from a raw status —
-        // 'to_book' is "no booking exists yet" (a FulfillmentService-level
+        // QuadX never produces 'to_pack' or 'booking' from a raw status —
+        // 'to_pack' is "no booking exists yet" (a FulfillmentService-level
         // concern, not a courier status), and 'booking' is for async
         // couriers whose createShipment() doesn't return a status
         // synchronously (QuadX's does).
-        $this->assertNotSame('to_book', $result['phase']);
+        $this->assertNotSame('to_pack', $result['phase']);
         $this->assertNotSame('booking', $result['phase']);
     }
 

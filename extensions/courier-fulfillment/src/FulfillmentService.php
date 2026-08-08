@@ -36,7 +36,7 @@ class FulfillmentService
      * 'creation_failed' — create settled but permanently failed, see
      * CourierFulfillmentInterface::resolvePendingCreation()). Both must
      * resolve through the courier's own statusPhase() rather than the
-     * "no tracking number => never booked => to_book" short-circuit —
+     * "no tracking number => never booked => to_pack" short-circuit —
      * defined once here for phaseFor() and the queue controller's
      * tally/filter mirrors of that same rule.
      */
@@ -82,7 +82,7 @@ class FulfillmentService
      * Support\PhaseTone for the tone each bucket carries) — the future queue
      * tabs (fulfillment-workflow-v2 Task W2) group orders by this.
      *
-     * `to_book` is resolved HERE, not by any courier: an order with no
+     * `to_pack` is resolved HERE, not by any courier: an order with no
      * tracking number has never been booked, which isn't a courier status at
      * all. Once a tracking number exists, the bucket comes from the
      * resolved courier's own statusPhase() — an order booked with a
@@ -104,18 +104,18 @@ class FulfillmentService
         // 'creating' must resolve through the courier's own statusPhase()
         // (which maps it to phase 'booking') same as any other booked
         // status — every other tracking-number-less order (including one
-        // that was never booked at all) is still 'to_book' as before.
+        // that was never booked at all) is still 'to_pack' as before.
         //
         // Final-review fix (Finding 2): same treatment for
         // 'creation_failed' — a permanently failed async create is ALSO
-        // tracking-number-less, and short-circuiting it to to_book made
+        // tracking-number-less, and short-circuiting it to to_pack made
         // statusPhase('creation_failed') => 'failed' dead code: the order
-        // silently blended into To Book with no badge, tab, or rendered
+        // silently blended into To Pack with no badge, tab, or rendered
         // creation_error anywhere. Both bridging statuses now route
         // through the courier's own spine mapping (ASYNC_CREATE_STATUSES).
         if (!$order->courier_tracking_number
             && !in_array((string) $order->courier_status, self::ASYNC_CREATE_STATUSES, true)) {
-            return 'to_book';
+            return 'to_pack';
         }
 
         return self::phaseForParts($order->courier_provider, $order->courier_status);
@@ -126,7 +126,7 @@ class FulfillmentService
      * raw column values instead of an Order instance — lets the queue
      * controller bucket a GROUP BY (courier_provider, courier_status) tally
      * into phases without hydrating one model per order. Callers own the
-     * "no tracking number => to_book" short-circuit; this only answers for
+     * "no tracking number => to_pack" short-circuit; this only answers for
      * rows that have a booking.
      */
     public static function phaseForParts(?string $provider, ?string $status): string
@@ -137,6 +137,54 @@ class FulfillmentService
         }
 
         return $courier->statusPhase($status)['phase'] ?? 'to_handover';
+    }
+
+    /**
+     * STAGE-FIRST tab/tally membership (fulfillment-tabs-v3 Task 2) — the
+     * bucket the queue's segment bar and phaseTally() count an order under,
+     * as opposed to phaseFor()'s pure courier-phase bucket (which stays the
+     * row's BADGE, unaffected by this). An order's Venta order-status stage
+     * (OrderStatus::$fulfillment_stage, defaulting to 'ready' for a null
+     * status or a status row with no override) claims the order FIRST:
+     *
+     *   unpaid    stage 'unpaid' => bucket 'unpaid', regardless of any
+     *             courier state an admin somehow already created (spec:
+     *             "stage claims the order regardless of courier state").
+     *   cancelled stage 'cancelled' => bucket 'cancelled', same override —
+     *             a real order-cancel outranks an in-transit booking.
+     *   ready     everything else buckets by phaseFor()'s courier phase,
+     *             with ONE collapse: the internal 'booking' phase (an async
+     *             create still in flight, see ASYNC_CREATE_STATUSES) counts
+     *             under 'to_handover' for TAB membership — the owner
+     *             dropped the standalone Booking tab (creating orders
+     *             render inside To Handover with a Creating badge) — while
+     *             phaseFor() itself still reports 'booking' unchanged, so a
+     *             row's own badge/stepper keeps showing the honest
+     *             in-flight state.
+     */
+    public static function tabBucket(Order $order): string
+    {
+        $stage = $order->status?->fulfillment_stage ?? 'ready';
+
+        return self::tabBucketForParts((string) $stage, self::phaseFor($order));
+    }
+
+    /**
+     * Same stage-first collapse as tabBucket(), but from an already-resolved
+     * stage + courier phase — lets the queue controller's GROUP BY tally
+     * (which reads order_statuses.fulfillment_stage via a SQL join, never
+     * hydrates an Order per row) reuse the exact same rule.
+     */
+    public static function tabBucketForParts(string $stage, string $phase): string
+    {
+        if ($stage === 'unpaid') {
+            return 'unpaid';
+        }
+        if ($stage === 'cancelled') {
+            return 'cancelled';
+        }
+
+        return $phase === 'booking' ? 'to_handover' : $phase;
     }
 
     /**

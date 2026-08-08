@@ -38,7 +38,7 @@ class FulfillmentController extends Controller
         $couriers = CourierManager::enabled();
         $primary  = $couriers[0] ?? null;
 
-        $filter  = $request->query('filter', 'to_book');
+        $filter  = $request->query('filter', 'to_pack');
         $perPage = (int) $request->query('per_page', 25);
         if (!in_array($perPage, [10, 25, 50], true)) {
             $perPage = 25;
@@ -65,7 +65,7 @@ class FulfillmentController extends Controller
         [$phaseCounts, $phaseStatusGroups, $handoverByCourier] = $this->phaseTally($base);
 
         $query = (clone $base)
-            ->with('status:id,name')
+            ->with('status:id,name,fulfillment_stage')
             ->with(['products' => function ($q) {
                 // Item rows for the two-tier table: snapshot name/sku/image on
                 // the line itself, live product image as the fallback.
@@ -75,35 +75,67 @@ class FulfillmentController extends Controller
             ->withCount('products')
             ->latest();
 
-        if ($filter === 'to_book') {
+        // fulfillment-tabs-v3 Task 2: STAGE-FIRST membership. An order's
+        // Venta order-status stage claims it before any courier phase is
+        // ever consulted (FulfillmentService::tabBucket()'s docblock has the
+        // full rule) — 'unpaid'/'cancelled' filters are therefore pure
+        // stage filters, and every courier-phase filter below is additionally
+        // scoped to stage 'ready' so a stage-claimed order never leaks into
+        // a courier-phase tab it no longer belongs to.
+        if ($filter === 'unpaid') {
+            $query->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'unpaid'));
+        } elseif ($filter === 'to_pack') {
             // Task T4 fix (+ final-review Finding 2): excludes BOTH async
             // bridging statuses ('creating' AND 'creation_failed' — also
-            // tracking-number-null) — those belong to the Booking/Failed
-            // tabs respectively, never To Book (see phaseTally()'s
+            // tracking-number-null) — those belong to the To Handover/Failed
+            // buckets respectively, never To Pack (see phaseTally()'s
             // matching fix above and FulfillmentService::ASYNC_CREATE_STATUSES).
-            $query->whereNull('courier_tracking_number')
+            $query->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'ready'))
+                ->whereNull('courier_tracking_number')
                 ->where(function ($q) {
                     $q->whereNull('courier_status')
                         ->orWhereNotIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
                 });
+        } elseif ($filter === 'cancelled') {
+            // Membership per the tab-model spec: stage 'cancelled' (a real
+            // order cancel) claims the order regardless of courier state,
+            // OR a stage-'ready' order whose courier phase itself bucketed
+            // to 'cancelled' (a courier-side cancel/exception that hasn't
+            // cancelled the core order). Both halves reuse the exact combos
+            // phaseTally() already found for this bucket, so the listing
+            // never disagrees with its own count.
+            $groups = $phaseStatusGroups['cancelled'] ?? [];
+            $query->where(function ($q) use ($groups) {
+                $q->whereHas('status', fn ($s) => $s->where('fulfillment_stage', 'cancelled'))
+                    ->orWhere(function ($ready) use ($groups) {
+                        $ready->whereHas('status', fn ($s) => $s->where('fulfillment_stage', 'ready'))
+                            ->where(function ($q2) {
+                                $q2->whereNotNull('courier_tracking_number')
+                                    ->orWhereIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
+                            });
+                        $this->applyPhaseGroups($ready, $groups);
+                    });
+            });
         } elseif ($filter !== 'all') {
-            // A spine-phase tab: booked orders whose (provider, raw status)
-            // combo buckets into this phase — the exact combos found by the
-            // tally above, so the list always matches its tab's count.
-            // ('all' stays supported as a filter value for deep links even
-            // though it no longer renders as a tab.)
+            // A spine-phase tab (to_handover, in_transit, delivered, failed):
+            // stage 'ready' orders whose (provider, raw status) combo
+            // buckets into this phase — the exact combos found by the tally
+            // above, so the list always matches its tab's count. ('all'
+            // stays supported as a filter value for deep links even though
+            // it no longer renders as a tab.)
             $groups = $phaseStatusGroups[$filter] ?? [];
             // Task T4 fix (+ final-review Finding 2): a 'creating' or
             // 'creation_failed' order has no tracking number yet but must
-            // still be reachable from its tab (Booking / Failed) —
+            // still be reachable from its tab (To Handover / Failed) —
             // applyPhaseGroups() below narrows to the exact (provider,
             // status) combos the tally found for $filter, so relaxing this
             // to admit those rows never leaks one into a phase it doesn't
             // belong to.
-            $query->where(function ($q) {
-                $q->whereNotNull('courier_tracking_number')
-                    ->orWhereIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
-            });
+            $query->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'ready'))
+                ->where(function ($q) {
+                    $q->whereNotNull('courier_tracking_number')
+                        ->orWhereIn('courier_status', FulfillmentService::ASYNC_CREATE_STATUSES);
+                });
             $this->applyPhaseGroups($query, $groups);
         }
         // 'all' — no extra constraint.
@@ -211,6 +243,14 @@ class FulfillmentController extends Controller
      * index() uses for its tab counts (phaseTally() below) — never a
      * second, parallel derivation that could disagree with the queue.
      *
+     * fulfillment-tabs-v3 Task 2: STAGE-FIRST, same as index()'s tabs — a
+     * stage-'unpaid' or stage-'cancelled' order does not belong here even
+     * if its courier phase happens to be 'returning'/'failed' (a real order
+     * cancel outranks a courier-side exception; see
+     * FulfillmentService::tabBucket()'s docblock). phaseTally() already
+     * only populates $phaseStatusGroups from stage-'ready' combos, so the
+     * explicit stage filter below is defense in depth, not the only guard.
+     *
      * This is a MONITORING surface only. The full customer-initiated RMA
      * process (refunds, restock guidance) is a distinct product feature,
      * tracked as a roadmap card rather than built here.
@@ -226,7 +266,9 @@ class FulfillmentController extends Controller
             $phaseStatusGroups['failed'] ?? []
         );
 
-        $query = (clone $base)->whereNotNull('courier_tracking_number');
+        $query = (clone $base)
+            ->whereHas('status', fn ($q) => $q->where('fulfillment_stage', 'ready'))
+            ->whereNotNull('courier_tracking_number');
         $this->applyPhaseGroups($query, $groups);
 
         $orders = $query->latest()->paginate(25)->withQueryString();
@@ -255,11 +297,29 @@ class FulfillmentController extends Controller
     /**
      * Phase is a per-courier PHP derivation (statusPhase()), which SQL can't
      * group by directly — but it's a pure function of (provider, raw status,
-     * booked-or-not), so GROUP BY those three and bucket the handful of
-     * combos in PHP. Work stays proportional to the couriers' status
-     * vocabularies, never to the number of orders. Shared by index()'s
-     * segment-bar tallies and returns()'s listing — the one place either
-     * page turns raw (provider, status) rows into spine phases.
+     * booked-or-not), so GROUP BY those three (PLUS the order's fulfillment
+     * stage, via a join to order_statuses — fulfillment-tabs-v3 Task 2) and
+     * bucket the handful of combos in PHP. Work stays proportional to the
+     * couriers' status vocabularies times the 3 stages, never to the number
+     * of orders. Shared by index()'s segment-bar tallies and returns()'s
+     * listing — the one place either page turns raw (stage, provider,
+     * status) rows into spine buckets.
+     *
+     * The join is a safe INNER join: $base always carries
+     * whereNotNull('order_status_id'), and orders.order_status_id is a
+     * nullOnDelete foreign key onto order_statuses.id — a non-null value is
+     * therefore guaranteed to match exactly one row, never dropped or
+     * duplicated by the join.
+     *
+     * Bucket membership is STAGE-FIRST (FulfillmentService::
+     * tabBucketForParts()'s docblock has the full rule): stage 'unpaid'/
+     * 'cancelled' claims the order's bucket outright; only a stage-'ready'
+     * order buckets by its courier phase, and $phaseStatusGroups (the
+     * per-bucket provider/status index applyPhaseGroups() replays for the
+     * listing query) is populated ONLY from stage-'ready' combos — an
+     * 'unpaid'/'cancelled'-stage order is never reachable through a
+     * (provider, status) group, only through the stage filters index()
+     * builds directly for those two buckets.
      *
      * @param \Illuminate\Database\Eloquent\Builder $base
      * @return array{0: array<string,int>, 1: array<string, array<string, array<int, ?string>>>, 2: array<string,int>}
@@ -268,14 +328,17 @@ class FulfillmentController extends Controller
     private function phaseTally($base): array
     {
         $combos = (clone $base)
-            ->selectRaw('courier_provider, courier_status, (courier_tracking_number IS NULL) as unbooked, COUNT(*) as n')
-            ->groupByRaw('courier_provider, courier_status, (courier_tracking_number IS NULL)')
+            ->join('order_statuses', 'orders.order_status_id', '=', 'order_statuses.id')
+            ->selectRaw('order_statuses.fulfillment_stage as fulfillment_stage, orders.courier_provider as courier_provider, orders.courier_status as courier_status, (orders.courier_tracking_number IS NULL) as unbooked, COUNT(*) as n')
+            ->groupByRaw('order_statuses.fulfillment_stage, orders.courier_provider, orders.courier_status, (orders.courier_tracking_number IS NULL)')
             ->get();
 
         $phaseCounts = array_fill_keys(\Extensions\CourierFulfillment\Support\PhaseTone::PHASES, 0);
         $handoverByCourier = [];      // courier display name => waiting-parcel count (the ERP's co-couriers tally)
-        $phaseStatusGroups = [];      // phase => provider key => raw statuses present in the DB right now
+        $phaseStatusGroups = [];      // bucket => provider key => raw statuses present in the DB right now (stage-'ready' combos only)
         foreach ($combos as $row) {
+            $stage = (string) $row->fulfillment_stage;
+
             // Task T4 fix (+ final-review Finding 2): a 'creating' or
             // 'creation_failed' order is 'unbooked' by this query's own
             // definition (courier_tracking_number IS NULL) but IS/WAS
@@ -286,12 +349,19 @@ class FulfillmentController extends Controller
                 || in_array((string) $row->courier_status, FulfillmentService::ASYNC_CREATE_STATUSES, true);
             $phase = $treatAsBooked
                 ? FulfillmentService::phaseForParts($row->courier_provider, $row->courier_status)
-                : 'to_book';
-            $phaseCounts[$phase] = ($phaseCounts[$phase] ?? 0) + (int) $row->n;
+                : 'to_pack';
 
-            if ($treatAsBooked) {
-                $phaseStatusGroups[$phase][(string) $row->courier_provider][] = $row->courier_status;
-                if ($phase === 'to_handover') {
+            // fulfillment-tabs-v3 Task 2: stage claims the bucket first; a
+            // stage-'ready' order's courier 'booking' phase (async create in
+            // flight) collapses into 'to_handover' for TAB membership only —
+            // phaseForParts() above still reports the honest 'booking' phase
+            // for any row-level badge that reads it separately.
+            $bucket = FulfillmentService::tabBucketForParts($stage, $phase);
+            $phaseCounts[$bucket] = ($phaseCounts[$bucket] ?? 0) + (int) $row->n;
+
+            if ($stage === 'ready' && $treatAsBooked) {
+                $phaseStatusGroups[$bucket][(string) $row->courier_provider][] = $row->courier_status;
+                if ($bucket === 'to_handover') {
                     $name = CourierManager::get((string) $row->courier_provider)?->getName()
                         ?: (strtoupper((string) $row->courier_provider) ?: 'Unknown courier');
                     $handoverByCourier[$name] = ($handoverByCourier[$name] ?? 0) + (int) $row->n;

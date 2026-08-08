@@ -13,7 +13,8 @@ use Tests\TestCase;
 /**
  * Task W1 (fulfillment-workflow-v2 plan): FulfillmentService::phaseFor()
  * is the courier-agnostic entry point the future queue tabs (Task W2) will
- * group orders by — it layers "no booking yet" (to_book) and "booked with
+ * group orders by — it layers "no booking yet" (`to_pack`, renamed by
+ * fulfillment-tabs-v3 Task 2 from its original bucket name) and "booked with
  * an unregistered/unknown courier" on top of whatever the resolved
  * courier's own statusPhase() reports, so callers never need to special-
  * case CourierManager::get() returning null themselves.
@@ -58,10 +59,10 @@ class FulfillmentServicePhaseTest extends TestCase
         return $order;
     }
 
-    public function test_order_never_booked_is_to_book(): void
+    public function test_order_never_booked_is_to_pack(): void
     {
         $order = $this->order(['courier_tracking_number' => null, 'courier_provider' => null, 'courier_status' => null]);
-        $this->assertSame('to_book', FulfillmentService::phaseFor($order));
+        $this->assertSame('to_pack', FulfillmentService::phaseFor($order));
     }
 
     public function test_booked_quadx_order_resolves_the_couriers_own_bucket(): void
@@ -111,7 +112,7 @@ class FulfillmentServicePhaseTest extends TestCase
     // ------------------------------------------------------------------
     // Task T4 fix: an async courier's in-flight creation (SPX's
     // courier_status='creating', no tracking number yet) was previously
-    // short-circuiting to 'to_book' below — this is the regression test
+    // short-circuiting to 'to_pack' below — this is the regression test
     // for that fix (see this method's own docblock in FulfillmentService).
     // SPX is a REAL registered courier (booted via bootEnabled() in
     // setUp()), so no register()/tearDown() dance is needed for it.
@@ -137,6 +138,99 @@ class FulfillmentServicePhaseTest extends TestCase
             'courier_provider' => 'quadx',
             'courier_status' => null,
         ]);
-        $this->assertSame('to_book', FulfillmentService::phaseFor($order));
+        $this->assertSame('to_pack', FulfillmentService::phaseFor($order));
+    }
+
+    // ------------------------------------------------------------------
+    // fulfillment-tabs-v3 Task 2: FulfillmentService::tabBucket() — the
+    // STAGE-FIRST tab/tally membership function. Unlike phaseFor() above
+    // (which stays a pure courier-phase derivation, used for row badges),
+    // tabBucket() layers the order's own OrderStatus::$fulfillment_stage on
+    // top: 'unpaid'/'cancelled' stages claim the order's bucket regardless
+    // of courier state; only a 'ready'-stage order buckets by its courier
+    // phase, with 'booking' (async create in flight) collapsing into
+    // 'to_handover' for membership purposes only.
+    //
+    // $order->setRelation('status', ...) stands in for a real OrderStatus
+    // row without touching the DB — same "no real Order row" pattern this
+    // file already uses via order()/setRawAttributes() above.
+    // ------------------------------------------------------------------
+
+    private function orderWithStage(string $stage, array $attributes): Order
+    {
+        $order = $this->order($attributes);
+        $order->setRelation('status', new \App\Models\OrderStatus(['fulfillment_stage' => $stage]));
+
+        return $order;
+    }
+
+    public function test_unpaid_stage_claims_the_bucket_even_with_an_active_booking(): void
+    {
+        // Spec, verbatim: "unpaid and cancelled stages claim the order
+        // regardless of courier state" — an ACTIVE in-transit booking must
+        // NOT pull this order out of Unpaid.
+        $order = $this->orderWithStage('unpaid', [
+            'courier_tracking_number' => 'QX-ACTIVE-1',
+            'courier_provider' => 'quadx',
+            'courier_status' => 'in_transit',
+        ]);
+        $this->assertSame('unpaid', FulfillmentService::tabBucket($order));
+    }
+
+    public function test_cancelled_stage_claims_the_bucket_even_with_an_in_transit_booking(): void
+    {
+        $order = $this->orderWithStage('cancelled', [
+            'courier_tracking_number' => 'QX-ACTIVE-2',
+            'courier_provider' => 'quadx',
+            'courier_status' => 'in_transit',
+        ]);
+        $this->assertSame('cancelled', FulfillmentService::tabBucket($order));
+    }
+
+    public function test_ready_stage_with_no_tracking_buckets_to_pack(): void
+    {
+        $order = $this->orderWithStage('ready', [
+            'courier_tracking_number' => null,
+            'courier_provider' => null,
+            'courier_status' => null,
+        ]);
+        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
+    }
+
+    /**
+     * "creating" (an async courier's booking mid-flight, phase 'booking')
+     * counts under 'to_handover' for TAB MEMBERSHIP — but phaseFor() itself
+     * (what a row's own badge reads) keeps reporting 'booking' unchanged,
+     * so the row's own payload never loses the honest in-flight state.
+     */
+    public function test_ready_stage_creating_order_buckets_to_handover_but_keeps_booking_phase_on_the_row(): void
+    {
+        $order = $this->orderWithStage('ready', [
+            'courier_tracking_number' => null,
+            'courier_provider' => 'spx',
+            'courier_status' => 'creating',
+        ]);
+        $this->assertSame('to_handover', FulfillmentService::tabBucket($order));
+        $this->assertSame('booking', FulfillmentService::phaseFor($order));
+    }
+
+    /** No explicit stage relation loaded (null order_status_id) defaults to 'ready' — same default the migration itself uses. */
+    public function test_missing_status_relation_defaults_to_ready_stage(): void
+    {
+        $order = $this->order([
+            'courier_tracking_number' => null,
+            'courier_provider' => null,
+            'courier_status' => null,
+        ]);
+        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
+    }
+
+    public function test_tab_bucket_for_parts_mirrors_the_same_stage_first_rule(): void
+    {
+        $this->assertSame('unpaid', FulfillmentService::tabBucketForParts('unpaid', 'in_transit'));
+        $this->assertSame('cancelled', FulfillmentService::tabBucketForParts('cancelled', 'in_transit'));
+        $this->assertSame('to_pack', FulfillmentService::tabBucketForParts('ready', 'to_pack'));
+        $this->assertSame('to_handover', FulfillmentService::tabBucketForParts('ready', 'booking'));
+        $this->assertSame('in_transit', FulfillmentService::tabBucketForParts('ready', 'in_transit'));
     }
 }

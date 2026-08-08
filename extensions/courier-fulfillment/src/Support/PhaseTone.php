@@ -3,8 +3,10 @@
 namespace Extensions\CourierFulfillment\Support;
 
 /**
- * Tone map for the common 8-phase fulfillment status spine
- * (CourierFulfillmentInterface::statusPhase()'s 'phase' bucket).
+ * Tone map for the common fulfillment status spine
+ * (CourierFulfillmentInterface::statusPhase()'s 'phase' bucket, plus the
+ * order-status-stage-level `unpaid` bucket added by the fulfillment-tabs-v3
+ * task — see FulfillmentService::tabBucket()).
  *
  * Every courier names its statuses differently (QuadX's `for_pickup` says
  * the same physical thing as SPX's own vocabulary will), and every one of
@@ -20,15 +22,17 @@ namespace Extensions\CourierFulfillment\Support;
  *   success  the operator's move, right now. This is the only tone that
  *            resolves to the accent colour, so it is the one thing the eye
  *            lands on when a hundred rows are on screen. Spend it nowhere
- *            else — only `to_book` (go book the shipment) earns it.
+ *            else — only `to_pack` (go pack/book the shipment) earns it.
  *   warning  waiting on someone the seller CAN chase — a parcel on its way
- *            back (`returning`).
+ *            back (`returning`), or a buyer who hasn't paid yet (`unpaid`:
+ *            the seller can follow up on a manual/reseller order sitting
+ *            unpaid, the same "chaseable" reasoning as returning).
  *   info     waiting on someone the seller CANNOT chase — a courier
  *            creating, holding, or carrying the shipment (`booking`,
  *            `to_handover`, `in_transit`).
  *   neutral  settled. A finished order should recede, which is why
  *            `delivered` is neutral and not the success tone: a page where
- *            "book this now" and "delivered weeks ago" are the same colour
+ *            "pack this now" and "delivered weeks ago" are the same colour
  *            has no signal left.
  *   danger   ended badly — cancellations, failed/lost/damaged deliveries
  *            (`failed`, `cancelled`).
@@ -38,9 +42,10 @@ namespace Extensions\CourierFulfillment\Support;
  */
 class PhaseTone
 {
-    /** The 8 spine buckets, in their natural happy-path-then-terminal order. */
+    /** The spine buckets, in their natural stage-first-then-happy-path-then-terminal order. */
     public const PHASES = [
-        'to_book',
+        'unpaid',
+        'to_pack',
         'booking',
         'to_handover',
         'in_transit',
@@ -52,7 +57,8 @@ class PhaseTone
 
     /** @var array<string, string> */
     private const TONES = [
-        'to_book'     => 'success',
+        'unpaid'      => 'warning',
+        'to_pack'     => 'success',
         'booking'     => 'info',
         'to_handover' => 'info',
         'in_transit'  => 'info',

@@ -59,7 +59,7 @@
         // tab — returns are a sibling page (the aside link), never an eighth
         // filter (the ERP rule this grammar is copied from).
         $phaseTabs = [
-            'to_book'     => 'To Book',
+            'to_pack'     => 'To Pack',
             'booking'     => 'Booking',
             'to_handover' => 'To Handover',
             'in_transit'  => 'In Transit',

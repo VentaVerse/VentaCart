@@ -381,7 +381,7 @@ class FulfillmentTest extends TestCase
         $this->get($this->queueUrl())
             ->assertOk()
             ->assertDontSee('Fulfillment is paused')
-            ->assertSee('To Book'); // the real queue's filter tabs render
+            ->assertSee('To Pack'); // the real queue's filter tabs render
     }
 
     public function test_queue_page_is_reachable_when_fulfillment_enabled_is_explicitly_one(): void
@@ -406,7 +406,7 @@ class FulfillmentTest extends TestCase
         $response->assertOk()
             ->assertSee('Fulfillment is paused')
             ->assertSee('Go to Courier Settings')
-            ->assertDontSee('To Book'); // the real queue's filter tabs are absent
+            ->assertDontSee('To Pack'); // the real queue's filter tabs are absent
     }
 
     public function test_settings_page_is_reachable_even_while_fulfillment_is_paused(): void

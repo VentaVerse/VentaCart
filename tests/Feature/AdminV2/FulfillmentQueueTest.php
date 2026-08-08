@@ -208,12 +208,12 @@ class FulfillmentQueueTest extends TestCase
         $response = $this->get($this->queueUrl());
         $response->assertOk();
 
-        foreach (['To Book', 'Booking', 'To Handover', 'In Transit', 'Delivered', 'Failed', 'Cancelled'] as $label) {
+        foreach (['To Pack', 'Booking', 'To Handover', 'In Transit', 'Delivered', 'Failed', 'Cancelled'] as $label) {
             $response->assertSee($label);
         }
 
         // Counts, per phase, from the seeded distribution above.
-        $response->assertSee('data-count-for="to_book">2<', false);
+        $response->assertSee('data-count-for="to_pack">2<', false);
         $response->assertSee('data-count-for="booking">0<', false);
         $response->assertSee('data-count-for="to_handover">3<', false);
         $response->assertSee('data-count-for="in_transit">1<', false);
@@ -537,7 +537,7 @@ class FulfillmentQueueTest extends TestCase
         $response = $this->get($this->queueUrl() . '?filter=delivered&q=QX&per_page=10');
         $response->assertOk()
             // Every other tab link keeps the operator's search + page size.
-            ->assertSee('filter=to_book&amp;q=QX&amp;per_page=10', false)
+            ->assertSee('filter=to_pack&amp;q=QX&amp;per_page=10', false)
             ->assertSee('filter=in_transit&amp;q=QX&amp;per_page=10', false)
             // The filters form re-submits within the active tab.
             ->assertSee('name="filter" value="delivered"', false);
@@ -677,13 +677,17 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Task T4: honest "Creating…" state — an SPX booking that's still
-    // mid-flight (courier_status='creating', no tracking number yet) must
-    // count and list under the Booking tab, never To Book — the exact
-    // FulfillmentService::phaseFor() short-circuit T2's report flagged.
+    // Task T4 + fulfillment-tabs-v3 Task 2: honest "Creating…" state — an
+    // SPX booking that's still mid-flight (courier_status='creating', no
+    // tracking number yet) must count and list under To Handover (Task 2's
+    // stage-first collapse: the standalone Booking tab is dropped, 'booking'
+    // phase orders count under to_handover for TAB MEMBERSHIP), never
+    // To Pack — the exact FulfillmentService::phaseFor() short-circuit T2's
+    // report flagged. The row's own badge/label still reads "Booking" (the
+    // internal phase itself is UNCHANGED — only its tab bucket moved).
     // ------------------------------------------------------------------
 
-    public function test_creating_spx_order_counts_and_lists_under_the_booking_tab(): void
+    public function test_creating_spx_order_counts_and_lists_under_the_to_handover_tab(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -702,14 +706,17 @@ class FulfillmentQueueTest extends TestCase
 
         $response = $this->get($this->queueUrl());
         $response->assertOk()
-            ->assertSee('data-count-for="to_book">1<', false)
-            ->assertSee('data-count-for="booking">1<', false);
+            ->assertSee('data-count-for="to_pack">1<', false)
+            ->assertSee('data-count-for="booking">0<', false)
+            ->assertSee('data-count-for="to_handover">1<', false);
 
-        $bookingTab = $this->get($this->queueUrl() . '?filter=booking');
-        $bookingTab->assertOk()
+        $handoverTab = $this->get($this->queueUrl() . '?filter=to_handover');
+        $handoverTab->assertOk()
             ->assertSee('#' . $creatingOrder->id, false)
             // The spine badge label (PhaseTone::toneFor('booking') is
-            // 'info', label is the humanized phase name).
+            // 'info', label is the humanized phase name) is UNCHANGED —
+            // the row's own phase still reads 'booking', only its tab
+            // membership moved.
             ->assertSee('Booking')
             // The raw-status note + the row's action both say "Creating"
             // (one via humanizeStatus()'s real ellipsis character, the
@@ -717,8 +724,14 @@ class FulfillmentQueueTest extends TestCase
             // contain the plain ASCII substring asserted here).
             ->assertSee('Creating');
 
-        // Default view (To Book) must NOT show the creating order.
+        // Default view (To Pack) must NOT show the creating order.
         $this->get($this->queueUrl())
+            ->assertOk()
+            ->assertDontSee('#' . $creatingOrder->id, false);
+
+        // The old Booking-tab filter is now empty — its combos all
+        // collapsed into to_handover for tab membership.
+        $this->get($this->queueUrl() . '?filter=booking')
             ->assertOk()
             ->assertDontSee('#' . $creatingOrder->id, false);
     }

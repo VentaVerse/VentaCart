@@ -235,8 +235,8 @@ class QuadXFulfillment implements CourierFulfillmentInterface
                 'received_at_pickup_hub','claimed','confirmed_transit'];
 
     /**
-     * Buckets a raw QuadX status onto the 8-phase spine. Never returns
-     * 'to_book' (no booking isn't a courier status) or 'booking' (QuadX's
+     * Buckets a raw QuadX status onto the spine. Never returns
+     * 'to_pack' (no booking isn't a courier status) or 'booking' (QuadX's
      * createShipment() is synchronous — see the interface docblock).
      */
     private static function phaseBucket(string $s): string

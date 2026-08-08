@@ -1172,7 +1172,7 @@ class ReskinWaveTest extends TestCase
 
     /**
      * Fulfillment queue (extensions/courier-fulfillment) — seeds one order per
-     * filter phase (to_book: no tracking number; in_transit: tracking number,
+     * filter phase (to_pack: no tracking number; in_transit: tracking number,
      * not delivered; delivered: courier_status = delivered) and pins that the
      * filter param scopes the result set and survives into the rendered
      * filter-pill/search markup, matching FulfillmentController::index().
@@ -1205,7 +1205,7 @@ class ReskinWaveTest extends TestCase
             ]);
         };
 
-        $toBook = $makeOrder('tobook');
+        $toPack = $makeOrder('topack');
 
         $inTransit = $makeOrder('intransit');
         $inTransit->forceFill([
@@ -1227,11 +1227,11 @@ class ReskinWaveTest extends TestCase
         // raw prefix-based paths are used instead, same as UrlGrammarTest.
         $base = '/' . config('admin.prefix', 'admin') . '/sales/fulfillment';
 
-        // Default filter (to_book) renders the shell and shows only the unbooked order.
+        // Default filter (to_pack) renders the shell and shows only the unbooked order.
         $this->get($base)
             ->assertOk()
             ->assertSee('v-admin', false)
-            ->assertSee('#' . $toBook->id)
+            ->assertSee('#' . $toPack->id)
             ->assertDontSee('#' . $inTransit->id)
             ->assertDontSee('#' . $delivered->id);
 
@@ -1240,7 +1240,7 @@ class ReskinWaveTest extends TestCase
         $this->get($base . '?filter=in_transit')
             ->assertOk()
             ->assertSee('#' . $inTransit->id)
-            ->assertDontSee('#' . $toBook->id)
+            ->assertDontSee('#' . $toPack->id)
             ->assertDontSee('#' . $delivered->id)
             ->assertSee('name="filter" value="in_transit"', false);
 
@@ -1248,14 +1248,14 @@ class ReskinWaveTest extends TestCase
         $this->get($base . '?filter=delivered')
             ->assertOk()
             ->assertSee('#' . $delivered->id)
-            ->assertDontSee('#' . $toBook->id)
+            ->assertDontSee('#' . $toPack->id)
             ->assertDontSee('#' . $inTransit->id)
             ->assertSee('name="filter" value="delivered"', false);
 
         // all filter: every order, q param preserved alongside filter.
         $this->get($base . '?filter=all&q=jane')
             ->assertOk()
-            ->assertSee('#' . $toBook->id)
+            ->assertSee('#' . $toPack->id)
             ->assertSee('#' . $inTransit->id)
             ->assertSee('#' . $delivered->id)
             ->assertSee('name="filter" value="all"', false);
