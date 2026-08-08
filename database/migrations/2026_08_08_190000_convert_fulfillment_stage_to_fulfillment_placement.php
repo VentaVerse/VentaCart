@@ -62,6 +62,24 @@ return new class extends Migration
 
     /**
      * Reverse the migrations.
+     *
+     * LOSSY, ONE-WAY ROLLBACK: fulfillment_stage has only three values, so
+     * the four placements this task's refinement introduced beyond the raw
+     * up() conversion (to_handover, in_transit, delivered, failed) have no
+     * home to round-trip into here; they all collapse into 'ready' (the
+     * whereNotIn(['unpaid', 'cancelled']) branch below), same as the raw
+     * up() conversion's 'ready' -> 'to_pack' step in reverse. Concretely:
+     * roll back then re-migrate WIPES any name-based refinement applied
+     * after up() ran, whether from OrderStatusSeeder::placementFor() or the
+     * sanctioned dev-DB tinker one-off (the one-off is intentionally never
+     * committed, so it is not reproducible from a migration replay) -
+     * every refined row resets to 'to_pack'. There is no data to preserve
+     * across the rollback for those four values, only the name they were
+     * refined from. To RE-APPLY the refinement after a rollback + re-
+     * migrate, re-run the same name rule the seeder and the one-off both
+     * use: `Database\Seeders\OrderStatusSeeder::placementFor($status->name)`
+     * per row, via tinker (see task-1-report.md's dev-DB section for the
+     * exact command that was run).
      */
     public function down(): void
     {

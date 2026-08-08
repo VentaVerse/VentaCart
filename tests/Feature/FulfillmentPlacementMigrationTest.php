@@ -14,7 +14,7 @@ use Tests\TestCase;
  * fulfillment_placement (unpaid|to_pack|to_handover|in_transit|delivered|
  * failed|cancelled). RefreshDatabase already runs every migration
  * (including this one) before each test, so old-style rows can't exist in
- * the normal test flow — this test rolls back exactly the placement
+ * the normal test flow: this test rolls back exactly the placement
  * migration, seeds old-shape rows by hand, then re-runs it to prove the
  * three known-value conversions (unpaid -> unpaid, cancelled -> cancelled,
  * ready -> to_pack) actually happen, on the SAME sqlite :memory: engine
@@ -24,8 +24,24 @@ class FulfillmentPlacementMigrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * The name of the migration under test. --step=1 below only rolls back
+     * the RIGHT file while this migration stays the most recently run one;
+     * pinned here (and asserted before rolling back) so a later migration
+     * landing on top of it fails this test with a clear message instead of
+     * silently rolling back the wrong file.
+     */
+    private const TARGET_MIGRATION = '2026_08_08_190000_convert_fulfillment_stage_to_fulfillment_placement';
+
     public function test_migration_converts_the_three_known_stage_values(): void
     {
+        $lastMigration = DB::table('migrations')->orderByDesc('id')->value('migration');
+        $this->assertSame(
+            self::TARGET_MIGRATION,
+            $lastMigration,
+            'A migration landed after the placement migration; --step=1 would now roll back the wrong file. Point this test at the placement migration explicitly instead of relying on it being last.'
+        );
+
         Artisan::call('migrate:rollback', ['--step' => 1]);
 
         Store::create(['id' => 1, 'name' => 'Test Store', 'code' => 'test']);

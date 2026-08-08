@@ -99,7 +99,7 @@
                                 </div>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
-                                <span class="text-v-secondary">{{ $orderCounts[$status->id] ?? 0 }}</span>
+                                <span class="text-v-secondary">{{ number_format($orderCounts[$status->id] ?? 0) }}</span>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
                                 <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
