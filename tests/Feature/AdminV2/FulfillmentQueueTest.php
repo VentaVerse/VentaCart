@@ -244,11 +244,39 @@ class FulfillmentQueueTest extends TestCase
             ->assertSee('QX-H-100')
             ->assertDontSee('QX-D-100');
 
-        // Default view is To Book — neither booked order shows there.
+        // Default view is To Pack — neither booked order shows there.
         $this->get($this->queueUrl())
             ->assertOk()
             ->assertDontSee('QX-D-100')
             ->assertDontSee('QX-H-100');
+    }
+
+    // ------------------------------------------------------------------
+    // Code-review fix (Critical): phaseTally() (fulfillment-tabs-v3 Task 2)
+    // clones $base and joins order_statuses for the stage-first tally — a
+    // table that ALSO has an 'id' column. The numeric-search branch below
+    // used to write a bare 'id' into that SAME shared $base closure, so
+    // MySQL threw SQLSTATE 1052 "Column 'id' in where clause is ambiguous"
+    // the instant phaseTally() ran with q=<a numeric id> — i.e. every
+    // numeric search, on every page load, since phaseTally() always runs.
+    // 'orders.id' is now explicit. This exercises the exact path that 500'd:
+    // a real page load (which runs BOTH $query's own listing and
+    // phaseTally()'s joined combos query) with a numeric q.
+    // ------------------------------------------------------------------
+
+    public function test_numeric_search_does_not_500_the_stage_joined_tally(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $order = $this->makeOrder('for_pickup', 'QX-NUM-1');
+        $this->makeOrder(); // a second, non-matching order in the same tally
+
+        $response = $this->get($this->queueUrl() . '?filter=to_handover&q=' . $order->id);
+
+        $response->assertOk()
+            ->assertSee('#' . $order->id, false)
+            ->assertSee('data-count-for="to_handover">1<', false);
     }
 
     // ------------------------------------------------------------------

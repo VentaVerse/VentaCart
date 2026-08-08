@@ -51,9 +51,22 @@ class FulfillmentController extends Controller
             ->whereNotNull('order_status_id'); // Ghost/abandoned orders (no status) are never fulfilled — same default as the core Orders page.
 
         if ($s = $request->query('q')) {
+            // Task 2 fix (code review, Critical): 'orders.' qualification is
+            // load-bearing, not cosmetic — phaseTally() below clones $base
+            // and joins order_statuses (fulfillment-tabs-v3 Task 2's stage
+            // join), which ALSO has an 'id' column. An unqualified 'id' here
+            // is unambiguous on $query's own listing (no join there) but
+            // 500s with SQLSTATE 1052 "Column 'id' in where clause is
+            // ambiguous" the moment the SAME closure runs inside phaseTally()'s
+            // joined combos query — i.e. every numeric search, on every page
+            // load, since phaseTally() always runs. Every other column this
+            // closure touches (courier_tracking_number, shipping_first_name,
+            // shipping_last_name) is orders-only and order_status_id below is
+            // also orders-only (order_statuses has no such column) — 'id' is
+            // the sole collision.
             $base->where(function ($x) use ($s) {
                 if (is_numeric($s)) {
-                    $x->orWhere('id', $s);
+                    $x->orWhere('orders.id', $s);
                 }
                 $x->orWhere('courier_tracking_number', 'like', "%{$s}%")
                     ->orWhereRaw("CONCAT(shipping_first_name,' ',shipping_last_name) like ?", ["%{$s}%"]);
