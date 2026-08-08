@@ -783,7 +783,6 @@
                             <template x-if="active.creating">
                                 <div class="rounded-v-md bg-v-sunken border border-v-border px-4 py-3 text-sm text-v-text">
                                     <span class="font-medium">Creating shipment with <span x-text="active.provider"></span>&hellip;</span>
-                                    <p class="mt-1 text-xs text-v-muted">This usually takes a few seconds. Use "Refresh from couriers" or refresh the page shortly to see the tracking number.</p>
                                 </div>
                             </template>
                             @if (!empty($courierOptions))
@@ -796,13 +795,15 @@
                                              SAME rule the server enforces
                                              (FulfillmentService::bookingBlockedReason()), so the drawer
                                              never offers a booking the queue would not, and never one
-                                             that would be refused: an order that is not placed under
-                                             To Pack gets the explanation without the button. --}}
+                                             that would be refused. Owner directive (2026-08-09, "no
+                                             explanatory sentence whose only job is to describe why a
+                                             control is absent"): an order that is not placed under To
+                                             Pack simply gets no Book button and no caption for it, same
+                                             as the row it was opened from. --}}
                                         <template x-if="active.creationFailed">
                                             <div class="rounded-v-md border border-v-danger bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-xs text-v-danger">
                                                 <span class="font-semibold">Booking failed:</span>
                                                 <span x-text="active.creationError || 'the courier could not create this shipment.'"></span>
-                                                <span x-show="active.canBook">Fix the cause and book again below.</span>
                                             </div>
                                         </template>
                                         <template x-if="active.rebookable && active.canBook">
@@ -812,9 +813,6 @@
                                         </template>
                                         <template x-if="active.canBook">
                                             <x-admin.button type="button" variant="primary" class="w-full" @click="closeDrawer(); openBooking(active)">Book shipment</x-admin.button>
-                                        </template>
-                                        <template x-if="!active.canBook">
-                                            <p class="text-xs text-v-muted">Change this order's status to one placed under To Pack to book it again.</p>
                                         </template>
                                     </div>
                                 </template>
