@@ -685,6 +685,350 @@ class FulfillmentCancelSemanticsTest extends TestCase
     }
 
     // ------------------------------------------------------------------
+    // FINAL-review F1 (the coherent rule): a stage-claimed (unpaid or
+    // cancelled) order that still carries courier state keeps its
+    // courier-appropriate actions; stage gates only block NEW bookings.
+    // The cancelled-stage action matrix:
+    //   active booking      -> Cancel booking + Tracking
+    //   creating            -> Creating (drawer opener) only
+    //   courier-cancelled   -> Tracking + rebook hint, never a Rebook
+    //                          button (the stage gate would refuse it)
+    //   no courier state    -> view-only (locked in by
+    //                          test_cancel_order_moves_status_... above)
+    // ------------------------------------------------------------------
+
+    private const REBOOK_HINT = 'Booking cancelled by courier. Change the order status to a ready stage to rebook.';
+
+    public function test_cancelled_stage_row_with_an_active_booking_offers_cancel_booking_and_tracking(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        app(ExtensionManager::class)->bootEnabled();
+        $this->enableQuadxStaging();
+
+        $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
+        $order = $this->makeOrder($cancelledStatus);
+        // for_pickup is in QuadXFulfillment::cancelableStatuses() - the
+        // parcel is live and must be stoppable from the queue.
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-CXLSTAGE-A1',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        $response = $this->get($this->queueUrl() . '?filter=cancelled');
+        $response->assertOk()
+            ->assertSee('data-count-for="cancelled">1<', false)
+            ->assertSee('QX-CXLSTAGE-A1')
+            // Cancel booking: the dispatch AND its confirm dialog render.
+            ->assertSee("cancel-fulfillment-{$order->id}", false)
+            // Tracking: the row drawer opener renders.
+            ->assertSee('openDrawer(JSON.parse(', false)
+            // Never a new-booking affordance, never the order-cancel one,
+            // and no rebook hint - the booking is still live.
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            ->assertDontSee("cancel-order-{$order->id}", false)
+            ->assertDontSee(self::REBOOK_HINT);
+    }
+
+    public function test_cancelled_stage_row_mid_async_create_offers_the_creating_drawer_opener_only(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        app(ExtensionManager::class)->bootEnabled();
+        $this->enableQuadxStaging();
+
+        $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
+        $order = $this->makeOrder($cancelledStatus);
+        // Async create still in flight: courier state, no tracking number.
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_status' => 'creating',
+            'courier_tracking_number' => null,
+        ])->save();
+
+        $response = $this->get($this->queueUrl() . '?filter=cancelled');
+        $response->assertOk()
+            ->assertSee('#' . $order->id, false)
+            ->assertSee('Creating')
+            ->assertSee('openDrawer(JSON.parse(', false)
+            // No tracking number yet, so a Cancel booking could not
+            // succeed server-side - it must not render.
+            ->assertDontSee("cancel-fulfillment-{$order->id}", false)
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            ->assertDontSee(self::REBOOK_HINT);
+    }
+
+    public function test_cancelled_stage_row_with_a_courier_cancelled_booking_offers_tracking_and_the_rebook_hint_never_rebook(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        app(ExtensionManager::class)->bootEnabled();
+        $this->enableQuadxStaging();
+
+        $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
+        $order = $this->makeOrder($cancelledStatus);
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-CXLSTAGE-C1',
+            'courier_status' => 'canceled',
+        ])->save();
+
+        $response = $this->get($this->queueUrl() . '?filter=cancelled');
+        $response->assertOk()
+            ->assertSee('QX-CXLSTAGE-C1')
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertSee(self::REBOOK_HINT)
+            // A Rebook here would always be refused by the stage gate - a
+            // button that cannot succeed never renders.
+            ->assertDontSee('Rebook')
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            ->assertDontSee("cancel-fulfillment-{$order->id}", false)
+            ->assertDontSee('Print waybill');
+    }
+
+    public function test_unpaid_stage_row_with_a_courier_cancelled_booking_renders_only_its_working_cancel_order_action(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        app(ExtensionManager::class)->bootEnabled();
+        $this->enableQuadxStaging();
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $order = $this->makeOrder($unpaidStatus);
+        // Historical shape: unpaid stage carrying courier-cancelled state.
+        // Per the owner ruling this row lives in the Unpaid bucket, whose
+        // single Cancel order action works (not actively booked) - no dead
+        // button may render beside it.
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-UNPAID-CXL1',
+            'courier_status' => 'canceled',
+        ])->save();
+
+        $response = $this->get($this->queueUrl() . '?filter=unpaid');
+        $response->assertOk()
+            ->assertSee('#' . $order->id, false)
+            ->assertSee("cancel-order-{$order->id}", false)
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            ->assertDontSee('Rebook')
+            ->assertDontSee("cancel-fulfillment-{$order->id}", false);
+    }
+
+    public function test_unpaid_stage_creation_failed_row_keeps_its_details_drawer_but_never_a_dead_book_button(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        app(ExtensionManager::class)->bootEnabled();
+        $this->enableQuadxStaging();
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $order = $this->makeOrder($unpaidStatus);
+        // A permanently failed async create on an unpaid-stage order: the
+        // 'failed' courier phase wins the bucket (owner ruling), but a Book
+        // button would always be refused by the stage gate - it must not
+        // render. The Details drawer (where the error reads) stays.
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_status' => 'creation_failed',
+            'courier_tracking_number' => null,
+            'courier_meta' => json_encode(['creation_error' => 'SPX rejected the delivery address']),
+        ])->save();
+
+        $response = $this->get($this->queueUrl() . '?filter=failed');
+        $response->assertOk()
+            ->assertSee('#' . $order->id, false)
+            ->assertSee('SPX rejected the delivery address')
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertDontSee('openBooking(JSON.parse(', false);
+    }
+
+    // ------------------------------------------------------------------
+    // FINAL-review F2: with the coherent rule in place, the QuadX status
+    // map (courier canceled -> order status Canceled, auto-restock) no
+    // longer kills the exception path - the full chain stays visible and
+    // actionable. The status-map DATA itself is unchanged.
+    // ------------------------------------------------------------------
+
+    public function test_quadx_courier_side_cancel_webhook_maps_to_cancelled_stage_restocks_and_keeps_tracking_with_the_hint(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        Setting::create(['group' => 'courier', 'key' => 'quadx_webhook_token', 'value' => 'qx-cancel-hook-token']);
+
+        // The map the settings page's smart default proposes: courier
+        // 'canceled' -> the status named "Canceled" (cancelled stage,
+        // increment stock on entry).
+        $canceled = $this->statusWithStage('cancelled', 'Canceled', 'increment');
+        Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
+            'canceled' => ['order_status_id' => $canceled->id, 'notify' => false],
+        ])]);
+
+        $product = Product::create([
+            'store_id' => 1,
+            'name' => 'Guitar Strap',
+            'slug' => 'guitar-strap',
+            'price' => 500,
+            'quantity' => 10,
+            'track_stock' => true,
+        ]);
+
+        $order = $this->makeOrder();
+        OrderProduct::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'price' => 500,
+            'quantity' => 2,
+            'total' => 1000,
+        ]);
+        $order->update(['stock_adjusted' => true]);
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-COURIER-CXL1',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        // The courier-side cancel arrives via the real webhook path.
+        $this->postJson('/webhooks/courier/quadx?token=qx-cancel-hook-token', [
+            'data' => [[
+                'reference_id' => (string) $order->id,
+                'tracking_number' => 'QX-COURIER-CXL1',
+                'status' => 'canceled',
+                'status_updated_at' => now()->toIso8601String(),
+            ]],
+        ])->assertOk()->assertJson(['ok' => true]);
+
+        $order->refresh();
+        // The map applied: core status moved to the cancelled stage and the
+        // mapped status restocked the two units. Courier state STAYS.
+        $this->assertSame($canceled->id, $order->order_status_id);
+        $this->assertSame('cancelled', $order->status->fulfillment_stage);
+        $this->assertSame('canceled', $order->courier_status);
+        $this->assertSame('QX-COURIER-CXL1', $order->courier_tracking_number);
+        $this->assertSame(12, (int) $product->fresh()->quantity);
+        $this->assertFalse((bool) $order->stock_adjusted);
+
+        // The exception surfaces in Cancelled WITH Tracking + the rebook
+        // hint - never a bare view-only row, never a dead Rebook.
+        $response = $this->get($this->queueUrl() . '?filter=cancelled');
+        $response->assertOk()
+            ->assertSee('data-count-for="cancelled">1<', false)
+            ->assertSee('QX-COURIER-CXL1')
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertSee(self::REBOOK_HINT)
+            ->assertDontSee('Rebook')
+            ->assertDontSee('openBooking(JSON.parse(', false)
+            ->assertDontSee("cancel-fulfillment-{$order->id}", false);
+    }
+
+    // ------------------------------------------------------------------
+    // FINAL-review F3: the stage gate blocks only genuinely NEW bookings -
+    // the idempotent branches (already booked, async create in flight)
+    // answer first, so an ERP retry for an already-booked order whose stage
+    // regressed still reads already_booked, never stage_blocked.
+    // ------------------------------------------------------------------
+
+    public function test_book_answers_already_booked_for_an_actively_booked_order_even_on_a_regressed_stage(): void
+    {
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        Http::fake(); // an outbound call would itself be a bug
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $order = $this->makeOrder($unpaidStatus);
+        $order->forceFill([
+            'courier_provider' => 'quadx',
+            'courier_tracking_number' => 'QX-RETRY-001',
+            'courier_status' => 'for_pickup',
+        ])->save();
+
+        $res = app(\Extensions\CourierFulfillment\FulfillmentService::class)->book($order, [
+            'courier' => 'quadx',
+            'service' => 'next_day',
+            'parcel' => 'box',
+            'shipping_payment' => 'net_off',
+        ]);
+
+        $this->assertTrue($res['success']);
+        $this->assertTrue($res['already_booked']);
+        $this->assertSame('QX-RETRY-001', $res['tracking_number']);
+        $this->assertArrayNotHasKey('code', $res);
+        Http::assertNothingSent();
+    }
+
+    public function test_book_answers_creation_in_progress_not_stage_blocked_for_a_mid_create_order_on_a_regressed_stage(): void
+    {
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        Http::fake();
+
+        $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
+        $order = $this->makeOrder($unpaidStatus);
+        $order->forceFill([
+            'courier_provider' => 'spx',
+            'courier_status' => 'creating',
+            'courier_tracking_number' => null,
+        ])->save();
+
+        $res = app(\Extensions\CourierFulfillment\FulfillmentService::class)->book($order, [
+            'courier' => 'quadx',
+            'service' => 'next_day',
+            'parcel' => 'box',
+            'shipping_payment' => 'net_off',
+        ]);
+
+        $this->assertFalse($res['success']);
+        $this->assertSame('creation_in_progress', $res['code']);
+        Http::assertNothingSent();
+    }
+
+    // ------------------------------------------------------------------
+    // FINAL-review F5: the hub's cancel-order-status select offers ONLY
+    // cancelled-stage statuses (the only coherent targets), and the save
+    // validation enforces the same scope.
+    // ------------------------------------------------------------------
+
+    public function test_hub_cancel_status_select_lists_only_cancelled_stage_statuses(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $canceled = $this->statusWithStage('cancelled', 'Canceled');
+        $void = $this->statusWithStage('cancelled', 'Voided');
+        $this->statusWithStage('ready', 'ReadyStageStatus');
+
+        $this->get($this->settingsUrl())
+            ->assertOk()
+            ->assertSee('Use default (Canceled)')
+            ->assertSee('<option value="' . $canceled->id . '"', false)
+            ->assertSee('<option value="' . $void->id . '"', false)
+            ->assertDontSee('ReadyStageStatus');
+    }
+
+    public function test_hub_save_rejects_a_non_cancelled_stage_status_id(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->statusWithStage('cancelled', 'Canceled');
+        $ready = $this->statusWithStage('ready', 'ReadyStageStatus');
+
+        $this->get($this->settingsUrl())->assertOk(); // prime routes
+
+        $this->post($this->settingsUrl(), [
+            'settings' => ['cancel_order_status_id' => (string) $ready->id],
+        ])->assertSessionHasErrors('settings.cancel_order_status_id');
+
+        $this->assertDatabaseMissing('settings', [
+            'group' => 'courier',
+            'key' => 'cancel_order_status_id',
+            'value' => (string) $ready->id,
+        ]);
+    }
+
+    // ------------------------------------------------------------------
     // After a reset the tracking-number-dependent routes must degrade
     // gracefully (friendly flash / 404), never 500. The cached label PDF of
     // the old tracking number stays on disk harmlessly - nothing links to

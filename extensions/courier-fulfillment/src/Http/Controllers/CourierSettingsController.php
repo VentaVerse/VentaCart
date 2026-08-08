@@ -257,7 +257,13 @@ class CourierSettingsController extends Controller
         // turning "never chose" into "explicitly chose"). The default
         // itself (the status named "Canceled") is resolved at cancel time
         // by FulfillmentController::cancelOrder().
-        $orderStatuses = \App\Models\OrderStatus::orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
+        //
+        // FINAL-review fix (F5): only cancelled-STAGE statuses are offered -
+        // they are the only coherent targets (a Cancel order that lands the
+        // order anywhere but the Cancelled tab would contradict the whole
+        // stage model). update() enforces the same scope server-side.
+        $orderStatuses = \App\Models\OrderStatus::where('fulfillment_stage', 'cancelled')
+            ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->toArray();
         $cancelOrderStatusId = $settings['cancel_order_status_id'] ?? null;
 
         return view('courier-fulfillment::settings', compact(
@@ -373,9 +379,16 @@ class CourierSettingsController extends Controller
     {
         // fulfillment-tabs-v3 Task 4: the cancel-status target must be a
         // real order status — an arbitrary id would send every queue
-        // "Cancel order" into a silent fallback.
+        // "Cancel order" into a silent fallback. FINAL-review fix (F5):
+        // and a cancelled-STAGE one, matching the select's own scope -
+        // any other stage would cancel the order into a tab that denies
+        // it was cancelled.
         $request->validate([
-            'settings.cancel_order_status_id' => ['nullable', 'integer', 'exists:order_statuses,id'],
+            'settings.cancel_order_status_id' => [
+                'nullable',
+                'integer',
+                \Illuminate\Validation\Rule::exists('order_statuses', 'id')->where('fulfillment_stage', 'cancelled'),
+            ],
         ]);
 
         $data = array_intersect_key(

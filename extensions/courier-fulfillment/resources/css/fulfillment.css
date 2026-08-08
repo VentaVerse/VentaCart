@@ -544,6 +544,18 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
 
 .co-actions__danger { color: var(--danger) !important; }
 
+/* FINAL-review fix (F1): the cancelled-stage courier-exception hint -
+   explains why no Rebook renders (the stage gate blocks new bookings)
+   and names the one path forward. Muted: guidance, not an alarm. */
+.co-actions__hint {
+    margin-top: 6px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-muted);
+    white-space: normal;
+    max-width: 24ch;
+}
+
 /* ------------------------------------------------------------------
    Pager: "1 to N of M" mono left, Prev/Next right.
    ------------------------------------------------------------------ */

@@ -224,26 +224,6 @@ class FulfillmentService
      */
     public function book(Order $order, array $opts): array
     {
-        // Stage gate (owner ruling, 2026-08-08 spec amendment): booking is
-        // refused server-side for unpaid-stage and cancelled-stage orders —
-        // this is what makes the "an actively-booked order is never unpaid-
-        // bucketed" invariant real. The owner's workflow: move a really-paid
-        // order to Processing (ready stage) first, then book. Checked FIRST
-        // (before any courier is resolved) and shared by BOTH callers of
-        // this method (admin queue + ERP endpoint) — the ERP's 409-vs-422
-        // branch keys off 'courier_unavailable' only, so 'stage_blocked'
-        // answers 422 there.
-        $stage = $order->status?->fulfillment_stage ?? 'ready';
-        if (in_array($stage, ['unpaid', 'cancelled'], true)) {
-            return [
-                'success' => false,
-                'code'    => 'stage_blocked',
-                'error'   => $stage === 'unpaid'
-                    ? "Order #{$order->id} is unpaid. Set its status to a ready stage (e.g. Processing) before booking."
-                    : "Order #{$order->id} is cancelled. Restore it to a ready stage (e.g. Processing) before booking.",
-            ];
-        }
-
         // Async-create-in-progress guard (T2 review, CRITICAL 2). An async
         // courier (SPX) can return success from createShipment() with NO
         // tracking number yet — courier_status='creating', batch_no stashed
@@ -301,6 +281,33 @@ class FulfillmentService
                 'courier'         => $order->courier_provider,
                 'tracking_number' => $order->courier_tracking_number,
                 'status'          => $order->courier_status,
+            ];
+        }
+
+        // Stage gate (owner ruling, 2026-08-08 spec amendment): booking is
+        // refused server-side for unpaid-stage and cancelled-stage orders -
+        // this is what makes the "an actively-booked order is never unpaid-
+        // bucketed" invariant real. The owner's workflow: move a really-paid
+        // order to Processing (ready stage) first, then book. Shared by BOTH
+        // callers of this method (admin queue + ERP endpoint) - the ERP's
+        // 409-vs-422 branch keys off 'courier_unavailable' only, so
+        // 'stage_blocked' answers 422 there.
+        //
+        // FINAL-review fix (F3): checked BELOW the two idempotent branches
+        // above (creation_in_progress + already_booked), never before them -
+        // the gate blocks genuinely NEW bookings only. An ERP retry for an
+        // order that is already booked must keep answering already_booked
+        // (200) even if the order's stage regressed after the booking; a
+        // stage-blocked answer there would read as a failed booking for a
+        // shipment that in fact exists.
+        $stage = $order->status?->fulfillment_stage ?? 'ready';
+        if (in_array($stage, ['unpaid', 'cancelled'], true)) {
+            return [
+                'success' => false,
+                'code'    => 'stage_blocked',
+                'error'   => $stage === 'unpaid'
+                    ? "Order #{$order->id} is unpaid. Set its status to a ready stage (e.g. Processing) before booking."
+                    : "Order #{$order->id} is cancelled. Restore it to a ready stage (e.g. Processing) before booking.",
             ];
         }
 
