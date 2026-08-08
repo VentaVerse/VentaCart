@@ -12,6 +12,10 @@
                             <x-admin.input type="text" name="name" required :value="$user->name ?? ''" />
                         </x-admin.field>
 
+                        <x-admin.field name="username" label="Username">
+                            <x-admin.input type="text" name="username" required :value="$user->username ?? ''" autocomplete="username" />
+                        </x-admin.field>
+
                         <x-admin.field name="email" label="Email">
                             <x-admin.input type="email" name="email" required :value="$user->email ?? ''" />
                         </x-admin.field>

@@ -8,6 +8,7 @@
         <x-admin.table>
             <x-slot:head>
                 <x-admin.table.th>Name</x-admin.table.th>
+                <x-admin.table.th>Username</x-admin.table.th>
                 <x-admin.table.th>Email</x-admin.table.th>
                 <x-admin.table.th>Role</x-admin.table.th>
                 <x-admin.table.th>Status</x-admin.table.th>
@@ -23,6 +24,9 @@
                             </div>
                             <span class="text-[13px] font-medium text-v-text">{{ $user->name }}</span>
                         </div>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell>
+                        <span class="text-[13px] text-v-secondary">{{ $user->username }}</span>
                     </x-admin.table.cell>
                     <x-admin.table.cell>
                         <span class="text-[13px] text-v-secondary">{{ $user->email }}</span>
@@ -60,7 +64,7 @@
                 </x-admin.table.row>
             @empty
                 <tr>
-                    <td colspan="6" class="px-4 py-2">
+                    <td colspan="7" class="px-4 py-2">
                         <x-admin.empty-state icon="customers" title="No users found." />
                     </td>
                 </tr>

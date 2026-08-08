@@ -30,12 +30,16 @@ class DatabaseSeeder extends Seeder
             $this->call($seeder);
         }
 
-        // Create super admin user
+        // Create super admin user. Username is derived from the email
+        // local-part (the part before "@"), which is how every other admin
+        // account gets its username too (see the one-off backfill for
+        // existing installs and the Users CRUD's admin-entered value).
         $superAdmin = \App\Models\Role::where('slug', 'super-admin')->first();
         User::firstOrCreate(
             ['email' => 'admin@venta.local'],
             [
                 'name' => 'Admin',
+                'username' => 'admin',
                 'password' => bcrypt('password'),
                 'role_id' => $superAdmin?->id,
                 'is_active' => true,

@@ -25,6 +25,9 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            // alpha_dash-safe: Faker's userName() can contain dots (e.g. "jane.doe"),
+            // so slug it to match the admin Users CRUD's alpha_dash validation rule.
+            'username' => Str::slug(fake()->unique()->userName(), '_'),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
