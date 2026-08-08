@@ -1,6 +1,31 @@
 <x-admin.settings-shell title="Courier Settings" :wide="true" active="fulfillment">
+    @push('head')
+        @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
+    @endpush
 
     <div class="space-y-6">
+
+        {{-- Setup notice (owner ruling, 2026-08-09). The seeder ships no
+             fulfillment-specific statuses on purpose, so a fresh install has
+             nowhere to move a booked order to and booking refuses outright
+             (FulfillmentService::book()'s no_booked_status branch). That
+             refusal must never be a mystery: this is the one screen an admin
+             configuring the module is already on, so it says what is missing
+             and links straight to the page that fixes it. Disappears the
+             moment any status is placed under To Handover. --}}
+        @if (empty($handoverStatuses))
+            <div class="cf-setup-notice" role="status">
+                <div class="cf-setup-notice__body">
+                    <p class="cf-setup-notice__title">Finish setup: no order status is placed under To Handover</p>
+                    <p class="cf-setup-notice__text">
+                        Booking a courier moves the order onto a status placed under To Handover, and it is refused while no such status exists.
+                        Open Sales, Order Statuses, then set the fulfillment placement of the status you use for packed orders awaiting pickup
+                        (for example "Order Being Shipped") to To Handover. Come back here to pick it as the booked order status if you keep more than one.
+                    </p>
+                </div>
+                <a class="cf-setup-notice__btn" href="{{ route('admin.order-statuses.index') }}">Go to Order Statuses</a>
+            </div>
+        @endif
 
         {{-- Module-level card: not owned by any one courier's schema. --}}
         <x-admin.card title="Fulfillment" description="Pause the manual booking queue, choose which payment methods book as COD, and share your webhook URLs with couriers.">

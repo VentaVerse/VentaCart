@@ -5,6 +5,20 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * The store's baseline order statuses.
+ *
+ * SETUP POLICY (owner ruling, 2026-08-09): this seeder ships NO
+ * fulfillment-specific statuses. The courier fulfillment module is
+ * configured deliberately at setup, so a fresh install deliberately has no
+ * To-Handover-placed status until the merchant creates one under Sales,
+ * Order Statuses - and the fulfillment settings hub carries a setup notice
+ * saying exactly that, because booking refuses without one.
+ *
+ * placementFor() below still classifies whatever names DO exist (including
+ * fulfillment-shaped names a merchant creates, or an OpenCart-era store
+ * brings with it), which is a different job from seeding them.
+ */
 class OrderStatusSeeder extends Seeder
 {
     /**
@@ -26,9 +40,9 @@ class OrderStatusSeeder extends Seeder
     private const DELIVERED_NAMES = ['Delivered', 'Complete'];
 
     /**
-     * Status names (case-insensitive) that default to the "in_transit" fulfillment placement.
+     * Status names (case-insensitive) that default to the "shipping" fulfillment placement.
      */
-    private const IN_TRANSIT_NAMES = ['Shipped', 'In Transit to Manila'];
+    private const SHIPPING_NAMES = ['Shipped', 'In Transit to Manila'];
 
     /**
      * Status names (case-insensitive) that default to the "to_handover" fulfillment placement.
@@ -44,14 +58,6 @@ class OrderStatusSeeder extends Seeder
             ['name' => 'Pending', 'is_default' => true, 'sort_order' => 1],
             ['name' => 'Processing', 'is_default' => false, 'sort_order' => 2],
             ['name' => 'Shipped', 'is_default' => false, 'sort_order' => 3],
-            // fulfillment-placement Task 3: the one To-Handover-placed status
-            // a fresh install needs. Booking moves an order onto a status
-            // placed under To Handover (FulfillmentService::bookedStatus()),
-            // and refuses when no such status exists - so seeding this makes
-            // the courier queue work out of the box instead of on the second
-            // trip through Sales, Order Statuses. Placement comes from
-            // placementFor() below, which already knows this name.
-            ['name' => 'Order Being Shipped', 'is_default' => false, 'sort_order' => 4],
             ['name' => 'Complete', 'is_default' => false, 'sort_order' => 5],
             ['name' => 'Canceled', 'is_default' => false, 'sort_order' => 7],
             ['name' => 'Denied', 'is_default' => false, 'sort_order' => 8],
@@ -95,8 +101,8 @@ class OrderStatusSeeder extends Seeder
             return 'delivered';
         }
 
-        if (in_array($needle, array_map('mb_strtolower', self::IN_TRANSIT_NAMES), true)) {
-            return 'in_transit';
+        if (in_array($needle, array_map('mb_strtolower', self::SHIPPING_NAMES), true)) {
+            return 'shipping';
         }
 
         if (in_array($needle, array_map('mb_strtolower', self::TO_HANDOVER_NAMES), true)) {

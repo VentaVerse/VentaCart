@@ -70,7 +70,7 @@ class OrderStatusesPageTest extends TestCase
         $this->assertSame('to_pack', $status->fresh()->fulfillment_placement);
     }
 
-    public function test_page_shows_all_seven_placement_options_and_badges(): void
+    public function test_page_shows_all_eight_placement_options_and_badges(): void
     {
         $this->actingAs(User::factory()->create());
         OrderStatus::create(['store_id' => 1, 'name' => 'Unpaid', 'fulfillment_placement' => 'unpaid', 'sort_order' => 1]);
@@ -84,12 +84,15 @@ class OrderStatusesPageTest extends TestCase
             ->assertSee('Cancelled')
             ->assertSee('To Pack')
             ->assertSee('To Handover')
-            ->assertSee('In Transit')
+            ->assertSee('Shipping')
+            ->assertSee('Lost & Damaged')
             ->assertSee('Delivered')
-            ->assertSee('Failed');
+            ->assertSee('Failed')
+            // The retired spelling is gone from the page entirely.
+            ->assertDontSee('In Transit');
 
-        // Seven <option> values render inside the row selector.
-        foreach (['unpaid', 'to_pack', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'] as $value) {
+        // Eight <option> values render inside the row selector.
+        foreach (['unpaid', 'to_pack', 'to_handover', 'shipping', 'failed', 'lost_damaged', 'delivered', 'cancelled'] as $value) {
             $response->assertSee('value="' . $value . '"', false);
         }
     }
@@ -104,6 +107,7 @@ class OrderStatusesPageTest extends TestCase
             ->assertSee('awaiting packing')
             ->assertSee('awaiting courier pickup')
             ->assertSee('with the courier en route')
+            ->assertSee('parcel lost or damaged')
             ->assertSee('delivered to the customer')
             ->assertSee('delivery failed or is returning')
             ->assertSee('will not be fulfilled');
@@ -147,7 +151,7 @@ class OrderStatusesPageTest extends TestCase
         $this->actingAs(User::factory()->create());
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Backordered', 'fulfillment_placement' => 'to_pack', 'sort_order' => 5]);
 
-        foreach (['to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'] as $value) {
+        foreach (['to_handover', 'shipping', 'lost_damaged', 'delivered', 'failed', 'cancelled'] as $value) {
             $this->put(route('admin.order-statuses.update', $status), [
                 'name' => 'Backordered', 'fulfillment_placement' => $value, 'sort_order' => 5,
             ])->assertRedirect();

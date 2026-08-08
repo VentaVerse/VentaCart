@@ -21,26 +21,36 @@ use Illuminate\Support\Facades\Storage;
 class FulfillmentController extends Controller
 {
     /**
-     * fulfillment-tabs-v3 Task 3: the current URL vocabulary — every value
-     * this page's own segment-bar links can ever set. 'all' stays a valid
-     * (unlisted, no tab of its own) deep-link escape hatch, same as before
-     * this task.
+     * The URL vocabulary: every value this page's own segment-bar links can
+     * ever set, in the order the bar renders them (owner rulings,
+     * 2026-08-09).
+     *
+     * 'all' and 'to_ship' are the two entries that are NOT placements:
+     * 'all' is a VIEW over every order (no status is ever placed there),
+     * 'to_ship' is a heading over the to_pack / to_handover sub-tabs. Every
+     * other value is an order_statuses.fulfillment_placement value.
      */
-    private const VALID_FILTERS = ['unpaid', 'to_ship', 'in_transit', 'delivered', 'failed', 'cancelled', 'all'];
+    private const VALID_FILTERS = [
+        'all', 'unpaid', 'to_ship', 'shipping',
+        'failed', 'lost_damaged', 'delivered', 'cancelled',
+    ];
     private const VALID_SUBS = ['to_pack', 'to_handover'];
 
     /**
-     * Pre-Task-3 filter values a saved link/bookmark can still carry:
-     * 'to_book' predates Task 2's to_pack rename, 'to_handover' and
-     * 'booking' were their own top-level tabs before this task folded both
-     * into To Ship's sub-tabs. 301 (house convention for a moved resource —
-     * see ShippingSettingController::index()'s TAB_REDIRECTS) so an old
-     * link converges on the new URL instead of staying broken forever.
+     * Retired filter values a saved link/bookmark can still carry:
+     * 'to_book' predates the to_pack rename, 'to_handover' and 'booking'
+     * were their own top-level tabs before To Ship folded both into its
+     * sub-tabs, and 'in_transit' is what the Shipping tab was called before
+     * the 2026-08-09 rulings renamed it. 301 (house convention for a moved
+     * resource, see ShippingSettingController::index()'s TAB_REDIRECTS) so
+     * an old link converges on the new URL instead of staying broken
+     * forever.
      */
     private const LEGACY_FILTER_REDIRECTS = [
         'to_book'     => ['filter' => 'to_ship', 'sub' => 'to_pack'],
         'to_handover' => ['filter' => 'to_ship', 'sub' => 'to_handover'],
         'booking'     => ['filter' => 'to_ship', 'sub' => 'to_handover'],
+        'in_transit'  => ['filter' => 'shipping'],
     ];
 
     public function index(Request $request)
@@ -76,11 +86,12 @@ class FulfillmentController extends Controller
         $couriers = CourierManager::enabled();
         $primary  = $couriers[0] ?? null;
 
-        // fulfillment-tabs-v3 Task 3: 'filter' is one of the six top-level
-        // segment-bar tabs (+ 'all' as a deep-link escape hatch); an
+        // 'filter' is one of the eight top-level segment-bar tabs; an
         // unrecognized value (never emitted by this page's own links, and
         // not one of the legacy aliases handled above) falls back to the
-        // default tab rather than rendering an empty/broken page.
+        // default tab rather than rendering an empty/broken page. To Ship
+        // stays the default: it is where fulfillment work actually starts,
+        // and All is a lookup surface, not a worklist.
         $filter = in_array($rawFilter, self::VALID_FILTERS, true) ? $rawFilter : 'to_ship';
 
         // 'sub' only has meaning under 'to_ship' (spec: "sub ignored
@@ -96,7 +107,8 @@ class FulfillmentController extends Controller
         // identical to $filter for every tab except To Ship, which is a
         // HEADING with no membership of its own and defers to its ACTIVE
         // sub-tab's placement (to_pack / to_handover). Every value here is
-        // an order_statuses.fulfillment_placement value, one per tab.
+        // an order_statuses.fulfillment_placement value, one per tab, with
+        // the single exception of 'all', a VIEW that constrains nothing.
         $bucket = $filter === 'to_ship' ? $sub : $filter;
 
         $perPage = (int) $request->query('per_page', 25);
@@ -137,6 +149,12 @@ class FulfillmentController extends Controller
         $phaseCounts = $this->placementTally($base);
         $handoverByCourier = $this->handoverByCourier($base);
 
+        // All is a VIEW, not a placement: its count is every order in scope,
+        // summed from the placement tally itself so it can never disagree
+        // with the tabs it sits above. Computed BEFORE the To Ship line
+        // below, which would otherwise be counted a second time.
+        $phaseCounts['all'] = array_sum($phaseCounts);
+
         // To Ship is a HEADING, not a placement: its count is exactly its
         // two sub-tabs added together, and the two are disjoint placements,
         // so no row can be counted twice.
@@ -162,9 +180,10 @@ class FulfillmentController extends Controller
         //
         // Branches on $bucket, not $filter: they are the same string for
         // every tab except To Ship, which is a heading whose ACTIVE SUB-tab
-        // ('to_pack' or 'to_handover') is what narrows the listing. 'all'
-        // stays supported as an unlisted deep-link escape hatch and adds no
-        // constraint at all.
+        // ('to_pack' or 'to_handover') is what narrows the listing. The All
+        // tab adds no constraint at all: it lists every order in scope, and
+        // each row still renders the actions of the tab it really belongs
+        // to (the view derives that per row from tabBucket()).
         if ($bucket !== 'all') {
             $query->whereHas('status', fn ($q) => $q->where('fulfillment_placement', $bucket));
         }
@@ -325,7 +344,7 @@ class FulfillmentController extends Controller
      * order_statuses.fulfillment_placement. No courier column is read, no
      * PHP bucketing happens, and no phase is derived - because membership
      * is the placement and nothing else (FulfillmentService::tabBucket()).
-     * Work is proportional to the number of DISTINCT placements (seven),
+     * Work is proportional to the number of DISTINCT placements (eight),
      * never to the number of orders.
      *
      * The join is a safe INNER join: $base always carries

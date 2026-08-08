@@ -1172,7 +1172,7 @@ class ReskinWaveTest extends TestCase
 
     /**
      * Fulfillment queue (extensions/courier-fulfillment) — seeds one order per
-     * filter phase (to_pack: no tracking number; in_transit: tracking number,
+     * filter phase (to_pack: no tracking number; shipping: tracking number,
      * not delivered; delivered: courier_status = delivered) and pins that the
      * filter param scopes the result set and survives into the rendered
      * filter-pill/search markup, matching FulfillmentController::index().
@@ -1194,7 +1194,7 @@ class ReskinWaveTest extends TestCase
         // pages render in the new shell, and each filter round-trips its
         // param into the search form) is unchanged.
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
-        $shippedStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'fulfillment_placement' => 'in_transit']);
+        $shippedStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2, 'fulfillment_placement' => 'shipping']);
         $deliveredStatus = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 3, 'fulfillment_placement' => 'delivered']);
 
         $makeOrder = function (string $suffix, ?OrderStatus $on = null) use ($status) {
@@ -1242,14 +1242,14 @@ class ReskinWaveTest extends TestCase
             ->assertDontSee('#' . $inTransit->id)
             ->assertDontSee('#' . $delivered->id);
 
-        // in_transit filter: only the booked-not-delivered order, param preserved
+        // shipping filter: only the booked-not-delivered order, param preserved
         // in the hidden search-form input the view renders.
-        $this->get($base . '?filter=in_transit')
+        $this->get($base . '?filter=shipping')
             ->assertOk()
             ->assertSee('#' . $inTransit->id)
             ->assertDontSee('#' . $toPack->id)
             ->assertDontSee('#' . $delivered->id)
-            ->assertSee('name="filter" value="in_transit"', false);
+            ->assertSee('name="filter" value="shipping"', false);
 
         // delivered filter: only the delivered order.
         $this->get($base . '?filter=delivered')

@@ -272,7 +272,7 @@ class FulfillmentServicePhaseTest extends TestCase
 
         $this->assertNull(FulfillmentService::bookingBlockedReason($this->orderPlaced('to_pack', $attributes)));
 
-        foreach (['unpaid', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'] as $placement) {
+        foreach (['unpaid', 'to_handover', 'shipping', 'failed', 'lost_damaged', 'delivered', 'cancelled'] as $placement) {
             $reason = FulfillmentService::bookingBlockedReason($this->orderPlaced($placement, $attributes));
             $this->assertNotNull($reason, "placement={$placement}");
             $this->assertStringContainsString('Set its status to one placed under To Pack before booking.', $reason);

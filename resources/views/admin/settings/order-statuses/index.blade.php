@@ -1,4 +1,22 @@
 <x-admin.settings-shell title="Order Statuses" :wide="true">
+        @php
+            // The fulfillment placement vocabulary, in the queue's own tab
+            // order (owner rulings, 2026-08-09). Declared once here and used
+            // by all three surfaces on this page - the legend, the per-row
+            // select and badge, and the Add status select - so none of them
+            // can drift apart. The queue's All tab is deliberately absent:
+            // it is a VIEW over every order, never a placement.
+            $placementMeta = [
+                'unpaid'       => ['label' => 'Unpaid', 'tone' => 'warning', 'hint' => 'waiting on payment, appears in the Unpaid tab'],
+                'to_pack'      => ['label' => 'To Pack', 'tone' => 'success', 'hint' => 'paid and awaiting packing, appears in To Ship > To Pack'],
+                'to_handover'  => ['label' => 'To Handover', 'tone' => 'success', 'hint' => 'packed and awaiting courier pickup, appears in To Ship > To Handover'],
+                'shipping'     => ['label' => 'Shipping', 'tone' => 'success', 'hint' => 'with the courier en route, appears in the Shipping tab'],
+                'failed'       => ['label' => 'Failed', 'tone' => 'danger', 'hint' => 'delivery failed or is returning, appears in the Failed tab'],
+                'lost_damaged' => ['label' => 'Lost & Damaged', 'tone' => 'danger', 'hint' => 'parcel lost or damaged, appears in the Lost & Damaged tab for insurance claims'],
+                'delivered'    => ['label' => 'Delivered', 'tone' => 'success', 'hint' => 'delivered to the customer, appears in the Delivered tab'],
+                'cancelled'    => ['label' => 'Cancelled', 'tone' => 'danger', 'hint' => 'will not be fulfilled, appears in the Cancelled tab'],
+            ];
+        @endphp
         <div class="space-y-5">
             <x-admin.card title="Stock actions" description="What happens to inventory when an order enters a status.">
                 <div class="flex flex-wrap gap-4 text-[13px]">
@@ -10,13 +28,12 @@
 
             <x-admin.card title="Fulfillment placements" description="Which fulfillment queue tab a status belongs to.">
                 <div class="flex flex-wrap gap-4 text-[13px]">
-                    <span class="flex items-center gap-2"><x-admin.badge tone="warning">Unpaid</x-admin.badge><span class="text-v-secondary">waiting on payment, appears in the Unpaid tab</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="success">To Pack</x-admin.badge><span class="text-v-secondary">paid and awaiting packing, appears in To Ship &gt; To Pack</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="success">To Handover</x-admin.badge><span class="text-v-secondary">packed and awaiting courier pickup, appears in To Ship &gt; To Handover</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="success">In Transit</x-admin.badge><span class="text-v-secondary">with the courier en route, appears in the In Transit tab</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="success">Delivered</x-admin.badge><span class="text-v-secondary">delivered to the customer, appears in the Delivered tab</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">Failed</x-admin.badge><span class="text-v-secondary">delivery failed or is returning, appears in the Failed tab</span></span>
-                    <span class="flex items-center gap-2"><x-admin.badge tone="danger">Cancelled</x-admin.badge><span class="text-v-secondary">will not be fulfilled, appears in the Cancelled tab</span></span>
+                    @foreach ($placementMeta as $meta)
+                        <span class="flex items-center gap-2">
+                            <x-admin.badge :tone="$meta['tone']">{{ $meta['label'] }}</x-admin.badge>
+                            <span class="text-v-secondary">{{ $meta['hint'] }}</span>
+                        </span>
+                    @endforeach
                 </div>
             </x-admin.card>
 
@@ -34,20 +51,6 @@
                         @csrf @method('PUT')
                     </form>
                 @endforeach
-
-                @php
-                    // Label + badge tone per placement, kept next to the table
-                    // that renders them so the two never drift apart.
-                    $placementMeta = [
-                        'unpaid'      => ['label' => 'Unpaid', 'tone' => 'warning'],
-                        'to_pack'     => ['label' => 'To Pack', 'tone' => 'success'],
-                        'to_handover' => ['label' => 'To Handover', 'tone' => 'success'],
-                        'in_transit'  => ['label' => 'In Transit', 'tone' => 'success'],
-                        'delivered'   => ['label' => 'Delivered', 'tone' => 'success'],
-                        'failed'      => ['label' => 'Failed', 'tone' => 'danger'],
-                        'cancelled'   => ['label' => 'Cancelled', 'tone' => 'danger'],
-                    ];
-                @endphp
 
                 <x-admin.table>
                     <x-slot:head>
@@ -146,14 +149,14 @@
                         </x-admin.select>
                     </x-admin.field>
                     <x-admin.field name="fulfillment_placement" label="Fulfillment placement">
+                        {{-- Same vocabulary, same order as the per-row select
+                             above: driven from $placementMeta so the two can
+                             never drift apart. To Pack is the default for a
+                             brand new status. --}}
                         <x-admin.select name="fulfillment_placement">
-                            <option value="unpaid">Unpaid</option>
-                            <option value="to_pack" selected>To Pack</option>
-                            <option value="to_handover">To Handover</option>
-                            <option value="in_transit">In Transit</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="failed">Failed</option>
-                            <option value="cancelled">Cancelled</option>
+                            @foreach ($placementMeta as $value => $meta)
+                                <option value="{{ $value }}" @selected($value === 'to_pack')>{{ $meta['label'] }}</option>
+                            @endforeach
                         </x-admin.select>
                     </x-admin.field>
                     <x-admin.field name="sort_order" label="Sort">

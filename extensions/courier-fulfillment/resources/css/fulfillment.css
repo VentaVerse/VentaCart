@@ -106,6 +106,68 @@
 .cf-awb-flash__btn:hover { opacity: .9; }
 
 /* ------------------------------------------------------------------
+   Setup notice - the courier settings hub, when the store has no
+   To-Handover-placed order status. Booking is refused outright in that
+   state (FulfillmentService::book()), and the seeder deliberately ships
+   no fulfillment statuses, so this has to read as a blocking setup step
+   rather than an aside: warning tone, a solid rule down the leading
+   edge, and its own call to action. Louder than the AWB flash above on
+   purpose - that one confirms something good already happened, this one
+   says the module cannot work yet.
+   ------------------------------------------------------------------ */
+
+.cf-setup-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+    border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+    border-inline-start: 3px solid var(--warning);
+    border-radius: var(--radius-md);
+}
+
+.cf-setup-notice__body {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.cf-setup-notice__title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--warning);
+}
+
+.cf-setup-notice__text {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.cf-setup-notice__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: var(--control-h-sm);
+    padding: 0 14px;
+    background: var(--warning);
+    color: var(--surface);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity var(--motion-fast);
+}
+
+.cf-setup-notice__btn:hover { opacity: .9; }
+
+/* ------------------------------------------------------------------
    Segment bar: the spine-phase tabs. Active item lifts onto --surface
    inside a sunken trough — elevation and a hairline ring, never a brand
    colour (colour belongs to the status column alone).

@@ -11,9 +11,14 @@ use Illuminate\Support\Facades\DB;
 class OrderStatusController extends Controller
 {
     /**
-     * The seven fulfillment_placement values, one per fulfillment queue tab.
+     * The eight fulfillment_placement values, one per fulfillment queue tab,
+     * in tab order. The queue's All tab is deliberately absent: it is a VIEW
+     * over every order, never a placement a status can be put into.
      */
-    private const PLACEMENTS = ['unpaid', 'to_pack', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'];
+    private const PLACEMENTS = [
+        'unpaid', 'to_pack', 'to_handover', 'shipping',
+        'failed', 'lost_damaged', 'delivered', 'cancelled',
+    ];
 
     private int $storeId;
 

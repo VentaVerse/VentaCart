@@ -69,24 +69,38 @@
             return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
         };
 
-        // The six top-level tabs, Unpaid first (owner directive - gateways
-        // auto-advance paid orders past it, so it's where manual/reseller
-        // orders wait). Each is a GROUP that core order statuses are placed
-        // into (Settings, Order Statuses): a tab is never a status, and the
+        // The eight top-level tabs, in the owner's ruled order (2026-08-09).
+        // Each is a GROUP that core order statuses are placed into
+        // (Settings, Order Statuses): a tab is never a status, and the
         // status's placement is the only thing that decides which tab an
-        // order appears in. To Ship is a heading with no placement of its
-        // own: its count is its two sub-tabs added together, and it renders
-        // a SUB-segment bar below (To Pack / To Handover) rather than being
-        // a single flat list. Returns is deliberately NOT a tab - it is a
-        // sibling page (the aside link), never a seventh filter (the ERP
-        // rule this grammar is copied from).
+        // order appears in.
+        //
+        // Two of them are not placements, for opposite reasons:
+        //
+        //  - All is a VIEW over every order. No status can ever be placed
+        //    there; each row simply renders the actions of the tab it
+        //    really belongs to (see $rowBucket below).
+        //  - To Ship is a HEADING: its count is its two sub-tabs added
+        //    together, and it renders a SUB-segment bar (To Pack / To
+        //    Handover) rather than being a single flat list.
+        //
+        // Unpaid sits first among the real placements (owner directive -
+        // gateways auto-advance paid orders past it, so it's where
+        // manual/reseller orders wait), and Failed sits before Delivered.
+        // Lost & Damaged is the insurance-claim worklist: neither courier
+        // exposes a claims API, so it is where a human chases the money.
+        // Returns is deliberately NOT a tab - it is a sibling page (the
+        // aside link), never a ninth filter (the ERP rule this grammar is
+        // copied from).
         $phaseTabs = [
-            'unpaid'     => 'Unpaid',
-            'to_ship'    => 'To Ship',
-            'in_transit' => 'In Transit',
-            'delivered'  => 'Delivered',
-            'failed'     => 'Failed',
-            'cancelled'  => 'Cancelled',
+            'all'          => 'All',
+            'unpaid'       => 'Unpaid',
+            'to_ship'      => 'To Ship',
+            'shipping'     => 'Shipping',
+            'failed'       => 'Failed',
+            'lost_damaged' => 'Lost & Damaged',
+            'delivered'    => 'Delivered',
+            'cancelled'    => 'Cancelled',
         ];
 
         // To Ship's own two sub-tabs — default sub is To Pack (where
@@ -136,11 +150,11 @@
             <p class="cf-cmdbar__hint">Pulls the latest status for every in-flight shipment from each enabled courier, the same pull the scheduled automation runs.</p>
         </div>
 
-        {{-- Segment bar: Unpaid first, then the spine phases, each with a
-             mono count. Returns is a sibling page on the far side, not an
-             eighth tab. To Ship's link always lands on its DEFAULT sub-tab
-             (To Pack) — the active sub-tab's own bar (below) is what lets
-             the operator move to To Handover from there. --}}
+        {{-- Segment bar: the eight tabs above, each with a mono count.
+             Returns is a sibling page on the far side, not a ninth tab. To
+             Ship's link always lands on its DEFAULT sub-tab (To Pack), the
+             active sub-tab's own bar (below) is what lets the operator move
+             to To Handover from there. --}}
         <div class="cf-segment-bar">
             <div class="cf-segment" role="tablist" aria-label="Fulfillment phase">
                 @foreach ($phaseTabs as $key => $label)
@@ -320,16 +334,33 @@
                             // The row's tab: its core status placement, nothing
                             // else (FulfillmentService::tabBucket()). It is the
                             // ONLY input to the action matrix below, which is
-                            // hardcoded per tab exactly as the spec's table
-                            // states:
+                            // hardcoded per tab exactly as the owner's
+                            // 2026-08-09 rulings state:
                             //
-                            //   Unpaid       Cancel order
-                            //   To Pack      Book, Cancel order
-                            //   To Handover  Print waybill, Tracking, Cancel booking
-                            //   In Transit   Tracking
-                            //   Delivered    Tracking
-                            //   Failed       Tracking
-                            //   Cancelled    none
+                            //   Tracking       every tab except Unpaid
+                            //   Print waybill  every tab except Unpaid
+                            //   Cancel booking To Handover only
+                            //   Book           To Pack only
+                            //   Cancel order   Unpaid and To Pack
+                            //
+                            // (Both courier actions additionally require the
+                            // row to carry courier data, and Print waybill a
+                            // LIVE booking - see their gates below.)
+                            //
+                            // Deriving the bucket PER ROW (rather than from
+                            // the active tab) is also what makes the All tab
+                            // work: its rows are drawn from every placement,
+                            // and each one carries the buttons of the tab it
+                            // really belongs to.
+                            //
+                            // The two courier actions being everywhere-but-
+                            // Unpaid is this round's refinement, and it closes
+                            // a real dead end: before it, a live parcel whose
+                            // core status sat in an unexpected tab (Failed,
+                            // Cancelled, or any custom placement) rendered NO
+                            // buttons at all - no waybill to reprint, no
+                            // tracking to open. A real parcel always carries
+                            // its own buttons.
                             //
                             // Two gates apply on top, and only ever SUBTRACT:
                             // a courier action renders only when the row
@@ -360,15 +391,26 @@
                                 && !$creating;
 
                             // Tracking / Creating / Details: one drawer opener,
-                            // on the tabs whose action list includes Tracking,
-                            // and only for a row that has courier state worth
-                            // opening.
-                            $offersDrawer = $hasCourierData
-                                && in_array($rowBucket, ['to_handover', 'in_transit', 'delivered', 'failed'], true);
+                            // on every tab except Unpaid, for any row that has
+                            // courier state worth opening. An Unpaid order has
+                            // not been booked (booking is a To Pack action), so
+                            // there is nothing to track there.
+                            $offersDrawer = $hasCourierData && $rowBucket !== 'unpaid';
 
-                            // Print waybill: To Handover, live booking only (a
-                            // cancelled shipment has no printable AWB).
-                            $offersWaybill = $rowBucket === 'to_handover' && $activelyBooked;
+                            // Print waybill: every tab except Unpaid, whenever
+                            // the row carries a LIVE parcel. "Live" is the
+                            // subtractive gate doing its job, not a narrowing
+                            // of the ruling: a cancelled booking has no
+                            // printable AWB and the couriers refuse it
+                            // server-side (SpxFulfillment::printLabel()
+                            // returns "Cancelled shipments have no printable
+                            // waybill"), so offering the button would be
+                            // offering a refusal. isActivelyBooked() already
+                            // requires a tracking number, and it is
+                            // phase-first, so a courier-vocabulary cancel
+                            // (SPX '7001') reads the same as the literal
+                            // 'canceled' the admin cancel writes.
+                            $offersWaybill = $rowBucket !== 'unpaid' && $activelyBooked;
 
                             // Cancel booking: To Handover, while the courier
                             // still allows cancelling this shipment.

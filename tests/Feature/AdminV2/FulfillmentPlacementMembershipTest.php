@@ -22,15 +22,13 @@ use Tests\TestCase;
  * would with no fulfillment module installed, by the per-courier status map
  * moving the order's CORE status, whose placement then names the tab.
  *
- * Actions are hardcoded per tab (spec section 3):
+ * Actions are hardcoded per tab (owner rulings, 2026-08-09):
  *
- *   Unpaid       Cancel order
- *   To Pack      Book, Cancel order
- *   To Handover  Print waybill, Tracking, Cancel booking (while cancelable)
- *   In Transit   Tracking
- *   Delivered    Tracking
- *   Failed       Tracking
- *   Cancelled    none
+ *   Tracking        every tab except Unpaid
+ *   Print waybill   every tab except Unpaid
+ *   Cancel booking  To Handover only
+ *   Book            To Pack only
+ *   Cancel order    Unpaid and To Pack
  *
  * with two subtractive gates: a courier action renders only when the row
  * actually carries courier data, and no action renders that the server
@@ -212,10 +210,14 @@ class FulfillmentPlacementMembershipTest extends TestCase
             ->assertSee('data-count-for="to_pack">2<', false)
             ->assertSee('data-count-for="to_handover">1<', false)
             ->assertSee('data-count-for="to_ship">3<', false)
-            ->assertSee('data-count-for="in_transit">1<', false)
-            ->assertSee('data-count-for="delivered">1<', false)
+            ->assertSee('data-count-for="shipping">1<', false)
             ->assertSee('data-count-for="failed">1<', false)
-            ->assertSee('data-count-for="cancelled">1<', false);
+            ->assertSee('data-count-for="lost_damaged">1<', false)
+            ->assertSee('data-count-for="delivered">1<', false)
+            ->assertSee('data-count-for="cancelled">1<', false)
+            // All is a VIEW, not a placement: one order per placement plus
+            // the extra To Pack one.
+            ->assertSee('data-count-for="all">9<', false);
     }
 
     /**
@@ -307,7 +309,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
         $this->installExtension();
 
         $toHandover = $this->statusPlaced('to_handover', 'Order Being Shipped');
-        $inTransit = $this->statusPlaced('in_transit', 'Shipped');
+        $shipping = $this->statusPlaced('shipping', 'Shipped');
 
         $order = $this->makeOrder($toHandover, 'QX-MAP-001', 'for_pickup');
 
@@ -317,9 +319,9 @@ class FulfillmentPlacementMembershipTest extends TestCase
 
         // What a courier status map does: change the CORE status. Nothing
         // else about the shipment changes.
-        $order->forceFill(['order_status_id' => $inTransit->id])->save();
+        $order->forceFill(['order_status_id' => $shipping->id])->save();
 
-        $this->get($this->queueUrl() . '?filter=in_transit')
+        $this->get($this->queueUrl() . '?filter=shipping')
             ->assertOk()
             ->assertSee('QX-MAP-001');
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
@@ -407,21 +409,27 @@ class FulfillmentPlacementMembershipTest extends TestCase
             ->assertDontSee('Parcels waiting for handover');
     }
 
-    public function test_in_transit_and_delivered_rows_offer_tracking_only(): void
+    /**
+     * Owner ruling, 2026-08-09: a real parcel always carries its own
+     * buttons, so Tracking and Print waybill render on every tab except
+     * Unpaid. Neither tab offers Book, Cancel order or Cancel booking.
+     */
+    public function test_shipping_delivered_and_lost_damaged_rows_offer_tracking_and_waybill(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
         $this->enableQuadxStaging();
 
-        $transit = $this->makeOrder($this->statusPlaced('in_transit', 'Shipped'), 'QX-T-001', 'in_transit');
+        $shipping = $this->makeOrder($this->statusPlaced('shipping', 'Shipped'), 'QX-T-001', 'in_transit');
         $delivered = $this->makeOrder($this->statusPlaced('delivered', 'Delivered'), 'QX-D-001', 'delivered');
+        $lost = $this->makeOrder($this->statusPlaced('lost_damaged', 'Lost in Transit'), 'QX-L-001', 'in_transit');
 
-        foreach ([['in_transit', $transit, 'QX-T-001'], ['delivered', $delivered, 'QX-D-001']] as [$tab, $order, $tracking]) {
+        foreach ([['shipping', $shipping, 'QX-T-001'], ['delivered', $delivered, 'QX-D-001'], ['lost_damaged', $lost, 'QX-L-001']] as [$tab, $order, $tracking]) {
             $response = $this->get($this->queueUrl() . '?filter=' . $tab);
             $response->assertOk()
                 ->assertSee($tracking)
                 ->assertSee('openDrawer(JSON.parse(', false)
-                ->assertDontSee('Print waybill')
+                ->assertSee('Print waybill')
                 ->assertDontSee('openBooking(JSON.parse(', false)
                 ->assertDontSee("cancel-order-{$order->id}", false)
                 ->assertDontSee("cancel-fulfillment-{$order->id}", false);
@@ -445,23 +453,63 @@ class FulfillmentPlacementMembershipTest extends TestCase
         $response->assertOk()
             ->assertSee('QX-F-001')
             ->assertSee('openDrawer(JSON.parse(', false)
+            // The parcel exists, so its own two buttons come with it.
+            ->assertSee('Print waybill')
             ->assertSee("Change this order's status to one placed under To Pack to book it again.", false)
             ->assertDontSee('openBooking(JSON.parse(', false)
-            ->assertDontSee('Print waybill')
             ->assertDontSee("cancel-order-{$order->id}", false);
     }
 
-    public function test_cancelled_row_offers_no_actions_at_all(): void
+    /**
+     * A Cancelled-placed row offers no WORKFLOW action (no Book, no Cancel
+     * order, no Cancel booking) - but it still carries its parcel's own
+     * buttons, per the 2026-08-09 ruling. Which of the two it gets depends
+     * only on the parcel: Tracking whenever courier state exists, Print
+     * waybill only while the booking is live, because a cancelled shipment
+     * has no printable AWB and the courier refuses to produce one.
+     */
+    public function test_cancelled_row_offers_no_workflow_actions_only_its_parcel_buttons(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
         $this->enableQuadxStaging();
 
-        $order = $this->makeOrder($this->statusPlaced('cancelled', 'Canceled'), 'QX-C-001', 'canceled');
+        $cancelledBooking = $this->makeOrder($this->statusPlaced('cancelled', 'Canceled'), 'QX-C-001', 'canceled');
+        // The dead end this ruling closes: a LIVE parcel whose core status
+        // was moved to a cancelled-placed one. Before the ruling this row
+        // had no buttons at all.
+        $liveParcel = $this->makeOrder($this->statusPlaced('cancelled', 'Canceled'), 'QX-C-002', 'for_pickup');
 
         $response = $this->get($this->queueUrl() . '?filter=cancelled');
         $response->assertOk()
             ->assertSee('QX-C-001')
+            ->assertSee('QX-C-002')
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertSee('Print waybill')
+            // The live parcel is the one with a waybill; the cancelled
+            // booking is not.
+            ->assertSee('/sales/fulfillment/' . $liveParcel->id . '/label', false)
+            ->assertDontSee('/sales/fulfillment/' . $cancelledBooking->id . '/label', false)
+            ->assertDontSee('openBooking(JSON.parse(', false);
+
+        foreach ([$cancelledBooking, $liveParcel] as $order) {
+            $response->assertDontSee("cancel-order-{$order->id}", false)
+                ->assertDontSee("cancel-fulfillment-{$order->id}", false);
+        }
+    }
+
+    /** With no parcel on it, a Cancelled row genuinely offers nothing. */
+    public function test_cancelled_row_without_courier_data_offers_nothing(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        $order = $this->makeOrder($this->statusPlaced('cancelled', 'Canceled'));
+
+        $response = $this->get($this->queueUrl() . '?filter=cancelled');
+        $response->assertOk()
+            ->assertSee($this->rowMarker($order->id), false)
             ->assertDontSee('openBooking(JSON.parse(', false)
             ->assertDontSee('openDrawer(JSON.parse(', false)
             ->assertDontSee('Print waybill')
@@ -481,7 +529,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
 
         Http::fake(); // any outbound call here would itself be a bug
 
-        foreach (['unpaid', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'] as $placement) {
+        foreach (['unpaid', 'to_handover', 'shipping', 'failed', 'lost_damaged', 'delivered', 'cancelled'] as $placement) {
             $order = $this->makeOrder($this->statusPlaced($placement));
 
             $response = $this->post($this->queueUrl() . '/' . $order->id . '/book', [

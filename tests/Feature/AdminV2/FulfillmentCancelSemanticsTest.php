@@ -589,7 +589,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $response->assertOk()
             ->assertSee('data-count-for="unpaid">3<', false)
             ->assertSee('data-count-for="to_handover">0<', false)
-            ->assertSee('data-count-for="in_transit">0<', false);
+            ->assertSee('data-count-for="shipping">0<', false);
 
         // All three list under Unpaid, and none of them anywhere else.
         $unpaidTab = $this->get($this->queueUrl() . '?filter=unpaid');
@@ -606,7 +606,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
             ->assertDontSee('QX-UNPAID-H1');
-        $this->get($this->queueUrl() . '?filter=in_transit')
+        $this->get($this->queueUrl() . '?filter=shipping')
             ->assertOk()
             ->assertDontSee('QX-UNPAID-T1');
     }
@@ -739,7 +739,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
     private const BOOK_AGAIN_HINT = "Change this order's status to one placed under To Pack to book it again.";
 
-    public function test_a_cancelled_placed_row_offers_no_actions_in_any_courier_state(): void
+    public function test_a_cancelled_placed_row_offers_no_workflow_actions_in_any_courier_state(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -777,10 +777,13 @@ class FulfillmentCancelSemanticsTest extends TestCase
             ->assertSee('data-count-for="cancelled">4<', false)
             ->assertSee('QX-CXLSTAGE-A1')
             ->assertSee('QX-CXLSTAGE-C1')
-            // Not one action on any of the four rows.
+            // Not one WORKFLOW action on any of the four rows. Tracking is
+            // a different thing: the owner's 2026-08-09 ruling renders it on
+            // every tab except Unpaid whenever the row carries courier
+            // state, so the three rows that do get a drawer opener. Print
+            // waybill needs a LIVE booking on top (a cancelled shipment has
+            // no printable AWB), so only the first row gets one.
             ->assertDontSee('openBooking(JSON.parse(', false)
-            ->assertDontSee('openDrawer(JSON.parse(', false)
-            ->assertDontSee('Print waybill')
             ->assertDontSee('Cancel order');
         // "Cancel booking" is deliberately NOT asserted by label: the
         // drawer's own static markup carries that string on every page
@@ -790,6 +793,14 @@ class FulfillmentCancelSemanticsTest extends TestCase
         foreach ([$liveBooking, $creating, $courierCancelled, $noCourierState] as $order) {
             $response->assertDontSee("cancel-order-{$order->id}", false)
                 ->assertDontSee("cancel-fulfillment-{$order->id}", false);
+        }
+
+        // A real parcel always carries its own buttons: only the live
+        // booking gets a waybill link. The cancelled one, the mid-create one
+        // and the courier-less one do not.
+        $response->assertSee('/sales/fulfillment/' . $liveBooking->id . '/label', false);
+        foreach ([$creating, $courierCancelled, $noCourierState] as $order) {
+            $response->assertDontSee('/sales/fulfillment/' . $order->id . '/label', false);
         }
 
         // The rows that are not mid-booking name the way back to bookable.
@@ -929,13 +940,18 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->assertFalse((bool) $order->stock_adjusted);
 
         // The order moved tabs because its CORE STATUS moved, and the
-        // Cancelled tab it landed in offers no actions, only the way back.
+        // Cancelled tab it landed in offers no workflow action, only the way
+        // back (plus whatever its own parcel state still supports).
         $response = $this->get($this->queueUrl() . '?filter=cancelled');
         $response->assertOk()
             ->assertSee('data-count-for="cancelled">1<', false)
             ->assertSee('QX-COURIER-CXL1')
             ->assertSee(self::BOOK_AGAIN_HINT, false)
-            ->assertDontSee('openDrawer(JSON.parse(', false)
+            // Courier state is still on the order, so Tracking comes with
+            // it; the booking is cancelled, so the waybill does not, and no
+            // workflow action does either.
+            ->assertSee('openDrawer(JSON.parse(', false)
+            ->assertDontSee('/sales/fulfillment/' . $order->id . '/label', false)
             ->assertDontSee('openBooking(JSON.parse(', false)
             ->assertDontSee("cancel-fulfillment-{$order->id}", false);
 

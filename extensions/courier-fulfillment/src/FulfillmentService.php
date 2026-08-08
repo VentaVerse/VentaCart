@@ -47,13 +47,17 @@ class FulfillmentService
     public const ASYNC_CREATE_STATUSES = ['creating', 'creation_failed'];
 
     /**
-     * The seven values of order_statuses.fulfillment_placement, one per
-     * fulfillment queue tab (To Ship is a heading over to_pack +
-     * to_handover, never a placement of its own). This list IS the tab
-     * vocabulary: membership is nothing more than reading which of these
-     * the order's core status carries (see tabBucket()).
+     * The eight values of order_statuses.fulfillment_placement, listed in
+     * tab order. Two tabs are NOT in this list, for opposite reasons: To
+     * Ship is a heading over to_pack + to_handover, and All is a VIEW over
+     * every order. Neither is ever a placement a status can be put into.
+     * This list IS the tab vocabulary: membership is nothing more than
+     * reading which of these the order's core status carries (tabBucket()).
      */
-    public const PLACEMENTS = ['unpaid', 'to_pack', 'to_handover', 'in_transit', 'delivered', 'failed', 'cancelled'];
+    public const PLACEMENTS = [
+        'unpaid', 'to_pack', 'to_handover', 'shipping',
+        'failed', 'lost_damaged', 'delivered', 'cancelled',
+    ];
 
     /**
      * The placement a status with no explicit value carries (the column's
@@ -92,21 +96,28 @@ class FulfillmentService
     public const UNBOOKED_STATUS_SETTING = 'unbooked_order_status_id';
 
     /**
-     * The status name preferred when `booked_order_status_id` is unset - the
-     * one OrderStatusSeeder places under To Handover out of the box, and the
-     * name the OpenCart-era stores already use for exactly this step.
+     * The status name preferred when `booked_order_status_id` is unset: the
+     * name the OpenCart-era stores already use for exactly this step, so a
+     * migrated store lands on the right status without configuring anything.
+     *
+     * It is NOT seeded (owner ruling, 2026-08-09: the fulfillment module
+     * seeds no order statuses, because a merchant configures this module
+     * deliberately at setup). A fresh install therefore has no
+     * To-Handover-placed status at all until the merchant places one, which
+     * is what the settings hub's setup notice says out loud.
      */
     public const DEFAULT_BOOKED_STATUS_NAME = 'Order Being Shipped';
 
     /** Human tab name per placement, for operator-facing refusals. */
     public const TAB_LABELS = [
-        'unpaid'      => 'Unpaid',
-        'to_pack'     => 'To Ship, To Pack',
-        'to_handover' => 'To Ship, To Handover',
-        'in_transit'  => 'In Transit',
-        'delivered'   => 'Delivered',
-        'failed'      => 'Failed',
-        'cancelled'   => 'Cancelled',
+        'unpaid'       => 'Unpaid',
+        'to_pack'      => 'To Ship, To Pack',
+        'to_handover'  => 'To Ship, To Handover',
+        'shipping'     => 'Shipping',
+        'failed'       => 'Failed',
+        'lost_damaged' => 'Lost and Damaged',
+        'delivered'    => 'Delivered',
+        'cancelled'    => 'Cancelled',
     ];
 
     /**
@@ -509,11 +520,13 @@ class FulfillmentService
         // from the queue. So the shipment is never created in the first
         // place: refused BEFORE the outbound call, naming the one fix.
         //
-        // Unreachable in a normally configured store: bookedStatus() falls
-        // back through "Order Being Shipped" to the first To-Handover-placed
-        // status, and OrderStatusSeeder places one out of the box. This
-        // answers only for a store that has re-placed or deleted every one
-        // of them.
+        // Reachable on a FRESH install (owner ruling, 2026-08-09: the
+        // seeder ships no fulfillment-specific statuses), and on a store
+        // that has re-placed or deleted every To-Handover-placed status.
+        // bookedStatus() falls back through "Order Being Shipped" to the
+        // first To-Handover-placed status, so any one of them is enough.
+        // The settings hub carries a matching setup notice so this refusal
+        // is never a mystery.
         //
         // Ordering: BELOW the placement gate, whose per-row message is the
         // one an operator can act on, and below both idempotent branches for

@@ -216,7 +216,7 @@ class FulfillmentQueueTest extends TestCase
     // the courier states carried along prove they change no count.
     // ------------------------------------------------------------------
 
-    public function test_queue_renders_the_six_top_level_tabs_with_placement_counts_and_the_to_ship_sub_bar(): void
+    public function test_queue_renders_the_eight_top_level_tabs_with_placement_counts_and_the_to_ship_sub_bar(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -224,12 +224,12 @@ class FulfillmentQueueTest extends TestCase
         $unpaidStatus = $this->statusWithStage('unpaid', 'Unpaid');
         $cancelledStatus = $this->statusWithStage('cancelled', 'Canceled');
         $handoverStatus = $this->statusWithStage('to_handover', 'Order Being Shipped');
-        $transitStatus = $this->statusWithStage('in_transit', 'Shipped');
+        $transitStatus = $this->statusWithStage('shipping', 'Shipped');
         $deliveredStatus = $this->statusWithStage('delivered', 'Delivered');
         $failedStatus = $this->statusWithStage('failed', 'Failed Delivery');
 
         // Two Unpaid-placed orders, one of them carrying a live in-transit
-        // booking: under tabs v3 the booking pulled it into In Transit, now
+        // booking: under tabs v3 the booking pulled it into Shipping, now
         // its status keeps it under Unpaid (and Task 3 is what will move the
         // status when a booking is made).
         $this->makeOrder(status: $unpaidStatus);
@@ -263,7 +263,7 @@ class FulfillmentQueueTest extends TestCase
         $response = $this->get($this->queueUrl());
         $response->assertOk();
 
-        foreach (['Unpaid', 'To Ship', 'In Transit', 'Delivered', 'Failed', 'Cancelled'] as $label) {
+        foreach (['All', 'Unpaid', 'To Ship', 'Shipping', 'Failed', 'Lost & Damaged', 'Delivered', 'Cancelled'] as $label) {
             $response->assertSee($label);
         }
         // Top-level Booking tab is dropped entirely (owner directive).
@@ -271,7 +271,7 @@ class FulfillmentQueueTest extends TestCase
 
         $response->assertSee('data-count-for="unpaid">2<', false);
         $response->assertSee('data-count-for="to_ship">6<', false); // 2 to_pack + 4 to_handover
-        $response->assertSee('data-count-for="in_transit">2<', false); // the in-transit one + the returning one, both Shipped-placed
+        $response->assertSee('data-count-for="shipping">2<', false); // the in-transit one + the returning one, both Shipped-placed
         $response->assertSee('data-count-for="delivered">1<', false);
         $response->assertSee('data-count-for="failed">1<', false);
         $response->assertSee('data-count-for="cancelled">2<', false);
@@ -468,7 +468,7 @@ class FulfillmentQueueTest extends TestCase
             ->assertDontSee('Parcels waiting for handover');
 
         // ...nor on any other top-level tab.
-        $this->get($this->queueUrl() . '?filter=in_transit')
+        $this->get($this->queueUrl() . '?filter=shipping')
             ->assertOk()
             ->assertDontSee('Parcels waiting for handover');
     }
@@ -686,11 +686,13 @@ class FulfillmentQueueTest extends TestCase
     /**
      * The other half of the same story: once the courier's status map has
      * moved the CORE status to a cancelled-placed one, the row moves to
-     * Cancelled and offers nothing at all (spec action table), with the one
-     * path forward named in words rather than a button the server's booking
-     * gate would refuse.
+     * Cancelled and offers no workflow action, with the one path forward
+     * named in words rather than a button the server's booking gate would
+     * refuse. Tracking still renders (owner ruling, 2026-08-09: every tab
+     * but Unpaid), the waybill does not (the booking is cancelled, and the
+     * courier refuses to print one).
      */
-    public function test_a_cancelled_placed_row_offers_no_actions_and_names_the_path_back(): void
+    public function test_a_cancelled_placed_row_offers_no_workflow_actions_and_names_the_path_back(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
@@ -702,8 +704,8 @@ class FulfillmentQueueTest extends TestCase
         $response->assertOk()
             ->assertSee('QX-CXL-002')
             ->assertSee("Change this order's status to one placed under To Pack to book it again.", false)
+            ->assertSee('openDrawer(JSON.parse(', false)
             ->assertDontSee('openBooking(JSON.parse(', false)
-            ->assertDontSee('openDrawer(JSON.parse(', false)
             ->assertDontSee('Print waybill')
             ->assertDontSee("cancel-order-{$order->id}", false)
             ->assertDontSee("cancel-fulfillment-{$order->id}", false);
@@ -843,7 +845,7 @@ class FulfillmentQueueTest extends TestCase
             // The To Ship tab link always lands on its default sub (to_pack),
             // carrying the search + page size along.
             ->assertSee('filter=to_ship&amp;sub=to_pack&amp;q=QX&amp;per_page=10', false)
-            ->assertSee('filter=in_transit&amp;q=QX&amp;per_page=10', false)
+            ->assertSee('filter=shipping&amp;q=QX&amp;per_page=10', false)
             // The filters form re-submits within the active tab.
             ->assertSee('name="filter" value="delivered"', false);
     }
