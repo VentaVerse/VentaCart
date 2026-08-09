@@ -2,7 +2,7 @@
     $mode = $settings['payment']['hitpay_mode'] ?? 'sandbox';
 @endphp
 <div class="space-y-6">
-    <x-admin.card title="HitPay" description="Online payment gateway (credit card, e-wallets).">
+    <x-admin.card title="HitPay">
         <x-slot name="headerActions">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form>
                 @csrf

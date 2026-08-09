@@ -136,12 +136,12 @@
 
                     {{-- Upload progress --}}
                     <div x-show="browserUploading" class="mb-3 flex items-center gap-2" role="status" aria-live="polite">
-                        <svg class="w-4 h-4 animate-spin text-v-accent shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <x-admin.icon name="spinner" class="w-4 h-4 animate-spin text-v-accent shrink-0" />
                         <span class="text-xs text-v-secondary" x-text="browserUploadStatus"></span>
                     </div>
 
                     <div x-show="browserLoading" class="flex items-center justify-center py-16">
-                        <svg class="w-6 h-6 animate-spin text-v-accent" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
                     </div>
 
                     <div x-show="!browserLoading" class="grid gap-2 grid-cols-[repeat(auto-fill,minmax(120px,1fr))]">
@@ -149,7 +149,7 @@
                         <template x-if="browserCurrentPath !== ''">
                             <button type="button" @click="browseDir(browserParent)" aria-label="Go to parent folder"
                                 class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
-                                <x-admin.icon name="categories" class="w-12 h-12 text-v-mark" />
+                                <x-admin.icon name="folder" class="w-12 h-12 text-v-mark" />
                                 <span class="text-xs text-v-secondary mt-1.5 font-medium">..</span>
                             </button>
                         </template>
@@ -158,7 +158,7 @@
                         <template x-for="folder in filteredBrowserFolders" :key="folder.path">
                             <button type="button" @click="browseDir(folder.path)" x-bind:aria-label="'Open folder ' + folder.name"
                                 class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
-                                <x-admin.icon name="categories" class="w-12 h-12 text-v-mark" />
+                                <x-admin.icon name="folder" class="w-12 h-12 text-v-mark" />
                                 <span class="text-xs text-v-secondary mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
                             </button>
                         </template>

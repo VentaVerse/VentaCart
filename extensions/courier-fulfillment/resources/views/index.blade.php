@@ -158,7 +158,7 @@
              active sub-tab's own bar (below) is what lets the operator move
              to To Handover from there. --}}
         <div class="cf-segment-bar">
-            <div class="cf-segment" role="tablist" aria-label="Fulfillment phase">
+            <nav class="cf-segment" aria-label="Fulfillment phase">
                 @foreach ($phaseTabs as $key => $label)
                     <a href="{{ route('admin.fulfillment.index', array_filter(['filter' => $key, 'sub' => $key === 'to_ship' ? 'to_pack' : null, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}"
                        class="cf-segment__item {{ $filter === $key ? 'is-active' : '' }}"
@@ -167,7 +167,7 @@
                         <span class="cf-segment__count" data-count-for="{{ $key }}">{{ number_format($phaseCounts[$key] ?? 0) }}</span>
                     </a>
                 @endforeach
-            </div>
+            </nav>
             @if (Route::has('admin.fulfillment.returns'))
                 <a class="cf-segment-bar__aside" href="{{ route('admin.fulfillment.returns') }}">
                     Returns
@@ -184,7 +184,7 @@
              renders) on every other tab. --}}
         @if ($filter === 'to_ship')
             <div class="cf-segment-bar cf-segment-bar--sub">
-                <div class="cf-segment cf-segment--sub" role="tablist" aria-label="To Ship stage">
+                <nav class="cf-segment cf-segment--sub" aria-label="To Ship stage">
                     @foreach ($subTabs as $key => $label)
                         <a href="{{ route('admin.fulfillment.index', array_filter(['filter' => 'to_ship', 'sub' => $key, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}"
                            class="cf-segment__item {{ $sub === $key ? 'is-active' : '' }}"
@@ -193,7 +193,7 @@
                             <span class="cf-segment__count" data-count-for="{{ $key }}">{{ number_format($phaseCounts[$key] ?? 0) }}</span>
                         </a>
                     @endforeach
-                </div>
+                </nav>
             </div>
         @endif
 
@@ -671,12 +671,12 @@
                              {{ }} still escapes exactly once. --}}
                         <x-admin.button size="sm" variant="secondary" :href="$orders->previousPageUrl()">Previous</x-admin.button>
                     @else
-                        <span class="v-btn inline-flex items-center justify-center gap-1.5 font-medium rounded-v-md h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border border-v-border" aria-disabled="true">Previous</span>
+                        <x-admin.button size="sm" variant="secondary" disabled>Previous</x-admin.button>
                     @endif
                     @if ($orders->nextPageUrl())
                         <x-admin.button size="sm" variant="secondary" :href="$orders->nextPageUrl()">Next</x-admin.button>
                     @else
-                        <span class="v-btn inline-flex items-center justify-center gap-1.5 font-medium rounded-v-md h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border border-v-border" aria-disabled="true">Next</span>
+                        <x-admin.button size="sm" variant="secondary" disabled>Next</x-admin.button>
                     @endif
                 </div>
             </div>
@@ -692,7 +692,7 @@
                  which a component's slot cannot see. The dialog contract is
                  the shared one all the same: x-dialog moves focus in, holds
                  it, and hands it back to the row button that opened it. --}}
-            <div class="absolute inset-y-0 right-0 w-full max-w-md bg-v-surface border-l border-v-border shadow-2xl flex flex-col"
+            <div class="absolute inset-y-0 right-0 w-full max-w-md bg-v-surface border-l border-v-border shadow-v-lift-2 flex flex-col"
                  x-dialog="drawerOpen" tabindex="-1"
                  role="dialog" aria-modal="true" :aria-label="'Order #' + (active ? active.id : '') + ' fulfillment'"
                  x-show="drawerOpen"
@@ -829,7 +829,7 @@
                                 <template x-if="!active.activelyBooked">
                                     <div class="rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-sm text-v-warning">
                                         No courier is enabled yet.
-                                        <a href="{{ route('admin.fulfillment.settings') }}" class="font-semibold underline">Configure a courier &rarr;</a>
+                                        <a href="{{ route('admin.fulfillment.settings') }}" class="font-semibold underline">Configure a courier <x-admin.icon name="arrow-right" class="inline w-3.5 h-3.5 align-[-2px]" /></a>
                                     </div>
                                 </template>
                             @endif
@@ -878,7 +878,7 @@
                                         </template>
                                         <template x-if="active.trackingUrl">
                                             <div class="pt-1">
-                                                <a :href="active.trackingUrl" target="_blank" rel="noopener" class="text-v-accent hover:underline text-sm">Track shipment &rarr;</a>
+                                                <a :href="active.trackingUrl" target="_blank" rel="noopener" class="text-v-accent hover:underline text-sm">Track shipment <x-admin.icon name="arrow-right" class="inline w-3.5 h-3.5 align-[-2px]" /></a>
                                             </div>
                                         </template>
                                     </div>
@@ -920,7 +920,7 @@
                      queue's own scope. x-dialog gives it the same focus
                      contract every x-admin.modal has. --}}
                 <div x-show="bookOpen" x-transition
-                     class="relative w-full max-w-md bg-v-surface border border-v-border rounded-v-lg shadow-2xl max-h-full overflow-y-auto"
+                     class="relative w-full max-w-md bg-v-surface border border-v-border rounded-v-lg shadow-v-lift-2 max-h-full overflow-y-auto"
                      x-dialog="bookOpen" tabindex="-1"
                      role="dialog" aria-modal="true" :aria-label="'Book order #' + (active ? active.id : '')">
                     <template x-if="active">
@@ -1010,12 +1010,12 @@
                                             </div>
                                         </template>
                                         <div class="grid grid-cols-2 gap-3">
-                                            <x-admin.field name="service" label="Service">
+                                            <x-admin.field name="service" label="Service" required>
                                                 <x-admin.select name="service">
                                                     <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                                 </x-admin.select>
                                             </x-admin.field>
-                                            <x-admin.field name="parcel" label="Parcel">
+                                            <x-admin.field name="parcel" label="Parcel" required>
                                                 <x-admin.select name="parcel" x-model="parcel">
                                                     <template x-for="o in current.parcels" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                                 </x-admin.select>
@@ -1029,7 +1029,7 @@
                                             <div class="text-xs font-medium text-v-muted mb-0.5">Buyer pays for goods</div>
                                             <div class="text-sm text-v-text" x-text="active.buyerPaymentLabel"></div>
                                         </div>
-                                        <x-admin.field name="shipping_payment" label="You pay shipping">
+                                        <x-admin.field name="shipping_payment" label="You pay shipping" required>
                                             <x-admin.select name="shipping_payment">
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                             </x-admin.select>

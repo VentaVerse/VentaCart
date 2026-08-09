@@ -1,6 +1,6 @@
 <x-admin.settings-shell title="Checkout">
     <div class="space-y-6">
-        <x-admin.card title="Checkout" description="Guest access and out-of-stock behavior at checkout.">
+        <x-admin.card title="Checkout">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="checkout">
@@ -23,7 +23,7 @@
             </form>
         </x-admin.card>
 
-        <x-admin.card title="Low-stock alerts" description="Email the admin when a product's stock drops to or below a threshold.">
+        <x-admin.card title="Low-stock alerts">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="stock">

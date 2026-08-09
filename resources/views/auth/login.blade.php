@@ -2,11 +2,11 @@
     <form method="POST" action="{{ route('login') }}" data-v-form class="space-y-5">
         @csrf
 
-        <x-admin.field name="username" label="Username">
+        <x-admin.field name="username" label="Username" required>
             <x-admin.input type="text" name="username" :value="old('username')" required autofocus autocomplete="username" placeholder="Enter your username" />
         </x-admin.field>
 
-        <x-admin.field name="password" label="Password">
+        <x-admin.field name="password" label="Password" required>
             <x-admin.input type="password" name="password" required autocomplete="current-password" placeholder="Enter password" />
         </x-admin.field>
 

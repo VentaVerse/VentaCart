@@ -24,9 +24,9 @@
                         <form method="POST" action="{{ route('admin.email-templates.toggle', $template) }}" data-v-form class="inline">
                             @csrf
                             <button type="submit"
-                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors {{ $template->is_active ? 'bg-v-accent' : 'bg-v-strong' }}"
+                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors {{ $template->is_active ? 'bg-v-accent' : 'bg-[var(--border-control)]' }}"
                                 title="{{ $template->is_active ? 'Click to disable' : 'Click to enable' }}">
-                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform {{ $template->is_active ? 'translate-x-4' : '' }}"></span>
+                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform {{ $template->is_active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface' }}"></span>
                             </button>
                         </form>
                     </x-admin.table.cell>

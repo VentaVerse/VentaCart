@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-admin.card title="Cash on Delivery" description="Customer pays upon delivery.">
+    <x-admin.card title="Cash on Delivery">
         <x-slot name="headerActions">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form>
                 @csrf

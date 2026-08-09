@@ -63,10 +63,10 @@
                                                 @click="toggleCountry({{ $country->id }}, $data)"
                                                 :disabled="toggling"
                                                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
-                                                :class="active ? 'bg-v-accent' : 'bg-v-strong'"
+                                                :class="active ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
                                                 role="switch" :aria-checked="active"
                                                 :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
-                                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="active ? 'translate-x-4' : ''"></span>
+                                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform" :class="active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface'"></span>
                                             </button>
                                         </td>
                                     </template>
@@ -146,10 +146,10 @@
                                                     @click="toggleZone({{ $zone->id }}, $data)"
                                                     :disabled="toggling"
                                                     class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
-                                                    :class="active ? 'bg-v-accent' : 'bg-v-strong'"
+                                                    :class="active ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
                                                     role="switch" :aria-checked="active"
                                                     :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
-                                                    <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="active ? 'translate-x-4' : ''"></span>
+                                                    <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform" :class="active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface'"></span>
                                                 </button>
                                             </td>
                                         </template>
@@ -191,7 +191,7 @@
                                 @csrf
                                 <input type="hidden" name="country_id" value="{{ $selectedCountry }}">
                                 <div class="flex-1">
-                                    <x-admin.field name="name" label="Name">
+                                    <x-admin.field name="name" label="Name" required>
                                         <x-admin.input name="name" required placeholder="Zone name" />
                                     </x-admin.field>
                                 </div>
@@ -232,10 +232,10 @@
                                                 @click="toggleGeoZone({{ $gz->id }}, $data)"
                                                 :disabled="toggling"
                                                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
-                                                :class="active ? 'bg-v-accent' : 'bg-v-strong'"
+                                                :class="active ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
                                                 role="switch" :aria-checked="active"
                                                 :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
-                                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform" :class="active ? 'translate-x-4' : ''"></span>
+                                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform" :class="active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface'"></span>
                                             </button>
                                         </td>
                                         <td class="px-4 py-2.5 text-right text-[13px]">
@@ -257,7 +257,7 @@
                             <form method="POST" action="{{ route('admin.localization.store-geo-zone') }}" data-v-form class="flex items-end gap-3">
                                 @csrf
                                 <div class="flex-1">
-                                    <x-admin.field name="name" label="Name">
+                                    <x-admin.field name="name" label="Name" required>
                                         <x-admin.input name="name" required placeholder="e.g. Domestic" />
                                     </x-admin.field>
                                 </div>

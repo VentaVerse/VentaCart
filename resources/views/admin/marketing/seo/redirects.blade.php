@@ -129,7 +129,7 @@
                             <x-admin.card title="Add Redirect">
                                 <form method="POST" action="{{ route('admin.extensions.seo.redirects.store') }}" class="space-y-3">
                                     @csrf
-                                    <x-admin.field name="source_path" label="Source path" help="Must start with /. Exact path match. Query strings on the request are ignored for the lookup.">
+                                    <x-admin.field name="source_path" label="Source path" help="Must start with /. Exact path match. Query strings on the request are ignored for the lookup." required>
                                         <x-admin.input type="text" name="source_path" :value="old('source_path', $prefill['source_path'] ?? '')"
                                             placeholder="/old-product-slug" required class="font-mono" />
                                     </x-admin.field>
@@ -138,7 +138,7 @@
                                             placeholder="/product/new-slug or full URL" class="font-mono" />
                                     </x-admin.field>
                                     <div class="grid grid-cols-2 gap-2">
-                                        <x-admin.field name="status_code" label="Status code">
+                                        <x-admin.field name="status_code" label="Status code" required>
                                             <x-admin.select name="status_code">
                                                 <option value="301">301 Permanent</option>
                                                 <option value="302">302 Temporary</option>

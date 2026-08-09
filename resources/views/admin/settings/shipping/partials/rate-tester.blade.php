@@ -2,14 +2,14 @@
     $rateTest = session('rate_test');
 @endphp
 
-<x-admin.card title="Rate Tester" description="Test the shipping quote chain with sample inputs.">
+<x-admin.card title="Rate Tester">
     <!-- Form -->
     <form action="{{ route('admin.shipping-settings.test') }}" method="POST" class="space-y-4 mb-6">
         @csrf
 
         <div class="grid grid-cols-2 gap-4">
             <!-- Country -->
-            <x-admin.field name="country_id" label="Country">
+            <x-admin.field name="country_id" label="Country" required>
                 <x-admin.select name="country_id"
                     value="{{ old('country_id', $rateTest['input']['country_id'] ?? $defaultCountryId) }}">
                     @foreach ($countries as $country)
@@ -43,13 +43,13 @@
             </x-admin.field>
 
             <!-- Weight -->
-            <x-admin.field name="weight" label="Weight (kg)">
+            <x-admin.field name="weight" label="Weight (kg)" required>
                 <x-admin.input name="weight" type="number" step="0.01" min="0.01" max="1000"
                     value="{{ old('weight', $rateTest['input']['weight'] ?? '1.5') }}" required />
             </x-admin.field>
 
             <!-- Subtotal -->
-            <x-admin.field name="subtotal" label="Subtotal (₱)">
+            <x-admin.field name="subtotal" label="Subtotal (₱)" required>
                 <x-admin.input name="subtotal" type="number" step="0.01" min="0"
                     value="{{ old('subtotal', $rateTest['input']['subtotal'] ?? '2500') }}" required />
             </x-admin.field>

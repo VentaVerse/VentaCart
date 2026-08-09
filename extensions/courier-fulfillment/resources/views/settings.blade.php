@@ -122,7 +122,10 @@
 
         {{-- Webhook URLs: module-level plumbing (the tokens are
              server-generated, never editable), one per registered courier. --}}
-        <x-admin.card title="Webhook URLs" description="Unique to this store. Send each courier its own URL so they push status updates here.">
+        <x-admin.card title="Webhook URLs">
+            <x-slot name="headerActions">
+                <x-admin.hint label="About these URLs" class="v-hint--end">Each URL is unique to this store. A courier given the wrong one cannot push its status updates.</x-admin.hint>
+            </x-slot>
             <div class="space-y-4">
                 @foreach ($courierCards as $key => $card)
                     <div x-data="{ copied: false }">

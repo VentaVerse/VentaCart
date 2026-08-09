@@ -121,12 +121,12 @@
                     @if ($orders->previousPageUrl())
                         <x-admin.button size="sm" variant="secondary" href="{{ $orders->previousPageUrl() }}">Previous</x-admin.button>
                     @else
-                        <span class="v-btn inline-flex items-center justify-center gap-1.5 font-medium rounded-v-md h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border border-v-border" aria-disabled="true">Previous</span>
+                        <x-admin.button size="sm" variant="secondary" disabled>Previous</x-admin.button>
                     @endif
                     @if ($orders->nextPageUrl())
                         <x-admin.button size="sm" variant="secondary" href="{{ $orders->nextPageUrl() }}">Next</x-admin.button>
                     @else
-                        <span class="v-btn inline-flex items-center justify-center gap-1.5 font-medium rounded-v-md h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border border-v-border" aria-disabled="true">Next</span>
+                        <x-admin.button size="sm" variant="secondary" disabled>Next</x-admin.button>
                     @endif
                 </div>
             </div>

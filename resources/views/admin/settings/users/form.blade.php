@@ -8,23 +8,23 @@
                     @endif
 
                     <div class="space-y-5">
-                        <x-admin.field name="name" label="Name">
+                        <x-admin.field name="name" label="Name" required>
                             <x-admin.input type="text" name="name" required :value="$user->name ?? ''" />
                         </x-admin.field>
 
-                        <x-admin.field name="username" label="Username">
+                        <x-admin.field name="username" label="Username" required>
                             <x-admin.input type="text" name="username" required :value="$user->username ?? ''" autocomplete="username" />
                         </x-admin.field>
 
-                        <x-admin.field name="email" label="Email">
+                        <x-admin.field name="email" label="Email" required>
                             <x-admin.input type="email" name="email" required :value="$user->email ?? ''" />
                         </x-admin.field>
 
-                        <x-admin.field name="password" label="Password" :help="$user ? 'Leave blank to keep current password.' : null">
+                        <x-admin.field name="password" label="Password" :help="$user ? 'Leave blank to keep current password.' : null" :required="! $user">
                             <x-admin.input type="password" name="password" autocomplete="new-password" :required="! $user" />
                         </x-admin.field>
 
-                        <x-admin.field name="role_id" label="Role">
+                        <x-admin.field name="role_id" label="Role" required>
                             <x-admin.select name="role_id" required>
                                 <option value="">-- Select Role --</option>
                                 @foreach ($roles as $role)

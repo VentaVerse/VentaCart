@@ -13,7 +13,7 @@
                 <div class="lg:col-span-2 space-y-6">
                     <x-admin.card>
                         <div class="space-y-4">
-                            <x-admin.field name="title" label="Title">
+                            <x-admin.field name="title" label="Title" required>
                                 <x-admin.input type="text" name="title" required :value="$page?->title" />
                             </x-admin.field>
 
@@ -62,7 +62,7 @@
                         </div>
                         @if ($page)
                             <div class="mt-3 pt-3 border-t border-v-border">
-                                <a href="/{{ $page->slug }}" target="_blank" class="text-xs text-v-accent hover:underline">View page &rarr;</a>
+                                <a href="/{{ $page->slug }}" target="_blank" class="text-xs text-v-accent hover:underline">View page <x-admin.icon name="arrow-right" class="inline w-3.5 h-3.5 align-[-2px]" /></a>
                             </div>
                         @endif
                     </x-admin.card>
@@ -71,16 +71,6 @@
         </form>
 
         @push('scripts')
-        <style>
-            .tox.tox-tinymce-aux .tox-textfield,
-            .tox.tox-tinymce-aux .tox-textarea,
-            .tox .tox-dialog .tox-textfield,
-            .tox .tox-dialog .tox-textarea {
-                border: 1px solid #999 !important;
-                border-radius: 4px !important;
-                padding: 6px 8px !important;
-            }
-        </style>
         <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
         <script>
             tinymce.init({

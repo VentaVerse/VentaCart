@@ -28,7 +28,7 @@
             {{-- General --}}
             <x-admin.card title="General">
                 <div class="space-y-4">
-                    <x-admin.field name="name" label="Rule Name" help="Admin reference">
+                    <x-admin.field name="name" label="Rule Name" help="Admin reference" required>
                         <x-admin.input type="text" name="name" :value="$rule?->name" required placeholder="e.g. Free Shipping over ₱5,000" />
                     </x-admin.field>
                     <x-admin.field name="checkout_name" label="Checkout Name" help="Shown to customer; falls back to Rule Name">
@@ -69,7 +69,10 @@
             </x-admin.card>
 
             {{-- Conditions --}}
-            <x-admin.card title="Conditions" description="All conditions must be met. Leave a section empty to skip that condition." class="mt-6">
+            <x-admin.card title="Conditions" class="mt-6">
+                <x-slot name="headerActions">
+                    <x-admin.hint label="How conditions combine" class="v-hint--end">A section left empty is skipped; every section that has entries must match.</x-admin.hint>
+                </x-slot>
                 <div class="space-y-6">
                     @include('admin.partials.dual-listbox', [
                         'name' => 'brand_ids',
@@ -106,7 +109,10 @@
             </x-admin.card>
 
             {{-- Exclusions --}}
-            <x-admin.card title="Exclusions" description="Free shipping will NOT apply if the cart/customer matches any exclusion." class="mt-6">
+            <x-admin.card title="Exclusions" class="mt-6">
+                <x-slot name="headerActions">
+                    <x-admin.hint label="How exclusions combine" class="v-hint--end">One match anywhere below is enough to withhold free shipping.</x-admin.hint>
+                </x-slot>
                 <div class="space-y-6">
                     @include('admin.partials.dual-listbox', [
                         'name' => 'exclude_customer_group_ids',

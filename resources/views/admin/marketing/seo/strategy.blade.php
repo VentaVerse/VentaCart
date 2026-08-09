@@ -6,28 +6,31 @@
             <form method="POST" action="{{ route('admin.extensions.seo.save-strategy') }}" class="min-w-0 flex-1 space-y-5">
                 @csrf
 
-                <x-admin.card title="Store Description" description="Describe your store in detail. Claude uses this as context for every SEO suggestion it generates.">
+                <x-admin.card title="Store Description">
                     <div class="max-w-2xl">
                         <x-admin.textarea name="store_context" rows="5" :value="$seoSettings['store_context'] ?? ''"
                             placeholder="Example: Online music gear store in the Philippines. We sell guitar pedals, cables, amplifiers, and accessories. Free shipping available. Cash on delivery. Installments via Billease. Based in Manila." />
                     </div>
                 </x-admin.card>
 
-                <x-admin.card title="Target Market" description="Who are your customers? Where are they? Claude will optimize keywords and language for this audience.">
+                <x-admin.card title="Target Market">
                     <div class="max-w-2xl">
                         <x-admin.textarea name="target_market" rows="3" :value="$seoSettings['target_market'] ?? ''"
                             placeholder="Example: Filipino musicians and guitar enthusiasts in the Philippines. Hobbyists and semi-professional players. Age 18-45. English and Taglish speakers." />
                     </div>
                 </x-admin.card>
 
-                <x-admin.card title="Brand Voice & Tone" description="How should your SEO copy sound? This shapes the meta descriptions and OG tags Claude writes.">
+                <x-admin.card title="Brand Voice & Tone">
                     <div class="max-w-2xl">
                         <x-admin.textarea name="brand_voice" rows="3" :value="$seoSettings['brand_voice'] ?? ''"
                             placeholder="Example: Friendly, knowledgeable, enthusiastic about gear. Use simple English. Avoid overly technical jargon. Mention Philippines when relevant." />
                     </div>
                 </x-admin.card>
 
-                <x-admin.card title="Priority Keywords" description="Keywords or phrases Claude should try to incorporate when relevant. One per line.">
+                <x-admin.card title="Priority Keywords">
+                    <x-slot name="headerActions">
+                        <x-admin.hint label="Priority keywords format" class="v-hint--end">One phrase per line. Each is worked in where it fits, never forced.</x-admin.hint>
+                    </x-slot>
                     <div class="max-w-2xl">
                         <x-admin.textarea name="priority_keywords" rows="4" :value="$seoSettings['priority_keywords'] ?? ''"
                             class="font-mono"
@@ -35,7 +38,10 @@
                     </div>
                 </x-admin.card>
 
-                <x-admin.card title="Avoid Keywords" description="Words or phrases Claude should NOT use in SEO copy. One per line.">
+                <x-admin.card title="Avoid Keywords">
+                    <x-slot name="headerActions">
+                        <x-admin.hint label="Avoid keywords format" class="v-hint--end">One phrase per line. None of them appear in generated copy.</x-admin.hint>
+                    </x-slot>
                     <div class="max-w-2xl">
                         <x-admin.textarea name="avoid_keywords" rows="3" :value="$seoSettings['avoid_keywords'] ?? ''"
                             class="font-mono"

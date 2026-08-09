@@ -387,3 +387,56 @@
     --bl-pad-l: 0px;
     --bl-pad-r: 0px;
 }
+
+/* ------------------------------------------------------------
+   Skip link
+
+   Off-screen until it takes focus, then it lands as a real control
+   at the top-left of the page, above the sticky topbar. It is the
+   first stop in the tab order on every admin screen, which is what
+   stops a keyboard user walking the slab before reaching the work.
+   ------------------------------------------------------------ */
+.v-admin .v-skip {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 100;
+    display: inline-flex;
+    align-items: center;
+    height: var(--control-h);
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    border: 1px solid var(--border-control);
+    box-shadow: var(--lift-2);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    transform: translateY(-200%);
+}
+
+.v-admin .v-skip:focus-visible { transform: none; }
+
+/* ------------------------------------------------------------
+   Tap targets
+
+   The glyph stays the size it was drawn; the box around it grows to
+   the platform baseline of 44px. The negative margins hand the extra
+   back to the layout, so the topbar keeps its height and the brand
+   row keeps its alignment: the target grows, nothing moves. Used on
+   the two controls that are a phone's only way in and out of the
+   navigation, measured at 20px and 16px by the browser audit.
+   ------------------------------------------------------------ */
+.v-admin .v-tap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    margin-block: -8px;
+    margin-inline: -12px;
+}
+
+/* The close sits at the end of the brand row and gets there with an
+   auto margin, which the shorthand above would have eaten. */
+.v-admin .v-slab__close.v-tap { margin-left: auto; }

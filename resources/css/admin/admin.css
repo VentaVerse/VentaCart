@@ -9,5 +9,6 @@
 @import "./components/palette.css";
 @import "./components/pagination.css";
 @import "./components/settings.css";
+@import "./components/tinymce.css";
 @import "./components/day-sheet.css";
 @import "./layout/shell.css";

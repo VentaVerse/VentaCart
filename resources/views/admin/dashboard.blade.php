@@ -288,7 +288,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                     @endphp
                                     <x-admin.table.row href="{{ route('admin.orders.show', $entry) }}">
                                         <x-admin.table.cell mono class="whitespace-nowrap text-v-secondary">{{ $entry->created_at->format('g:i a') }}</x-admin.table.cell>
-                                        <x-admin.table.cell class="text-v-text">{{ $entry->full_name }}</x-admin.table.cell>
+                                        <x-admin.table.cell class="text-v-text">
+                                            {{-- The row opens on a click, but a pointer convenience is
+                                                 not a control: this is the named link the keyboard and
+                                                 the screen reader use to reach the order. --}}
+                                            <a href="{{ route('admin.orders.show', $entry) }}" class="v-entry__who">{{ $entry->full_name }}</a>
+                                        </x-admin.table.cell>
                                         <x-admin.table.cell class="v-col-bought text-v-secondary">
                                             @if ($lead)
                                                 <span class="v-entry__item">{{ $lead->name }}@if ($lead->variant_label), {{ $lead->variant_label }}@endif</span>

@@ -159,7 +159,7 @@
              x-show="open" x-cloak x-transition.opacity
              class="fixed inset-0 z-[90] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/50" @click="open = false"></div>
-            <div class="relative w-full max-w-md rounded-v-lg border border-v-border bg-v-surface p-6 shadow-2xl"
+            <div class="relative w-full max-w-md rounded-v-lg border border-v-border bg-v-surface p-6 shadow-v-lift-2"
                  @click.outside="open = false" @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-label="New Product">
                 <h3 class="mb-4 text-[15px] font-semibold text-v-text">New Product</h3>
                 <div class="space-y-4">
@@ -169,7 +169,7 @@
                             <input type="text" x-model="brandSearch" @input.debounce.300ms="searchBrands()" @keydown.enter.prevent
                                 class="v-control h-[var(--control-h)] w-full rounded-v-md border border-v-border bg-v-surface px-3 text-[13px] text-v-text placeholder:text-v-muted"
                                 placeholder="Search brand...">
-                            <div x-show="brandResults.length > 0" x-cloak class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-lg">
+                            <div x-show="brandResults.length > 0" x-cloak class="absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-v-lift-2">
                                 <template x-for="brand in brandResults" :key="brand.id">
                                     <button type="button" @click="selectBrand(brand)" class="block w-full px-3 py-2 text-left text-[13px] text-v-text hover:bg-v-hover" x-text="brand.name"></button>
                                 </template>

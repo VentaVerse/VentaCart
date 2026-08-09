@@ -19,7 +19,7 @@
                 <div class="space-y-6">
                     {{-- Name --}}
                     <x-admin.card>
-                        <x-admin.field name="name" label="Brand Name">
+                        <x-admin.field name="name" label="Brand Name" required>
                             <x-admin.input type="text" name="name" required :value="$brand?->name" placeholder="e.g. Wampler, Boss, Friedman" />
                         </x-admin.field>
                     </x-admin.card>
@@ -103,7 +103,7 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
                                         </template>
                                         <template x-if="loading">
-                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                            <x-admin.icon name="spinner" class="w-4 h-4 animate-spin" />
                                         </template>
                                         <span x-text="loading ? 'Optimizing...' : 'Optimize with AI'"></span>
                                     </x-admin.button>

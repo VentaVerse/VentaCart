@@ -49,6 +49,10 @@ FIRST VIEWPORT: A 216px azure slab carrying the store's logo, name and grouped n
 FORM: Brief-pinned. The owner named the ERP's Blotter as the world to mirror and OpenCart's blue as the identity anchor, so no direction roll applies.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
 -->
+    {{-- First stop in the tab order, so a keyboard user is never made to
+         walk the slab's controls to reach the page. Visible only while
+         focused; the recipe lives in shell.css. --}}
+    <a href="#v-main" class="v-skip">Skip to content</a>
     <div class="lg:grid lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] min-h-screen">
         {{-- Scrim, mobile only. --}}
         <div x-show="mobileNav" x-transition.opacity x-cloak @click="closeNav()"
@@ -81,7 +85,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         <span class="v-slab__name" title="{{ $vStoreName }}">{{ $vStoreName }}</span>
                     @endif
                 </a>
-                <button type="button" @click="closeNav()" class="v-slab__close lg:hidden" aria-label="Close navigation"
+                <button type="button" @click="closeNav()" class="v-slab__close v-tap lg:hidden" aria-label="Close navigation"
                         data-v-dialog-initial>
                     <x-admin.icon name="x" class="w-4 h-4" />
                 </button>
@@ -157,7 +161,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
         <div class="flex min-w-0 flex-col">
             <header class="v-topbar sticky top-0 z-30">
-                <button type="button" @click="mobileNav = true" class="lg:hidden text-v-secondary hover:text-v-text"
+                <button type="button" @click="mobileNav = true" class="v-tap lg:hidden text-v-secondary hover:text-v-text"
                         aria-label="Open navigation" aria-controls="v-slab" :aria-expanded="mobileNav ? 'true' : 'false'">
                     <x-admin.icon name="menu" class="w-5 h-5" />
                 </button>
@@ -168,8 +172,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                      control states it. --}}
                 <button type="button" class="v-search-trigger"
                         x-data="{ mac: /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '') }"
-                        @click="$dispatch('open-palette')"
-                        aria-label="Search. Opens the command palette.">
+                        @click="$dispatch('open-palette')">
                     <x-admin.icon name="search" class="w-3.5 h-3.5 shrink-0" />
                     <span class="v-search-trigger__label">Search products, orders, customers</span>
                     <kbd class="v-search-trigger__hint" x-text="mac ? '&#8984;K' : 'Ctrl K'"></kbd>
@@ -206,7 +209,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                 </div>
             </header>
 
-            <main class="v-content">
+            <main id="v-main" class="v-content">
                 {{ $slot }}
             </main>
         </div>

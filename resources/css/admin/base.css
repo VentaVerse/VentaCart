@@ -13,6 +13,17 @@
    overscroll never shows a strip of white under a dark theme. */
 html:has(> body.v-admin) { background: var(--canvas); }
 
+/* The browser paints surfaces this stylesheet never sees: the date and
+   colour pickers, the open list of a native <select>, scrollbars, the
+   autofill wash. Without a declared scheme they are all light, so a
+   dark admin flashes a white calendar. theme-boot always resolves
+   data-theme to a literal light or dark before first paint (system is
+   resolved, never left as a third value), so the attribute is enough
+   to switch on. Scoped through the same :has() the ground uses, so the
+   storefront themes keep deciding this for themselves. */
+html:has(> body.v-admin) { color-scheme: light; }
+html[data-theme="dark"]:has(> body.v-admin) { color-scheme: dark; }
+
 .v-admin {
     background: var(--canvas);
     color: var(--text);

@@ -10,7 +10,7 @@
 <x-admin.settings-shell :title="$courier->getName()" :wide="true" active="fulfillment">
 
     <div class="space-y-6">
-        <x-admin.card :title="$courier->getName()" description="Connection, defaults, and order status mapping for this courier. Module-wide settings and webhook URLs live on the Courier Settings page.">
+        <x-admin.card :title="$courier->getName()">
             {{-- Standalone form for "Refresh from {courier}" — HTML forms cannot
                  nest, so this lives outside the main form below; its button uses
                  form="…". --}}

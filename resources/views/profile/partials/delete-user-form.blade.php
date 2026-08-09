@@ -6,7 +6,7 @@
              class="fixed inset-0 z-[90] flex items-center justify-center p-4" x-transition.opacity>
             <div class="absolute inset-0 bg-black/50" @click="open = false"></div>
             <div x-show="open" x-transition
-                 class="relative w-full max-w-sm bg-v-surface border border-v-border rounded-v-lg shadow-2xl"
+                 class="relative w-full max-w-sm bg-v-surface border border-v-border rounded-v-lg shadow-v-lift-2"
                  role="dialog" aria-modal="true" aria-label="Delete account">
                 <form method="post" action="{{ route('admin.profile.destroy') }}" data-v-form class="p-5">
                     @csrf

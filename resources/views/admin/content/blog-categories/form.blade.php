@@ -12,7 +12,7 @@
                         @method('PUT')
                     @endif
 
-                    <x-admin.field name="name" label="Name">
+                    <x-admin.field name="name" label="Name" required>
                         <x-admin.input type="text" name="name" required :value="$category?->name" />
                     </x-admin.field>
 

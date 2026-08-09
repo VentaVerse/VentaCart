@@ -65,12 +65,12 @@
                                     <input type="text" id="brand_search" x-model="search" @input.debounce.300ms="fetchResults()" @focus="open = true" @click.away="open = false"
                                         placeholder="Search brand..." autocomplete="off" class="{{ $vInput }}">
                                     <input type="hidden" name="brand_id" :value="selectedId">
-                                    <div x-show="open && results.length > 0" x-cloak class="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-lg">
+                                    <div x-show="open && results.length > 0" x-cloak class="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-v-lift-2">
                                         <template x-for="item in results" :key="item.id">
                                             <button type="button" @click="select(item)" class="block w-full px-3 py-2 text-left text-[13px] text-v-text hover:bg-v-hover" x-text="item.name"></button>
                                         </template>
                                     </div>
-                                    <div x-show="open && search.length > 0 && results.length === 0 && !loading" x-cloak class="absolute z-50 mt-1 w-full rounded-v-md border border-v-border bg-v-surface px-3 py-2 text-[13px] text-v-muted shadow-lg">
+                                    <div x-show="open && search.length > 0 && results.length === 0 && !loading" x-cloak class="absolute z-50 mt-1 w-full rounded-v-md border border-v-border bg-v-surface px-3 py-2 text-[13px] text-v-muted shadow-v-lift-2">
                                         No brands found for this store.
                                     </div>
                                 </div>
@@ -84,7 +84,7 @@
                             </div>
 
                             <div>
-                                <label for="name" class="{{ $vLabel }}">Product Name <span class="text-v-danger">*</span></label>
+                                <label for="name" class="{{ $vLabel }}">Product Name <span class="v-req">Required</span></label>
                                 <input type="text" name="name" id="name" required value="{{ old('name', $product?->name) }}" class="{{ $vInput }}">
                                 @error('name') <p class="mt-1 text-xs text-v-danger">{{ $message }}</p> @enderror
                             </div>
@@ -223,7 +223,7 @@
                                     placeholder="Search categories..." class="{{ $vInput }} pr-8">
                                 <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-v-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
 
-                                <div x-show="open && filtered.length > 0" x-transition class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-lg">
+                                <div x-show="open && filtered.length > 0" x-transition class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-v-lift-2">
                                     <template x-for="cat in filtered" :key="cat.id">
                                         <button type="button" @mousedown.prevent="add(cat)" class="block w-full px-3 py-2 text-left text-[13px] text-v-text hover:bg-v-hover" x-text="cat.name"></button>
                                     </template>
@@ -277,7 +277,7 @@
                                     placeholder="Search tags..." class="{{ $vInput }} pr-8">
                                 <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-v-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
 
-                                <div x-show="open && filtered.length > 0" x-transition class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-lg">
+                                <div x-show="open && filtered.length > 0" x-transition class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-v-lift-2">
                                     <template x-for="tag in filtered" :key="tag.id">
                                         <button type="button" @mousedown.prevent="add(tag)" class="block w-full px-3 py-2 text-left text-[13px] text-v-text hover:bg-v-hover" x-text="tag.name"></button>
                                     </template>
@@ -298,7 +298,10 @@
                     </x-admin.card>
 
                     {{-- Customer Group Visibility --}}
-                    <x-admin.card title="Customer Group Visibility" description="If none are checked, the product is visible to everyone. If checked, only logged-in customers in those groups can see it.">
+                    <x-admin.card title="Customer Group Visibility">
+                        <x-slot name="headerActions">
+                            <x-admin.hint label="How group visibility works" class="v-hint--end">Left empty, everyone sees the product. Check a group and only signed-in customers in it can.</x-admin.hint>
+                        </x-slot>
                         <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
                             @foreach ($customerGroups as $group)
                                 <label class="flex items-center">
@@ -444,7 +447,10 @@
 
                 {{-- ===================== PRICING ===================== --}}
                 <x-admin.tabs.panel name="pricing" class="space-y-6">
-                    <x-admin.card title="Special Pricing" description="Lower priority number = higher precedence.">
+                    <x-admin.card title="Special Pricing">
+                        <x-slot name="headerActions">
+                            <x-admin.hint label="How priority is read" class="v-hint--end">The lowest priority number wins when two rows both qualify.</x-admin.hint>
+                        </x-slot>
                         <x-slot:headerActions>
                             <x-admin.button type="button" size="sm" @click="addSpecial()">
                                 <x-admin.icon name="plus" class="w-3.5 h-3.5" /> Add Special
@@ -592,7 +598,7 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
                                         </template>
                                         <template x-if="loading">
-                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                            <x-admin.icon name="spinner" class="w-4 h-4 animate-spin" />
                                         </template>
                                         <span x-text="loading ? 'Optimizing...' : 'Optimize with AI'"></span>
                                     </x-admin.button>
@@ -611,11 +617,11 @@
                                                 <div class="mt-1 grid grid-cols-2 gap-2">
                                                     <div class="rounded-v-sm bg-v-surface p-2 text-xs">
                                                         <span class="mb-0.5 block text-v-muted">Current:</span>
-                                                        <span x-text="suggestion['current_' + field] || '(empty)'"></span>
+                                                        <span x-text="suggestion?.['current_' + field] || '(empty)'"></span>
                                                     </div>
                                                     <div class="rounded-v-sm border-l-2 border-v-accent bg-v-surface p-2 text-xs">
                                                         <span class="mb-0.5 block text-v-accent">Suggested:</span>
-                                                        <span x-text="suggestion['suggested_' + field] || '(empty)'"></span>
+                                                        <span x-text="suggestion?.['suggested_' + field] || '(empty)'"></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -641,30 +647,6 @@
     </x-admin.page>
 
     @push('scripts')
-    <style>
-        /* Hide number input spinners in variant table */
-        .variant-table input[type="number"]::-webkit-inner-spin-button,
-        .variant-table input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-        .variant-table input[type="number"] { -moz-appearance: textfield; }
-    </style>
-    {{-- TinyMCE dialog input borders — must load after TinyMCE's skin --}}
-    <style>
-        .tox .tox-dialog .tox-textfield,
-        .tox .tox-dialog .tox-textarea,
-        .tox .tox-dialog .tox-selectfield select,
-        .tox.tox-tinymce-aux .tox-textfield,
-        .tox.tox-tinymce-aux .tox-textarea {
-            border: 1px solid #999 !important;
-            border-radius: 4px !important;
-        }
-        .tox .tox-dialog .tox-textfield:focus,
-        .tox .tox-dialog .tox-textarea:focus,
-        .tox.tox-tinymce-aux .tox-textfield:focus,
-        .tox.tox-tinymce-aux .tox-textarea:focus {
-            border-color: #4f46e5 !important;
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15) !important;
-        }
-    </style>
     <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
     <script>
         tinymce.init({

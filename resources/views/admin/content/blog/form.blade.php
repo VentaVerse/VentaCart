@@ -16,7 +16,7 @@
                 <div class="lg:col-span-2 space-y-6">
                     <x-admin.card>
                         <div class="space-y-4">
-                            <x-admin.field name="title" label="Title">
+                            <x-admin.field name="title" label="Title" required>
                                 <x-admin.input type="text" name="title" required :value="$post?->title" />
                             </x-admin.field>
 
@@ -24,7 +24,7 @@
                                 <x-admin.input type="text" name="slug" :value="$post?->slug" />
                             </x-admin.field>
 
-                            <x-admin.field name="content" label="Content">
+                            <x-admin.field name="content" label="Content" required>
                                 <textarea name="content" id="content" rows="16"
                                     class="tinymce-editor v-control w-full text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">{{ old('content', $post?->content) }}</textarea>
                             </x-admin.field>
@@ -87,7 +87,7 @@
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
                                         </template>
                                         <template x-if="loading">
-                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
+                                            <x-admin.icon name="spinner" class="w-4 h-4 animate-spin" />
                                         </template>
                                         <span x-text="loading ? 'Optimizing...' : 'Optimize with AI'"></span>
                                     </x-admin.button>
@@ -106,11 +106,11 @@
                                                 <div class="mt-1 grid grid-cols-2 gap-2">
                                                     <div class="rounded-v-sm bg-v-surface p-2 text-xs">
                                                         <span class="mb-0.5 block text-v-muted">Current:</span>
-                                                        <span x-text="suggestion['current_' + field] || '(empty)'"></span>
+                                                        <span x-text="suggestion?.['current_' + field] || '(empty)'"></span>
                                                     </div>
                                                     <div class="rounded-v-sm border-l-2 border-v-accent bg-v-surface p-2 text-xs">
                                                         <span class="mb-0.5 block text-v-accent">Suggested:</span>
-                                                        <span x-text="suggestion['suggested_' + field] || '(empty)'"></span>
+                                                        <span x-text="suggestion?.['suggested_' + field] || '(empty)'"></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -167,7 +167,7 @@
                             {{-- Preview --}}
                             <div x-show="selectedPath" class="relative inline-block">
                                 <img :src="previewUrl" class="w-full max-w-[200px] h-auto rounded-v-md border border-v-border" alt="Featured image">
-                                <button type="button" @click="selectedPath = ''" aria-label="Remove featured image" class="absolute top-1 right-1 w-6 h-6 bg-v-danger text-v-danger-text rounded-full flex items-center justify-center hover:opacity-90 shadow-sm">
+                                <button type="button" @click="selectedPath = ''" aria-label="Remove featured image" class="absolute top-1 right-1 w-6 h-6 bg-v-danger text-v-danger-text rounded-full flex items-center justify-center hover:opacity-90 shadow-v-lift">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
@@ -182,7 +182,7 @@
                                  class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
                                  style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
                                  @keydown.escape.window="browserOpen = false">
-                                <div class="w-full max-w-4xl max-h-[80vh] flex flex-col bg-v-surface rounded-v-lg shadow-2xl border border-v-border overflow-hidden"
+                                <div class="w-full max-w-4xl max-h-[80vh] flex flex-col bg-v-surface rounded-v-lg shadow-v-lift-2 border border-v-border overflow-hidden"
                                      @click.outside="browserOpen = false">
                                     {{-- Header --}}
                                     <div class="flex items-center justify-between px-5 py-3.5 border-b border-v-border bg-v-sunken">
@@ -207,7 +207,7 @@
                                     {{-- Content --}}
                                     <div class="flex-1 overflow-y-auto p-5 bg-v-sunken/50">
                                         <div x-show="loading" class="flex items-center justify-center py-16">
-                                            <svg class="w-6 h-6 animate-spin text-v-accent" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
                                         </div>
                                         <div x-show="!loading" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
                                             <template x-if="currentPath !== ''">
@@ -257,16 +257,6 @@
             </div>
         </form>
         @push('scripts')
-        <style>
-            .tox.tox-tinymce-aux .tox-textfield,
-            .tox.tox-tinymce-aux .tox-textarea,
-            .tox .tox-dialog .tox-textfield,
-            .tox .tox-dialog .tox-textarea {
-                border: 1px solid #999 !important;
-                border-radius: 4px !important;
-                padding: 6px 8px !important;
-            }
-        </style>
         <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
         <script>
             tinymce.init({

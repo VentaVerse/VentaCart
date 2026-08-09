@@ -18,7 +18,7 @@
                     @csrf
 
                     {{-- ==================== API Connections ==================== --}}
-                    <x-admin.card title="API Connections" description="Connect Claude AI and Google Search Console to power SEO optimization.">
+                    <x-admin.card title="API Connections">
                         <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
                             {{-- Claude --}}
                             <div class="space-y-4">
@@ -89,7 +89,10 @@
                     </x-admin.card>
 
                     {{-- ==================== Optimization Rules ==================== --}}
-                    <x-admin.card title="Optimization Rules" description="Control when the cron job should skip or re-optimize entities. These rules apply to automated (cron) runs only. Manual &quot;Optimize&quot; buttons always work.">
+                    <x-admin.card title="Optimization Rules">
+                        <x-slot name="headerActions">
+                            <x-admin.hint label="What these rules govern" class="v-hint--end">Scheduled runs only. An Optimize button pressed by hand ignores every rule here.</x-admin.hint>
+                        </x-slot>
                         <div class="max-w-2xl space-y-5">
                             {{-- Skip rules --}}
                             <div class="rounded-v-lg border border-v-border p-4">
@@ -190,7 +193,7 @@
                     </x-admin.card>
 
                     {{-- ==================== General ==================== --}}
-                    <x-admin.card title="General" description="Other SEO behavior settings.">
+                    <x-admin.card title="General">
                         <div class="max-w-lg space-y-4">
                             <label class="flex cursor-pointer items-start gap-3">
                                 <input type="hidden" name="auto_accept" value="0">

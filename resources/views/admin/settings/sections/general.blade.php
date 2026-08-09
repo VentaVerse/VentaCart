@@ -79,7 +79,7 @@
             @endforeach
         </x-admin.card>
 
-        <x-admin.card title="Defaults" description="Timezone and fallback SEO metadata used across the storefront.">
+        <x-admin.card title="Defaults">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="general">

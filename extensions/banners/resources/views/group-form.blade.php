@@ -9,22 +9,22 @@
                 @csrf
                 @if ($group) @method('PUT') @endif
 
-                <x-admin.field name="name" label="Name">
+                <x-admin.field name="name" label="Name" required>
                     <x-admin.input name="name" :value="$group?->name" required placeholder="e.g. Homepage Hero" />
                 </x-admin.field>
 
-                <x-admin.field name="slug" label="Slug" help="Used to reference this group in the theme.">
+                <x-admin.field name="slug" label="Slug" help="Used to reference this group in the theme." required>
                     <x-admin.input name="slug" :value="$group?->slug" required class="font-mono" placeholder="e.g. homepage-hero" />
                 </x-admin.field>
 
                 <div class="grid grid-cols-3 gap-4">
-                    <x-admin.field name="height" label="Height (px)">
+                    <x-admin.field name="height" label="Height (px)" required>
                         <x-admin.input type="number" name="height" :value="$group?->height ?? 500" min="100" max="2000" />
                     </x-admin.field>
-                    <x-admin.field name="height_mobile" label="Mobile Height (px)">
+                    <x-admin.field name="height_mobile" label="Mobile Height (px)" required>
                         <x-admin.input type="number" name="height_mobile" :value="$group?->height_mobile ?? 400" min="100" max="2000" />
                     </x-admin.field>
-                    <x-admin.field name="speed" label="Autoplay Speed (ms)">
+                    <x-admin.field name="speed" label="Autoplay Speed (ms)" required>
                         <x-admin.input type="number" name="speed" :value="$group?->speed ?? 5000" min="1000" max="30000" step="500" />
                     </x-admin.field>
                 </div>

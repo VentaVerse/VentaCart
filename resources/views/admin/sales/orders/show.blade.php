@@ -218,7 +218,7 @@
                 <x-admin.card title="Update Order">
                     <form method="POST" action="{{ route('admin.orders.history.store', $order) }}" data-v-form class="-mt-2 space-y-3">
                         @csrf
-                        <x-admin.field name="order_status_id" label="Status">
+                        <x-admin.field name="order_status_id" label="Status" required>
                             <x-admin.select name="order_status_id" required>
                                 @foreach ($statuses as $status)
                                     <option value="{{ $status->id }}" @selected($order->order_status_id == $status->id)>{{ $status->name }}</option>

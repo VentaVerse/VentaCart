@@ -23,8 +23,8 @@
 
             <div class="min-w-0 flex-1 space-y-5">
                 {{-- Entity-type filter chips --}}
-                <div class="flex flex-wrap gap-2" role="tablist" aria-label="Filter suggestions by content type">
-                    <a href="{{ route('admin.extensions.seo.review') }}"
+                <nav class="flex flex-wrap gap-2" aria-label="Filter suggestions by content type">
+                    <a href="{{ route('admin.extensions.seo.review') }}" @if ($filter === 'all') aria-current="page" @endif
                        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
                            {{ $filter === 'all' ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
                         All
@@ -32,7 +32,7 @@
                     </a>
                     @foreach ($entityTypeLabels as $key => $label)
                         @if (($counts[$key] ?? 0) > 0)
-                            <a href="{{ route('admin.extensions.seo.review', ['type' => $key]) }}"
+                            <a href="{{ route('admin.extensions.seo.review', ['type' => $key]) }}" @if ($filter === $key) aria-current="page" @endif
                                class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
                                    {{ $filter === $key ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
                                 {{ $label }}
@@ -40,7 +40,7 @@
                             </a>
                         @endif
                     @endforeach
-                </div>
+                </nav>
 
                 @if ($suggestions->isEmpty())
                     <x-admin.card>

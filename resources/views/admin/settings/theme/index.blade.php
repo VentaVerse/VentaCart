@@ -298,13 +298,13 @@
                             <form method="POST" action="{{ route('admin.theme.nav.store') }}" data-v-form class="space-y-3">
                                 @csrf
                                 <div class="grid grid-cols-2 gap-3 max-w-lg">
-                                    <x-admin.field name="type" label="Type">
+                                    <x-admin.field name="type" label="Type" required>
                                         <x-admin.select name="type" x-model="newType">
                                             <option value="category">Category</option>
                                             <option value="custom">Custom Link</option>
                                         </x-admin.select>
                                     </x-admin.field>
-                                    <x-admin.field name="label" label="Label">
+                                    <x-admin.field name="label" label="Label" required>
                                         <x-admin.input name="label" required placeholder="Menu label" />
                                     </x-admin.field>
                                 </div>
@@ -357,7 +357,7 @@
                                         <form method="POST" action="{{ route('admin.theme.sections.update', $section) }}" data-v-form class="space-y-3">
                                             @csrf @method('PUT')
                                             <div class="grid grid-cols-2 gap-3">
-                                                <x-admin.field name="title" label="Title">
+                                                <x-admin.field name="title" label="Title" required>
                                                     <x-admin.input name="title" :value="$section->title" />
                                                 </x-admin.field>
                                                 <div class="flex items-end pb-1.5">
@@ -382,7 +382,7 @@
                             <form method="POST" action="{{ route('admin.theme.sections.store') }}" data-v-form class="flex items-end gap-3 max-w-lg">
                                 @csrf
                                 <div class="flex-1">
-                                    <x-admin.field name="type" label="Type">
+                                    <x-admin.field name="type" label="Type" required>
                                         <x-admin.select name="type">
                                             <option value="banner">Banner/Slider</option>
                                             <option value="products">Products Carousel</option>
@@ -395,7 +395,7 @@
                                     </x-admin.field>
                                 </div>
                                 <div class="flex-1">
-                                    <x-admin.field name="title" label="Title">
+                                    <x-admin.field name="title" label="Title" required>
                                         <x-admin.input name="title" required placeholder="Section title" />
                                     </x-admin.field>
                                 </div>
@@ -651,7 +651,7 @@
                             <form method="POST" action="{{ route('admin.theme.footer.store') }}" data-v-form class="flex items-end gap-3 max-w-lg">
                                 @csrf
                                 <div class="flex-1">
-                                    <x-admin.field name="type" label="Type">
+                                    <x-admin.field name="type" label="Type" required>
                                         <x-admin.select name="type">
                                             <option value="links">Links</option>
                                             <option value="payment_icons">Payment Icons</option>
@@ -661,7 +661,7 @@
                                     </x-admin.field>
                                 </div>
                                 <div class="flex-1">
-                                    <x-admin.field name="title" label="Title">
+                                    <x-admin.field name="title" label="Title" required>
                                         <x-admin.input name="title" required />
                                     </x-admin.field>
                                 </div>

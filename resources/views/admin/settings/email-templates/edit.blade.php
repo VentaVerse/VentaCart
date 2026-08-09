@@ -8,11 +8,11 @@
                         @method('PUT')
 
                         <div class="space-y-5">
-                            <x-admin.field name="subject" label="Subject">
+                            <x-admin.field name="subject" label="Subject" required>
                                 <x-admin.input type="text" name="subject" :value="$emailTemplate->subject" />
                             </x-admin.field>
 
-                            <x-admin.field name="body" label="Body (HTML)">
+                            <x-admin.field name="body" label="Body (HTML)" required>
                                 <textarea name="body" id="body" class="tinymce-editor v-control w-full text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">{{ old('body', $emailTemplate->body) }}</textarea>
                             </x-admin.field>
                         </div>

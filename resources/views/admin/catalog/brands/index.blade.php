@@ -89,7 +89,7 @@
              x-show="open" x-cloak x-transition.opacity
              class="fixed inset-0 z-[90] flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-black/50" @click="open = false"></div>
-            <div class="relative w-full max-w-md rounded-v-lg border border-v-border bg-v-surface p-6 shadow-2xl"
+            <div class="relative w-full max-w-md rounded-v-lg border border-v-border bg-v-surface p-6 shadow-v-lift-2"
                  @click.outside="open = false" @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-label="New Brand">
                 <h3 class="mb-4 text-[15px] font-semibold text-v-text">New Brand</h3>
                 <div class="mb-4">

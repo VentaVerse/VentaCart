@@ -8,7 +8,7 @@
                         @method('PUT')
                     @endif
 
-                    <x-admin.field name="name" label="Name" :help="$tag ? 'Slug: ' . $tag->slug : null">
+                    <x-admin.field name="name" label="Name" :help="$tag ? 'Slug: ' . $tag->slug : null" required>
                         <x-admin.input type="text" name="name" :value="$tag?->name" required />
                     </x-admin.field>
 

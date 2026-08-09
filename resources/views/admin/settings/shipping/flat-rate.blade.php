@@ -1,7 +1,7 @@
 <x-admin.settings-shell title="Flat Rate" :wide="true">
     <div class="space-y-8">
 
-        <x-admin.card title="Flat Rate" description="Fixed-cost shipping methods with custom names.">
+        <x-admin.card title="Flat Rate">
             <x-slot name="headerActions">
                 <x-admin.button variant="primary" size="sm" :href="route('admin.flat-rates.create')">Add flat rate</x-admin.button>
             </x-slot>

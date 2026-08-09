@@ -1,4 +1,9 @@
-@props(['name'])
+{{-- `filled` exists for the one case where two states of the same mark
+     have to differ by more than hue: a five-star rating where the
+     earned marks are solid and the rest are outlines. Colour alone
+     would be a WCAG 1.4.1 failure, and the numeral beside them carries
+     the value for anyone not looking at the marks at all. --}}
+@props(['name', 'filled' => false])
 @php
 $paths = [
     'dashboard' => 'M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75',
@@ -50,10 +55,23 @@ $paths = [
     'external' => 'M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25',
     'logout' => 'M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9',
     'menu' => 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
+    /* Both file browsers drew a folder with the four-square `categories`
+       mark, which is the icon for a taxonomy, not for a directory. */
+    /* One person and one person joining, for a customer's activity
+       feed. `customers` and `groups` are both crowds and would have
+       said the same thing twice. */
+    'user' => 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0',
+    'user-plus' => 'M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z',
+    'folder' => 'M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z',
+    /* A three-quarter arc on the same 24 grid, so a loading state is
+       drawn from the set like everything else. Spin it with the
+       `animate-spin` utility; the gap is what makes the rotation
+       legible. */
+    'spinner' => 'M12 3a9 9 0 109 9',
 ];
 @endphp
 {{-- One 24 grid, one stroke weight, every icon drawn. A unicode glyph
      standing in for an icon is the tell that gives a template away. --}}
-<svg {{ $attributes }} fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
+<svg {{ $attributes }} fill="{{ $filled ? 'currentColor' : 'none' }}" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $paths[$name] ?? $paths['info'] }}" />
 </svg>

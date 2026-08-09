@@ -6,3 +6,11 @@
 .v-admin .v-hub-card:nth-child(5) { animation-delay: 160ms; }
 .v-admin .v-hub-card:nth-child(6) { animation-delay: 200ms; }
 @keyframes v-hub-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* `both` holds the card at opacity 0 until its delay elapses, so
+   collapsing --motion-base alone left a reduced-motion reader looking
+   at up to 200ms of blank cards instead of at no animation. The delay
+   has to go too. Same correction the day sheet already carries. */
+@media (prefers-reduced-motion: reduce) {
+    .v-admin .v-hub-card { animation-delay: 0ms !important; }
+}

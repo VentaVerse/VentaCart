@@ -15,13 +15,13 @@
                     @method('PUT')
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <x-admin.field name="bank_name" label="Bank Name">
+                        <x-admin.field name="bank_name" label="Bank Name" required>
                             <x-admin.input type="text" name="bank_name" :value="$bankAccount->bank_name" required placeholder="e.g. BDO, BPI, GCash" />
                         </x-admin.field>
-                        <x-admin.field name="account_name" label="Account Name">
+                        <x-admin.field name="account_name" label="Account Name" required>
                             <x-admin.input type="text" name="account_name" :value="$bankAccount->account_name" required placeholder="Account holder name" />
                         </x-admin.field>
-                        <x-admin.field name="account_number" label="Account Number">
+                        <x-admin.field name="account_number" label="Account Number" required>
                             <x-admin.input type="text" name="account_number" :value="$bankAccount->account_number" required placeholder="Account or mobile number" />
                         </x-admin.field>
                         <x-admin.field name="sort_order" label="Sort Order">

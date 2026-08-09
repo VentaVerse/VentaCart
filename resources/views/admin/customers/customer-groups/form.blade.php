@@ -15,7 +15,7 @@
                     @endif
                     <input type="hidden" name="store_id" value="1">
 
-                    <x-admin.field name="name" label="Name">
+                    <x-admin.field name="name" label="Name" required>
                         <x-admin.input type="text" name="name" required :value="$group?->name" />
                     </x-admin.field>
 

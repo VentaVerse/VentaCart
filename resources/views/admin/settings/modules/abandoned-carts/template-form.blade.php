@@ -11,18 +11,18 @@
                     @csrf
                     @if ($emailTemplate) @method('PUT') @endif
 
-                    <x-admin.field name="name" label="Name">
+                    <x-admin.field name="name" label="Name" required>
                         <x-admin.input name="name" :value="$emailTemplate?->name" required />
                     </x-admin.field>
 
                     @if (!$emailTemplate)
                         <x-admin.field name="slug" label="Slug"
-                            help="Must start with abandoned_cart_. Use lowercase and underscores.">
+                            help="Must start with abandoned_cart_. Use lowercase and underscores." required>
                             <x-admin.input name="slug" :value="old('slug', 'abandoned_cart_')" required class="font-mono" />
                         </x-admin.field>
                     @endif
 
-                    <x-admin.field name="subject" label="Subject">
+                    <x-admin.field name="subject" label="Subject" required>
                         <x-admin.input name="subject" :value="$emailTemplate?->subject" required />
                     </x-admin.field>
 
@@ -40,7 +40,7 @@
                         </div>
                     @endif
 
-                    <x-admin.field name="body" label="Body">
+                    <x-admin.field name="body" label="Body" required>
                         <textarea name="body" id="body" class="tinymce-editor v-control w-full rounded-v-md border border-v-border bg-v-surface px-3 py-2 text-[13px] text-v-text">{{ old('body', $emailTemplate?->body) }}</textarea>
                     </x-admin.field>
 

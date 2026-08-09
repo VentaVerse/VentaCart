@@ -2,7 +2,7 @@
     <form method="POST" action="{{ route('password.confirm') }}" data-v-form class="space-y-5">
         @csrf
 
-        <x-admin.field name="password" label="Password">
+        <x-admin.field name="password" label="Password" required>
             <x-admin.input type="password" name="password" required autofocus autocomplete="current-password" />
         </x-admin.field>
 

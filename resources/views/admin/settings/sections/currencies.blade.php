@@ -1,8 +1,9 @@
 @php $defaultCurrency = $currencies->firstWhere('is_default', true); @endphp
 <x-admin.settings-shell title="Currencies" :wide="true">
     <div class="space-y-6">
-        <x-admin.card title="Currencies" description="Exchange rates are relative to the default (base) currency.">
+        <x-admin.card title="Currencies">
             <x-slot name="headerActions">
+                <x-admin.hint label="How rates are read" class="v-hint--end">Every rate is relative to the default currency, which sits at 1.</x-admin.hint>
                 <form method="POST" action="{{ route('admin.theme.currencies.fetch-rates') }}" data-v-form>
                     @csrf
                     <x-admin.button variant="secondary" type="submit" size="sm">Fetch latest rates</x-admin.button>
@@ -103,16 +104,16 @@
         <x-admin.card title="Add currency">
             <form method="POST" action="{{ route('admin.theme.currencies.store') }}" data-v-form class="grid grid-cols-2 gap-4 sm:grid-cols-5 sm:items-end">
                 @csrf
-                <x-admin.field name="code" label="Code">
+                <x-admin.field name="code" label="Code" required>
                     <x-admin.input name="code" maxlength="3" required class="uppercase" placeholder="USD" />
                 </x-admin.field>
-                <x-admin.field name="name" label="Name">
+                <x-admin.field name="name" label="Name" required>
                     <x-admin.input name="name" required placeholder="US Dollar" />
                 </x-admin.field>
-                <x-admin.field name="symbol" label="Symbol">
+                <x-admin.field name="symbol" label="Symbol" required>
                     <x-admin.input name="symbol" maxlength="10" required placeholder="$" />
                 </x-admin.field>
-                <x-admin.field name="rate" label="Rate">
+                <x-admin.field name="rate" label="Rate" required>
                     <x-admin.input name="rate" type="number" step="0.000001" required placeholder="0.018" />
                 </x-admin.field>
                 <x-admin.button variant="primary" type="submit">Add</x-admin.button>

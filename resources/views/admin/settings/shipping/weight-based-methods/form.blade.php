@@ -22,7 +22,7 @@
                             <x-admin.field name="admin_name" label="Admin Reference Name" help="Internal label for admin, not shown to customers. Leave blank to copy from Method Name.">
                                 <x-admin.input type="text" name="admin_name" :value="$method?->admin_name" placeholder="e.g. WB - Metro Manila Default, WB - Provincial Resellers" />
                             </x-admin.field>
-                            <x-admin.field name="name" label="Method Name" help="This name appears in checkout exactly as you type it">
+                            <x-admin.field name="name" label="Method Name" help="This name appears in checkout exactly as you type it" required>
                                 <x-admin.input type="text" name="name" required :value="$method?->name" placeholder="e.g. Standard Shipping, Express Courier" />
                             </x-admin.field>
                         </div>
@@ -76,7 +76,10 @@
 
                 {{-- Right --}}
                 <div class="space-y-6">
-                    <x-admin.card title="Geo Zones" description="Select which geo zones this method applies to. Leave all unchecked for all zones.">
+                    <x-admin.card title="Geo Zones">
+                        <x-slot name="headerActions">
+                            <x-admin.hint label="About geo zone scope" class="v-hint--end">Leave every box unchecked and the method quotes for all zones.</x-admin.hint>
+                        </x-slot>
                         @php $selectedGeoZones = old('geo_zone_ids', $method?->geoZones?->pluck('id')->toArray() ?? []); @endphp
                         <div class="space-y-1.5 max-h-48 overflow-y-auto">
                             @foreach ($geoZones as $zone)
@@ -93,7 +96,10 @@
                         @endif
                     </x-admin.card>
 
-                    <x-admin.card title="Customer Groups" description="Restrict to specific customer groups. Leave all unchecked for all customers.">
+                    <x-admin.card title="Customer Groups">
+                        <x-slot name="headerActions">
+                            <x-admin.hint label="About customer group scope" class="v-hint--end">Leave every box unchecked and the method quotes for all customers.</x-admin.hint>
+                        </x-slot>
                         @php $selectedGroups = old('customer_group_ids', $method?->customerGroups?->pluck('id')->toArray() ?? []); @endphp
                         <div class="space-y-1.5 max-h-48 overflow-y-auto">
                             @foreach ($customerGroups as $group)

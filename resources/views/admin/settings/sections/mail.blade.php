@@ -1,6 +1,6 @@
 <x-admin.settings-shell title="Mail">
     <div class="space-y-6">
-        <x-admin.card title="SMTP" description="Outgoing mail server used for order and customer emails.">
+        <x-admin.card title="SMTP">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="mail">
@@ -39,7 +39,7 @@
             </form>
         </x-admin.card>
 
-        <x-admin.card title="Sender" description="The From identity on outgoing email.">
+        <x-admin.card title="Sender">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="mail">
@@ -58,11 +58,11 @@
             </form>
         </x-admin.card>
 
-        <x-admin.card title="Send a test email" description="Verifies the configuration above by sending a real email.">
+        <x-admin.card title="Send a test email">
             <form method="POST" action="{{ route('admin.settings.test-mail') }}" data-v-form class="flex items-end gap-3">
                 @csrf
                 <div class="flex-1">
-                    <x-admin.field name="to" label="Send to">
+                    <x-admin.field name="to" label="Send to" required>
                         <x-admin.input name="to" type="email" placeholder="you@example.com" />
                     </x-admin.field>
                 </div>

@@ -94,7 +94,7 @@
                             @if ($coupon->date_start || $coupon->date_end)
                                 <span class="text-v-secondary">
                                     {{ $coupon->date_start?->format('M d, Y') ?? 'Any' }}
-                                    &rarr;
+                                    <x-admin.icon name="arrow-right" class="inline w-3 h-3 align-[-1px]" />
                                     {{ $coupon->date_end?->format('M d, Y') ?? 'No end' }}
                                 </span>
                             @else

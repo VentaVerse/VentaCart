@@ -1,3 +1,11 @@
+{{-- `description` survives on exactly one caller, and the bar it has to
+     clear is high: a consequence the operator cannot recover from
+     (profile/delete-user-form). Forty-six others said what their own
+     title already said, and were deleted; the handful that carried a
+     real constraint moved into x-admin.hint, which keeps the sentence
+     reachable without printing it on the page. A card that wants a
+     line of prose under its heading almost always wants a better
+     heading. --}}
 @props(['title' => null, 'description' => null])
 <section {{ $attributes->merge(['class' => 'bg-v-surface border border-v-border rounded-v-lg']) }}>
     @if ($title || isset($headerActions))

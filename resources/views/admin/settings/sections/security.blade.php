@@ -1,6 +1,6 @@
 <x-admin.settings-shell title="Security">
     <div class="space-y-6">
-        <x-admin.card title="Admin URL" description="Change the admin panel URL path for security.">
+        <x-admin.card title="Admin URL">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="security">
@@ -19,7 +19,10 @@
             </form>
         </x-admin.card>
 
-        <x-admin.card title="Turnstile" description="Protects login, registration, contact, and stock notification forms from bots. Get your keys at dash.cloudflare.com/turnstile.">
+        <x-admin.card title="Turnstile">
+            <x-slot name="headerActions">
+                <x-admin.hint label="What Turnstile protects" class="v-hint--end">Login, registration, contact and stock notification forms are challenged once this is on. Keys come from dash.cloudflare.com/turnstile.</x-admin.hint>
+            </x-slot>
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="security">

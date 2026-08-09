@@ -150,10 +150,10 @@
                 <x-admin.card class="max-w-2xl">
                     <form method="POST" action="{{ route('admin.stock-notifications.update-template') }}" data-v-form class="space-y-4">
                         @csrf
-                        <x-admin.field name="subject" label="Subject">
+                        <x-admin.field name="subject" label="Subject" required>
                             <x-admin.input name="subject" :value="$template?->subject ?? ''" placeholder="Good news! {product_name} is back in stock" />
                         </x-admin.field>
-                        <x-admin.field name="body" label="Body">
+                        <x-admin.field name="body" label="Body" required>
                             <textarea name="body" id="stock-template-body" rows="12"
                                 class="tinymce-editor v-control w-full px-3 py-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">{{ old('body', $template?->body ?? '') }}</textarea>
                         </x-admin.field>

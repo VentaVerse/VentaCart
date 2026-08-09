@@ -126,3 +126,16 @@
     outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
+
+/* A figure column in an editable grid reads as a column of figures.
+   The browser's own stepper arrows put two chevrons inside every cell
+   and the column stops aligning, so the variant and rate grids
+   suppress them. Moved here from a <style> block in the product form,
+   which is the rule this system does not allow. */
+.v-admin .variant-table input[type="number"]::-webkit-inner-spin-button,
+.v-admin .variant-table input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.v-admin .variant-table input[type="number"] { -moz-appearance: textfield; }

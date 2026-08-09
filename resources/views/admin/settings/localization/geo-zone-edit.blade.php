@@ -6,7 +6,7 @@
                     @csrf @method('PUT')
                     <div class="grid grid-cols-3 gap-4">
                         <div class="col-span-2">
-                            <x-admin.field name="name" label="Name">
+                            <x-admin.field name="name" label="Name" required>
                                 <x-admin.input name="name" required :value="$geoZone->name" />
                             </x-admin.field>
                         </div>
@@ -26,7 +26,7 @@
             </x-admin.card>
 
             {{-- Entries --}}
-            <x-admin.card title="Zone Entries" description="Define which geographic areas belong to this zone. Pick a country, then optionally narrow to a specific state/zone.">
+            <x-admin.card title="Zone Entries">
                 <x-slot:headerActions>
                     <x-admin.button type="button" size="sm" @click="addEntry()">
                         <x-admin.icon name="plus" class="w-3.5 h-3.5" /> Add Entry

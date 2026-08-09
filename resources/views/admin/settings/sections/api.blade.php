@@ -1,6 +1,6 @@
 <x-admin.settings-shell title="API">
     <div class="space-y-6">
-        <x-admin.card title="ERP token" description="Used by the ERP system to authenticate API requests. Keep it secret.">
+        <x-admin.card title="ERP token">
             <div class="space-y-4">
                 @if (session('new_erp_token'))
                     <div class="rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] p-4"
@@ -35,7 +35,7 @@
                 confirm="Regenerate" action="{{ route('admin.settings.generate-erp-token') }}" method="POST" />
         </x-admin.card>
 
-        <x-admin.card title="Sync logging" description="Log every ERP API sync request for troubleshooting.">
+        <x-admin.card title="Sync logging">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
                 @csrf
                 <input type="hidden" name="group" value="api">
@@ -51,7 +51,7 @@
                 </x-admin.form-actions>
             </form>
             <p class="mt-4 text-[13px]">
-                <a href="{{ route('admin.api-sync-logs.index') }}" class="text-v-accent hover:underline">View API logs &rarr;</a>
+                <a href="{{ route('admin.api-sync-logs.index') }}" class="text-v-accent hover:underline">View API logs <x-admin.icon name="arrow-right" class="inline w-3.5 h-3.5 align-[-2px]" /></a>
             </p>
         </x-admin.card>
     </div>

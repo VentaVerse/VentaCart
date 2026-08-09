@@ -16,13 +16,10 @@
 
                 {{-- Star Rating --}}
                 <div class="mb-4 flex items-center gap-1">
-                    <div class="flex gap-0.5 text-xl text-v-warning">
+                    <div class="flex gap-0.5" aria-hidden="true">
                         @for ($i = 1; $i <= 5; $i++)
-                            @if ($i <= $review->rating)
-                                <span>&#9733;</span>
-                            @else
-                                <span class="text-v-muted">&#9733;</span>
-                            @endif
+                            <x-admin.icon name="reviews" :filled="$i <= $review->rating"
+                                class="w-5 h-5 {{ $i <= $review->rating ? 'text-v-warning' : 'text-v-muted' }}" />
                         @endfor
                     </div>
                     <span class="ml-2 text-[13px] text-v-secondary">{{ $review->rating }}/5</span>

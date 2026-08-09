@@ -25,14 +25,14 @@
                     {{-- Coupon Code --}}
                     <x-admin.card title="Coupon Code">
                         <div class="space-y-4">
-                            <x-admin.field name="code" label="Code" help="Letters, numbers, and hyphens only. Will be uppercased.">
+                            <x-admin.field name="code" label="Code" help="Letters, numbers, and hyphens only. Will be uppercased." required>
                                 <div class="flex gap-2">
                                     <x-admin.input type="text" name="code" required :value="$coupon?->code" maxlength="32"
                                         class="flex-1 font-mono uppercase" placeholder="e.g. SUMMER2026" />
                                     <x-admin.button type="button" variant="secondary" @click="generateCode()">Generate</x-admin.button>
                                 </div>
                             </x-admin.field>
-                            <x-admin.field name="name" label="Name">
+                            <x-admin.field name="name" label="Name" required>
                                 <x-admin.input type="text" name="name" required :value="$coupon?->name" placeholder="e.g. Summer Sale 10% Off" />
                             </x-admin.field>
                         </div>
@@ -41,7 +41,7 @@
                     {{-- Discount --}}
                     <x-admin.card title="Discount">
                         <div class="space-y-4">
-                            <x-admin.field name="type" label="Type">
+                            <x-admin.field name="type" label="Type" required>
                                 <x-admin.select name="type" x-model="type">
                                     <option value="percent">Percentage Discount</option>
                                     <option value="fixed">Fixed Amount Discount</option>
@@ -69,7 +69,10 @@
                     </x-admin.card>
 
                     {{-- Restrictions --}}
-                    <x-admin.card title="Restrictions" description="Leave blank to apply to all products. Add specific items to restrict this coupon.">
+                    <x-admin.card title="Restrictions">
+                        <x-slot name="headerActions">
+                            <x-admin.hint label="How restrictions apply" class="v-hint--end">Left empty, the coupon applies to everything. Add entries and it applies only to those.</x-admin.hint>
+                        </x-slot>
                         <div class="space-y-5">
                             @foreach ([
                                 ['type' => 'product', 'label' => 'Products', 'url' => route('admin.coupons.search-products'), 'placeholder' => 'Search products by name or SKU...'],
@@ -111,12 +114,12 @@
                                             placeholder="{{ $r['placeholder'] }}"
                                             class="v-control w-full h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md placeholder:text-v-muted">
                                         <div x-show="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
-                                            <svg class="w-4 h-4 animate-spin text-v-muted" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                            <x-admin.icon name="spinner" class="w-4 h-4 animate-spin text-v-muted" />
                                         </div>
 
                                         {{-- Dropdown results --}}
                                         <div x-show="open && results.length > 0" x-transition x-cloak
-                                             class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-lg">
+                                             class="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-v-lift-2">
                                             <template x-for="result in results" :key="result.id">
                                                 <button type="button" @click="add(result)"
                                                     class="w-full text-left px-3 py-2 text-[13px] transition-colors flex items-center justify-between hover:bg-v-hover"
@@ -160,7 +163,7 @@
                     {{-- Eligibility --}}
                     <x-admin.card title="Eligibility">
                         <div class="space-y-4">
-                            <x-admin.field name="customer_eligibility" label="Who can use">
+                            <x-admin.field name="customer_eligibility" label="Who can use" required>
                                 <x-admin.select name="customer_eligibility">
                                     <option value="all" {{ old('customer_eligibility', $coupon?->customer_eligibility) === 'all' ? 'selected' : '' }}>Everyone</option>
                                     <option value="logged_in" {{ old('customer_eligibility', $coupon?->customer_eligibility) === 'logged_in' ? 'selected' : '' }}>Logged-in Customers</option>

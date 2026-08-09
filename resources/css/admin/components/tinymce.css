@@ -1,0 +1,47 @@
+/* ============================================================
+   TinyMCE dialogs
+
+   The editor draws its own modals (link, image, source code) from a
+   skin this project does not own, and that skin's fields come with a
+   hairline nobody can see and a focus treatment in its own colour.
+   Three views used to patch that with a <style> block each, hard-coded
+   to #999 and to Tailwind indigo-600, which is the accent this
+   redesign retired: every TinyMCE dialog in the admin focused in a
+   colour the palette no longer contains, and none of it followed a
+   theme change.
+
+   The rules live here instead, in the tokens, so a dialog TinyMCE
+   paints reads as part of the admin in both themes. !important stays
+   because the skin states these same properties on the same elements
+   and loads after this bundle.
+
+   Both selector families are needed: .tox-dialog covers a modal
+   rendered inside the editor's own container, .tox-tinymce-aux covers
+   the one appended to <body>. Body carries .v-admin, so both resolve.
+
+   The same rules also lived in resources/css/app.css, the bundle the
+   storefront loads, where they did nothing at all: TinyMCE exists only
+   in the admin. That copy carried the indigo too, and it is gone.
+   ============================================================ */
+
+.v-admin .tox .tox-dialog .tox-textfield,
+.v-admin .tox .tox-dialog .tox-textarea,
+.v-admin .tox .tox-dialog .tox-selectfield select,
+.v-admin .tox.tox-tinymce-aux .tox-textfield,
+.v-admin .tox.tox-tinymce-aux .tox-textarea,
+.v-admin .tox.tox-tinymce-aux .tox-selectfield select {
+    border: 1px solid var(--border-control) !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 6px 8px !important;
+    font-size: 14px !important;
+}
+
+.v-admin .tox .tox-dialog .tox-textfield:focus,
+.v-admin .tox .tox-dialog .tox-textarea:focus,
+.v-admin .tox .tox-dialog .tox-selectfield select:focus,
+.v-admin .tox.tox-tinymce-aux .tox-textfield:focus,
+.v-admin .tox.tox-tinymce-aux .tox-textarea:focus,
+.v-admin .tox.tox-tinymce-aux .tox-selectfield select:focus {
+    border-color: var(--focus) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 28%, transparent) !important;
+}

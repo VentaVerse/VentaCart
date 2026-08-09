@@ -1,5 +1,5 @@
 <x-admin.settings-shell title="DHL Express">
-    <x-admin.card title="DHL Express" description="International shipments via the DHL Express API.">
+    <x-admin.card title="DHL Express">
         <div class="space-y-6">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5 max-w-lg">
                 @csrf

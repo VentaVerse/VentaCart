@@ -11,7 +11,7 @@
                     @csrf
                     @if ($rule) @method('PUT') @endif
 
-                    <x-admin.field name="email_template_id" label="Email Template">
+                    <x-admin.field name="email_template_id" label="Email Template" required>
                         <x-admin.select name="email_template_id" required>
                             <option value="">Select template...</option>
                             @foreach ($templates as $template)
@@ -34,13 +34,13 @@
                     </x-admin.field>
 
                     <div class="grid grid-cols-3 gap-4">
-                        <x-admin.field name="max_sends" label="Max Sends" help="Per cart, per rule">
+                        <x-admin.field name="max_sends" label="Max Sends" help="Per cart, per rule" required>
                             <x-admin.input type="number" name="max_sends" min="1" max="100" :value="$rule?->max_sends ?? 1" required />
                         </x-admin.field>
-                        <x-admin.field name="min_cart_age_hours" label="Min Cart Age (hours)" help="How old before first send">
+                        <x-admin.field name="min_cart_age_hours" label="Min Cart Age (hours)" help="How old before first send" required>
                             <x-admin.input type="number" name="min_cart_age_hours" min="1" max="8760" :value="$rule?->min_cart_age_hours ?? 1" required />
                         </x-admin.field>
-                        <x-admin.field name="priority" label="Priority" help="Higher = checked first">
+                        <x-admin.field name="priority" label="Priority" help="Higher = checked first" required>
                             <x-admin.input type="number" name="priority" min="0" max="999" :value="$rule?->priority ?? 0" required />
                         </x-admin.field>
                     </div>

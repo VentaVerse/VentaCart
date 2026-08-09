@@ -37,7 +37,13 @@
                         @php $editForm = 'status-update-'.$status->id; @endphp
                         <x-admin.table.row>
                             <x-admin.table.cell>
-                                <div class="flex items-center gap-2">
+                                {{-- The floor is what keeps the default status's
+                                     field editable at 390: the badge beside it
+                                     used to take the cell down to 80px and the
+                                     input with it, to 18px. The table already
+                                     scrolls inside its own wrapper, so a wider
+                                     column costs nothing. --}}
+                                <div class="flex min-w-[13rem] items-center gap-2">
                                     <input type="text" form="{{ $editForm }}" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
                                         class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                     @if ($status->is_default)
@@ -111,7 +117,7 @@
             <x-admin.card title="Add status">
                 <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end">
                     @csrf
-                    <x-admin.field name="name" label="Name">
+                    <x-admin.field name="name" label="Name" required>
                         <x-admin.input name="name" required placeholder="Quality Check" />
                     </x-admin.field>
                     <x-admin.field name="sort_order" label="Sort">

@@ -8,7 +8,7 @@
         <div x-init="$store.toasts.push(@js(session('error')), 'danger')" hidden>{{ session('error') }}</div>
     @endif
     <template x-for="toast in $store.toasts.items" :key="toast.id">
-        <div class="flex items-start gap-2.5 px-3.5 py-2.5 bg-v-surface border border-v-border rounded-v-md shadow-lg text-[13px] text-v-text"
+        <div class="flex items-start gap-2.5 px-3.5 py-2.5 bg-v-surface border border-v-border rounded-v-md shadow-v-lift-2 text-[13px] text-v-text"
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-x-4"
              x-transition:leave="transition ease-in duration-150"

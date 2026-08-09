@@ -1,13 +1,13 @@
-<x-admin.card title="Profile Information" description="Update your account's name and email address.">
+<x-admin.card title="Profile Information">
     <form method="post" action="{{ route('admin.profile.update') }}" data-v-form class="space-y-5">
         @csrf
         @method('patch')
 
-        <x-admin.field name="name" label="Name">
+        <x-admin.field name="name" label="Name" required>
             <x-admin.input name="name" :value="$user->name" required autofocus autocomplete="name" />
         </x-admin.field>
 
-        <x-admin.field name="email" label="Email">
+        <x-admin.field name="email" label="Email" required>
             <x-admin.input name="email" type="email" :value="$user->email" required autocomplete="username" />
         </x-admin.field>
 

@@ -10,11 +10,11 @@
                     @csrf
                     @if ($rate) @method('PUT') @endif
 
-                    <x-admin.field name="name" label="Name" help="This name appears in checkout exactly as you type it">
+                    <x-admin.field name="name" label="Name" help="This name appears in checkout exactly as you type it" required>
                         <x-admin.input type="text" name="name" required :value="$rate?->name" placeholder="e.g. Standard Flat Rate, Store Pickup" />
                     </x-admin.field>
 
-                    <x-admin.field name="cost" label="Cost (₱)" help="Set to 0 for free pickup or promotional methods">
+                    <x-admin.field name="cost" label="Cost (₱)" help="Set to 0 for free pickup or promotional methods" required>
                         <x-admin.input type="number" name="cost" step="0.01" min="0" required :value="$rate?->cost ?? '0.00'" class="w-40" />
                     </x-admin.field>
 

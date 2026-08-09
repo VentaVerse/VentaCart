@@ -1,6 +1,6 @@
 <x-admin.settings-shell title="Weight Based" :wide="true">
 
-    <x-admin.card title="Weight Based" description="Cost tiers based on cart weight. Click a method to expand and edit.">
+    <x-admin.card title="Weight Based">
         <x-slot name="headerActions">
             <x-admin.button variant="primary" size="sm" :href="route('admin.weight-based-methods.create')">Add method</x-admin.button>
         </x-slot>

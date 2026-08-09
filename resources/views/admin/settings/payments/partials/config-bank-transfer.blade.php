@@ -1,5 +1,5 @@
 <div class="space-y-6">
-    <x-admin.card title="Bank Transfer" description="Multi-account bank transfer with QR codes.">
+    <x-admin.card title="Bank Transfer">
         <x-slot name="headerActions">
             <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form>
                 @csrf
@@ -37,7 +37,7 @@
         </form>
     </x-admin.card>
 
-    <x-admin.card title="Bank accounts" description="Accounts shown to the customer at checkout.">
+    <x-admin.card title="Bank accounts">
         <x-admin.table>
             <x-slot name="head">
                 <x-admin.table.th>QR</x-admin.table.th>
@@ -89,13 +89,13 @@
         <form method="POST" action="{{ route('admin.bank-accounts.store') }}" enctype="multipart/form-data" data-v-form class="space-y-5">
             @csrf
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <x-admin.field name="bank_name" label="Bank name">
+                <x-admin.field name="bank_name" label="Bank name" required>
                     <x-admin.input name="bank_name" required placeholder="e.g. BDO, BPI, GCash" />
                 </x-admin.field>
-                <x-admin.field name="account_name" label="Account name">
+                <x-admin.field name="account_name" label="Account name" required>
                     <x-admin.input name="account_name" required placeholder="Account holder name" />
                 </x-admin.field>
-                <x-admin.field name="account_number" label="Account number">
+                <x-admin.field name="account_number" label="Account number" required>
                     <x-admin.input name="account_number" required placeholder="Account or mobile number" />
                 </x-admin.field>
                 <x-admin.field name="sort_order" label="Sort order">

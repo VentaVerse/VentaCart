@@ -104,7 +104,7 @@
                 </x-admin.card>
 
                 {{-- Search Console --}}
-                <x-admin.card title="Search Console" description="Top queries by impressions over the last 28 days.">
+                <x-admin.card title="Search Console, last 28 days">
                     @if (!empty($topQueries))
                         <x-admin.table>
                             <x-slot name="head">

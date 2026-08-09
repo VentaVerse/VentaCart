@@ -29,7 +29,7 @@
                     </div>
 
                     {{-- Top Queries --}}
-                    <x-admin.card title="Top Queries" description="Last 28 days.">
+                    <x-admin.card title="Top queries, last 28 days">
                         @if (count($queries) > 0)
                             <x-admin.table>
                                 <x-slot name="head">
@@ -60,7 +60,7 @@
                     </x-admin.card>
 
                     {{-- Top Pages --}}
-                    <x-admin.card title="Top Pages" description="Last 28 days.">
+                    <x-admin.card title="Top pages, last 28 days">
                         @if (count($pages) > 0)
                             <x-admin.table>
                                 <x-slot name="head">

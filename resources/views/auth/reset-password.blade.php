@@ -4,15 +4,15 @@
 
         <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
-        <x-admin.field name="email" label="Email">
+        <x-admin.field name="email" label="Email" required>
             <x-admin.input type="email" name="email" :value="old('email', $request->email)" required autofocus autocomplete="username" />
         </x-admin.field>
 
-        <x-admin.field name="password" label="New password">
+        <x-admin.field name="password" label="New password" required>
             <x-admin.input type="password" name="password" required autocomplete="new-password" />
         </x-admin.field>
 
-        <x-admin.field name="password_confirmation" label="Confirm new password">
+        <x-admin.field name="password_confirmation" label="Confirm new password" required>
             <x-admin.input type="password" name="password_confirmation" required autocomplete="new-password" />
         </x-admin.field>
 

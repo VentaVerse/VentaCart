@@ -55,7 +55,7 @@
     </div>
 
     {{-- Automations table --}}
-    <x-admin.card title="Automations" description="Scheduled background tasks.">
+    <x-admin.card title="Automations">
         <x-admin.table>
             <x-slot name="head">
                 <x-admin.table.th>Automation</x-admin.table.th>
@@ -104,10 +104,10 @@
                                 aria-label="Enable {{ $automation->name }}"
                                 :aria-checked="enabled.toString()"
                                 @click="toggle({{ $automation->id }}, $event)"
-                                :class="enabled ? 'bg-v-accent' : 'bg-v-strong'"
+                                :class="enabled ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
                                 class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-v-accent focus:ring-offset-1">
-                            <span :class="enabled ? 'translate-x-4' : 'translate-x-0.5'"
-                                  class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"></span>
+                            <span :class="enabled ? 'translate-x-4 bg-v-accent-text' : 'translate-x-0.5 bg-v-surface'"
+                                  class="inline-block h-4 w-4 transform rounded-full shadow transition-transform"></span>
                         </button>
                     </x-admin.table.cell>
                     <x-admin.table.cell>
@@ -160,7 +160,7 @@
         {{-- Hand-rolled rather than x-admin.modal because its body reads
              automationsTab's own editor state. x-dialog gives it the same
              focus contract every x-admin.modal has. --}}
-        <div class="relative bg-v-surface rounded-v-lg shadow-2xl border border-v-border w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        <div class="relative bg-v-surface rounded-v-lg shadow-v-lift-2 border border-v-border w-full max-w-lg max-h-[90vh] overflow-y-auto"
              x-dialog="editor.open" tabindex="-1"
              role="dialog" aria-modal="true" aria-labelledby="automation-editor-title"
              x-transition:enter="transition ease-out duration-200"

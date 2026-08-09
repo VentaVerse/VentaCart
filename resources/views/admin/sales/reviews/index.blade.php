@@ -2,9 +2,9 @@
     <x-admin.page title="Reviews">
         <div class="space-y-5">
             {{-- Tabs --}}
-            <div class="flex flex-wrap gap-2" role="tablist" aria-label="Filter reviews by status">
+            <nav class="flex flex-wrap gap-2" aria-label="Filter reviews by status">
                 @foreach (['pending', 'approved', 'rejected'] as $status)
-                    <a href="{{ route('admin.reviews.index', ['tab' => $status, 'search' => request('search')]) }}"
+                    <a href="{{ route('admin.reviews.index', ['tab' => $status, 'search' => request('search')]) }}" @if ($tab === $status) aria-current="page" @endif
                        class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
                            {{ $tab === $status ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
                         {{ ucfirst($status) }}
@@ -13,12 +13,12 @@
                         @endif
                     </a>
                 @endforeach
-                <a href="{{ route('admin.reviews.index', ['tab' => 'settings']) }}"
+                <a href="{{ route('admin.reviews.index', ['tab' => 'settings']) }}" @if ($tab === 'settings') aria-current="page" @endif
                    class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
                        {{ $tab === 'settings' ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
                     Settings
                 </a>
-            </div>
+            </nav>
 
             @if ($tab === 'settings')
                 {{-- Review Settings --}}
@@ -148,14 +148,14 @@
                                 <div class="text-xs text-v-muted">{{ $review->email }}</div>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
-                                <div class="flex gap-0.5 text-v-warning">
-                                    @for ($i = 1; $i <= 5; $i++)
-                                        @if ($i <= $review->rating)
-                                            <span>&#9733;</span>
-                                        @else
-                                            <span class="text-v-muted">&#9733;</span>
-                                        @endif
-                                    @endfor
+                                <div class="flex items-center gap-1.5">
+                                    <div class="flex gap-0.5" aria-hidden="true">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <x-admin.icon name="reviews" :filled="$i <= $review->rating"
+                                                class="w-3.5 h-3.5 {{ $i <= $review->rating ? 'text-v-warning' : 'text-v-muted' }}" />
+                                        @endfor
+                                    </div>
+                                    <span class="text-xs text-v-secondary">{{ $review->rating }}/5</span>
                                 </div>
                             </x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary">{{ Str::limit($review->title, 40) ?: '-' }}</x-admin.table.cell>

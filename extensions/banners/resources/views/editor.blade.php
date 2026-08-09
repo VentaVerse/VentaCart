@@ -57,7 +57,7 @@
                                 <div x-show="layer.type === 'text'" x-text="layer.content || 'Text'" style="white-space: pre-line; pointer-events: none;"></div>
 
                                 {{-- Image layer --}}
-                                <img x-show="layer.type === 'image'"
+                                <img x-show="layer.type === 'image'" alt="" aria-hidden="true"
                                      :src="layer.src ? '/storage/' + layer.src : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/></svg>'"
                                      :style="'width: ' + (layer.width || 200) + 'px; height: ' + (layer.height || 'auto')"
                                      class="block max-w-none pointer-events-none" draggable="false">
@@ -70,7 +70,7 @@
                                 {{-- Resize handle --}}
                                 <div x-show="selectedLayer === i"
                                      @mousedown.stop.prevent="startResize($event, i)"
-                                     class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-v-accent border border-white rounded-v-sm cursor-se-resize shadow-sm"
+                                     class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-v-accent border border-white rounded-v-sm cursor-se-resize shadow-v-lift"
                                      style="pointer-events: auto; z-index: 50;"></div>
                             </div>
                         </template>
@@ -265,9 +265,9 @@
                                         </div>
                                         <template x-if="currentLayer?.src">
                                             <div class="flex items-center gap-2 p-1.5 bg-v-sunken rounded-v-md">
-                                                <img :src="'/storage/' + currentLayer.src" class="h-10 w-10 rounded-v-sm border border-v-border object-cover shrink-0">
+                                                <img :src="'/storage/' + currentLayer.src" alt="" aria-hidden="true" class="h-10 w-10 rounded-v-sm border border-v-border object-cover shrink-0">
                                                 <span class="text-[10px] text-v-muted font-mono truncate flex-1" x-text="currentLayer.src.split('/').pop()"></span>
-                                                <button type="button" @click="currentLayer.src = ''" class="text-v-muted hover:text-v-danger text-xs p-0.5 transition-colors">
+                                                <button type="button" @click="currentLayer.src = ''" aria-label="Clear layer image" class="text-v-muted hover:text-v-danger text-xs p-0.5 transition-colors">
                                                     <x-admin.icon name="x" class="w-3.5 h-3.5" />
                                                 </button>
                                             </div>
@@ -428,7 +428,7 @@
                  style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
                  @keydown.escape.window="layerBrowserOpen = false">
 
-                <div class="w-full max-w-5xl max-h-[85vh] flex flex-col bg-v-surface rounded-v-lg shadow-2xl border border-v-border overflow-hidden"
+                <div class="w-full max-w-5xl max-h-[85vh] flex flex-col bg-v-surface rounded-v-lg shadow-v-lift-2 border border-v-border overflow-hidden"
                      @click.outside="layerBrowserOpen = false">
 
                     <div class="flex items-center justify-between px-5 py-3.5 border-b border-v-border bg-v-sunken">
@@ -448,7 +448,7 @@
                                 </template>
                             </nav>
                         </div>
-                        <button type="button" @click="layerBrowserOpen = false" class="text-v-muted hover:text-v-text transition-colors p-1 rounded-v-md hover:bg-v-hover shrink-0 ml-3">
+                        <button type="button" @click="layerBrowserOpen = false" aria-label="Close image browser" class="text-v-muted hover:text-v-text transition-colors p-1 rounded-v-md hover:bg-v-hover shrink-0 ml-3">
                             <x-admin.icon name="x" class="w-5 h-5" />
                         </button>
                     </div>
@@ -463,7 +463,7 @@
 
                     <div class="flex-1 overflow-y-auto p-5 bg-v-sunken/50">
                         <div x-show="layerBrowserLoading" class="flex items-center justify-center py-16">
-                            <svg class="w-6 h-6 animate-spin text-v-accent" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                            <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
                         </div>
 
                         <div x-show="!layerBrowserLoading" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">

@@ -50,15 +50,15 @@
                             </x-admin.select>
                         </x-admin.field>
 
-                        <x-admin.field name="first_name" label="First Name">
+                        <x-admin.field name="first_name" label="First Name" required>
                             <x-admin.input type="text" name="first_name" required :value="$customer?->first_name" />
                         </x-admin.field>
 
-                        <x-admin.field name="last_name" label="Last Name">
+                        <x-admin.field name="last_name" label="Last Name" required>
                             <x-admin.input type="text" name="last_name" required :value="$customer?->last_name" />
                         </x-admin.field>
 
-                        <x-admin.field name="email" label="Email">
+                        <x-admin.field name="email" label="Email" required>
                             <x-admin.input type="email" name="email" required :value="$customer?->email" />
                         </x-admin.field>
 
@@ -66,7 +66,7 @@
                             <x-admin.input type="text" name="phone" :value="$customer?->phone" />
                         </x-admin.field>
 
-                        <x-admin.field name="password" :label="$customer ? 'Password (leave blank to keep current)' : 'Password'">
+                        <x-admin.field name="password" :label="$customer ? 'Password (leave blank to keep current)' : 'Password'" :required="! $customer">
                             <x-admin.input type="password" name="password" {{ $customer ? '' : 'required' }} minlength="8" />
                         </x-admin.field>
                     </div>
@@ -248,7 +248,7 @@
                             @forelse ($customer->activities->take(100) as $activity)
                                 <div class="flex items-start gap-3">
                                     <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {{ $activity->color }}">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $activity->icon }}"/></svg>
+                                        <x-admin.icon :name="$activity->icon" class="w-4 h-4" />
                                     </div>
                                     <div class="min-w-0 flex-1">
                                         <p class="text-[13px] text-v-text">{{ $activity->description }}</p>

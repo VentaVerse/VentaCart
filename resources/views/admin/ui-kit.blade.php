@@ -1,7 +1,7 @@
 <x-admin.shell title="UI Kit">
     <x-admin.page title="UI Kit">
         <div class="space-y-8">
-            <x-admin.card title="Buttons" description="All variants and sizes. Toggle themes with the topbar switch.">
+            <x-admin.card title="Buttons">
                 <div class="flex flex-wrap items-center gap-3">
                     <x-admin.button variant="primary">Primary</x-admin.button>
                     <x-admin.button variant="secondary">Secondary</x-admin.button>
@@ -23,7 +23,7 @@
                 </div>
             </x-admin.card>
 
-            <x-admin.card title="Forms" description="Field wrapper, controls, error states.">
+            <x-admin.card title="Forms">
                 <form data-v-form class="max-w-xl space-y-5" onsubmit="return false;">
                     <x-admin.field name="demo_name" label="Store name" help="Shown in the storefront header.">
                         <x-admin.input name="demo_name" value="NewGearDay" />
