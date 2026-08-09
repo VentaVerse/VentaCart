@@ -12,93 +12,108 @@
     $componentId = 'sip_' . str_replace(['[', ']', '.'], '_', $fieldName);
 @endphp
 
-<div x-data="{{ $componentId }}()" class="space-y-2">
-    <label class="block text-sm font-medium text-gray-700">{{ $label }} @if($required)<span class="text-red-500">*</span>@endif</label>
+{{-- The picker's value lives in a hidden input, so there is no control a
+     <label for> could point at and x-admin.field cannot wrap it. It wears
+     the same v-field primitives that component wears instead. --}}
+<div x-data="{{ $componentId }}()" class="v-field">
+    <span class="v-field__label v-label">
+        {{ $label }}
+        @if ($required)<span class="v-req">Required</span>@endif
+    </span>
 
     <input type="hidden" name="{{ $fieldName }}" :value="imagePath">
 
     {{-- Preview --}}
     <div x-show="imagePath" class="mb-2">
         <div class="relative inline-block">
-            <img :src="imageUrl" class="h-32 rounded-lg object-cover border border-gray-200">
-            <button type="button" @click="clear()"
-                class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            {{-- Decorative: the picker's whole job is to show which file is
+                 chosen, and the file's name is already the button beside it,
+                 so a repeated alt would only be noise to a screen reader. --}}
+            <img :src="imageUrl" alt="" aria-hidden="true" class="h-32 rounded-v-md object-cover border border-v-strong">
+            <button type="button" @click="clear()" aria-label="Remove {{ $label }}"
+                class="absolute -top-2 -right-2 w-6 h-6 bg-v-surface border border-v-danger text-v-danger rounded-v-pill flex items-center justify-center hover:bg-[var(--bl-bad-wash)] transition-colors shadow-v-lift">
+                <x-admin.icon name="x" class="w-3.5 h-3.5" />
             </button>
         </div>
     </div>
 
     {{-- Actions --}}
     <div class="flex items-center gap-2">
-        <button type="button" @click="openBrowser()"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 text-sm font-medium rounded-lg transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        <x-admin.button variant="primary" @click="openBrowser()">
+            <x-admin.icon name="media" class="w-4 h-4" />
             Browse
-        </button>
+        </x-admin.button>
     </div>
-    @if($hint)
-        <p class="text-xs text-gray-400">{{ $hint }}</p>
+
+    @if ($hint)
+        <div class="v-field__hint">{{ $hint }}</div>
     @endif
 
     {{-- Toast --}}
-    <div x-show="toast" x-transition.opacity class="fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-lg shadow-lg text-sm text-white"
-         :class="toastType === 'error' ? 'bg-red-600' : 'bg-emerald-600'">
+    <div x-show="toast" x-transition.opacity
+         class="fixed bottom-6 right-6 z-[10001] flex items-start gap-2.5 px-3.5 py-2.5 bg-v-surface border border-v-border rounded-v-md shadow-v-lift-2 text-[13px] text-v-text"
+         role="status" aria-live="polite">
+        <x-admin.icon name="check" x-show="toastType !== 'error'" class="w-4 h-4 text-v-accent mt-0.5 shrink-0" />
+        <x-admin.icon name="warning" x-show="toastType === 'error'" class="w-4 h-4 text-v-danger mt-0.5 shrink-0" />
         <span x-text="toast"></span>
     </div>
 
     {{-- Image Manager Modal --}}
     <div x-show="browserOpen" x-transition.opacity.duration.200ms
-         class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-         style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[3px]"
          @keydown.escape.window="browserOpen = false">
 
-        <div class="w-full max-w-5xl max-h-[85vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+        <div class="v-modal w-full max-w-5xl max-h-[85vh] flex flex-col bg-v-surface rounded-v-lg border border-v-border overflow-hidden"
+             role="dialog" aria-modal="true" aria-label="Image manager"
              @click.outside="browserOpen = false">
 
             {{-- Header --}}
-            <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gray-50">
+            <div class="flex items-center justify-between px-5 py-3.5 border-b border-v-border bg-v-sunken">
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                        <h3 class="text-sm font-semibold text-gray-900">Image Manager</h3>
+                        <x-admin.icon name="media" class="w-5 h-5 text-v-accent shrink-0" />
+                        <h3 class="text-[15px] font-semibold text-v-text">Image Manager</h3>
                     </div>
-                    <span class="text-gray-300">|</span>
-                    <nav class="flex items-center gap-0.5 text-sm min-w-0 overflow-x-auto">
-                        <button type="button" @click="browseDir('')" class="text-indigo-600 hover:text-indigo-800 transition-colors shrink-0 font-medium flex items-center gap-1">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>
+                    <span class="text-v-border" aria-hidden="true">|</span>
+                    <nav aria-label="Folder path" class="flex items-center gap-0.5 text-[13px] min-w-0 v-scroll">
+                        <button type="button" @click="browseDir('')" class="text-v-accent hover:text-v-accent-hover transition-colors shrink-0 font-medium flex items-center gap-1">
+                            <x-admin.icon name="dashboard" class="w-4 h-4" />
                             Files
                         </button>
                         <template x-for="(crumb, i) in browserBreadcrumbs" :key="i">
                             <span class="flex items-center gap-0.5 shrink-0">
-                                <span class="text-gray-400">/</span>
-                                <button type="button" @click="browseDir(crumb.path)" class="text-indigo-600 hover:text-indigo-800 transition-colors font-medium" x-text="crumb.name"></button>
+                                <span class="text-v-muted" aria-hidden="true">/</span>
+                                <button type="button" @click="browseDir(crumb.path)" class="text-v-accent hover:text-v-accent-hover transition-colors font-medium" x-text="crumb.name"></button>
                             </span>
                         </template>
                     </nav>
                 </div>
-                <button type="button" @click="browserOpen = false" class="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-lg hover:bg-gray-100 shrink-0 ml-3">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                <button type="button" @click="browserOpen = false" aria-label="Close image manager"
+                    class="text-v-muted hover:text-v-text transition-colors p-1 rounded-v-md hover:bg-v-hover shrink-0 ml-3">
+                    <x-admin.icon name="x" class="w-5 h-5" />
                 </button>
             </div>
 
             {{-- Toolbar: Search + URL Import + Upload Here --}}
-            <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 bg-white">
+            <div class="flex items-center gap-2 px-5 py-3 border-b border-v-border bg-v-surface">
                 <div class="relative">
-                    <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" x-model="browserSearch" placeholder="Search..."
+                    <x-admin.icon name="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-v-muted" />
+                    <input type="text" x-model="browserSearch" placeholder="Search..." aria-label="Search this folder"
                         @keydown.enter.prevent
-                        class="w-44 pl-9 pr-3 py-1.5 rounded-lg bg-white border-gray-300 text-gray-900 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500">
+                        class="v-control w-44 h-[var(--control-h)] pl-9 pr-3 text-[13px] bg-v-surface text-v-text border border-v-strong rounded-v-md placeholder:text-v-muted">
                 </div>
                 {{-- URL Import toggle --}}
-                <button type="button" @click="showUrlInput = !showUrlInput"
-                    class="inline-flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium rounded-lg border transition-colors"
-                    :class="showUrlInput ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                <x-admin.button variant="secondary" size="md" aria-controls="{{ $componentId }}-url"
+                    x-bind:aria-expanded="showUrlInput ? 'true' : 'false'"
+                    x-bind:aria-pressed="showUrlInput ? 'true' : 'false'"
+                    x-bind:class="showUrlInput && '!bg-v-accent-weak !border-v-accent !text-v-accent'"
+                    @click="showUrlInput = !showUrlInput">
+                    <x-admin.icon name="external" class="w-3.5 h-3.5" />
                     URL
-                </button>
+                </x-admin.button>
                 <div class="ml-auto">
-                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <label class="v-btn v-btn--primary inline-flex items-center justify-center gap-1.5 h-[var(--control-h)] px-3.5 text-[13px] bg-v-accent border border-v-accent text-v-accent-text rounded-v-md shadow-v-lift hover:bg-v-accent-hover cursor-pointer transition-colors">
+                        <x-admin.icon name="upload" class="w-3.5 h-3.5" />
                         Upload Here
                         <input type="file" accept="image/jpeg,image/png,image/webp" @change="uploadToCatalog($event)" class="sr-only">
                     </label>
@@ -106,73 +121,69 @@
             </div>
 
             {{-- URL Import Bar (collapsible) --}}
-            <div x-show="showUrlInput" x-transition class="px-5 py-2.5 border-b border-gray-100 bg-gray-50/50">
+            <div id="{{ $componentId }}-url" x-show="showUrlInput" x-transition class="px-5 py-2.5 border-b border-v-border bg-v-sunken">
                 <div class="flex gap-2">
-                    <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg"
-                        class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5"
+                    <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg" aria-label="Image URL"
+                        class="v-control flex-1 h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-strong rounded-v-md placeholder:text-v-muted"
                         @keydown.enter.prevent="importFromUrl()">
-                    <button type="button" @click="importFromUrl()" :disabled="importingUrl"
-                        class="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                    <x-admin.button variant="primary" x-bind:disabled="importingUrl" @click="importFromUrl()">
                         <span x-show="!importingUrl">Import</span>
                         <span x-show="importingUrl">Importing...</span>
-                    </button>
+                    </x-admin.button>
                 </div>
             </div>
 
             {{-- Content: drag & drop zone wrapping file grid --}}
-            <div class="flex-1 overflow-y-auto p-5 bg-gray-50/50"
+            <div class="flex-1 overflow-y-auto p-5 bg-v-canvas relative"
                  @dragover.prevent="browserDragover = true"
                  @dragleave.prevent="browserDragover = false"
                  @drop.prevent="browserDragover = false; handleBrowserDrop($event)">
 
                 {{-- Drag overlay --}}
-                <div x-show="browserDragover" class="absolute inset-0 z-10 flex items-center justify-center bg-indigo-50/90 border-2 border-dashed border-indigo-400 rounded-xl m-2 pointer-events-none">
+                <div x-show="browserDragover" class="absolute inset-0 z-10 flex items-center justify-center bg-v-accent-weak border-2 border-dashed border-v-mark rounded-v-lg m-2 pointer-events-none">
                     <div class="text-center">
-                        <svg class="w-10 h-10 mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        <p class="text-sm font-medium text-indigo-700">Drop to upload here</p>
+                        <x-admin.icon name="upload" class="w-10 h-10 mx-auto mb-2 text-v-accent" />
+                        <p class="text-[13px] font-medium text-v-accent">Drop to upload here</p>
                     </div>
                 </div>
 
                 {{-- Upload progress --}}
-                <div x-show="browserUploading" class="mb-3 flex items-center gap-2">
-                    <svg class="w-4 h-4 animate-spin text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <span class="text-xs text-gray-500" x-text="browserUploadStatus"></span>
+                <div x-show="browserUploading" class="mb-3 flex items-center gap-2" role="status" aria-live="polite">
+                    <svg class="w-4 h-4 animate-spin text-v-accent shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span class="text-xs text-v-secondary" x-text="browserUploadStatus"></span>
                 </div>
 
                 <div x-show="browserLoading" class="flex items-center justify-center py-16">
-                    <svg class="w-6 h-6 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <svg class="w-6 h-6 animate-spin text-v-accent" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </div>
 
-                <div x-show="!browserLoading" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
+                <div x-show="!browserLoading" class="grid gap-2 grid-cols-[repeat(auto-fill,minmax(120px,1fr))]">
                     <template x-if="browserCurrentPath !== ''">
-                        <button type="button" @click="browseDir(browserParent)" class="flex flex-col items-center p-3 rounded-xl hover:bg-gray-100 transition-colors group">
-                            <svg class="w-12 h-12 text-amber-500 group-hover:text-amber-600 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
-                            <span class="text-xs text-gray-500 mt-1.5 font-medium">..</span>
+                        <button type="button" @click="browseDir(browserParent)" aria-label="Go to parent folder" class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
+                            <x-admin.icon name="categories" class="w-12 h-12 text-v-mark" />
+                            <span class="text-xs text-v-secondary mt-1.5 font-medium">..</span>
                         </button>
                     </template>
 
                     <template x-for="folder in filteredBrowserFolders" :key="folder.path">
-                        <button type="button" @click="browseDir(folder.path)" class="flex flex-col items-center p-3 rounded-xl hover:bg-gray-100 transition-colors group">
-                            <svg class="w-12 h-12 text-amber-500 group-hover:text-amber-600 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
-                            <span class="text-xs text-gray-600 mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
+                        <button type="button" @click="browseDir(folder.path)" x-bind:aria-label="'Open folder ' + folder.name" class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
+                            <x-admin.icon name="categories" class="w-12 h-12 text-v-mark" />
+                            <span class="text-xs text-v-secondary mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
                         </button>
                     </template>
 
                     <template x-for="file in filteredBrowserFiles" :key="file.path">
-                        <button type="button" @click="selectFile(file)" class="flex flex-col items-center p-2 rounded-xl hover:bg-gray-100 transition-colors w-full">
-                            <div class="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
-                                <img :src="file.url" :alt="file.name" class="w-full h-full object-cover" loading="lazy">
+                        <button type="button" @click="selectFile(file)" x-bind:aria-label="'Select ' + file.name" class="flex flex-col items-center p-2 rounded-v-md hover:bg-v-hover transition-colors w-full">
+                            <div class="w-full aspect-square rounded-v-md overflow-hidden bg-v-sunken border border-v-border">
+                                <img :src="file.url" alt="" aria-hidden="true" class="w-full h-full object-cover" loading="lazy">
                             </div>
-                            <span class="text-[11px] text-gray-500 mt-1.5 truncate w-full text-center leading-tight" x-text="file.name"></span>
+                            <span class="text-[11px] text-v-secondary mt-1.5 truncate w-full text-center leading-tight" x-text="file.name"></span>
                         </button>
                     </template>
                 </div>
 
-                <div x-show="!browserLoading && browserFolders.length === 0 && browserFiles.length === 0"
-                     class="text-center py-16">
-                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                    <p class="text-sm text-gray-500 font-medium">Empty folder</p>
-                    <p class="text-xs text-gray-400 mt-1">Drop files here or use Upload Here above</p>
+                <div x-show="!browserLoading && browserFolders.length === 0 && browserFiles.length === 0">
+                    <x-admin.empty-state title="Empty folder" />
                 </div>
             </div>
         </div>
@@ -226,7 +237,7 @@ function {{ $componentId }}() {
             let startPath = '';
 
             if (this.lastBrowsedPath !== null) {
-                // User already browsed somewhere this session — return there
+                // User already browsed somewhere this session, return there
                 startPath = this.lastBrowsedPath;
             } else if (this.imagePath) {
                 // First open with existing image: navigate to its folder
@@ -235,8 +246,8 @@ function {{ $componentId }}() {
                     startPath = this.imagePath.substring(0, lastSlash);
                 }
             } else {
-                // New entity, no image yet — open at the entity root (brands/,
-                // categories/, …); defaultFolder kept only as a legacy fallback.
+                // New entity, no image yet: open at the entity root (brands/,
+                // categories/, ...); defaultFolder kept only as a legacy fallback.
                 startPath = this.root || this.defaultFolder;
             }
 
@@ -269,7 +280,7 @@ function {{ $componentId }}() {
 
         async browseDir(path) {
             this.browserLoading = true;
-            this.browserSearch = ''; // reset the filter on navigation — a stale search hides files in the new folder
+            this.browserSearch = ''; // reset the filter on navigation: a stale search hides files in the new folder
             const params = new URLSearchParams();
             if (path) params.set('path', path);
             if (this.root) params.set('root', this.root);

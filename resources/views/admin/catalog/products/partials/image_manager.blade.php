@@ -8,97 +8,99 @@
 
     {{-- Toolbar --}}
     <div class="flex items-center gap-2 mb-5">
-        <button type="button" @click="openBrowser()"
-            class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+        <x-admin.button variant="primary" @click="openBrowser()">
+            <x-admin.icon name="media" class="w-4 h-4" />
             Image Manager
-        </button>
-        <span class="ml-auto text-xs text-gray-400" x-show="items.length > 0" x-text="items.length + ' image' + (items.length !== 1 ? 's' : '')"></span>
+        </x-admin.button>
+        <span class="ml-auto text-xs text-v-muted" x-show="items.length > 0" x-text="items.length + ' image' + (items.length !== 1 ? 's' : '')"></span>
     </div>
 
     {{-- Thumbnail Grid --}}
-    <div class="rounded-xl border-2 border-dashed p-4 min-h-[10rem] bg-gray-50 border-gray-300">
+    <div class="rounded-v-lg border-2 border-dashed border-v-strong bg-v-sunken p-4 min-h-[10rem]">
         {{-- Empty State --}}
-        <div x-show="items.length === 0" class="text-center py-10 text-gray-400">
-            <svg class="w-14 h-14 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            <p class="text-sm font-medium text-gray-500">No images yet</p>
-            <p class="text-xs mt-1">Click Image Manager to browse, upload, or import images</p>
+        <div x-show="items.length === 0">
+            <x-admin.empty-state title="No images yet" />
         </div>
 
-        {{-- Grid (no x-for — rendered via JS to avoid SortableJS conflict) --}}
+        {{-- Grid (no x-for, rendered via JS to avoid SortableJS conflict) --}}
         <div x-show="items.length > 0" x-ref="sortableGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"></div>
     </div>
 
     {{-- Toast --}}
-    <div x-show="toast" x-transition.opacity class="fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-lg shadow-lg text-sm text-white"
-         :class="toastType === 'error' ? 'bg-red-600' : 'bg-emerald-600'">
+    <div x-show="toast" x-transition.opacity
+         class="fixed bottom-6 right-6 z-[10001] flex items-start gap-2.5 px-3.5 py-2.5 bg-v-surface border border-v-border rounded-v-md shadow-v-lift-2 text-[13px] text-v-text"
+         role="status" aria-live="polite">
+        <x-admin.icon name="check" x-show="toastType !== 'error'" class="w-4 h-4 text-v-accent mt-0.5 shrink-0" />
+        <x-admin.icon name="warning" x-show="toastType === 'error'" class="w-4 h-4 text-v-danger mt-0.5 shrink-0" />
         <span x-text="toast"></span>
     </div>
 
     {{-- Image Manager Modal --}}
     <div x-show="browserOpen" x-transition.opacity.duration.200ms
-         class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-         style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
-         @keydown.escape.window="browserOpen = false">
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[3px]"
+         @keydown.escape.window="pendingDelete ? pendingDelete = null : browserOpen = false">
 
-        <div class="w-full max-w-5xl max-h-[85vh] flex flex-col bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
+        <div class="v-modal w-full max-w-5xl max-h-[85vh] flex flex-col bg-v-surface rounded-v-lg border border-v-border overflow-hidden"
+             role="dialog" aria-modal="true" aria-label="Image manager"
              @click.outside="browserOpen = false">
 
                 {{-- Modal Header --}}
-                <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 bg-gray-50">
+                <div class="flex items-center justify-between px-5 py-3.5 border-b border-v-border bg-v-sunken">
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="flex items-center gap-2">
-                            <svg class="w-5 h-5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                            <h3 class="text-sm font-semibold text-gray-900">Image Manager</h3>
+                            <x-admin.icon name="media" class="w-5 h-5 text-v-accent shrink-0" />
+                            <h3 class="text-[15px] font-semibold text-v-text">Image Manager</h3>
                         </div>
-                        <span class="text-gray-300">|</span>
+                        <span class="text-v-border" aria-hidden="true">|</span>
                         {{-- Breadcrumb --}}
-                        <nav class="flex items-center gap-0.5 text-sm min-w-0 overflow-x-auto">
+                        <nav aria-label="Folder path" class="flex items-center gap-0.5 text-[13px] min-w-0 v-scroll">
                             <button type="button" @click="browseDir('')"
-                                class="text-indigo-600 hover:text-indigo-800 transition-colors shrink-0 font-medium flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>
+                                class="text-v-accent hover:text-v-accent-hover transition-colors shrink-0 font-medium flex items-center gap-1">
+                                <x-admin.icon name="dashboard" class="w-4 h-4" />
                                 Files
                             </button>
                             <template x-for="(crumb, i) in browserBreadcrumbs" :key="i">
                                 <span class="flex items-center gap-0.5 shrink-0">
-                                    <span class="text-gray-400">/</span>
+                                    <span class="text-v-muted" aria-hidden="true">/</span>
                                     <button type="button" @click="browseDir(crumb.path)"
-                                        class="text-indigo-600 hover:text-indigo-800 transition-colors font-medium"
+                                        class="text-v-accent hover:text-v-accent-hover transition-colors font-medium"
                                         x-text="crumb.name"></button>
                                 </span>
                             </template>
                         </nav>
                     </div>
-                    <button type="button" @click="browserOpen = false"
-                        class="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-lg hover:bg-gray-100 shrink-0 ml-3">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <button type="button" @click="browserOpen = false" aria-label="Close image manager"
+                        class="text-v-muted hover:text-v-text transition-colors p-1 rounded-v-md hover:bg-v-hover shrink-0 ml-3">
+                        <x-admin.icon name="x" class="w-5 h-5" />
                     </button>
                 </div>
 
                 {{-- Modal Toolbar: Search + URL + Sort + Upload Here --}}
-                <div class="flex items-center gap-2 px-5 py-3 border-b border-gray-100 bg-white">
+                <div class="flex items-center gap-2 px-5 py-3 border-b border-v-border bg-v-surface">
                     <div class="relative">
-                        <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                        <input type="text" x-model="browserSearch" placeholder="Search..."
+                        <x-admin.icon name="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-v-muted" />
+                        <input type="text" x-model="browserSearch" placeholder="Search..." aria-label="Search this folder"
                             @keydown.enter.prevent
-                            class="w-44 pl-9 pr-3 py-1.5 rounded-lg bg-white border-gray-300 text-gray-900 text-sm placeholder-gray-400 focus:border-indigo-500 focus:ring-indigo-500">
+                            class="v-control w-44 h-[var(--control-h)] pl-9 pr-3 text-[13px] bg-v-surface text-v-text border border-v-strong rounded-v-md placeholder:text-v-muted">
                     </div>
-                    <button type="button" @click="showUrlInput = !showUrlInput"
-                        class="inline-flex items-center gap-1 px-2.5 py-1.5 text-sm font-medium rounded-lg border transition-colors"
-                        :class="showUrlInput ? 'bg-indigo-50 border-indigo-300 text-indigo-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    <x-admin.button variant="secondary" aria-controls="im-url-bar"
+                        x-bind:aria-expanded="showUrlInput ? 'true' : 'false'"
+                        x-bind:aria-pressed="showUrlInput ? 'true' : 'false'"
+                        x-bind:class="showUrlInput && '!bg-v-accent-weak !border-v-accent !text-v-accent'"
+                        @click="showUrlInput = !showUrlInput">
+                        <x-admin.icon name="external" class="w-3.5 h-3.5" />
                         URL
-                    </button>
-                    <select x-model="browserSort"
-                        class="rounded-lg bg-white border-gray-300 text-gray-700 text-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5">
+                    </x-admin.button>
+                    <select x-model="browserSort" aria-label="Sort files"
+                        class="v-control h-[var(--control-h)] px-2.5 py-0 text-[13px] leading-[normal] bg-v-surface text-v-text border border-v-strong rounded-v-md">
                         <option value="name">Name</option>
                         <option value="date">Date</option>
                     </select>
                     <div class="ml-auto flex items-center gap-2">
-                        <span class="text-xs text-gray-400" x-show="browserFiles.length > 0"
+                        <span class="text-xs text-v-muted" x-show="browserFiles.length > 0"
                               x-text="filteredBrowserFiles.length + ' file' + (filteredBrowserFiles.length !== 1 ? 's' : '')"></span>
-                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 cursor-pointer transition-colors">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <label class="v-btn v-btn--primary inline-flex items-center justify-center gap-1.5 h-[var(--control-h)] px-3.5 text-[13px] bg-v-accent border border-v-accent text-v-accent-text rounded-v-md shadow-v-lift hover:bg-v-accent-hover cursor-pointer transition-colors">
+                            <x-admin.icon name="upload" class="w-3.5 h-3.5" />
                             Upload Here
                             <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="uploadToCatalog($event)" class="sr-only">
                         </label>
@@ -106,59 +108,58 @@
                 </div>
 
                 {{-- URL Import Bar --}}
-                <div x-show="showUrlInput" x-transition class="px-5 py-2.5 border-b border-gray-100 bg-gray-50/50">
+                <div id="im-url-bar" x-show="showUrlInput" x-transition class="px-5 py-2.5 border-b border-v-border bg-v-sunken">
                     <div class="flex gap-2">
-                        <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg"
-                            class="flex-1 rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500 py-1.5"
+                        <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg" aria-label="Image URL"
+                            class="v-control flex-1 h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-strong rounded-v-md placeholder:text-v-muted"
                             @keydown.enter.prevent="importFromUrl()">
-                        <button type="button" @click="importFromUrl()" :disabled="importingUrl"
-                            class="px-3 py-1.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+                        <x-admin.button variant="primary" x-bind:disabled="importingUrl" @click="importFromUrl()">
                             <span x-show="!importingUrl">Import</span>
                             <span x-show="importingUrl">Importing...</span>
-                        </button>
+                        </x-admin.button>
                     </div>
                 </div>
 
                 {{-- Modal Content with drag & drop --}}
-                <div class="flex-1 overflow-y-auto p-5 bg-gray-50/50 relative"
+                <div class="flex-1 overflow-y-auto p-5 bg-v-canvas relative"
                      @dragover.prevent="browserDragover = true"
                      @dragleave.prevent="browserDragover = false"
                      @drop.prevent="browserDragover = false; handleBrowserDrop($event)">
 
                     {{-- Drag overlay --}}
-                    <div x-show="browserDragover" class="absolute inset-0 z-10 flex items-center justify-center bg-indigo-50/90 border-2 border-dashed border-indigo-400 rounded-xl m-2 pointer-events-none">
+                    <div x-show="browserDragover" class="absolute inset-0 z-10 flex items-center justify-center bg-v-accent-weak border-2 border-dashed border-v-mark rounded-v-lg m-2 pointer-events-none">
                         <div class="text-center">
-                            <svg class="w-10 h-10 mx-auto mb-2 text-indigo-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                            <p class="text-sm font-medium text-indigo-700">Drop to upload here</p>
+                            <x-admin.icon name="upload" class="w-10 h-10 mx-auto mb-2 text-v-accent" />
+                            <p class="text-[13px] font-medium text-v-accent">Drop to upload here</p>
                         </div>
                     </div>
 
                     {{-- Upload progress --}}
-                    <div x-show="browserUploading" class="mb-3 flex items-center gap-2">
-                        <svg class="w-4 h-4 animate-spin text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                        <span class="text-xs text-gray-500" x-text="browserUploadStatus"></span>
+                    <div x-show="browserUploading" class="mb-3 flex items-center gap-2" role="status" aria-live="polite">
+                        <svg class="w-4 h-4 animate-spin text-v-accent shrink-0" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span class="text-xs text-v-secondary" x-text="browserUploadStatus"></span>
                     </div>
 
                     <div x-show="browserLoading" class="flex items-center justify-center py-16">
-                        <svg class="w-6 h-6 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg class="w-6 h-6 animate-spin text-v-accent" fill="none" viewBox="0 0 24 24" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     </div>
 
-                    <div x-show="!browserLoading" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
+                    <div x-show="!browserLoading" class="grid gap-2 grid-cols-[repeat(auto-fill,minmax(120px,1fr))]">
                         {{-- Parent Folder --}}
                         <template x-if="browserCurrentPath !== ''">
-                            <button type="button" @click="browseDir(browserParent)"
-                                class="flex flex-col items-center p-3 rounded-xl hover:bg-gray-100 transition-colors group">
-                                <svg class="w-12 h-12 text-amber-500 group-hover:text-amber-600 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
-                                <span class="text-xs text-gray-500 mt-1.5 font-medium">..</span>
+                            <button type="button" @click="browseDir(browserParent)" aria-label="Go to parent folder"
+                                class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
+                                <x-admin.icon name="categories" class="w-12 h-12 text-v-mark" />
+                                <span class="text-xs text-v-secondary mt-1.5 font-medium">..</span>
                             </button>
                         </template>
 
                         {{-- Folders --}}
                         <template x-for="folder in filteredBrowserFolders" :key="folder.path">
-                            <button type="button" @click="browseDir(folder.path)"
-                                class="flex flex-col items-center p-3 rounded-xl hover:bg-gray-100 transition-colors group">
-                                <svg class="w-12 h-12 text-amber-500 group-hover:text-amber-600 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
-                                <span class="text-xs text-gray-600 mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
+                            <button type="button" @click="browseDir(folder.path)" x-bind:aria-label="'Open folder ' + folder.name"
+                                class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
+                                <x-admin.icon name="categories" class="w-12 h-12 text-v-mark" />
+                                <span class="text-xs text-v-secondary mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
                             </button>
                         </template>
 
@@ -166,63 +167,71 @@
                         <template x-for="file in filteredBrowserFiles" :key="file.path">
                             <div class="relative group">
                                 <button type="button" @click="toggleFileSelection(file)"
-                                    class="flex flex-col items-center p-2 rounded-xl transition-colors w-full"
-                                    :class="isAlreadyAdded(file.path)
-                                        ? 'ring-2 ring-indigo-500 bg-indigo-50 opacity-60 cursor-default'
+                                    x-bind:aria-label="isAlreadyAdded(file.path)
+                                        ? file.name + ' (already added)'
+                                        : (isSelected(file.path) ? 'Deselect ' + file.name : 'Select ' + file.name)"
+                                    x-bind:aria-pressed="isSelected(file.path) ? 'true' : 'false'"
+                                    class="flex flex-col items-center p-2 rounded-v-md transition-colors w-full"
+                                    x-bind:class="isAlreadyAdded(file.path)
+                                        ? 'ring-2 ring-v-mark bg-v-accent-weak opacity-60 cursor-default'
                                         : isSelected(file.path)
-                                            ? 'ring-2 ring-emerald-500 bg-emerald-50'
-                                            : 'hover:bg-gray-100'">
-                                    <div class="w-full aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
-                                        <img :src="file.url" :alt="file.name" class="w-full h-full object-cover" loading="lazy">
+                                            ? 'ring-2 ring-[var(--bl-good)] bg-[var(--bl-good-wash)]'
+                                            : 'hover:bg-v-hover'">
+                                    <div class="w-full aspect-square rounded-v-md overflow-hidden bg-v-sunken border border-v-border">
+                                        <img :src="file.url" alt="" aria-hidden="true" class="w-full h-full object-cover" loading="lazy">
                                     </div>
-                                    <span class="text-[11px] text-gray-500 mt-1.5 truncate w-full text-center leading-tight" x-text="file.name"></span>
+                                    <span class="text-[11px] text-v-secondary mt-1.5 truncate w-full text-center leading-tight" x-text="file.name"></span>
                                 </button>
                                 {{-- Already-added indicator --}}
                                 <div x-show="isAlreadyAdded(file.path)"
-                                     class="absolute top-3 left-3 w-5 h-5 bg-indigo-500 rounded-full flex items-center justify-center pointer-events-none shadow-sm">
-                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                     class="absolute top-3 left-3 w-5 h-5 bg-v-mark text-v-mark-ink rounded-v-pill flex items-center justify-center pointer-events-none shadow-v-lift">
+                                    <x-admin.icon name="check" class="w-3 h-3" />
                                 </div>
                                 {{-- Selection indicator --}}
                                 <div x-show="isSelected(file.path)"
-                                     class="absolute top-3 left-3 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center pointer-events-none shadow-sm">
-                                    <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                     class="absolute top-3 left-3 w-5 h-5 bg-[var(--bl-good)] text-v-surface rounded-v-pill flex items-center justify-center pointer-events-none shadow-v-lift">
+                                    <x-admin.icon name="check" class="w-3 h-3" />
                                 </div>
-                                <button type="button" @click="deleteServerFile(file)"
-                                    class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-all shadow-sm">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                <button type="button" @click="askDeleteFile(file)" x-bind:aria-label="'Delete ' + file.name + ' from the server'"
+                                    class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 w-5 h-5 bg-v-surface border border-v-danger text-v-danger rounded-v-pill flex items-center justify-center hover:bg-[var(--bl-bad-wash)] transition-all shadow-v-lift">
+                                    <x-admin.icon name="x" class="w-3 h-3" />
                                 </button>
                             </div>
                         </template>
                     </div>
 
-                    <div x-show="!browserLoading && browserFolders.length === 0 && browserFiles.length === 0"
-                         class="text-center py-16">
-                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                        <p class="text-sm text-gray-500 font-medium">Empty folder</p>
-                        <p class="text-xs text-gray-400 mt-1">Drop files here or use Upload Here above</p>
+                    <div x-show="!browserLoading && browserFolders.length === 0 && browserFiles.length === 0">
+                        <x-admin.empty-state title="Empty folder" />
                     </div>
                 </div>
 
                 {{-- Selection Footer --}}
                 <div x-show="selectedFiles.length > 0" x-transition
-                     class="flex items-center justify-between px-5 py-3 border-t border-gray-200 bg-white">
+                     class="flex items-center justify-between px-5 py-3 border-t border-v-border bg-v-surface">
                     <div class="flex items-center gap-3">
-                        <span class="text-sm text-gray-600">
-                            <span class="font-semibold text-emerald-600" x-text="selectedFiles.length"></span>
+                        <span class="text-[13px] text-v-secondary">
+                            <span class="font-semibold text-v-text" x-text="selectedFiles.length"></span>
                             <span x-text="selectedFiles.length === 1 ? 'image' : 'images'"></span> selected
                         </span>
-                        <button type="button" @click="selectedFiles = []"
-                            class="text-xs text-gray-400 hover:text-gray-600 underline transition-colors">
-                            Clear
-                        </button>
+                        <x-admin.button variant="ghost" size="sm" @click="selectedFiles = []">Clear</x-admin.button>
                     </div>
-                    <button type="button" @click="addSelectedFiles()"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                    <x-admin.button variant="primary" @click="addSelectedFiles()">
+                        <x-admin.icon name="plus" class="w-4 h-4" />
                         <span x-text="'Add ' + selectedFiles.length + (selectedFiles.length === 1 ? ' Image' : ' Images')"></span>
-                    </button>
+                    </x-admin.button>
                 </div>
-            </div>
+
+                {{-- Deleting a catalogue file is destructive and irreversible, so it
+                     goes through the admin's own dialog. It is nested inside the
+                     browser panel so the panel's click-outside does not read a
+                     click on this dialog as a click off the browser. --}}
+                <x-admin.modal name="im-delete-file" title="Delete file" maxWidth="sm" class="v-confirm !z-[10000]">
+                    <p class="text-[13px] text-v-secondary" x-text="pendingDelete ? 'Delete ' + pendingDelete.name + ' from the server? Any product still using it will lose the image.' : ''"></p>
+                    <div class="mt-4 flex justify-end gap-2">
+                        <x-admin.button variant="secondary" @click="open = false; pendingDelete = null">Cancel</x-admin.button>
+                        <x-admin.button variant="danger" @click="open = false; confirmPendingDelete()">Delete file</x-admin.button>
+                    </div>
+                </x-admin.modal>
         </div>
     </div>
 </div>
@@ -255,6 +264,9 @@ function imageManager() {
         // Selection state for browser
         selectedFiles: [],
 
+        // The file awaiting confirmation in the delete dialog
+        pendingDelete: null,
+
         // Drag & drop in modal
         browserDragover: false,
         browserUploading: false,
@@ -270,7 +282,7 @@ function imageManager() {
 
         _createPlaceholder() {
             const ph = document.createElement('div');
-            ph.className = 'rounded-lg border-2 border-dashed border-indigo-400 bg-indigo-50 aspect-square';
+            ph.className = 'rounded-v-md border-2 border-dashed border-v-mark bg-v-accent-weak aspect-square';
             ph.dataset.placeholder = 'true';
             return ph;
         },
@@ -295,7 +307,7 @@ function imageManager() {
 
             this.items.forEach((item, index) => {
                 const card = document.createElement('div');
-                card.className = 'relative group rounded-lg overflow-hidden bg-white shadow-sm border border-gray-200 cursor-grab hover:shadow-md';
+                card.className = 'relative group rounded-v-md overflow-hidden bg-v-surface shadow-v-lift border border-v-border cursor-grab';
                 card.draggable = true;
                 card.dataset.path = item.path;
                 card.dataset.index = index;
@@ -304,27 +316,29 @@ function imageManager() {
                 imgWrap.className = 'aspect-square';
                 const img = document.createElement('img');
                 img.src = item.url;
-                img.alt = 'Image ' + (index + 1);
+                img.alt = 'Product image ' + (index + 1) + (index === 0 ? ' (main)' : '');
                 img.className = 'w-full h-full object-cover pointer-events-none';
                 img.draggable = false;
                 imgWrap.appendChild(img);
                 card.appendChild(imgWrap);
 
                 const badge = document.createElement('span');
-                badge.className = 'absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-bold rounded shadow-sm ' +
-                    (index === 0 ? 'bg-indigo-600 text-white' : 'bg-black/50 text-white backdrop-blur-sm');
+                badge.className = 'absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-bold rounded-v-sm ' +
+                    (index === 0 ? 'bg-v-accent text-v-accent-text' : 'bg-v-text text-v-surface');
                 badge.textContent = index === 0 ? 'Main' : '#' + (index + 1);
                 card.appendChild(badge);
 
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-sm';
+                removeBtn.className = 'absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 w-6 h-6 bg-v-surface border border-v-danger text-v-danger rounded-v-pill flex items-center justify-center hover:bg-[var(--bl-bad-wash)] transition-all shadow-v-lift';
+                removeBtn.setAttribute('aria-label', 'Remove image ' + (index + 1) + ' from this product');
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('class', 'w-3 h-3');
                 svg.setAttribute('fill', 'none');
                 svg.setAttribute('stroke', 'currentColor');
-                svg.setAttribute('stroke-width', '2.5');
+                svg.setAttribute('stroke-width', '1.75');
                 svg.setAttribute('viewBox', '0 0 24 24');
+                svg.setAttribute('aria-hidden', 'true');
                 const svgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 svgPath.setAttribute('stroke-linecap', 'round');
                 svgPath.setAttribute('stroke-linejoin', 'round');
@@ -457,7 +471,7 @@ function imageManager() {
             let startPath = '';
 
             if (this.lastBrowsedPath !== null) {
-                // User already browsed somewhere this session — return there
+                // User already browsed somewhere this session, return there
                 startPath = this.lastBrowsedPath;
             } else if (this.items.length > 0 && this.items[0].path) {
                 // First open: navigate to the main image's folder
@@ -467,7 +481,7 @@ function imageManager() {
                     startPath = mainPath.substring(0, lastSlash);
                 }
             } else {
-                // New product, no images yet — open at products/{brand} so uploads
+                // New product, no images yet: open at products/{brand} so uploads
                 // land in-context (never the bare storage root).
                 startPath = this.defaultFolder;
             }
@@ -505,7 +519,7 @@ function imageManager() {
 
         async browseDir(path) {
             this.browserLoading = true;
-            this.browserSearch = ''; // reset the filter on navigation — a stale search hides files in the new folder
+            this.browserSearch = ''; // reset the filter on navigation: a stale search hides files in the new folder
             const params = new URLSearchParams();
             if (path) params.set('path', path);
             if (this.root) params.set('root', this.root);
@@ -558,9 +572,18 @@ function imageManager() {
             this.browserOpen = false;
         },
 
-        async deleteServerFile(file) {
-            if (!confirm(`Delete "${file.name}" from server?`)) return;
+        askDeleteFile(file) {
+            this.pendingDelete = file;
+            this.$dispatch('open-modal', 'im-delete-file');
+        },
 
+        async confirmPendingDelete() {
+            const file = this.pendingDelete;
+            this.pendingDelete = null;
+            if (file) await this.deleteServerFile(file);
+        },
+
+        async deleteServerFile(file) {
             const res = await fetch('{{ route("admin.products.images.delete") }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },

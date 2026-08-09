@@ -80,7 +80,7 @@
 
 <div class="space-y-6">
     {{-- Rule summary --}}
-    <x-admin.card title="Availability rule" description="Who can see and use {{ $name }} at checkout.">
+    <x-admin.card title="Availability rule">
         <x-slot name="headerActions">
             @if ($restriction)
                 <form method="POST" action="{{ route('admin.payment-restrictions.toggle', $restriction) }}" data-v-form>
@@ -106,8 +106,7 @@
     </x-admin.card>
 
     {{-- Full edit form --}}
-    <x-admin.card :title="$restriction ? 'Edit availability rule' : 'Add availability rule'"
-        description="Every condition below must be met for {{ $name }} to appear at checkout; exclusions hide it if any match.">
+    <x-admin.card :title="$restriction ? 'Edit availability rule' : 'Add availability rule'">
         <form method="POST"
               action="{{ $restriction ? route('admin.payment-restrictions.update', $restriction) : route('admin.payment-restrictions.store') }}"
               data-v-form class="space-y-8">
@@ -151,8 +150,10 @@
 
             {{-- Include conditions --}}
             <div>
-                <h4 class="v-label text-v-accent mb-1">Include conditions</h4>
-                <p class="text-xs text-v-muted mb-4">All conditions must be met for {{ $name }} to appear. Leave a section empty to skip that condition.</p>
+                <div class="flex items-center gap-1.5 mb-4">
+                    <h4 class="v-label text-v-accent">Include conditions</h4>
+                    <x-admin.hint label="About include conditions">A section left empty is skipped; every section that has entries must match for {{ $name }} to appear.</x-admin.hint>
+                </div>
                 <div class="space-y-6">
                     @include('admin.partials.dual-listbox', [
                         'name' => 'geo_zone_ids',
@@ -194,159 +195,26 @@
                         'selected' => old('currency_codes', $restriction?->currency_codes ?? []),
                     ])
 
-                    {{-- Shipping method listbox uses string keys instead of integer IDs — ported as-is from the old restriction form. --}}
-                    <div x-data="{
-                        search: '',
-                        allItems: @js($shippingItems),
-                        selectedKeys: @js(old('shipping_method_keys', $restriction?->shipping_method_keys ?? [])),
-                        showList: false,
-                        highlightedAvailable: [],
-                        highlightedSelected: [],
-
-                        get available() {
-                            return this.allItems.filter(item =>
-                                !this.selectedKeys.includes(item.id) &&
-                                (!this.search || item.name.toLowerCase().includes(this.search.toLowerCase()))
-                            );
-                        },
-
-                        get selectedItems() {
-                            return this.allItems.filter(item => this.selectedKeys.includes(item.id));
-                        },
-
-                        toggleHighlightAvailable(id, event) {
-                            if (event.ctrlKey || event.metaKey) {
-                                if (this.highlightedAvailable.includes(id)) {
-                                    this.highlightedAvailable = this.highlightedAvailable.filter(i => i !== id);
-                                } else {
-                                    this.highlightedAvailable.push(id);
-                                }
-                            } else {
-                                this.highlightedAvailable = [id];
-                            }
-                        },
-
-                        toggleHighlightSelected(id, event) {
-                            if (event.ctrlKey || event.metaKey) {
-                                if (this.highlightedSelected.includes(id)) {
-                                    this.highlightedSelected = this.highlightedSelected.filter(i => i !== id);
-                                } else {
-                                    this.highlightedSelected.push(id);
-                                }
-                            } else {
-                                this.highlightedSelected = [id];
-                            }
-                        },
-
-                        addHighlighted() {
-                            this.highlightedAvailable.forEach(id => {
-                                if (!this.selectedKeys.includes(id)) {
-                                    this.selectedKeys.push(id);
-                                }
-                            });
-                            this.highlightedAvailable = [];
-                        },
-
-                        removeHighlighted() {
-                            this.highlightedSelected.forEach(id => {
-                                this.selectedKeys = this.selectedKeys.filter(i => i !== id);
-                            });
-                            this.highlightedSelected = [];
-                        },
-
-                        addAll() {
-                            this.available.forEach(item => {
-                                if (!this.selectedKeys.includes(item.id)) {
-                                    this.selectedKeys.push(item.id);
-                                }
-                            });
-                            this.highlightedAvailable = [];
-                        },
-
-                        removeAll() {
-                            this.selectedKeys = [];
-                            this.highlightedSelected = [];
-                        }
-                    }">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Only with these Shipping Methods</label>
-                        <p class="text-xs text-gray-500 mb-2">Payment method only appears when customer selects one of these shipping methods.</p>
-
-                        <button type="button" @click="showList = !showList"
-                            class="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 mb-2">
-                            <svg class="w-4 h-4 transition-transform" :class="showList && 'rotate-90'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                            <span x-text="selectedKeys.length > 0 ? selectedKeys.length + ' selected' : 'Select items'"></span>
-                        </button>
-
-                        <div class="flex flex-wrap gap-1.5 mb-2" x-show="selectedKeys.length > 0 && !showList">
-                            <template x-for="item in selectedItems" :key="'tag-' + item.id">
-                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-full border border-indigo-200">
-                                    <span x-text="item.name"></span>
-                                    <button type="button" @click="selectedKeys = selectedKeys.filter(i => i !== item.id)" class="text-indigo-400 hover:text-indigo-700">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </span>
-                            </template>
-                        </div>
-
-                        <div x-show="showList" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
-                            class="flex items-stretch gap-0">
-                            <div class="flex-1 border border-gray-200 rounded-l-lg overflow-hidden">
-                                <div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                                    <span class="v-label">Available</span>
-                                </div>
-                                <div class="h-36 overflow-y-auto">
-                                    <template x-for="item in available" :key="item.id">
-                                        <div @click="toggleHighlightAvailable(item.id, $event)"
-                                            :class="highlightedAvailable.includes(item.id) ? 'bg-indigo-100 text-indigo-800' : 'text-gray-700 hover:bg-gray-50'"
-                                            class="w-full text-left px-3 py-1.5 text-sm cursor-pointer select-none transition-colors">
-                                            <span x-text="item.name"></span>
-                                        </div>
-                                    </template>
-                                    <div x-show="available.length === 0" class="px-3 py-6 text-xs text-gray-400 text-center">All items selected</div>
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-center justify-center gap-2 px-2 bg-gray-50 border-y border-gray-200">
-                                <button type="button" @click="addAll()" title="Add all" class="w-8 h-8 flex items-center justify-center rounded bg-white border border-gray-300 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-                                </button>
-                                <button type="button" @click="addHighlighted()" title="Add selected" :disabled="highlightedAvailable.length === 0" class="w-8 h-8 flex items-center justify-center rounded bg-white border border-gray-300 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                                </button>
-                                <button type="button" @click="removeHighlighted()" title="Remove selected" :disabled="highlightedSelected.length === 0" class="w-8 h-8 flex items-center justify-center rounded bg-white border border-gray-300 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                                </button>
-                                <button type="button" @click="removeAll()" title="Remove all" x-show="selectedKeys.length > 0" class="w-8 h-8 flex items-center justify-center rounded bg-white border border-gray-300 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7M19 19l-7-7 7-7"/></svg>
-                                </button>
-                            </div>
-                            <div class="flex-1 border border-gray-200 rounded-r-lg overflow-hidden">
-                                <div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                                    <span class="v-label">Selected <span class="text-indigo-600" x-text="'(' + selectedKeys.length + ')'"></span></span>
-                                </div>
-                                <div class="h-36 overflow-y-auto">
-                                    <template x-for="item in selectedItems" :key="item.id">
-                                        <div @click="toggleHighlightSelected(item.id, $event)"
-                                            :class="highlightedSelected.includes(item.id) ? 'bg-red-100 text-red-800' : 'text-gray-700 hover:bg-gray-50'"
-                                            class="w-full px-3 py-1.5 text-sm cursor-pointer select-none transition-colors">
-                                            <span x-text="item.name"></span>
-                                        </div>
-                                    </template>
-                                    <div x-show="selectedKeys.length === 0" class="px-3 py-6 text-xs text-gray-400 text-center">None selected</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <template x-for="key in selectedKeys" :key="'hidden-' + key">
-                            <input type="hidden" name="shipping_method_keys[]" :value="key">
-                        </template>
-                    </div>
+                    {{-- Shipping keys are strings ('flat_rate', 'dhl') rather than
+                         integer ids. The shared listbox preserves non-numeric ids
+                         verbatim, so this row no longer needs its own copy of the
+                         widget. --}}
+                    @include('admin.partials.dual-listbox', [
+                        'name' => 'shipping_method_keys',
+                        'label' => 'Only with these Shipping Methods',
+                        'hint' => 'Payment method only appears when the customer selects one of these shipping methods.',
+                        'items' => $shippingItems,
+                        'selected' => old('shipping_method_keys', $restriction?->shipping_method_keys ?? []),
+                    ])
                 </div>
             </div>
 
             {{-- Exclude conditions --}}
             <div>
-                <h4 class="v-label text-v-danger mb-1">Exclude conditions</h4>
-                <p class="text-xs text-v-muted mb-4">{{ $name }} will NOT appear if the order matches any exclusion below.</p>
+                <div class="flex items-center gap-1.5 mb-4">
+                    <h4 class="v-label text-v-danger">Exclude conditions</h4>
+                    <x-admin.hint label="About exclude conditions">One match anywhere below is enough to hide {{ $name }}.</x-admin.hint>
+                </div>
                 <div class="space-y-6">
                     @include('admin.partials.dual-listbox', [
                         'name' => 'exclude_geo_zone_ids',
@@ -390,18 +258,14 @@
                 </div>
             </div>
 
-            <label class="flex items-center gap-2 text-[13px] text-v-text">
-                <input type="hidden" name="is_active" value="0">
-                <input type="checkbox" name="is_active" value="1"
-                    {{ old('is_active', $restriction?->is_active ?? true) ? 'checked' : '' }}
-                    class="rounded border-v-border text-v-accent">
-                Active
-            </label>
+            <input type="hidden" name="is_active" value="0">
+            <x-admin.checkbox name="is_active" label="Active"
+                :checked="(bool) old('is_active', $restriction?->is_active ?? true)" />
 
             <x-admin.form-actions>
                 @if ($restriction)
                     <x-admin.button variant="danger" type="button"
-                        onclick="if(confirm('Delete the availability rule for {{ $name }}? This removes ALL conditions listed above. {{ $name }} will become available everywhere.')) document.getElementById('delete-restriction-{{ $method }}').submit()">
+                        @click="$dispatch('open-modal', 'delete-restriction-{{ $method }}')">
                         Delete rule
                     </x-admin.button>
                 @endif
@@ -409,12 +273,16 @@
             </x-admin.form-actions>
         </form>
 
+        {{-- The dialog carries its own form, so it sits outside the edit form
+             above rather than nested inside it. --}}
         @if ($restriction)
-            <form id="delete-restriction-{{ $method }}" method="POST"
-                  action="{{ route('admin.payment-restrictions.destroy', $restriction) }}" class="hidden">
-                @csrf
-                @method('DELETE')
-            </form>
+            <x-admin.confirm-dialog
+                name="delete-restriction-{{ $method }}"
+                title="Delete availability rule"
+                message="This removes every condition listed above. {{ $name }} becomes available everywhere."
+                confirm="Delete rule"
+                method="DELETE"
+                :action="route('admin.payment-restrictions.destroy', $restriction)" />
         @endif
     </x-admin.card>
 </div>
