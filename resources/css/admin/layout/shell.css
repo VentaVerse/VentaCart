@@ -222,7 +222,12 @@
     padding: 0 6px;
     border-radius: var(--bl-r-pill);
     background: var(--bl-attn-fill);
-    color: #FFFFFF;
+    /* Ink, not white. White on the amber fill is 3.38:1 and this is
+       11px text, so it needs 4.5:1; ink on the same fill is 4.88:1
+       and it is the treatment the amber identity block already uses
+       rather than a lightened fill that stops reading as amber.
+       Also the last colour literal in resources/css/admin. */
+    color: var(--bl-brand-ink);
     font-size: 11px;
     font-weight: 650;
     font-variant-numeric: tabular-nums;
@@ -298,7 +303,10 @@
     flex: 1 1 auto;
     max-width: 420px;
     padding: 6px 10px;
-    border: 1px solid var(--border-strong);
+    /* Shaped as a field and read as a field, so it takes the control
+       edge rather than the divider stop; it also sits on the tinted
+       ground, where the divider stop was 1.12:1. */
+    border: 1px solid var(--border-control);
     border-radius: var(--radius-md);
     background: var(--surface);
     color: var(--text-muted);

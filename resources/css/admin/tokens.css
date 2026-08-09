@@ -96,6 +96,17 @@
     --bl-ink-3: #5F6B85;
     --bl-rule: #EAEEF5;
     --bl-rule-2: #DFE5EE;
+    /* A third rule stop, for the edge of a control and nothing else.
+       --bl-rule and --bl-rule-2 are dividers: they separate two things
+       that are both visible on their own, so 1.16:1 and 1.27:1 are
+       right for them and WCAG 1.4.11 does not apply. An empty text
+       field has no other evidence that it exists, so its edge IS the
+       component and has to clear 3:1. Measured on every light ground
+       the admin has: 3.48:1 on the sheet, 3.26:1 on the sunken chrome,
+       3.15:1 on the hover chrome, 3.10:1 on the tinted page. Still a
+       hairline and still the cool blue-grey family; the interface is
+       not drawn in heavier lines, the line is simply visible. */
+    --bl-rule-3: #7F8A9F;
 
     /* --- State: what something is doing --------------------------
        Amber needs a person, green is settled, red is trouble, blue
@@ -126,6 +137,17 @@
        brass is 3.10:1 and a mark carrying a letter is text. */
     --bl-brand-on: #FFFFFF;
     --bl-brand-ink: #2C1C02;
+    /* A third brass stop, for the focus ring alone. The mark stop is
+       3.10:1 on a white sheet but only 2.76:1 on the tinted ground,
+       and the topbar, the page actions slot and every control sitting
+       outside a sheet focus against exactly that ground. A focus
+       indicator has to clear 3:1 against what surrounds it, so the
+       ring gets its own stop rather than dulling the mark, which is
+       load-bearing identity in fills and active edges. Measured:
+       3.70:1 on the sheet, 3.47:1 on the sunken chrome, 3.35:1 on the
+       hover chrome, 3.29:1 on the tinted ground. On the slab the ring
+       is white (layout/shell.css), which is 10.20:1. */
+    --bl-focus: #B07A33;
 
     /* --- Identity: which measure you are reading -----------------
        Six accents, always paired with the written label so nothing
@@ -209,6 +231,8 @@
     --surface-hover:   var(--bl-chrome-2);
     --border:          var(--bl-rule);
     --border-strong:   var(--bl-rule-2);
+    /* The edge of a control. Never a divider; see --bl-rule-3. */
+    --border-control:  var(--bl-rule-3);
     --text:            var(--bl-ink);
     --text-secondary:  var(--bl-ink-2);
     --text-muted:      var(--bl-ink-3);
@@ -219,6 +243,7 @@
     --accent-text:     var(--bl-brand-on);
     --accent-mark:     var(--bl-brand);
     --accent-mark-ink: var(--bl-brand-ink);
+    --focus:           var(--bl-focus);
 
     --danger:          var(--bl-bad);
     --danger-text:     #FFFFFF;
@@ -264,6 +289,9 @@
     --bl-ink-3: #8B96A9;
     --bl-rule: #1E2836;
     --bl-rule-2: #2C3850;
+    /* 3.52:1 on the sheet, 3.79:1 on the page, 3.68:1 on the sunken
+       chrome, 3.09:1 on the hover chrome. Same reasoning as light. */
+    --bl-rule-3: #606F8B;
 
     --bl-attn: #E8A851;
     --bl-attn-fill: #C77A0A;
@@ -279,6 +307,10 @@
     --bl-brand-wash: rgba(217, 164, 90, .14);
     --bl-brand-on: #221604;
     --bl-brand-ink: #221604;
+    /* Dark needs no third stop: the mark already clears 3:1 on every
+       dark ground (7.01:1 on the loudest of them, the hover chrome).
+       The token exists so the ring reads from one name in both themes. */
+    --bl-focus: #D9A45A;
 
     --bl-a-cyan: #4FB9D4;    --bl-a-cyan-2: #7FD3E6;
     --bl-a-violet: #8A7BF0;  --bl-a-violet-2: #A99DFF;

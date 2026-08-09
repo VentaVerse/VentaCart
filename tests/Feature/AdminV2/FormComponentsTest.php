@@ -20,7 +20,11 @@ class FormComponentsTest extends TestCase
         $this->withViewErrors(['sku' => 'Taken.'])
             ->blade('<x-admin.input name="sku" value="ABC-1" />')
             ->assertSee('value="ABC-1"', false)
-            ->assertSee('border-v-danger', false);
+            // The error edge is a state class, not a colour utility: the
+            // resting edge moved to --border-control in forms.css so an
+            // empty field clears WCAG 1.4.11, and a two-class selector
+            // there outranks any single utility the component could write.
+            ->assertSee('v-control--error', false);
     }
 
     public function test_toggle_posts_zero_when_off(): void

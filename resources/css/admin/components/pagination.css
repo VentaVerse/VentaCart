@@ -1,0 +1,104 @@
+/* ============================================================
+   Paginator
+
+   Laravel's stock Tailwind pager was the one surface in the admin the
+   theme never reached: its `dark:` variants key off
+   prefers-color-scheme, the admin themes on html[data-theme], so in
+   dark it stayed a white control block on a #0A0F17 page with its
+   "Showing 1 to 20 of 27,698 results" line at 1.73:1.
+
+   Rewritten against the token set, it is the same material as the
+   table it closes: hairline controls at the control radius on the
+   sheet, one figure weight, and the current page stated in the
+   ink-on-canvas grammar the segmented phase filters already use,
+   because "this is where you are" is not an action and must not be
+   said in brass.
+   ============================================================ */
+
+.v-admin .v-pager {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+}
+
+.v-admin .v-pager__info {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    min-width: 0;
+}
+
+/* The count is the only thing in the line anyone actually reads, so
+   it takes the weight; mono stays rationed to identifiers. */
+.v-admin .v-pager__figure {
+    font-weight: 640;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+}
+
+.v-admin .v-pager__list {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+.v-admin .v-pager__page,
+.v-admin .v-pager__step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--control-h-sm);
+    height: var(--control-h-sm);
+    padding: 0 8px;
+    border: 1px solid var(--border-control);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    font-weight: 560;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    text-decoration: none;
+    transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+
+.v-admin a.v-pager__page:hover,
+.v-admin a.v-pager__step:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+/* Where you are, not what you can do. Same treatment as the active
+   segment in the fulfilment filter: ink block, canvas ink. */
+.v-admin .v-pager__page.is-current {
+    background: var(--text);
+    border-color: var(--text);
+    color: var(--canvas);
+    font-weight: 640;
+}
+
+/* An inactive step is exempt from 1.4.3, but "disabled" still has to
+   be legible, so it drops to the muted stop at full opacity rather
+   than to a half-opacity version of the live one. The edge drops to
+   the divider stop, which is what says it is not a control. */
+.v-admin .v-pager__step.is-disabled {
+    border-color: var(--border);
+    background: var(--surface-sunken);
+    color: var(--text-muted);
+}
+
+.v-admin .v-pager__gap {
+    padding: 0 4px;
+    color: var(--text-muted);
+    font-size: 12.5px;
+}
+
+/* Below the phone breakpoint the numbered pages are more control than
+   a thumb can use; the two steps and the count are the whole job. */
+@media (max-width: 560px) {
+    .v-admin .v-pager__page:not(.is-current),
+    .v-admin .v-pager__gap { display: none; }
+}

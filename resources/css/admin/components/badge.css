@@ -29,7 +29,11 @@
     height: 8px;
     flex: none;
     border-radius: var(--radius-sm);
-    background: var(--border-strong);
+    /* The stateless mark takes the control edge stop rather than the
+       divider stop. At 1.27:1 it was a square nobody could see, which
+       made the neutral badge look like a badge with a missing dot
+       rather than a badge whose state is "none". */
+    background: var(--border-control);
 }
 
 :where(.v-admin) :where(.v-badge) { color: var(--text-muted); }

@@ -7,11 +7,34 @@
    focused input wore two rings of different radii at once.
    ============================================================ */
 
-.v-admin .v-control { transition: border-color var(--motion-fast); }
+/* The resting edge is stated here rather than as a utility in the
+   three control components, for two reasons. It is the only edge in
+   the system that WCAG 1.4.11 applies to (an empty field has nothing
+   else that says it is a field), so it needs a token the dividers do
+   not share; and stating it on .v-control repairs the several dozen
+   raw <input class="v-control ... border-v-strong"> row editors in
+   the admin without editing any of them, because a two-class
+   selector outranks a utility. */
+.v-admin .v-control {
+    border-color: var(--border-control);
+    transition: border-color var(--motion-fast);
+}
+
+/* A caller that says danger, in either spelling, still says danger. */
+.v-admin .v-control--error,
+.v-admin .v-control.border-v-danger { border-color: var(--danger); }
 
 /* Focus deepens the edge; the brass outline in base.css is the
    visible ring. One ring, not two. */
 .v-admin .v-control:focus { border-color: var(--text-secondary); }
+
+/* Checkbox and radio boxes are the other case where the edge is the
+   whole component: an unchecked box is a 16px square of the sheet
+   colour and its border is the only evidence it is there. Written
+   against the element rather than a class because the admin has ~30
+   raw checkboxes in row editors that carry no shared class. */
+.v-admin input[type="checkbox"],
+.v-admin input[type="radio"] { border-color: var(--border-control); }
 
 .v-admin .v-control[readonly],
 .v-admin .v-control:disabled {
@@ -71,4 +94,35 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--danger);
+}
+
+/* ------------------------------------------------------------
+   Toggle
+
+   The real checkbox is visually hidden and the 36x20 track is what a
+   person sees, so every visual job has to be done by the track and
+   the knob: the off state has to read as a control at all, the knob
+   has to be findable against the track in both states and both
+   themes, and the focus ring has to land on the thing that is 36px
+   wide rather than on the 1px input.
+
+   Off, the track takes the control edge stop, so the switch clears
+   3:1 against the sheet the way a field does. The knob is the sheet
+   colour off (3.48:1 light, 3.52:1 dark against the track) and the
+   accent's own text colour on (5.62:1 light, 9.78:1 dark). White on
+   both would have been invisible in dark, where the accent is a pale
+   brass.
+   ------------------------------------------------------------ */
+.v-admin .v-toggle__track { background: var(--border-control); }
+.v-admin .v-toggle__knob { background: var(--surface); }
+
+.v-admin .v-toggle input:checked ~ .v-toggle__knob { background: var(--accent-text); }
+
+/* The indicator moves to the track. The input keeps the focus but
+   paints nothing, because it is 1px wide and clipped. */
+.v-admin .v-toggle input:focus-visible { outline: none; }
+
+.v-admin .v-toggle input:focus-visible + .v-toggle__track {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }

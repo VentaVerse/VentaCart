@@ -31,11 +31,33 @@ html:has(> body.v-admin) { background: var(--canvas); }
 
 /* Brass, because focus is the clearest case of "you can act here".
    Amber stays reserved for "this needs you", a different sentence
-   that must not be said by the same colour. */
+   that must not be said by the same colour.
+
+   The ring takes its own brass stop rather than the mark. The mark is
+   3.10:1 on a white sheet but 2.76:1 on the tinted ground, and the
+   topbar and every page-action button focus against that ground; a
+   focus indicator has to clear 3:1 against what surrounds it. The
+   1px offset also means the ring's inner neighbour is the ground
+   rather than the control's own fill, so a focused brass button is
+   ring-on-ground on both sides rather than brass on brass. */
 .v-admin :focus-visible {
-    outline: 2px solid var(--accent-mark);
+    outline: 2px solid var(--focus);
     outline-offset: 1px;
 }
+
+/* @tailwindcss/forms states its own focus treatment on every control:
+   a 1px ring and a border, both hardcoded to Tailwind blue-600. That
+   was drawing a thin blue line inside the brass outline on every
+   field in the admin, a second indicator in a colour this palette
+   does not contain. Both are repointed here rather than per
+   component, because the raw row-editor inputs never pass through
+   one. Any control naming its own ring colour still wins, and the
+   element in the selector is what carries it past the plugin. */
+.v-admin *:focus { --tw-ring-color: var(--focus); }
+
+.v-admin input:focus,
+.v-admin select:focus,
+.v-admin textarea:focus { border-color: var(--text-secondary); }
 
 [x-cloak] { display: none !important; }
 
