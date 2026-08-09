@@ -53,6 +53,34 @@ class AdminNav
     }
 
     /**
+     * The registry entry for $key IF it is currently reachable for this
+     * user, otherwise null.
+     *
+     * "Reachable" is the whole composite answer groups() already computes:
+     * the route is registered (so an extension that owns it is installed,
+     * enabled and booted), the user holds the permission, and the merchant
+     * has not switched the feature off. Anything outside the sidebar that
+     * wants to offer a shortcut into a feature asks THIS rather than
+     * assembling its own version of the test, so a feature that is hidden
+     * from the menu is hidden everywhere (see the day sheet's fulfillment
+     * work lines).
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function visibleItem(string $key, ?User $user = null): ?array
+    {
+        foreach (static::groups($user) as $group) {
+            foreach ($group['items'] as $item) {
+                if ($item['key'] === $key) {
+                    return $item;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * An item that declares
      *
      *     'enabled_setting' => ['group' => 'courier', 'key' => 'fulfillment_enabled']

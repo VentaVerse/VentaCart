@@ -3,10 +3,10 @@
 namespace App\Console\Commands;
 
 use App\Models\LowStockAlert;
-use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Services\TemplateMailService;
+use App\Support\LowStock;
 use Illuminate\Console\Command;
 
 class CheckLowStock extends Command
@@ -22,7 +22,7 @@ class CheckLowStock extends Command
             return 0;
         }
 
-        $threshold = (int) (Setting::where('group', 'stock')->where('key', 'low_stock_threshold')->value('value') ?: 5);
+        $threshold = LowStock::threshold();
         $alertEmail = Setting::where('group', 'stock')->where('key', 'low_stock_alert_email')->value('value');
         if (!$alertEmail) {
             $alertEmail = \App\Models\User::first()?->email;
@@ -35,13 +35,10 @@ class CheckLowStock extends Command
         $storeName = Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? 'Store';
         $alertCount = 0;
 
-        // Check products (non-variant)
-        $lowProducts = Product::where('is_active', true)
-            ->where('track_stock', true)
-            ->where('has_variants', false)
-            ->where('quantity', '>', 0)
-            ->where('quantity', '<=', $threshold)
-            ->get();
+        // Check products (non-variant). The predicate lives in App\Support\LowStock
+        // so this command, the day sheet's work line and the catalog's Low stock
+        // filter can never mean three different things by "low".
+        $lowProducts = LowStock::products($threshold)->get();
 
         foreach ($lowProducts as $product) {
             $existing = LowStockAlert::where('product_id', $product->id)
@@ -69,14 +66,7 @@ class CheckLowStock extends Command
         }
 
         // Check variants
-        $lowVariants = ProductVariant::where('is_active', true)
-            ->where('quantity', '>', 0)
-            ->where('quantity', '<=', $threshold)
-            ->whereHas('product', function ($q) {
-                $q->where('is_active', true)->where('track_stock', true);
-            })
-            ->with('product')
-            ->get();
+        $lowVariants = LowStock::variants($threshold)->with('product')->get();
 
         foreach ($lowVariants as $variant) {
             $existing = LowStockAlert::where('product_id', $variant->product_id)

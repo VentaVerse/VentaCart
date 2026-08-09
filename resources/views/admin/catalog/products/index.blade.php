@@ -34,9 +34,17 @@
                             </x-admin.select>
                         </x-admin.field>
                     </div>
+                    <div class="w-44">
+                        <x-admin.field name="stock" label="Stock">
+                            <x-admin.select name="stock">
+                                <option value="">All stock</option>
+                                <option value="low" @selected(request('stock') === 'low')>Low stock</option>
+                            </x-admin.select>
+                        </x-admin.field>
+                    </div>
                     <div class="flex items-center gap-2">
                         <x-admin.button type="submit" variant="primary">Filter</x-admin.button>
-                        @if (request('search') || request('category_id') || request('status'))
+                        @if (request('search') || request('category_id') || request('status') || request('stock'))
                             <a href="{{ route('admin.products.index') }}" class="text-[13px] text-v-muted underline hover:text-v-text">Clear</a>
                         @endif
                     </div>
@@ -113,7 +121,7 @@
                     <tr>
                         <td colspan="6" class="px-4 py-2">
                             <x-admin.empty-state icon="products" title="No products found"
-                                :description="(request('search') || request('category_id') || request('status')) ? 'Try adjusting your filters.' : null">
+                                :description="(request('search') || request('category_id') || request('status') || request('stock')) ? 'Try adjusting your filters.' : null">
                                 <a href="{{ route('admin.products.create') }}" class="text-[13px] text-v-accent hover:underline">Create your first product</a>
                             </x-admin.empty-state>
                         </td>

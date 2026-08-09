@@ -6,140 +6,184 @@
         'Canceled' => 'danger', 'Failed' => 'danger',
         'Refunded' => 'neutral', 'Expired' => 'neutral',
     ];
+
+    $money = function (float $amount) use ($currency) {
+        return ['mark' => $currency, 'amount' => number_format($amount, 2), 'zero' => $amount == 0.0];
+    };
 @endphp
-<x-admin.shell title="Dashboard">
-    <x-admin.page title="Dashboard">
-        <div class="space-y-6">
-            {{-- Stat row --}}
-            <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                <x-admin.stat class="v-dash-in" label="Revenue Today" :value="'₱' . number_format($revenueToday, 2)" />
-                <x-admin.stat class="v-dash-in" label="Orders Today" :value="$ordersToday" />
-                <x-admin.stat class="v-dash-in" label="Pending Orders" :value="$pendingOrders" :tone="$pendingOrders > 0 ? 'warning' : 'default'" />
-                <x-admin.stat class="v-dash-in" label="Low Stock" :value="$lowStockCount" :tone="$lowStockCount > 0 ? 'danger' : 'default'" />
+<x-admin.shell title="Today">
+    <article class="v-sheet" aria-labelledby="v-sheet-date">
+        <!--
+IMPECCABLE DIRECTION CONTRACT
+THESIS: The admin's home is today's page in the shop's daybook. It refuses the widget-scatter dashboard of stat tiles and unrelated panels that every admin ships.
+OWN-WORLD: The established Venta Blotter: Archivo on tinted paper, raised white sheets, hairline rules, tabular mono figures, azure slab, warm brass action. No new visual language.
+STORY: The merchant opens the admin in the morning, reads down one sheet, and knows what today is and what it needs from them.
+FIRST VIEWPORT: The date at headline scale with one plain sentence of standing beneath it, then the day's figures as a ruled band with yesterday alongside, then the day's work as actionable lines.
+FORM: The day sheet, candidate 5 of 7 ordered by resonance, seed key 24dc4e5d.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+
+        {{-- 1. The head ------------------------------------------------ --}}
+        <header class="v-sheet__head">
+            <div class="v-sheet__headtext">
+                <h1 class="v-sheet__date" id="v-sheet-date">{{ $sheetDate->format('l, j F Y') }}</h1>
+                <p class="v-sheet__standing">{{ $standing }}</p>
             </div>
+            <x-admin.button variant="primary" :href="route('admin.orders.create')">
+                <x-admin.icon name="plus" class="w-4 h-4" /> New order
+            </x-admin.button>
+        </header>
 
-            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                {{-- Recent orders --}}
-                <div class="xl:col-span-2">
-                    <x-admin.card title="Recent Orders">
-                        <x-slot:headerActions>
-                            <x-admin.button variant="ghost" size="sm" :href="route('admin.orders.index')">View all <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
-                        </x-slot:headerActions>
-
-                        @if ($recentOrders->isEmpty())
-                            <x-admin.empty-state icon="orders" title="No orders yet"
-                                description="Orders placed on the storefront will appear here." />
-                        @else
-                            <x-admin.table>
-                                <x-slot:head>
-                                    <x-admin.table.th>Order #</x-admin.table.th>
-                                    <x-admin.table.th>Customer</x-admin.table.th>
-                                    <x-admin.table.th>Status</x-admin.table.th>
-                                    <x-admin.table.th align="right">Total</x-admin.table.th>
-                                    <x-admin.table.th align="right">Placed</x-admin.table.th>
-                                </x-slot:head>
-                                @foreach ($recentOrders as $order)
-                                    <x-admin.table.row href="{{ route('admin.orders.show', $order) }}">
-                                        <x-admin.table.cell mono>#{{ $order->id }}</x-admin.table.cell>
-                                        <x-admin.table.cell class="text-v-text">{{ $order->full_name }}</x-admin.table.cell>
-                                        <x-admin.table.cell>
-                                            <x-admin.badge :tone="$order->order_status_id ? ($statusTones[$order->status?->name] ?? 'neutral') : 'danger'">
-                                                {{ $order->status?->name ?? 'Missing' }}
-                                            </x-admin.badge>
-                                        </x-admin.table.cell>
-                                        <x-admin.table.cell align="right" mono>₱{{ number_format($order->total, 2) }}</x-admin.table.cell>
-                                        <x-admin.table.cell align="right" class="text-v-muted">{{ $order->created_at->diffForHumans() }}</x-admin.table.cell>
-                                    </x-admin.table.row>
-                                @endforeach
-                            </x-admin.table>
-                        @endif
-                    </x-admin.card>
+        {{-- 2. The day's figures --------------------------------------- --}}
+        <section class="v-sheet__mv" aria-label="The day's figures">
+            <div class="v-band">
+                <div class="v-fig v-fig--head" aria-hidden="true">
+                    <span class="v-fig__name"></span>
+                    <span class="v-fig__cell v-label">Today</span>
+                    @foreach ($comparisons as $comparison)
+                        <span class="v-fig__cell v-label">{{ $comparison['label'] }}</span>
+                    @endforeach
                 </div>
 
-                {{-- Sidebar cards --}}
-                <div class="space-y-6">
-                    <x-admin.card title="Needs Attention" class="v-dash-in">
-                        <div class="-mx-6 -mb-5 divide-y divide-v-border">
-                            <a href="{{ route('admin.reviews.index') }}" class="flex items-center justify-between gap-3 px-6 py-3 text-[13px] transition-colors hover:bg-v-hover">
-                                <span class="flex items-center gap-2 text-v-text"><x-admin.icon name="reviews" class="w-4 h-4 text-v-muted" /> Reviews awaiting approval</span>
-                                <x-admin.badge :tone="$pendingReviews > 0 ? 'warning' : 'neutral'">{{ $pendingReviews }}</x-admin.badge>
-                            </a>
-                            <a href="{{ route('admin.extensions.seo.review') }}" class="flex items-center justify-between gap-3 px-6 py-3 text-[13px] transition-colors hover:bg-v-hover">
-                                <span class="flex items-center gap-2 text-v-text"><x-admin.icon name="seo" class="w-4 h-4 text-v-muted" /> SEO suggestions pending</span>
-                                <x-admin.badge :tone="$pendingSeoSuggestions > 0 ? 'warning' : 'neutral'">{{ $pendingSeoSuggestions }}</x-admin.badge>
-                            </a>
-                            <a href="{{ route('admin.abandoned-carts.index') }}" class="flex items-center justify-between gap-3 px-6 py-3 text-[13px] transition-colors hover:bg-v-hover">
-                                <span class="flex items-center gap-2 text-v-text"><x-admin.icon name="cart" class="w-4 h-4 text-v-muted" /> Carts recoverable</span>
-                                <x-admin.badge :tone="$recoverableCarts > 0 ? 'warning' : 'neutral'">{{ $recoverableCarts }}</x-admin.badge>
-                            </a>
-                        </div>
-                    </x-admin.card>
-
-                    <x-admin.card title="Automation Health" class="v-dash-in">
-                        <x-slot:headerActions>
-                            <x-admin.button variant="ghost" size="sm" :href="route('admin.settings.section', 'automations')">Manage <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
-                        </x-slot:headerActions>
-
-                        @if ($automations->isEmpty())
-                            <p class="text-[13px] text-v-muted">No automations configured.</p>
-                        @elseif ($unhealthyAutomations->isEmpty())
-                            <p class="flex items-center gap-2 text-[13px] text-v-muted">
-                                <span class="h-1.5 w-1.5 rounded-full bg-v-accent"></span>
-                                All {{ $automations->count() }} automation{{ $automations->count() === 1 ? '' : 's' }} running on schedule.
-                            </p>
-                        @else
-                            <div class="space-y-3">
-                                @foreach ($unhealthyAutomations as $automation)
-                                    <div class="flex items-center justify-between gap-3">
-                                        <div class="min-w-0">
-                                            <p class="truncate text-[13px] text-v-text">{{ $automation->name }}</p>
-                                            <p class="text-xs text-v-muted">
-                                                {{ $automation->last_run_at ? 'Last ran ' . $automation->last_run_at->diffForHumans() : 'Never run' }}
-                                            </p>
-                                        </div>
-                                        <x-admin.badge tone="danger">{{ $automation->last_run_status === 'failed' ? 'Failed' : 'Overdue' }}</x-admin.badge>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
-                    </x-admin.card>
-
-                    <x-admin.card title="Storefront" class="v-dash-in">
-                        <x-admin.button variant="secondary" size="sm" href="{{ route('home') }}" target="_blank" rel="noopener">
-                            <x-admin.icon name="external" class="w-4 h-4" /> View store
-                        </x-admin.button>
-                    </x-admin.card>
-                </div>
-            </div>
-
-            {{-- Recent customer activity --}}
-            <x-admin.card title="Recent Customer Activity">
-                @if ($recentActivities->isEmpty())
-                    <x-admin.empty-state icon="customers" title="No activity yet"
-                        description="Customer logins, cart adds, and orders will show up here." />
-                @else
-                    <div class="-mx-6 -mb-5 max-h-[420px] divide-y divide-v-border overflow-y-auto">
-                        @foreach ($recentActivities as $activity)
-                            <div class="flex items-start gap-3 px-6 py-3">
-                                <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full {{ $activity->color }}">
-                                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $activity->icon }}"/></svg>
-                                </div>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-[13px] text-v-text">
-                                        @if ($activity->customer)
-                                            <a href="{{ route('admin.customers.edit', $activity->customer) }}" class="font-medium text-v-accent hover:opacity-80">{{ $activity->customer->first_name }} {{ $activity->customer->last_name }}</a>
-                                        @else
-                                            <span class="text-v-muted">Deleted customer</span>
-                                        @endif
-                                        {{ lcfirst($activity->description) }}
-                                    </p>
-                                    <p class="text-xs text-v-muted">{{ $activity->created_at->diffForHumans() }}</p>
-                                </div>
-                            </div>
+                @foreach ($figures as $figure)
+                    @php $cells = [['key' => 'today', 'label' => 'Today', 'now' => true]]; @endphp
+                    @foreach ($comparisons as $comparison)
+                        @php $cells[] = ['key' => $comparison['key'], 'label' => $comparison['label'], 'now' => false]; @endphp
+                    @endforeach
+                    <div class="v-fig">
+                        <span class="v-fig__name">
+                            {{ $figure['label'] }}
+                            @if ($figure['hint'])<x-admin.hint :label="'What ' . lcfirst($figure['label']) . ' counts'">{{ $figure['hint'] }}</x-admin.hint>@endif
+                        </span>
+                        @foreach ($cells as $cell)
+                            @php
+                                $raw = $figure['values'][$cell['key']] ?? 0;
+                                $m = $figure['money'] ? $money((float) $raw) : null;
+                                $isZero = $figure['money'] ? $m['zero'] : ((int) $raw === 0);
+                            @endphp
+                            <span class="v-fig__cell {{ $cell['now'] ? 'v-fig__cell--now' : '' }}">
+                                <span class="v-fig__when">{{ $cell['label'] }}</span>
+                                @if ($figure['money'])
+                                    <span class="v-money {{ $isZero ? 'v-money--zero' : '' }}">
+                                        <span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span>
+                                    </span>
+                                @else
+                                    <span class="v-num v-fig__plain {{ $isZero ? 'v-fig__plain--zero' : '' }}">{{ number_format((int) $raw) }}</span>
+                                @endif
+                            </span>
                         @endforeach
                     </div>
+                @endforeach
+            </div>
+        </section>
+
+        {{-- 3. The day's work ------------------------------------------- --}}
+        <section class="v-sheet__mv" aria-labelledby="v-sheet-work">
+            <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-work">Needs doing</h2>
+            <ul class="v-lines">
+                @foreach ($workLines as $line)
+                    <li>
+                        <a href="{{ $line['url'] }}" class="v-line">
+                            <span class="v-line__label">{{ $line['label'] }}</span>
+                            <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
+                            <x-admin.icon name="chevron-right" class="v-line__go" />
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+
+        {{-- 4. The day's entries ---------------------------------------- --}}
+        <section class="v-sheet__mv" aria-labelledby="v-sheet-entries">
+            <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-entries">
+                Today's entries
+                @if ($entriesTruncated)
+                    <a href="{{ route('admin.orders.index') }}" class="v-sheet__mvlink">All orders</a>
                 @endif
-            </x-admin.card>
-        </div>
-    </x-admin.page>
+            </h2>
+
+            @if ($entries->isEmpty())
+                <p class="v-sheet__blank">
+                    Nothing entered yet today.@if ($lastEntryLabel) The last order came in {{ $lastEntryLabel }}.@endif
+                </p>
+            @else
+                <div class="v-sheet__scroll">
+                    <table class="v-table w-full text-[13px]">
+                        <thead>
+                            <tr>
+                                <x-admin.table.th>Time</x-admin.table.th>
+                                <x-admin.table.th>Customer</x-admin.table.th>
+                                <x-admin.table.th class="v-col-bought">Bought</x-admin.table.th>
+                                <x-admin.table.th align="right">Amount</x-admin.table.th>
+                                <x-admin.table.th>Status</x-admin.table.th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-v-border">
+                            @foreach ($entries as $entry)
+                                @php
+                                    $items = $entry->products;
+                                    $lead = $items->first();
+                                    $extra = max($items->count() - 1, 0);
+                                    $m = $money((float) $entry->total);
+                                @endphp
+                                <x-admin.table.row href="{{ route('admin.orders.show', $entry) }}">
+                                    <x-admin.table.cell mono class="whitespace-nowrap text-v-secondary">{{ $entry->created_at->format('g:i a') }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="text-v-text">{{ $entry->full_name }}</x-admin.table.cell>
+                                    <x-admin.table.cell class="v-col-bought text-v-secondary">
+                                        @if ($lead)
+                                            <span class="v-entry__item">{{ $lead->name }}@if ($lead->variant_label), {{ $lead->variant_label }}@endif</span>
+                                            @if ($extra > 0)<span class="v-entry__more">and {{ $extra }} more</span>@endif
+                                        @else
+                                            <span class="v-entry__more">No line items</span>
+                                        @endif
+                                    </x-admin.table.cell>
+                                    <x-admin.table.cell>
+                                        <span class="v-money {{ $m['zero'] ? 'v-money--zero' : '' }}">
+                                            <span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span>
+                                        </span>
+                                    </x-admin.table.cell>
+                                    <x-admin.table.cell>
+                                        <x-admin.badge :tone="$statusTones[$entry->status?->name] ?? 'neutral'">{{ $entry->status?->name }}</x-admin.badge>
+                                    </x-admin.table.cell>
+                                </x-admin.table.row>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+
+        {{-- 5. Standing matters ----------------------------------------- --}}
+        <section class="v-sheet__mv v-sheet__mv--foot" aria-labelledby="v-sheet-standing">
+            <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-standing">Outstanding</h2>
+            <ul class="v-lines">
+                <li>
+                    <a href="{{ route('admin.automations.index') }}" class="v-line">
+                        <span class="v-line__label">
+                            Automations overdue
+                            @if ($unhealthyAutomations->isNotEmpty())
+                                @php
+                                    $named = $unhealthyAutomations->pluck('name');
+                                    $rest = $named->count() - 3;
+                                    $detail = $named->take(3)->join(', ') . ($rest > 0 ? ', and ' . $rest . ' more' : '');
+                                @endphp
+                                <span class="v-line__detail">{{ $detail }}</span>
+                            @endif
+                        </span>
+                        <span class="v-num v-line__count {{ $unhealthyAutomations->isEmpty() ? 'v-line__count--zero' : '' }}">{{ $unhealthyAutomations->count() }}</span>
+                        <x-admin.icon name="chevron-right" class="v-line__go" />
+                    </a>
+                </li>
+                @foreach ($standingLines as $line)
+                    <li>
+                        <a href="{{ $line['url'] }}" class="v-line">
+                            <span class="v-line__label">{{ $line['label'] }}</span>
+                            <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
+                            <x-admin.icon name="chevron-right" class="v-line__go" />
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    </article>
 </x-admin.shell>

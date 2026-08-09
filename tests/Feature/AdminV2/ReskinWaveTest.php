@@ -959,8 +959,8 @@ class ReskinWaveTest extends TestCase
 
         $product = Product::create(['store_id' => 1, 'name' => 'Distortion Pedal', 'slug' => 'distortion-pedal', 'price' => 1000]);
 
-        // Pending review + SEO suggestion + a stale cart exercise the
-        // "Needs Attention" card's three linked counts.
+        // Pending review + SEO suggestion + a stale cart exercise the three
+        // linked counts under the day sheet's Outstanding movement.
         Review::create([
             'product_id' => $product->id,
             'token' => Str::random(32),
@@ -1026,11 +1026,15 @@ class ReskinWaveTest extends TestCase
             'last_run_status' => 'success',
         ]);
 
+        // The dashboard is the day sheet now (see DaySheetTest for what it
+        // promises): the figures are named for the ledger they belong to,
+        // and the automation health card became a line under Outstanding.
         $this->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('v-admin', false)
-            ->assertSee('Revenue Today')
-            ->assertSee('Overdue');
+            ->assertSee('Revenue taken')
+            ->assertSee('Automations overdue')
+            ->assertSee('Currency Exchange Rates');
     }
 
     public function test_old_admin_layout_is_gone(): void

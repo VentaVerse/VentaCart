@@ -129,6 +129,27 @@ class FulfillmentService
     ];
 
     /**
+     * The queue URL that lands on a given placement's worklist.
+     *
+     * The tab vocabulary is this module's, not core's: To Pack and To
+     * Handover are SUB-tabs under the To Ship heading, which is why their
+     * URLs carry two parameters and every other placement carries one.
+     * Nothing outside the module should have to know that, so anything
+     * linking into the queue (the day sheet's work lines) asks here instead
+     * of assembling query strings from a placement name.
+     *
+     * @param  string  $placement  one of self::PLACEMENTS
+     */
+    public static function queueUrl(string $placement): string
+    {
+        $params = in_array($placement, ['to_pack', 'to_handover'], true)
+            ? ['filter' => 'to_ship', 'sub' => $placement]
+            : ['filter' => $placement];
+
+        return route('admin.fulfillment.index', $params);
+    }
+
+    /**
      * True when the order has a tracking number AND its booking isn't
      * cancelled. "Cancelled" is decided PHASE-first (final-review fix,
      * Finding 1): the resolved courier's own statusPhase() spine bucket —

@@ -11,6 +11,7 @@ use App\Models\ProductVariant;
 use App\Models\Tag;
 use App\Models\VariantType;
 use App\Models\VariantTypeValue;
+use App\Support\LowStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -35,6 +36,14 @@ class ProductController extends Controller
 
         if ($request->filled('status')) {
             $query->where('is_active', $request->input('status') === 'active');
+        }
+
+        // The set behind the day sheet's "Stock about to run out" line, and
+        // behind the stock:check-low alert mail: one definition, shared, so
+        // the number the merchant clicks and the list they land on cannot
+        // drift apart (App\Support\LowStock).
+        if ($request->input('stock') === 'low') {
+            LowStock::scopeProductListing($query);
         }
 
         if ($request->filled('search')) {
