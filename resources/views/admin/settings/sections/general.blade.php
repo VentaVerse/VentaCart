@@ -12,6 +12,9 @@
                     'help' => 'PNG, JPG or WebP, up to '.\App\Support\IdentityAsset::LOGO_MAX_KB.' KB.',
                     'accept' => 'image/png,image/jpeg,image/webp',
                     'url' => \App\Support\StoreIdentity::logoUrl(),
+                    // A wordmark is wide; an icon is square. The preview is
+                    // shaped like the thing it holds so neither is squeezed.
+                    'box' => 'h-14 w-32',
                 ],
                 [
                     'key' => 'favicon',
@@ -19,6 +22,7 @@
                     'help' => 'Square PNG, ICO or SVG, up to '.\App\Support\IdentityAsset::FAVICON_MAX_KB.' KB.',
                     'accept' => 'image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico,.svg',
                     'url' => \App\Support\StoreIdentity::faviconUrl(),
+                    'box' => 'h-14 w-14',
                 ],
             ];
         @endphp
@@ -32,23 +36,27 @@
                 <div class="grid gap-5 sm:grid-cols-2">
                     @foreach ($vMarks as $mark)
                         <x-admin.field :name="$mark['key']" :label="$mark['label']" :help="$mark['help']">
-                            <div class="flex items-start gap-3">
-                                <div class="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-v-md border border-v-border bg-v-sunken p-1.5">
+                            <div class="space-y-2.5">
+                                <div class="flex items-center gap-3">
+                                    {{-- Plated when a mark is present, for the same reason the
+                                         slab plates it: a dark-ink logo on a dark preview is
+                                         no preview at all. The empty state keeps the sunken
+                                         tile, whose text follows the theme. --}}
+                                    <div class="{{ $mark['box'] }} shrink-0 overflow-hidden border border-v-border {{ $mark['url'] ? 'v-logo-plate' : 'grid place-items-center rounded-v-md bg-v-sunken' }}">
+                                        @if ($mark['url'])
+                                            <img src="{{ $mark['url'] }}" alt="{{ $vStoreName }} {{ strtolower($mark['label']) }}" class="max-h-full max-w-full object-contain">
+                                        @else
+                                            <span class="text-[11px] leading-tight text-v-secondary">None set</span>
+                                        @endif
+                                    </div>
                                     @if ($mark['url'])
-                                        <img src="{{ $mark['url'] }}" alt="{{ $vStoreName }} {{ strtolower($mark['label']) }}" class="max-h-full max-w-full object-contain">
-                                    @else
-                                        <span class="text-[11px] leading-tight text-v-secondary">None set</span>
-                                    @endif
-                                </div>
-                                <div class="min-w-0 flex-1 space-y-2">
-                                    <input type="file" name="{{ $mark['key'] }}" id="{{ $mark['key'] }}" accept="{{ $mark['accept'] }}"
-                                           class="block w-full cursor-pointer text-xs text-v-secondary file:mr-2 file:cursor-pointer file:rounded-v-sm file:border-0 file:bg-v-accent-weak file:px-2 file:py-1 file:text-xs file:font-medium file:text-v-accent hover:file:bg-v-hover">
-                                    @if ($mark['url'])
-                                        <x-admin.button form="remove-{{ $mark['key'] }}" type="submit" variant="ghost" size="sm" class="-ml-2.5">
+                                        <x-admin.button form="remove-{{ $mark['key'] }}" type="submit" variant="ghost" size="sm" class="-ml-1.5">
                                             Remove {{ strtolower($mark['label']) }}
                                         </x-admin.button>
                                     @endif
                                 </div>
+                                <input type="file" name="{{ $mark['key'] }}" id="{{ $mark['key'] }}" accept="{{ $mark['accept'] }}"
+                                       class="block w-full cursor-pointer text-xs text-v-secondary file:mr-2 file:cursor-pointer file:rounded-v-sm file:border-0 file:bg-v-accent-weak file:px-2 file:py-1 file:text-xs file:font-medium file:text-v-accent hover:file:bg-v-hover">
                             </div>
                         </x-admin.field>
                     @endforeach

@@ -55,8 +55,8 @@
     {{-- Twitter Card --}}
     <meta name="twitter:card" content="summary_large_image">
 
-    @if ($theme->get('identity.favicon'))
-        <link rel="icon" href="{{ asset('storage/' . $theme->get('identity.favicon')) }}">
+    @if ($vFavicon = \App\Support\StoreIdentity::faviconUrl())
+        <link rel="icon" href="{{ $vFavicon }}">
     @endif
 
     {{-- Google Fonts --}}
@@ -223,8 +223,8 @@
 
             {{-- Logo --}}
             <a href="{{ route('home') }}" class="logo flex-shrink-0">
-                @if ($theme->get('identity.logo'))
-                    <img src="{{ asset('storage/' . $theme->get('identity.logo')) }}" alt="{{ $siteName }}">
+                @if ($vLogo = \App\Support\StoreIdentity::logoUrl())
+                    <img src="{{ $vLogo }}" alt="{{ $siteName }}">
                 @else
                     <span class="text-logo">{{ $siteName }}</span>
                 @endif

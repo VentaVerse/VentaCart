@@ -61,7 +61,9 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <div class="v-slab__brand">
                 <a href="{{ route('admin.dashboard') }}" class="v-slab__home" aria-label="{{ $vStoreName }} dashboard">
                     @if ($vLogo)
-                        <img src="{{ $vLogo }}" alt="{{ $vStoreName }}" class="v-slab__logo">
+                        <span class="v-logo-plate">
+                            <img src="{{ $vLogo }}" alt="{{ $vStoreName }}" class="v-slab__logo">
+                        </span>
                     @else
                         <span class="v-slab__mark" aria-hidden="true">{{ \App\Support\StoreIdentity::initial() }}</span>
                         <span class="v-slab__name" title="{{ $vStoreName }}">{{ $vStoreName }}</span>

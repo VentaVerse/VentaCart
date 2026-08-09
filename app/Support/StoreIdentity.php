@@ -6,20 +6,22 @@ use App\Services\ThemeService;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * The store's own name and marks, for the admin chrome.
+ * The store's own name and marks, for both surfaces that wear them.
  *
  * The admin shows the MERCHANT, never the platform: whoever is signed in
- * runs a store, and Venta is only the application it runs on. The values
- * come from the same settings the storefront reads (group 'identity',
- * paths on the public disk), resolved the same way, so the two never
- * disagree about what the store is called.
+ * runs a store, and Venta is only the application it runs on. There is one
+ * logo and one favicon (group 'identity', paths on the public disk),
+ * resolved here for the storefront and the admin alike, so the two can
+ * never disagree about what the store is called or which mark it wears.
+ * The admin holds that one logo on a light plate rather than asking for a
+ * second, reversed copy of it.
  *
- * The one thing this adds over the storefront's inline lookup is an
- * existence check. A settings row outlives the file it names: a logo
- * deleted from storage, or a database restored onto a machine that never
- * had the uploads, leaves a path pointing at nothing. The storefront
- * renders a broken image in that case; the admin falls back to the mark
- * and the name, which is the same treatment as never having uploaded one.
+ * The one thing this adds over an inline settings lookup is an existence
+ * check. A settings row outlives the file it names: a logo deleted from
+ * storage, or a database restored onto a machine that never had the uploads,
+ * leaves a path pointing at nothing. Rather than render a broken image,
+ * every accessor treats a missing file as an absent one, so a surface falls
+ * back exactly as if nothing had been uploaded.
  */
 class StoreIdentity
 {

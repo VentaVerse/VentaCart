@@ -25,7 +25,11 @@
         <div class="mb-6 flex items-center justify-between gap-4">
             <a href="{{ route('login') }}" class="flex min-w-0 items-center gap-2.5 no-underline">
                 @if ($vLogo)
-                    <img src="{{ $vLogo }}" alt="{{ $vStoreName }}" class="h-7 w-auto max-w-[150px] object-contain object-left">
+                    {{-- Same plate as the slab: the sign-in page follows the
+                         theme, so a dark-ink logo needs its own ground here too. --}}
+                    <span class="v-logo-plate">
+                        <img src="{{ $vLogo }}" alt="{{ $vStoreName }}" class="h-7 w-auto max-w-[150px] object-contain">
+                    </span>
                 @else
                     <span class="grid h-7 w-7 place-items-center rounded-v-sm bg-v-mark text-[13px] font-bold text-v-mark-ink">{{ \App\Support\StoreIdentity::initial() }}</span>
                     <span class="truncate text-[15px] font-semibold tracking-tight text-v-text">{{ $vStoreName }}</span>

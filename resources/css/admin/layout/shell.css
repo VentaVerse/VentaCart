@@ -42,14 +42,31 @@
 }
 
 /* The store's own logo, held to a strip so a tall or wide upload
-   cannot set the height of the slab header. */
+   cannot set the height of the slab header. Contained, never cropped,
+   so a wide wordmark and a square monogram both sit correctly. */
 .v-admin .v-slab__logo {
     flex: none;
     width: auto;
     max-width: 116px;
-    height: 24px;
+    height: 22px;
     object-fit: contain;
-    object-position: left center;
+    object-position: center;
+}
+
+/* The ground the logo stands on. There is one uploaded logo and it is
+   drawn for the storefront, which means dark ink far more often than
+   not; on the azure slab that logo would disappear. The plate is a
+   deliberate mark container, the same rounded square the ERP holds its
+   own mark in, and it makes any logo legible on the chrome: dark ink,
+   light ink or full colour. It wraps only an uploaded logo, never the
+   generated initial, which already carries its own brass. */
+.v-admin .v-logo-plate {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    padding: 4px 7px;
+    border-radius: var(--bl-r-ctrl);
+    background: var(--bl-plate);
 }
 
 /* The fallback when no logo is uploaded: the store's initial on a

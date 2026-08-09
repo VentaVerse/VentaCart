@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\Settings\SettingsSectionController;
 use App\Http\Controllers\Admin\Settings\ShippingCourierController;
 use App\Http\Controllers\Admin\Settings\ShippingSettingController;
 use App\Http\Controllers\Admin\Settings\ShippingTestController;
+use App\Http\Controllers\Admin\Settings\StoreIdentityController;
 use App\Http\Controllers\Admin\Settings\StockNotificationController as AdminStockNotificationController;
 use App\Http\Controllers\Admin\Settings\ThemeController;
 use App\Http\Controllers\Admin\Settings\UserController;
@@ -38,6 +39,15 @@ Route::prefix('settings')->group(function () {
     Route::post('/test-dhl', [SettingController::class, 'testDhl'])->name('settings.test-dhl');
     Route::post('/generate-erp-token', [SettingController::class, 'generateErpToken'])->name('settings.generate-erp-token');
     Route::post('/upload-gsc-credentials', [SettingController::class, 'uploadGscCredentials'])->name('settings.upload-gsc-credentials');
+
+    // The store's name and marks. Its own endpoint rather than the shared
+    // key-value one because the marks are files: they need validation the
+    // generic setter has no business carrying, and replacing one has to
+    // delete the file it replaced.
+    Route::post('/identity', [StoreIdentityController::class, 'update'])->name('settings.identity.update');
+    Route::delete('/identity/{asset}', [StoreIdentityController::class, 'destroy'])
+        ->whereIn('asset', ['logo', 'favicon'])
+        ->name('settings.identity.destroy');
 
     // Automations (Settings > Automations section — DB-managed scheduled
     // tasks). AutomationController::index is a legacy stub that redirects

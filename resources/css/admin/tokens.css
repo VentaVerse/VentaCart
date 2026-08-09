@@ -152,6 +152,15 @@
     --bl-slab-rule: #2A4E75;
     --bl-slab-on: #FFFFFF;
 
+    /* The plate the store's logo sits on. One logo serves the
+       storefront and the admin, and a storefront wordmark is usually
+       dark ink, so the chrome gives it light ground to survive on
+       rather than asking the merchant for a reversed second copy.
+       Warm paper, not white, so it belongs to the same material as the
+       sheets. Deliberately not themed: the slab is dark in both
+       themes, so the plate is light in both. */
+    --bl-plate: #F6F3EE;
+
     /* --- Material ------------------------------------------------
        Two elevations, not one and not three. --bl-lift is a resting
        sheet; --bl-lift-2 is for a surface deliberately louder than
