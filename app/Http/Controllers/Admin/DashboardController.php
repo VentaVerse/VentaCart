@@ -7,11 +7,11 @@ use App\Models\Automation;
 use App\Models\Cart;
 use App\Models\Currency;
 use App\Models\Order;
-use App\Models\OrderStatus;
 use App\Models\Review;
 use App\Models\SeoSuggestion;
 use App\Support\AdminNav;
 use App\Support\LowStock;
+use App\Support\Revenue;
 use Cron\CronExpression;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -42,24 +42,6 @@ use Throwable;
  */
 class DashboardController extends Controller
 {
-    /**
-     * Status names whose orders were placed but never became money the
-     * merchant keeps. Revenue and the average order leave them out;
-     * "Orders placed" still counts them, because they were placed.
-     *
-     * A NAME list, and that is the honest limit of it: core carries no
-     * "this status counts as revenue" flag, and a merchant who renames
-     * Canceled to something else falls out of this set until they say so.
-     * Both spellings of cancelled are here because OpenCart-migrated
-     * stores carry one and fresh stores the other. "Canceled Reversal" is
-     * deliberately absent: it means the cancellation itself was undone, so
-     * the order is live again.
-     */
-    private const NON_REVENUE_STATUS_NAMES = [
-        'Canceled', 'Cancelled', 'Denied', 'Failed',
-        'Refunded', 'Reversed', 'Chargeback', 'Voided', 'Expired',
-    ];
-
     /** The most entries the sheet prints before sending the reader to Orders. */
     private const MAX_ENTRIES = 50;
 
@@ -161,15 +143,11 @@ class DashboardController extends Controller
      */
     private function dayFigures(int $storeId, Carbon $today, Carbon $tomorrow, Carbon $yesterday, Carbon $weekAgo): array
     {
-        $cancelledIds = OrderStatus::where('store_id', $storeId)
-            ->whereIn('name', self::NON_REVENUE_STATUS_NAMES)
-            ->pluck('id')
-            ->all();
-
-        // No cancelled statuses configured => every placed order is revenue.
-        $live = $cancelledIds === []
-            ? '1'
-            : 'orders.order_status_id NOT IN (' . implode(',', array_map('intval', $cancelledIds)) . ')';
+        // WHAT COUNTS AS MONEY IS NOT DECIDED HERE. It used to be: a hardcoded
+        // list of status names lived on this class, so renaming a status moved
+        // the figure without a word. Each status now declares it, and
+        // App\Support\Revenue is the only reader of that declaration.
+        $live = Revenue::condition($storeId);
 
         $windows = [
             'today'     => [$today, $tomorrow],
@@ -211,7 +189,7 @@ class DashboardController extends Controller
                 'key' => 'revenue',
                 'label' => 'Revenue taken',
                 'money' => true,
-                'hint' => 'Cancelled, refunded and failed orders are left out.',
+                'hint' => 'Only orders at a status set to count as revenue.',
                 'values' => $revenue,
             ],
             [

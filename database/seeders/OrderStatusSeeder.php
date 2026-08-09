@@ -44,6 +44,17 @@ class OrderStatusSeeder extends Seeder
      */
     private const DEDUCTS_STOCK = ['Processing', 'Processed', 'Shipped', 'Complete', 'Delivered'];
 
+    /**
+     * Status names seeded as revenue: whatever deducts stock (owner ruling,
+     * 2026-08-09 - a status which took goods out of inventory is a status
+     * where revenue is real). Deliberately the SAME list rather than a second
+     * one, because a fresh install should start where the migration's
+     * derivation puts an existing one. The merchant separates the two
+     * afterward on the Order Statuses page, which is the whole point of them
+     * being two columns: a Lost or Damaged parcel deducts and earns nothing.
+     */
+    private const COUNTS_AS_REVENUE = self::DEDUCTS_STOCK;
+
     public function run(): void
     {
         $storeId = 1;
@@ -74,6 +85,7 @@ class OrderStatusSeeder extends Seeder
                 'name' => $status['name'],
                 'is_default' => $status['is_default'],
                 'deducts_stock' => in_array($status['name'], self::DEDUCTS_STOCK, true),
+                'counts_as_revenue' => in_array($status['name'], self::COUNTS_AS_REVENUE, true),
                 'sort_order' => $status['sort_order'],
                 'created_at' => $now,
                 'updated_at' => $now,

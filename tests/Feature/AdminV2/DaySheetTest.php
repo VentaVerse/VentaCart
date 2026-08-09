@@ -48,9 +48,18 @@ class DaySheetTest extends TestCase
         return User::factory()->create();
     }
 
-    private function orderStatus(string $name): OrderStatus
+    /**
+     * Revenue is a declared property of a status now (owner ruling,
+     * 2026-08-09), not a name the sheet recognises, so a fixture that wants
+     * its orders to be money has to say so - exactly as a merchant does on
+     * the Order Statuses page.
+     */
+    private function orderStatus(string $name, bool $countsAsRevenue = false): OrderStatus
     {
-        return OrderStatus::firstOrCreate(['store_id' => 1, 'name' => $name], ['sort_order' => 1]);
+        return OrderStatus::firstOrCreate(
+            ['store_id' => 1, 'name' => $name],
+            ['sort_order' => 1, 'counts_as_revenue' => $countsAsRevenue]
+        );
     }
 
     private function order(OrderStatus $status, float $total, string $at, string $first = 'Jane'): Order
@@ -104,7 +113,7 @@ class DaySheetTest extends TestCase
     public function test_the_standing_sentence_is_composed_from_the_days_real_figures(): void
     {
         $this->actingAs($this->admin());
-        $paid = $this->orderStatus('Payment Received');
+        $paid = $this->orderStatus('Payment Received', true);
 
         $this->order($paid, 1500.00, '2026-08-09 09:15:00');
         $this->order($paid, 500.50, '2026-08-09 11:40:00');
@@ -130,7 +139,7 @@ class DaySheetTest extends TestCase
     public function test_the_figures_carry_today_yesterday_and_the_same_weekday_last_week(): void
     {
         $this->actingAs($this->admin());
-        $paid = $this->orderStatus('Payment Received');
+        $paid = $this->orderStatus('Payment Received', true);
 
         $this->order($paid, 100.00, '2026-08-09 10:00:00'); // today
         $this->order($paid, 250.00, '2026-08-08 10:00:00'); // yesterday
@@ -154,7 +163,7 @@ class DaySheetTest extends TestCase
     public function test_cancelled_orders_are_counted_as_placed_but_not_as_revenue(): void
     {
         $this->actingAs($this->admin());
-        $paid = $this->orderStatus('Payment Received');
+        $paid = $this->orderStatus('Payment Received', true);
         $void = $this->orderStatus('Refunded');
 
         $this->order($paid, 400.00, '2026-08-09 09:00:00');
@@ -169,10 +178,52 @@ class DaySheetTest extends TestCase
         $this->assertSame(400.0, $figures->firstWhere('key', 'average')['values']['today']);
     }
 
+    /**
+     * The sheet asks the status, not the dictionary. Revenue used to be a
+     * hardcoded list of names on the controller, so renaming Canceled moved
+     * the figure without warning; the flag travels with the row instead.
+     */
+    public function test_revenue_follows_the_declared_flag_and_not_the_status_name(): void
+    {
+        $this->actingAs($this->admin());
+
+        // Named like money, declares it is not.
+        $complete = $this->orderStatus('Complete', false);
+        // Named like a write-off, declares it is money (the merchant's call).
+        $odd = $this->orderStatus('Canceled', true);
+
+        $this->order($complete, 700.00, '2026-08-09 09:00:00');
+        $this->order($odd, 300.00, '2026-08-09 10:00:00');
+
+        $figures = collect($this->get(route('admin.dashboard'))->assertOk()->viewData('figures'));
+
+        $this->assertSame(300.0, $figures->firstWhere('key', 'revenue')['values']['today']);
+        $this->assertSame(2, $figures->firstWhere('key', 'placed')['values']['today']);
+    }
+
+    /** Renaming a status does not move a figure: the flag is on the row. */
+    public function test_renaming_a_status_leaves_the_days_revenue_untouched(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+        $this->order($paid, 1234.00, '2026-08-09 09:00:00');
+
+        $before = collect($this->get(route('admin.dashboard'))->viewData('figures'))
+            ->firstWhere('key', 'revenue')['values']['today'];
+
+        $paid->update(['name' => 'Bayad na']);
+
+        $after = collect($this->get(route('admin.dashboard'))->viewData('figures'))
+            ->firstWhere('key', 'revenue')['values']['today'];
+
+        $this->assertSame(1234.0, $before);
+        $this->assertSame($before, $after);
+    }
+
     public function test_status_less_ghost_orders_are_not_figures_at_all(): void
     {
         $this->actingAs($this->admin());
-        $paid = $this->orderStatus('Payment Received');
+        $paid = $this->orderStatus('Payment Received', true);
         $this->order($paid, 100.00, '2026-08-09 09:00:00');
 
         $ghost = Order::create([
@@ -357,7 +408,7 @@ class DaySheetTest extends TestCase
     public function test_todays_orders_are_listed_chronologically_with_what_was_bought(): void
     {
         $this->actingAs($this->admin());
-        $paid = $this->orderStatus('Payment Received');
+        $paid = $this->orderStatus('Payment Received', true);
 
         $late = $this->order($paid, 900.00, '2026-08-09 13:00:00', 'Zoe');
         $early = $this->order($paid, 300.00, '2026-08-09 08:00:00', 'Abe');
@@ -379,7 +430,7 @@ class DaySheetTest extends TestCase
     public function test_the_entries_do_not_query_per_order_for_their_line_items(): void
     {
         $this->actingAs($this->admin());
-        $paid = $this->orderStatus('Payment Received');
+        $paid = $this->orderStatus('Payment Received', true);
         $product = Product::create(['store_id' => 1, 'name' => 'Cable', 'slug' => 'cable', 'price' => 100]);
 
         foreach (range(1, 8) as $i) {
@@ -417,7 +468,7 @@ class DaySheetTest extends TestCase
     public function test_an_empty_day_names_when_the_last_order_arrived(): void
     {
         $this->actingAs($this->admin());
-        $paid = $this->orderStatus('Payment Received');
+        $paid = $this->orderStatus('Payment Received', true);
         $this->order($paid, 100.00, '2026-08-07 16:00:00');
 
         $this->get(route('admin.dashboard'))

@@ -142,6 +142,124 @@ class OrderStatusesPageTest extends TestCase
         $this->assertFalse((bool) $status->fresh()->deducts_stock);
     }
 
+    // -----------------------------------------------------------------
+    // Counts as revenue (owner ruling, 2026-08-09)
+    // -----------------------------------------------------------------
+
+    /**
+     * Revenue is a core property of a status, edited beside stock and in the
+     * same idiom: one checkbox, one hidden 0 companion, one tooltip carrying
+     * the single non-obvious consequence. No second control pattern.
+     */
+    public function test_revenue_is_a_checkbox_beside_deducts_stock(): void
+    {
+        $this->actingAs(User::factory()->create());
+        OrderStatus::create(['store_id' => 1, 'name' => 'Complete', 'deducts_stock' => true, 'counts_as_revenue' => true, 'sort_order' => 1]);
+        OrderStatus::create(['store_id' => 1, 'name' => 'Refunded', 'deducts_stock' => false, 'counts_as_revenue' => false, 'sort_order' => 2]);
+
+        $response = $this->get(route('admin.order-statuses.index'))->assertOk();
+
+        $content = $response->getContent();
+
+        $response->assertSee('Counts as revenue')
+            ->assertSee('name="counts_as_revenue" value="1"', false)
+            ->assertSee('name="counts_as_revenue" value="0"', false)
+            // The one consequence a merchant cannot infer from the label.
+            ->assertSee('Orders with no status never count', false);
+
+        // Two rows plus the add form, exactly one of them ticked.
+        $this->assertSame(3, substr_count($content, 'name="counts_as_revenue" value="1"'));
+        $this->assertSame(1, substr_count($content, 'name="counts_as_revenue" value="1" checked'));
+
+        // The stock column is untouched and still sits beside it.
+        $response->assertSee('Deducts stock');
+    }
+
+    /** Every row's checkbox is named for its own status, for screen readers. */
+    public function test_each_revenue_checkbox_is_labelled_with_its_status(): void
+    {
+        $this->actingAs(User::factory()->create());
+        OrderStatus::create(['store_id' => 1, 'name' => 'Complete', 'counts_as_revenue' => true, 'sort_order' => 1]);
+
+        $this->get(route('admin.order-statuses.index'))
+            ->assertOk()
+            ->assertSee('aria-label="Complete counts as revenue"', false);
+    }
+
+    public function test_create_and_update_round_trip_the_revenue_flag(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.order-statuses.store'), [
+            'name' => 'Quality Check', 'counts_as_revenue' => '1', 'sort_order' => 4,
+        ])->assertRedirect();
+        $this->assertDatabaseHas('order_statuses', ['name' => 'Quality Check', 'counts_as_revenue' => true]);
+
+        $status = OrderStatus::where('name', 'Quality Check')->firstOrFail();
+
+        // Clearing it saves: the hidden 0 companion is what makes an unchecked
+        // box post at all.
+        $this->put(route('admin.order-statuses.update', $status), [
+            'name' => 'Quality Check', 'counts_as_revenue' => '0', 'sort_order' => 4,
+        ])->assertRedirect();
+        $this->assertFalse((bool) $status->fresh()->counts_as_revenue);
+
+        $this->put(route('admin.order-statuses.update', $status), [
+            'name' => 'Quality Check', 'counts_as_revenue' => '1', 'sort_order' => 4,
+        ])->assertRedirect();
+        $this->assertTrue((bool) $status->fresh()->counts_as_revenue);
+    }
+
+    /**
+     * Two-valued, validated the way the stock flag is: anything else is
+     * refused rather than coerced to false, which would silently drop a
+     * store's revenue figure.
+     */
+    public function test_a_non_boolean_revenue_flag_is_rejected(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Complete', 'counts_as_revenue' => true, 'sort_order' => 1]);
+
+        $this->put(route('admin.order-statuses.update', $status), [
+            'name' => 'Complete', 'counts_as_revenue' => 'yes please', 'sort_order' => 1,
+        ])->assertSessionHasErrors('counts_as_revenue');
+
+        $this->assertTrue((bool) $status->fresh()->counts_as_revenue);
+
+        $this->post(route('admin.order-statuses.store'), [
+            'name' => 'Bogus Status', 'counts_as_revenue' => 'sometimes', 'sort_order' => 2,
+        ])->assertSessionHasErrors('counts_as_revenue');
+
+        $this->assertDatabaseMissing('order_statuses', ['name' => 'Bogus Status']);
+    }
+
+    /**
+     * The two properties are independent once set. They are derived to agree
+     * on migrate and then part company whenever the merchant says so: a lost
+     * parcel took the goods out and earned nothing.
+     */
+    public function test_revenue_and_stock_move_independently(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Lost', 'deducts_stock' => true, 'counts_as_revenue' => true, 'sort_order' => 1]);
+
+        $this->put(route('admin.order-statuses.update', $status), [
+            'name' => 'Lost', 'deducts_stock' => '1', 'counts_as_revenue' => '0', 'sort_order' => 1,
+        ])->assertRedirect();
+
+        $fresh = $status->fresh();
+        $this->assertTrue((bool) $fresh->deducts_stock);
+        $this->assertFalse((bool) $fresh->counts_as_revenue);
+    }
+
+    /** A status created without the flag is not revenue. */
+    public function test_a_new_status_defaults_to_not_counting_as_revenue(): void
+    {
+        $status = OrderStatus::create(['store_id' => 1, 'name' => 'Some Status', 'sort_order' => 1]);
+
+        $this->assertFalse((bool) $status->fresh()->counts_as_revenue);
+    }
+
     /**
      * Fulfillment placement left this page with the column it lived on (owner
      * ruling, 2026-08-09): the select, the badge and the legend card are all

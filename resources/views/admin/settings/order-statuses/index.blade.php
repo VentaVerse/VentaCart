@@ -24,6 +24,12 @@
                              not merely stop deducting, it hands the units back
                              the moment an order reaches that status. --}}
                         <x-admin.table.th title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">Deducts stock</x-admin.table.th>
+                        {{-- The non-obvious consequence, and the only reason
+                             this column earns a tooltip: the flag has a hard
+                             floor under it. An order that never reached a
+                             status at all is a ghost of an abandoned checkout
+                             and is never revenue, whatever is ticked here. --}}
+                        <x-admin.table.th title="Orders with no status never count, whatever this is set to.">Counts as revenue</x-admin.table.th>
                         <x-admin.table.th>Sort</x-admin.table.th>
                         <x-admin.table.th align="right">Actions</x-admin.table.th>
                     </x-slot:head>
@@ -53,6 +59,21 @@
                                     <input type="hidden" form="{{ $editForm }}" name="deducts_stock" value="0">
                                     <input type="checkbox" form="{{ $editForm }}" name="deducts_stock" value="1" @checked(old('deducts_stock', $status->deducts_stock))
                                         aria-label="{{ $status->name }} deducts stock"
+                                        class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                </label>
+                            </x-admin.table.cell>
+                            <x-admin.table.cell>
+                                {{-- Same control idiom as Deducts stock beside
+                                     it, deliberately: one checkbox, a hidden 0
+                                     so clearing it saves, and the consequence
+                                     stated once in the column header. The two
+                                     start out agreeing (the flag is derived
+                                     from stock on migrate) and part company
+                                     whenever the merchant says so. --}}
+                                <label class="inline-flex items-center cursor-pointer">
+                                    <input type="hidden" form="{{ $editForm }}" name="counts_as_revenue" value="0">
+                                    <input type="checkbox" form="{{ $editForm }}" name="counts_as_revenue" value="1" @checked(old('counts_as_revenue', $status->counts_as_revenue))
+                                        aria-label="{{ $status->name }} counts as revenue"
                                         class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
                                 </label>
                             </x-admin.table.cell>
@@ -100,6 +121,9 @@
                         <input type="hidden" name="deducts_stock" value="0">
                         <x-admin.checkbox name="deducts_stock" label="Deducts stock"
                             title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned." />
+                        <input type="hidden" name="counts_as_revenue" value="0">
+                        <x-admin.checkbox name="counts_as_revenue" label="Counts as revenue"
+                            title="Orders with no status never count, whatever this is set to." />
                         <x-admin.checkbox name="is_default" label="Default" />
                         <x-admin.button variant="primary" type="submit">Add</x-admin.button>
                     </div>

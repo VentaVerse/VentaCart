@@ -50,6 +50,7 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'deducts_stock' => ['boolean'],
+            'counts_as_revenue' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
             // Fulfillment placement left core with the column it lived on
@@ -65,6 +66,7 @@ class OrderStatusController extends Controller
         // Coerced only AFTER validation, so a bogus value is rejected rather
         // than quietly read as false.
         $validated['deducts_stock'] = $request->boolean('deducts_stock');
+        $validated['counts_as_revenue'] = $request->boolean('counts_as_revenue');
 
         if ($validated['is_default']) {
             OrderStatus::where('store_id', $this->storeId)->update(['is_default' => false]);
@@ -83,6 +85,7 @@ class OrderStatusController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'deducts_stock' => ['boolean'],
+            'counts_as_revenue' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
             // Fulfillment placement left core with the column it lived on
@@ -97,6 +100,7 @@ class OrderStatusController extends Controller
         // Coerced only AFTER validation, so a bogus value is rejected rather
         // than quietly read as false.
         $validated['deducts_stock'] = $request->boolean('deducts_stock');
+        $validated['counts_as_revenue'] = $request->boolean('counts_as_revenue');
 
         if ($validated['is_default']) {
             OrderStatus::where('store_id', $this->storeId)->where('id', '!=', $orderStatus->id)->update(['is_default' => false]);
