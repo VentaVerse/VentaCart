@@ -7,11 +7,14 @@ use App\Models\Automation;
 use App\Models\Cart;
 use App\Models\Currency;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\Review;
 use App\Models\SeoSuggestion;
+use App\Models\Setting;
 use App\Support\AdminNav;
 use App\Support\LowStock;
-use App\Support\Revenue;
+use App\Support\RunningAccounts;
+use App\Support\Standing;
 use Cron\CronExpression;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -22,18 +25,36 @@ use Throwable;
 /**
  * The day sheet: today's page in the shop's daybook.
  *
- * Everything here answers one of five questions, in the order the sheet
- * asks them: what day is it and where does it stand, what did today take,
- * what does today need doing, what came in today, and what is outstanding
- * that is not about today at all.
+ * It is read straight down, and it now leads with STANDING rather than with
+ * work. A merchant opens the admin once at the start of the day and wants
+ * one question answered before anything else: is the business alright. That
+ * question is comparative, so no figure on the pulse appears without the
+ * reference it should be read against, and the references are year on year
+ * because retail is seasonal and month on month lies about it.
  *
- * QUERY BUDGET. This page loads on every login, against a store carrying
- * ~27,700 orders. Nothing below scans that table: the day's three figures
- * and their two comparisons come out of ONE aggregate over an eight-day
- * window (seekable since the orders_store_created_index migration), the
- * work counts are one grouped query over a handful of status ids, and the
- * entries are one bounded window read. No count is derived by hydrating
- * models and counting them in PHP.
+ * The movements, in order:
+ *
+ *   1  the head        the date, and one plain sentence of where today is
+ *   2  the pulse       this month and today, each against its own reference,
+ *                      over a plot of two years of revenue
+ *   3  needs doing     the handoff into the day's actual work
+ *   4  running accounts what has been selling, and how it was paid for
+ *   5  today's entries the day's orders as ledger lines
+ *   6  outstanding     what is waiting and is not about today
+ *
+ * A STORE THAT HAS NEVER TRADED IS NOT AN EDGE CASE. It is the first thing
+ * every Venta merchant sees, so it gets its own composition rather than a
+ * page of zeros: the pulse, the accounts and the entries are not drawn at
+ * all, and an opening movement names what the store still needs before it
+ * can take an order. See openingLines().
+ *
+ * QUERY BUDGET. This page loads on every login against a store carrying
+ * ~27,700 orders. Nothing below scans that table. The pulse is three
+ * aggregates that read only orders_store_created_money_index; the running
+ * accounts are five queries bounded by their stated period; the work counts
+ * are one grouped query over a handful of status ids; the entries are one
+ * bounded window read. No count is derived by hydrating models and counting
+ * them in PHP.
  *
  * THE FULFILLMENT MODULE IS OPTIONAL. Its three work lines read the
  * module's own status-to-placement mapping rather than any private copy of
@@ -45,6 +66,9 @@ class DashboardController extends Controller
     /** The most entries the sheet prints before sending the reader to Orders. */
     private const MAX_ENTRIES = 50;
 
+    /** The window the running accounts state and cover. */
+    private const ACCOUNT_DAYS = 30;
+
     public function index(Request $request)
     {
         $storeId = (int) config('app.store_id', 1);
@@ -52,12 +76,16 @@ class DashboardController extends Controller
 
         $today = $now->copy()->startOfDay();
         $tomorrow = $today->copy()->addDay();
-        $yesterday = $today->copy()->subDay();
-        $weekAgo = $today->copy()->subWeek();
 
         $currency = Currency::where('is_default', true)->value('symbol') ?: '';
 
-        $figures = $this->dayFigures($storeId, $today, $tomorrow, $yesterday, $weekAgo);
+        // Asked off an index and answered by the first matching row. It
+        // decides the whole shape of the page, so it is asked first and
+        // nothing expensive runs behind it on a store with no trade.
+        $hasTraded = Order::query()
+            ->where('store_id', $storeId)
+            ->whereNotNull('order_status_id')
+            ->exists();
 
         $fulfillment = $this->fulfillmentWork($storeId);
         $lowStockCount = LowStock::count();
@@ -67,16 +95,6 @@ class DashboardController extends Controller
             'count' => $lowStockCount,
             'url'   => route('admin.products.index', ['stock' => 'low']),
         ]]);
-
-        $entries = $this->entries($storeId, $today, $tomorrow);
-        $entriesTruncated = $entries->count() > self::MAX_ENTRIES;
-        $entries = $entries->take(self::MAX_ENTRIES);
-
-        // Only asked when today is blank, and answered off the primary key
-        // rather than a date scan.
-        $lastEntryAt = $entries->isEmpty()
-            ? Order::where('store_id', $storeId)->whereNotNull('order_status_id')->latest('id')->value('created_at')
-            : null;
 
         $automations = Automation::enabled()->orderBy('name')->get();
         $unhealthyAutomations = $automations->filter(
@@ -101,112 +119,206 @@ class DashboardController extends Controller
             ],
         ];
 
-        return view('admin.dashboard', [
+        $shared = [
             'sheetDate'            => $today,
-            'standing'             => $this->standingSentence($figures, $currency, $fulfillment),
             'currency'             => $currency,
-            'figures'              => $figures,
-            'comparisons'          => [
-                ['key' => 'yesterday', 'label' => 'Yesterday'],
-                ['key' => 'weekAgo', 'label' => $weekAgo->format('D j M')],
-            ],
+            'hasTraded'            => $hasTraded,
             'workLines'            => $workLines,
-            'entries'              => $entries,
-            'entriesTruncated'     => $entriesTruncated,
-            'lastEntryLabel'       => $this->whenLastEntryArrived($lastEntryAt, $today),
             'standingLines'        => $standingLines,
             'automations'          => $automations,
             'unhealthyAutomations' => $unhealthyAutomations,
-        ]);
+        ];
+
+        if (! $hasTraded) {
+            return view('admin.dashboard', array_merge($shared, [
+                'standing'     => 'No orders yet.',
+                'openingLines' => $this->openingLines($storeId),
+                'workNeeded'   => $this->anyCount($workLines),
+                'standingNeeded' => $this->anyCount($standingLines) || $unhealthyAutomations->isNotEmpty(),
+            ]));
+        }
+
+        $pulse = Standing::for($storeId, $now);
+
+        $accountsFrom = $today->copy()->subDays(self::ACCOUNT_DAYS - 1);
+        $accounts = RunningAccounts::for($storeId, $accountsFrom, $tomorrow);
+
+        $entries = $this->entries($storeId, $today, $tomorrow);
+        $entriesTruncated = $entries->count() > self::MAX_ENTRIES;
+        $entries = $entries->take(self::MAX_ENTRIES);
+
+        // Only asked when today is blank, and answered off the primary key
+        // rather than a date scan.
+        $lastEntryAt = $entries->isEmpty()
+            ? Order::where('store_id', $storeId)->whereNotNull('order_status_id')->latest('id')->value('created_at')
+            : null;
+
+        return view('admin.dashboard', array_merge($shared, [
+            'standing'         => $this->standingSentence($pulse, $currency, $fulfillment),
+            'pulse'            => $pulse,
+            'bands'            => $this->pulseBands($pulse, $now),
+            'plot'             => $pulse['plot'],
+            'accounts'         => $accounts,
+            'accountsLabel'    => 'Last ' . self::ACCOUNT_DAYS . ' days',
+            'entries'          => $entries,
+            'entriesTruncated' => $entriesTruncated,
+            'lastEntryLabel'   => $this->whenLastEntryArrived($lastEntryAt, $today),
+        ]));
     }
 
     /**
-     * Revenue taken, orders placed and the average order, for today and for
-     * the two references beside it: yesterday, and the same weekday a week
-     * back (a Saturday compares to a Saturday; comparing a Saturday to a
-     * Friday would read as a collapse every Monday).
+     * The pulse as two ruled bands, in the ledger grammar the sheet already
+     * speaks: a name on the left, the figure, its reference, and the change
+     * between them.
      *
-     * Yesterday and last week are WHOLE days, today is the day so far. That
-     * asymmetry is real and is the reason the comparison columns are set
-     * quietly rather than as a percentage delta: a morning figure against a
-     * finished day is a reference point, not a verdict.
+     * Two bands rather than one because the two questions have different
+     * references and mixing them into one table would imply a shared one.
+     * The month is measured against the same month a year ago; today is
+     * measured against what this weekday usually looks like.
      *
-     * ONE query. Nine conditional aggregates over an eight-day window,
-     * seekable on (store_id, created_at), so the work is proportional to a
-     * week of orders and never to the table.
-     *
-     * The paid/unpaid split the day sheet's brief also proposed is NOT
-     * here: core has no record of payment (no paid_at, no paid flag), and
-     * the only honest "unpaid" in this application is the fulfillment
-     * module's own placement, which would make a core figure vanish with an
-     * optional module. It appears as a work line instead, where it belongs.
+     * Both bands are labelled with the exact span they cover, because "this
+     * month" against "last year" is only honest if both sides stop on the
+     * same day, and a reader has to be able to see that they do.
      */
-    private function dayFigures(int $storeId, Carbon $today, Carbon $tomorrow, Carbon $yesterday, Carbon $weekAgo): array
+    private function pulseBands(array $pulse, Carbon $now): array
     {
-        // WHAT COUNTS AS MONEY IS NOT DECIDED HERE. It used to be: a hardcoded
-        // list of status names lived on this class, so renaming a status moved
-        // the figure without a word. Each status now declares it, and
-        // App\Support\Revenue is the only reader of that declaration.
-        $live = Revenue::condition($storeId);
+        $month = $pulse['month'];
+        $reference = $pulse['reference'];
+        $today = $pulse['today'];
+        $usual = $pulse['usual'];
 
-        $windows = [
-            'today'     => [$today, $tomorrow],
-            'yesterday' => [$yesterday, $today],
-            'weekAgo'   => [$weekAgo, $weekAgo->copy()->addDay()],
-        ];
-
-        $selects = [];
-        $bindings = [];
-        foreach ($windows as $key => [$from, $to]) {
-            $in = 'created_at >= ? AND created_at < ?';
-            $selects[] = "SUM(CASE WHEN {$in} THEN 1 ELSE 0 END) AS placed_{$key}";
-            $selects[] = "SUM(CASE WHEN {$in} AND {$live} THEN 1 ELSE 0 END) AS live_{$key}";
-            $selects[] = "SUM(CASE WHEN {$in} AND {$live} THEN total ELSE 0 END) AS revenue_{$key}";
-            array_push($bindings, $from, $to, $from, $to, $from, $to);
-        }
-
-        $row = Order::query()
-            ->where('store_id', $storeId)
-            // Ghost orders (no status) are not placed orders: the core
-            // Orders page hides them by default and the day sheet agrees.
-            ->whereNotNull('orders.order_status_id')
-            ->where('created_at', '>=', $weekAgo)
-            ->selectRaw(implode(', ', $selects), $bindings)
-            ->first();
-
-        $revenue = [];
-        $placed = [];
-        $average = [];
-        foreach (array_keys($windows) as $key) {
-            $revenue[$key] = (float) ($row->{"revenue_{$key}"} ?? 0);
-            $placed[$key] = (int) ($row->{"placed_{$key}"} ?? 0);
-            $liveCount = (int) ($row->{"live_{$key}"} ?? 0);
-            $average[$key] = $liveCount > 0 ? $revenue[$key] / $liveCount : 0.0;
-        }
+        $throughDay = $now->format('jS');
 
         return [
             [
-                'key' => 'revenue',
-                'label' => 'Revenue taken',
-                'money' => true,
-                'hint' => 'Only orders at a status set to count as revenue.',
-                'values' => $revenue,
-            ],
-            [
-                'key' => 'placed',
-                'label' => 'Orders placed',
-                'money' => false,
+                'key' => 'month',
+                'title' => 'This month against last year',
                 'hint' => null,
-                'values' => $placed,
+                // A store younger than a year has no reference at all, which
+                // is a different fact from a reference of zero and must not
+                // be set as one.
+                'referenceMissing' => ! $reference['exists'],
+                'columns' => [
+                    ['key' => 'now', 'label' => $month['label'] . ' to the ' . $throughDay, 'lead' => true],
+                    ['key' => 'ref', 'label' => $reference['label'] . ' to the ' . $throughDay, 'lead' => false],
+                ],
+                'rows' => [
+                    [
+                        'label' => 'Revenue taken',
+                        'money' => true,
+                        'hint' => 'Only orders at a status set to count as revenue.',
+                        'values' => ['now' => $month['revenue'], 'ref' => $reference['revenue']],
+                        'change' => Standing::change($month['revenue'], $reference['revenue']),
+                    ],
+                    [
+                        'label' => 'Orders placed',
+                        'money' => false,
+                        'hint' => null,
+                        'values' => ['now' => $month['placed'], 'ref' => $reference['placed']],
+                        'change' => Standing::change((float) $month['placed'], (float) $reference['placed']),
+                    ],
+                    [
+                        'label' => 'Average order',
+                        'money' => true,
+                        'hint' => 'Revenue taken divided by the orders it came from.',
+                        'values' => ['now' => $month['average'], 'ref' => $reference['average']],
+                        'change' => Standing::change($month['average'], $reference['average']),
+                    ],
+                ],
             ],
             [
-                'key' => 'average',
-                'label' => 'Average order',
-                'money' => true,
-                'hint' => 'Revenue taken divided by the orders it came from.',
-                'values' => $average,
+                'key' => 'today',
+                'title' => 'Today against a usual ' . $usual['weekday'],
+                'hint' => 'The middle figure of the last ' . $usual['samples'] . ' ' . $usual['weekday'] . 's.',
+                'referenceMissing' => false,
+                'columns' => [
+                    ['key' => 'now', 'label' => 'Today', 'lead' => true],
+                    ['key' => 'ref', 'label' => $usual['label'], 'lead' => false],
+                ],
+                'rows' => [
+                    [
+                        'label' => 'Revenue taken',
+                        'money' => true,
+                        'hint' => null,
+                        'values' => ['now' => $today['revenue'], 'ref' => $usual['revenue']],
+                        'change' => Standing::change($today['revenue'], $usual['revenue']),
+                    ],
+                    [
+                        'label' => 'Orders placed',
+                        'money' => false,
+                        'hint' => null,
+                        'values' => ['now' => $today['placed'], 'ref' => $usual['placed']],
+                        'change' => Standing::change((float) $today['placed'], (float) $usual['placed']),
+                    ],
+                    [
+                        'label' => 'Average order',
+                        'money' => true,
+                        'hint' => null,
+                        'values' => ['now' => $today['average'], 'ref' => $usual['average']],
+                        'change' => Standing::change($today['average'], $usual['average']),
+                    ],
+                ],
             ],
         ];
+    }
+
+    /**
+     * What a store still needs before it can take its first order.
+     *
+     * The same line grammar as every other movement, because a count with a
+     * destination is the sheet's whole vocabulary and a brand new store
+     * deserves the product's own voice rather than a welcome panel. Three
+     * counts, two queries, and every one of them is a real reading of the
+     * store rather than a checklist item ticked by having visited a page.
+     */
+    private function openingLines(int $storeId): array
+    {
+        $products = Product::where('store_id', $storeId)->count();
+
+        // Both groups in one read, and filtered in PHP rather than with a
+        // LIKE, because the underscore in "_enabled" is a LIKE wildcard and
+        // escaping it differs between MySQL and SQLite.
+        $flags = Setting::query()
+            ->whereIn('group', ['payment', 'shipping'])
+            ->get(['group', 'key', 'value']);
+
+        $on = fn (string $group) => $flags
+            ->filter(fn ($setting) => $setting->group === $group
+                && str_ends_with((string) $setting->key, '_enabled')
+                && (string) $setting->value === '1')
+            ->count();
+
+        return [
+            [
+                'label' => 'Products in the catalog',
+                'count' => $products,
+                'url'   => route('admin.products.index'),
+            ],
+            [
+                'label' => 'Payment methods on',
+                'count' => $on('payment'),
+                'url'   => route('admin.payment-settings.index'),
+            ],
+            [
+                'label' => 'Shipping methods on',
+                'count' => $on('shipping'),
+                'url'   => route('admin.shipping-settings.index'),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<int, array{count:int}>  $lines
+     */
+    private function anyCount(array $lines): bool
+    {
+        foreach ($lines as $line) {
+            if (($line['count'] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -320,10 +432,10 @@ class DashboardController extends Controller
      * already computed. Never an alarm and never advice: it says what is
      * true, and a quiet day is allowed to read as a quiet day.
      */
-    private function standingSentence(array $figures, string $currency, array $fulfillment): string
+    private function standingSentence(array $pulse, string $currency, array $fulfillment): string
     {
-        $placed = $this->figureValue($figures, 'placed', 'today');
-        $revenue = $this->figureValue($figures, 'revenue', 'today');
+        $placed = (int) $pulse['today']['placed'];
+        $revenue = (float) $pulse['today']['revenue'];
         $toPack = $fulfillment['counts']['to_pack'] ?? null;
 
         $packing = match (true) {
@@ -370,17 +482,6 @@ class DashboardController extends Controller
         }
 
         return 'on ' . $at->format('j F Y');
-    }
-
-    private function figureValue(array $figures, string $key, string $window): int|float
-    {
-        foreach ($figures as $figure) {
-            if ($figure['key'] === $key) {
-                return $figure['values'][$window] ?? 0;
-            }
-        }
-
-        return 0;
     }
 
     /**

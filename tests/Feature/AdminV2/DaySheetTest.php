@@ -2,6 +2,9 @@
 
 namespace Tests\Feature\AdminV2;
 
+use App\Models\Currency;
+use App\Models\Customer;
+use App\Models\CustomerGroup;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Product;
@@ -82,6 +85,62 @@ class DaySheetTest extends TestCase
         return $order->fresh();
     }
 
+    /**
+     * One order well in the past, so the store counts as having traded.
+     *
+     * The sheet asks that question first and answers a store with no trade
+     * at all with a different composition entirely, so any test about a
+     * QUIET day has to say that the shop is open. November 2024 is inside
+     * the plot's two year window and outside every span the pulse compares,
+     * so it makes a store trade without moving a figure under a test.
+     */
+    private function tradedBefore(float $total = 100.00): Order
+    {
+        return $this->order($this->orderStatus('Payment Received', true), $total, '2024-11-15 10:00:00', 'Historic');
+    }
+
+    private function lineItem(Order $order, Product $product, int $quantity, float $total): void
+    {
+        DB::table('order_products')->insert([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'quantity' => $quantity,
+            'price' => $quantity > 0 ? $total / $quantity : $total,
+            'total' => $total,
+        ]);
+    }
+
+    private function paidWith(Order $order, string $method, string $title): Order
+    {
+        $order->forceFill(['payment_method' => $method, 'payment_method_title' => $title])->save();
+
+        return $order->fresh();
+    }
+
+    /** The pulse band for the month, and the one for today. */
+    private function band(array $bands, string $key): array
+    {
+        return collect($bands)->firstWhere('key', $key);
+    }
+
+    private function row(array $band, string $label): array
+    {
+        return collect($band['rows'])->firstWhere('label', $label);
+    }
+
+    private function customerIn(CustomerGroup $group, string $email): Customer
+    {
+        return Customer::create([
+            'store_id' => 1,
+            'customer_group_id' => $group->id,
+            'first_name' => 'Buyer',
+            'last_name' => 'One',
+            'email' => $email,
+            'password' => 'secret-secret',
+        ]);
+    }
+
     private function installFulfillment(): void
     {
         app(ExtensionManager::class)->install('courier-fulfillment');
@@ -126,6 +185,7 @@ class DaySheetTest extends TestCase
     public function test_a_day_with_no_orders_says_so_in_the_standing_sentence(): void
     {
         $this->actingAs($this->admin());
+        $this->tradedBefore();
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
@@ -133,31 +193,110 @@ class DaySheetTest extends TestCase
     }
 
     // ---------------------------------------------------------------
-    // The day's figures
+    // The pulse: standing, which is what the sheet now leads with
     // ---------------------------------------------------------------
 
-    public function test_the_figures_carry_today_yesterday_and_the_same_weekday_last_week(): void
+    /**
+     * The headline comparison, and the reason it is year on year: retail is
+     * seasonal, so this month against last month says more about the
+     * calendar than about the business.
+     *
+     * The reference is cut to the same day of the month, which is the whole
+     * point. An order placed on the 20th of last August is real trade and is
+     * NOT in this comparison, because the 20th has not happened yet this
+     * month and counting it would report a collapse every first of the month
+     * that recovered by the thirty-first.
+     */
+    public function test_the_pulse_sets_this_month_against_the_same_span_last_year(): void
     {
         $this->actingAs($this->admin());
         $paid = $this->orderStatus('Payment Received', true);
 
-        $this->order($paid, 100.00, '2026-08-09 10:00:00'); // today
-        $this->order($paid, 250.00, '2026-08-08 10:00:00'); // yesterday
-        $this->order($paid, 375.00, '2026-08-02 10:00:00'); // same weekday last week
+        $this->order($paid, 300.00, '2026-08-05 10:00:00');
+        $this->order($paid, 200.00, '2026-08-09 10:00:00');
+        $this->order($paid, 400.00, '2025-08-03 10:00:00');
+        // Same month a year ago, but past the day this month has reached.
+        $this->order($paid, 9000.00, '2025-08-20 10:00:00');
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $month = $this->band($response->viewData('bands'), 'month');
+
+        $revenue = $this->row($month, 'Revenue taken');
+        $this->assertSame(500.0, $revenue['values']['now']);
+        $this->assertSame(400.0, $revenue['values']['ref']);
+        $this->assertSame('25.0% ahead', $revenue['change']['words']);
+
+        $placed = $this->row($month, 'Orders placed');
+        $this->assertSame(2, $placed['values']['now']);
+        $this->assertSame(1, $placed['values']['ref']);
+
+        // Both sides name the span they cover, so a reader can see that the
+        // comparison is like for like rather than take it on trust.
+        $response->assertSee('August to the 9th')->assertSee('Aug 2025 to the 9th');
+    }
+
+    public function test_a_store_with_no_trade_a_year_back_says_so_rather_than_reading_as_a_collapse(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+        $this->order($paid, 750.00, '2026-08-09 10:00:00');
 
         $response = $this->get(route('admin.dashboard'))->assertOk();
 
-        $figures = $response->viewData('figures');
-        $revenue = collect($figures)->firstWhere('key', 'revenue')['values'];
-        $placed = collect($figures)->firstWhere('key', 'placed')['values'];
+        $this->assertTrue($this->band($response->viewData('bands'), 'month')['referenceMissing']);
+        $response->assertSee('No record')->assertSee('Nothing to compare');
+    }
 
-        $this->assertSame(100.0, $revenue['today']);
-        $this->assertSame(250.0, $revenue['yesterday']);
-        $this->assertSame(375.0, $revenue['weekAgo']);
-        $this->assertSame([1, 1, 1], [$placed['today'], $placed['yesterday'], $placed['weekAgo']]);
+    /**
+     * Today's reference is what this weekday usually looks like, taken as
+     * the MIDDLE of the last eight rather than their mean, so one
+     * exceptional Sunday cannot redefine a usual one.
+     */
+    public function test_today_is_set_against_the_middle_of_the_last_eight_same_weekdays(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
 
-        // The weekday a week back is named, so a Sunday is compared to a Sunday.
-        $response->assertSee('Sun 2 Aug');
+        foreach (['2026-08-02', '2026-07-26', '2026-07-19', '2026-07-12'] as $quiet) {
+            $this->order($paid, 100.00, $quiet . ' 10:00:00');
+        }
+
+        foreach (['2026-07-05', '2026-06-28', '2026-06-21', '2026-06-14'] as $busy) {
+            $this->order($paid, 500.00, $busy . ' 10:00:00');
+        }
+
+        $this->order($paid, 600.00, '2026-08-09 10:00:00');
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $today = $this->band($response->viewData('bands'), 'today');
+
+        $revenue = $this->row($today, 'Revenue taken');
+        $this->assertSame(600.0, $revenue['values']['now']);
+        $this->assertSame(300.0, $revenue['values']['ref']);
+        $this->assertSame('100.0% ahead', $revenue['change']['words']);
+
+        $response->assertSee('A usual Sunday');
+    }
+
+    /**
+     * A day nobody bought anything on is still a day, and it is a sample.
+     * Reading only the Sundays that happen to carry an order would turn "a
+     * usual Sunday" into "a usual Sunday on which something sold".
+     */
+    public function test_a_weekday_with_no_orders_counts_as_a_sample_of_nothing(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        // Two Sundays out of eight carried trade; the middle of the eight is
+        // therefore zero, not the average of the two that did.
+        $this->order($paid, 800.00, '2026-08-02 10:00:00');
+        $this->order($paid, 800.00, '2026-07-26 10:00:00');
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $today = $this->band($response->viewData('bands'), 'today');
+
+        $this->assertSame(0.0, $this->row($today, 'Revenue taken')['values']['ref']);
     }
 
     public function test_cancelled_orders_are_counted_as_placed_but_not_as_revenue(): void
@@ -169,13 +308,13 @@ class DaySheetTest extends TestCase
         $this->order($paid, 400.00, '2026-08-09 09:00:00');
         $this->order($void, 999.00, '2026-08-09 10:00:00');
 
-        $figures = collect($this->get(route('admin.dashboard'))->assertOk()->viewData('figures'));
+        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
 
-        $this->assertSame(400.0, $figures->firstWhere('key', 'revenue')['values']['today']);
-        $this->assertSame(2, $figures->firstWhere('key', 'placed')['values']['today']);
+        $this->assertSame(400.0, $this->row($today, 'Revenue taken')['values']['now']);
+        $this->assertSame(2, $this->row($today, 'Orders placed')['values']['now']);
         // The average divides revenue by the orders it actually came from,
         // so one refund does not halve it.
-        $this->assertSame(400.0, $figures->firstWhere('key', 'average')['values']['today']);
+        $this->assertSame(400.0, $this->row($today, 'Average order')['values']['now']);
     }
 
     /**
@@ -195,10 +334,10 @@ class DaySheetTest extends TestCase
         $this->order($complete, 700.00, '2026-08-09 09:00:00');
         $this->order($odd, 300.00, '2026-08-09 10:00:00');
 
-        $figures = collect($this->get(route('admin.dashboard'))->assertOk()->viewData('figures'));
+        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
 
-        $this->assertSame(300.0, $figures->firstWhere('key', 'revenue')['values']['today']);
-        $this->assertSame(2, $figures->firstWhere('key', 'placed')['values']['today']);
+        $this->assertSame(300.0, $this->row($today, 'Revenue taken')['values']['now']);
+        $this->assertSame(2, $this->row($today, 'Orders placed')['values']['now']);
     }
 
     /** Renaming a status does not move a figure: the flag is on the row. */
@@ -208,16 +347,14 @@ class DaySheetTest extends TestCase
         $paid = $this->orderStatus('Payment Received', true);
         $this->order($paid, 1234.00, '2026-08-09 09:00:00');
 
-        $before = collect($this->get(route('admin.dashboard'))->viewData('figures'))
-            ->firstWhere('key', 'revenue')['values']['today'];
+        $before = $this->row($this->band($this->get(route('admin.dashboard'))->viewData('bands'), 'today'), 'Revenue taken');
 
         $paid->update(['name' => 'Bayad na']);
 
-        $after = collect($this->get(route('admin.dashboard'))->viewData('figures'))
-            ->firstWhere('key', 'revenue')['values']['today'];
+        $after = $this->row($this->band($this->get(route('admin.dashboard'))->viewData('bands'), 'today'), 'Revenue taken');
 
-        $this->assertSame(1234.0, $before);
-        $this->assertSame($before, $after);
+        $this->assertSame(1234.0, $before['values']['now']);
+        $this->assertSame($before['values']['now'], $after['values']['now']);
     }
 
     public function test_status_less_ghost_orders_are_not_figures_at_all(): void
@@ -238,21 +375,71 @@ class DaySheetTest extends TestCase
         ]);
         $ghost->forceFill(['created_at' => Carbon::parse('2026-08-09 10:00:00')])->save();
 
-        $figures = collect($this->get(route('admin.dashboard'))->assertOk()->viewData('figures'));
+        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
 
-        $this->assertSame(100.0, $figures->firstWhere('key', 'revenue')['values']['today']);
-        $this->assertSame(1, $figures->firstWhere('key', 'placed')['values']['today']);
+        $this->assertSame(100.0, $this->row($today, 'Revenue taken')['values']['now']);
+        $this->assertSame(1, $this->row($today, 'Orders placed')['values']['now']);
     }
 
     public function test_an_empty_day_reports_zero_rather_than_omitting_the_figures(): void
     {
         $this->actingAs($this->admin());
+        $this->tradedBefore();
 
-        $figures = collect($this->get(route('admin.dashboard'))->assertOk()->viewData('figures'));
+        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
 
-        $this->assertSame(0.0, $figures->firstWhere('key', 'revenue')['values']['today']);
-        $this->assertSame(0, $figures->firstWhere('key', 'placed')['values']['today']);
-        $this->assertSame(0.0, $figures->firstWhere('key', 'average')['values']['today']);
+        $this->assertSame(0.0, $this->row($today, 'Revenue taken')['values']['now']);
+        $this->assertSame(0, $this->row($today, 'Orders placed')['values']['now']);
+        $this->assertSame(0.0, $this->row($today, 'Average order')['values']['now']);
+    }
+
+    // ---------------------------------------------------------------
+    // The plot
+    // ---------------------------------------------------------------
+
+    public function test_the_plot_draws_twelve_months_against_the_same_twelve_a_year_earlier(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        $this->order($paid, 1000.00, '2026-08-05 10:00:00');
+        $this->order($paid, 700.00, '2025-12-10 10:00:00');
+        $this->order($paid, 400.00, '2025-08-03 10:00:00');
+        // Past the day this month has reached, so it belongs to neither the
+        // reference nor the final point of the earlier trace.
+        $this->order($paid, 9000.00, '2025-08-25 10:00:00');
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $plot = $response->viewData('plot');
+
+        $this->assertCount(12, $plot['labels']);
+        $this->assertSame('Sep', $plot['labels'][0]);
+        $this->assertSame('Aug', $plot['labels'][11]);
+
+        // Sep, Oct, Nov, Dec: December 2025 is the fourth point.
+        $this->assertSame(700.0, $plot['current'][3]);
+        $this->assertSame(1000.0, $plot['current'][11]);
+        // The earlier trace ends on the same span, not the whole month.
+        $this->assertSame(400.0, $plot['earlier'][11]);
+
+        $this->assertTrue($plot['hasTrade']);
+
+        // Every figure the plot draws is also a row in a real table.
+        $response->assertSee('Show the numbers')->assertSee('December 2025');
+    }
+
+    public function test_the_plot_still_renders_when_the_store_has_traded_but_not_lately(): void
+    {
+        $this->actingAs($this->admin());
+        $this->tradedBefore();
+
+        $plot = $this->get(route('admin.dashboard'))->assertOk()->viewData('plot');
+
+        $this->assertCount(12, $plot['labels']);
+        // The current year is flat and the earlier trace carries the one
+        // historic order: November 2024 is the third of the earlier points.
+        $this->assertSame(array_fill(0, 12, 0.0), $plot['current']);
+        $this->assertSame(100.0, $plot['earlier'][2]);
     }
 
     // ---------------------------------------------------------------
@@ -315,6 +502,7 @@ class DaySheetTest extends TestCase
     public function test_the_fulfillment_work_lines_are_absent_when_the_module_is_not_installed(): void
     {
         $this->actingAs($this->admin());
+        $this->tradedBefore();
 
         $response = $this->get(route('admin.dashboard'))->assertOk();
         $labels = collect($response->viewData('workLines'))->pluck('label');
@@ -446,8 +634,11 @@ class DaySheetTest extends TestCase
         $response = $this->get(route('admin.dashboard'))->assertOk();
         $this->assertCount(8, $response->viewData('entries'));
         $itemQueries = collect(DB::getQueryLog())
-            // Quoting differs by driver, so match the bare table name.
-            ->filter(fn ($q) => str_contains($q['query'], 'order_products'))
+            // Quoting differs by driver, so match the bare table name. The
+            // running accounts also read order_products, but they do it by
+            // joining orders; the entries' eager load is the one that does
+            // not, and it is the one that must not repeat per order.
+            ->filter(fn ($q) => str_contains($q['query'], 'order_products') && ! str_contains($q['query'], 'join'))
             ->count();
         DB::disableQueryLog();
 
@@ -457,12 +648,15 @@ class DaySheetTest extends TestCase
     public function test_an_empty_day_says_so_instead_of_rendering_an_empty_table(): void
     {
         $this->actingAs($this->admin());
+        $this->tradedBefore();
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('Nothing entered yet today.')
-            // No table at all, not a table with no rows.
-            ->assertDontSee('v-sheet__scroll');
+            // No ledger at all, not a ledger with no rows. Asserted on the
+            // entries table's own column rather than on the scroll wrapper,
+            // which the plot's table of figures also uses.
+            ->assertDontSee('v-col-bought');
     }
 
     public function test_an_empty_day_names_when_the_last_order_arrived(): void
@@ -483,6 +677,7 @@ class DaySheetTest extends TestCase
     public function test_outstanding_matters_are_ruled_off_at_the_foot(): void
     {
         $this->actingAs($this->admin());
+        $this->tradedBefore();
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
@@ -490,6 +685,249 @@ class DaySheetTest extends TestCase
             ->assertSee('Reviews awaiting approval')
             ->assertSee('Carts recoverable')
             ->assertSee('Automations overdue');
+    }
+
+    // ---------------------------------------------------------------
+    // The running accounts
+    // ---------------------------------------------------------------
+
+    /**
+     * Two rankings, because the item that carries the money and the item
+     * that moves are rarely the same item and a shop watching only one of
+     * them misreads its own catalogue.
+     */
+    public function test_the_running_accounts_rank_products_by_revenue_and_by_units(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        $amp = Product::create(['store_id' => 1, 'name' => 'Valve Amp', 'slug' => 'valve-amp', 'price' => 5000]);
+        $picks = Product::create(['store_id' => 1, 'name' => 'Pick Tin', 'slug' => 'pick-tin', 'price' => 20]);
+
+        $this->lineItem($this->order($paid, 5000.00, '2026-07-20 10:00:00'), $amp, 1, 5000.00);
+        $this->lineItem($this->order($paid, 1000.00, '2026-08-09 10:00:00'), $picks, 50, 1000.00);
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $accounts = $response->viewData('accounts');
+
+        $this->assertSame('Valve Amp', $accounts['byRevenue'][0]['name']);
+        $this->assertSame(5000.0, $accounts['byRevenue'][0]['revenue']);
+        $this->assertSame('Pick Tin', $accounts['byUnits'][0]['name']);
+        $this->assertSame(50, $accounts['byUnits'][0]['units']);
+
+        $response->assertSee('Carrying the money')->assertSee('Moving off the shelf')->assertSee('Last 30 days');
+    }
+
+    /** Sales outside the stated period are outside the stated period. */
+    public function test_the_rankings_only_count_the_period_they_state(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        $old = Product::create(['store_id' => 1, 'name' => 'Last Year Special', 'slug' => 'last-year', 'price' => 90000]);
+        $this->lineItem($this->order($paid, 90000.00, '2025-08-03 10:00:00'), $old, 1, 90000.00);
+
+        $now = Product::create(['store_id' => 1, 'name' => 'This Month Cable', 'slug' => 'this-month', 'price' => 300]);
+        $this->lineItem($this->order($paid, 300.00, '2026-08-09 10:00:00'), $now, 1, 300.00);
+
+        $accounts = $this->get(route('admin.dashboard'))->assertOk()->viewData('accounts');
+
+        $this->assertSame(['This Month Cable'], array_column($accounts['byRevenue'], 'name'));
+    }
+
+    /**
+     * PLATFORM NEUTRALITY. The mix reports whatever the orders recorded; it
+     * knows nothing about bank transfer, cash on delivery or any gateway.
+     */
+    public function test_the_payment_mix_reports_whatever_methods_the_store_actually_used(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        $this->paidWith($this->order($paid, 750.00, '2026-08-09 09:00:00'), 'pigeon', 'Carrier Pigeon');
+        $this->paidWith($this->order($paid, 250.00, '2026-08-09 10:00:00'), 'barter', 'Barter');
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $mix = $response->viewData('accounts')['payments'];
+
+        $this->assertSame(['Carrier Pigeon', 'Barter'], array_column($mix, 'label'));
+        $this->assertSame(0.75, $mix[0]['share']);
+        $this->assertSame(0.25, $mix[1]['share']);
+
+        $response->assertSee('How it was paid')->assertSee('Carrier Pigeon');
+    }
+
+    public function test_orders_with_no_payment_method_are_named_rather_than_dropped(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+        $this->order($paid, 500.00, '2026-08-09 09:00:00');
+
+        $mix = $this->get(route('admin.dashboard'))->assertOk()->viewData('accounts')['payments'];
+
+        $this->assertSame(['Not recorded'], array_column($mix, 'label'));
+        $this->assertSame(500.0, $mix[0]['revenue']);
+    }
+
+    /**
+     * A buyer is an email address, which is the only identity a Venta
+     * checkout always captures. Returning means that address had ordered
+     * before the period started.
+     */
+    public function test_new_and_returning_buyers_are_counted_by_email(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        // Abe bought before the window and again inside it: one buyer, returning.
+        $this->order($paid, 100.00, '2026-01-04 10:00:00', 'Abe');
+        $this->order($paid, 100.00, '2026-08-09 10:00:00', 'Abe');
+        // Zoe is only ever seen inside the window.
+        $this->order($paid, 100.00, '2026-08-09 11:00:00', 'Zoe');
+
+        $buyers = $this->get(route('admin.dashboard'))->assertOk()->viewData('accounts')['buyers'];
+
+        $this->assertSame(2, $buyers['total']);
+        $this->assertSame(1, $buyers['returning']);
+        $this->assertSame(1, $buyers['new']);
+    }
+
+    /**
+     * MOST STORES HAVE ONE CUSTOMER GROUP, and a split of one is not a
+     * split. The line is withheld rather than printing a single 100% row.
+     */
+    public function test_revenue_by_customer_group_is_withheld_when_one_group_carries_the_trade(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        $retail = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $buyer = $this->customerIn($retail, 'solo@example.com');
+
+        $this->order($paid, 400.00, '2026-08-09 09:00:00')->forceFill(['customer_id' => $buyer->id])->save();
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+
+        $this->assertSame([], $response->viewData('accounts')['groups']);
+        $response->assertDontSee('Revenue by customer group');
+    }
+
+    public function test_revenue_by_customer_group_appears_when_two_groups_carry_trade(): void
+    {
+        $this->actingAs($this->admin());
+        $paid = $this->orderStatus('Payment Received', true);
+
+        $retail = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $trade = CustomerGroup::create(['store_id' => 1, 'name' => 'Resellers']);
+
+        $one = $this->customerIn($retail, 'retail@example.com');
+        $two = $this->customerIn($trade, 'trade@example.com');
+
+        $this->order($paid, 300.00, '2026-08-09 09:00:00')->forceFill(['customer_id' => $one->id])->save();
+        $this->order($paid, 700.00, '2026-08-09 10:00:00')->forceFill(['customer_id' => $two->id])->save();
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $groups = $response->viewData('accounts')['groups'];
+
+        $this->assertSame(['Resellers', 'Retail'], array_column($groups, 'label'));
+        $this->assertSame(0.7, $groups[0]['share']);
+        $response->assertSee('Revenue by customer group');
+    }
+
+    public function test_a_period_with_no_sales_says_so_rather_than_drawing_empty_rankings(): void
+    {
+        $this->actingAs($this->admin());
+        $this->tradedBefore();
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+
+        $this->assertSame(0, $response->viewData('accounts')['orders']);
+        $response->assertSee('Nothing sold in the last 30 days.')
+            ->assertDontSee('Carrying the money');
+    }
+
+    // ---------------------------------------------------------------
+    // The brand new store, which is every merchant's first sight of this
+    // ---------------------------------------------------------------
+
+    public function test_a_store_that_has_never_traded_gets_an_opening_movement_not_a_page_of_zeros(): void
+    {
+        $this->actingAs($this->admin());
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+
+        $this->assertFalse($response->viewData('hasTraded'));
+
+        $response->assertSee('No orders yet.')
+            ->assertSee('To open')
+            ->assertSee('Products in the catalog')
+            ->assertSee('Add a product')
+            // None of the movements that would be a row of zeros.
+            ->assertDontSee('Standing')
+            ->assertDontSee('Running accounts')
+            ->assertDontSee("Today&#039;s entries", false);
+    }
+
+    public function test_the_opening_movement_counts_the_catalog_and_the_methods_that_are_on(): void
+    {
+        $this->actingAs($this->admin());
+
+        Product::create(['store_id' => 1, 'name' => 'First Product', 'slug' => 'first-product', 'price' => 100]);
+
+        // A fresh install ships with its own defaults, so the store is put
+        // into a known state rather than added to.
+        Setting::whereIn('group', ['payment', 'shipping'])->delete();
+        Setting::create(['group' => 'payment', 'key' => 'cod_enabled', 'value' => '1']);
+        Setting::create(['group' => 'payment', 'key' => 'hitpay_enabled', 'value' => '0']);
+        Setting::create(['group' => 'shipping', 'key' => 'flat_rate_enabled', 'value' => '1']);
+
+        $lines = collect($this->get(route('admin.dashboard'))->assertOk()->viewData('openingLines'))
+            ->pluck('count', 'label');
+
+        $this->assertSame(1, $lines['Products in the catalog']);
+        $this->assertSame(1, $lines['Payment methods on']);
+        $this->assertSame(1, $lines['Shipping methods on']);
+    }
+
+    /**
+     * A cart that reached the orders table and stopped is not trade, so it
+     * does not turn the opening movement off.
+     */
+    public function test_ghost_orders_alone_do_not_make_a_store_traded(): void
+    {
+        $this->actingAs($this->admin());
+
+        $ghost = Order::create([
+            'store_id' => 1,
+            'order_status_id' => null,
+            'first_name' => 'Ghost',
+            'last_name' => 'Cart',
+            'email' => 'ghost@example.com',
+            'subtotal' => 900,
+            'shipping_cost' => 0,
+            'total' => 900,
+        ]);
+        $ghost->forceFill(['created_at' => Carbon::parse('2026-08-09 10:00:00')])->save();
+
+        $this->get(route('admin.dashboard'))->assertOk()->assertSee('To open');
+    }
+
+    // ---------------------------------------------------------------
+    // Money is the store's own
+    // ---------------------------------------------------------------
+
+    public function test_the_currency_mark_comes_from_the_stores_own_configuration(): void
+    {
+        $this->actingAs($this->admin());
+        Currency::create(['code' => 'MYR', 'name' => 'Ringgit', 'symbol' => 'RM', 'rate' => 1, 'is_default' => true, 'is_enabled' => true]);
+
+        $paid = $this->orderStatus('Payment Received', true);
+        $this->order($paid, 250.00, '2026-08-09 09:00:00');
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('RM')
+            ->assertSee('1 order so far, RM250.00 taken.');
     }
 
     // ---------------------------------------------------------------
