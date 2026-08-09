@@ -35,6 +35,8 @@ $paths = [
     'menu' => 'M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5',
 ];
 @endphp
-<svg {{ $attributes }} fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+{{-- One 24 grid, one stroke weight, every icon drawn. A unicode glyph
+     standing in for an icon is the tell that gives a template away. --}}
+<svg {{ $attributes }} fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24" aria-hidden="true">
     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $paths[$name] ?? $paths['info'] }}" />
 </svg>

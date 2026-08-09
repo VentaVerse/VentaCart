@@ -1,17 +1,72 @@
-/*
- * Admin v2 design tokens — ported from VentaSync v2 (WCAG-audited there
- * against canvas/surface/sunken/hover in both themes; worst case is
- * surface-hover). Light and dark are peers: every token defined twice.
- * Scoped to .v-admin (the admin shell <body> class) so nothing leaks
- * into storefront pages sharing this Vite bundle. New colors must pass
- * 4.5:1 on all four backgrounds in both themes before entering this file.
- */
+/* ============================================================
+   Venta admin design tokens
 
+   Mirrors the material of VentaSync v2.3 ("the Blotter"): a tinted
+   ground carrying raised white sheets, exactly two elevations, 16px
+   panels and 11px controls, Archivo with tabular figures, JetBrains
+   Mono rationed to identifiers, sentence-case labels, square dots.
+
+   It does NOT mirror the ERP's identity. Three signals separate them,
+   all peripheral, none depending on a logo:
+
+     1. The slab. The ERP's sidebar is near-black navy (#0b1228).
+        Venta's is a genuine azure-navy (#1E4368), anchored on
+        OpenCart 4's admin primary (#1e91cf) because Venta's merchants
+        arrive from OpenCart and a blue store admin is their muscle
+        memory. The two chromes separate on value as well as hue.
+     2. Temperature of action. The ERP acts in cold cyan. Venta acts
+        in warm brass. Every button, focus ring and active state
+        differs in temperature even where both products are blue.
+     3. The store, not the platform. The slab carries the merchant's
+        own logo and name, never the word "Venta".
+
+   The names below are two layers. --bl-* is the Blotter vocabulary,
+   carried verbatim so the two codebases read alike. The second block
+   is Venta's own bridge (--canvas, --surface, --accent, ...), which
+   tailwind.config.js maps to the v-* utility classes that all 92
+   admin views already use. Repointing the bridge is what lets every
+   screen inherit this material with no markup churn.
+
+   Everything is scoped to .v-admin (the admin <body> class) so
+   nothing leaks into storefront pages sharing this Vite bundle.
+
+   CONTRAST. Body text clears WCAG AA 4.5:1 on every surface it can
+   land on, in both themes, including on the slab. The measured worst
+   cases are recorded in .superpowers/design/foundation-report.md.
+   Three values are deliberately deeper than the ERP's because
+   Venta's bridge lets state text sit directly on the tinted ground,
+   where the ERP's never does.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Faces
+
+   Archivo carries a width axis (62-125%), which is what lets column
+   labels run condensed and body text normal from one file. JetBrains
+   Mono is reserved for SKUs, order references and tracking numbers,
+   where telling 0 from O is real work rather than a costume.
+   ------------------------------------------------------------ */
 @font-face {
-    font-family: "Geist";
-    src: url("../../fonts/Geist.woff2") format("woff2-variations");
-    font-weight: 100 900;
+    font-family: "Archivo";
+    font-style: normal;
+    font-weight: 400 700;
+    font-stretch: 62% 125%;
     font-display: swap;
+    src: url("../../fonts/Archivo-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+        U+FEFF, U+FFFD;
+}
+@font-face {
+    font-family: "Archivo";
+    font-style: normal;
+    font-weight: 400 700;
+    font-stretch: 62% 125%;
+    font-display: swap;
+    src: url("../../fonts/Archivo-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+        U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+        U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 @font-face {
     font-family: "JetBrains Mono";
@@ -21,70 +76,230 @@
 }
 
 .v-admin {
-    --canvas:          #FBFBFA;
-    --surface:         #FFFFFF;
-    --surface-sunken:  #F5F5F3;
-    --surface-hover:   #F2F2EF;
-    --border:          #E7E5E1;
-    --border-strong:   #D3D0CB;
-    --text:            #1A1917;
-    --text-secondary:  #6B6862;
-    --text-muted:      #726D65;
+    /* --- Surfaces -------------------------------------------------
+       Cool near-white rather than warm bond paper: it holds more
+       contrast against the ink and stops the neutrals carrying a
+       beige cast that dark then has to undo. The ground is tinted so
+       a white sheet reads as raised rather than as more page. */
+    --bl-paper: #EEF2F8;
+    --bl-sheet: #FFFFFF;
+    --bl-chrome: #F5F8FC;
+    /* Lighter than the ERP's #e7ecf4. This token is Venta's single
+       hover surface and state text lands on it in tables; at the
+       ERP's value amber fell to 4.22:1. */
+    --bl-chrome-2: #F0F4FA;
 
-    --accent:          #0A7A54;
-    --accent-hover:    #096647;
-    --accent-weak:     rgba(10,122,84,.05);
-    --accent-text:     #FFFFFF;
+    /* Ink is a faintly blue near-black, so every rule and figure
+       carries a trace of the slab without anything being tinted. */
+    --bl-ink: #141B26;
+    --bl-ink-2: #4A5468;
+    --bl-ink-3: #5F6B85;
+    --bl-rule: #EAEEF5;
+    --bl-rule-2: #DFE5EE;
 
-    --danger:          #B4342A;
+    /* --- State: what something is doing --------------------------
+       Amber needs a person, green is settled, red is trouble, blue
+       is informational. State never appears as a metric block fill
+       and never mixes with identity colour. Amber, green and red run
+       a little deeper than the ERP's so they still clear 4.5:1 when
+       they land on the tinted ground rather than on a white sheet. */
+    --bl-attn: #9A5A04;
+    --bl-attn-fill: #C77A0A;
+    --bl-attn-wash: #FDF6EA;
+    --bl-good: #0C7A54;
+    --bl-good-wash: #EAF6F1;
+    --bl-bad: #CB3327;
+    --bl-bad-wash: #FDEEEC;
+    --bl-cool: #2563A5;
+
+    /* --- Brand: warm brass ---------------------------------------
+       Brass means "you can act here". Two stops, because one colour
+       cannot both fill a 34px block and carry 12px text: --bl-brand
+       is the mark, the fill and the ring (3:1 as a non-text mark),
+       --bl-brand-deep is every brass word on the page (4.5:1 on
+       paper, sheet, chrome and hover alike). */
+    --bl-brand: #C0873A;
+    --bl-brand-deep: #8A5F1F;
+    --bl-brand-wash: rgba(192, 135, 58, .09);
+    /* Text ON the deep stop (a filled button) is white; text on the
+       bright stop (the store mark) is ink, because white on bright
+       brass is 3.10:1 and a mark carrying a letter is text. */
+    --bl-brand-on: #FFFFFF;
+    --bl-brand-ink: #2C1C02;
+
+    /* --- Identity: which measure you are reading -----------------
+       Six accents, always paired with the written label so nothing
+       is carried by hue alone. Each has a -2 companion, the lighter
+       stop of its gradient. */
+    --bl-a-cyan: #1C7F9B;    --bl-a-cyan-2: #4FB9D4;
+    --bl-a-violet: #5B4BD6;  --bl-a-violet-2: #8A7BF0;
+    --bl-a-amber: #D98207;   --bl-a-amber-2: #F5B74B;
+    --bl-a-green: #0F9A6C;   --bl-a-green-2: #37D39A;
+    --bl-a-rose: #D4426A;    --bl-a-rose-2: #F4789A;
+    --bl-a-indigo: #3D4FC4;  --bl-a-indigo-2: #6F80EA;
+    /* Amber is the one fill white cannot sit on at 4.5:1, so a block
+       carrying it switches its text to ink rather than lightening
+       the fill and losing the identity. */
+    --bl-a-amber-ink: #2C1C02;
+
+    /* --- The slab ------------------------------------------------
+       Azure-navy, not near-black. The chrome carries the identity so
+       the work surface can stay white and keep its contrast. */
+    --bl-slab: #1E4368;
+    --bl-slab-ink: #A8C0D8;
+    --bl-slab-hover: #26527E;
+    --bl-slab-active: #2E6193;
+    --bl-slab-rule: #2A4E75;
+    --bl-slab-on: #FFFFFF;
+
+    /* --- Material ------------------------------------------------
+       Two elevations, not one and not three. --bl-lift is a resting
+       sheet; --bl-lift-2 is for a surface deliberately louder than
+       the sheets around it and for things that genuinely float. */
+    --bl-r-panel: 16px;
+    --bl-r-ctrl: 11px;
+    --bl-r-dot: 4px;
+    --bl-r-pill: 999px;
+    --bl-lift: 0 1px 2px rgba(19, 26, 43, .04), 0 10px 28px -14px rgba(19, 26, 43, .22);
+    --bl-lift-2: 0 2px 6px rgba(19, 26, 43, .06), 0 22px 44px -22px rgba(19, 26, 43, .34);
+
+    /* The bubble inverts against the page so it reads as an overlay
+       and not as another panel. */
+    --bl-tip-bg: #141B26;
+    --bl-tip-ink: #F2F5FA;
+
+    /* --- Space ---------------------------------------------------
+       The page edge, a section's own padding, and the distance from
+       a column divider are three different measurements and must not
+       share a token. --bl-pad-l / --bl-pad-r are published BY a
+       column onto its children, which is what lets a column inset
+       its text from a divider without insetting the sheets. */
+    --bl-page-gutter: 30px;
+    --bl-gutter: var(--bl-page-gutter);
+    --bl-pad: 20px;
+    --bl-col-pad: 20px;
+
+    /* --- Labels --------------------------------------------------
+       Sentence case at normal width. The wide-tracked uppercase
+       micro-cap was the single most dating detail in the old build. */
+    --bl-lab-size: 11.5px;
+    --bl-lab-track: 0.005em;
+    --bl-lab-case: none;
+    --bl-lab-stretch: 100%;
+    --bl-lab-weight: 500;
+
+    /* ============================================================
+       Venta's own bridge. tailwind.config.js maps these to the v-*
+       utility classes every admin view already writes, so repointing
+       them here is what re-dresses all 92 screens at once. Names are
+       frozen; only the values move.
+       ============================================================ */
+    --canvas:          var(--bl-paper);
+    --surface:         var(--bl-sheet);
+    --surface-sunken:  var(--bl-chrome);
+    --surface-hover:   var(--bl-chrome-2);
+    --border:          var(--bl-rule);
+    --border-strong:   var(--bl-rule-2);
+    --text:            var(--bl-ink);
+    --text-secondary:  var(--bl-ink-2);
+    --text-muted:      var(--bl-ink-3);
+
+    --accent:          var(--bl-brand-deep);
+    --accent-hover:    #6F4A13;
+    --accent-weak:     var(--bl-brand-wash);
+    --accent-text:     var(--bl-brand-on);
+    --accent-mark:     var(--bl-brand);
+    --accent-mark-ink: var(--bl-brand-ink);
+
+    --danger:          var(--bl-bad);
     --danger-text:     #FFFFFF;
-    --warning:         #926500;
-    --info:            #2A5FA8;
+    --warning:         var(--bl-attn);
+    --info:            var(--bl-cool);
 
-    --font-ui:   "Geist", ui-sans-serif, system-ui, sans-serif;
+    --font-ui:   "Archivo", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 10px;
+    /* Radii now name material rather than size: sm is the square dot,
+       md is a control, lg is a panel. */
+    --radius-sm: var(--bl-r-dot);
+    --radius-md: var(--bl-r-ctrl);
+    --radius-lg: var(--bl-r-panel);
+    --radius-pill: var(--bl-r-pill);
 
-    --shadow-menu:  0 4px 12px rgba(0,0,0,.10), 0 0 0 1px var(--border);
-    --shadow-modal: 0 16px 48px rgba(0,0,0,.18), 0 0 0 1px var(--border);
+    --shadow-menu:  var(--bl-lift-2);
+    --shadow-modal: var(--bl-lift-2);
 
-    --motion-fast: 120ms cubic-bezier(.2,0,.38,.9);
-    --motion-base: 200ms cubic-bezier(.2,0,.38,.9);
+    --motion-fast: 120ms cubic-bezier(.2,.7,.3,1);
+    --motion-base: 220ms cubic-bezier(.2,.7,.3,1);
 
-    --row-h: 32px;
+    --row-h: 34px;
     --control-h: 32px;
     --control-h-sm: 28px;
     --sidebar-w: 216px;
 }
 
+/* ------------------------------------------------------------
+   Dark
+
+   A real second theme for evening work, not an inverted copy. The
+   slab goes DEEPER than the page rather than lighter, so chrome
+   still reads as chrome, and it keeps its blue character.
+   ------------------------------------------------------------ */
 :root[data-theme="dark"] .v-admin {
-    --canvas:          #0B0B0C;
-    --surface:         #131315;
-    --surface-sunken:  #0F0F11;
-    --surface-hover:   #1A1A1D;
-    --border:          #232326;
-    --border-strong:   #34343A;
-    --text:            #ECECEE;
-    --text-secondary:  #9A9AA2;
-    --text-muted:      #82828B;
+    --bl-paper: #0A0F17;
+    --bl-sheet: #111823;
+    --bl-chrome: #0D131C;
+    --bl-chrome-2: #1A2432;
+    --bl-ink: #EDF1F7;
+    --bl-ink-2: #A7B2C4;
+    --bl-ink-3: #8B96A9;
+    --bl-rule: #1E2836;
+    --bl-rule-2: #2C3850;
 
-    --accent:          #3FBF8F;
-    --accent-hover:    #55CB9F;
-    --accent-weak:     rgba(63,191,143,.12);
-    --accent-text:     #06231A;
+    --bl-attn: #E8A851;
+    --bl-attn-fill: #C77A0A;
+    --bl-attn-wash: #2A2013;
+    --bl-good: #3FC48D;
+    --bl-good-wash: #10261E;
+    --bl-bad: #F0705F;
+    --bl-bad-wash: #2E1715;
+    --bl-cool: #79A9E0;
 
-    --danger:          #E5675C;
-    --danger-text:     #2B0805;
-    --warning:         #E0A73B;
-    --info:            #6C9BE0;
+    --bl-brand: #D9A45A;
+    --bl-brand-deep: #E7B972;
+    --bl-brand-wash: rgba(217, 164, 90, .14);
+    --bl-brand-on: #221604;
+    --bl-brand-ink: #221604;
 
-    --shadow-menu:  0 4px 12px rgba(0,0,0,.40), 0 0 0 1px var(--border);
-    --shadow-modal: 0 16px 48px rgba(0,0,0,.55), 0 0 0 1px var(--border);
+    --bl-a-cyan: #4FB9D4;    --bl-a-cyan-2: #7FD3E6;
+    --bl-a-violet: #8A7BF0;  --bl-a-violet-2: #A99DFF;
+    --bl-a-amber: #F5B74B;   --bl-a-amber-2: #FFD28A;
+    --bl-a-green: #37D39A;   --bl-a-green-2: #6FE6BB;
+    --bl-a-rose: #F4789A;    --bl-a-rose-2: #FFA3BC;
+    --bl-a-indigo: #6F80EA;  --bl-a-indigo-2: #98A6FF;
+
+    --bl-slab: #132C46;
+    --bl-slab-ink: #9FB6CE;
+    --bl-slab-hover: #1A3A5C;
+    --bl-slab-active: #22496F;
+    --bl-slab-rule: #1C3A5A;
+
+    --bl-tip-bg: #E8EDF6;
+    --bl-tip-ink: #0B1228;
+
+    --bl-lift: 0 1px 2px rgba(0, 0, 0, .5), 0 14px 30px -18px rgba(0, 0, 0, .8);
+    --bl-lift-2: 0 2px 6px rgba(0, 0, 0, .55), 0 22px 44px -22px rgba(0, 0, 0, .9);
+
+    --accent-hover: #F3D19B;
+    --danger-text: #2B0805;
 }
 
 @media (prefers-reduced-motion: reduce) {
     .v-admin { --motion-fast: 1ms; --motion-base: 1ms; }
+}
+
+/* Narrow screens have no slab to clear and much less width to give
+   away, so the gutter tightens rather than eating the content. */
+@media (max-width: 700px) {
+    .v-admin { --bl-page-gutter: 16px; }
 }

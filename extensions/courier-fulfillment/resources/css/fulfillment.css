@@ -388,12 +388,24 @@
 
 td.cf-col-total { text-align: right; }
 
+/* Visually hidden, still announced.
+   `left: 0` is load-bearing, not tidying. Without it the box keeps its
+   static position, and its static position here is inside the queue's
+   wide scrolling table: with no positioned ancestor its containing block
+   is the page, so a 1px box landed 589px out and gave the whole document
+   200px of horizontal scroll at 390. Pinning it to the left edge keeps it
+   a 1px clipped box that widens nothing. */
 .cf-sr {
     position: absolute;
+    left: 0;
     width: 1px;
     height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
     overflow: hidden;
     clip: rect(0 0 0 0);
+    clip-path: inset(50%);
     white-space: nowrap;
 }
 

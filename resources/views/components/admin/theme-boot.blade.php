@@ -1,12 +1,42 @@
+{{-- Applies the theme before first paint so there is no flash of the wrong
+     one. Resolution order: the stored choice, then light. Light is the
+     default rather than the OS preference, because the working scene is a
+     lit office in daylight; system is still selectable in the switch, and
+     when chosen it does follow the OS and react to OS changes.
+
+     The storage key and the global are Venta's own (vTheme), deliberately
+     unlike the ERP's (xenon-theme), so the two products can never collide
+     on a shared origin. --}}
 <script>
     (function () {
-        var pref = 'light';
-        try {
-            pref = localStorage.getItem('vTheme') || 'light';
-        } catch (e) {
-            pref = 'light';
+        var KEY = 'vTheme';
+
+        function resolve(mode) {
+            if (mode === 'dark' || mode === 'light') return mode;
+            return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
-        var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+
+        function apply(mode) {
+            document.documentElement.setAttribute('data-theme', resolve(mode));
+            document.documentElement.setAttribute('data-theme-mode', mode);
+        }
+
+        var stored = null;
+        try { stored = localStorage.getItem(KEY); } catch (e) {}
+        apply(stored || 'light');
+
+        window.vTheme = {
+            get: function () {
+                try { return localStorage.getItem(KEY) || 'light'; } catch (e) { return 'light'; }
+            },
+            set: function (mode) {
+                try { localStorage.setItem(KEY, mode); } catch (e) {}
+                apply(mode);
+            }
+        };
+
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+            if (window.vTheme.get() === 'system') apply('system');
+        });
     })();
 </script>

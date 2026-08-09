@@ -19,13 +19,13 @@
         <div class="flex gap-8">
             {{-- Sub-sidebar (desktop) --}}
             <nav class="hidden lg:block w-[13.5rem] shrink-0">
-                <div class="sticky top-11 space-y-4">
+                <div class="sticky top-[54px] space-y-4">
                     <a href="{{ route('admin.settings.index') }}" class="flex items-center gap-1.5 text-xs font-medium text-v-secondary hover:text-v-text">
                         <x-admin.icon name="chevron-right" class="w-3 h-3 rotate-180" /> All Settings
                     </a>
                     @foreach ($groups as $group)
                         <div>
-                            <p class="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ $group['label'] }}</p>
+                            <p class="v-label mb-1 px-2">{{ $group['label'] }}</p>
                             <div class="space-y-0.5">
                                 @foreach ($group['items'] as $item)
                                     <a href="{{ \App\Support\SettingsNav::url($item) }}"

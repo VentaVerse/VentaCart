@@ -1,16 +1,101 @@
+/* ============================================================
+   The page ground and the material every sheet inherits.
+
+   The old build asserted a flat neutral: one surface colour, one
+   hairline, no elevation. This file replaces that with the Blotter's
+   arrangement, tinted ground under raised white sheets, and does it
+   without editing a single view: the shape the views already write
+   (bg-v-surface + the panel radius) is what the elevation attaches
+   to.
+   ============================================================ */
+
+/* The ground reaches the document, not just the body box, so an
+   overscroll never shows a strip of white under a dark theme. */
+html:has(> body.v-admin) { background: var(--canvas); }
+
 .v-admin {
     background: var(--canvas);
     color: var(--text);
     font-family: var(--font-ui);
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
 }
+
 .v-admin ::selection { background: var(--accent-weak); }
-.v-admin .v-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Every figure in this interface aligns on its decimal. */
+.v-admin table,
+.v-admin .v-num { font-variant-numeric: tabular-nums; }
+.v-admin .v-num { font-family: var(--font-mono); }
+
+/* Brass, because focus is the clearest case of "you can act here".
+   Amber stays reserved for "this needs you", a different sentence
+   that must not be said by the same colour. */
 .v-admin :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--accent-mark);
     outline-offset: 1px;
     border-radius: var(--radius-sm);
 }
+
 [x-cloak] { display: none !important; }
+
+/* ------------------------------------------------------------
+   Sheets
+
+   Written as one additive rule rather than by editing eighty views.
+   A sheet is the panel radius on the sheet colour; that pairing is
+   what the whole admin already writes for a card, a table wrapper
+   and a form panel, so stating the elevation once here raises all of
+   them. The border stays, thinned to the near-invisible rule, and is
+   there to hold the edge when the shadow is suppressed.
+   ------------------------------------------------------------ */
+.v-admin [class~="bg-v-surface"][class~="rounded-v-lg"] {
+    box-shadow: var(--bl-lift);
+}
+
+/* Things that genuinely float take the louder elevation. */
+.v-admin .v-palette,
+.v-admin .v-menu,
+.v-admin .v-modal {
+    box-shadow: var(--bl-lift-2);
+}
+
+/* Neither medium renders a shadow, and there the edge is
+   load-bearing, so the border comes back stronger. */
+@media (forced-colors: active), print {
+    .v-admin [class~="bg-v-surface"][class~="rounded-v-lg"] {
+        border-color: var(--border-strong);
+        box-shadow: none;
+    }
+}
+
+/* ------------------------------------------------------------
+   Labels
+
+   Sentence case at normal width. Views written before this file
+   spell the old micro-cap out in utilities (text-[10px] uppercase
+   tracking-widest); .v-label is the token-carrying replacement that
+   converted screens take, and the utilities keep working until each
+   screen is converted.
+   ------------------------------------------------------------ */
+.v-admin .v-label {
+    font-size: var(--bl-lab-size);
+    font-stretch: var(--bl-lab-stretch);
+    font-weight: var(--bl-lab-weight);
+    letter-spacing: var(--bl-lab-track);
+    text-transform: var(--bl-lab-case);
+    color: var(--text-muted);
+}
+
+/* Identifiers: SKUs, order references, tracking numbers. */
+.v-admin .v-mono {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: -0.02em;
+    color: var(--text-secondary);
+}
+
+/* Wide content scrolls inside its own box. A table that clips is a
+   record you own and cannot reach. */
+.v-admin .v-scroll { overflow-x: auto; }

@@ -26,6 +26,7 @@ return [
     ],
     [
         'label' => 'Sales',
+        'icon' => 'orders',
         'segment' => 'sales',
         'items' => [
             ['key' => 'orders', 'label' => 'Orders', 'route' => 'admin.orders.index', 'icon' => 'orders', 'permission' => null, 'keywords' => ['sales', 'invoices']],
@@ -36,6 +37,7 @@ return [
     ],
     [
         'label' => 'Catalog',
+        'icon' => 'products',
         'segment' => 'catalog',
         'items' => [
             ['key' => 'products', 'label' => 'Products', 'route' => 'admin.products.index', 'icon' => 'products', 'permission' => null, 'keywords' => ['items', 'sku', 'inventory']],
@@ -47,6 +49,7 @@ return [
     ],
     [
         'label' => 'Customers',
+        'icon' => 'customers',
         'segment' => 'customers',
         'items' => [
             ['key' => 'customers', 'label' => 'Customers', 'route' => 'admin.customers.index', 'icon' => 'customers', 'permission' => null, 'keywords' => ['buyers', 'accounts']],
@@ -57,6 +60,7 @@ return [
     ],
     [
         'label' => 'Content',
+        'icon' => 'pages',
         'segment' => 'content',
         'items' => [
             ['key' => 'pages', 'label' => 'Pages', 'route' => 'admin.pages.index', 'icon' => 'pages', 'permission' => null, 'keywords' => ['cms', 'static']],
@@ -66,6 +70,7 @@ return [
     ],
     [
         'label' => 'Marketing',
+        'icon' => 'coupons',
         'segment' => 'marketing',
         'items' => [
             ['key' => 'coupons', 'label' => 'Coupons', 'route' => 'admin.coupons.index', 'icon' => 'coupons', 'permission' => null, 'keywords' => ['discount', 'promo', 'voucher']],
@@ -74,6 +79,7 @@ return [
     ],
     [
         'label' => 'System',
+        'icon' => 'settings',
         'segment' => 'settings',
         'items' => [
             ['key' => 'settings', 'label' => 'Settings', 'route' => 'admin.settings.index', 'icon' => 'settings', 'permission' => null, 'keywords' => ['configuration', 'preferences', 'hub']],
