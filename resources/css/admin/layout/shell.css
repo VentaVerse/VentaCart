@@ -440,3 +440,13 @@
 /* The close sits at the end of the brand row and gets there with an
    auto margin, which the shorthand above would have eaten. */
 .v-admin .v-slab__close.v-tap { margin-left: auto; }
+
+/* Above lg the slab is permanent: it has no close, and the topbar
+   offers no hamburger for a drawer that cannot close. These two are
+   the drawer's own controls and this rule is what removes them; the
+   Tailwind lg:hidden they used to carry lost to .v-tap's display on
+   specificity, which is how a permanent sidebar came to wear an X. */
+@media (min-width: 1024px) {
+    .v-admin .v-slab__close,
+    .v-admin .v-topbar__menu { display: none; }
+}

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Automation;
 use App\Models\Cart;
 use App\Models\Currency;
+use App\Models\CustomerActivity;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
@@ -40,8 +41,10 @@ use Throwable;
  *                      over a plot of two years of revenue
  *   3  needs doing     the handoff into the day's actual work
  *   4  running accounts what has been selling, and how it was paid for
- *   5  today's entries the day's orders as ledger lines
- *   6  outstanding     what is waiting and is not about today
+ *   5  latest orders   the day's orders as ledger lines, filled to seven
+ *                      with the most recent when today runs short
+ *   6  the rail        outstanding counts, automation health, and the
+ *                      customer activity feed
  *
  * A STORE THAT HAS NEVER TRADED IS NOT AN EDGE CASE. It is the first thing
  * every Venta merchant sees, so it gets its own composition rather than a
@@ -66,6 +69,17 @@ class DashboardController extends Controller
 {
     /** The most entries the sheet prints before sending the reader to Orders. */
     private const MAX_ENTRIES = 50;
+
+    /**
+     * A quiet morning still shows this many orders. Most mornings have no
+     * trade yet, and a ledger that answers the merchant's first visit of the
+     * day with a blank line was the owner's complaint: the old dashboard
+     * always showed the last seven orders, whatever day they arrived on.
+     */
+    private const FILL_TO = 7;
+
+    /** The activity feed is a glance, not a table. */
+    private const ACTIVITY_ROWS = 8;
 
     /** The window the running accounts state and cover. */
     private const ACCOUNT_DAYS = 30;
@@ -97,41 +111,21 @@ class DashboardController extends Controller
             'url'   => route('admin.products.index', ['stock' => 'low']),
         ]]);
 
-        $automations = Automation::enabled()->orderBy('name')->get();
-        $unhealthyAutomations = $automations->filter(
-            fn (Automation $automation) => $this->isAutomationUnhealthy($automation)
-        )->values();
+        $automationHealth = $this->automationHealth();
 
         $cartsRecoverable = Cart::whereHas('items')
             ->where('updated_at', '<', $now->copy()->subHour())
             ->count();
 
-        $standingLines = [
-            [
-                'label' => 'Reviews awaiting approval',
-                'count' => Review::pending()->count(),
-                'url'   => route('admin.reviews.index'),
-            ],
-            [
-                'label' => 'SEO suggestions pending',
-                'count' => SeoSuggestion::pending()->count(),
-                'url'   => route('admin.extensions.seo.review'),
-            ],
-            [
-                'label' => 'Carts recoverable',
-                'count' => $cartsRecoverable,
-                'url'   => route('admin.abandoned-carts.index'),
-            ],
-        ];
+        $standingLines = $this->standingLines($cartsRecoverable, $now);
 
         $shared = [
-            'sheetDate'            => $today,
-            'currency'             => $currency,
-            'hasTraded'            => $hasTraded,
-            'workLines'            => $workLines,
-            'standingLines'        => $standingLines,
-            'automations'          => $automations,
-            'unhealthyAutomations' => $unhealthyAutomations,
+            'sheetDate'        => $today,
+            'currency'         => $currency,
+            'hasTraded'        => $hasTraded,
+            'workLines'        => $workLines,
+            'standingLines'    => $standingLines,
+            'automationHealth' => $automationHealth,
         ];
 
         if (! $hasTraded) {
@@ -139,7 +133,7 @@ class DashboardController extends Controller
                 'standing'     => 'No orders yet.',
                 'openingLines' => $this->openingLines($storeId),
                 'workNeeded'   => $this->anyCount($workLines),
-                'standingNeeded' => $this->anyCount($standingLines) || $unhealthyAutomations->isNotEmpty(),
+                'standingNeeded' => $this->anyCount($standingLines),
             ]));
         }
 
@@ -151,19 +145,12 @@ class DashboardController extends Controller
         $inventory = Inventory::for($storeId);
 
         $entries = $this->entries($storeId, $today, $tomorrow);
-        $entriesTruncated = $entries->count() > self::MAX_ENTRIES;
-        $entries = $entries->take(self::MAX_ENTRIES);
-
-        // Only asked when today is blank, and answered off the primary key
-        // rather than a date scan.
-        $lastEntryAt = $entries->isEmpty()
-            ? Order::where('store_id', $storeId)->whereNotNull('order_status_id')->latest('id')->value('created_at')
-            : null;
 
         return view('admin.dashboard', array_merge($shared, [
             'standing'         => $this->standingSentence($pulse, $currency, $fulfillment),
             'pulse'            => $pulse,
             'bands'            => $this->pulseBands($pulse, $now),
+            'usualLine'        => $this->usualLine($pulse, $currency),
             'plot'             => $pulse['plot'],
             'stats'            => $this->statBlocks($pulse, $fulfillment, $lowStockCount, $inventory, $cartsRecoverable),
             // The two figures the band now leads with are not repeated as
@@ -175,9 +162,10 @@ class DashboardController extends Controller
             'mix'              => $accounts['payments'],
             'ring'             => $this->ring($accounts),
             'inventory'        => $inventory,
-            'entries'          => $entries,
-            'entriesTruncated' => $entriesTruncated,
-            'lastEntryLabel'   => $this->whenLastEntryArrived($lastEntryAt, $today),
+            'entries'          => $entries['rows'],
+            'entriesTodayCount' => $entries['todayCount'],
+            'entriesTruncated' => $entries['truncated'],
+            'activities'       => $this->activities(),
         ]));
     }
 
@@ -396,25 +384,23 @@ class DashboardController extends Controller
     }
 
     /**
-     * The pulse as two ruled bands, in the ledger grammar the sheet already
+     * The pulse as one ruled band, in the ledger grammar the sheet already
      * speaks: a name on the left, the figure, its reference, and the change
-     * between them.
+     * between them. The month is measured against the same month a year
+     * ago, and both columns are labelled with the exact span they cover,
+     * because "this month" against "last year" is only honest if both sides
+     * stop on the same day and a reader has to be able to see that they do.
      *
-     * Two bands rather than one because the two questions have different
-     * references and mixing them into one table would imply a shared one.
-     * The month is measured against the same month a year ago; today is
-     * measured against what this weekday usually looks like.
-     *
-     * Both bands are labelled with the exact span they cover, because "this
-     * month" against "last year" is only honest if both sides stop on the
-     * same day, and a reader has to be able to see that they do.
+     * There used to be a second band setting today against a usual weekday,
+     * and it repeated the same three row labels directly under the first:
+     * two identical tables stacked, one of them mostly zeros for most of
+     * every morning. Today's comparison lives on the band blocks' own notes
+     * and in usualLine(); the twin table is gone.
      */
     private function pulseBands(array $pulse, Carbon $now): array
     {
         $month = $pulse['month'];
         $reference = $pulse['reference'];
-        $today = $pulse['today'];
-        $usual = $pulse['usual'];
 
         $throughDay = $now->format('jS');
 
@@ -452,39 +438,6 @@ class DashboardController extends Controller
                         'hint' => 'Revenue taken divided by the orders it came from.',
                         'values' => ['now' => $month['average'], 'ref' => $reference['average']],
                         'change' => Standing::change($month['average'], $reference['average']),
-                    ],
-                ],
-            ],
-            [
-                'key' => 'today',
-                'title' => 'Today against a usual ' . $usual['weekday'],
-                'hint' => 'The middle figure of the last ' . $usual['samples'] . ' ' . $usual['weekday'] . 's.',
-                'referenceMissing' => false,
-                'columns' => [
-                    ['key' => 'now', 'label' => 'Today', 'lead' => true],
-                    ['key' => 'ref', 'label' => $usual['label'], 'lead' => false],
-                ],
-                'rows' => [
-                    [
-                        'label' => 'Revenue taken',
-                        'money' => true,
-                        'hint' => null,
-                        'values' => ['now' => $today['revenue'], 'ref' => $usual['revenue']],
-                        'change' => Standing::change($today['revenue'], $usual['revenue']),
-                    ],
-                    [
-                        'label' => 'Orders placed',
-                        'money' => false,
-                        'hint' => null,
-                        'values' => ['now' => $today['placed'], 'ref' => $usual['placed']],
-                        'change' => Standing::change((float) $today['placed'], (float) $usual['placed']),
-                    ],
-                    [
-                        'label' => 'Average order',
-                        'money' => true,
-                        'hint' => null,
-                        'values' => ['now' => $today['average'], 'ref' => $usual['average']],
-                        'change' => Standing::change($today['average'], $usual['average']),
                     ],
                 ],
             ],
@@ -631,28 +584,150 @@ class DashboardController extends Controller
     }
 
     /**
-     * Today's orders, earliest first, because a daybook page is read down.
+     * The latest orders, newest first: today's, then enough earlier ones to
+     * reach FILL_TO rows on a quiet morning.
      *
-     * Bounded by the day and then by MAX_ENTRIES + 1, so a store having an
-     * exceptional day renders a sheet rather than a thousand rows, and the
-     * extra row is what tells the view to offer Orders. Line items are
-     * eager loaded off their snapshot columns so the "what they bought"
-     * column costs one query rather than one per order.
+     * The sheet used to show only today's entries, which most mornings meant
+     * "Nothing entered yet today" while the last real orders sat one screen
+     * away. The owner ruled the old dashboard's card more informative: it
+     * always showed the last seven orders. So today's rows lead (bounded by
+     * MAX_ENTRIES + 1, so an exceptional day renders a sheet rather than a
+     * thousand rows, and the extra row is what tells the view to offer
+     * Orders) and earlier orders fill the ledger only when today is short.
+     * Both reads are index seeks; the line items and statuses load once for
+     * the merged set, never per order.
+     *
+     * @return array{rows:\Illuminate\Database\Eloquent\Collection, todayCount:int, truncated:bool}
      */
-    private function entries(int $storeId, Carbon $today, Carbon $tomorrow)
+    private function entries(int $storeId, Carbon $today, Carbon $tomorrow): array
     {
-        return Order::query()
+        $days = Order::query()
             ->where('store_id', $storeId)
             ->whereNotNull('order_status_id')
             ->where('created_at', '>=', $today)
             ->where('created_at', '<', $tomorrow)
-            ->with([
-                'status:id,name',
-                'products:id,order_id,name,variant_label,quantity',
-            ])
-            ->orderBy('created_at')
-            ->orderBy('id')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->limit(self::MAX_ENTRIES + 1)
+            ->get();
+
+        $truncated = $days->count() > self::MAX_ENTRIES;
+        $days = $days->take(self::MAX_ENTRIES);
+
+        $fill = self::FILL_TO - $days->count();
+        $earlier = $fill > 0
+            ? Order::query()
+                ->where('store_id', $storeId)
+                ->whereNotNull('order_status_id')
+                ->where('created_at', '<', $today)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->limit($fill)
+                ->get()
+            : Order::newModelInstance()->newCollection();
+
+        $rows = $days->concat($earlier);
+        $rows->load([
+            'status:id,name',
+            'products:id,order_id,name,variant_label,quantity',
+        ]);
+
+        return [
+            'rows' => $rows,
+            'todayCount' => $days->count(),
+            'truncated' => $truncated,
+        ];
+    }
+
+    /**
+     * Every enabled automation, divided into the ones that need a look and
+     * a count of the ones that do not. The unhealthy list is ordered worst
+     * first: a failed run outranks a run that never happened, which outranks
+     * a run that is merely late, and among the late ones the stalest leads.
+     *
+     * @return array{total:int, unhealthy:\Illuminate\Support\Collection, healthy:int}
+     */
+    private function automationHealth(): array
+    {
+        $automations = Automation::enabled()->orderBy('name')->get();
+
+        $unhealthy = $automations
+            ->filter(fn (Automation $automation) => $this->isAutomationUnhealthy($automation))
+            ->sortBy(fn (Automation $automation) => match (true) {
+                $automation->last_run_status === 'failed' => -2,
+                $automation->last_run_at === null => -1,
+                default => $automation->last_run_at->getTimestamp(),
+            })
+            ->values();
+
+        return [
+            'total' => $automations->count(),
+            'unhealthy' => $unhealthy,
+            'healthy' => $automations->count() - $unhealthy->count(),
+        ];
+    }
+
+    /**
+     * The Outstanding counts, each with one line of specificity where that
+     * line is a single cheap read of a fact the merchant will act on. The
+     * newest pending review names its product; the newest recoverable cart
+     * says when it went idle. The SEO count stays bare: its newest row has
+     * no one field that names it, and a detail that needs assembling is a
+     * detail this page does not buy. Nothing here is asked unless the count
+     * it decorates is above zero.
+     */
+    private function standingLines(int $cartsRecoverable, Carbon $now): array
+    {
+        $pendingReviews = Review::pending()->count();
+
+        $reviewDetail = null;
+        if ($pendingReviews > 0) {
+            $newest = Review::pending()->latest('id')->with('product:id,name')->first();
+            $reviewDetail = $newest?->product ? 'Newest is for ' . $newest->product->name : null;
+        }
+
+        $cartDetail = null;
+        if ($cartsRecoverable > 0) {
+            $idleAt = Cart::whereHas('items')
+                ->where('updated_at', '<', $now->copy()->subHour())
+                ->max('updated_at');
+            $cartDetail = $idleAt ? 'Newest went idle ' . Carbon::parse($idleAt)->diffForHumans() : null;
+        }
+
+        return [
+            [
+                'label'  => 'Reviews awaiting approval',
+                'count'  => $pendingReviews,
+                'detail' => $reviewDetail,
+                'url'    => route('admin.reviews.index'),
+            ],
+            [
+                'label'  => 'SEO suggestions pending',
+                'count'  => SeoSuggestion::pending()->count(),
+                'detail' => null,
+                'url'    => route('admin.extensions.seo.review'),
+            ],
+            [
+                'label'  => 'Carts recoverable',
+                'count'  => $cartsRecoverable,
+                'detail' => $cartDetail,
+                'url'    => route('admin.abandoned-carts.index'),
+            ],
+        ];
+    }
+
+    /**
+     * The last few things customers did, newest first. A feed, not a table:
+     * it answers "is anyone out there" in a glance, and the customer's own
+     * page carries their full history.
+     */
+    private function activities()
+    {
+        return CustomerActivity::query()
+            ->with('customer:id,first_name,last_name')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(self::ACTIVITY_ROWS)
             ->get();
     }
 
@@ -689,28 +764,28 @@ class DashboardController extends Controller
     }
 
     /**
-     * When the last order actually arrived, said the way a person would.
-     * "1 day ago" is a duration; a merchant looking at a blank page wants
-     * the day and the hour, and beyond a week they want the date.
+     * Today against a usual weekday, as one quiet sentence rather than a
+     * second table. The full twin table repeated the month table's three
+     * row labels directly beneath them, and two of its figures were already
+     * the band's own notes; what it alone carried was the average order, so
+     * that is what the sentence keeps. On a morning with no trade yet it
+     * states the reference instead, which is the figure a merchant opening
+     * a blank day actually wants.
      */
-    private function whenLastEntryArrived(?Carbon $at, Carbon $today): ?string
+    private function usualLine(array $pulse, string $currency): string
     {
-        if (! $at) {
-            return null;
+        $today = $pulse['today'];
+        $usual = $pulse['usual'];
+        $money = fn (float $v) => $currency . number_format($v, 2);
+
+        if ((int) $today['placed'] === 0) {
+            $orders = (int) $usual['placed'] === 1 ? '1 order' : number_format($usual['placed']) . ' orders';
+
+            return 'A usual ' . $usual['weekday'] . ' takes ' . $money((float) $usual['revenue']) . ' over ' . $orders . '.';
         }
 
-        $time = $at->format('g:i a');
-        $daysBack = (int) $at->copy()->startOfDay()->diffInDays($today);
-
-        if ($daysBack === 1) {
-            return 'yesterday at ' . $time;
-        }
-
-        if ($daysBack < 7) {
-            return 'on ' . $at->format('l') . ' at ' . $time;
-        }
-
-        return 'on ' . $at->format('j F Y');
+        return 'Average order today ' . $money((float) $today['average'])
+            . ', against ' . $money((float) $usual['average']) . ' on a usual ' . $usual['weekday'] . '.';
     }
 
     /**

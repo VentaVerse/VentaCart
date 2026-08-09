@@ -26,7 +26,11 @@
     solid and filled, the earlier year is dashed, and each names itself in
     the key beside its own peak. WITHOUT JAVASCRIPT the plot still draws,
     the axis still names its months, every point still carries a <title>,
-    and the figures are all listed in the table below.
+    and the key prints the current month's figure so the plot answers
+    without being pointed at. The month-by-month table this card used to
+    fold behind a "Show the numbers" disclosure is gone: the comparison
+    tables under the plot are the numbers, and a link whose answer is
+    already on the page is a control that does nothing.
 --}}
 @props(['plot', 'currency'])
 
@@ -87,11 +91,17 @@
             A year earlier
             <b class="v-plot__peak">peak {{ $money((float) $plot['earlierPeak']) }}</b>
         </span>
+        {{-- The trace's newest point, printed: the plot's current value is
+             readable with nothing pointed at anything. --}}
+        <span class="v-plot__keyitem v-plot__nowread">
+            {{ $plot['full'][$count - 1] }} so far
+            <b class="v-plot__peak">{{ $money((float) $plot['current'][$count - 1]) }}</b>
+        </span>
     </div>
 
     <div class="v-plot__frame">
         <svg class="v-plot" viewBox="0 0 {{ $pw }} {{ $ph }}" preserveAspectRatio="none" role="img"
-             aria-label="Revenue by month, {{ $labels[0] }} to {{ $labels[$count - 1] }}, against the same months a year earlier. Peak {{ $money((float) $plot['currentPeak']) }} this year and {{ $money((float) $plot['earlierPeak']) }} a year earlier. Every figure is listed in the table below this plot.">
+             aria-label="Revenue by month, {{ $labels[0] }} to {{ $labels[$count - 1] }}, against the same months a year earlier. Peak {{ $money((float) $plot['currentPeak']) }} this year and {{ $money((float) $plot['earlierPeak']) }} a year earlier. {{ $plot['full'][$count - 1] }} so far {{ $money((float) $plot['current'][$count - 1]) }}. Each month carries its own two figures.">
             <defs>
                 <linearGradient id="v-plot-fill" x1="0" y1="0" x2="0" y2="1">
                     <stop class="v-plot__from" offset="0%"></stop>
@@ -138,33 +148,4 @@
         @endforeach
     </div>
 
-    <details class="v-plot__twin">
-        <summary class="v-plot__twinsum">Show the numbers</summary>
-        <div class="v-sheet__scroll">
-            <table class="v-table w-full text-[13px]">
-                <thead>
-                    <tr>
-                        <x-admin.table.th>Month</x-admin.table.th>
-                        <x-admin.table.th align="right">Revenue taken</x-admin.table.th>
-                        <x-admin.table.th>A year earlier</x-admin.table.th>
-                        <x-admin.table.th align="right">Revenue taken</x-admin.table.th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-v-border">
-                    @foreach ($labels as $i => $label)
-                        <tr>
-                            <x-admin.table.cell class="text-v-text">{{ $plot['full'][$i] }}</x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <span class="v-money"><span class="v-money__mark">{{ $currency }}</span><span class="v-money__amt">{{ number_format((float) $plot['current'][$i], 2) }}</span></span>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell class="text-v-secondary">{{ $plot['earlierLabels'][$i] }}</x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <span class="v-money"><span class="v-money__mark">{{ $currency }}</span><span class="v-money__amt">{{ number_format((float) $plot['earlier'][$i], 2) }}</span></span>
-                            </x-admin.table.cell>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </details>
 </div>

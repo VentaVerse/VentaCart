@@ -24,8 +24,8 @@ use Tests\TestCase;
  * the promises: the date is the heading, the standing sentence is composed
  * from real figures, the day's figures carry their two comparisons, the
  * work lines come from the fulfillment module's own placement mapping and
- * disappear with it, and an empty day says so rather than printing an
- * empty table.
+ * disappear with it, and a quiet day fills the ledger with the most recent
+ * orders rather than answering the morning with a blank line.
  */
 class DaySheetTest extends TestCase
 {
@@ -251,6 +251,11 @@ class DaySheetTest extends TestCase
      * Today's reference is what this weekday usually looks like, taken as
      * the MIDDLE of the last eight rather than their mean, so one
      * exceptional Sunday cannot redefine a usual one.
+     *
+     * The comparison used to be a second three-row table under the month
+     * table, repeating its row labels; it now lives on the band blocks'
+     * own notes and in the one usual-weekday sentence, so that is where
+     * it is asserted.
      */
     public function test_today_is_set_against_the_middle_of_the_last_eight_same_weekdays(): void
     {
@@ -268,14 +273,16 @@ class DaySheetTest extends TestCase
         $this->order($paid, 600.00, '2026-08-09 10:00:00');
 
         $response = $this->get(route('admin.dashboard'))->assertOk();
-        $today = $this->band($response->viewData('bands'), 'today');
+        $pulse = $response->viewData('pulse');
 
-        $revenue = $this->row($today, 'Revenue taken');
-        $this->assertSame(600.0, $revenue['values']['now']);
-        $this->assertSame(300.0, $revenue['values']['ref']);
-        $this->assertSame('100.0% ahead', $revenue['change']['words']);
+        $this->assertSame(600.0, $pulse['today']['revenue']);
+        $this->assertSame(300.0, $pulse['usual']['revenue']);
 
-        $response->assertSee('A usual Sunday');
+        // The band block's note carries the comparison as a phrase, and the
+        // sentence under the month table carries the average.
+        $response->assertSee('100.0% ahead of a usual Sunday')
+            ->assertSee('Average order today')
+            ->assertSee('on a usual Sunday.');
     }
 
     /**
@@ -293,10 +300,9 @@ class DaySheetTest extends TestCase
         $this->order($paid, 800.00, '2026-08-02 10:00:00');
         $this->order($paid, 800.00, '2026-07-26 10:00:00');
 
-        $response = $this->get(route('admin.dashboard'))->assertOk();
-        $today = $this->band($response->viewData('bands'), 'today');
+        $usual = $this->get(route('admin.dashboard'))->assertOk()->viewData('pulse')['usual'];
 
-        $this->assertSame(0.0, $this->row($today, 'Revenue taken')['values']['ref']);
+        $this->assertSame(0.0, $usual['revenue']);
     }
 
     public function test_cancelled_orders_are_counted_as_placed_but_not_as_revenue(): void
@@ -308,13 +314,13 @@ class DaySheetTest extends TestCase
         $this->order($paid, 400.00, '2026-08-09 09:00:00');
         $this->order($void, 999.00, '2026-08-09 10:00:00');
 
-        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
+        $today = $this->get(route('admin.dashboard'))->assertOk()->viewData('pulse')['today'];
 
-        $this->assertSame(400.0, $this->row($today, 'Revenue taken')['values']['now']);
-        $this->assertSame(2, $this->row($today, 'Orders placed')['values']['now']);
+        $this->assertSame(400.0, $today['revenue']);
+        $this->assertSame(2, $today['placed']);
         // The average divides revenue by the orders it actually came from,
         // so one refund does not halve it.
-        $this->assertSame(400.0, $this->row($today, 'Average order')['values']['now']);
+        $this->assertSame(400.0, $today['average']);
     }
 
     /**
@@ -334,10 +340,10 @@ class DaySheetTest extends TestCase
         $this->order($complete, 700.00, '2026-08-09 09:00:00');
         $this->order($odd, 300.00, '2026-08-09 10:00:00');
 
-        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
+        $today = $this->get(route('admin.dashboard'))->assertOk()->viewData('pulse')['today'];
 
-        $this->assertSame(300.0, $this->row($today, 'Revenue taken')['values']['now']);
-        $this->assertSame(2, $this->row($today, 'Orders placed')['values']['now']);
+        $this->assertSame(300.0, $today['revenue']);
+        $this->assertSame(2, $today['placed']);
     }
 
     /** Renaming a status does not move a figure: the flag is on the row. */
@@ -347,14 +353,14 @@ class DaySheetTest extends TestCase
         $paid = $this->orderStatus('Payment Received', true);
         $this->order($paid, 1234.00, '2026-08-09 09:00:00');
 
-        $before = $this->row($this->band($this->get(route('admin.dashboard'))->viewData('bands'), 'today'), 'Revenue taken');
+        $before = $this->get(route('admin.dashboard'))->viewData('pulse')['today']['revenue'];
 
         $paid->update(['name' => 'Bayad na']);
 
-        $after = $this->row($this->band($this->get(route('admin.dashboard'))->viewData('bands'), 'today'), 'Revenue taken');
+        $after = $this->get(route('admin.dashboard'))->viewData('pulse')['today']['revenue'];
 
-        $this->assertSame(1234.0, $before['values']['now']);
-        $this->assertSame($before['values']['now'], $after['values']['now']);
+        $this->assertSame(1234.0, $before);
+        $this->assertSame($before, $after);
     }
 
     public function test_status_less_ghost_orders_are_not_figures_at_all(): void
@@ -375,10 +381,10 @@ class DaySheetTest extends TestCase
         ]);
         $ghost->forceFill(['created_at' => Carbon::parse('2026-08-09 10:00:00')])->save();
 
-        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
+        $today = $this->get(route('admin.dashboard'))->assertOk()->viewData('pulse')['today'];
 
-        $this->assertSame(100.0, $this->row($today, 'Revenue taken')['values']['now']);
-        $this->assertSame(1, $this->row($today, 'Orders placed')['values']['now']);
+        $this->assertSame(100.0, $today['revenue']);
+        $this->assertSame(1, $today['placed']);
     }
 
     public function test_an_empty_day_reports_zero_rather_than_omitting_the_figures(): void
@@ -386,11 +392,16 @@ class DaySheetTest extends TestCase
         $this->actingAs($this->admin());
         $this->tradedBefore();
 
-        $today = $this->band($this->get(route('admin.dashboard'))->assertOk()->viewData('bands'), 'today');
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+        $today = $response->viewData('pulse')['today'];
 
-        $this->assertSame(0.0, $this->row($today, 'Revenue taken')['values']['now']);
-        $this->assertSame(0, $this->row($today, 'Orders placed')['values']['now']);
-        $this->assertSame(0.0, $this->row($today, 'Average order')['values']['now']);
+        $this->assertSame(0.0, $today['revenue']);
+        $this->assertSame(0, $today['placed']);
+        $this->assertSame(0.0, $today['average']);
+
+        // With nothing sold yet, the usual-weekday sentence states the
+        // reference instead of an average of nothing.
+        $response->assertSee('A usual Sunday takes');
     }
 
     // ---------------------------------------------------------------
@@ -424,8 +435,11 @@ class DaySheetTest extends TestCase
 
         $this->assertTrue($plot['hasTrade']);
 
-        // Every figure the plot draws is also a row in a real table.
-        $response->assertSee('Show the numbers')->assertSee('December 2025');
+        // The plot's newest point is printed on the key, so the current
+        // value is readable with nothing pointed at anything. The folded
+        // "Show the numbers" table is gone: the comparison tables under
+        // the plot are the numbers.
+        $response->assertSee('August 2026 so far')->assertDontSee('Show the numbers');
     }
 
     public function test_the_plot_still_renders_when_the_store_has_traded_but_not_lately(): void
@@ -602,17 +616,24 @@ class DaySheetTest extends TestCase
     }
 
     // ---------------------------------------------------------------
-    // The day's entries
+    // The latest orders
     // ---------------------------------------------------------------
 
-    public function test_todays_orders_are_listed_chronologically_with_what_was_bought(): void
+    /**
+     * Today's orders lead, newest first, and when today runs short the most
+     * recent earlier orders fill the ledger: the old dashboard always
+     * showed the last seven orders and the owner ruled that more
+     * informative than a morning of "nothing yet". Today's rows print a
+     * time; earlier rows print their date.
+     */
+    public function test_latest_orders_lead_with_today_then_fill_with_recent(): void
     {
         $this->actingAs($this->admin());
         $paid = $this->orderStatus('Payment Received', true);
 
         $late = $this->order($paid, 900.00, '2026-08-09 13:00:00', 'Zoe');
         $early = $this->order($paid, 300.00, '2026-08-09 08:00:00', 'Abe');
-        $this->order($paid, 100.00, '2026-08-08 09:00:00', 'Yesterday');
+        $before = $this->order($paid, 100.00, '2026-08-08 09:00:00', 'Yesterday');
 
         $product = Product::create(['store_id' => 1, 'name' => 'Distortion Pedal', 'slug' => 'distortion-pedal', 'price' => 300]);
         DB::table('order_products')->insert([
@@ -621,10 +642,32 @@ class DaySheetTest extends TestCase
         ]);
 
         $response = $this->get(route('admin.dashboard'))->assertOk();
-        $entries = $response->viewData('entries');
 
-        $this->assertSame([$early->id, $late->id], $entries->pluck('id')->all());
-        $response->assertSee('Distortion Pedal')->assertDontSee('Yesterday Doe');
+        $this->assertSame([$late->id, $early->id, $before->id], $response->viewData('entries')->pluck('id')->all());
+        $this->assertSame(2, $response->viewData('entriesTodayCount'));
+
+        // Today's rows carry the clock, the filler carries its date.
+        $response->assertSee('Distortion Pedal')
+            ->assertSeeInOrder(['1:00 pm', '8:00 am', '8 Aug'])
+            ->assertSee('2 today');
+    }
+
+    public function test_a_quiet_day_fills_the_ledger_with_the_most_recent_orders(): void
+    {
+        $this->actingAs($this->admin());
+        // The only order on the books is from November 2024, so the ledger
+        // reaches back to it and dates it with its year.
+        $this->tradedBefore();
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+
+        $this->assertSame(0, $response->viewData('entriesTodayCount'));
+        $this->assertCount(1, $response->viewData('entries'));
+
+        $response->assertSee('Latest orders')
+            ->assertSee('Historic Doe')
+            ->assertSee('15 Nov 2024')
+            ->assertDontSee('Nothing entered yet today');
     }
 
     public function test_the_entries_do_not_query_per_order_for_their_line_items(): void
@@ -657,21 +700,7 @@ class DaySheetTest extends TestCase
         $this->assertSame(1, $itemQueries, 'Line items must load in one query for the whole day, not one per order.');
     }
 
-    public function test_an_empty_day_says_so_instead_of_rendering_an_empty_table(): void
-    {
-        $this->actingAs($this->admin());
-        $this->tradedBefore();
-
-        $this->get(route('admin.dashboard'))
-            ->assertOk()
-            ->assertSee('Nothing entered yet today.')
-            // No ledger at all, not a ledger with no rows. Asserted on the
-            // entries table's own column rather than on the scroll wrapper,
-            // which the plot's table of figures also uses.
-            ->assertDontSee('v-col-bought');
-    }
-
-    public function test_an_empty_day_names_when_the_last_order_arrived(): void
+    public function test_a_filler_from_this_year_is_dated_without_the_year(): void
     {
         $this->actingAs($this->admin());
         $paid = $this->orderStatus('Payment Received', true);
@@ -679,14 +708,15 @@ class DaySheetTest extends TestCase
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('The last order came in');
+            ->assertSee('7 Aug')
+            ->assertDontSee('7 Aug 2026');
     }
 
     // ---------------------------------------------------------------
     // Standing matters
     // ---------------------------------------------------------------
 
-    public function test_outstanding_matters_are_ruled_off_at_the_foot(): void
+    public function test_outstanding_matters_are_ruled_off_in_the_rail(): void
     {
         $this->actingAs($this->admin());
         $this->tradedBefore();
@@ -696,7 +726,131 @@ class DaySheetTest extends TestCase
             ->assertSee('Outstanding')
             ->assertSee('Reviews awaiting approval')
             ->assertSee('Carts recoverable')
-            ->assertSee('Automations overdue');
+            // Automation health is its own panel now, not a line here.
+            ->assertDontSee('Automations overdue')
+            ->assertSee('Automations');
+    }
+
+    /**
+     * The newest pending review names its product on the Outstanding line:
+     * one cheap read of a fact the count alone withheld. The detail only
+     * exists when the count does.
+     */
+    public function test_the_review_count_names_the_newest_pending_reviews_product(): void
+    {
+        $this->actingAs($this->admin());
+        $this->tradedBefore();
+
+        $pedal = Product::create(['store_id' => 1, 'name' => 'Overdrive Pedal', 'slug' => 'overdrive-pedal', 'price' => 250]);
+        \App\Models\Review::create([
+            'product_id' => $pedal->id, 'token' => 'review-token', 'name' => 'A Buyer', 'email' => 'buyer@example.com',
+            'rating' => 5, 'body' => 'Great pedal', 'status' => 'pending',
+        ]);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Newest is for Overdrive Pedal');
+    }
+
+    // ---------------------------------------------------------------
+    // Automation health
+    // ---------------------------------------------------------------
+
+    /**
+     * Each unhealthy automation is a row with its name, when it last ran,
+     * and a Failed or Overdue chip, worst first: failed, then never run,
+     * then the stalest of the merely late. The healthy ones are one quiet
+     * line, never a roster.
+     */
+    public function test_unhealthy_automations_are_rows_worst_first_and_healthy_ones_one_line(): void
+    {
+        $this->actingAs($this->admin());
+        $this->tradedBefore();
+
+        \App\Models\Automation::create([
+            'key' => 'a_overdue', 'name' => 'Sitemap Refresh', 'command' => 'sitemap:generate',
+            'schedule_preset' => 'daily', 'schedule_params' => [], 'cron_expression' => '0 4 * * *',
+            'enabled' => true, 'last_run_at' => now()->subDays(3), 'last_run_status' => 'success',
+        ]);
+        \App\Models\Automation::create([
+            'key' => 'b_failed', 'name' => 'Currency Update', 'command' => 'currency:update',
+            'schedule_preset' => 'daily', 'schedule_params' => [], 'cron_expression' => '0 16 * * *',
+            'enabled' => true, 'last_run_at' => now()->subHours(2), 'last_run_status' => 'failed',
+        ]);
+        \App\Models\Automation::create([
+            'key' => 'c_never', 'name' => 'Review Requests', 'command' => 'review:send',
+            'schedule_preset' => 'daily', 'schedule_params' => [], 'cron_expression' => '0 10 * * *',
+            'enabled' => true, 'last_run_at' => null, 'last_run_status' => null,
+        ]);
+        \App\Models\Automation::create([
+            'key' => 'd_fine', 'name' => 'Quiet Task', 'command' => 'stock:notify',
+            'schedule_preset' => 'daily', 'schedule_params' => [], 'cron_expression' => '* * * * *',
+            'enabled' => true, 'last_run_at' => now(), 'last_run_status' => 'success',
+        ]);
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+
+        $health = $response->viewData('automationHealth');
+        $this->assertSame(4, $health['total']);
+        $this->assertSame(
+            ['Currency Update', 'Review Requests', 'Sitemap Refresh'],
+            $health['unhealthy']->pluck('name')->all()
+        );
+
+        $response->assertSeeInOrder(['Currency Update', 'Failed', 'Review Requests', 'Never run', 'Sitemap Refresh', 'Overdue'])
+            ->assertSee('The other 1 is on schedule.')
+            // The healthy one is summarised, not listed.
+            ->assertDontSee('Quiet Task');
+    }
+
+    public function test_healthy_automations_read_as_one_quiet_line(): void
+    {
+        $this->actingAs($this->admin());
+        $this->tradedBefore();
+
+        \App\Models\Automation::create([
+            'key' => 'fine', 'name' => 'Quiet Task', 'command' => 'stock:notify',
+            'schedule_preset' => 'daily', 'schedule_params' => [], 'cron_expression' => '* * * * *',
+            'enabled' => true, 'last_run_at' => now(), 'last_run_status' => 'success',
+        ]);
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Running on schedule.')
+            ->assertDontSee('Overdue');
+    }
+
+    // ---------------------------------------------------------------
+    // Customer activity
+    // ---------------------------------------------------------------
+
+    public function test_customer_activity_is_a_feed_of_who_did_what(): void
+    {
+        $this->actingAs($this->admin());
+        $this->tradedBefore();
+
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
+        $buyer = $this->customerIn($group, 'feed@example.com');
+
+        \App\Models\CustomerActivity::create([
+            'customer_id' => $buyer->id, 'type' => 'cart_add',
+            'description' => 'Added Distortion Pedal to cart',
+            'created_at' => Carbon::parse('2026-08-09 12:30:00'),
+        ]);
+        \App\Models\CustomerActivity::create([
+            'customer_id' => $buyer->id, 'type' => 'login',
+            'description' => 'Logged in',
+            'created_at' => Carbon::parse('2026-08-09 12:00:00'),
+        ]);
+
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+
+        $this->assertSame(2, $response->viewData('activities')->count());
+
+        // Newest first, named, in the feed's own voice.
+        $response->assertSee('Customer activity')
+            ->assertSeeInOrder(['added Distortion Pedal to cart', 'logged in'])
+            ->assertSee('Buyer One');
     }
 
     // ---------------------------------------------------------------

@@ -678,9 +678,15 @@
     color: var(--text);
 }
 
+/* One line, ellipsized: the detail names the newest thing behind the
+   count, and a product title long enough to wrap would turn a quiet
+   qualifier into a paragraph. The destination has the rest. */
 .v-admin .v-line__detail {
     display: block;
     margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 12px;
     color: var(--text-muted);
 }
@@ -961,27 +967,25 @@
 .v-admin .v-plot__rk--now { background: var(--bl-a-indigo); }
 .v-admin .v-plot__rk--then { background: var(--bl-a-indigo-2); }
 
-/* The accessible twin, not an afterthought: every figure the plot
-   draws is a row in a real table, one disclosure away. */
-.v-admin .v-plot__twin { margin-top: 14px; }
+/* The current month's reading sits at the key's far edge, so the
+   plot's newest value is on the card before anything is pointed at.
+   The "Show the numbers" disclosure that used to follow the axis is
+   gone: the comparison tables under the plot are the numbers. */
+.v-admin .v-plot__nowread { margin-left: auto; }
 
-.v-admin .v-plot__twinsum {
-    display: inline-block;
+/* Today against a usual weekday, as one quiet sentence under the
+   month table rather than a twin table repeating its row labels. */
+.v-admin .v-usual {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 14px;
+    padding-top: 11px;
+    border-top: 1px solid var(--border);
     font-size: 12.5px;
-    font-weight: 500;
-    color: var(--accent);
-    cursor: pointer;
+    line-height: 1.5;
+    color: var(--text-secondary);
 }
-
-.v-admin .v-plot__twinsum:hover { text-decoration: underline; }
-
-.v-admin .v-plot__twinsum:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 3px;
-    border-radius: var(--radius-sm);
-}
-
-.v-admin .v-plot__twin[open] .v-plot__twinsum { margin-bottom: 8px; }
 
 /* ============================================================
    4. The running accounts
@@ -1054,6 +1058,11 @@
 .v-admin .v-rank__fill { fill: var(--bl-a-cyan); }
 .v-admin .v-rank__fill--units { fill: var(--bl-a-violet); }
 
+/* A ranking of one carries no bar (a lone full-width strip reads as a
+   rule, not a share), so the row supplies the spacing the bar's own
+   margin normally does. */
+.v-admin .v-rank__row--flat { padding-bottom: 7px; }
+
 /* ------------------------------------------------------------
    A mix
 
@@ -1093,6 +1102,110 @@
 .v-admin .v-mix__count { color: var(--text); }
 
 /* ------------------------------------------------------------
+   Automation health
+
+   The exceptions as rows, worst first: a name, when it last ran, and
+   a chip saying failed or overdue. The ones that are fine are one
+   quiet line, because this panel is read for exceptions.
+   ------------------------------------------------------------ */
+.v-admin .v-autos { padding-bottom: 4px; }
+
+.v-admin .v-auto {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 20px;
+}
+
+.v-admin .v-autos > li + li .v-auto { border-top: 1px solid var(--border); }
+
+.v-admin .v-auto__body { min-width: 0; }
+
+.v-admin .v-auto__name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13.5px;
+    color: var(--text);
+}
+
+.v-admin .v-auto__sub {
+    display: block;
+    margin-top: 1px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* The quiet line about the ones that are fine, ruled off from the
+   exceptions above it. */
+.v-admin .v-autos__rest {
+    padding: 10px 20px 14px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------
+   The activity feed
+
+   Who did what, newest first. A feed and not a table: one line of
+   fact, one line of when, and a mark naming the kind of act so the
+   column scans without reading.
+   ------------------------------------------------------------ */
+.v-admin .v-feed { padding: 4px 0 8px; }
+
+.v-admin .v-feed__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 9px 20px;
+}
+
+.v-admin .v-feed > li + li .v-feed__row { border-top: 1px solid var(--border); }
+
+.v-admin .v-feed__ic {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    margin-top: 1px;
+    border-radius: var(--radius-md);
+}
+
+.v-admin .v-feed__body { min-width: 0; flex: 1 1 auto; }
+
+.v-admin .v-feed__what {
+    display: block;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+/* The name is the feed's link into the customer, in the entries
+   ledger's own manner: row-coloured, underlined on demand, so eight
+   brass names do not shout "act here" down the rail. */
+.v-admin .v-feed__who {
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+}
+
+.v-admin .v-feed__who:hover { text-decoration: underline; }
+
+.v-admin .v-feed__gone { color: var(--text-muted); }
+
+.v-admin .v-feed__when {
+    display: block;
+    margin-top: 1px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------
    Narrow
 
    The page keeps its order and loses only its columns. Each figure
@@ -1106,7 +1219,10 @@
     .v-admin .v-panel__blank,
     .v-admin .v-facts { padding-inline: 16px; }
 
-    .v-admin .v-line { padding-inline: 16px; }
+    .v-admin .v-line,
+    .v-admin .v-auto,
+    .v-admin .v-autos__rest,
+    .v-admin .v-feed__row { padding-inline: 16px; }
 
     .v-admin .v-stat { padding: 14px 15px 13px; }
 

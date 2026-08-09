@@ -1028,12 +1028,13 @@ class ReskinWaveTest extends TestCase
 
         // The dashboard is the day sheet now (see DaySheetTest for what it
         // promises): the figures are named for the ledger they belong to,
-        // and the automation health card became a line under Outstanding.
+        // and automation health is a rail panel that names each stalled
+        // automation with an Overdue or Failed chip.
         $this->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee('v-admin', false)
             ->assertSee('Revenue taken')
-            ->assertSee('Automations overdue')
+            ->assertSee('Overdue')
             ->assertSee('Currency Exchange Rates');
     }
 

@@ -110,23 +110,31 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <div class="v-split">
                 <div class="v-split__main">
 
-                    {{-- 4a. Today's entries ---------------------------- --}}
+                    {{-- 4a. Latest orders --------------------------------
+                         Today's first, newest at the top; when today runs
+                         short, the most recent earlier orders fill the
+                         ledger to seven, so a quiet morning still reads as
+                         a shop with trade in its book rather than as a
+                         blank line. Today's rows print a time and earlier
+                         rows print their date, which is what keeps the
+                         panel honest about what it holds. --}}
                     <section class="v-panel" aria-labelledby="v-sheet-entries">
                         <div class="v-panel__head">
-                            <h2 class="v-subhead" id="v-sheet-entries">Today's entries</h2>
+                            <h2 class="v-subhead" id="v-sheet-entries">Latest orders</h2>
+                            @if ($entriesTodayCount > 0)
+                                <span class="v-panel__note">{{ $entriesTodayCount }} today</span>
+                            @endif
                             <a href="{{ route('admin.orders.index') }}" class="v-panel__link">All orders</a>
                         </div>
 
                         @if ($entries->isEmpty())
-                            <p class="v-panel__blank">
-                                Nothing entered yet today.@if ($lastEntryLabel) The last order came in {{ $lastEntryLabel }}.@endif
-                            </p>
+                            <p class="v-panel__blank">Nothing on the books yet.</p>
                         @else
                             <div class="v-sheet__scroll">
                                 <table class="v-table w-full text-[13px]">
                                     <thead>
                                         <tr>
-                                            <x-admin.table.th>Time</x-admin.table.th>
+                                            <x-admin.table.th>Placed</x-admin.table.th>
                                             <x-admin.table.th>Customer</x-admin.table.th>
                                             <x-admin.table.th class="v-col-bought">Bought</x-admin.table.th>
                                             <x-admin.table.th align="right">Amount</x-admin.table.th>
@@ -140,9 +148,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                                 $lead = $items->first();
                                                 $extra = max($items->count() - 1, 0);
                                                 $m = $money((float) $entry->total);
+                                                $entryToday = $entry->created_at->gte($sheetDate);
+                                                $when = $entryToday
+                                                    ? $entry->created_at->format('g:i a')
+                                                    : $entry->created_at->format($entry->created_at->year === $sheetDate->year ? 'j M' : 'j M Y');
                                             @endphp
                                             <x-admin.table.row href="{{ route('admin.orders.show', $entry) }}">
-                                                <x-admin.table.cell mono class="whitespace-nowrap text-v-secondary">{{ $entry->created_at->format('g:i a') }}</x-admin.table.cell>
+                                                <x-admin.table.cell mono class="whitespace-nowrap {{ $entryToday ? 'text-v-text' : 'text-v-muted' }}">{{ $when }}</x-admin.table.cell>
                                                 <x-admin.table.cell class="text-v-text">
                                                     {{-- The row opens on a click, but a pointer convenience is
                                                          not a control: this is the named link the keyboard and
@@ -248,6 +260,18 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                     </div>
                                 </div>
                             @endforeach
+
+                            {{-- Today against a usual weekday, as one line.
+                                 A second table repeated the month table's
+                                 three row labels directly beneath them, and
+                                 two of its figures were already the band's
+                                 own notes; the average order is the figure
+                                 it alone carried, so the sentence keeps it
+                                 and the twin table is gone. --}}
+                            <p class="v-usual">
+                                {{ $usualLine }}
+                                <x-admin.hint :label="'What a usual ' . $pulse['usual']['weekday'] . ' counts'">The middle figure of the last {{ $pulse['usual']['samples'] }} {{ $pulse['usual']['weekday'] }}s.</x-admin.hint>
+                            </p>
                         </div>
                     </section>
 
@@ -351,18 +375,26 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         @else
                             <div class="v-panel__body">
                                 <div class="v-accounts">
+                                    {{-- The bars draw each row against the list's own leader, so
+                                         they only exist when there is a comparison to draw: a
+                                         ranking of one would put a lone full-width strip under a
+                                         lone row, which reads as a rule rather than as a share,
+                                         so a single item prints its figure alone. --}}
                                     <div class="v-accounts__col">
                                         <h3 class="v-label v-accounts__title">Carrying the money</h3>
+                                        @php $revenueBars = count($accounts['byRevenue']) > 1; @endphp
                                         <ul class="v-rank">
                                             @foreach ($accounts['byRevenue'] as $item)
                                                 @php $m = $money((float) $item['revenue']); @endphp
-                                                <li class="v-rank__row">
+                                                <li class="v-rank__row {{ $revenueBars ? '' : 'v-rank__row--flat' }}">
                                                     <span class="v-rank__name">{{ $item['name'] }}</span>
                                                     <span class="v-money"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
-                                                    <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                                                        <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
-                                                        <rect class="v-rank__fill" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
-                                                    </svg>
+                                                    @if ($revenueBars)
+                                                        <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                                            <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
+                                                            <rect class="v-rank__fill" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
+                                                        </svg>
+                                                    @endif
                                                 </li>
                                             @endforeach
                                         </ul>
@@ -370,15 +402,18 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
                                     <div class="v-accounts__col">
                                         <h3 class="v-label v-accounts__title">Moving off the shelf</h3>
+                                        @php $unitBars = count($accounts['byUnits']) > 1; @endphp
                                         <ul class="v-rank">
                                             @foreach ($accounts['byUnits'] as $item)
-                                                <li class="v-rank__row">
+                                                <li class="v-rank__row {{ $unitBars ? '' : 'v-rank__row--flat' }}">
                                                     <span class="v-rank__name">{{ $item['name'] }}</span>
                                                     <span class="v-num v-rank__units">{{ number_format($item['units']) }}</span>
-                                                    <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                                                        <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
-                                                        <rect class="v-rank__fill v-rank__fill--units" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
-                                                    </svg>
+                                                    @if ($unitBars)
+                                                        <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                                            <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
+                                                            <rect class="v-rank__fill v-rank__fill--units" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
+                                                        </svg>
+                                                    @endif
                                                 </li>
                                             @endforeach
                                         </ul>
@@ -449,6 +484,10 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                     </section>
 
                     @include('admin.partials.day-sheet-outstanding')
+
+                    @include('admin.partials.day-sheet-automations')
+
+                    @include('admin.partials.day-sheet-activity')
                 </div>
             </div>
         @else
@@ -498,6 +537,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
                     @if ($standingNeeded ?? false)
                         @include('admin.partials.day-sheet-outstanding')
+                    @endif
+
+                    {{-- A store that has never traded has no feed to show,
+                         but a stalled automation is a fact on day one too. --}}
+                    @if ($automationHealth['unhealthy']->isNotEmpty())
+                        @include('admin.partials.day-sheet-automations')
                     @endif
                 </div>
             </div>

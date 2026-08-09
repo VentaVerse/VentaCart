@@ -85,7 +85,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         <span class="v-slab__name" title="{{ $vStoreName }}">{{ $vStoreName }}</span>
                     @endif
                 </a>
-                <button type="button" @click="closeNav()" class="v-slab__close v-tap lg:hidden" aria-label="Close navigation"
+                {{-- Drawer-only: shell.css removes it above lg, where the
+                     slab is permanent and has nothing to close. A Tailwind
+                     lg:hidden here loses to .v-tap's own display by
+                     specificity, which is the regression that put an X on
+                     a permanent sidebar. --}}
+                <button type="button" @click="closeNav()" class="v-slab__close v-tap" aria-label="Close navigation"
                         data-v-dialog-initial>
                     <x-admin.icon name="x" class="w-4 h-4" />
                 </button>
@@ -161,7 +166,9 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
         <div class="flex min-w-0 flex-col">
             <header class="v-topbar sticky top-0 z-30">
-                <button type="button" @click="mobileNav = true" class="v-tap lg:hidden text-v-secondary hover:text-v-text"
+                {{-- Drawer-only, like the close above: hidden above lg by
+                     shell.css rather than by a utility .v-tap outranks. --}}
+                <button type="button" @click="mobileNav = true" class="v-topbar__menu v-tap text-v-secondary hover:text-v-text"
                         aria-label="Open navigation" aria-controls="v-slab" :aria-expanded="mobileNav ? 'true' : 'false'">
                     <x-admin.icon name="menu" class="w-5 h-5" />
                 </button>
