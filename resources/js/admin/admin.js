@@ -12,7 +12,167 @@ window.storageUrl = function (path) {
     return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
 };
 
+// ------------------------------------------------------------------
+// One dialog mechanism for every overlay in the admin.
+//
+// The admin has four surfaces that behave as dialogs and used to have
+// four different amounts of nothing: x-admin.modal, x-admin.confirm-dialog
+// (which is a modal), the command palette, and the hand-rolled booking
+// modal and detail drawer in the courier-fulfillment extension. Rather
+// than four implementations, `x-dialog="<open expression>"` on the panel
+// gives all of them the same contract:
+//
+//   open  -> remember what had focus, move focus into the panel
+//            (its [data-v-dialog-initial] if it names one, otherwise its
+//            first focusable control), lock the page behind it
+//   while open -> Tab and Shift+Tab cycle inside the panel
+//   close -> unlock, return focus to what had it
+//
+// Escape stays with each surface, because each already owns the state
+// the key has to clear, and every one of them already handled it.
+//
+// Stacked dialogs (the fulfillment drawer opening the booking modal, a
+// confirm opening over a page) are handled by a stack: only the topmost
+// panel answers Tab, and the lock lifts when the last one closes.
+// ------------------------------------------------------------------
+const V_FOCUSABLE = [
+    'a[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    'summary',
+    '[tabindex]:not([tabindex="-1"])',
+].join(',');
+
+const vDialogStack = [];
+let vDialogSeq = 0;
+
+// Rendered and reachable. Anything an ancestor has hidden, collapsed or
+// marked inert is not a tab stop, so it is not a trap boundary either.
+function vIsVisible(el) {
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+}
+
+// tabIndex is the check that matters last: the command palette's results
+// are anchors carrying tabindex="-1" so the whole list is one tab stop,
+// and a trap that treated the final anchor as its boundary would let Tab
+// walk straight out of the panel.
+function vFocusable(root) {
+    return Array.from(root.querySelectorAll(V_FOCUSABLE))
+        .filter((el) => el.tabIndex >= 0 && !el.closest('[inert]') && vIsVisible(el));
+}
+
 document.addEventListener('alpine:init', () => {
+    window.Alpine.directive('dialog', (el, { expression }, { effect, evaluateLater, cleanup }) => {
+        const readOpen = evaluateLater(expression || 'true');
+        let active = false;
+        let restoreTo = null;
+        let openedAt = 0;
+
+        const onKeydown = (e) => {
+            if (e.key !== 'Tab' || !active) return;
+            if (vDialogStack[vDialogStack.length - 1] !== el) return;
+
+            const items = vFocusable(el);
+            if (!items.length) {
+                e.preventDefault();
+                el.focus();
+                return;
+            }
+            const first = items[0];
+            const last = items[items.length - 1];
+            const current = document.activeElement;
+
+            if (!el.contains(current)) {
+                e.preventDefault();
+                (e.shiftKey ? last : first).focus();
+            } else if (e.shiftKey && current === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && current === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+
+        const open = () => {
+            if (active) return;
+            active = true;
+            openedAt = ++vDialogSeq;
+
+            // Only a control the person can actually see is worth coming
+            // back to. Opening the booking modal from the detail drawer
+            // closes the drawer first, so the trigger is already gone.
+            const was = document.activeElement;
+            restoreTo = was && was !== document.body && vIsVisible(was) ? was : null;
+
+            vDialogStack.push(el);
+            document.documentElement.classList.add('v-scroll-lock');
+            if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+
+            // After the frame x-show has painted, or the panel is still
+            // display:none and nothing in it can take focus.
+            requestAnimationFrame(() => {
+                if (!active) return;
+                const named = el.querySelector('[data-v-dialog-initial]');
+                const target = named && vIsVisible(named) ? named : (vFocusable(el)[0] || el);
+                target.focus();
+            });
+        };
+
+        const close = () => {
+            if (!active) return;
+            active = false;
+
+            const at = vDialogStack.indexOf(el);
+            if (at > -1) vDialogStack.splice(at, 1);
+            if (!vDialogStack.length) document.documentElement.classList.remove('v-scroll-lock');
+
+            const target = restoreTo;
+            restoreTo = null;
+            // Something opened on top of us and owns focus now.
+            if (!target || vDialogSeq !== openedAt) return;
+            requestAnimationFrame(() => {
+                if (document.contains(target) && vIsVisible(target)) target.focus();
+            });
+        };
+
+        effect(() => readOpen((value) => (value ? open() : close())));
+
+        document.addEventListener('keydown', onKeydown, true);
+        cleanup(() => {
+            document.removeEventListener('keydown', onKeydown, true);
+            close();
+        });
+    });
+
+    // The admin shell's own state. The off-canvas slab is a drawer below
+    // lg and permanent navigation above it, so whether it is a dialog at
+    // all depends on the viewport: `lgUp` is what x-dialog and :inert
+    // both read, and it is a media query rather than a resize listener.
+    window.Alpine.data('vShell', () => ({
+        mobileNav: false,
+        lgUp: true,
+        init() {
+            const mq = window.matchMedia('(min-width: 1024px)');
+            this.lgUp = mq.matches;
+            mq.addEventListener('change', (e) => {
+                this.lgUp = e.matches;
+                if (e.matches) this.mobileNav = false;
+            });
+        },
+        // Closed and off-screen below lg: 27 controls that must not be
+        // tab stops. Above lg the slab is the page's navigation and is
+        // always live.
+        get navClosed() {
+            return !this.lgUp && !this.mobileNav;
+        },
+        closeNav() {
+            this.mobileNav = false;
+        },
+    }));
+
     window.Alpine.store('toasts', {
         items: [],
         counter: 0,

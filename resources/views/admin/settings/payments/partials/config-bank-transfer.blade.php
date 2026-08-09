@@ -66,12 +66,8 @@
                     <x-admin.table.cell align="right">
                         <div class="flex items-center justify-end gap-3 text-[13px]">
                             <a href="{{ route('admin.bank-accounts.edit', $acct) }}" class="text-v-accent hover:underline">Edit</a>
-                            <form method="POST" action="{{ route('admin.bank-accounts.destroy', $acct) }}" data-v-form
-                                onsubmit="return confirm('Remove {{ $acct->bank_name }}?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-v-danger hover:underline">Delete</button>
-                            </form>
+                            <button type="button" class="text-v-danger hover:underline"
+                                    @click="$dispatch('open-modal', 'delete-bank-account-{{ $acct->id }}')">Delete</button>
                         </div>
                     </x-admin.table.cell>
                 </x-admin.table.row>
@@ -82,6 +78,12 @@
             @endforelse
         </x-admin.table>
     </x-admin.card>
+
+    @foreach ($bankAccounts as $acct)
+        <x-admin.confirm-dialog name="delete-bank-account-{{ $acct->id }}" title="Delete {{ $acct->bank_name }}?"
+            message="{{ $acct->bank_name }} {{ $acct->account_number }} stops being offered at checkout and its QR code is deleted. Orders already paid to it keep their record."
+            confirm="Delete" :action="route('admin.bank-accounts.destroy', $acct)" method="DELETE" />
+    @endforeach
 
     <x-admin.card title="Add bank account">
         <form method="POST" action="{{ route('admin.bank-accounts.store') }}" enctype="multipart/form-data" data-v-form class="space-y-5">

@@ -113,7 +113,7 @@
                                             <span class="ml-1 text-xs text-v-muted">Default</span>
                                         </label>
                                     </div>
-                                    <button type="button" @click="addresses.splice(aIndex, 1)" class="text-v-danger hover:opacity-80">
+                                    <button type="button" @click="addresses.splice(aIndex, 1)" class="text-v-danger hover:opacity-80" aria-label="Remove address">
                                         <x-admin.icon name="trash" class="w-5 h-5" />
                                     </button>
                                 </div>
@@ -267,7 +267,7 @@
             <x-admin.form-actions class="mt-6 rounded-v-lg border border-v-border">
                 @if (isset($customer) && $customer->id)
                     <x-admin.button type="button" variant="secondary" class="text-v-warning"
-                        onclick="if(confirm('You will be logged in as {{ $customer->first_name }} {{ $customer->last_name }} on the storefront.')) window.location.href = '{{ route('admin.customers.impersonate', $customer) }}';">
+                        @click="$dispatch('open-modal', 'impersonate-customer')">
                         Login as Customer
                     </x-admin.button>
                 @endif
@@ -275,6 +275,14 @@
                 <x-admin.button type="submit">{{ $customer ? 'Update Customer' : 'Create Customer' }}</x-admin.button>
             </x-admin.form-actions>
         </form>
+
+        @if (isset($customer) && $customer->id)
+            <x-admin.confirm-dialog name="impersonate-customer" tone="primary"
+                title="Sign in as {{ $customer->first_name }} {{ $customer->last_name }}?"
+                message="The storefront opens as this customer, with their cart and their prices. Your admin session stays open, and Stop impersonating returns you to it."
+                confirm="Sign in as customer" method="GET"
+                :action="route('admin.customers.impersonate', $customer)" />
+        @endif
 
         @push('scripts')
         <script>

@@ -82,10 +82,8 @@
                                         <input type="hidden" name="is_enabled" value="1">
                                         <button type="submit" class="text-v-accent hover:underline">Set default</button>
                                     </form>
-                                    <form method="POST" action="{{ route('admin.theme.currencies.destroy', $cur) }}" data-v-form onsubmit="return confirm('Delete {{ $cur->code }}?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="text-v-danger hover:underline">Delete</button>
-                                    </form>
+                                    <button type="button" class="text-v-danger hover:underline"
+                                            @click="$dispatch('open-modal', 'delete-currency-{{ $cur->id }}')">Delete</button>
                                 @endunless
                             </div>
                         </x-admin.table.cell>
@@ -93,6 +91,14 @@
                 @endforeach
             </x-admin.table>
         </x-admin.card>
+
+        @foreach ($currencies as $cur)
+            @unless ($cur->is_default)
+                <x-admin.confirm-dialog name="delete-currency-{{ $cur->id }}" title="Delete {{ $cur->code }}?"
+                    message="{{ $cur->name }} is removed from the storefront switcher and from checkout. Prices already stored in it are unaffected."
+                    confirm="Delete" :action="route('admin.theme.currencies.destroy', $cur)" method="DELETE" />
+            @endunless
+        @endforeach
 
         <x-admin.card title="Add currency">
             <form method="POST" action="{{ route('admin.theme.currencies.store') }}" data-v-form class="grid grid-cols-2 gap-4 sm:grid-cols-5 sm:items-end">

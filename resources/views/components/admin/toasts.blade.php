@@ -16,7 +16,8 @@
             <x-admin.icon name="check" x-show="toast.tone === 'success'" class="w-4 h-4 text-v-accent mt-0.5 shrink-0" />
             <x-admin.icon name="warning" x-show="toast.tone === 'danger'" class="w-4 h-4 text-v-danger mt-0.5 shrink-0" />
             <span class="flex-1" x-text="toast.message"></span>
-            <button type="button" class="text-v-muted hover:text-v-text" @click="$store.toasts.dismiss(toast.id)">
+            <button type="button" class="text-v-muted hover:text-v-text" @click="$store.toasts.dismiss(toast.id)"
+                    aria-label="Dismiss notification">
                 <x-admin.icon name="x" class="w-3.5 h-3.5" />
             </button>
         </div>

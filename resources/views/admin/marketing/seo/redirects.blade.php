@@ -95,10 +95,8 @@
                                             <x-admin.table.cell align="right">
                                                 <div class="flex items-center justify-end gap-2">
                                                     <button type="button" @click="editing = !editing" class="text-xs text-v-accent hover:opacity-80">Edit</button>
-                                                    <form method="POST" action="{{ route('admin.extensions.seo.redirects.destroy', $r) }}" onsubmit="return confirm('Delete this redirect?')" class="inline">
-                                                        @csrf @method('DELETE')
-                                                        <button type="submit" class="text-xs text-v-danger hover:opacity-80">Delete</button>
-                                                    </form>
+                                                    <button type="button" class="text-xs text-v-danger hover:opacity-80"
+                                                        @click="$dispatch('open-modal', 'delete-redirect-{{ $r->id }}')">Delete</button>
                                                 </div>
                                             </x-admin.table.cell>
                                         </x-admin.table.row>
@@ -117,6 +115,12 @@
                                 </div>
                             @endif
                         </x-admin.card>
+
+                        @foreach ($redirects as $r)
+                            <x-admin.confirm-dialog name="delete-redirect-{{ $r->id }}" title="Delete this redirect?"
+                                message="{{ $r->source_path }} stops redirecting and starts returning a 404 again. Its {{ number_format($r->hits) }} recorded hits are deleted with it."
+                                confirm="Delete" :action="route('admin.extensions.seo.redirects.destroy', $r)" method="DELETE" />
+                        @endforeach
                     </div>
 
                     {{-- Right: add new --}}

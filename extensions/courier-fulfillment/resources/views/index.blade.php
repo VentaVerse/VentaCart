@@ -687,7 +687,14 @@
         <div x-show="drawerOpen" x-cloak class="fixed inset-0 z-50" @keydown.escape.window="closeDrawer()">
             <div class="absolute inset-0 bg-black/40" x-show="drawerOpen" x-transition.opacity @click="closeDrawer()"></div>
 
+            {{-- Hand-rolled rather than x-admin.modal because it reads the
+                 queue's own `active` order out of the parent Alpine scope,
+                 which a component's slot cannot see. The dialog contract is
+                 the shared one all the same: x-dialog moves focus in, holds
+                 it, and hands it back to the row button that opened it. --}}
             <div class="absolute inset-y-0 right-0 w-full max-w-md bg-v-surface border-l border-v-border shadow-2xl flex flex-col"
+                 x-dialog="drawerOpen" tabindex="-1"
+                 role="dialog" aria-modal="true" :aria-label="'Order #' + (active ? active.id : '') + ' fulfillment'"
                  x-show="drawerOpen"
                  x-transition:enter="transition ease-out duration-200"
                  x-transition:enter-start="translate-x-full"
@@ -704,7 +711,8 @@
                                 <h3 class="text-sm font-semibold text-v-text">Order <span x-text="'#' + active.id"></span></h3>
                                 <p class="text-xs text-v-muted mt-0.5" x-text="active.date"></p>
                             </div>
-                            <button type="button" @click="closeDrawer()" class="text-v-muted hover:text-v-text text-xl leading-none">&times;</button>
+                            <button type="button" @click="closeDrawer()" class="text-v-muted hover:text-v-text text-xl leading-none"
+                                    aria-label="Close" data-v-dialog-initial><span aria-hidden="true">&times;</span></button>
                         </div>
 
                         {{-- Big stepper (happy path) + terminal phase badge.
@@ -907,14 +915,19 @@
         @if (!empty($courierOptions))
             <div x-show="bookOpen" x-cloak class="fixed inset-0 z-[90] flex items-center justify-center p-4" @keydown.escape.window="closeBooking()">
                 <div class="absolute inset-0 bg-black/50" @click="closeBooking()"></div>
+                {{-- Hand-rolled for the same reason as the drawer above: it
+                     needs `active`, `step` and the courier form state from the
+                     queue's own scope. x-dialog gives it the same focus
+                     contract every x-admin.modal has. --}}
                 <div x-show="bookOpen" x-transition
                      class="relative w-full max-w-md bg-v-surface border border-v-border rounded-v-lg shadow-2xl max-h-full overflow-y-auto"
+                     x-dialog="bookOpen" tabindex="-1"
                      role="dialog" aria-modal="true" :aria-label="'Book order #' + (active ? active.id : '')">
                     <template x-if="active">
                         <div>
                             <header class="flex items-center justify-between px-5 pt-4">
                                 <h2 class="text-[15px] font-semibold text-v-text">Book order <span class="v-num" x-text="'#' + active.id"></span></h2>
-                                <button type="button" class="text-v-muted hover:text-v-text" @click="closeBooking()">
+                                <button type="button" class="text-v-muted hover:text-v-text" @click="closeBooking()" aria-label="Close">
                                     <x-admin.icon name="x" class="w-4 h-4" />
                                 </button>
                             </header>

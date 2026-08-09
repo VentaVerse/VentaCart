@@ -1204,9 +1204,12 @@ class FulfillmentQueueTest extends TestCase
         // The card's elevation moved from a Tailwind shadow to the .v-modal
         // token class in the blotter component pass, so the pinned string
         // moved with it; the property under test (whitespace-normal on this
-        // exact element) is asserted exactly as before.
+        // exact element) is asserted exactly as before. The dialog-semantics
+        // pass then added x-dialog/tabindex between x-transition and class on
+        // the same element, so the pattern tolerates attributes in between
+        // rather than pinning their absence.
         $this->assertMatchesRegularExpression(
-            '/<div x-show="open" x-transition\s+class="v-modal relative w-full max-w-sm bg-v-surface border border-v-border rounded-v-lg whitespace-normal"/',
+            '/<div x-show="open" x-transition[^>]*\s+class="v-modal relative w-full max-w-sm bg-v-surface border border-v-border rounded-v-lg whitespace-normal"/',
             $content,
             'Expected the modal card to carry whitespace-normal so slot content wraps inside nowrap ancestors (e.g. the fulfillment queue\'s .cf-col-act cell).'
         );

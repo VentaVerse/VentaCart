@@ -14,12 +14,8 @@
                                 <h3 class="v-label">Maintenance</h3>
                                 <p class="mt-1 text-xs text-v-secondary">Trim old entries to keep the log focused.</p>
                             </div>
-                            <form method="POST" action="{{ route('admin.extensions.seo.not-found.clear') }}"
-                                onsubmit="return confirm('Clear entries older than 30 days?')">
-                                @csrf
-                                <input type="hidden" name="older_than_days" value="30">
-                                <x-admin.button type="submit" variant="secondary" size="sm">Clear &gt;30 days</x-admin.button>
-                            </form>
+                            <x-admin.button type="button" variant="secondary" size="sm"
+                                @click="$dispatch('open-modal', 'clear-old-404s')">Clear &gt;30 days</x-admin.button>
                         </div>
                     </x-admin.card>
                 </div>
@@ -73,11 +69,8 @@
                                     <div class="flex items-center justify-end gap-3">
                                         <a href="{{ route('admin.extensions.seo.redirects.index', ['source_path' => $log->path]) }}"
                                             class="text-xs text-v-accent hover:opacity-80">Redirect</a>
-                                        <form method="POST" action="{{ route('admin.extensions.seo.not-found.destroy', $log) }}"
-                                            onsubmit="return confirm('Remove this entry from the log?')" class="inline">
-                                            @csrf @method('DELETE')
-                                            <button type="submit" class="text-xs text-v-danger hover:opacity-80">Dismiss</button>
-                                        </form>
+                                        <button type="button" class="text-xs text-v-danger hover:opacity-80"
+                                            @click="$dispatch('open-modal', 'dismiss-404-{{ $log->id }}')">Dismiss</button>
                                     </div>
                                 </x-admin.table.cell>
                             </x-admin.table.row>
@@ -97,5 +90,19 @@
                 </x-admin.card>
             </div>
         </div>
+
+        <x-admin.confirm-dialog name="clear-old-404s" title="Clear entries older than 30 days?"
+            message="Every logged 404 last hit more than 30 days ago is deleted, along with its hit count. Redirects you have already created are untouched."
+            confirm="Clear log" :action="route('admin.extensions.seo.not-found.clear')">
+            <x-slot name="fields">
+                <input type="hidden" name="older_than_days" value="30">
+            </x-slot>
+        </x-admin.confirm-dialog>
+
+        @foreach ($logs as $log)
+            <x-admin.confirm-dialog name="dismiss-404-{{ $log->id }}" title="Remove this entry?"
+                message="{{ $log->path }} is deleted from the log with its {{ number_format($log->hits) }} recorded hits. It comes back if the URL is requested again."
+                confirm="Remove" :action="route('admin.extensions.seo.not-found.destroy', $log)" method="DELETE" />
+        @endforeach
     </x-admin.page>
 </x-admin.shell>

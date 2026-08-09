@@ -251,7 +251,7 @@
                                         <div class="flex items-center gap-2">
                                             <input type="text" x-model="link.label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md" placeholder="Label">
                                             <input type="text" x-model="link.url" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md" placeholder="/url">
-                                            <button type="button" @click="links.splice(idx, 1)" class="text-v-danger hover:opacity-80">
+                                            <button type="button" @click="links.splice(idx, 1)" class="text-v-danger hover:opacity-80" aria-label="Remove link">
                                                 <x-admin.icon name="trash" class="w-4 h-4" />
                                             </button>
                                         </div>
@@ -282,7 +282,7 @@
                                         </span>
                                     </div>
                                     <x-admin.badge :tone="$item->is_enabled ? 'success' : 'neutral'">{{ $item->is_enabled ? 'Active' : 'Disabled' }}</x-admin.badge>
-                                    <button type="button" class="text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-nav-{{ $item->id }}')">
+                                    <button type="button" class="text-v-danger hover:opacity-80" aria-label="Delete {{ $item->label }}" @click="$dispatch('open-modal', 'delete-nav-{{ $item->id }}')">
                                         <x-admin.icon name="trash" class="w-4 h-4" />
                                     </button>
                                     <x-admin.confirm-dialog name="delete-nav-{{ $item->id }}" title="Delete menu item"
@@ -342,10 +342,10 @@
                                         <x-admin.badge tone="info">{{ $section->type }}</x-admin.badge>
                                         <span class="text-[13px] font-medium text-v-text flex-1">{{ $section->title }}</span>
                                         <x-admin.badge :tone="$section->is_enabled ? 'success' : 'neutral'">{{ $section->is_enabled ? 'Active' : 'Disabled' }}</x-admin.badge>
-                                        <button type="button" @click="expanded = !expanded" class="text-v-secondary hover:text-v-text">
+                                        <button type="button" @click="expanded = !expanded" class="text-v-secondary hover:text-v-text" aria-label="Section settings" :aria-expanded="expanded ? 'true' : 'false'">
                                             <x-admin.icon name="chevron-down" class="w-4 h-4 transition-transform" x-bind:class="expanded && 'rotate-180'" />
                                         </button>
-                                        <button type="button" class="text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-section-{{ $section->id }}')">
+                                        <button type="button" class="text-v-danger hover:opacity-80" aria-label="Delete {{ $section->title }}" @click="$dispatch('open-modal', 'delete-section-{{ $section->id }}')">
                                             <x-admin.icon name="trash" class="w-4 h-4" />
                                         </button>
                                         <x-admin.confirm-dialog name="delete-section-{{ $section->id }}" title="Delete section"
@@ -558,7 +558,7 @@
                                                 <input type="hidden" name="columns[{{ $col->id }}][is_enabled]" value="0">
                                                 <input type="checkbox" name="columns[{{ $col->id }}][is_enabled]" value="1" {{ $col->is_enabled ? 'checked' : '' }} class="w-3.5 h-3.5 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
                                             </label>
-                                            <button type="button" @click.stop="$dispatch('open-modal', 'delete-footer-col-{{ $col->id }}')" class="text-v-muted hover:text-v-danger">
+                                            <button type="button" @click.stop="$dispatch('open-modal', 'delete-footer-col-{{ $col->id }}')" class="text-v-muted hover:text-v-danger" aria-label="Delete {{ $col->title }} footer column">
                                                 <x-admin.icon name="trash" class="w-4 h-4" />
                                             </button>
                                         </div>
@@ -571,7 +571,7 @@
                                                         <div class="flex items-center gap-2">
                                                             <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][label]'" x-model="link.label" placeholder="Label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                                             <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="link.url" placeholder="/slug" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                                            <button type="button" @click="links.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1">
+                                                            <button type="button" @click="links.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove link">
                                                                 <x-admin.icon name="x" class="w-4 h-4" />
                                                             </button>
                                                         </div>
@@ -590,7 +590,7 @@
                                                                 <option value="tiktok">TikTok</option>
                                                             </select>
                                                             <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" placeholder="https://..." class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                                            <button type="button" @click="socials.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1">
+                                                            <button type="button" @click="socials.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove social link">
                                                                 <x-admin.icon name="x" class="w-4 h-4" />
                                                             </button>
                                                         </div>
@@ -618,7 +618,7 @@
                                                                     <input type="file" :name="'icon_uploads[{{ $col->id }}]['+idx+']'" accept="image/*" class="text-xs text-v-muted file:mr-2 file:py-1 file:px-2 file:rounded-v-sm file:border-0 file:text-xs file:bg-v-accent-weak file:text-v-accent">
                                                                 </div>
                                                             </template>
-                                                            <button type="button" @click="payIcons.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1">
+                                                            <button type="button" @click="payIcons.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove payment icon">
                                                                 <x-admin.icon name="x" class="w-4 h-4" />
                                                             </button>
                                                         </div>

@@ -112,11 +112,11 @@
                             </div>
                             {{-- Copy path + Delete --}}
                             <div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button type="button" @click="copyPath(file.path)"
+                                <button type="button" @click="copyPath(file.path)" :aria-label="'Copy path to ' + file.name"
                                     class="w-6 h-6 bg-v-surface/90 backdrop-blur-sm rounded-full flex items-center justify-center text-v-muted hover:text-v-accent shadow-sm border border-v-border" title="Copy path">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
                                 </button>
-                                <button type="button" @click="deleteFile(file)"
+                                <button type="button" @click="askDelete(file)" :aria-label="'Delete ' + file.name"
                                     class="w-6 h-6 bg-v-surface/90 backdrop-blur-sm rounded-full flex items-center justify-center text-v-muted hover:text-v-danger shadow-sm border border-v-border" title="Delete">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
@@ -136,6 +136,16 @@
                  :class="toastType === 'error' ? 'bg-v-danger text-v-danger-text' : 'bg-v-accent text-v-accent-text'">
                 <span x-text="toast"></span>
             </div>
+
+            {{-- Inside mediaManager's scope so the dialog can read the file
+                 the person picked and call the same deleteFile() the button
+                 used to call directly. --}}
+            <x-admin.confirm-dialog name="delete-media-file" title="Delete this file?"
+                confirm="Delete" onConfirm="deleteFile(pendingDelete)">
+                <span x-text="pendingDelete
+                    ? pendingDelete.name + ' is deleted from the server. Any product or page still pointing at it loses its image.'
+                    : ''"></span>
+            </x-admin.confirm-dialog>
         </div>
 
         @push('scripts')
@@ -156,6 +166,7 @@
                 uploadStatus: '',
                 toast: '',
                 toastType: 'success',
+                pendingDelete: null,
 
                 init() {
                     this.browseDir('');
@@ -282,8 +293,13 @@
                     });
                 },
 
+                askDelete(file) {
+                    this.pendingDelete = file;
+                    this.$dispatch('open-modal', 'delete-media-file');
+                },
+
                 async deleteFile(file) {
-                    if (!confirm('Delete "' + file.name + '" from server?')) return;
+                    if (!file) return;
 
                     const res = await fetch('{{ route("admin.products.images.delete") }}', {
                         method: 'POST',

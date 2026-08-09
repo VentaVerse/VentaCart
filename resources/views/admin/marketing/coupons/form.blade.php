@@ -133,7 +133,7 @@
                                         <template x-for="item in items" :key="item.id">
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-v-accent-weak text-v-accent text-xs font-medium rounded-v-md">
                                                 <span x-text="item.label"></span>
-                                                <button type="button" @click="remove(item.id)" class="text-v-accent hover:opacity-70">
+                                                <button type="button" @click="remove(item.id)" class="text-v-accent hover:opacity-70" :aria-label="'Remove ' + item.label">
                                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                                 </button>
                                             </span>

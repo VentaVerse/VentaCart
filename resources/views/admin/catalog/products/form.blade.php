@@ -76,7 +76,7 @@
                                 </div>
                                 <div x-show="selectedName" class="mt-1 flex items-center">
                                     <span class="text-xs text-v-accent" x-text="selectedName"></span>
-                                    <button type="button" @click="clear()" class="ml-1 text-v-muted hover:text-v-danger">
+                                    <button type="button" @click="clear()" class="ml-1 text-v-muted hover:text-v-danger" :aria-label="'Clear ' + selectedName">
                                         <x-admin.icon name="x" class="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -288,7 +288,7 @@
                                 <template x-for="tag in selectedTags" :key="tag.id">
                                     <span class="inline-flex items-center gap-1 rounded-full border border-v-border bg-v-accent-weak px-2 py-0.5 text-xs font-medium text-v-accent">
                                         <span x-text="tag.name"></span>
-                                        <button type="button" @click="remove(tag.id)" class="text-v-accent hover:opacity-70">
+                                        <button type="button" @click="remove(tag.id)" class="text-v-accent hover:opacity-70" :aria-label="'Remove tag ' + tag.name">
                                             <x-admin.icon name="x" class="w-3 h-3" />
                                         </button>
                                     </span>
@@ -346,7 +346,7 @@
                                             <div class="inline-flex items-center gap-0.5 overflow-hidden rounded-v-md border border-v-border bg-v-surface">
                                                 <input type="text" x-model="type.values[valueIndex]" :name="'variant_types['+typeIndex+'][values]['+valueIndex+']'" placeholder="Value"
                                                     class="w-36 border-0 bg-transparent px-2 py-1 text-[13px] text-v-text focus:ring-0" @input="generateCombinations()">
-                                                <button type="button" @click="type.values.splice(valueIndex, 1); generateCombinations()"
+                                                <button type="button" @click="type.values.splice(valueIndex, 1); generateCombinations()" aria-label="Remove variant value"
                                                     class="px-1.5 py-1 text-v-muted transition-colors hover:bg-v-danger/10 hover:text-v-danger">
                                                     <x-admin.icon name="x" class="w-3 h-3" />
                                                 </button>
@@ -507,7 +507,7 @@
                                                     class="{{ $vInputSm }} w-36">
                                             </td>
                                             <td class="px-3 py-2">
-                                                <button type="button" @click="specials.splice(sIndex, 1)" class="text-v-danger hover:opacity-80">
+                                                <button type="button" @click="specials.splice(sIndex, 1)" class="text-v-danger hover:opacity-80" aria-label="Remove price rule">
                                                     <x-admin.icon name="trash" class="w-5 h-5" />
                                                 </button>
                                             </td>

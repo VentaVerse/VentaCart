@@ -21,6 +21,15 @@
 $prose = $hint ?? $help;
 $key = $errorKey ?? $name;
 $message = $key ? $errors->first($key) : null;
+
+// The control already takes `id="{$name}"` from x-admin.input/select/
+// textarea/toggle, which is what makes `for` above resolve. The hint
+// and the error extend that one convention rather than starting a
+// second: "{$name}-hint" and "{$key}-error". The controls read the same
+// two props back out with @aware and point aria-describedby at them, so
+// none of the 288 callers changes.
+$hintId = $name . '-hint';
+$errorId = $key . '-error';
 @endphp
 <div {{ $attributes->merge(['class' => 'v-field']) }}>
     @if ($label)
@@ -32,7 +41,7 @@ $message = $key ? $errors->first($key) : null;
 
     {{ $slot }}
 
-    @if ($prose)<div class="v-field__hint">{{ $prose }}</div>@endif
+    @if ($prose)<div id="{{ $hintId }}" class="v-field__hint">{{ $prose }}</div>@endif
 
-    @if ($message)<div class="v-field__error">{{ $message }}</div>@endif
+    @if ($message)<div id="{{ $errorId }}" class="v-field__error">{{ $message }}</div>@endif
 </div>

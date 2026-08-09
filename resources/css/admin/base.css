@@ -61,6 +61,15 @@ html:has(> body.v-admin) { background: var(--canvas); }
 
 [x-cloak] { display: none !important; }
 
+/* While any dialog is open the page behind it is not a place you can
+   go, so it stops scrolling under the scrim. The class is put on and
+   taken off by the x-dialog directive, which counts open dialogs, so a
+   confirm opened over a drawer does not unlock the page when only the
+   confirm closes. scrollbar-gutter holds the width the scrollbar was
+   occupying, so nothing behind the scrim shifts sideways. */
+html:has(> body.v-admin) { scrollbar-gutter: stable; }
+html.v-scroll-lock { overflow: hidden; }
+
 /* ------------------------------------------------------------
    Sheets
 

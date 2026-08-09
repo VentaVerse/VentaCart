@@ -167,7 +167,7 @@
                             {{-- Preview --}}
                             <div x-show="selectedPath" class="relative inline-block">
                                 <img :src="previewUrl" class="w-full max-w-[200px] h-auto rounded-v-md border border-v-border" alt="Featured image">
-                                <button type="button" @click="selectedPath = ''" class="absolute top-1 right-1 w-6 h-6 bg-v-danger text-v-danger-text rounded-full flex items-center justify-center hover:opacity-90 shadow-sm">
+                                <button type="button" @click="selectedPath = ''" aria-label="Remove featured image" class="absolute top-1 right-1 w-6 h-6 bg-v-danger text-v-danger-text rounded-full flex items-center justify-center hover:opacity-90 shadow-sm">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
                             </div>
@@ -200,7 +200,7 @@
                                                 </template>
                                             </nav>
                                         </div>
-                                        <button type="button" @click="browserOpen = false" class="text-v-muted hover:text-v-text p-1 rounded-v-md hover:bg-v-hover">
+                                        <button type="button" @click="browserOpen = false" aria-label="Close" class="text-v-muted hover:text-v-text p-1 rounded-v-md hover:bg-v-hover">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                                         </button>
                                     </div>

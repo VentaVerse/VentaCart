@@ -147,11 +147,11 @@
                                     badge.textContent = 'Pending Review';
                                 }
                             } else {
-                                alert(data.error || 'Failed to generate suggestion.');
+                                window.Alpine.store('toasts').push(data.error || 'Could not generate a suggestion.', 'danger');
                             }
                         } catch (e) {
                             this.optimizing = null;
-                            alert('Network error. Please try again.');
+                            window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'danger');
                         }
                     },
                     async acceptSuggestion(suggestionId, entityId) {
@@ -180,7 +180,7 @@
                                 }
                             }
                         } catch (e) {
-                            alert('Network error. Please try again.');
+                            window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'danger');
                         }
                     },
                     async rejectSuggestion(suggestionId, entityId) {
@@ -197,7 +197,7 @@
                                 this.suggestion = null;
                             }
                         } catch (e) {
-                            alert('Network error. Please try again.');
+                            window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'danger');
                         }
                     }
                 }" class="bg-v-surface border border-v-border rounded-v-lg">
@@ -307,7 +307,7 @@
                                                                 <x-admin.button type="button" variant="danger" size="sm" @click="rejectSuggestion(suggestion.id, {{ $entity->id }})">Reject</x-admin.button>
                                                             </div>
                                                         </template>
-                                                        <button @click="expanded = null" class="inline-flex items-center px-2 py-1.5 text-v-muted hover:text-v-text">
+                                                        <button type="button" @click="expanded = null" aria-label="Close suggestion" class="inline-flex items-center px-2 py-1.5 text-v-muted hover:text-v-text">
                                                             <x-admin.icon name="x" class="h-3.5 w-3.5" />
                                                         </button>
                                                     </div>

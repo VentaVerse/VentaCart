@@ -507,7 +507,7 @@
                                                 </td>
                                                 <td class="v-num px-3 py-2 text-[13px] font-medium text-v-text" x-text="(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)"></td>
                                                 <td class="px-3 py-2">
-                                                    <button type="button" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())" class="text-v-danger hover:opacity-80">
+                                                    <button type="button" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())" class="text-v-danger hover:opacity-80" aria-label="Remove line item">
                                                         <x-admin.icon name="trash" class="h-4 w-4" />
                                                     </button>
                                                 </td>

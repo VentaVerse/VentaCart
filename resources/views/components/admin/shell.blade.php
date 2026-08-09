@@ -39,7 +39,7 @@
     @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
     @stack('head')
 </head>
-<body class="v-admin min-h-screen" x-data="{ mobileNav: false }" x-on:keydown.escape.window="mobileNav = false">
+<body class="v-admin min-h-screen" x-data="vShell()" x-on:keydown.escape.window="closeNav()">
 <!--
 IMPECCABLE DIRECTION CONTRACT
 THESIS: Venta's admin is the ERP's sibling, not its twin. It refuses the neutral grey admin chrome it inherited and the temptation to look like a different product family.
@@ -51,12 +51,24 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 -->
     <div class="lg:grid lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] min-h-screen">
         {{-- Scrim, mobile only. --}}
-        <div x-show="mobileNav" x-transition.opacity x-cloak @click="mobileNav = false"
+        <div x-show="mobileNav" x-transition.opacity x-cloak @click="closeNav()"
              class="fixed inset-0 z-40 bg-black/45 lg:hidden" aria-hidden="true"></div>
 
-        {{-- The slab. Off-canvas below lg, permanent above it. --}}
+        {{-- The slab. Off-canvas below lg, permanent above it.
+
+             Below lg it is a drawer, and a closed drawer is not a place
+             you can be: inert takes its 27 controls out of the tab order
+             rather than leaving them focusable 216px off-screen, and
+             x-dialog holds focus inside it while it is open and hands it
+             back to the hamburger when it closes. Both are gated on
+             lgUp, because above lg this is simply the page's navigation
+             and every one of those controls should be reachable.
+             inert does not touch the transform, so the slide is
+             unchanged. --}}
         <aside :class="mobileNav ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
-               aria-label="Navigation"
+               :inert="navClosed"
+               x-dialog="mobileNav && !lgUp"
+               id="v-slab" aria-label="Navigation"
                class="v-slab fixed inset-y-0 left-0 z-50 flex w-[var(--sidebar-w)] flex-col transition-transform duration-200 lg:static">
             <div class="v-slab__brand">
                 <a href="{{ route('admin.dashboard') }}" class="v-slab__home" aria-label="{{ $vStoreName }} dashboard">
@@ -69,7 +81,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         <span class="v-slab__name" title="{{ $vStoreName }}">{{ $vStoreName }}</span>
                     @endif
                 </a>
-                <button type="button" @click="mobileNav = false" class="v-slab__close lg:hidden" aria-label="Close navigation">
+                <button type="button" @click="closeNav()" class="v-slab__close lg:hidden" aria-label="Close navigation"
+                        data-v-dialog-initial>
                     <x-admin.icon name="x" class="w-4 h-4" />
                 </button>
             </div>
@@ -99,6 +112,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                 <button type="button"
                                         @click="group = (group === '{{ $vKey }}' ? null : '{{ $vKey }}')"
                                         :aria-expanded="group === '{{ $vKey }}' ? 'true' : 'false'"
+                                        aria-controls="v-nav-{{ $vKey }}"
                                         class="v-nav__toggle">
                                     <x-admin.icon :name="$group['icon'] ?? $group['items'][0]['icon']" class="w-[17px] h-[17px] shrink-0" />
                                     <span class="v-nav__label">{{ $group['label'] }}</span>
@@ -110,7 +124,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                      CSS-only way to transition to a height nobody measured, where
                                      x-show would snap. inert keeps a closed group's links out of
                                      the tab order rather than merely out of sight. --}}
-                                <div class="v-collapse" :class="group === '{{ $vKey }}' && 'is-open'"
+                                <div class="v-collapse" id="v-nav-{{ $vKey }}"
+                                     :class="group === '{{ $vKey }}' && 'is-open'"
                                      :inert="group !== '{{ $vKey }}'">
                                     <div class="v-collapse__inner">
                                         @foreach ($group['items'] as $item)
@@ -142,7 +157,8 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
         <div class="flex min-w-0 flex-col">
             <header class="v-topbar sticky top-0 z-30">
-                <button type="button" @click="mobileNav = true" class="lg:hidden text-v-secondary hover:text-v-text" aria-label="Open navigation">
+                <button type="button" @click="mobileNav = true" class="lg:hidden text-v-secondary hover:text-v-text"
+                        aria-label="Open navigation" aria-controls="v-slab" :aria-expanded="mobileNav ? 'true' : 'false'">
                     <x-admin.icon name="menu" class="w-5 h-5" />
                 </button>
 
@@ -164,11 +180,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
                     <div class="v-account" x-data="{ open: false }" @keydown.escape="open = false">
                         <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'"
+                                aria-haspopup="true" aria-controls="v-account-menu"
                                 class="flex items-center gap-2 text-[13px] font-medium text-v-text">
                             <span class="v-account__avatar">{{ mb_strtoupper(mb_substr($vUserName, 0, 2)) }}</span>
                             <span class="hidden sm:inline">{{ $vUserName }}</span>
                         </button>
                         <div x-show="open" x-cloak @click.outside="open = false" x-transition.duration.120ms
+                             id="v-account-menu"
                              class="v-menu absolute right-0 z-50 mt-1.5 w-56 overflow-hidden rounded-v-lg border border-v-strong bg-v-surface py-1">
                             <div class="border-b border-v-border px-3.5 pb-2 pt-1">
                                 <div class="text-[13px] font-semibold text-v-text">{{ $vUserName }}</div>

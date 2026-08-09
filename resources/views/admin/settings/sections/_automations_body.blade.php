@@ -101,6 +101,7 @@
                     <x-admin.table.cell>
                         <button type="button"
                                 role="switch"
+                                aria-label="Enable {{ $automation->name }}"
                                 :aria-checked="enabled.toString()"
                                 @click="toggle({{ $automation->id }}, $event)"
                                 :class="enabled ? 'bg-v-accent' : 'bg-v-strong'"
@@ -133,7 +134,7 @@
                                      compiles — see the Copy button above for the
                                      full explanation. --}}
                                 <x-admin.button type="button" variant="primary" size="sm"
-                                    @click="runNow({{ $automation->id }}, {{ \Illuminate\Support\Js::from($automation->command) }}, $event)"
+                                    @click="askRun({{ $automation->id }}, {{ \Illuminate\Support\Js::from($automation->command) }}, $event)"
                                     x-bind:disabled="!enabled || running">
                                     <span x-show="!running">Run Now</span>
                                     <span x-show="running" x-cloak>Running...</span>
@@ -156,17 +157,22 @@
          x-transition.opacity>
         <div class="absolute inset-0 bg-black/50" @click="closeEditor()"></div>
 
+        {{-- Hand-rolled rather than x-admin.modal because its body reads
+             automationsTab's own editor state. x-dialog gives it the same
+             focus contract every x-admin.modal has. --}}
         <div class="relative bg-v-surface rounded-v-lg shadow-2xl border border-v-border w-full max-w-lg max-h-[90vh] overflow-y-auto"
+             x-dialog="editor.open" tabindex="-1"
+             role="dialog" aria-modal="true" aria-labelledby="automation-editor-title"
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 translate-y-2"
              x-transition:enter-end="opacity-100 translate-y-0">
 
             <div class="px-5 py-4 border-b border-v-border flex items-start justify-between">
                 <div>
-                    <h4 class="text-[15px] font-semibold text-v-text" x-text="editor.name"></h4>
+                    <h4 id="automation-editor-title" class="text-[15px] font-semibold text-v-text" x-text="editor.name"></h4>
                     <code class="text-xs font-vmono text-v-muted" x-text="editor.command"></code>
                 </div>
-                <button type="button" @click="closeEditor()" class="text-v-muted hover:text-v-text p-1 -m-1">
+                <button type="button" @click="closeEditor()" class="text-v-muted hover:text-v-text p-1 -m-1" aria-label="Close"
                     <x-admin.icon name="x" class="w-5 h-5" />
                 </button>
             </div>
@@ -202,7 +208,7 @@
 
                 {{-- Hourly --}}
                 <div x-show="editor.preset === 'hourly'" x-cloak>
-                    <x-admin.field name="hourly_minute" label="Minute of the hour (0–59)">
+                    <x-admin.field name="hourly_minute" label="Minute of the hour (0-59)">
                         <x-admin.input name="hourly_minute" type="number" min="0" max="59" step="1" x-model.number="editor.params.minute" />
                     </x-admin.field>
                 </div>
@@ -267,6 +273,16 @@
             </div>
         </div>
     </div>
+
+    {{-- Inside automationsTab's scope so the dialog can call the same
+         runNow() the button used to call directly, against the row scope
+         askRun() captured. --}}
+    <x-admin.confirm-dialog name="run-automation" tone="primary" title="Run this automation now?"
+        confirm="Run now" onConfirm="runNow()">
+        <span x-text="pendingRun
+            ? pendingRun.command + ' runs immediately, on top of its schedule. It can take up to five minutes and does everything a scheduled run does, including sending any email it sends.'
+            : ''"></span>
+    </x-admin.confirm-dialog>
 </div>
 
 {{-- Alpine component definition --}}
@@ -277,6 +293,8 @@
             updateUrlTemplate: config.updateUrlTemplate,
             toggleUrlTemplate: config.toggleUrlTemplate,
             runUrlTemplate: config.runUrlTemplate,
+
+            pendingRun: null,
 
             editor: {
                 open: false,
@@ -330,10 +348,23 @@
             },
 
             // ---------- Run Now ----------
-            async runNow(id, command, evt) {
-                if (!window.confirm('Run `' + command + '` now?')) return;
+            // The row's own Alpine scope (which owns `running`) is resolved
+            // from the click on the row button, because by the time the
+            // confirmation's button is clicked the nearest [x-data] is the
+            // dialog's, not the row's.
+            askRun(id, command, evt) {
+                this.pendingRun = {
+                    id,
+                    command,
+                    scope: Alpine.$data(evt.currentTarget.closest('[x-data]')),
+                };
+                this.$dispatch('open-modal', 'run-automation');
+            },
 
-                const scope = Alpine.$data(evt.currentTarget.closest('[x-data]'));
+            async runNow() {
+                if (!this.pendingRun) return;
+                const { id, command, scope } = this.pendingRun;
+
                 scope.running = true;
                 this.showToast('info', 'Running ' + command + '…', 'This can take up to 5 minutes.');
 
