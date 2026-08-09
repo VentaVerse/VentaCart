@@ -12,6 +12,7 @@ use App\Models\Review;
 use App\Models\SeoSuggestion;
 use App\Models\Setting;
 use App\Support\AdminNav;
+use App\Support\Inventory;
 use App\Support\LowStock;
 use App\Support\RunningAccounts;
 use App\Support\Standing;
@@ -101,6 +102,10 @@ class DashboardController extends Controller
             fn (Automation $automation) => $this->isAutomationUnhealthy($automation)
         )->values();
 
+        $cartsRecoverable = Cart::whereHas('items')
+            ->where('updated_at', '<', $now->copy()->subHour())
+            ->count();
+
         $standingLines = [
             [
                 'label' => 'Reviews awaiting approval',
@@ -114,7 +119,7 @@ class DashboardController extends Controller
             ],
             [
                 'label' => 'Carts recoverable',
-                'count' => Cart::whereHas('items')->where('updated_at', '<', $now->copy()->subHour())->count(),
+                'count' => $cartsRecoverable,
                 'url'   => route('admin.abandoned-carts.index'),
             ],
         ];
@@ -143,6 +148,8 @@ class DashboardController extends Controller
         $accountsFrom = $today->copy()->subDays(self::ACCOUNT_DAYS - 1);
         $accounts = RunningAccounts::for($storeId, $accountsFrom, $tomorrow);
 
+        $inventory = Inventory::for($storeId);
+
         $entries = $this->entries($storeId, $today, $tomorrow);
         $entriesTruncated = $entries->count() > self::MAX_ENTRIES;
         $entries = $entries->take(self::MAX_ENTRIES);
@@ -158,12 +165,234 @@ class DashboardController extends Controller
             'pulse'            => $pulse,
             'bands'            => $this->pulseBands($pulse, $now),
             'plot'             => $pulse['plot'],
+            'stats'            => $this->statBlocks($pulse, $fulfillment, $lowStockCount, $inventory, $cartsRecoverable),
+            // The two figures the band now leads with are not repeated as
+            // work lines underneath it. What is left is what the band did
+            // not take, and the list disappears when that is nothing.
+            'workRemaining'    => array_slice($fulfillment['lines'], 1),
             'accounts'         => $accounts,
             'accountsLabel'    => 'Last ' . self::ACCOUNT_DAYS . ' days',
+            'mix'              => $accounts['payments'],
+            'ring'             => $this->ring($accounts),
+            'inventory'        => $inventory,
             'entries'          => $entries,
             'entriesTruncated' => $entriesTruncated,
             'lastEntryLabel'   => $this->whenLastEntryArrived($lastEntryAt, $today),
         ]));
+    }
+
+    /**
+     * The five figures the page leads with, as filled blocks.
+     *
+     * WHY FIVE FILLED BLOCKS AT ALL. The sheet used to open with ruled
+     * lines of the same weight as everything under them, and blurred, the
+     * whole page read as one grey texture with no way in. These carry
+     * saturated ground and a figure four times the size of the body, so a
+     * merchant glancing at the tab knows the shape of the day before
+     * reading a word. It is the layout the ERP arrived at for the same
+     * problem, and it is the reason for this pass.
+     *
+     * COLOUR IS IDENTITY, NEVER STATE. The accent says WHICH measure you
+     * are reading, so the same figure keeps the same hue whether it is
+     * good news or bad, and the written label carries the meaning for
+     * anyone not reading hue at all. Nothing here goes red because it is
+     * low. State stays where it already lives: the change column, the
+     * status badges, the work counts.
+     *
+     * EVERY BLOCK LINKS TO THE SCREEN THAT RESOLVES IT, which is what
+     * separates a figure from a decoration. A block whose destination
+     * cannot be named is not shown.
+     *
+     * THE FOURTH BLOCK IS NOT ALWAYS THE SAME MEASURE. Parcels to pack
+     * belongs to the fulfillment module, and on a store running without it
+     * there is no such figure and no queue to link to. Rather than print a
+     * dash or drop to four blocks, the slot falls back to a core figure of
+     * the same kind: work waiting, with a screen that clears it.
+     *
+     * @param  array{lines:array, counts:array, enabled:bool}  $fulfillment
+     * @param  array{products:int, outOfStock:int, atSale:float}  $inventory
+     */
+    private function statBlocks(
+        array $pulse,
+        array $fulfillment,
+        int $lowStockCount,
+        array $inventory,
+        int $cartsRecoverable
+    ): array {
+        $usual = 'a usual ' . $pulse['usual']['weekday'];
+
+        $stats = [
+            [
+                'key' => 'revenue-today',
+                'accent' => 'cyan',
+                'icon' => 'banknote',
+                'label' => 'Revenue today',
+                'money' => true,
+                'value' => $pulse['today']['revenue'],
+                'note' => $this->changeSentence(
+                    Standing::change($pulse['today']['revenue'], $pulse['usual']['revenue']),
+                    $usual
+                ),
+                'url' => route('admin.orders.index'),
+            ],
+            [
+                'key' => 'orders-today',
+                'accent' => 'violet',
+                'icon' => 'cart',
+                'label' => 'Orders today',
+                'money' => false,
+                'value' => $pulse['today']['placed'],
+                'note' => $this->changeSentence(
+                    Standing::change((float) $pulse['today']['placed'], (float) $pulse['usual']['placed']),
+                    $usual
+                ),
+                'url' => route('admin.orders.index'),
+            ],
+            [
+                'key' => 'month-to-date',
+                'accent' => 'green',
+                'icon' => 'trending-up',
+                'label' => $pulse['month']['label'] . ' so far',
+                'money' => true,
+                'value' => $pulse['month']['revenue'],
+                // A store younger than a year has no reference at all,
+                // which is a different fact from a reference of zero and
+                // must not be dressed as one.
+                'note' => $pulse['reference']['exists']
+                    ? $this->changeSentence(
+                        Standing::change($pulse['month']['revenue'], $pulse['reference']['revenue']),
+                        $pulse['reference']['label']
+                    )
+                    : 'no record a year back',
+                'url' => route('admin.orders.index'),
+            ],
+        ];
+
+        if ($fulfillment['enabled']) {
+            $toPack = (int) ($fulfillment['counts']['to_pack'] ?? 0);
+            $handover = (int) ($fulfillment['counts']['to_handover'] ?? 0);
+
+            $stats[] = [
+                'key' => 'to-pack',
+                'accent' => 'amber',
+                'icon' => 'fulfillment',
+                'label' => 'Parcels to pack',
+                'money' => false,
+                'value' => $toPack,
+                'note' => $handover === 0
+                    ? 'none awaiting handover'
+                    : number_format($handover) . ' awaiting handover',
+                'url' => $fulfillment['lines'][0]['url'],
+            ];
+        } else {
+            $stats[] = [
+                'key' => 'carts',
+                'accent' => 'amber',
+                'icon' => 'cart',
+                'label' => 'Carts recoverable',
+                'money' => false,
+                'value' => $cartsRecoverable,
+                'note' => 'idle over an hour',
+                'url' => route('admin.abandoned-carts.index'),
+            ];
+        }
+
+        $stats[] = [
+            'key' => 'low-stock',
+            'accent' => 'rose',
+            'icon' => 'products',
+            'label' => 'Stock about to run out',
+            'money' => false,
+            'value' => $lowStockCount,
+            'note' => $inventory['outOfStock'] === 0
+                ? 'nothing out of stock'
+                : number_format($inventory['outOfStock']) . ' already out',
+            'url' => route('admin.products.index', ['stock' => 'low']),
+        ];
+
+        return $stats;
+    }
+
+    /**
+     * A change said as a phrase a person would use, against a named
+     * reference. Standing::change() already refuses to invent a percentage
+     * from nothing; this only decides the preposition, which differs by
+     * direction and would read as machine output if it did not.
+     *
+     * @param  array{words:string, direction:string, percent:?float}  $change
+     */
+    private function changeSentence(array $change, string $reference): string
+    {
+        if ($change['words'] === 'from nothing') {
+            return 'up from nothing on ' . $reference;
+        }
+
+        return match ($change['direction']) {
+            'level' => 'level with ' . $reference,
+            'ahead' => $change['words'] . ' of ' . $reference,
+            default => $change['words'] . ' ' . $reference,
+        };
+    }
+
+    /**
+     * The part-to-whole reading, as a ring beside its own table.
+     *
+     * WHAT IT DIVIDES BY IS THE STORE'S OWN SHAPE. The ERP this mirrors
+     * divides its orders by marketplace channel, which Venta has no
+     * equivalent of: a Venta store is one shop. The honest equivalent is
+     * how the trade divides itself, and there are two candidates. Customer
+     * group wins when the store actually runs more than one carrying
+     * trade, because that is a division the merchant chose and prices
+     * against; otherwise it is the payment method, which every order
+     * records and which genuinely differs in what it costs to operate.
+     *
+     * ORDERS, NOT REVENUE, and deliberately: the chips above this already
+     * divide the money, so dividing it twice would say one thing in two
+     * places. One large order can hold a small share of the ring and the
+     * largest figure in the revenue column beside it, which is a fact
+     * worth being able to see.
+     *
+     * NO EXTRA QUERY. Both candidates are already on the running accounts.
+     *
+     * @return array{by:string, scope:?string, total:int, segments:array}|null
+     */
+    private function ring(array $accounts): ?array
+    {
+        // RunningAccounts returns groups only when two or more carried
+        // trade, so a store with one group falls through to the methods
+        // without this having to know the rule.
+        $useGroups = $accounts['groups'] !== [];
+        $rows = $useGroups ? $accounts['groups'] : $accounts['payments'];
+
+        if ($rows === []) {
+            return null;
+        }
+
+        $total = array_sum(array_column($rows, 'orders'));
+
+        if ($total <= 0) {
+            return null;
+        }
+
+        $segments = [];
+        foreach ($rows as $row) {
+            $segments[] = [
+                'label' => $row['label'],
+                'orders' => (int) $row['orders'],
+                'revenue' => (float) $row['revenue'],
+                'share' => (int) $row['orders'] / $total,
+            ];
+        }
+
+        return [
+            'by' => $useGroups ? 'customer group' : 'payment method',
+            // Group revenue comes only from orders placed against an
+            // account, so the ring covers less than the period's trade and
+            // says so rather than implying it is the whole.
+            'scope' => $useGroups ? 'customer accounts only' : null,
+            'total' => $total,
+            'segments' => $segments,
+        ];
     }
 
     /**

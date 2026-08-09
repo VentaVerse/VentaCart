@@ -164,6 +164,40 @@
        the fill and losing the identity. */
     --bl-a-amber-ink: #2C1C02;
 
+    /* --- The same six identities, as a FILL carrying white text ---
+       The accents above are tuned to be read AS colour: a swatch, a
+       trace, an arc on a light sheet or a dark one, so they flip
+       between the themes. A filled metric block is a different job.
+       It is its own surface, white text sits ON it, and two soft
+       rounds of white light sit under that text, so the figure a
+       merchant reads is white at 90% over the fill lightened by 10%.
+       Measured against the accents themselves that comes out at
+       3.0:1 to 3.7:1, under the floor, and the dark stops are worse
+       still: white on dark-theme green is 1.92:1.
+
+       So the fill gets its own stop, derived from the accent by
+       darkening until white at 90% over the washed fill clears
+       4.5:1. It does NOT flip with the theme, because a saturated
+       block does not invert: it is the one surface on the page that
+       brings its own ground. Worst measured pairing is 4.87:1.
+
+       Amber is the exception, exactly as it is above. Darkening it
+       far enough for white turns it brown and it stops being amber,
+       so it keeps its brightness and its text goes to ink. */
+    --bl-a-cyan-fill: #156277;
+    --bl-a-violet-fill: #5445C6;
+    --bl-a-green-fill: #0A6849;
+    --bl-a-rose-fill: #A23351;
+    --bl-a-indigo-fill: #3C4EC2;
+    --bl-a-amber-fill: #D98207;
+
+    /* Amber AS A MARK on a white sheet: a ring arc, a swatch. The
+       display stop is 2.94:1 there, under the 3:1 a mark carrying
+       meaning needs, and it is the only one of the six that misses.
+       Deepened to 3.45:1 for that job alone; on a dark sheet the
+       display stop already clears it at 9.97:1. */
+    --bl-a-amber-mark: #C87700;
+
     /* --- The slab ------------------------------------------------
        Azure-navy, not near-black. The chrome carries the identity so
        the work surface can stay white and keep its contrast. */
@@ -318,6 +352,12 @@
     --bl-a-green: #37D39A;   --bl-a-green-2: #6FE6BB;
     --bl-a-rose: #F4789A;    --bl-a-rose-2: #FFA3BC;
     --bl-a-indigo: #6F80EA;  --bl-a-indigo-2: #98A6FF;
+
+    /* The display stops flip; the FILL stops deliberately do not, so
+       they are absent from this block. See the note beside them. The
+       mark stop flips back to the display amber, which clears 3:1 on
+       a dark sheet on its own. */
+    --bl-a-amber-mark: #F5B74B;
 
     --bl-slab: #132C46;
     --bl-slab-ink: #9FB6CE;

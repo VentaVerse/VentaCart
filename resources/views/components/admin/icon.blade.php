@@ -46,6 +46,15 @@ $paths = [
     'arrow-up-right' => 'M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25',
     'arrow-down-right' => 'M4.5 4.5l15 15m0 0V8.25m0 11.25H8.25',
     'clock' => 'M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z',
+    /* Money, drawn WITHOUT a currency glyph. A dollar sign on the
+       revenue block would be a claim about the store's currency, and
+       Venta reads that from configuration: the same block says pesos
+       on one deployment and ringgit on the next. A note with a plain
+       disc in the middle carries "money" in any of them. */
+    'banknote' => 'M2.25 8.25A2.25 2.25 0 014.5 6h15a2.25 2.25 0 012.25 2.25v7.5A2.25 2.25 0 0119.5 18h-15a2.25 2.25 0 01-2.25-2.25v-7.5zM15 12a3 3 0 11-6 0 3 3 0 016 0zM6 9.75h.008v.008H6V9.75zm12 4.5h.008v.008H18v-.008z',
+    /* A measure accumulating over a period. Distinct from
+       arrow-up-right, which is a delta on one figure. */
+    'trending-up' => 'M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941',
     'mail' => 'M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75',
     'download' => 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3',
     'upload' => 'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 7.5L12 3m0 0l4.5 4.5M12 3v13.5',

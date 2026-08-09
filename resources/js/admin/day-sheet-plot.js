@@ -134,8 +134,53 @@ function mount(card) {
     svg.addEventListener('pointerup', onLeave);
 }
 
+/**
+ * The share ring, the same problem and a better place to put the answer.
+ *
+ * Its middle already prints the total, so pointing at a segment replaces
+ * that with the segment's own figures rather than opening a panel that
+ * would then have to be positioned and clamped. Nothing moves, nothing
+ * waits, and the <title> elements stay exactly where they are for
+ * assistive technology.
+ */
+function mountRing(svg) {
+    const value = svg.querySelector('[data-ring-v]');
+    const key = svg.querySelector('[data-ring-k]');
+    const share = svg.querySelector('[data-ring-s]');
+
+    if (!value || !key || !share) {
+        return;
+    }
+
+    const idle = { value: value.textContent, key: key.textContent };
+
+    function read(seg) {
+        value.textContent = seg.dataset.ringCount;
+        key.textContent = seg.dataset.ringLabel;
+        share.textContent = seg.dataset.ringShare;
+        svg.classList.add('is-reading');
+    }
+
+    function rest() {
+        value.textContent = idle.value;
+        key.textContent = idle.key;
+        share.textContent = '';
+        svg.classList.remove('is-reading');
+    }
+
+    svg.querySelectorAll('[data-ring-seg]').forEach((seg) => {
+        // pointerover, not pointerenter: these are stroked arcs, and moving
+        // from one to the next fires over/out on each rather than a single
+        // enter on the parent.
+        seg.addEventListener('pointerover', () => read(seg));
+    });
+
+    svg.addEventListener('pointerleave', rest);
+}
+
 function init() {
     document.querySelectorAll('[data-plot]').forEach(mount);
+    document.querySelectorAll('[data-ring]').forEach(mountRing);
 }
 
 if (document.readyState === 'loading') {

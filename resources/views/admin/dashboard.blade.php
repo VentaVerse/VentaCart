@@ -1,4 +1,6 @@
 @php
+    use Illuminate\Support\Str;
+
     $statusTones = [
         'Pending' => 'warning', 'Unpaid' => 'warning', 'Processing' => 'info',
         'Payment Received' => 'info', 'Shipped' => 'info', 'Order Being Shipped' => 'info',
@@ -10,24 +12,31 @@
     $money = function (float $amount) use ($currency) {
         return ['mark' => $currency, 'amount' => number_format($amount, 2), 'zero' => $amount == 0.0];
     };
+
+    // The band takes the two work figures a merchant acts on first, so the
+    // list underneath carries only what the band did not.
+    $work = $hasTraded ? ($workRemaining ?? []) : $workLines;
 @endphp
 <x-admin.shell title="Today">
-    <article class="v-sheet" aria-labelledby="v-sheet-date">
+    <div class="v-day">
         <!--
 IMPECCABLE DIRECTION CONTRACT
-THESIS: The admin's home is today's page in the shop's daybook, and it opens with where the business stands. It refuses the widget-scatter dashboard of stat tiles and unrelated panels that every admin ships.
-OWN-WORLD: The established Venta Blotter: Archivo on tinted paper, raised white sheets, hairline rules, tabular mono figures, azure slab, warm brass action. No new visual language.
-STORY: The merchant opens the admin in the morning, reads down one sheet, knows whether the business is alright, and then knows what today needs from them.
-FIRST VIEWPORT: The date at headline scale with one plain sentence of standing beneath it, then two years of revenue as one plot, then this month and today each set against the reference that makes them mean something.
-FORM: The day sheet, candidate 5 of 7 ordered by resonance, seed key 24dc4e5d.
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+THESIS: The admin's home is today's page in the shop's daybook, and it now leads with five figures a merchant can read from across the room. It refuses the widget-scatter dashboard, but it also refuses the flat sheet that gave every figure the same voice.
+OWN-WORLD: The established Venta Blotter: Archivo on tinted paper, raised white sheets, hairline rules, tabular mono figures, azure slab, warm brass action. The six identity accents now also fill, on their own darker stop, because white text has to sit on them.
+STORY: The merchant opens the admin in the morning, takes the day's shape from the band in one glance, and then reads down for the detail behind it.
+FIRST VIEWPORT: The date, one plain sentence of standing, and the five filled blocks: what came in today, how much, the month so far, what is waiting to be packed and what is about to run out.
+FORM: The ERP's dashboard layout, mirrored. Same regions in the same order; Venta's own data and Venta's own identity in them.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and dashboard-v5.md
 -->
 
-        {{-- 1. The head ------------------------------------------------ --}}
-        <header class="v-sheet__head">
-            <div class="v-sheet__headtext">
-                <h1 class="v-sheet__date" id="v-sheet-date">{{ $sheetDate->format('l, j F Y') }}</h1>
-                <p class="v-sheet__standing">{{ $standing }}</p>
+        {{-- 1. The head ------------------------------------------------
+             On the paper rather than inside a sheet, so the page reads as
+             a titled thing containing panels instead of one slab with a
+             heading printed on it. --}}
+        <header class="v-day__head">
+            <div class="v-day__headtext">
+                <h1 class="v-day__date" id="v-sheet-date">{{ $sheetDate->format('l, j F Y') }}</h1>
+                <p class="v-day__standing">{{ $standing }}</p>
             </div>
             <x-admin.button variant="primary" :href="route('admin.orders.create')">
                 <x-admin.icon name="plus" class="w-4 h-4" /> New order
@@ -35,323 +44,463 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         </header>
 
         @if ($hasTraded)
-            {{-- 2. The pulse -------------------------------------------- --}}
-            <section class="v-sheet__mv" aria-labelledby="v-sheet-pulse">
-                <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-pulse">Standing</h2>
+            {{-- 2. The band ---------------------------------------------
+                 Colour here says WHICH measure, never how it is doing, and
+                 the written label is beside it in every case. Every block
+                 keeps its fill whatever the figure: a zero block dropped to
+                 white was tried in the ERP and removed, because "nothing
+                 yet today" is the normal state of a morning and a row where
+                 two of five have gone pale reads as unfinished rather than
+                 as calm. --}}
+            <div class="v-stats">
+                @foreach ($stats as $stat)
+                    @php $m = $stat['money'] ? $money((float) $stat['value']) : null; @endphp
+                    <a href="{{ $stat['url'] }}" class="v-stat v-stat--{{ $stat['accent'] }}">
+                        <span class="v-stat__top">
+                            <span class="v-stat__k">{{ $stat['label'] }}</span>
+                            <span class="v-stat__ic"><x-admin.icon :name="$stat['icon']" class="w-[18px] h-[18px]" /></span>
+                        </span>
+                        <span class="v-stat__v v-num">
+                            @if ($stat['money'])
+                                <span class="v-stat__mark">{{ $m['mark'] }}</span>{{ $m['amount'] }}
+                            @else
+                                {{ number_format((int) $stat['value']) }}
+                            @endif
+                        </span>
+                        <span class="v-stat__d">{{ $stat['note'] }}</span>
+                    </a>
+                @endforeach
+            </div>
 
-                @include('admin.partials.pulse-plot', ['plot' => $plot, 'currency' => $currency])
+            {{-- 3. How the money arrives ---------------------------------
+                 The ERP's channel strip. A Venta store is one shop and has
+                 no marketplace channels, so the honest part-to-whole
+                 equivalent is the payment method: every order records one,
+                 they genuinely differ in what they cost to operate, and a
+                 store taking money one way collapses to a single chip
+                 rather than to an empty row. --}}
+            @if ($mix !== [])
+                <div class="v-chans">
+                    @foreach ($mix as $i => $method)
+                        @php $m = $money((float) $method['revenue']); @endphp
+                        <div class="v-chan">
+                            {{-- Drawn as SVG rather than a span carrying an
+                                 inline custom property: no CSS in Blade, and
+                                 fill is a presentation attribute. --}}
+                            <svg class="v-chan__ic" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true" focusable="false">
+                                <rect class="v-slice-{{ $i % 6 }}" width="38" height="38" rx="12"></rect>
+                                <text class="v-chan__in" x="19" y="19" text-anchor="middle" dominant-baseline="central">{{ Str::upper(Str::substr($method['label'], 0, 1)) }}</text>
+                            </svg>
+                            <span class="v-chan__body">
+                                <span class="v-chan__n">{{ $method['label'] }}</span>
+                                <span class="v-chan__s">{{ number_format($method['orders']) }} {{ Str::plural('order', $method['orders']) }}</span>
+                            </span>
+                            <span class="v-chan__q">
+                                <span class="v-money v-chan__qv"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
+                                <span class="v-num v-chan__ql">{{ number_format($method['share'] * 100, 1) }}%</span>
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
 
-                @foreach ($bands as $band)
-                    <div class="v-bandblock">
-                        <h3 class="v-label v-bandblock__title">
-                            {{ $band['title'] }}
-                            @if ($band['hint'])<x-admin.hint :label="$band['title']">{{ $band['hint'] }}</x-admin.hint>@endif
-                        </h3>
+            {{-- 4. The split ---------------------------------------------
+                 Two thirds to the work and its history, one third to the
+                 standing counts beside it. --}}
+            <div class="v-split">
+                <div class="v-split__main">
 
-                        <div class="v-band v-band--pulse">
-                            <div class="v-fig v-fig--head" aria-hidden="true">
-                                <span class="v-fig__name"></span>
-                                @foreach ($band['columns'] as $column)
-                                    <span class="v-fig__cell v-label">{{ $column['label'] }}</span>
-                                @endforeach
-                                <span class="v-fig__cell v-label">Change</span>
+                    {{-- 4a. Today's entries ---------------------------- --}}
+                    <section class="v-panel" aria-labelledby="v-sheet-entries">
+                        <div class="v-panel__head">
+                            <h2 class="v-subhead" id="v-sheet-entries">Today's entries</h2>
+                            <a href="{{ route('admin.orders.index') }}" class="v-panel__link">All orders</a>
+                        </div>
+
+                        @if ($entries->isEmpty())
+                            <p class="v-panel__blank">
+                                Nothing entered yet today.@if ($lastEntryLabel) The last order came in {{ $lastEntryLabel }}.@endif
+                            </p>
+                        @else
+                            <div class="v-sheet__scroll">
+                                <table class="v-table w-full text-[13px]">
+                                    <thead>
+                                        <tr>
+                                            <x-admin.table.th>Time</x-admin.table.th>
+                                            <x-admin.table.th>Customer</x-admin.table.th>
+                                            <x-admin.table.th class="v-col-bought">Bought</x-admin.table.th>
+                                            <x-admin.table.th align="right">Amount</x-admin.table.th>
+                                            <x-admin.table.th>Status</x-admin.table.th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-v-border">
+                                        @foreach ($entries as $entry)
+                                            @php
+                                                $items = $entry->products;
+                                                $lead = $items->first();
+                                                $extra = max($items->count() - 1, 0);
+                                                $m = $money((float) $entry->total);
+                                            @endphp
+                                            <x-admin.table.row href="{{ route('admin.orders.show', $entry) }}">
+                                                <x-admin.table.cell mono class="whitespace-nowrap text-v-secondary">{{ $entry->created_at->format('g:i a') }}</x-admin.table.cell>
+                                                <x-admin.table.cell class="text-v-text">
+                                                    {{-- The row opens on a click, but a pointer convenience is
+                                                         not a control: this is the named link the keyboard and
+                                                         the screen reader use to reach the order. --}}
+                                                    <a href="{{ route('admin.orders.show', $entry) }}" class="v-entry__who">{{ $entry->full_name }}</a>
+                                                </x-admin.table.cell>
+                                                <x-admin.table.cell class="v-col-bought text-v-secondary">
+                                                    @if ($lead)
+                                                        <span class="v-entry__item">{{ $lead->name }}@if ($lead->variant_label), {{ $lead->variant_label }}@endif</span>
+                                                        @if ($extra > 0)<span class="v-entry__more">and {{ $extra }} more</span>@endif
+                                                    @else
+                                                        <span class="v-entry__more">No line items</span>
+                                                    @endif
+                                                </x-admin.table.cell>
+                                                <x-admin.table.cell>
+                                                    <span class="v-money {{ $m['zero'] ? 'v-money--zero' : '' }}">
+                                                        <span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span>
+                                                    </span>
+                                                </x-admin.table.cell>
+                                                <x-admin.table.cell>
+                                                    <x-admin.badge :tone="$statusTones[$entry->status?->name] ?? 'neutral'">{{ $entry->status?->name }}</x-admin.badge>
+                                                </x-admin.table.cell>
+                                            </x-admin.table.row>
+                                        @endforeach
+                                    </tbody>
+                                </table>
                             </div>
+                            @if ($entriesTruncated)
+                                <p class="v-panel__blank">The rest of today is on the orders screen.</p>
+                            @endif
+                        @endif
+                    </section>
 
-                            @foreach ($band['rows'] as $row)
-                                <div class="v-fig">
-                                    <span class="v-fig__name">
-                                        {{ $row['label'] }}
-                                        @if ($row['hint'])<x-admin.hint :label="'What ' . lcfirst($row['label']) . ' counts'">{{ $row['hint'] }}</x-admin.hint>@endif
-                                    </span>
+                    {{-- 4b. Standing ------------------------------------ --}}
+                    <section class="v-panel" aria-labelledby="v-sheet-pulse">
+                        <div class="v-panel__head">
+                            <h2 class="v-subhead" id="v-sheet-pulse">Standing</h2>
+                            <span class="v-panel__note">Twelve months against the year before</span>
+                        </div>
 
-                                    @foreach ($band['columns'] as $column)
-                                        @php
-                                            $blank = $column['key'] === 'ref' && $band['referenceMissing'];
-                                            $raw = $row['values'][$column['key']] ?? 0;
-                                            $m = $row['money'] ? $money((float) $raw) : null;
-                                            $isZero = $row['money'] ? $m['zero'] : ((int) $raw === 0);
-                                        @endphp
-                                        <span class="v-fig__cell {{ $column['lead'] ? 'v-fig__cell--now' : '' }}">
-                                            <span class="v-fig__when">{{ $column['label'] }}</span>
-                                            @if ($blank)
-                                                <span class="v-fig__plain v-fig__plain--zero">No record</span>
-                                            @elseif ($row['money'])
-                                                <span class="v-money {{ $isZero ? 'v-money--zero' : '' }}">
-                                                    <span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span>
+                        <div class="v-panel__body">
+                            @include('admin.partials.pulse-plot', ['plot' => $plot, 'currency' => $currency])
+
+                            @foreach ($bands as $band)
+                                <div class="v-bandblock">
+                                    <h3 class="v-label v-bandblock__title">
+                                        {{ $band['title'] }}
+                                        @if ($band['hint'])<x-admin.hint :label="$band['title']">{{ $band['hint'] }}</x-admin.hint>@endif
+                                    </h3>
+
+                                    <div class="v-band v-band--pulse">
+                                        <div class="v-fig v-fig--head" aria-hidden="true">
+                                            <span class="v-fig__name"></span>
+                                            @foreach ($band['columns'] as $column)
+                                                <span class="v-fig__cell v-label">{{ $column['label'] }}</span>
+                                            @endforeach
+                                            <span class="v-fig__cell v-label">Change</span>
+                                        </div>
+
+                                        @foreach ($band['rows'] as $row)
+                                            <div class="v-fig">
+                                                <span class="v-fig__name">
+                                                    {{ $row['label'] }}
+                                                    @if ($row['hint'])<x-admin.hint :label="'What ' . lcfirst($row['label']) . ' counts'">{{ $row['hint'] }}</x-admin.hint>@endif
                                                 </span>
-                                            @else
-                                                <span class="v-num v-fig__plain {{ $isZero ? 'v-fig__plain--zero' : '' }}">{{ number_format((int) $raw) }}</span>
-                                            @endif
-                                        </span>
-                                    @endforeach
 
-                                    <span class="v-fig__cell v-fig__cell--change">
-                                        <span class="v-fig__when">Change</span>
-                                        @if ($band['referenceMissing'])
-                                            <span class="v-change v-change--level">Nothing to compare</span>
-                                        @else
-                                            <span class="v-change v-change--{{ $row['change']['direction'] }}">
-                                                @if ($row['change']['direction'] !== 'level')
-                                                    <x-admin.icon :name="$row['change']['direction'] === 'ahead' ? 'arrow-up-right' : 'arrow-down-right'" class="v-change__go" />
-                                                @endif
-                                                {{ $row['change']['words'] }}
-                                            </span>
-                                        @endif
-                                    </span>
+                                                @foreach ($band['columns'] as $column)
+                                                    @php
+                                                        $blank = $column['key'] === 'ref' && $band['referenceMissing'];
+                                                        $raw = $row['values'][$column['key']] ?? 0;
+                                                        $m = $row['money'] ? $money((float) $raw) : null;
+                                                        $isZero = $row['money'] ? $m['zero'] : ((int) $raw === 0);
+                                                    @endphp
+                                                    <span class="v-fig__cell {{ $column['lead'] ? 'v-fig__cell--now' : '' }}">
+                                                        <span class="v-fig__when">{{ $column['label'] }}</span>
+                                                        @if ($blank)
+                                                            <span class="v-fig__plain v-fig__plain--zero">No record</span>
+                                                        @elseif ($row['money'])
+                                                            <span class="v-money {{ $isZero ? 'v-money--zero' : '' }}">
+                                                                <span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span>
+                                                            </span>
+                                                        @else
+                                                            <span class="v-num v-fig__plain {{ $isZero ? 'v-fig__plain--zero' : '' }}">{{ number_format((int) $raw) }}</span>
+                                                        @endif
+                                                    </span>
+                                                @endforeach
+
+                                                <span class="v-fig__cell v-fig__cell--change">
+                                                    <span class="v-fig__when">Change</span>
+                                                    @if ($band['referenceMissing'])
+                                                        <span class="v-change v-change--level">Nothing to compare</span>
+                                                    @else
+                                                        <span class="v-change v-change--{{ $row['change']['direction'] }}">
+                                                            @if ($row['change']['direction'] !== 'level')
+                                                                <x-admin.icon :name="$row['change']['direction'] === 'ahead' ? 'arrow-up-right' : 'arrow-down-right'" class="v-change__go" />
+                                                            @endif
+                                                            {{ $row['change']['words'] }}
+                                                        </span>
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
-                    </div>
-                @endforeach
-            </section>
-        @else
-            {{-- 2. Before the first order ------------------------------- --}}
-            <section class="v-sheet__mv" aria-labelledby="v-sheet-open">
-                <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-open">
-                    To open
-                    <a href="{{ route('admin.products.create') }}" class="v-sheet__mvlink">Add a product</a>
-                </h2>
-                <ul class="v-lines">
-                    @foreach ($openingLines as $line)
-                        <li>
-                            <a href="{{ $line['url'] }}" class="v-line">
-                                <span class="v-line__label">{{ $line['label'] }}</span>
-                                <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
-                                <x-admin.icon name="chevron-right" class="v-line__go" />
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            </section>
-        @endif
+                    </section>
 
-        {{-- 3. The day's work ------------------------------------------- --}}
-        @if ($hasTraded || ($workNeeded ?? false))
-            <section class="v-sheet__mv" aria-labelledby="v-sheet-work">
-                <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-work">Needs doing</h2>
-                <ul class="v-lines">
-                    @foreach ($workLines as $line)
-                        <li>
-                            <a href="{{ $line['url'] }}" class="v-line">
-                                <span class="v-line__label">{{ $line['label'] }}</span>
-                                <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
-                                <x-admin.icon name="chevron-right" class="v-line__go" />
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            </section>
-        @endif
+                    {{-- 4c. The ring ------------------------------------
+                         The ERP's "orders by channel", divided the way a
+                         Venta store actually divides. Orders, not revenue:
+                         the chips above already divide the money, and one
+                         large order can hold a small share of the ring and
+                         the largest figure in the column beside it. --}}
+                    @if ($ring)
+                        <section class="v-panel" aria-labelledby="v-sheet-ring">
+                            <div class="v-panel__head">
+                                <h2 class="v-subhead" id="v-sheet-ring">Orders by {{ $ring['by'] }}</h2>
+                                <span class="v-panel__note">
+                                    {{ $accountsLabel }}@if ($ring['scope']) &middot; {{ $ring['scope'] }}@endif
+                                </span>
+                            </div>
 
-        @if ($hasTraded)
-            {{-- 4. The running accounts --------------------------------- --}}
-            <section class="v-sheet__mv" aria-labelledby="v-sheet-accounts">
-                <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-accounts">
-                    Running accounts
-                    <span class="v-sheet__mvnote">{{ $accountsLabel }}</span>
-                </h2>
+                            @php
+                                $ringR = 70;
+                                $ringC = 2 * M_PI * $ringR;
+                                $ringAt = 0.0;
+                            @endphp
 
-                @if ($accounts['orders'] === 0)
-                    <p class="v-sheet__blank">Nothing sold in the {{ lcfirst($accountsLabel) }}.</p>
-                @else
-                    <div class="v-accounts">
-                        <div class="v-accounts__col">
-                            <h3 class="v-label v-accounts__title">Carrying the money</h3>
-                            <ul class="v-rank">
-                                @foreach ($accounts['byRevenue'] as $item)
-                                    @php $m = $money((float) $item['revenue']); @endphp
-                                    <li class="v-rank__row">
-                                        <span class="v-rank__name">{{ $item['name'] }}</span>
-                                        <span class="v-money"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
-                                        <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                                            <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
-                                            <rect class="v-rank__fill" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
-                                        </svg>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
+                            <div class="v-breakdown">
+                                <div class="v-breakdown__ring">
+                                    <svg class="v-ring" width="100%" height="180" viewBox="0 0 200 200" data-ring
+                                         role="img" aria-label="Share of orders by {{ $ring['by'] }}. Every figure is in the table beside this ring.">
+                                        @foreach ($ring['segments'] as $i => $seg)
+                                            @php
+                                                $dash = round($seg['share'] * $ringC, 2);
+                                                $offset = round(-$ringAt * $ringC, 2);
+                                                $ringAt += $seg['share'];
+                                            @endphp
+                                            <circle class="v-ring__seg v-stroke-{{ $i % 6 }}"
+                                                    data-ring-seg
+                                                    data-ring-label="{{ $seg['label'] }}"
+                                                    data-ring-count="{{ number_format($seg['orders']) }}"
+                                                    data-ring-share="{{ number_format($seg['share'] * 100, 1) }}% of orders"
+                                                    cx="100" cy="100" r="{{ $ringR }}"
+                                                    stroke-dasharray="{{ $dash }} {{ round($ringC, 2) }}"
+                                                    stroke-dashoffset="{{ $offset }}"
+                                                    transform="rotate(-90 100 100)">
+                                                <title>{{ $seg['label'] }}: {{ number_format($seg['orders']) }} {{ Str::plural('order', $seg['orders']) }}</title>
+                                            </circle>
+                                        @endforeach
+                                        {{-- The middle answers the pointer in space that was
+                                             already there, so there is no panel to position and
+                                             no native title to wait a second for. --}}
+                                        <text class="v-ring__v v-num" x="100" y="94" text-anchor="middle" data-ring-v>{{ number_format($ring['total']) }}</text>
+                                        <text class="v-ring__k" x="100" y="112" text-anchor="middle" data-ring-k>{{ Str::plural('order', $ring['total']) }}</text>
+                                        <text class="v-ring__s" x="100" y="128" text-anchor="middle" data-ring-s></text>
+                                    </svg>
+                                </div>
 
-                        <div class="v-accounts__col">
-                            <h3 class="v-label v-accounts__title">Moving off the shelf</h3>
-                            <ul class="v-rank">
-                                @foreach ($accounts['byUnits'] as $item)
-                                    <li class="v-rank__row">
-                                        <span class="v-rank__name">{{ $item['name'] }}</span>
-                                        <span class="v-num v-rank__units">{{ number_format($item['units']) }}</span>
-                                        <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                                            <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
-                                            <rect class="v-rank__fill v-rank__fill--units" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
-                                        </svg>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-
-                        <div class="v-accounts__col">
-                            <h3 class="v-label v-accounts__title">How it was paid</h3>
-                            <svg class="v-mixbar" viewBox="0 0 100 6" preserveAspectRatio="none" role="img"
-                                 aria-label="Share of revenue by payment method, listed below">
-                                @php $offset = 0; @endphp
-                                @foreach ($accounts['payments'] as $i => $method)
-                                    @php
-                                        $w = round($method['share'] * 100, 3);
-                                        $x = $offset;
-                                        $offset += $w;
-                                    @endphp
-                                    <rect class="v-mixbar__seg v-acc-{{ $i % 6 }}" x="{{ $x }}" y="0" width="{{ $w }}" height="6"></rect>
-                                @endforeach
-                            </svg>
-                            <ul class="v-mix">
-                                @foreach ($accounts['payments'] as $i => $method)
-                                    @php $m = $money((float) $method['revenue']); @endphp
-                                    <li class="v-mix__row">
-                                        <svg class="v-mix__sw" width="9" height="9" viewBox="0 0 9 9" aria-hidden="true" focusable="false">
-                                            <rect class="v-acc-{{ $i % 6 }}" width="9" height="9" rx="2"></rect>
-                                        </svg>
-                                        <span class="v-mix__name">{{ $method['label'] }}</span>
-                                        <span class="v-num v-mix__share">{{ number_format($method['share'] * 100, 1) }}%</span>
-                                        <span class="v-money"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-
-                        <div class="v-accounts__col">
-                            <h3 class="v-label v-accounts__title">
-                                Buyers
-                                <x-admin.hint label="What counts as a returning buyer">A buyer is one email address. Returning means that address had ordered before this period.</x-admin.hint>
-                            </h3>
-                            <ul class="v-mix">
-                                <li class="v-mix__row v-mix__row--plain">
-                                    <span class="v-mix__name">New</span>
-                                    <span class="v-num v-mix__share">{{ $accounts['buyers']['total'] > 0 ? number_format($accounts['buyers']['new'] / $accounts['buyers']['total'] * 100, 1) . '%' : '' }}</span>
-                                    <span class="v-num v-mix__count">{{ number_format($accounts['buyers']['new']) }}</span>
-                                </li>
-                                <li class="v-mix__row v-mix__row--plain">
-                                    <span class="v-mix__name">Returning</span>
-                                    <span class="v-num v-mix__share">{{ $accounts['buyers']['total'] > 0 ? number_format($accounts['buyers']['returning'] / $accounts['buyers']['total'] * 100, 1) . '%' : '' }}</span>
-                                    <span class="v-num v-mix__count">{{ number_format($accounts['buyers']['returning']) }}</span>
-                                </li>
-                            </ul>
-
-                            @if ($accounts['groups'] !== [])
-                                <h3 class="v-label v-accounts__title v-accounts__title--second">Revenue by customer group</h3>
-                                <ul class="v-mix">
-                                    @foreach ($accounts['groups'] as $group)
-                                        @php $m = $money((float) $group['revenue']); @endphp
-                                        <li class="v-mix__row v-mix__row--plain">
-                                            <span class="v-mix__name">{{ $group['label'] }}</span>
-                                            <span class="v-num v-mix__share">{{ number_format($group['share'] * 100, 1) }}%</span>
-                                            <span class="v-money"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
-                                        </li>
-                                    @endforeach
-                                </ul>
-                            @endif
-                        </div>
-                    </div>
-                @endif
-            </section>
-
-            {{-- 5. The day's entries ------------------------------------ --}}
-            <section class="v-sheet__mv" aria-labelledby="v-sheet-entries">
-                <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-entries">
-                    Today's entries
-                    @if ($entriesTruncated)
-                        <a href="{{ route('admin.orders.index') }}" class="v-sheet__mvlink">All orders</a>
+                                <div class="v-sheet__scroll v-breakdown__records">
+                                    <table class="v-table w-full text-[13px]">
+                                        <thead>
+                                            <tr>
+                                                <x-admin.table.th>{{ Str::ucfirst($ring['by']) }}</x-admin.table.th>
+                                                <x-admin.table.th align="right">Orders</x-admin.table.th>
+                                                <x-admin.table.th align="right">Revenue</x-admin.table.th>
+                                                <x-admin.table.th align="right">Share</x-admin.table.th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-v-border">
+                                            @foreach ($ring['segments'] as $i => $seg)
+                                                @php $m = $money((float) $seg['revenue']); @endphp
+                                                <tr>
+                                                    <x-admin.table.cell class="text-v-text">
+                                                        {{-- The swatch rides on the row it describes rather
+                                                             than in a legend, so matching an arc to a revenue
+                                                             figure is one glance and not two lists. --}}
+                                                        <svg class="v-tsw" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+                                                            <rect class="v-slice-{{ $i % 6 }}" width="10" height="10" rx="3"></rect>
+                                                        </svg>{{ $seg['label'] }}
+                                                    </x-admin.table.cell>
+                                                    <x-admin.table.cell><span class="v-num">{{ number_format($seg['orders']) }}</span></x-admin.table.cell>
+                                                    <x-admin.table.cell>
+                                                        <span class="v-money"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
+                                                    </x-admin.table.cell>
+                                                    <x-admin.table.cell><span class="v-num">{{ number_format($seg['share'] * 100, 1) }}%</span></x-admin.table.cell>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
                     @endif
-                </h2>
 
-                @if ($entries->isEmpty())
-                    <p class="v-sheet__blank">
-                        Nothing entered yet today.@if ($lastEntryLabel) The last order came in {{ $lastEntryLabel }}.@endif
-                    </p>
-                @else
-                    <div class="v-sheet__scroll">
-                        <table class="v-table w-full text-[13px]">
-                            <thead>
-                                <tr>
-                                    <x-admin.table.th>Time</x-admin.table.th>
-                                    <x-admin.table.th>Customer</x-admin.table.th>
-                                    <x-admin.table.th class="v-col-bought">Bought</x-admin.table.th>
-                                    <x-admin.table.th align="right">Amount</x-admin.table.th>
-                                    <x-admin.table.th>Status</x-admin.table.th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-v-border">
-                                @foreach ($entries as $entry)
-                                    @php
-                                        $items = $entry->products;
-                                        $lead = $items->first();
-                                        $extra = max($items->count() - 1, 0);
-                                        $m = $money((float) $entry->total);
-                                    @endphp
-                                    <x-admin.table.row href="{{ route('admin.orders.show', $entry) }}">
-                                        <x-admin.table.cell mono class="whitespace-nowrap text-v-secondary">{{ $entry->created_at->format('g:i a') }}</x-admin.table.cell>
-                                        <x-admin.table.cell class="text-v-text">
-                                            {{-- The row opens on a click, but a pointer convenience is
-                                                 not a control: this is the named link the keyboard and
-                                                 the screen reader use to reach the order. --}}
-                                            <a href="{{ route('admin.orders.show', $entry) }}" class="v-entry__who">{{ $entry->full_name }}</a>
-                                        </x-admin.table.cell>
-                                        <x-admin.table.cell class="v-col-bought text-v-secondary">
-                                            @if ($lead)
-                                                <span class="v-entry__item">{{ $lead->name }}@if ($lead->variant_label), {{ $lead->variant_label }}@endif</span>
-                                                @if ($extra > 0)<span class="v-entry__more">and {{ $extra }} more</span>@endif
-                                            @else
-                                                <span class="v-entry__more">No line items</span>
-                                            @endif
-                                        </x-admin.table.cell>
-                                        <x-admin.table.cell>
-                                            <span class="v-money {{ $m['zero'] ? 'v-money--zero' : '' }}">
-                                                <span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span>
-                                            </span>
-                                        </x-admin.table.cell>
-                                        <x-admin.table.cell>
-                                            <x-admin.badge :tone="$statusTones[$entry->status?->name] ?? 'neutral'">{{ $entry->status?->name }}</x-admin.badge>
-                                        </x-admin.table.cell>
-                                    </x-admin.table.row>
+                    {{-- 4d. The running accounts ------------------------ --}}
+                    <section class="v-panel" aria-labelledby="v-sheet-accounts">
+                        <div class="v-panel__head">
+                            <h2 class="v-subhead" id="v-sheet-accounts">Running accounts</h2>
+                            <span class="v-panel__note">{{ $accountsLabel }}</span>
+                        </div>
+
+                        @if ($accounts['orders'] === 0)
+                            <p class="v-panel__blank">Nothing sold in the {{ lcfirst($accountsLabel) }}.</p>
+                        @else
+                            <div class="v-panel__body">
+                                <div class="v-accounts">
+                                    <div class="v-accounts__col">
+                                        <h3 class="v-label v-accounts__title">Carrying the money</h3>
+                                        <ul class="v-rank">
+                                            @foreach ($accounts['byRevenue'] as $item)
+                                                @php $m = $money((float) $item['revenue']); @endphp
+                                                <li class="v-rank__row">
+                                                    <span class="v-rank__name">{{ $item['name'] }}</span>
+                                                    <span class="v-money"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
+                                                    <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                                        <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
+                                                        <rect class="v-rank__fill" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
+                                                    </svg>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+
+                                    <div class="v-accounts__col">
+                                        <h3 class="v-label v-accounts__title">Moving off the shelf</h3>
+                                        <ul class="v-rank">
+                                            @foreach ($accounts['byUnits'] as $item)
+                                                <li class="v-rank__row">
+                                                    <span class="v-rank__name">{{ $item['name'] }}</span>
+                                                    <span class="v-num v-rank__units">{{ number_format($item['units']) }}</span>
+                                                    <svg class="v-rank__bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                                        <rect class="v-rank__track" x="0" y="0" width="100" height="4"></rect>
+                                                        <rect class="v-rank__fill v-rank__fill--units" x="0" y="0" height="4" width="{{ round($item['weight'] * 100, 2) }}"></rect>
+                                                    </svg>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+
+                                    <div class="v-accounts__col">
+                                        <h3 class="v-label v-accounts__title">
+                                            Buyers
+                                            <x-admin.hint label="What counts as a returning buyer">A buyer is one email address. Returning means that address had ordered before this period.</x-admin.hint>
+                                        </h3>
+                                        <ul class="v-mix">
+                                            <li class="v-mix__row v-mix__row--plain">
+                                                <span class="v-mix__name">New</span>
+                                                <span class="v-num v-mix__share">{{ $accounts['buyers']['total'] > 0 ? number_format($accounts['buyers']['new'] / $accounts['buyers']['total'] * 100, 1) . '%' : '' }}</span>
+                                                <span class="v-num v-mix__count">{{ number_format($accounts['buyers']['new']) }}</span>
+                                            </li>
+                                            <li class="v-mix__row v-mix__row--plain">
+                                                <span class="v-mix__name">Returning</span>
+                                                <span class="v-num v-mix__share">{{ $accounts['buyers']['total'] > 0 ? number_format($accounts['buyers']['returning'] / $accounts['buyers']['total'] * 100, 1) . '%' : '' }}</span>
+                                                <span class="v-num v-mix__count">{{ number_format($accounts['buyers']['returning']) }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+                    </section>
+                </div>
+
+                {{-- 4e. The rail ------------------------------------------
+                     The counts that are true today but are not about today.
+                     Cards, because they read as siblings of the panels
+                     beside them rather than as loose text on the page. --}}
+                <div class="v-split__rail">
+                    @if ($work !== [])
+                        <section class="v-panel" aria-labelledby="v-sheet-work">
+                            <div class="v-panel__head">
+                                <h2 class="v-subhead" id="v-sheet-work">Needs doing</h2>
+                            </div>
+                            <ul class="v-lines v-lines--rail">
+                                @foreach ($work as $line)
+                                    <li>
+                                        <a href="{{ $line['url'] }}" class="v-line">
+                                            <span class="v-line__label">{{ $line['label'] }}</span>
+                                            <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
+                                            <x-admin.icon name="chevron-right" class="v-line__go" />
+                                        </a>
+                                    </li>
                                 @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </section>
-        @endif
+                            </ul>
+                        </section>
+                    @endif
 
-        {{-- 6. Standing matters ----------------------------------------- --}}
-        @if ($hasTraded || ($standingNeeded ?? false))
-            <section class="v-sheet__mv v-sheet__mv--foot" aria-labelledby="v-sheet-standing">
-                <h2 class="v-subhead v-sheet__mvhead" id="v-sheet-standing">Outstanding</h2>
-                <ul class="v-lines">
-                    <li>
-                        <a href="{{ route('admin.automations.index') }}" class="v-line">
-                            <span class="v-line__label">
-                                Automations overdue
-                                @if ($unhealthyAutomations->isNotEmpty())
-                                    @php
-                                        $named = $unhealthyAutomations->pluck('name');
-                                        $rest = $named->count() - 3;
-                                        $detail = $named->take(3)->join(', ') . ($rest > 0 ? ', and ' . $rest . ' more' : '');
-                                    @endphp
-                                    <span class="v-line__detail">{{ $detail }}</span>
-                                @endif
-                            </span>
-                            <span class="v-num v-line__count {{ $unhealthyAutomations->isEmpty() ? 'v-line__count--zero' : '' }}">{{ $unhealthyAutomations->count() }}</span>
-                            <x-admin.icon name="chevron-right" class="v-line__go" />
-                        </a>
-                    </li>
-                    @foreach ($standingLines as $line)
-                        <li>
-                            <a href="{{ $line['url'] }}" class="v-line">
-                                <span class="v-line__label">{{ $line['label'] }}</span>
-                                <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
-                                <x-admin.icon name="chevron-right" class="v-line__go" />
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            </section>
+                    <section class="v-panel" aria-labelledby="v-sheet-stock">
+                        <div class="v-panel__head">
+                            <h2 class="v-subhead" id="v-sheet-stock">Inventory</h2>
+                            <span class="v-panel__note">{{ number_format($inventory['products']) }} {{ Str::plural('product', $inventory['products']) }}</span>
+                        </div>
+                        <dl class="v-facts">
+                            <dt class="v-label">On the shelf, at sale price</dt>
+                            <dd>
+                                @php $m = $money((float) $inventory['atSale']); @endphp
+                                <span class="v-money"><span class="v-money__mark">{{ $m['mark'] }}</span><span class="v-money__amt">{{ $m['amount'] }}</span></span>
+                            </dd>
+                            <dt class="v-label">Out of stock</dt>
+                            <dd><span class="v-num {{ $inventory['outOfStock'] === 0 ? 'v-facts__zero' : '' }}">{{ number_format($inventory['outOfStock']) }}</span></dd>
+                        </dl>
+                    </section>
+
+                    @include('admin.partials.day-sheet-outstanding')
+                </div>
+            </div>
+        @else
+            {{-- 2. Before the first order -------------------------------
+                 A merchant's day one is all zeros, and five saturated
+                 blocks reading zero is a worse first impression than no
+                 band at all. The store that has never traded keeps its own
+                 composition. --}}
+            <div class="v-split v-split--solo">
+                <div class="v-split__main">
+                    <section class="v-panel" aria-labelledby="v-sheet-open">
+                        <div class="v-panel__head">
+                            <h2 class="v-subhead" id="v-sheet-open">To open</h2>
+                            <a href="{{ route('admin.products.create') }}" class="v-panel__link">Add a product</a>
+                        </div>
+                        <ul class="v-lines">
+                            @foreach ($openingLines as $line)
+                                <li>
+                                    <a href="{{ $line['url'] }}" class="v-line">
+                                        <span class="v-line__label">{{ $line['label'] }}</span>
+                                        <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
+                                        <x-admin.icon name="chevron-right" class="v-line__go" />
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </section>
+
+                    @if ($workNeeded ?? false)
+                        <section class="v-panel" aria-labelledby="v-sheet-work">
+                            <div class="v-panel__head">
+                                <h2 class="v-subhead" id="v-sheet-work">Needs doing</h2>
+                            </div>
+                            <ul class="v-lines">
+                                @foreach ($work as $line)
+                                    <li>
+                                        <a href="{{ $line['url'] }}" class="v-line">
+                                            <span class="v-line__label">{{ $line['label'] }}</span>
+                                            <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
+                                            <x-admin.icon name="chevron-right" class="v-line__go" />
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </section>
+                    @endif
+
+                    @if ($standingNeeded ?? false)
+                        @include('admin.partials.day-sheet-outstanding')
+                    @endif
+                </div>
+            </div>
         @endif
-    </article>
+    </div>
 </x-admin.shell>

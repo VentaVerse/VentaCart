@@ -513,8 +513,17 @@ class DaySheetTest extends TestCase
 
         // The sheet is still a sheet: the core work line survives, and so
         // does every other movement.
+        //
+        // WHERE it survives moved. The band now leads with the two work
+        // figures a merchant acts on first, so with the module gone "Stock
+        // about to run out" is a block on the band and the Needs doing list
+        // has nothing left to hold and is not drawn. The figure is still on
+        // the page and still links to the same screen, which is what this
+        // test is about; the heading it used to sit under is not.
         $this->assertTrue($labels->contains('Stock about to run out'));
-        $response->assertSee('Needs doing')->assertSee('Outstanding');
+        $this->assertContains('Stock about to run out', array_column($response->viewData('stats'), 'label'));
+        $this->assertSame([], $response->viewData('workRemaining'));
+        $response->assertSee('Stock about to run out')->assertSee('Outstanding');
     }
 
     /**
@@ -547,7 +556,10 @@ class DaySheetTest extends TestCase
         $this->assertFalse($labels->contains('Parcels awaiting handover'));
         $this->assertFalse($labels->contains('Orders unpaid'));
         $this->assertTrue($labels->contains('Stock about to run out'));
-        $response->assertSee('Needs doing')->assertSee('Outstanding')->assertSee('Sunday, 9 August 2026');
+        // As above: the core figure moves onto the band when the module's
+        // three lines go, so the list is empty rather than headed.
+        $this->assertSame([], $response->viewData('workRemaining'));
+        $response->assertSee('Stock about to run out')->assertSee('Outstanding')->assertSee('Sunday, 9 August 2026');
     }
 
     /**
@@ -754,7 +766,13 @@ class DaySheetTest extends TestCase
         $this->assertSame(0.75, $mix[0]['share']);
         $this->assertSame(0.25, $mix[1]['share']);
 
-        $response->assertSee('How it was paid')->assertSee('Carrier Pigeon');
+        // The mix used to be a stacked bar under a "How it was paid"
+        // heading inside the running accounts. It is now the strip across
+        // the top of the page, which is the ERP's channel strip in Venta's
+        // terms, so the assertion follows it there: the methods the store
+        // actually used, named, with their shares.
+        $this->assertSame(['Carrier Pigeon', 'Barter'], array_column($response->viewData('mix'), 'label'));
+        $response->assertSee('Carrier Pigeon')->assertSee('Barter')->assertSee('75.0%');
     }
 
     public function test_orders_with_no_payment_method_are_named_rather_than_dropped(): void
@@ -809,7 +827,10 @@ class DaySheetTest extends TestCase
         $response = $this->get(route('admin.dashboard'))->assertOk();
 
         $this->assertSame([], $response->viewData('accounts')['groups']);
-        $response->assertDontSee('Revenue by customer group');
+        // A split of one is not a split, so the ring falls back to the
+        // division every order records instead of inventing a group one.
+        $response->assertDontSee('Orders by customer group');
+        $this->assertSame('payment method', $response->viewData('ring')['by']);
     }
 
     public function test_revenue_by_customer_group_appears_when_two_groups_carry_trade(): void
@@ -831,7 +852,14 @@ class DaySheetTest extends TestCase
 
         $this->assertSame(['Resellers', 'Retail'], array_column($groups, 'label'));
         $this->assertSame(0.7, $groups[0]['share']);
-        $response->assertSee('Revenue by customer group');
+
+        // The split used to be a list at the foot of the running accounts.
+        // It is now what the ring divides by, because a store genuinely
+        // running two groups has a more interesting division than how it
+        // was paid. Same rule, same source, drawn where it can be seen.
+        $response->assertSee('Orders by customer group');
+        $this->assertSame('customer group', $response->viewData('ring')['by']);
+        $this->assertSame(['Resellers', 'Retail'], array_column($response->viewData('ring')['segments'], 'label'));
     }
 
     public function test_a_period_with_no_sales_says_so_rather_than_drawing_empty_rankings(): void

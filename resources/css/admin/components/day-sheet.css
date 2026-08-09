@@ -1,64 +1,393 @@
 /* ============================================================
    The day sheet
 
-   The admin's home is today's page in the shop's daybook: ONE raised
-   sheet, ruled across into five movements, read top to bottom. Not a
-   grid of stat tiles, not a scatter of unrelated panels.
+   The admin's home is today's page in the shop's daybook, and it is
+   laid out the way its brother the ERP lays out the same page: a
+   titled head on the paper, then a band of filled figures, then the
+   part-to-whole strip, then panels in two columns.
 
-   Nothing here invents material. Every colour, radius, elevation,
-   face and motion timing is a token from tokens.css, and the tables
-   and badges inside the sheet are the same components every other
-   screen uses. What is new is the arrangement: rules instead of card
-   edges, and figures set in an accounting column so they compare
-   down the page rather than merely sitting next to each other.
+   IT USED TO BE ONE SHEET. Every movement was a heading and a set of
+   ruled lines on a single white slab, which meant that blurred, the
+   whole page was one grey texture with no way in: no primary, no
+   secondary, nothing to look at first. The rules were right and the
+   figures were right, and none of it was legible as a shape. The ERP
+   solved exactly this in its own revamp, so the arrangement is
+   borrowed rather than invented a second time.
+
+   WHAT IS BORROWED IS THE ARRANGEMENT, NOT THE IDENTITY. Every
+   colour, radius, elevation, face and motion timing here is still a
+   token from tokens.css; the tables, badges and hints inside the
+   panels are still the components every other screen uses; the slab
+   is still azure and the action colour is still warm brass. The
+   ERP's navy and lime are nowhere in this file.
    ============================================================ */
 
-.v-admin .v-sheet {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--bl-lift);
+.v-admin .v-day {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-/* Padding lives on each movement, never on the sheet, so a rule runs
-   the full width of the page the way a ruled ledger line does rather
-   than stopping short in a gutter. */
-.v-admin .v-sheet__head,
-.v-admin .v-sheet__mv {
-    padding: 18px 24px;
-}
+/* ------------------------------------------------------------
+   1. The head
 
-.v-admin .v-sheet__head {
+   A daybook page is identified by its date, so the date is the
+   heading. The store's name is on the slab and is not repeated here.
+   It sits on the paper rather than inside a panel, so the page reads
+   as a titled thing CONTAINING panels rather than as one slab with a
+   heading printed at the top of it.
+   ------------------------------------------------------------ */
+.v-admin .v-day__head {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 14px 20px;
-    padding-top: 24px;
-    padding-bottom: 22px;
+    padding: 2px 2px 0;
 }
 
-.v-admin .v-sheet__headtext { min-width: 0; }
+.v-admin .v-day__headtext { min-width: 0; }
 
-.v-admin .v-sheet__mv--foot { padding-bottom: 22px; }
+.v-admin .v-day__date {
+    font-size: clamp(25px, 3.4vw, 33px);
+    font-weight: 640;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    color: var(--text);
+    text-wrap: balance;
+}
+
+.v-admin .v-day__standing {
+    margin-top: 9px;
+    max-width: 62ch;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
 
 /* ------------------------------------------------------------
-   The rule between movements
+   2. THE BAND
 
-   Drawn as a pseudo-element rather than a border so it can be the
-   page's one authored moment: each movement's rule is struck across
-   the sheet from the left as that movement settles, which is the
-   daybook being ruled. It is 1px and it is --border-strong, exactly
-   what a border would have been; the only difference is that it
-   arrives.
+   The one place this interface raises its voice: the five figures a
+   merchant opens the page to read, at four times the size of the
+   body on saturated ground.
+
+   COLOUR IS IDENTITY, NEVER STATE. The accent says which measure you
+   are reading, so a figure keeps its hue whether the news is good or
+   bad, and the written label is beside it in every case. Nothing on
+   this band goes red because it is low; state stays in the change
+   column and the badges, where it already lived.
+
+   THE ZERO RULE IS NOT HERE, deliberately. An earlier ERP version
+   dropped a block with nothing in it to a white sheet, reasoning
+   that a saturated card shouting "0" reads as a fault. It was
+   removed on Paolo's call, and the reasoning that removed it applies
+   here with more force, not less: "no orders yet today" is the
+   normal state of a morning, so the blocks that would go pale are
+   pale for most of the working day and the row reads as half
+   unfinished rather than as calm. All five carry their fill whatever
+   the figure. See dashboard-v5.md.
    ------------------------------------------------------------ */
-.v-admin .v-sheet__mv { position: relative; }
+.v-admin .v-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
 
-.v-admin .v-sheet__mv::before {
+@media (min-width: 900px)  { .v-admin .v-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1280px) { .v-admin .v-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+.v-admin .v-stat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 16px 17px 15px;
+    border-radius: var(--radius-lg);
+    /* The FILL stop, not the display stop. See the note beside the
+       tokens: white text cannot sit on the accents themselves. */
+    background: var(--v-fill);
+    color: #FFFFFF;
+    box-shadow: var(--bl-lift-2);
+    overflow: hidden;
+    text-decoration: none;
+    transition: transform var(--motion-base, 180ms) cubic-bezier(.2, .7, .3, 1),
+                box-shadow var(--motion-base, 180ms);
+}
+
+/* Two soft rounds of the block's own light, which is what stops a
+   flat rectangle of colour reading as a swatch. Behind the content
+   and never over it, and their opacity is part of the contrast
+   arithmetic: the figures are measured against the fill WITH these
+   composited, not against the bare fill. */
+.v-admin .v-stat::before,
+.v-admin .v-stat::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .10);
+    pointer-events: none;
+}
+
+.v-admin .v-stat::before { inset: -56px -42px auto auto; width: 150px; height: 150px; }
+.v-admin .v-stat::after  { inset: auto 20px -68px auto; width: 116px; height: 116px; background: rgba(255, 255, 255, .07); }
+
+.v-admin .v-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(255, 255, 255, .30);
+}
+
+/* The focus ring is white here rather than brass: brass on a
+   saturated fill is 1.4:1 and would be a ring nobody can see, and
+   white clears 3:1 on every one of the six. */
+.v-admin .v-stat:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: -4px;
+}
+
+.v-admin .v-stat__top {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.v-admin .v-stat__k {
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .005em;
+    color: #FFFFFF;
+}
+
+.v-admin .v-stat__ic {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .18);
+    color: #FFFFFF;
+}
+
+.v-admin .v-stat__v {
+    position: relative;
+    margin: 12px 0 5px;
+    font-size: clamp(23px, 2.1vw, 28px);
+    font-weight: 680;
+    letter-spacing: -.025em;
+    line-height: 1.08;
+    /* The figure is the point of the block, so it wraps rather than
+       being clipped: a peso total on a migrated store runs to nine
+       digits and a phone column is 170px wide. */
+    overflow-wrap: anywhere;
+}
+
+/* The currency mark travels with its digits and is set smaller, so a
+   seven figure total still reads as a number rather than as a symbol
+   with a number after it. */
+.v-admin .v-stat__mark {
+    font-size: .68em;
+    font-weight: 600;
+    opacity: .85;
+    margin-right: 1px;
+}
+
+.v-admin .v-stat__d {
+    position: relative;
+    font-size: 12px;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, .92);
+}
+
+/* The six identities as fills. Flat, not a gradient: a 135deg ramp
+   from the lighter stop puts the block's worst contrast in the top
+   corner where the label sits, and the label is the text with the
+   least headroom to give. The light comes from the two rounds
+   instead, which are measured. */
+.v-admin .v-stat--cyan   { --v-fill: var(--bl-a-cyan-fill); }
+.v-admin .v-stat--violet { --v-fill: var(--bl-a-violet-fill); }
+.v-admin .v-stat--green  { --v-fill: var(--bl-a-green-fill); }
+.v-admin .v-stat--rose   { --v-fill: var(--bl-a-rose-fill); }
+.v-admin .v-stat--indigo { --v-fill: var(--bl-a-indigo-fill); }
+
+/* Amber is the one fill white cannot sit on: darkened far enough for
+   white it stops being amber and becomes brown. So the fill keeps its
+   brightness and the TEXT goes to ink, which is the same escape hatch
+   the ERP documents and the reason --bl-a-amber-ink exists. */
+.v-admin .v-stat--amber {
+    --v-fill: var(--bl-a-amber-fill);
+    color: var(--bl-a-amber-ink);
+}
+
+.v-admin .v-stat--amber .v-stat__k { color: var(--bl-a-amber-ink); }
+
+/* .92, not .86. Measured on the rendered page the note came out at
+   4.51:1, which passes and has nothing left over; amber's fill is the
+   brightest of the six and its ink is the only text on the band that
+   is not white, so it is the one that has to be watched. Now 5.06:1. */
+.v-admin .v-stat--amber .v-stat__d { color: rgba(44, 28, 2, .92); }
+
+.v-admin .v-stat--amber .v-stat__ic { background: rgba(44, 28, 2, .16); color: var(--bl-a-amber-ink); }
+.v-admin .v-stat--amber::before { background: rgba(255, 255, 255, .18); }
+.v-admin .v-stat--amber::after  { background: rgba(255, 255, 255, .13); }
+.v-admin .v-stat--amber:focus-visible { outline-color: var(--bl-a-amber-ink); }
+.v-admin .v-stat--amber:hover { box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(44, 28, 2, .28); }
+
+/* A BOUNDED SURFACE NEEDS AN EDGE IT CLEARS 3:1 ON, and two cases
+   miss it on the fill alone: amber against the light paper (2.62:1,
+   because a bright fill on a light ground is the whole problem) and
+   the five deep fills against the dark paper (2.78 to 2.86:1). Both
+   get a hairline of the block's own text colour rather than being
+   re-tinted, because moving either fill to fix the edge would move
+   the text contrast with it and the text is the figure. */
+.v-admin .v-stat--amber {
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(44, 28, 2, .22);
+}
+
+[data-theme="dark"] .v-admin .v-stat {
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(255, 255, 255, .14);
+}
+
+[data-theme="dark"] .v-admin .v-stat--amber {
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(44, 28, 2, .22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .v-admin .v-stat { transition: none; }
+    .v-admin .v-stat:hover { transform: none; }
+}
+
+/* ------------------------------------------------------------
+   3. THE STRIP
+
+   The ERP's channel strip. A Venta store is one shop, so the honest
+   part-to-whole equivalent is how the money arrived. A store taking
+   payment one way renders one chip and the row collapses gracefully
+   rather than showing an empty frame.
+   ------------------------------------------------------------ */
+.v-admin .v-chans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: 12px;
+}
+
+.v-admin .v-chan {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 13px 15px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--bl-lift);
+}
+
+.v-admin .v-chan__ic { flex: none; width: 38px; height: 38px; }
+
+.v-admin .v-chan__in {
+    fill: #FFFFFF;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* The truncation is stated by the component, not by a utility class
+   in the markup: "Bank Transfer (Union Bank)" is a label a merchant
+   can type and it must not push the figure off the chip. A rule the
+   component owns cannot be dropped by an edit to the view. */
+.v-admin .v-chan__body { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+
+.v-admin .v-chan__n,
+.v-admin .v-chan__s {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.v-admin .v-chan__n { font-size: 13.5px; font-weight: 640; color: var(--text); }
+.v-admin .v-chan__s { font-size: 12.5px; color: var(--text-muted); }
+
+.v-admin .v-chan__q { margin-left: auto; flex: none; text-align: right; }
+.v-admin .v-chan__qv { font-size: 14px; font-weight: 620; color: var(--text); }
+.v-admin .v-chan__ql { display: block; margin-top: 2px; font-size: 11.5px; color: var(--text-muted); }
+
+/* Amber's display stop is 2.94:1 on a white sheet, under the 3:1 a
+   mark carrying meaning needs, so every swatch and arc takes the mark
+   stop instead. The other five clear it on their display stop. */
+.v-admin .v-slice-0 { fill: var(--bl-a-cyan); }
+.v-admin .v-slice-1 { fill: var(--bl-a-violet); }
+.v-admin .v-slice-2 { fill: var(--bl-a-green); }
+.v-admin .v-slice-3 { fill: var(--bl-a-amber-mark); }
+.v-admin .v-slice-4 { fill: var(--bl-a-rose); }
+.v-admin .v-slice-5 { fill: var(--bl-a-indigo); }
+
+.v-admin .v-stroke-0 { stroke: var(--bl-a-cyan); }
+.v-admin .v-stroke-1 { stroke: var(--bl-a-violet); }
+.v-admin .v-stroke-2 { stroke: var(--bl-a-green); }
+.v-admin .v-stroke-3 { stroke: var(--bl-a-amber-mark); }
+.v-admin .v-stroke-4 { stroke: var(--bl-a-rose); }
+.v-admin .v-stroke-5 { stroke: var(--bl-a-indigo); }
+
+/* ------------------------------------------------------------
+   4. THE SPLIT AND ITS PANELS
+
+   Two thirds to the work and its history, one third to the counts
+   beside it. The panels are the same raised white sheet the page
+   always used; what changed is that there are several of them
+   instead of one, so the page has groups a reader can see.
+   ------------------------------------------------------------ */
+.v-admin .v-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+}
+
+@media (min-width: 1200px) {
+    .v-admin .v-split { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    /* The store that has never traded has nothing for a rail to hold,
+       so it keeps the full measure rather than leaving a third of the
+       page empty beside three lines of counts. */
+    .v-admin .v-split--solo { grid-template-columns: minmax(0, 1fr); max-width: 860px; }
+}
+
+.v-admin .v-split__main,
+.v-admin .v-split__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.v-admin .v-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--bl-lift);
+    overflow: hidden;
+}
+
+/* The head is a ruled line under a name, which is the daybook's own
+   grammar. The rule is a pseudo-element rather than a border so it
+   can carry the page's one authored moment. */
+.v-admin .v-panel__head {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    padding: 15px 20px 12px;
+}
+
+.v-admin .v-panel__head::after {
     content: "";
     position: absolute;
     inset-inline: 0;
-    top: 0;
+    bottom: 0;
     height: 1px;
     background: var(--border-strong);
     transform: scaleX(0);
@@ -66,18 +395,50 @@
     animation: v-rule-strike 460ms cubic-bezier(.16, 1, .3, 1) both;
 }
 
-.v-admin .v-sheet > * { animation: v-sheet-settle 420ms cubic-bezier(.16, 1, .3, 1) both; }
+.v-admin .v-panel__note {
+    font-size: 12px;
+    color: var(--text-muted);
+}
 
-.v-admin .v-sheet > *:nth-child(2),
-.v-admin .v-sheet > *:nth-child(2)::before { animation-delay: 60ms; }
-.v-admin .v-sheet > *:nth-child(3),
-.v-admin .v-sheet > *:nth-child(3)::before { animation-delay: 120ms; }
-.v-admin .v-sheet > *:nth-child(4),
-.v-admin .v-sheet > *:nth-child(4)::before { animation-delay: 180ms; }
-.v-admin .v-sheet > *:nth-child(5),
-.v-admin .v-sheet > *:nth-child(5)::before { animation-delay: 240ms; }
-.v-admin .v-sheet > *:nth-child(6),
-.v-admin .v-sheet > *:nth-child(6)::before { animation-delay: 300ms; }
+.v-admin .v-panel__link {
+    margin-left: auto;
+    font-size: 12.5px;
+    color: var(--bl-brand-deep);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-strong);
+}
+
+.v-admin .v-panel__link:hover { border-bottom-color: currentColor; }
+
+.v-admin .v-panel__body { padding: 14px 20px 18px; }
+
+.v-admin .v-panel__blank {
+    padding: 16px 20px 18px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* THE PAGE'S ONE AUTHORED MOMENT, kept from the single-sheet
+   version: each panel settles and its rule is struck across from the
+   left, staggered down the page. It is the daybook being ruled, and
+   it is the only motion on arrival. The plot deliberately has none of
+   its own: a wipe-in on a trend line reads as the recent months
+   arriving late, which is the opposite of what a trend is for. */
+.v-admin .v-day > *,
+.v-admin .v-split__main > *,
+.v-admin .v-split__rail > * {
+    animation: v-sheet-settle 420ms cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.v-admin .v-day > *:nth-child(2) { animation-delay: 50ms; }
+.v-admin .v-day > *:nth-child(3) { animation-delay: 100ms; }
+.v-admin .v-day > *:nth-child(4) { animation-delay: 150ms; }
+
+.v-admin .v-split__main > *:nth-child(2),
+.v-admin .v-split__rail > *:nth-child(2) { animation-delay: 200ms; }
+.v-admin .v-split__main > *:nth-child(3),
+.v-admin .v-split__rail > *:nth-child(3) { animation-delay: 250ms; }
+.v-admin .v-split__main > *:nth-child(4) { animation-delay: 300ms; }
 
 @keyframes v-sheet-settle {
     from { opacity: 0; transform: translateY(7px); filter: blur(2px); }
@@ -88,34 +449,86 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .v-admin .v-sheet > *,
-    .v-admin .v-sheet__mv::before {
+    .v-admin .v-day > *,
+    .v-admin .v-split__main > *,
+    .v-admin .v-split__rail > *,
+    .v-admin .v-panel__head::after {
         animation-duration: 1ms !important;
         animation-delay: 0ms !important;
     }
 }
 
 /* ------------------------------------------------------------
-   1. The head
+   THE RING
 
-   A daybook page is identified by its date, so the date is the
-   heading. The store's name is on the slab and is not repeated here.
+   Beside its own table rather than above it: stacked, this section
+   spent 700px of height to state six figures and the ring used a
+   quarter of the width it was given.
    ------------------------------------------------------------ */
-.v-admin .v-sheet__date {
-    font-size: clamp(25px, 3.4vw, 33px);
-    font-weight: 640;
-    line-height: 1.08;
-    letter-spacing: -0.025em;
-    color: var(--text);
-    text-wrap: balance;
+.v-admin .v-breakdown {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
 }
 
-.v-admin .v-sheet__standing {
-    margin-top: 9px;
-    max-width: 62ch;
-    font-size: 14px;
-    line-height: 1.5;
-    color: var(--text-secondary);
+@media (min-width: 860px) {
+    .v-admin .v-breakdown { grid-template-columns: 218px minmax(0, 1fr); }
+    .v-admin .v-breakdown__records { border-left: 1px solid var(--border); }
+}
+
+.v-admin .v-breakdown__ring {
+    display: grid;
+    place-items: center;
+    padding: 16px 20px;
+}
+
+.v-admin .v-ring { display: block; margin: 0 auto; width: 100%; max-width: 180px; height: auto; }
+.v-admin .v-ring__seg { fill: none; stroke-width: 25; }
+.v-admin .v-ring__v { fill: var(--text); font-size: 25px; font-weight: 700; }
+.v-admin .v-ring__k { fill: var(--text-muted); font-size: 11px; }
+.v-admin .v-ring__s { fill: var(--text-muted); font-size: 10.5px; }
+
+/* The name replaces the word "orders" while reading, so it takes the
+   weight that word did not need. */
+.v-admin .v-ring.is-reading .v-ring__k { fill: var(--text-secondary); font-weight: 640; }
+
+/* Which arc you are on, without moving anything: the others step back
+   rather than the hovered one growing, so the ring keeps its geometry
+   and nothing reflows under the pointer. */
+.v-admin .v-ring__seg { transition: opacity 120ms; }
+.v-admin .v-ring.is-reading .v-ring__seg { opacity: .3; }
+.v-admin .v-ring.is-reading .v-ring__seg:hover { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+    .v-admin .v-ring__seg { transition: none; }
+}
+
+/* Tailwind's preflight sets svg { display: block }, which in a table
+   cell stacks the swatch above the name instead of beside it. */
+.v-admin .v-tsw { display: inline-block; margin-right: 8px; vertical-align: -1px; }
+
+/* ------------------------------------------------------------
+   THE RAIL'S FACT LIST
+
+   A name and a figure, the same grammar as the ledger lines, but
+   without a destination: these are readings, not work.
+   ------------------------------------------------------------ */
+.v-admin .v-facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: baseline;
+    gap: 10px 16px;
+    padding: 14px 20px 18px;
+    font-size: 13px;
+}
+
+.v-admin .v-facts dd { text-align: right; color: var(--text); }
+.v-admin .v-facts__zero { color: var(--text-muted); }
+
+.v-admin .v-facts__qual {
+    display: block;
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--text-muted);
 }
 
 /* ------------------------------------------------------------
@@ -238,13 +651,15 @@
    ------------------------------------------------------------ */
 .v-admin .v-lines > li + li .v-line { border-top: 1px solid var(--border); }
 
+/* The padding is the panel's own gutter, stated here rather than
+   inherited from a wrapper, because the whole line is the target and
+   its hover has to run edge to edge inside the panel. */
 .v-admin .v-line {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto 14px;
     align-items: center;
     column-gap: 12px;
-    margin-inline: -24px;
-    padding: 9px 24px;
+    padding: 10px 20px;
     text-decoration: none;
     transition: background-color var(--motion-fast);
 }
@@ -289,36 +704,13 @@
 
 /* ------------------------------------------------------------
    4. The day's entries
+
+   The table's own cells carry 16px of padding, so 4px of gutter puts
+   the first column's text on the same 20px margin as the panel head
+   above it while still letting a wide table scroll rather than clip.
    ------------------------------------------------------------ */
-.v-admin .v-sheet__mvhead {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 7px;
-}
-
-.v-admin .v-sheet__mvlink {
-    flex: none;
-    font-size: 12.5px;
-    font-weight: 500;
-    color: var(--accent);
-}
-
-.v-admin .v-sheet__mvlink:hover { text-decoration: underline; }
-
-.v-admin .v-sheet__blank {
-    font-size: 13.5px;
-    line-height: 1.5;
-    color: var(--text-secondary);
-}
-
-/* The table's own cells carry 16px of padding, so 8px of bleed puts
-   the first column's text on the same 24px margin as everything else
-   on the sheet while still letting a wide table scroll rather than
-   clip. */
 .v-admin .v-sheet__scroll {
-    margin-inline: -8px;
+    padding-inline: 4px;
     overflow-x: auto;
 }
 
@@ -594,23 +986,17 @@
 /* ============================================================
    4. The running accounts
 
-   What has been selling, over a stated period. Four readings in two
-   columns, all of them lines. The identity accents are spent here
-   and only here, on the payment mix, where a proportion genuinely
-   needs to be seen; every one of them sits beside its own written
-   label and its own figure, so nothing is carried by hue alone.
+   What has been selling, over a stated period. Three readings, all
+   of them lines. The payment mix that used to live here as a stacked
+   bar is now the strip at the top of the page and the ring above,
+   which is where a part-to-whole reading belongs; what is left is the
+   two rankings and the buyers, so the columns went from four to
+   three.
    ============================================================ */
-.v-admin .v-sheet__mvnote {
-    flex: none;
-    font-size: 12.5px;
-    font-weight: 400;
-    color: var(--text-muted);
-}
-
 .v-admin .v-accounts {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px 40px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 18px 36px;
 }
 
 .v-admin .v-accounts__title {
@@ -670,19 +1056,16 @@
 
 /* ------------------------------------------------------------
    A mix
-   ------------------------------------------------------------ */
-.v-admin .v-mixbar {
-    display: block;
-    width: 100%;
-    height: 6px;
-    margin-bottom: 10px;
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-}
 
+   The stacked bar and its swatch column moved out of here: the
+   payment split is the strip at the top of the page and the ring
+   above, so drawing it a third time in a column would have been the
+   same fact stated three ways. What is left is the plain two-figure
+   rows the buyers reading uses.
+   ------------------------------------------------------------ */
 .v-admin .v-mix__row {
     display: grid;
-    grid-template-columns: 9px minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: baseline;
     column-gap: 10px;
     padding: 6px 0;
@@ -690,12 +1073,8 @@
     font-size: 13px;
 }
 
-.v-admin .v-mix__row--plain { grid-template-columns: minmax(0, 1fr) auto auto; }
-
 .v-admin .v-mix > li:first-child .v-mix__row,
 .v-admin .v-mix__row:first-child { border-top: 0; }
-
-.v-admin .v-mix__sw { display: block; align-self: center; }
 
 .v-admin .v-mix__name {
     min-width: 0;
@@ -713,35 +1092,29 @@
 
 .v-admin .v-mix__count { color: var(--text); }
 
-/* The six identity accents, in the order the mix spends them. Indigo
-   is last because the plot above already means indigo. */
-.v-admin .v-acc-0 { fill: var(--bl-a-cyan); }
-.v-admin .v-acc-1 { fill: var(--bl-a-violet); }
-.v-admin .v-acc-2 { fill: var(--bl-a-green); }
-.v-admin .v-acc-3 { fill: var(--bl-a-amber); }
-.v-admin .v-acc-4 { fill: var(--bl-a-rose); }
-.v-admin .v-acc-5 { fill: var(--bl-a-indigo); }
-
 /* ------------------------------------------------------------
    Narrow
 
-   The sheet keeps its order and loses only its columns. Each figure
+   The page keeps its order and loses only its columns. Each figure
    becomes its own small block: the label and today's value on one
    line, then each comparison on a line of its own carrying the
    period it belongs to, so the money still aligns down the block.
    ------------------------------------------------------------ */
 @media (max-width: 719px) {
-    .v-admin .v-sheet__head,
-    .v-admin .v-sheet__mv { padding-inline: 16px; }
+    .v-admin .v-panel__head { padding-inline: 16px; }
+    .v-admin .v-panel__body,
+    .v-admin .v-panel__blank,
+    .v-admin .v-facts { padding-inline: 16px; }
 
-    .v-admin .v-line { margin-inline: -16px; padding-inline: 16px; }
+    .v-admin .v-line { padding-inline: 16px; }
 
-    /* Full bleed to the sheet's edges, and tighter cell padding, so
-       the four columns that matter at a glance fit a 390 screen
-       without the ledger being reduced to a sideways scroll. What
-       was bought is the column that goes: the row still opens the
-       order, where the whole basket is. */
-    .v-admin .v-sheet__scroll { margin-inline: -16px; }
+    .v-admin .v-stat { padding: 14px 15px 13px; }
+
+    /* Tighter cell padding, so the four columns that matter at a
+       glance fit a 390 screen without the ledger being reduced to a
+       sideways scroll. What was bought is the column that goes: the
+       row still opens the order, where the whole basket is. */
+    .v-admin .v-sheet__scroll { padding-inline: 0; }
 
     .v-admin .v-sheet__scroll .v-table th,
     .v-admin .v-sheet__scroll .v-table td { padding-inline: 8px; }
