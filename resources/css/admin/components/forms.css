@@ -1,5 +1,25 @@
-.v-admin .v-control { transition: border-color var(--motion-fast), box-shadow var(--motion-fast); }
-.v-admin .v-control:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-weak); }
+/* ============================================================
+   Controls and fields
+
+   Controls sit at the Blotter's metrics and let the page's single
+   focus ring do the work. The old build drew a second ring of its
+   own (a 3px brass halo on top of the outline), which meant a
+   focused input wore two rings of different radii at once.
+   ============================================================ */
+
+.v-admin .v-control { transition: border-color var(--motion-fast); }
+
+/* Focus deepens the edge; the brass outline in base.css is the
+   visible ring. One ring, not two. */
+.v-admin .v-control:focus { border-color: var(--text-secondary); }
+
+.v-admin .v-control[readonly],
+.v-admin .v-control:disabled {
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+}
+
+.v-admin textarea.v-control { min-height: 96px; line-height: 1.5; resize: vertical; }
 
 /*
  * Selects: @tailwindcss/forms gives bare <select> py-2 + line-height 1.5,
@@ -8,3 +28,47 @@
  * the fixed height centers the text; applies to component AND raw selects.
  */
 .v-admin select { padding-top: 0; padding-bottom: 0; line-height: normal; }
+
+/* ------------------------------------------------------------
+   Field: label above the control, one message directly beneath the
+   control it belongs to. Never a summary at the top of the form,
+   which makes a person hunt for the field the message is about.
+   ------------------------------------------------------------ */
+
+.v-admin .v-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.v-admin .v-field__label {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+/* The one place a wide-tracked cap survives, and it survives for the
+   reason the micro-cap did not: this is a two-state tag whose job is
+   to be scannable down a column of labels without being read, and it
+   is a single word that never grows. */
+.v-admin .v-req {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--warning);
+}
+
+.v-admin .v-field__hint {
+    font-size: 12px;
+    max-width: 62ch;
+}
+
+:where(.v-admin) :where(.v-field__hint) { color: var(--text-muted); }
+
+.v-admin .v-field__error {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--danger);
+}

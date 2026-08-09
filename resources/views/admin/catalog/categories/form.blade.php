@@ -70,7 +70,7 @@
 
                     {{-- SEO --}}
                     <div class="border-t border-v-border pt-6">
-                        <h3 class="text-[13px] font-semibold uppercase tracking-wide text-v-secondary mb-4">SEO</h3>
+                        <h3 class="v-subhead mb-4">SEO</h3>
                         <div class="space-y-4">
                             <x-admin.field name="slug" label="Slug" help="Leave blank to auto-generate from name">
                                 <div class="flex items-center gap-1">
@@ -145,7 +145,7 @@
                                     <div class="space-y-3">
                                         <template x-for="field in ['meta_title', 'meta_description', 'og_title', 'og_description']" :key="field">
                                             <div>
-                                                <label class="text-xs font-medium uppercase text-v-muted" x-text="field.replace(/_/g, ' ')"></label>
+                                                <label class="v-label" x-text="field.replace(/_/g, ' ')"></label>
                                                 <div class="mt-1 grid grid-cols-2 gap-2">
                                                     <div class="rounded-v-sm bg-v-surface p-2 text-xs">
                                                         <span class="mb-0.5 block text-v-muted">Current:</span>

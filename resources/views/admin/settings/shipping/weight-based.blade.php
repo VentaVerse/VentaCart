@@ -117,9 +117,9 @@
                                                 <table class="w-full text-[13px]">
                                                     <thead class="bg-v-sunken">
                                                         <tr>
-                                                            <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">From (kg)</th>
-                                                            <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">To (kg)</th>
-                                                            <th class="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Cost (₱)</th>
+                                                            <th class="px-3 py-2 text-left v-label">From (kg)</th>
+                                                            <th class="px-3 py-2 text-left v-label">To (kg)</th>
+                                                            <th class="px-3 py-2 text-left v-label">Cost (₱)</th>
                                                             <th class="px-3 py-2 w-8"></th>
                                                         </tr>
                                                     </thead>

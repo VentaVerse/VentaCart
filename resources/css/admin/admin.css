@@ -1,9 +1,11 @@
 @import "./tokens.css";
 @import "./base.css";
 @import "./components/buttons.css";
+@import "./components/badge.css";
 @import "./components/hint.css";
 @import "./components/forms.css";
 @import "./components/table.css";
+@import "./components/empty.css";
 @import "./components/palette.css";
 @import "./components/settings.css";
 @import "./components/dashboard.css";

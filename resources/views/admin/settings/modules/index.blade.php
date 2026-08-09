@@ -1,7 +1,7 @@
 <x-admin.settings-shell title="Modules" :wide="true">
     <div class="space-y-8">
         <div>
-            <p class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">Extensions</p>
+            <p class="mb-3 v-label">Extensions</p>
 
             @if ($extensions->isEmpty())
                 <x-admin.empty-state icon="categories" title="No extensions found"
@@ -24,7 +24,7 @@
                                         <span class="v-num text-xs text-v-muted">{{ $ext['version'] ? 'v' . $ext['version'] : '' }}</span>
                                         <div class="flex items-center gap-2">
                                             @if ($ext['configure'])
-                                                <x-admin.button variant="ghost" size="sm" :href="$ext['configure']">Configure →</x-admin.button>
+                                                <x-admin.button variant="ghost" size="sm" :href="$ext['configure']">Configure <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                                             @endif
 
                                             @if (in_array('install', $ext['actions'], true))
@@ -75,7 +75,7 @@
         </div>
 
         <div>
-            <p class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">Core Features</p>
+            <p class="mb-3 v-label">Core Features</p>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 @foreach ($coreFeatures as $module)
                     <x-admin.card>
@@ -92,7 +92,7 @@
                                 <div class="mt-3 flex items-center justify-between">
                                     <span class="v-num text-xs text-v-muted">{{ $module['stats'] ?? '' }}</span>
                                     @if ($module['configure'])
-                                        <x-admin.button variant="ghost" size="sm" :href="$module['configure']">Configure →</x-admin.button>
+                                        <x-admin.button variant="ghost" size="sm" :href="$module['configure']">Configure <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                                     @endif
                                 </div>
                             </div>

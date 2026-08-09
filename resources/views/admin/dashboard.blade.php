@@ -21,9 +21,9 @@
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 {{-- Recent orders --}}
                 <div class="xl:col-span-2">
-                    <x-admin.card title="Recent Orders" description="Latest activity across the store.">
+                    <x-admin.card title="Recent Orders">
                         <x-slot:headerActions>
-                            <x-admin.button variant="ghost" size="sm" :href="route('admin.orders.index')">View all →</x-admin.button>
+                            <x-admin.button variant="ghost" size="sm" :href="route('admin.orders.index')">View all <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                         </x-slot:headerActions>
 
                         @if ($recentOrders->isEmpty())
@@ -77,7 +77,7 @@
 
                     <x-admin.card title="Automation Health" class="v-dash-in">
                         <x-slot:headerActions>
-                            <x-admin.button variant="ghost" size="sm" :href="route('admin.settings.section', 'automations')">Manage →</x-admin.button>
+                            <x-admin.button variant="ghost" size="sm" :href="route('admin.settings.section', 'automations')">Manage <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                         </x-slot:headerActions>
 
                         @if ($automations->isEmpty())
@@ -104,7 +104,7 @@
                         @endif
                     </x-admin.card>
 
-                    <x-admin.card title="Storefront" description="See what customers see." class="v-dash-in">
+                    <x-admin.card title="Storefront" class="v-dash-in">
                         <x-admin.button variant="secondary" size="sm" href="{{ route('home') }}" target="_blank" rel="noopener">
                             <x-admin.icon name="external" class="w-4 h-4" /> View store
                         </x-admin.button>

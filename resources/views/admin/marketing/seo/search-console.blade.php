@@ -8,7 +8,7 @@
                     <x-admin.card>
                         <x-admin.empty-state icon="search" title="Google Search Console is not configured yet"
                             description="Upload credentials and set your site URL to see real query performance here.">
-                            <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.settings')">Go to Settings →</x-admin.button>
+                            <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.settings')">Go to Settings <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                         </x-admin.empty-state>
                     </x-admin.card>
                 @else

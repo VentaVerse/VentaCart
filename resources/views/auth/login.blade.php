@@ -1,4 +1,4 @@
-<x-admin.auth-shell title="Sign in" subtitle="Enter your credentials to access the administration panel.">
+<x-admin.auth-shell title="Sign in">
     <form method="POST" action="{{ route('login') }}" data-v-form class="space-y-5">
         @csrf
 

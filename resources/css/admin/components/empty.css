@@ -1,0 +1,69 @@
+/* ============================================================
+   Empty state and menu
+
+   The empty state's proportions come from the Blotter: generous
+   vertical room, a 15px title at 650, one line of description
+   capped at 46ch so it never runs the width of a wide table, and
+   the action set apart below. No icon: an outlined pictogram in a
+   grey circle above a heading is the stock-template empty state,
+   and it says nothing the title does not already say.
+   ============================================================ */
+
+.v-admin .v-empty {
+    padding: 46px var(--bl-pad);
+    text-align: center;
+}
+
+.v-admin .v-empty__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--text);
+}
+
+.v-admin .v-empty__desc {
+    margin: 4px auto 0;
+    max-width: 46ch;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.v-admin .v-empty__action { margin-top: 16px; }
+
+/* An empty state that lands inside a table's own sheet takes the
+   rule the missing header row would have drawn, so the sheet still
+   reads as a table rather than as a stray panel. */
+.v-admin .v-table-wrap + .v-empty,
+.v-admin .v-empty--ruled { border-top: 1px solid var(--border-strong); }
+
+/* ------------------------------------------------------------
+   Menu: the trigger is whatever the caller put in it; the panel is
+   a floating sheet at the panel radius, carrying the resting lift.
+   ------------------------------------------------------------ */
+
+.v-admin .v-menu__item {
+    display: block;
+    width: 100%;
+    padding: 6px 14px;
+    border: 0;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.v-admin .v-menu__item:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.v-admin .v-menu__item--danger:hover { color: var(--danger); }
+
+.v-admin .v-menu__sep {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--border);
+}

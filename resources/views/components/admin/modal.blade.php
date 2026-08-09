@@ -5,10 +5,10 @@
      x-on:close-modal.window="if ($event.detail === '{{ $name }}') open = false"
      x-on:keydown.escape.window="open = false"
      x-show="open" x-cloak
-     class="fixed inset-0 z-[90] flex items-center justify-center p-4">
+     {{ $attributes->merge(['class' => 'fixed inset-0 z-[90] flex items-center justify-center p-4']) }}>
     <div class="absolute inset-0 bg-black/50" @click="open = false"></div>
     <div x-show="open" x-transition
-         class="relative w-full {{ $widths[$maxWidth] }} bg-v-surface border border-v-border rounded-v-lg shadow-2xl whitespace-normal"
+         class="v-modal relative w-full {{ $widths[$maxWidth] }} bg-v-surface border border-v-border rounded-v-lg whitespace-normal"
          role="dialog" aria-modal="true" @if($title) aria-label="{{ $title }}" @endif>
         @if ($title)
             <header class="flex items-center justify-between px-5 pt-4">

@@ -1,2 +1,50 @@
+/* ============================================================
+   Table
+
+   The Blotter's table: a raised white sheet that scrolls sideways
+   and never clips, hairline rules between rows, no zebra striping,
+   and a hover row tinted from the brand rather than from grey, so
+   the row under the pointer reads as reachable rather than as
+   merely different.
+
+   Column labels take the label tokens, which means sentence case at
+   normal width. The old wide-tracked uppercase micro-cap is gone.
+   ============================================================ */
+
+.v-admin .v-table {
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Header cells sit on the sheet with a rule above and below rather
+   than on a sunken band: the band made every table look like it had
+   a toolbar it did not have. */
+.v-admin .v-table thead th {
+    border-block: 1px solid var(--border-strong);
+}
+
+.v-admin .v-table thead tr:first-child th { border-top: 0; }
+
 .v-admin .v-table .v-row { transition: background-color var(--motion-fast); }
-.v-admin .v-table .v-row:hover { background: var(--surface-hover); }
+
+/* 4% of the brass mark on the sheet. Reads as warm rather than as
+   grey dirt, and it is the same colour the focus ring uses, which
+   is what ties "you can act here" together. */
+.v-admin .v-table .v-row:hover {
+    background: color-mix(in srgb, var(--accent-mark) 5%, var(--surface));
+}
+
+.v-admin .v-table .v-row:focus-visible {
+    background: color-mix(in srgb, var(--accent-mark) 8%, var(--surface));
+}
+
+/* A row that stands for a record you can open gets the pointer and
+   the whole row as the target, not just the link in the first cell. */
+.v-admin .v-table .v-row[data-href] { cursor: pointer; }
+
+/* Wide tables scroll inside their own sheet. A table that clips is a
+   record you own and cannot reach. */
+.v-admin .v-table-wrap {
+    overflow-x: auto;
+    border-radius: inherit;
+}

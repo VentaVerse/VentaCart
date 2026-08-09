@@ -37,7 +37,7 @@
                                 <p class="mt-1 text-[11px] text-v-muted">Overrides every paid method below when a rule matches.</p>
                             @endif
                             <div class="mt-3 flex items-center justify-end">
-                                <x-admin.button variant="ghost" size="sm" :href="$provider['route']">Configure →</x-admin.button>
+                                <x-admin.button variant="ghost" size="sm" :href="$provider['route']">Configure <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                             </div>
                         </div>
                     </div>

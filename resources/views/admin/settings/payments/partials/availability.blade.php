@@ -120,7 +120,7 @@
 
             {{-- Order limits --}}
             <div>
-                <h4 class="text-xs font-semibold text-v-muted uppercase tracking-wider mb-3">Order limits</h4>
+                <h4 class="v-label mb-3">Order limits</h4>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <x-admin.field name="min_total" label="Min order total">
                         <x-admin.input type="number" name="min_total" :value="$restriction?->min_total"
@@ -151,7 +151,7 @@
 
             {{-- Include conditions --}}
             <div>
-                <h4 class="text-xs font-semibold text-v-accent uppercase tracking-wider mb-1">Include conditions</h4>
+                <h4 class="v-label text-v-accent mb-1">Include conditions</h4>
                 <p class="text-xs text-v-muted mb-4">All conditions must be met for {{ $name }} to appear. Leave a section empty to skip that condition.</p>
                 <div class="space-y-6">
                     @include('admin.partials.dual-listbox', [
@@ -292,7 +292,7 @@
                             class="flex items-stretch gap-0">
                             <div class="flex-1 border border-gray-200 rounded-l-lg overflow-hidden">
                                 <div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                                    <span class="text-xs font-medium text-gray-500 uppercase">Available</span>
+                                    <span class="v-label">Available</span>
                                 </div>
                                 <div class="h-36 overflow-y-auto">
                                     <template x-for="item in available" :key="item.id">
@@ -321,7 +321,7 @@
                             </div>
                             <div class="flex-1 border border-gray-200 rounded-r-lg overflow-hidden">
                                 <div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                                    <span class="text-xs font-medium text-gray-500 uppercase">Selected <span class="text-indigo-600" x-text="'(' + selectedKeys.length + ')'"></span></span>
+                                    <span class="v-label">Selected <span class="text-indigo-600" x-text="'(' + selectedKeys.length + ')'"></span></span>
                                 </div>
                                 <div class="h-36 overflow-y-auto">
                                     <template x-for="item in selectedItems" :key="item.id">
@@ -345,7 +345,7 @@
 
             {{-- Exclude conditions --}}
             <div>
-                <h4 class="text-xs font-semibold text-v-danger uppercase tracking-wider mb-1">Exclude conditions</h4>
+                <h4 class="v-label text-v-danger mb-1">Exclude conditions</h4>
                 <p class="text-xs text-v-muted mb-4">{{ $name }} will NOT appear if the order matches any exclusion below.</p>
                 <div class="space-y-6">
                     @include('admin.partials.dual-listbox', [

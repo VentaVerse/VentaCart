@@ -29,10 +29,10 @@
                 </div>
 
                 {{-- Automation status --}}
-                <x-admin.card title="Automation" description="Suggestions are generated on a schedule. Configure cadence in Settings.">
+                <x-admin.card title="Automation">
                     <x-slot name="headerActions">
                         <x-admin.button variant="ghost" size="sm" :href="route('admin.settings.section', 'automations')">
-                            Runs via Automations →
+                            Open Automations <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" />
                         </x-admin.button>
                     </x-slot>
 
@@ -67,9 +67,9 @@
                 </x-admin.card>
 
                 {{-- Recent suggestions --}}
-                <x-admin.card title="Recent Suggestions" description="Latest AI-generated SEO metadata, across every content type.">
+                <x-admin.card title="Recent Suggestions">
                     <x-slot name="headerActions">
-                        <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.review')">Review all →</x-admin.button>
+                        <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.review')">Review all <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                     </x-slot>
 
                     @if ($recentSuggestions->isEmpty())
@@ -123,7 +123,7 @@
                     @else
                         <x-admin.empty-state icon="search" title="Search Console not connected"
                             description="Connect Google Search Console to see real query performance here.">
-                            <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.settings')">Connect in Settings →</x-admin.button>
+                            <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.settings')">Connect in Settings <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                         </x-admin.empty-state>
                     @endif
                 </x-admin.card>

@@ -13,7 +13,7 @@
                     @foreach ($groups as $group => $perms)
                         <tr class="bg-v-sunken">
                             <td colspan="{{ $roles->count() + 1 }}" class="px-4 py-2">
-                                <span class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ ucfirst($group) }}</span>
+                                <span class="v-label">{{ ucfirst($group) }}</span>
                             </td>
                         </tr>
                         @foreach ($perms as $permission)

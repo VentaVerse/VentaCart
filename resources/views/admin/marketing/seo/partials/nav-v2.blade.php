@@ -58,7 +58,7 @@
     <div class="sticky top-11 space-y-4">
         @foreach ($seoNavGroups as $group)
             <div>
-                <p class="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ $group['label'] }}</p>
+                <p class="mb-1 px-2 v-label">{{ $group['label'] }}</p>
                 <div class="space-y-0.5">
                     @foreach ($group['items'] as $item)
                         <a href="{{ $seoNavUrl($item) }}"

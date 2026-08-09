@@ -4,7 +4,7 @@
         <x-admin.card title="Free Shipping Rules"
             description="First matching rule applies. Full condition editing lives on the dedicated rules page.">
             <x-slot name="headerActions">
-                <x-admin.button variant="secondary" size="sm" :href="route('admin.free-shipping-rules.index')">Manage rules →</x-admin.button>
+                <x-admin.button variant="secondary" size="sm" :href="route('admin.free-shipping-rules.index')">Manage rules <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
             </x-slot>
 
             @if ($freeShippingRules->isEmpty())

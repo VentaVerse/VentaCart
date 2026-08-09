@@ -94,7 +94,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                 @foreach ($colorGroups as $groupLabel => $fields)
                                     <div class="bg-v-sunken rounded-v-lg p-4">
-                                        <h4 class="text-xs font-semibold text-v-muted uppercase tracking-wider mb-3">{{ $groupLabel }}</h4>
+                                        <h4 class="v-label mb-3">{{ $groupLabel }}</h4>
                                         <div class="space-y-3">
                                             @foreach ($fields as $key => $label)
                                                 <div class="flex items-center justify-between gap-3">
@@ -152,7 +152,7 @@
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     {{-- Font Selection --}}
                                     <div class="space-y-6">
-                                        <h4 class="text-xs font-semibold text-v-muted uppercase tracking-wider">Font Family</h4>
+                                        <h4 class="v-label">Font Family</h4>
                                         <x-admin.field name="settings[heading]" label="Heading Font">
                                             <select name="settings[heading]" x-model="headingFont" @change="loadPreviewFont(headingFont)"
                                                 class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
@@ -170,7 +170,7 @@
                                             </select>
                                         </x-admin.field>
 
-                                        <h4 class="text-xs font-semibold text-v-muted uppercase tracking-wider pt-4">Font Sizes</h4>
+                                        <h4 class="v-label pt-4">Font Sizes</h4>
                                         @php
                                             $sizeFields = [
                                                 'size_logo' => ['label' => 'Logo / Store Name', 'default' => '32', 'min' => 18, 'max' => 60],
@@ -199,7 +199,7 @@
 
                                     {{-- Live Preview --}}
                                     <div>
-                                        <h4 class="text-xs font-semibold text-v-muted uppercase tracking-wider mb-4">Preview</h4>
+                                        <h4 class="v-label mb-4">Preview</h4>
                                         <div class="bg-v-sunken rounded-v-lg p-6 border border-v-border space-y-4">
                                             <div :style="'font-family: \'' + headingFont + '\', sans-serif'" class="space-y-2">
                                                 <div class="text-3xl font-bold text-v-text" x-text="headingFont">Heading Font</div>

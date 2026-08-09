@@ -248,7 +248,7 @@
 
                 {{-- Live preview --}}
                 <div class="rounded-v-md border border-v-border bg-v-accent-weak px-3 py-3">
-                    <div class="text-[10px] font-semibold text-v-accent uppercase tracking-wider mb-1">Preview</div>
+                    <div class="v-label text-v-accent mb-1">Preview</div>
                     <div class="text-[13px] text-v-text" x-text="previewText()"></div>
                     <code class="block mt-1 text-xs font-vmono text-v-secondary" x-text="previewCron()"></code>
                     <div class="text-[11px] text-v-muted mt-1">Runs in <span class="font-vmono">{{ $tz }}</span></div>

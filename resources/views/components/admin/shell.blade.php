@@ -167,19 +167,17 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                             <span class="hidden sm:inline">{{ $vUserName }}</span>
                         </button>
                         <div x-show="open" x-cloak @click.outside="open = false" x-transition.duration.120ms
-                             class="v-menu absolute right-0 z-50 mt-1.5 w-56 overflow-hidden rounded-v-md border border-v-strong bg-v-surface py-1">
+                             class="v-menu absolute right-0 z-50 mt-1.5 w-56 overflow-hidden rounded-v-lg border border-v-strong bg-v-surface py-1">
                             <div class="border-b border-v-border px-3.5 pb-2 pt-1">
                                 <div class="text-[13px] font-semibold text-v-text">{{ $vUserName }}</div>
                                 <div class="text-[12px] text-v-muted">{{ $vUser->role?->name ?? 'Administrator' }}</div>
                             </div>
-                            <a href="{{ route('admin.profile.edit') }}"
-                               class="flex w-full items-center gap-2 px-3.5 py-1.5 text-[13px] text-v-secondary hover:bg-v-hover hover:text-v-text">
+                            <a href="{{ route('admin.profile.edit') }}" class="v-menu__item flex items-center gap-2">
                                 <x-admin.icon name="customers" class="w-3.5 h-3.5" /> My profile
                             </a>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
-                                <button type="submit"
-                                        class="flex w-full items-center gap-2 px-3.5 py-1.5 text-left text-[13px] text-v-secondary hover:bg-v-hover hover:text-v-text">
+                                <button type="submit" class="v-menu__item flex items-center gap-2">
                                     <x-admin.icon name="logout" class="w-3.5 h-3.5" /> Sign out
                                 </button>
                             </form>

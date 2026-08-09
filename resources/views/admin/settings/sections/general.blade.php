@@ -1,18 +1,74 @@
 <x-admin.settings-shell title="General">
     <div class="space-y-6">
-        <x-admin.card title="Identity" description="Your store's name. Logo and favicon are managed in Theme.">
-            <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
+        @php
+            // Resolved, not read raw: a settings row can outlive its file, and
+            // StoreIdentity is the one place that stats the disk. A path with
+            // nothing behind it reads here exactly as it reads in the slab.
+            $vStoreName = \App\Support\StoreIdentity::name();
+            $vMarks = [
+                [
+                    'key' => 'logo',
+                    'label' => 'Logo',
+                    'help' => 'PNG, JPG or WebP, up to '.\App\Support\IdentityAsset::LOGO_MAX_KB.' KB.',
+                    'accept' => 'image/png,image/jpeg,image/webp',
+                    'url' => \App\Support\StoreIdentity::logoUrl(),
+                ],
+                [
+                    'key' => 'favicon',
+                    'label' => 'Favicon',
+                    'help' => 'Square PNG, ICO or SVG, up to '.\App\Support\IdentityAsset::FAVICON_MAX_KB.' KB.',
+                    'accept' => 'image/png,image/svg+xml,image/x-icon,image/vnd.microsoft.icon,.ico,.svg',
+                    'url' => \App\Support\StoreIdentity::faviconUrl(),
+                ],
+            ];
+        @endphp
+        <x-admin.card title="Identity">
+            <form method="POST" action="{{ route('admin.settings.identity.update') }}" enctype="multipart/form-data" data-v-form class="space-y-5">
                 @csrf
-                <input type="hidden" name="group" value="identity">
-                <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'general') }}">
-                <x-admin.field name="settings[site_name]" label="Site name">
-                    <x-admin.input name="settings[site_name]" :value="$settings['identity']['site_name'] ?? ''" />
+                <x-admin.field name="site_name" label="Site name">
+                    <x-admin.input name="site_name" :value="$settings['identity']['site_name'] ?? ''" />
                 </x-admin.field>
-                <p class="text-xs text-v-muted">Logo and favicon are managed in <a href="{{ route('admin.theme.index') }}" class="text-v-accent hover:underline">Theme</a>.</p>
+
+                <div class="grid gap-5 sm:grid-cols-2">
+                    @foreach ($vMarks as $mark)
+                        <x-admin.field :name="$mark['key']" :label="$mark['label']" :help="$mark['help']">
+                            <div class="flex items-start gap-3">
+                                <div class="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-v-md border border-v-border bg-v-sunken p-1.5">
+                                    @if ($mark['url'])
+                                        <img src="{{ $mark['url'] }}" alt="{{ $vStoreName }} {{ strtolower($mark['label']) }}" class="max-h-full max-w-full object-contain">
+                                    @else
+                                        <span class="text-[11px] leading-tight text-v-secondary">None set</span>
+                                    @endif
+                                </div>
+                                <div class="min-w-0 flex-1 space-y-2">
+                                    <input type="file" name="{{ $mark['key'] }}" id="{{ $mark['key'] }}" accept="{{ $mark['accept'] }}"
+                                           class="block w-full cursor-pointer text-xs text-v-secondary file:mr-2 file:cursor-pointer file:rounded-v-sm file:border-0 file:bg-v-accent-weak file:px-2 file:py-1 file:text-xs file:font-medium file:text-v-accent hover:file:bg-v-hover">
+                                    @if ($mark['url'])
+                                        <x-admin.button form="remove-{{ $mark['key'] }}" type="submit" variant="ghost" size="sm" class="-ml-2.5">
+                                            Remove {{ strtolower($mark['label']) }}
+                                        </x-admin.button>
+                                    @endif
+                                </div>
+                            </div>
+                        </x-admin.field>
+                    @endforeach
+                </div>
+
                 <x-admin.form-actions>
                     <x-admin.button variant="primary" type="submit">Save identity</x-admin.button>
                 </x-admin.form-actions>
             </form>
+
+            {{-- Removal is its own submission; forms cannot nest, so the
+                 buttons above reach these by id. --}}
+            @foreach ($vMarks as $mark)
+                @if ($mark['url'])
+                    <form id="remove-{{ $mark['key'] }}" method="POST" action="{{ route('admin.settings.identity.destroy', $mark['key']) }}" data-v-form class="hidden">
+                        @csrf
+                        @method('DELETE')
+                    </form>
+                @endif
+            @endforeach
         </x-admin.card>
 
         <x-admin.card title="Defaults" description="Timezone and fallback SEO metadata used across the storefront.">

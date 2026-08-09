@@ -17,21 +17,20 @@
 
    1. Colour has one job: telling the operator which orders are waiting on
       them (see Support/PhaseTone). No courier identity colour anywhere.
-   2. Elevation is flat: hairlines, not card stacks.
-   3. Every numeral is mono with tabular figures. */
+   2. Elevation is the admin's own: two lifts, spent on sheets and on
+      things that float, never scattered. The queue's panels are the same
+      raised sheets the rest of the admin uses, at the same 16px panel
+      radius, so it stops reading as a different generation.
+   3. Every numeral is mono with tabular figures.
+   4. Labels are sentence case at normal width, from --bl-lab-*. The
+      wide-tracked uppercase micro-cap is retired everywhere. */
 
 /* ------------------------------------------------------------------
    Command bar. Every child of the row ends in a box exactly --control-h
    (32px) tall and the row is bottom-aligned, so controls share a baseline.
    ------------------------------------------------------------------ */
 
-.cf-cmdbar {
-    margin-bottom: 20px;
-    padding: 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-}
+.cf-cmdbar { margin-bottom: 12px; }
 
 .cf-cmdbar__row {
     display: flex;
@@ -113,10 +112,9 @@
     justify-content: space-between;
     gap: 16px;
     padding: 16px 18px;
-    background: color-mix(in srgb, var(--warning) 10%, var(--surface));
+    background: var(--bl-attn-wash);
     border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
-    border-inline-start: 3px solid var(--warning);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
 }
 
 .cf-setup-notice__body {
@@ -158,9 +156,12 @@
 .cf-setup-notice__btn:hover { opacity: .9; }
 
 /* ------------------------------------------------------------------
-   Segment bar: the spine-phase tabs. Active item lifts onto --surface
-   inside a sunken trough — elevation and a hairline ring, never a brand
-   colour (colour belongs to the status column alone).
+   Segment bar: the spine-phase tabs, on the Blotter's .x-segment
+   anatomy. A sunken trough holding a row of pills; the active one is
+   filled with ink because it states what you are looking at, not
+   because it is a brand surface (colour still belongs to the status
+   column alone). Counts stay tabular so the row reads as a set of
+   quantities.
    ------------------------------------------------------------------ */
 
 .cf-segment-bar {
@@ -179,7 +180,7 @@
     min-width: 0;
     padding: 3px;
     background: var(--surface-sunken);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     overflow-x: auto;
     overflow-y: hidden;
@@ -193,35 +194,36 @@
     align-items: center;
     gap: 8px;
     flex: none;
-    height: 36px;
-    padding: 0 14px;
-    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    border-radius: var(--radius-md);
     color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1;
+    font-size: 12.5px;
+    font-weight: 550;
+    line-height: 1.35;
     white-space: nowrap;
     text-decoration: none;
     transition: color var(--motion-fast), background var(--motion-fast);
 }
 
-.cf-segment__item:hover { color: var(--text); }
+.cf-segment__item:hover { background: var(--surface); color: var(--text); }
 
 .cf-segment__item.is-active {
-    background: var(--surface);
-    color: var(--text);
-    box-shadow: 0 0 0 1px var(--border-strong), 0 1px 2px rgba(0, 0, 0, .05);
+    background: var(--text);
+    color: var(--canvas);
+    font-weight: 640;
 }
 
 /* Counts are reference information, not emphasis: muted, mono, tabular. */
 .cf-segment__count {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: 12px;
+    font-size: 11.5px;
     color: var(--text-muted);
 }
 
-.cf-segment__item.is-active .cf-segment__count { color: var(--text-secondary); }
+.cf-segment__item.is-active .cf-segment__count {
+    color: color-mix(in srgb, var(--canvas) 72%, transparent);
+}
 
 /* Returns is a sibling page, never an eighth filter — plain-link weight on
    the far side of the bar. */
@@ -259,15 +261,18 @@
 }
 
 .cf-segment--sub .cf-segment__item {
-    height: 28px;
-    padding: 0 10px;
-    font-size: 13px;
+    padding: 3px 10px;
+    font-size: 12.5px;
 }
 
 .cf-segment--sub .cf-segment__item.is-active {
     background: var(--surface-sunken);
     color: var(--text);
-    box-shadow: none;
+    font-weight: 640;
+}
+
+.cf-segment--sub .cf-segment__item.is-active .cf-segment__count {
+    color: var(--text-muted);
 }
 
 /* ------------------------------------------------------------------
@@ -285,9 +290,9 @@
 }
 
 .co-couriers__label {
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: .02em;
+    font-size: var(--bl-lab-size);
+    font-weight: var(--bl-lab-weight);
+    letter-spacing: var(--bl-lab-track);
     color: var(--text-muted);
 }
 
@@ -347,10 +352,16 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    overflow: hidden;
+    box-shadow: var(--bl-lift);
 }
 
-.cf-table__scroll { overflow-x: auto; }
+/* Scrolls, never clips: a parcel you have to ship must be reachable.
+   The scroll box carries the sheet's own radius so the outer columns
+   still round with the panel rather than being sliced by it. */
+.cf-table__scroll {
+    overflow-x: auto;
+    border-radius: inherit;
+}
 
 .cf-table table {
     width: 100%;
@@ -358,16 +369,16 @@
     border-collapse: collapse;
 }
 
-.cf-table thead tr { background: var(--surface-sunken); }
-
 .cf-table th {
     padding: 0 16px;
     height: var(--row-h);
     text-align: left;
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .1em;
+    border-bottom: 1px solid var(--border-strong);
+    font-size: var(--bl-lab-size);
+    font-stretch: var(--bl-lab-stretch);
+    font-weight: var(--bl-lab-weight);
+    letter-spacing: var(--bl-lab-track);
+    text-transform: var(--bl-lab-case);
     color: var(--text-muted);
     white-space: nowrap;
 }
@@ -649,7 +660,7 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
     width: 100%;
     padding: 14px 16px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     text-align: left;
     cursor: pointer;
@@ -666,16 +677,24 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
 .cf-choice__mode {
     display: inline-flex;
     align-items: center;
+    gap: 6px;
     margin-left: 8px;
-    padding: 1px 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--warning) 12%, transparent);
     color: var(--warning);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: .04em;
-    text-transform: uppercase;
     vertical-align: middle;
+}
+
+/* The square mark the shared badge carries, drawn here rather than
+   tinting a capsule behind the word. */
+.cf-choice__mode::before,
+.cf-choice__badge-unconfigured::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    background: currentColor;
 }
 
 .cf-choice__fee {
@@ -728,14 +747,10 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
 .cf-choice__badge-unconfigured {
     display: inline-flex;
     align-items: center;
-    padding: 1px 8px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--warning) 14%, transparent);
+    gap: 6px;
     color: var(--warning);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: .04em;
-    text-transform: uppercase;
 }
 
 .cf-choice__unconfigured-msg {
@@ -766,9 +781,25 @@ a.co-ship__no:hover { color: var(--accent); text-decoration: underline; }
 
     .cf-segment-bar__aside { align-self: flex-start; }
 
+    /* The sub-bar's negative top margin exists to tuck it under a
+       single-line top bar. Once the top bar stacks and puts its Returns
+       link on its own line, that tuck lands the sub-bar on top of the
+       link, so it goes. */
+    .cf-segment-bar--sub { margin-top: 0; }
+
     .cf-cmdbar { padding: 12px; }
 
     .cf-filters__search { max-width: 100%; flex: 1 1 200px; }
 
     .co-item .order-img-wrap { width: 64px; height: 64px; }
 }
+
+/* ------------------------------------------------------------------
+   Elevation belongs to the ONE primary action a screen has. A queue
+   has one Book button per row, and twenty-five lifted buttons is the
+   bought-template look wearing a shadow, so a primary control inside
+   the queue's own table stays flat.
+   ------------------------------------------------------------------ */
+
+.cf-table .v-btn--primary,
+.co-actions .v-btn--primary { box-shadow: none; }

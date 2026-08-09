@@ -35,7 +35,6 @@ html:has(> body.v-admin) { background: var(--canvas); }
 .v-admin :focus-visible {
     outline: 2px solid var(--accent-mark);
     outline-offset: 1px;
-    border-radius: var(--radius-sm);
 }
 
 [x-cloak] { display: none !important; }
@@ -54,12 +53,16 @@ html:has(> body.v-admin) { background: var(--canvas); }
     box-shadow: var(--bl-lift);
 }
 
-/* Things that genuinely float take the louder elevation. */
+/* Things that genuinely float take the louder elevation. A menu is
+   the one exception: it opens attached to the control that owns it,
+   over a page that is still fully lit, so it takes the resting lift.
+   That is what the Blotter's own CSS does with .x-menu__panel. */
 .v-admin .v-palette,
-.v-admin .v-menu,
 .v-admin .v-modal {
     box-shadow: var(--bl-lift-2);
 }
+
+.v-admin .v-menu { box-shadow: var(--bl-lift); }
 
 /* Neither medium renders a shadow, and there the edge is
    load-bearing, so the border comes back stronger. */
@@ -73,11 +76,16 @@ html:has(> body.v-admin) { background: var(--canvas); }
 /* ------------------------------------------------------------
    Labels
 
-   Sentence case at normal width. Views written before this file
-   spell the old micro-cap out in utilities (text-[10px] uppercase
-   tracking-widest); .v-label is the token-carrying replacement that
-   converted screens take, and the utilities keep working until each
-   screen is converted.
+   Sentence case at normal width. The wide-tracked uppercase
+   micro-cap the old build spelled out in utilities (text-[10px]
+   uppercase tracking-widest) is retired: it was the single most
+   dating detail in the build.
+
+   The metrics are stated at .v-admin specificity because nothing
+   should override them. The colour is stated at ZERO specificity
+   through :where(), because a label that names an accent-coloured
+   or danger-coloured section still has to be able to say so with
+   an ordinary text utility beside the class.
    ------------------------------------------------------------ */
 .v-admin .v-label {
     font-size: var(--bl-lab-size);
@@ -85,8 +93,19 @@ html:has(> body.v-admin) { background: var(--canvas); }
     font-weight: var(--bl-lab-weight);
     letter-spacing: var(--bl-lab-track);
     text-transform: var(--bl-lab-case);
-    color: var(--text-muted);
 }
+
+:where(.v-admin) :where(.v-label) { color: var(--text-muted); }
+
+/* A section heading inside a sheet: the tier between the page title
+   and a column label. Sentence case, ink, no tracking. */
+.v-admin .v-subhead {
+    font-size: 13px;
+    font-weight: 650;
+    letter-spacing: -0.005em;
+}
+
+:where(.v-admin) :where(.v-subhead) { color: var(--text); }
 
 /* Identifiers: SKUs, order references, tracking numbers. */
 .v-admin .v-mono {

@@ -311,7 +311,7 @@ function imageManager() {
                 card.appendChild(imgWrap);
 
                 const badge = document.createElement('span');
-                badge.className = 'absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded shadow-sm ' +
+                badge.className = 'absolute top-1.5 left-1.5 px-2 py-0.5 text-[10px] font-bold rounded shadow-sm ' +
                     (index === 0 ? 'bg-indigo-600 text-white' : 'bg-black/50 text-white backdrop-blur-sm');
                 badge.textContent = index === 0 ? 'Main' : '#' + (index + 1);
                 card.appendChild(badge);

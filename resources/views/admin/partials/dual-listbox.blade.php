@@ -111,7 +111,7 @@
         <div class="flex-1 border border-gray-200 rounded-l-lg overflow-hidden">
             <div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
                 <div class="flex items-center justify-between mb-1.5">
-                    <span class="text-xs font-medium text-gray-500 uppercase">Available</span>
+                    <span class="v-label">Available</span>
                 </div>
                 <input type="text" x-model="search" placeholder="Search..."
                     class="w-full text-xs border-gray-300 rounded px-2 py-1.5 focus:border-indigo-500 focus:ring-indigo-500">
@@ -155,7 +155,7 @@
         <div class="flex-1 border border-gray-200 rounded-r-lg overflow-hidden">
             <div class="bg-gray-50 px-3 py-2 border-b border-gray-200">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-500 uppercase">Selected <span class="text-indigo-600" x-text="'(' + selectedIds.length + ')'"></span></span>
+                    <span class="v-label">Selected <span class="text-indigo-600" x-text="'(' + selectedIds.length + ')'"></span></span>
                 </div>
             </div>
             <div class="h-44 overflow-y-auto">

@@ -11,7 +11,7 @@
                     <x-admin.card>
                         <div class="flex items-center justify-between gap-4">
                             <div>
-                                <h3 class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Maintenance</h3>
+                                <h3 class="v-label">Maintenance</h3>
                                 <p class="mt-1 text-xs text-v-secondary">Trim old entries to keep the log focused.</p>
                             </div>
                             <form method="POST" action="{{ route('admin.extensions.seo.not-found.clear') }}"

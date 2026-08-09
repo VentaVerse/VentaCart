@@ -35,7 +35,7 @@
             </x-admin.field>
 
             <div x-show="mode === 'sandbox'" x-cloak class="space-y-5 border-l-2 border-v-warning pl-4">
-                <p class="text-xs font-medium uppercase tracking-wide text-v-warning">Sandbox credentials</p>
+                <p class="v-label text-v-warning">Sandbox credentials</p>
                 <x-admin.field name="settings[hitpay_sandbox_api_key]" label="API key"
                     :help="!empty($maskedKeys['hitpay_sandbox_api_key'] ?? null) ? 'Current key ends in ' . $maskedKeys['hitpay_sandbox_api_key'] . '. Leave blank to keep it.' : null">
                     <x-admin.input name="settings[hitpay_sandbox_api_key]" type="password" placeholder="Enter sandbox API key" autocomplete="off" />
@@ -47,7 +47,7 @@
             </div>
 
             <div x-show="mode === 'production'" x-cloak class="space-y-5 border-l-2 border-v-accent pl-4">
-                <p class="text-xs font-medium uppercase tracking-wide text-v-accent">Production credentials</p>
+                <p class="v-label text-v-accent">Production credentials</p>
                 <x-admin.field name="settings[hitpay_production_api_key]" label="API key"
                     :help="!empty($maskedKeys['hitpay_production_api_key'] ?? null) ? 'Current key ends in ' . $maskedKeys['hitpay_production_api_key'] . '. Leave blank to keep it.' : null">
                     <x-admin.input name="settings[hitpay_production_api_key]" type="password" placeholder="Enter production API key" autocomplete="off" />

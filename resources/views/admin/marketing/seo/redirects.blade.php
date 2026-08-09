@@ -29,7 +29,7 @@
 
                             <x-admin.table>
                                 <x-slot name="head">
-                                    <x-admin.table.th>Source → Destination</x-admin.table.th>
+                                    <x-admin.table.th>Source <x-admin.icon name="arrow-right" class="inline w-3 h-3 align-[-1px]" /> Destination</x-admin.table.th>
                                     <x-admin.table.th>Code</x-admin.table.th>
                                     <x-admin.table.th align="right">Hits</x-admin.table.th>
                                     <x-admin.table.th>Last hit</x-admin.table.th>
@@ -44,9 +44,9 @@
                                                         @if ((int) $r->status_code === 410)
                                                             <span class="italic text-v-warning">410 Gone</span>
                                                         @else
-                                                            → {{ $r->destination_path }}
+                                                            <x-admin.icon name="arrow-right" class="inline w-3 h-3 align-[-1px]" /> {{ $r->destination_path }}
                                                             @if ($r->preserve_query)
-                                                                <span class="ml-1 text-[10px] uppercase text-v-accent">+query</span>
+                                                                <span class="ml-1 v-label text-v-accent">+query</span>
                                                             @endif
                                                         @endif
                                                     </div>
@@ -54,7 +54,7 @@
                                                         <div class="mt-0.5 text-xs text-v-muted">{{ $r->note }}</div>
                                                     @endif
                                                     @if (! $r->is_active)
-                                                        <span class="mt-1 inline-block rounded bg-v-sunken px-1.5 py-0.5 text-[10px] uppercase text-v-secondary">disabled</span>
+                                                        <span class="mt-1 inline-block rounded bg-v-sunken px-1.5 py-0.5 v-label text-v-secondary">disabled</span>
                                                     @endif
                                                 </div>
                                                 <form method="POST" action="{{ route('admin.extensions.seo.redirects.update', $r) }}" x-show="editing" x-cloak class="space-y-2 py-2">

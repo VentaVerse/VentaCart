@@ -134,14 +134,15 @@
         @if (empty($couriers))
             <div class="mb-4 rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-[13px] text-v-warning">
                 No courier is enabled yet.
-                <a href="{{ route('admin.fulfillment.settings') }}" class="font-semibold underline">Configure a courier &rarr;</a>
+                <a href="{{ route('admin.fulfillment.settings') }}" class="font-semibold underline">Configure a courier</a>
             </div>
         @endif
 
-        {{-- Command bar: talk to the couriers. One 32px baseline, button
-             left-aligned so the bar reads as a single-purpose toolbar (same
-             starting edge as the filter row below it) rather than a control
-             stranded in an otherwise-empty box. --}}
+        {{-- Command bar: talk to the couriers. One control, on one 32px
+             baseline, sharing the filter row's starting edge. It is a bare
+             row rather than a sheet: a full-width raised panel holding a
+             single button reads as a section whose contents failed to
+             load. --}}
         <div class="cf-cmdbar">
             <form method="POST" action="{{ route('admin.fulfillment.poll') }}" data-v-form class="cf-cmdbar__row">
                 @csrf
@@ -738,7 +739,7 @@
                              stays viewable (review fix, W2). --}}
                         <template x-if="active.trackingNumber && active.timeline && active.timeline.length">
                             <div class="px-5 py-4 border-b border-v-border">
-                                <h4 class="text-xs font-semibold text-v-muted uppercase tracking-wider mb-2">Tracking history</h4>
+                                <h4 class="v-label mb-2">Tracking history</h4>
                                 <ul class="space-y-1.5">
                                     <template x-for="(event, idx) in active.timeline" :key="idx">
                                         <li class="flex items-baseline justify-between gap-3 text-sm">
@@ -945,7 +946,7 @@
                                                     <span>
                                                         <span class="cf-choice__name">{{ $opt['name'] }}</span>
                                                         @if (!empty($opt['mode']) && $opt['mode'] !== 'production')
-                                                            <span class="cf-choice__mode">{{ $opt['mode'] }}</span>
+                                                            <span class="cf-choice__mode">{{ ucfirst($opt['mode']) }}</span>
                                                         @endif
                                                         @if (!empty($opt['fee_estimate']))
                                                             <span class="cf-choice__fee">{{ $opt['fee_estimate']->label ?? ($opt['fee_estimate']->currency . ' ' . number_format($opt['fee_estimate']->amount, 2)) }}</span>

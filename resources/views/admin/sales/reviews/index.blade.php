@@ -29,7 +29,7 @@
 
                         <div class="space-y-5">
                             <div>
-                                <h3 class="mb-4 text-[13px] font-semibold uppercase tracking-wide text-v-secondary">Review Requests</h3>
+                                <h3 class="mb-4 v-subhead">Review Requests</h3>
                                 <div class="max-w-lg space-y-4">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <x-admin.toggle name="settings[enabled]" :checked="($settings['reviews']['enabled'] ?? '0') == '1'" />
@@ -63,7 +63,7 @@
                             </div>
 
                             <div class="border-t border-v-border pt-5">
-                                <h3 class="mb-4 text-[13px] font-semibold uppercase tracking-wide text-v-secondary">Review Request Email</h3>
+                                <h3 class="mb-4 v-subhead">Review Request Email</h3>
                                 <div class="max-w-lg">
                                     <x-admin.field name="settings[review_email_template_id]" label="Email template to use"
                                         help="Manage in Email Templates.">
@@ -80,7 +80,7 @@
                             </div>
 
                             <div class="border-t border-v-border pt-5">
-                                <h3 class="mb-4 text-[13px] font-semibold uppercase tracking-wide text-v-secondary">Coupon Reward</h3>
+                                <h3 class="mb-4 v-subhead">Coupon Reward</h3>
                                 <div class="max-w-lg space-y-4">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         <x-admin.toggle name="settings[coupon_enabled]" :checked="($settings['reviews']['coupon_enabled'] ?? '0') == '1'" />

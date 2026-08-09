@@ -73,7 +73,7 @@
                                                         <span class="ml-1 text-v-muted" x-text="c.email"></span>
                                                     </span>
                                                     <span x-show="c.customer_group_name" x-text="c.customer_group_name"
-                                                          class="shrink-0 rounded-full bg-v-sunken px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-v-secondary ring-1 ring-inset ring-v-border"></span>
+                                                          class="shrink-0 rounded-full bg-v-sunken px-2 py-0.5 text-[11px] font-semibold text-v-secondary ring-1 ring-inset ring-v-border"></span>
                                                 </button>
                                             </template>
                                         </div>
@@ -86,7 +86,7 @@
                                         <div class="flex min-w-0 flex-1 items-center gap-2">
                                             <span class="truncate text-[13px] font-medium text-v-accent" x-text="customerFirstName + ' ' + customerLastName + ' (' + customerEmail + ')'"></span>
                                             <span x-show="customerGroupName" x-text="customerGroupName"
-                                                  class="shrink-0 rounded-full bg-v-surface px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-v-accent ring-1 ring-inset ring-v-border"></span>
+                                                  class="shrink-0 rounded-full bg-v-surface px-2 py-0.5 text-[11px] font-semibold text-v-accent ring-1 ring-inset ring-v-border"></span>
                                         </div>
                                         <button type="button" @click="clearCustomer()" class="shrink-0 text-xs font-medium text-v-danger hover:opacity-80">Change</button>
                                     </div>
@@ -440,12 +440,12 @@
                                 <table class="v-table w-full text-[13px]">
                                     <thead class="bg-v-sunken">
                                         <tr>
-                                            <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted" colspan="2">Product</th>
-                                            <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">SKU</th>
-                                            <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Price</th>
-                                            <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Customer Price</th>
-                                            <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Qty</th>
-                                            <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Total</th>
+                                            <th class="h-[var(--row-h)] px-3 text-left v-label" colspan="2">Product</th>
+                                            <th class="h-[var(--row-h)] px-3 text-left v-label">SKU</th>
+                                            <th class="h-[var(--row-h)] px-3 text-left v-label">Price</th>
+                                            <th class="h-[var(--row-h)] px-3 text-left v-label">Customer Price</th>
+                                            <th class="h-[var(--row-h)] px-3 text-left v-label">Qty</th>
+                                            <th class="h-[var(--row-h)] px-3 text-left v-label">Total</th>
                                             <th class="h-[var(--row-h)] w-10 px-3"></th>
                                         </tr>
                                     </thead>

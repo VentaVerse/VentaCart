@@ -15,7 +15,7 @@
                     $haystacks = collect($group['items'])->map(fn ($i) => strtolower($i['label'] . ' ' . $i['description'] . ' ' . implode(' ', $i['keywords'])));
                 @endphp
                 <section x-show="!q || @js($haystacks->values()) .some(h => h.includes(q))">
-                    <h2 class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ $group['label'] }}</h2>
+                    <h2 class="mb-3 v-label">{{ $group['label'] }}</h2>
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         @foreach ($group['items'] as $item)
                             <a href="{{ \App\Support\SettingsNav::url($item) }}"

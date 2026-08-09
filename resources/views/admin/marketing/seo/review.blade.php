@@ -45,7 +45,7 @@
                 @if ($suggestions->isEmpty())
                     <x-admin.card>
                         <x-admin.empty-state icon="check" title="Queue clear"
-                            :description="'Next generation run: ' . ($seoAutomation?->schedule_description ?? 'not scheduled. Configure a cadence in Settings → Automations.')" />
+                            :description="'Next generation run: ' . ($seoAutomation?->schedule_description ?? 'not scheduled.')" />
                     </x-admin.card>
                 @else
                     <div x-data="{ selected: [] }" class="space-y-4 pb-20">
@@ -102,7 +102,7 @@
                                     <div class="space-y-3 px-5 py-4">
                                         @forelse ($changedFields as $row)
                                             <div class="rounded-v-md bg-v-accent-weak px-3 py-2.5">
-                                                <p class="text-[10px] font-semibold uppercase tracking-widest text-v-accent">{{ $row['label'] }}</p>
+                                                <p class="v-label text-v-accent">{{ $row['label'] }}</p>
                                                 <div class="mt-1.5 grid gap-2 sm:grid-cols-2">
                                                     <div>
                                                         <p class="text-[11px] text-v-muted">Current</p>
@@ -127,7 +127,7 @@
                                             <div x-show="showUnchanged" x-cloak class="space-y-2">
                                                 @foreach ($unchangedFields as $row)
                                                     <div class="rounded-v-md bg-v-sunken px-3 py-2">
-                                                        <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">{{ $row['label'] }}</p>
+                                                        <p class="v-label">{{ $row['label'] }}</p>
                                                         <p class="mt-1 text-[13px] text-v-secondary">{{ $row['suggested'] }}</p>
                                                     </div>
                                                 @endforeach

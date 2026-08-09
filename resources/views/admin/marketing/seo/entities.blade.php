@@ -233,11 +233,11 @@
                                     <th class="w-10 px-4 h-[var(--row-h)]">
                                         <input type="checkbox" x-model="selectAll" @change="toggleAll()" class="rounded-v-sm border-v-strong bg-v-surface text-v-accent focus:ring-v-accent">
                                     </th>
-                                    <th class="w-14 px-4 h-[var(--row-h)] text-[10px] font-semibold uppercase tracking-widest text-v-muted">Image</th>
-                                    <th class="px-4 h-[var(--row-h)] text-[10px] font-semibold uppercase tracking-widest text-v-muted">Name</th>
-                                    <th class="w-28 px-4 h-[var(--row-h)] text-[10px] font-semibold uppercase tracking-widest text-v-muted">SEO Status</th>
-                                    <th class="px-4 h-[var(--row-h)] text-[10px] font-semibold uppercase tracking-widest text-v-muted">Meta Title</th>
-                                    <th class="w-28 px-4 h-[var(--row-h)] text-right text-[10px] font-semibold uppercase tracking-widest text-v-muted">Actions</th>
+                                    <th class="w-14 px-4 h-[var(--row-h)] v-label">Image</th>
+                                    <th class="px-4 h-[var(--row-h)] v-label">Name</th>
+                                    <th class="w-28 px-4 h-[var(--row-h)] v-label">SEO Status</th>
+                                    <th class="px-4 h-[var(--row-h)] v-label">Meta Title</th>
+                                    <th class="w-28 px-4 h-[var(--row-h)] text-right v-label">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-v-border">
@@ -299,7 +299,7 @@
                                         <td colspan="6" class="p-0">
                                             <div class="border-t border-b border-v-border bg-v-sunken px-6 py-4">
                                                 <div class="mb-3 flex items-center justify-between">
-                                                    <h4 class="text-xs font-semibold uppercase tracking-wide text-v-secondary" x-text="suggestion ? 'SEO Suggestion Preview' : 'Current SEO Meta'"></h4>
+                                                    <h4 class="v-subhead" x-text="suggestion ? 'SEO Suggestion Preview' : 'Current SEO Meta'"></h4>
                                                     <div class="flex items-center gap-2">
                                                         <template x-if="suggestion">
                                                             <div class="flex items-center gap-2">

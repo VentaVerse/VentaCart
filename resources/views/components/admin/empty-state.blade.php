@@ -1,9 +1,14 @@
-@props(['icon' => 'info', 'title', 'description' => null])
-<div {{ $attributes->merge(['class' => 'flex flex-col items-center justify-center text-center py-12 px-6']) }}>
-    <div class="w-10 h-10 rounded-v-lg bg-v-sunken flex items-center justify-center text-v-muted">
-        <x-admin.icon :name="$icon" class="w-5 h-5" />
-    </div>
-    <h3 class="mt-3 text-[15px] font-semibold text-v-text">{{ $title }}</h3>
-    @if ($description)<p class="mt-1 max-w-sm text-[13px] text-v-secondary">{{ $description }}</p>@endif
-    @if (trim($slot))<div class="mt-4">{{ $slot }}</div>@endif
+{{-- The Blotter's proportions: room, then a 15px title, then one
+     line capped at 46ch so it never runs the width of a wide table,
+     then the action set apart below.
+
+     The `icon` prop is still accepted so no caller needs editing,
+     but nothing draws it any more. An outlined pictogram in a grey
+     circle above a heading is the stock-template empty state, and it
+     says nothing the title does not already say. --}}
+@props(['icon' => null, 'title', 'description' => null])
+<div {{ $attributes->merge(['class' => 'v-empty']) }}>
+    <p class="v-empty__title">{{ $title }}</p>
+    @if ($description)<p class="v-empty__desc">{{ $description }}</p>@endif
+    @if (trim($slot))<div class="v-empty__action">{{ $slot }}</div>@endif
 </div>

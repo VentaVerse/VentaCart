@@ -19,7 +19,7 @@
                  :style="isFullWidth ? 'margin-left: -2rem; margin-right: -2rem; border-radius: 0; border-left: 0; border-right: 0;' : ''">
                 <div class="px-4 py-2 border-b border-v-border bg-v-sunken flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-[11px] font-semibold text-v-muted uppercase tracking-wider">Preview</h3>
+                        <h3 class="v-label">Preview</h3>
                         <span class="text-[10px] px-1.5 py-0.5 rounded-v-sm font-medium"
                               :class="isFullWidth ? 'bg-v-accent-weak text-v-accent' : 'bg-v-sunken text-v-muted'"
                               x-text="isFullWidth ? 'Full Width' : 'Contained'"></span>
@@ -87,7 +87,7 @@
 
                     {{-- Background Settings --}}
                     <x-admin.card>
-                        <h3 class="text-[11px] font-semibold text-v-muted uppercase tracking-wider mb-4">Background</h3>
+                        <h3 class="v-label mb-4">Background</h3>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 @include('admin.partials.single_image_picker', [
@@ -143,7 +143,7 @@
 
                     {{-- Slide Settings --}}
                     <x-admin.card>
-                        <h3 class="text-[11px] font-semibold text-v-muted uppercase tracking-wider mb-3">Slide Settings</h3>
+                        <h3 class="v-label mb-3">Slide Settings</h3>
                         <div class="space-y-3">
                             <div class="grid grid-cols-2 gap-3">
                                 <x-admin.field name="name" label="Name">
@@ -168,7 +168,7 @@
                                     </label>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <label class="text-[10px] text-v-muted uppercase tracking-wide">Sort</label>
+                                    <label class="v-label">Sort</label>
                                     <input type="number" name="sort_order" value="{{ $banner?->sort_order ?? 0 }}" min="0" class="v-control w-14 h-[var(--control-h-sm)] text-[13px] text-center bg-v-surface text-v-text border border-v-border rounded-v-md">
                                 </div>
                             </div>
@@ -190,7 +190,7 @@
                     {{-- Layers Panel --}}
                     <div class="bg-v-surface rounded-v-lg border border-v-border">
                         <div class="px-4 py-2.5 border-b border-v-border bg-v-sunken flex items-center justify-between">
-                            <h3 class="text-[11px] font-semibold text-v-muted uppercase tracking-wider">Layers</h3>
+                            <h3 class="v-label">Layers</h3>
                             <div class="flex gap-1">
                                 <button type="button" @click="addLayer('text')" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-[color-mix(in_srgb,var(--info)_12%,transparent)] hover:opacity-80 rounded-v-sm text-v-info font-medium transition-colors" title="Add text layer">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 6v2m16-2v2M7 6v12m0 0h2m-2 0H5m12-12v12m0 0h2m-2 0h-2"/></svg>
@@ -220,7 +220,7 @@
                                 <div @click="selectedLayer = i"
                                      class="flex items-center gap-2 px-3 py-2 cursor-pointer text-[13px] transition-colors"
                                      :class="selectedLayer === i ? 'bg-v-accent-weak border-l-2 border-v-accent' : 'hover:bg-v-hover border-l-2 border-transparent'">
-                                    <span class="text-[10px] uppercase font-semibold shrink-0 w-11 text-center rounded-v-sm py-0.5"
+                                    <span class="text-[10px] font-semibold shrink-0 w-11 text-center rounded-v-sm py-0.5"
                                           :class="layer.type === 'text' ? 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]' : (layer.type === 'image' ? 'text-v-accent bg-v-accent-weak' : 'text-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]')"
                                           x-text="layer.type"></span>
                                     <span class="flex-1 truncate text-xs text-v-secondary" x-text="layer.content || layer.src?.split('/').pop() || '(empty)'"></span>
@@ -236,9 +236,9 @@
                     <div x-show="selectedLayer !== null && layers[selectedLayer]" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
                         <x-admin.card>
                             <div class="flex items-center justify-between mb-3">
-                                <h3 class="text-[11px] font-semibold text-v-muted uppercase tracking-wider">Layer Properties</h3>
+                                <h3 class="v-label">Layer Properties</h3>
                                 <div class="flex items-center gap-1.5">
-                                    <span class="text-[10px] uppercase font-semibold shrink-0 px-1.5 py-0.5 rounded-v-sm"
+                                    <span class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-v-sm"
                                           :class="currentLayer?.type === 'text' ? 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]' : (currentLayer?.type === 'image' ? 'text-v-accent bg-v-accent-weak' : 'text-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]')"
                                           x-text="currentLayer?.type"></span>
                                     <span class="text-[10px] text-v-muted/70 font-mono" x-text="'#' + (selectedLayer + 1)"></span>

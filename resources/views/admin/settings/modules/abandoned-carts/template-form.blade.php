@@ -28,7 +28,7 @@
 
                     @if (!empty($placeholders))
                         <div class="rounded-v-md bg-v-sunken p-4">
-                            <p class="mb-2 text-xs font-medium uppercase tracking-wider text-v-muted">Available Placeholders <span class="font-normal normal-case">(click to copy)</span></p>
+                            <p class="mb-2 v-label">Available Placeholders <span class="font-normal normal-case">(click to copy)</span></p>
                             <div class="flex flex-wrap gap-2">
                                 @foreach ($placeholders as $placeholder)
                                     <button type="button" onclick="copyPlaceholder(this, '{{ $placeholder }}')"

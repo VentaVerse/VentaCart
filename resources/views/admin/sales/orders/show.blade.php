@@ -33,20 +33,20 @@
                     </div>
                     <div class="mt-4 flex flex-wrap gap-x-8 gap-y-3 border-t border-v-border pt-4 text-[13px]">
                         <div>
-                            <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Placed</p>
+                            <p class="v-label">Placed</p>
                             <p class="mt-0.5 text-v-secondary">{{ $order->created_at->format('M d, Y · g:i A') }}</p>
                         </div>
                         <div>
-                            <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Payment Method</p>
+                            <p class="v-label">Payment Method</p>
                             <p class="mt-0.5 text-v-secondary">{{ $order->payment_method_label }}</p>
                         </div>
                         <div>
-                            <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Shipping</p>
+                            <p class="v-label">Shipping</p>
                             <p class="mt-0.5 text-v-secondary">Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</p>
                         </div>
                         @if ($order->payment_reference)
                             <div>
-                                <p class="text-[10px] font-semibold uppercase tracking-widest text-v-muted">Payment Reference</p>
+                                <p class="v-label">Payment Reference</p>
                                 <p class="v-num mt-0.5 text-v-secondary">{{ $order->payment_reference }}</p>
                             </div>
                         @endif
@@ -57,7 +57,7 @@
                 <x-admin.card title="Customer">
                     <x-slot:headerActions>
                         @if ($order->customer)
-                            <a href="{{ route('admin.customers.edit', $order->customer) }}" class="text-[13px] font-medium text-v-accent hover:opacity-80">View Profile →</a>
+                            <a href="{{ route('admin.customers.edit', $order->customer) }}" class="text-[13px] font-medium text-v-accent hover:opacity-80">View Profile <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></a>
                         @endif
                     </x-slot:headerActions>
                     <div class="flex items-center gap-3">
@@ -81,7 +81,7 @@
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
                         {{-- Shipping --}}
                         <div>
-                            <h4 class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">Ship To</h4>
+                            <h4 class="mb-3 v-label">Ship To</h4>
                             <div class="space-y-0.5 text-[13px]">
                                 <p class="font-medium text-v-text">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
                                 <p class="text-v-secondary">{{ $order->shipping_address_1 }}</p>
@@ -97,7 +97,7 @@
 
                         {{-- Billing --}}
                         <div>
-                            <h4 class="mb-3 text-[10px] font-semibold uppercase tracking-widest text-v-muted">Bill To</h4>
+                            <h4 class="mb-3 v-label">Bill To</h4>
                             @if ($order->billing_first_name)
                                 <div class="space-y-0.5 text-[13px]">
                                     <p class="font-medium text-v-text">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
@@ -206,7 +206,7 @@
                             @endif
                         </div>
                     @else
-                        <p class="text-[13px] text-v-muted">No tracking info yet. Use the Update Order form to add courier and tracking number.</p>
+                        <p class="text-[13px] text-v-muted">No tracking yet.</p>
                     @endif
                 </x-admin.card>
             </div>

@@ -42,7 +42,7 @@
                             @endif
                             <div class="mt-3 flex items-center justify-end gap-2">
                                 <x-admin.button variant="ghost" size="sm" :href="$availabilityUrl">Availability rules</x-admin.button>
-                                <x-admin.button variant="ghost" size="sm" :href="route('admin.payment-settings.show', $card['family'])">Manage →</x-admin.button>
+                                <x-admin.button variant="ghost" size="sm" :href="route('admin.payment-settings.show', $card['family'])">Manage <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                             </div>
                         </div>
                     </div>

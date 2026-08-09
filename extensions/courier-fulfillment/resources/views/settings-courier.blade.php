@@ -144,7 +144,7 @@
 
                 @foreach ($modeGroups as $modeValue => $fields)
                     <div x-show="mode === '{{ $modeValue }}'" x-cloak class="space-y-4 border-l-2 border-v-border pl-4">
-                        <p class="text-xs font-medium uppercase tracking-wide text-v-secondary">{{ ucfirst($modeValue) }} credentials</p>
+                        <p class="v-label text-v-secondary">{{ ucfirst($modeValue) }} credentials</p>
                         @foreach ($fields as $field)
                             @include('courier-fulfillment::partials.schema-field', [
                                 'field' => $field,
@@ -174,14 +174,16 @@
                      this same form and this courier's own allowlist. --}}
                 <div class="mt-8 pt-6 border-t border-v-border">
                     <div class="flex items-center justify-between mb-1">
-                        <h3 class="text-[13px] font-semibold text-v-text">Order status mapping</h3>
+                        <span class="flex items-center gap-2">
+                            <h3 class="v-subhead">Order status mapping</h3>
+                            <x-admin.hint label="About order status mapping">A row left blank still tracks on the fulfillment page, it just never moves the order's own status.</x-admin.hint>
+                        </span>
                         <x-admin.button type="submit" form="refresh-statuses-form" variant="secondary" size="sm">Refresh from {{ $courier->getName() }}</x-admin.button>
                     </div>
-                    <p class="text-xs text-v-muted mb-3">When {{ $courier->getName() }} reports a status, set the Venta order status. Leave blank to only track it on the fulfillment page.</p>
                     <div class="overflow-x-auto">
                         <table class="w-full text-[13px]">
                             <thead>
-                                <tr class="text-[11px] uppercase text-v-muted">
+                                <tr class="v-label">
                                     <th class="text-left py-1">{{ $courier->getName() }} status</th>
                                     <th class="text-left py-1">Venta order status</th>
                                     <th class="text-left py-1">Notify customer</th>

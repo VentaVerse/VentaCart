@@ -32,7 +32,7 @@
                             </div>
                             <div class="text-xs text-v-muted shrink-0">
                                 @if ($banner->starts_at || $banner->ends_at)
-                                    {{ $banner->starts_at?->format('M d') ?? '' }} — {{ $banner->ends_at?->format('M d') ?? '∞' }}
+                                    {{ $banner->starts_at?->format('M d') ?? 'Now' }} to {{ $banner->ends_at?->format('M d') ?? 'no end' }}
                                 @else
                                     Always
                                 @endif

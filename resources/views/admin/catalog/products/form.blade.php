@@ -321,7 +321,7 @@
                         {{-- Variant Types (horizontal rows with inline value pills) --}}
                         <div class="mb-6 space-y-3">
                             <div class="flex items-center justify-between">
-                                <h3 class="text-xs font-semibold uppercase tracking-wider text-v-muted">Variant Types</h3>
+                                <h3 class="v-label">Variant Types</h3>
                                 <button type="button" @click="addVariantType()"
                                     :disabled="variantTypes.length >= 2"
                                     :class="variantTypes.length >= 2 ? 'opacity-40 cursor-not-allowed' : 'hover:opacity-80'"
@@ -370,17 +370,17 @@
                         {{-- Generated Variant Combinations --}}
                         <div x-show="variants.length > 0">
                             <div class="mb-3 flex items-center justify-between">
-                                <h3 class="text-xs font-semibold uppercase tracking-wider text-v-muted">Combinations <span x-text="'(' + variants.length + ')'"></span></h3>
+                                <h3 class="v-label">Combinations <span x-text="'(' + variants.length + ')'"></span></h3>
                             </div>
                             <div class="variant-table overflow-hidden rounded-v-md border border-v-border">
                                 {{-- Header --}}
                                 <div class="flex border-b border-v-border bg-v-sunken">
-                                    <div class="w-32 shrink-0 px-3 py-2.5 text-xs font-medium uppercase text-v-muted">Variant</div>
-                                    <div class="min-w-[14rem] flex-1 px-3 py-2.5 text-xs font-medium uppercase text-v-muted">SKU</div>
-                                    <div class="w-72 shrink-0 px-3 py-2.5 text-xs font-medium uppercase text-v-muted">Price modifier (₱)</div>
-                                    <div class="w-24 shrink-0 px-3 py-2.5 text-xs font-medium uppercase text-v-muted">Stock</div>
-                                    <div class="w-24 shrink-0 px-3 py-2.5 text-xs font-medium uppercase text-v-muted">Weight</div>
-                                    <div class="w-10 shrink-0 px-2 py-2.5 text-center text-xs font-medium uppercase text-v-muted">On</div>
+                                    <div class="w-32 shrink-0 px-3 py-2.5 v-label">Variant</div>
+                                    <div class="min-w-[14rem] flex-1 px-3 py-2.5 v-label">SKU</div>
+                                    <div class="w-72 shrink-0 px-3 py-2.5 v-label">Price modifier (₱)</div>
+                                    <div class="w-24 shrink-0 px-3 py-2.5 v-label">Stock</div>
+                                    <div class="w-24 shrink-0 px-3 py-2.5 v-label">Weight</div>
+                                    <div class="w-10 shrink-0 px-2 py-2.5 text-center v-label">On</div>
                                 </div>
 
                                 {{-- Rows --}}
@@ -459,13 +459,13 @@
                             <table class="v-table w-full text-[13px]">
                                 <thead class="bg-v-sunken">
                                     <tr>
-                                        <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Customer Group</th>
-                                        <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Price</th>
-                                        <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Qty</th>
-                                        <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Display</th>
-                                        <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Priority</th>
-                                        <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">Start</th>
-                                        <th class="h-[var(--row-h)] px-3 text-left text-[10px] font-semibold uppercase tracking-widest text-v-muted">End</th>
+                                        <th class="h-[var(--row-h)] px-3 text-left v-label">Customer Group</th>
+                                        <th class="h-[var(--row-h)] px-3 text-left v-label">Price</th>
+                                        <th class="h-[var(--row-h)] px-3 text-left v-label">Qty</th>
+                                        <th class="h-[var(--row-h)] px-3 text-left v-label">Display</th>
+                                        <th class="h-[var(--row-h)] px-3 text-left v-label">Priority</th>
+                                        <th class="h-[var(--row-h)] px-3 text-left v-label">Start</th>
+                                        <th class="h-[var(--row-h)] px-3 text-left v-label">End</th>
                                         <th class="h-[var(--row-h)] w-10 px-3"></th>
                                     </tr>
                                 </thead>
@@ -607,7 +607,7 @@
                                     <div class="space-y-3">
                                         <template x-for="field in ['meta_title', 'meta_description', 'og_title', 'og_description']" :key="field">
                                             <div>
-                                                <label class="text-xs font-medium uppercase text-v-muted" x-text="field.replace(/_/g, ' ')"></label>
+                                                <label class="v-label" x-text="field.replace(/_/g, ' ')"></label>
                                                 <div class="mt-1 grid grid-cols-2 gap-2">
                                                     <div class="rounded-v-sm bg-v-surface p-2 text-xs">
                                                         <span class="mb-0.5 block text-v-muted">Current:</span>
