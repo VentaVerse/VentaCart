@@ -14,7 +14,6 @@ use App\Models\VariantTypeValue;
 use App\Support\LowStock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -261,23 +260,27 @@ class ProductController extends Controller
             ->with('success', 'Product updated successfully.');
     }
 
+    /**
+     * Hard delete. The row goes, so the SKU is genuinely free again for the
+     * ERP and every other integration that syncs on it.
+     *
+     * Image FILES are deliberately left on disk. A media file is shared: the
+     * same catalog path is routinely referenced by several products, so
+     * deleting the file with the product would blank the image on every other
+     * product using it. Unlinking a product from an image is not a reason to
+     * destroy the image.
+     *
+     * Children (variants, variant types, images, specials, category and tag
+     * links, reviews, stock notifications, seo suggestions, cart items, low
+     * stock alerts) are removed by the ON DELETE CASCADE foreign keys.
+     * order_products is ON DELETE SET NULL and carries its own snapshot of
+     * name/sku/price, so order history survives intact.
+     */
     public function destroy(Product $product)
     {
-        // Delete main image and its thumbnail
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
-            $info = pathinfo($product->image);
-            Storage::disk('public')->delete($info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg'));
-        }
-
-        // Delete additional images and thumbnails
-        foreach ($product->images as $img) {
-            Storage::disk('public')->delete($img->path);
-            $info = pathinfo($img->path);
-            Storage::disk('public')->delete($info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg'));
-        }
-
-        $product->delete();
+        DB::transaction(function () use ($product) {
+            $product->delete();
+        });
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Product deleted successfully.');
@@ -505,28 +508,10 @@ class ProductController extends Controller
         $imagesJson = $request->input('images_json', '[]');
         $images = json_decode($imagesJson, true) ?: [];
 
-        // Collect current paths for cleanup
-        $oldPaths = [];
-        if ($product->image) {
-            $oldPaths[] = $product->image;
-        }
-        foreach ($product->images as $img) {
-            $oldPaths[] = $img->path;
-        }
-
-        // New paths from JSON
-        $newPaths = array_column($images, 'path');
-
-        // Delete files that are no longer referenced
-        foreach ($oldPaths as $oldPath) {
-            if (!in_array($oldPath, $newPaths)) {
-                Storage::disk('public')->delete($oldPath);
-                // Delete thumbnail
-                $info = pathinfo($oldPath);
-                $thumbPath = $info['dirname'] . '/' . $info['filename'] . '_thumb.' . ($info['extension'] ?? 'jpg');
-                Storage::disk('public')->delete($thumbPath);
-            }
-        }
+        // Only the product_images rows are rewritten here. Removing an image
+        // from a product never deletes the file: catalog media is shared, so
+        // the same path is often referenced by other products, and deleting
+        // the file would blank their image too.
 
         // Clear existing image records
         $product->images()->delete();

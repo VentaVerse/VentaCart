@@ -58,7 +58,6 @@ class Inventory
             ->where('products.store_id', $storeId)
             ->where('products.is_active', true)
             ->where('products.track_stock', true)
-            ->whereNull('products.deleted_at')
             ->where('product_variants.is_active', true)
             ->selectRaw(
                 'SUM(CASE WHEN product_variants.quantity <= 0 THEN 1 ELSE 0 END) AS out_of_stock, '

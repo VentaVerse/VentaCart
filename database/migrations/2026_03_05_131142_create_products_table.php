@@ -36,7 +36,6 @@ return new class extends Migration
             $table->integer('legacy_oc_id')->nullable();
             $table->integer('views')->default(0);
             $table->timestamps();
-            $table->softDeletes();
 
             $table->unique(['store_id', 'slug']);
             $table->index(['store_id', 'sku']);

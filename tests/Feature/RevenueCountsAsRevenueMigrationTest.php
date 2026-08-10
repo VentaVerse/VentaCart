@@ -46,6 +46,20 @@ class RevenueCountsAsRevenueMigrationTest extends TestCase
     }
 
     /**
+     * Runs the migration under test and NOTHING else.
+     *
+     * rollbackTo() rewinds the whole tail, so a plain `migrate` would replay
+     * every later migration too and this file would then be asserting things
+     * about migrations it knows nothing about - any future schema change to
+     * `products` or `orders` would read as "the revenue column wrote to that
+     * table". The guarantee here is about one migration, so run one migration.
+     */
+    private function migrateUnderTest(): void
+    {
+        Artisan::call('migrate', ['--path' => 'database/migrations/' . self::MIGRATION . '.php']);
+    }
+
+    /**
      * A pre-migration store: statuses on both sides of deducts_stock,
      * including the awkward pairs the derivation must respect rather than
      * second-guess (a status that deducted and earned nothing is still
@@ -183,7 +197,7 @@ class RevenueCountsAsRevenueMigrationTest extends TestCase
         $this->assertNotEmpty($before['order_products']);
         $this->assertNotEmpty($before['products']);
 
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $after = $this->snapshotOfEverythingElse();
 
@@ -212,7 +226,7 @@ class RevenueCountsAsRevenueMigrationTest extends TestCase
         $this->rollbackTo(self::MIGRATION);
         $this->seedPreMigrationStore();
 
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $rows = DB::table('order_statuses')->get(['name', 'deducts_stock', 'counts_as_revenue']);
 
@@ -239,7 +253,7 @@ class RevenueCountsAsRevenueMigrationTest extends TestCase
     {
         $this->rollbackTo(self::MIGRATION);
         $this->seedPreMigrationStore();
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         DB::table('order_statuses')->where('name', 'Lost')->update(['counts_as_revenue' => false]);
 
@@ -253,7 +267,7 @@ class RevenueCountsAsRevenueMigrationTest extends TestCase
     {
         $this->rollbackTo(self::MIGRATION);
         $this->seedPreMigrationStore();
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $before = $this->snapshotOfEverythingElse();
         $deducts = DB::table('order_statuses')->orderBy('id')->pluck('deducts_stock', 'name')->all();
@@ -271,7 +285,7 @@ class RevenueCountsAsRevenueMigrationTest extends TestCase
     {
         $this->rollbackTo(self::MIGRATION);
         $this->seedPreMigrationStore();
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         // A merchant has since said "Lost earned us nothing".
         DB::table('order_statuses')->where('name', 'Lost')->update(['counts_as_revenue' => false]);

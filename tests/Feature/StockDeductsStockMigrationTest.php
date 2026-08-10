@@ -51,6 +51,20 @@ class StockDeductsStockMigrationTest extends TestCase
     }
 
     /**
+     * Runs the migration under test and NOTHING else.
+     *
+     * rollbackTo() rewinds the whole tail, so a plain `migrate` would replay
+     * every later migration too and this file would then be asserting things
+     * about migrations it knows nothing about - any future schema change to
+     * `products` or `orders` would read as "the conversion wrote to that
+     * table". The guarantee here is about one migration, so run one migration.
+     */
+    private function migrateUnderTest(): void
+    {
+        Artisan::call('migrate', ['--path' => 'database/migrations/' . self::MIGRATION . '.php']);
+    }
+
+    /**
      * A pre-migration store: statuses still carrying the three old
      * stock_action values, products and variants with distinctive quantities,
      * and orders spread across those statuses with BOTH stock_adjusted values
@@ -227,7 +241,7 @@ class StockDeductsStockMigrationTest extends TestCase
         $this->assertContains(1, array_map('intval', $before['orders']), 'Fixture must include stock_adjusted orders.');
         $this->assertContains(0, array_map('intval', $before['orders']), 'Fixture must include un-adjusted orders.');
 
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $after = $this->inventorySnapshot();
 
@@ -266,7 +280,7 @@ class StockDeductsStockMigrationTest extends TestCase
             'product_variants' => DB::table('product_variants')->orderBy('id')->get()->map(fn ($r) => (array) $r)->all(),
         ];
 
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $after = [
             'orders' => DB::table('orders')->orderBy('id')->get()->map(fn ($r) => (array) $r)->all(),
@@ -288,7 +302,7 @@ class StockDeductsStockMigrationTest extends TestCase
         $this->rollbackTo(self::MIGRATION);
         $this->seedPreMigrationStore();
 
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $deducts = DB::table('order_statuses')->pluck('deducts_stock', 'name')
             ->map(fn ($v) => (bool) $v)->all();
@@ -333,7 +347,7 @@ class StockDeductsStockMigrationTest extends TestCase
             ['store_id' => 1, 'name' => 'quote ready for payment', 'sort_order' => 2, 'stock_action' => 'decrement', 'created_at' => $now, 'updated_at' => $now],
         ]);
 
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $this->assertTrue((bool) DB::table('order_statuses')->where('name', 'DELIVERY FAILED')->value('deducts_stock'));
         // The pinned non-deducting name wins over the old column's baseline.
@@ -345,7 +359,7 @@ class StockDeductsStockMigrationTest extends TestCase
     {
         $this->rollbackTo(self::MIGRATION);
         $this->seedPreMigrationStore();
-        Artisan::call('migrate');
+        $this->migrateUnderTest();
 
         $before = $this->inventorySnapshot();
 
