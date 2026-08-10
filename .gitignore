@@ -37,6 +37,12 @@ PRODUCT.md
 /storage/backups/
 *.jpeg
 /Screenshot*.png
+
+# Local reference archives and design drafts. Kept on disk, never committed.
+/docs/*.zip
+/docs/Screenshot*.png
+/public/*-mockup.html
+/public/front-panel-draft.html
 countries-states-cities-database-3.1-export.2/
 /public/sitemap.xml
 /public/robots.txt
