@@ -120,6 +120,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                             <div class="v-nav__group">
                                 <button type="button"
                                         @click="group = (group === '{{ $vKey }}' ? null : '{{ $vKey }}')"
+                                        aria-expanded="{{ $vOpenGroup === $vKey ? 'true' : 'false' }}"
                                         :aria-expanded="group === '{{ $vKey }}' ? 'true' : 'false'"
                                         aria-controls="v-nav-{{ $vKey }}"
                                         class="v-nav__toggle">
@@ -133,8 +134,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                      CSS-only way to transition to a height nobody measured, where
                                      x-show would snap. inert keeps a closed group's links out of
                                      the tab order rather than merely out of sight. --}}
-                                <div class="v-collapse" id="v-nav-{{ $vKey }}"
+                                {{-- The open group is rendered open. Alpine then agrees rather
+                                     than announces, so its boot mutates no class and the collapse
+                                     transition has nothing to replay on arrival. --}}
+                                <div class="v-collapse {{ $vOpenGroup === $vKey ? 'is-open' : '' }}" id="v-nav-{{ $vKey }}"
                                      :class="group === '{{ $vKey }}' && 'is-open'"
+                                     @if ($vOpenGroup !== $vKey) inert @endif
                                      :inert="group !== '{{ $vKey }}'">
                                     <div class="v-collapse__inner">
                                         @foreach ($group['items'] as $item)
