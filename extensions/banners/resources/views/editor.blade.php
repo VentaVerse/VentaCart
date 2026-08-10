@@ -416,7 +416,7 @@
                  class="banner-veil fixed inset-0 z-[9999] flex items-center justify-center p-4"
                  @keydown.escape.window="layerBrowserOpen = false">
 
-                <div class="w-full max-w-5xl max-h-[85vh] flex flex-col bg-v-surface rounded-v-lg shadow-v-lift-2 border border-v-border overflow-hidden"
+                <div class="v-modal w-full max-w-5xl max-h-[85vh] flex flex-col bg-v-surface rounded-v-lg border border-v-border overflow-hidden"
                      @click.outside="layerBrowserOpen = false">
 
                     <div class="flex items-center justify-between px-5 py-3.5 border-b border-v-border bg-v-sunken">

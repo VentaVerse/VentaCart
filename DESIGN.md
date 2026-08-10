@@ -263,6 +263,32 @@ selectors are the layer's only descendant rules, and they are context
 rather than weight: a sheet cannot know from its own class list whether
 something already painted the ground under it.
 
+**Elevation comes from the primitives alone.** There are two lifts and five
+things that may take one: `.v-sheet` and `.v-panel` rest at `--bl-lift`
+(stated in `panel.css`, beside the rest of their material), `.v-modal` and
+`.v-palette` float at `--bl-lift-2`, and `.v-menu` takes the resting lift
+because it opens onto a page that is still fully lit. Nothing else is
+raised. A view that wants a raised container says `v-sheet` or `v-panel`;
+it does not assemble one out of utilities.
+
+There used to be a shim in `base.css` that granted the resting lift to any
+element carrying `bg-v-surface` and `rounded-v-lg` together. **It is
+retired and must not be reintroduced.** It failed twice over. Two class
+names could invent a third elevation, with no way for a view that pairs a
+surface colour with the panel radius to say "and do not raise this". And
+at `(0,3,0)` an attribute pair outranked the layer's own nesting: it beat
+`.v-panel .v-sheet` at `(0,2,0)`, so a table inside a panel correctly lost
+its ground, border and radius to the rule above and then kept its shadow
+anyway, leaving a drop shadow under nothing that read as a second sheet
+floating in front of the first. It also beat `.v-admin .v-modal`, quietly
+demoting every modal in the admin to the resting lift.
+
+The same rule applies to the elevation utilities: `shadow-v-lift` and
+`shadow-v-lift-2` belong on the small floating idioms that have no
+primitive (a chip over an image, a toast, an autocomplete list, the
+primary button). A container that is a card, a dialog or a drawer takes
+the class that says so.
+
 `id` on a panel names the heading and points the `<section>` at it with
 `aria-labelledby`, so a panel is announced by its own title.
 

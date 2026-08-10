@@ -149,7 +149,7 @@
         {{-- Hand-rolled rather than x-admin.modal because its body reads
              automationsTab's own editor state. x-dialog gives it the same
              focus contract every x-admin.modal has. --}}
-        <div class="relative bg-v-surface rounded-v-lg shadow-v-lift-2 border border-v-border w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        <div class="v-modal relative bg-v-surface rounded-v-lg border border-v-border w-full max-w-lg max-h-[90vh] overflow-y-auto"
              x-dialog="editor.open" tabindex="-1"
              role="dialog" aria-modal="true" aria-labelledby="automation-editor-title"
              x-transition:enter="transition ease-out duration-200"

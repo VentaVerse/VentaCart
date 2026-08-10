@@ -639,7 +639,7 @@
                  which a component's slot cannot see. The dialog contract is
                  the shared one all the same: x-dialog moves focus in, holds
                  it, and hands it back to the row button that opened it. --}}
-            <div class="absolute inset-y-0 right-0 w-full max-w-md bg-v-surface border-l border-v-border shadow-v-lift-2 flex flex-col"
+            <div class="v-modal absolute inset-y-0 right-0 w-full max-w-md bg-v-surface border-l border-v-border flex flex-col"
                  x-dialog="drawerOpen" tabindex="-1"
                  role="dialog" aria-modal="true" :aria-label="'Order #' + (active ? active.id : '') + ' fulfillment'"
                  x-show="drawerOpen"
@@ -867,7 +867,7 @@
                      queue's own scope. x-dialog gives it the same focus
                      contract every x-admin.modal has. --}}
                 <div x-show="bookOpen" x-transition
-                     class="relative w-full max-w-md bg-v-surface border border-v-border rounded-v-lg shadow-v-lift-2 max-h-full overflow-y-auto"
+                     class="v-modal relative w-full max-w-md bg-v-surface border border-v-border rounded-v-lg max-h-full overflow-y-auto"
                      x-dialog="bookOpen" tabindex="-1"
                      role="dialog" aria-modal="true" :aria-label="'Book order #' + (active ? active.id : '')">
                     <template x-if="active">

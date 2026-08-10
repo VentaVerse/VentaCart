@@ -12,7 +12,10 @@
      item.
 
      `bare` drops the sheet, for a table that already sits inside a
-     panel. --}}
+     panel. The wrapper says `v-sheet` and nothing else: the ground,
+     the edge, the radius and the lift all come from that one class,
+     so the layer can strip every one of them when this table lands
+     inside a panel. --}}
 @props(['ruled' => false, 'roomy' => false, 'tiered' => false, 'bare' => false])
 @php
 $table = 'v-table'
@@ -21,7 +24,7 @@ $table = 'v-table'
     . ($tiered ? ' v-table--tiered' : '');
 $divide = ($ruled || $tiered) ? null : 'divide-y divide-v-border';
 @endphp
-<div {{ $bare ? $attributes : $attributes->merge(['class' => 'v-sheet bg-v-surface border border-v-border rounded-v-lg']) }}>
+<div {{ $bare ? $attributes : $attributes->merge(['class' => 'v-sheet']) }}>
     <div class="v-table-wrap overflow-x-auto">
         <table class="{{ $table }}">
             @isset($head)

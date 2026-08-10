@@ -88,18 +88,34 @@ html:has(> body.v-admin) { scroll-padding-block-end: 72px; }
 html.v-scroll-lock { overflow: hidden; }
 
 /* ------------------------------------------------------------
-   Sheets
+   Elevation
 
-   Written as one additive rule rather than by editing eighty views.
-   A sheet is the panel radius on the sheet colour; that pairing is
-   what the whole admin already writes for a card, a table wrapper
-   and a form panel, so stating the elevation once here raises all of
-   them. The border stays, thinned to the near-invisible rule, and is
-   there to hold the edge when the shadow is suppressed.
+   Elevation belongs to the primitives and to nothing else. A thing
+   is raised because it is a sheet, a panel, a modal, a palette or a
+   menu, never because of the utilities it happens to carry.
+
+   This is where the utility shim used to live. It granted the
+   resting lift to any element carrying `bg-v-surface` and
+   `rounded-v-lg` together, written during the foundation sweep as
+   one additive rule rather than eighty view edits. It has been
+   retired, and must not come back. Two reasons:
+
+   Two class names should not be able to invent a third elevation. A
+   view that pairs a surface colour with the panel radius for its own
+   reasons had no way to say "and do not raise this".
+
+   And an attribute pair outranks the layer's own nesting. At (0,3,0)
+   the shim beat `.v-panel .v-sheet` at (0,2,0), so a table inside a
+   panel correctly lost its ground, border and radius to the nested
+   reset and then kept its shadow anyway: a drop shadow under nothing,
+   reading as a second sheet floating in front of the first. It also
+   beat `.v-admin .v-modal` at (0,2,0), quietly demoting every modal
+   in the admin from the louder lift to the resting one.
+
+   The resting lift is stated on `.v-sheet, .v-panel` in panel.css,
+   beside the rest of that material. What follows is only the two
+   surfaces that float.
    ------------------------------------------------------------ */
-.v-admin [class~="bg-v-surface"][class~="rounded-v-lg"] {
-    box-shadow: var(--bl-lift);
-}
 
 /* Things that genuinely float take the louder elevation. A menu is
    the one exception: it opens attached to the control that owns it,
@@ -113,9 +129,16 @@ html.v-scroll-lock { overflow: hidden; }
 .v-admin .v-menu { box-shadow: var(--bl-lift); }
 
 /* Neither medium renders a shadow, and there the edge is
-   load-bearing, so the border comes back stronger. */
+   load-bearing, so the border comes back stronger. Named on the
+   primitives, which is the same list that is raised in the first
+   place. A nested sheet is excluded: panel.css has already stripped
+   its edge, and the sheet around it is carrying the border. */
 @media (forced-colors: active), print {
-    .v-admin [class~="bg-v-surface"][class~="rounded-v-lg"] {
+    .v-admin .v-sheet,
+    .v-admin .v-panel,
+    .v-admin .v-modal,
+    .v-admin .v-palette,
+    .v-admin .v-menu {
         border-color: var(--border-strong);
         box-shadow: none;
     }
