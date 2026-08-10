@@ -15,7 +15,7 @@
    said in brass.
    ============================================================ */
 
-.v-admin .v-pager {
+.v-pager {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -23,7 +23,7 @@
     gap: 10px 14px;
 }
 
-.v-admin .v-pager__info {
+.v-pager__info {
     font-size: 12.5px;
     color: var(--text-muted);
     min-width: 0;
@@ -31,13 +31,13 @@
 
 /* The count is the only thing in the line anyone actually reads, so
    it takes the weight; mono stays rationed to identifiers. */
-.v-admin .v-pager__figure {
+.v-pager__figure {
     font-weight: 640;
     font-variant-numeric: tabular-nums;
     color: var(--text-secondary);
 }
 
-.v-admin .v-pager__list {
+.v-pager__list {
     display: flex;
     align-items: center;
     gap: 3px;
@@ -45,8 +45,8 @@
     flex-wrap: wrap;
 }
 
-.v-admin .v-pager__page,
-.v-admin .v-pager__step {
+.v-pager__page,
+.v-pager__step {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -65,15 +65,15 @@
     transition: background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
 }
 
-.v-admin a.v-pager__page:hover,
-.v-admin a.v-pager__step:hover {
+a.v-pager__page:hover,
+a.v-pager__step:hover {
     background: var(--surface-hover);
     color: var(--text);
 }
 
 /* Where you are, not what you can do. Same treatment as the active
    segment in the fulfilment filter: ink block, canvas ink. */
-.v-admin .v-pager__page.is-current {
+.v-pager__page.is-current {
     background: var(--text);
     border-color: var(--text);
     color: var(--canvas);
@@ -84,21 +84,40 @@
    be legible, so it drops to the muted stop at full opacity rather
    than to a half-opacity version of the live one. The edge drops to
    the divider stop, which is what says it is not a control. */
-.v-admin .v-pager__step.is-disabled {
+.v-pager__step.is-disabled {
     border-color: var(--border);
     background: var(--surface-sunken);
     color: var(--text-muted);
 }
 
-.v-admin .v-pager__gap {
+.v-pager__gap {
     padding: 0 4px;
     color: var(--text-muted);
     font-size: 12.5px;
 }
 
+/* ------------------------------------------------------------
+   The stepped pager
+
+   A list too long to number but short enough to walk: the span you
+   are looking at, mono and tabular on the left, and the two steps on
+   the right. Same material as the numbered pager above, and the same
+   line of type, so the two never read as different products.
+   ------------------------------------------------------------ */
+.v-pager__count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.v-pager__nav { display: flex; gap: 8px; }
+
+.v-pager__nav [aria-disabled="true"] { opacity: .5; cursor: default; }
+
 /* Below the phone breakpoint the numbered pages are more control than
    a thumb can use; the two steps and the count are the whole job. */
 @media (max-width: 560px) {
-    .v-admin .v-pager__page:not(.is-current),
-    .v-admin .v-pager__gap { display: none; }
+    .v-pager__page:not(.is-current),
+    .v-pager__gap { display: none; }
 }

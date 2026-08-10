@@ -1,14 +1,37 @@
+/* The admin stylesheet.
+
+   Order is load-bearing. Tokens first, then the ground every surface
+   inherits, then the shared primitives, and only then the two files
+   that hold what is genuinely specific to one screen. A page-specific
+   rule that has to win over a primitive wins on document order rather
+   than by outweighing it with a `.v-admin` ancestor, which is what
+   kept the primitives from spreading in the first place. */
+
 @import "./tokens.css";
 @import "./base.css";
+
+/* Primitives */
 @import "./components/buttons.css";
 @import "./components/badge.css";
 @import "./components/hint.css";
 @import "./components/forms.css";
+@import "./components/page-head.css";
+@import "./components/panel.css";
+@import "./components/figure.css";
 @import "./components/table.css";
+@import "./components/list.css";
+@import "./components/feed.css";
+@import "./components/data.css";
+@import "./components/segment.css";
+@import "./components/toolbar.css";
+@import "./components/choice.css";
 @import "./components/empty.css";
-@import "./components/palette.css";
 @import "./components/pagination.css";
+@import "./components/palette.css";
 @import "./components/settings.css";
 @import "./components/tinymce.css";
+
+/* Page residue */
 @import "./components/day-sheet.css";
+
 @import "./layout/shell.css";

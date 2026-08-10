@@ -1,0 +1,141 @@
+/* ============================================================
+   Toolbar, filters and flashes
+
+   The row of controls above a list. Promoted out of the fulfillment
+   queue, where the anatomy was settled: every child of the row ends
+   in a box exactly --control-h tall and the row is bottom-aligned,
+   so the controls share a baseline whether or not they carry a
+   label above them.
+
+   A bare row rather than a sheet: a full-width raised panel holding
+   two controls reads as a section whose contents failed to load.
+   ============================================================ */
+
+.v-toolbar { margin-bottom: 12px; }
+
+.v-toolbar__row {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.v-toolbar__actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: var(--control-h);
+}
+
+/* ------------------------------------------------------------
+   Filters: one job each, on one line, with the way back beside them.
+   ------------------------------------------------------------ */
+.v-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+}
+
+.v-filters__search { max-width: 280px; }
+.v-filters__select { width: auto; min-width: 132px; }
+
+.v-filters__reset {
+    display: inline-flex;
+    align-items: center;
+    height: var(--control-h);
+    padding: 0 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color var(--motion-fast);
+}
+
+.v-filters__reset:hover { color: var(--text); text-decoration: underline; }
+
+/* ------------------------------------------------------------
+   Tally: a small set of counts above the list they describe.
+   Figure leads, name follows, because the figures are the column
+   being scanned.
+   ------------------------------------------------------------ */
+.v-tally {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.v-tally__label {
+    font-size: var(--bl-lab-size);
+    font-weight: var(--bl-lab-weight);
+    letter-spacing: var(--bl-lab-track);
+    color: var(--text-muted);
+}
+
+.v-tally__item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 3px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.v-tally__count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* ------------------------------------------------------------
+   Flash: a one-line follow-up to something that just succeeded, with
+   the action it hands off to. Accent-toned, never a warning: the
+   blocking case is .v-notice in empty.css.
+   ------------------------------------------------------------ */
+.v-flash {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: var(--radius-md);
+}
+
+.v-flash__text {
+    font-size: 13px;
+    color: var(--text);
+}
+
+.v-flash__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: var(--control-h-sm);
+    padding: 0 14px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity var(--motion-fast);
+}
+
+.v-flash__btn:hover { opacity: .9; }
+
+@media (max-width: 640px) {
+    .v-toolbar { padding: 12px; }
+
+    .v-filters__search { max-width: 100%; flex: 1 1 200px; }
+}

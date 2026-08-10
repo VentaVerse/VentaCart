@@ -1,0 +1,57 @@
+/* ============================================================
+   Feed
+
+   Who did what, newest first. A feed and not a table: one line of
+   fact, one line of when, and a mark naming the kind of act so the
+   column scans without reading.
+   ============================================================ */
+
+.v-feed { padding: 4px 0 8px; }
+
+.v-feed__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    padding: 9px 20px;
+}
+
+.v-feed > li + li .v-feed__row { border-top: 1px solid var(--border); }
+
+.v-feed__ic {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    margin-top: 1px;
+    border-radius: var(--radius-md);
+}
+
+.v-feed__body { min-width: 0; flex: 1 1 auto; }
+
+.v-feed__what {
+    display: block;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+.v-feed__gone { color: var(--text-muted); }
+
+.v-feed__when {
+    display: block;
+    margin-top: 1px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* The actor's name is the feed's link into the record, but a column
+   of brass names would say "act here" eight times down one rail, so
+   it takes the row's own colour and says it on demand instead. The
+   same treatment the ledger's buyer column uses; see .v-quietlink. */
+.v-feed__who { font-weight: 600; }
+
+@media (max-width: 719px) {
+    .v-feed__row { padding-inline: 16px; }
+}

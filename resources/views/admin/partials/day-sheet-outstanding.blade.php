@@ -14,24 +14,14 @@
     has its own panel now, with the per-row detail a bare count could not
     hold.
 --}}
-<section class="v-panel" aria-labelledby="v-sheet-standing">
-    <div class="v-panel__head">
-        <h2 class="v-subhead" id="v-sheet-standing">Outstanding</h2>
-    </div>
-    <ul class="v-lines v-lines--rail">
+<x-admin.panel title="Outstanding" id="v-sheet-standing" flush>
+    <ul class="v-lines">
         @foreach ($standingLines as $line)
-            <li>
-                <a href="{{ $line['url'] }}" class="v-line">
-                    <span class="v-line__label">
-                        {{ $line['label'] }}
-                        @if (! empty($line['detail']))
-                            <span class="v-line__detail">{{ $line['detail'] }}</span>
-                        @endif
-                    </span>
-                    <span class="v-num v-line__count {{ $line['count'] === 0 ? 'v-line__count--zero' : '' }}">{{ number_format($line['count']) }}</span>
-                    <x-admin.icon name="chevron-right" class="v-line__go" />
-                </a>
-            </li>
+            <x-admin.line
+                :href="$line['url']"
+                :label="$line['label']"
+                :count="$line['count']"
+                :detail="$line['detail'] ?? null" />
         @endforeach
     </ul>
-</section>
+</x-admin.panel>

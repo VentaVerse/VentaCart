@@ -125,17 +125,19 @@
                  "Open AWB" anchor as the fallback that always works. The
                  async 'creating' path never sets this flash key, so this
                  banner never renders for a still-pending booking. --}}
-            <div class="cf-awb-flash" x-init="window.open(@js(session('label_url')), '_blank')">
-                <span class="cf-awb-flash__text">Booked. The AWB should have opened in a new tab.</span>
-                <a href="{{ session('label_url') }}" target="_blank" rel="noopener" class="cf-awb-flash__btn">Open AWB</a>
+            <div class="v-flash" x-init="window.open(@js(session('label_url')), '_blank')">
+                <span class="v-flash__text">Booked. The AWB should have opened in a new tab.</span>
+                <a href="{{ session('label_url') }}" target="_blank" rel="noopener" class="v-flash__btn">Open AWB</a>
             </div>
         @endif
 
         @if (empty($couriers))
-            <div class="mb-4 rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-[13px] text-v-warning">
-                No courier is enabled yet.
-                <a href="{{ route('admin.fulfillment.settings') }}" class="font-semibold underline">Configure a courier</a>
-            </div>
+            {{-- The queue cannot book anything without a courier, so the
+                 shared blocking-setup state says so and carries its own way
+                 out. --}}
+            <x-admin.empty-state variant="notice" title="No courier is enabled yet" class="mb-4">
+                <a href="{{ route('admin.fulfillment.settings') }}" class="v-notice__btn">Configure a courier</a>
+            </x-admin.empty-state>
         @endif
 
         {{-- Command bar: talk to the couriers. One control, on one 32px
@@ -143,38 +145,35 @@
              row rather than a sheet: a full-width raised panel holding a
              single button reads as a section whose contents failed to
              load. --}}
-        <div class="cf-cmdbar">
-            <form method="POST" action="{{ route('admin.fulfillment.poll') }}" data-v-form class="cf-cmdbar__row">
+        <x-admin.toolbar>
+            <form method="POST" action="{{ route('admin.fulfillment.poll') }}" data-v-form class="v-toolbar__actions">
                 @csrf
-                <div class="cf-cmdbar__actions">
-                    <x-admin.button type="submit" variant="primary">Refresh from couriers</x-admin.button>
-                </div>
+                <x-admin.button type="submit" variant="primary">Refresh from couriers</x-admin.button>
             </form>
-        </div>
+        </x-admin.toolbar>
 
         {{-- Segment bar: the eight tabs above, each with a mono count.
              Returns is a sibling page on the far side, not a ninth tab. To
              Ship's link always lands on its DEFAULT sub-tab (To Pack), the
              active sub-tab's own bar (below) is what lets the operator move
              to To Handover from there. --}}
-        <div class="cf-segment-bar">
-            <nav class="cf-segment" aria-label="Fulfillment phase">
-                @foreach ($phaseTabs as $key => $label)
-                    <a href="{{ route('admin.fulfillment.index', array_filter(['filter' => $key, 'sub' => $key === 'to_ship' ? 'to_pack' : null, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}"
-                       class="cf-segment__item {{ $filter === $key ? 'is-active' : '' }}"
-                       @if ($filter === $key) aria-current="page" @endif>
-                        <span>{{ $label }}</span>
-                        <span class="cf-segment__count" data-count-for="{{ $key }}">{{ number_format($phaseCounts[$key] ?? 0) }}</span>
-                    </a>
-                @endforeach
-            </nav>
+        <x-admin.segment label="Fulfillment phase">
+            @foreach ($phaseTabs as $key => $label)
+                <x-admin.segment.item
+                    :href="route('admin.fulfillment.index', array_filter(['filter' => $key, 'sub' => $key === 'to_ship' ? 'to_pack' : null, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== ''))"
+                    :active="$filter === $key"
+                    :count="number_format($phaseCounts[$key] ?? 0)"
+                    :count-key="$key">{{ $label }}</x-admin.segment.item>
+            @endforeach
             @if (Route::has('admin.fulfillment.returns'))
-                <a class="cf-segment-bar__aside" href="{{ route('admin.fulfillment.returns') }}">
-                    Returns
-                    <x-admin.icon name="chevron-right" class="w-3 h-3" />
-                </a>
+                <x-slot:aside>
+                    <a class="v-segbar__aside" href="{{ route('admin.fulfillment.returns') }}">
+                        Returns
+                        <x-admin.icon name="chevron-right" class="w-3 h-3" />
+                    </a>
+                </x-slot:aside>
             @endif
-        </div>
+        </x-admin.segment>
 
         {{-- Sub-segment bar: To Ship's own To Pack / To Handover split —
              ERP x-segment--sub pattern (same segment anatomy, no
@@ -183,18 +182,15 @@
              Renders ONLY under To Ship; $sub is ignored (and this bar never
              renders) on every other tab. --}}
         @if ($filter === 'to_ship')
-            <div class="cf-segment-bar cf-segment-bar--sub">
-                <nav class="cf-segment cf-segment--sub" aria-label="To Ship stage">
-                    @foreach ($subTabs as $key => $label)
-                        <a href="{{ route('admin.fulfillment.index', array_filter(['filter' => 'to_ship', 'sub' => $key, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}"
-                           class="cf-segment__item {{ $sub === $key ? 'is-active' : '' }}"
-                           @if ($sub === $key) aria-current="page" @endif>
-                            <span>{{ $label }}</span>
-                            <span class="cf-segment__count" data-count-for="{{ $key }}">{{ number_format($phaseCounts[$key] ?? 0) }}</span>
-                        </a>
-                    @endforeach
-                </nav>
-            </div>
+            <x-admin.segment sub label="To Ship stage">
+                @foreach ($subTabs as $key => $label)
+                    <x-admin.segment.item
+                        :href="route('admin.fulfillment.index', array_filter(['filter' => 'to_ship', 'sub' => $key, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== ''))"
+                        :active="$sub === $key"
+                        :count="number_format($phaseCounts[$key] ?? 0)"
+                        :count-key="$key">{{ $label }}</x-admin.segment.item>
+                @endforeach
+            </x-admin.segment>
         @endif
 
         {{-- Courier tally — the handover step is where the operator counts
@@ -202,11 +198,11 @@
              from the old top-level To Handover tab to its new home: To
              Ship's To Handover sub-tab, and only there. --}}
         @if ($filter === 'to_ship' && $sub === 'to_handover' && !empty($handoverByCourier))
-            <div class="co-couriers">
-                <span class="co-couriers__label">Parcels waiting for handover</span>
+            <div class="v-tally">
+                <span class="v-tally__label">Parcels waiting for handover</span>
                 @foreach ($handoverByCourier as $courierName => $count)
-                    <span class="co-courier">
-                        <span class="co-courier__count">{{ number_format($count) }}</span>
+                    <span class="v-tally__item">
+                        <span class="v-tally__count">{{ number_format($count) }}</span>
                         {{ $courierName }}
                     </span>
                 @endforeach
@@ -214,39 +210,35 @@
         @endif
 
         {{-- Filter row: search + page size, one job each. --}}
-        <form method="GET" action="{{ route('admin.fulfillment.index') }}" class="cf-filters">
+        <x-admin.filters :action="route('admin.fulfillment.index')">
             <input type="hidden" name="filter" value="{{ $filter }}">
             @if ($filter === 'to_ship')
                 <input type="hidden" name="sub" value="{{ $sub }}">
             @endif
-            <x-admin.input type="search" name="q" :value="request('q')" placeholder="Order #, tracking, customer&hellip;" aria-label="Search orders" class="cf-filters__search" />
-            <x-admin.select name="per_page" aria-label="Orders per page" class="cf-filters__select" @change="$event.target.form.submit()">
+            <x-admin.input type="search" name="q" :value="request('q')" placeholder="Order #, tracking, customer&hellip;" aria-label="Search orders" class="v-filters__search" />
+            <x-admin.select name="per_page" aria-label="Orders per page" class="v-filters__select" @change="$event.target.form.submit()">
                 @foreach ([10, 25, 50] as $n)
                     <option value="{{ $n }}" @selected($perPage === $n)>{{ $n }} per page</option>
                 @endforeach
             </x-admin.select>
             <x-admin.button type="submit" variant="secondary">Search</x-admin.button>
             @if (request('q'))
-                <a class="cf-filters__reset" href="{{ route('admin.fulfillment.index', array_filter(['filter' => $filter, 'sub' => $filter === 'to_ship' ? $sub : null, 'per_page' => $perPage], fn ($v) => $v !== null && $v !== '')) }}">Reset</a>
+                <a class="v-filters__reset" href="{{ route('admin.fulfillment.index', array_filter(['filter' => $filter, 'sub' => $filter === 'to_ship' ? $sub : null, 'per_page' => $perPage], fn ($v) => $v !== null && $v !== '')) }}">Reset</a>
             @endif
-        </form>
+        </x-admin.filters>
 
         {{-- Two-tier table: a band of order-level facts above one row per
-             item; total / courier / status / actions rowspanned beside them. --}}
-        <div class="cf-table">
-            <div class="cf-table__scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Products</th>
-                            <th class="cf-col-qty">Qty</th>
-                            <th class="cf-col-total">Total</th>
-                            <th class="cf-col-courier">Courier</th>
-                            <th class="cf-col-status">Status</th>
-                            <th class="cf-col-act"><span class="cf-sr">Actions</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
+             item; total / courier / status / actions rowspanned beside them.
+             Verification density, because a packer looks at the picture. --}}
+        <x-admin.table tiered roomy>
+            <x-slot:head>
+                <th>Products</th>
+                <th class="v-col-qty">Qty</th>
+                <th class="v-col-amount">Total</th>
+                <th class="cf-col-courier">Courier</th>
+                <th class="cf-col-status">Status</th>
+                <th class="v-col-act"><span class="v-sr">Actions</span></th>
+            </x-slot:head>
                     @forelse ($orders as $order)
                         @php
                             $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
@@ -496,78 +488,63 @@
                             $displayItems = $items->isNotEmpty() ? $items->all() : [null];
                             $lineCount = count($displayItems);
                         @endphp
-                        <tr class="co-band">
+                        <tr class="v-tier">
                             <td colspan="6">
-                                <div class="co-band__row">
-                                    <div class="co-band__left">
-                                        <span class="co-band__label">Customer</span>
-                                        <span class="co-band__value">{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</span>
-                                        <span class="co-band__label">Order</span>
-                                        <a class="co-sn" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
-                                        <span class="co-band__muted">({{ $order->products_count ?? 0 }} {{ ($order->products_count ?? 0) === 1 ? 'item' : 'items' }})</span>
+                                <div class="v-tier__row">
+                                    <div class="v-tier__left">
+                                        <span class="v-tier__label">Customer</span>
+                                        <span class="v-tier__value">{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</span>
+                                        <span class="v-tier__label">Order</span>
+                                        <a class="v-ref" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
+                                        <span class="v-tier__muted">({{ $order->products_count ?? 0 }} {{ ($order->products_count ?? 0) === 1 ? 'item' : 'items' }})</span>
                                     </div>
-                                    <div class="co-band__right">
-                                        <span class="co-band__label">Created</span>
-                                        <span class="co-band__value co-band__value--mono">{{ optional($order->created_at)->format('M d, Y g:ia') }}</span>
+                                    <div class="v-tier__right">
+                                        <span class="v-tier__label">Created</span>
+                                        <span class="v-tier__value v-tier__value--mono">{{ optional($order->created_at)->format('M d, Y g:ia') }}</span>
                                     </div>
                                 </div>
                             </td>
                         </tr>
                         @foreach ($displayItems as $idx => $item)
-                            <tr class="co-itemrow {{ $idx === $lineCount - 1 ? 'co-itemrow--last' : '' }}">
+                            <tr class="v-subrow {{ $idx === $lineCount - 1 ? 'v-subrow--last' : '' }}">
                                 <td>
                                     @if ($item)
-                                        <div class="co-item">
-                                            @php($itemImage = $item->image ?? $item->product?->image)
-                                            <div class="order-img-wrap">
-                                                @if ($itemImage)
-                                                    <img class="order-img" src="{{ storage_url($itemImage) }}" alt="">
-                                                @else
-                                                    <span class="co-item__none">No image</span>
-                                                @endif
-                                            </div>
-                                            <div class="co-item__body">
-                                                <span class="co-item__name">{{ $item->name ?: 'Unnamed product' }}</span>
-                                                <div class="co-item__meta">
-                                                    @if (trim((string) $item->sku) !== '')
-                                                        <span class="co-item__sku">{{ $item->sku }}</span>
-                                                    @endif
-                                                    @if (trim((string) $item->variant_label) !== '')
-                                                        <span class="co-item__var">{{ $item->variant_label }}</span>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
+                                        @php($itemImage = $item->image ?? $item->product?->image)
+                                        <x-admin.item
+                                            :name="$item->name ?: 'Unnamed product'"
+                                            :image="$itemImage ? storage_url($itemImage) : null"
+                                            :sku="trim((string) $item->sku) !== '' ? $item->sku : null"
+                                            :variant="trim((string) $item->variant_label) !== '' ? $item->variant_label : null" />
                                     @else
-                                        <span class="co-empty-mark">No items recorded</span>
+                                        <span class="v-none">No items recorded</span>
                                     @endif
                                 </td>
-                                <td class="cf-col-qty">
+                                <td class="v-col-qty">
                                     @if ($item)
-                                        <span class="co-qty">&times;{{ max(1, (int) $item->quantity) }}</span>
+                                        <span class="v-qty">&times;{{ max(1, (int) $item->quantity) }}</span>
                                     @else
-                                        <span class="co-empty-mark">-</span>
+                                        <span class="v-none">-</span>
                                     @endif
                                 </td>
                                 @if ($idx === 0)
-                                    <td class="cf-col-total" rowspan="{{ $lineCount }}">
-                                        <span class="co-total">&#8369;{{ number_format($order->total, 2) }}</span>
-                                        <span class="co-total__method">{{ $isCod ? 'COD' : ucwords(str_replace('_', ' ', (string) $order->payment_method)) }}</span>
+                                    <td class="v-col-amount" rowspan="{{ $lineCount }}">
+                                        <span class="v-amount">&#8369;{{ number_format($order->total, 2) }}</span>
+                                        <span class="v-amount__sub">{{ $isCod ? 'COD' : ucwords(str_replace('_', ' ', (string) $order->payment_method)) }}</span>
                                     </td>
                                     <td class="cf-col-courier" rowspan="{{ $lineCount }}">
                                         @if ($order->courier_tracking_number)
-                                            <span class="co-carrier">{{ $orderCourier?->getName() ?? strtoupper((string) $order->courier_provider) }}</span>
+                                            <span class="v-lead">{{ $orderCourier?->getName() ?? strtoupper((string) $order->courier_provider) }}</span>
                                             @if ($trackingUrl)
-                                                <a class="co-ship__no" href="{{ $trackingUrl }}" target="_blank" rel="noopener">{{ $order->courier_tracking_number }}</a>
+                                                <a class="v-sub" href="{{ $trackingUrl }}" target="_blank" rel="noopener">{{ $order->courier_tracking_number }}</a>
                                             @else
-                                                <span class="co-ship__no">{{ $order->courier_tracking_number }}</span>
+                                                <span class="v-sub">{{ $order->courier_tracking_number }}</span>
                                             @endif
                                         @else
-                                            <span class="co-empty-mark">-</span>
+                                            <span class="v-none">-</span>
                                         @endif
                                     </td>
                                     <td class="cf-col-status" rowspan="{{ $lineCount }}">
-                                        <div class="co-status">
+                                        <div class="v-cellstack">
                                             @if ($hasCourierData)
                                                 {{-- A booked row reports its SHIPMENT's spine
                                                      phase, in that phase's shared tone. --}}
@@ -580,15 +557,15 @@
                                                 <x-admin.badge tone="neutral">{{ $order->status?->name ?? 'Missing' }}</x-admin.badge>
                                             @endif
                                             @if ($order->courier_status)
-                                                <span class="co-status__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
+                                                <span class="v-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
                                             @endif
                                             @if ($creationError)
-                                                <span class="co-status__error" title="{{ $creationError }}">{{ \Illuminate\Support\Str::limit($creationError, 90) }}</span>
+                                                <span class="v-cellstack__error" title="{{ $creationError }}">{{ \Illuminate\Support\Str::limit($creationError, 90) }}</span>
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="cf-col-act" rowspan="{{ $lineCount }}">
-                                        <div class="co-actions">
+                                    <td class="v-col-act" rowspan="{{ $lineCount }}">
+                                        <div class="v-rowactions">
                                             {{-- The action table. Read the $rowBucket block in this
                                                  row's @php above for the table itself and for what
                                                  each gate subtracts: the ORDER actions (Book, Cancel
@@ -620,10 +597,10 @@
                                                 @endif
                                             @endif
                                             @if ($offersCancelBooking)
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel booking</x-admin.button>
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel booking</x-admin.button>
                                             @endif
                                             @if ($offersCancelOrder)
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="co-actions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
                                             @endif
                                         </div>
                                         @if ($offersCancelOrder)
@@ -647,40 +624,10 @@
                             </td>
                         </tr>
                     @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </x-admin.table>
 
         {{-- Pager: "1 to N of M" mono left, Prev/Next right. --}}
-        @if ($orders->total() > 0)
-            <div class="cf-pager">
-                <span class="cf-pager__count">{{ number_format($orders->firstItem() ?? 0) }} to {{ number_format($orders->lastItem() ?? 0) }} of {{ number_format($orders->total()) }}</span>
-                <div class="cf-pager__nav">
-                    @if ($orders->previousPageUrl())
-                        {{-- Review fix: bind (:href), don't echo ({{ }}) — the shared
-                             x-admin.button component ALSO escapes its href when it
-                             renders the <a> tag (button.blade.php's own
-                             {{ $href }}), so an already-escaped {{ }} here
-                             double-escapes the paginator's own query string
-                             (&amp; -> &amp;amp;). A real browser then sends the
-                             LITERAL param name "amp;sub" instead of "sub" on
-                             click — silently dropping sub/q/per_page from every
-                             Next/Previous click. :href passes the raw URL through
-                             Blade's attribute binding, which the component's
-                             {{ }} still escapes exactly once. --}}
-                        <x-admin.button size="sm" variant="secondary" :href="$orders->previousPageUrl()">Previous</x-admin.button>
-                    @else
-                        <x-admin.button size="sm" variant="secondary" disabled>Previous</x-admin.button>
-                    @endif
-                    @if ($orders->nextPageUrl())
-                        <x-admin.button size="sm" variant="secondary" :href="$orders->nextPageUrl()">Next</x-admin.button>
-                    @else
-                        <x-admin.button size="sm" variant="secondary" disabled>Next</x-admin.button>
-                    @endif
-                </div>
-            </div>
-        @endif
+        <x-admin.pager :paginator="$orders" />
 
         {{-- Detail drawer — the VIEWING surface (stepper, timeline, tracking,
              cancel). Booking happens in the modal below, never here. --}}
@@ -952,39 +899,25 @@
                                      click handler to wire up, not merely a disabled one. --}}
                                 <div x-show="step === 1">
                                     <p class="text-[13px] text-v-secondary mb-3">How will this order ship?</p>
-                                    <div class="cf-choice">
+                                    <x-admin.choice>
                                         @foreach ($courierOptions as $key => $opt)
                                             @if ($opt['configured'])
-                                                <button type="button" class="cf-choice__card" data-courier-card="{{ $key }}" @click="chooseCourier('{{ $key }}')">
-                                                    <span>
-                                                        <span class="cf-choice__name">{{ $opt['name'] }}</span>
-                                                        @if (!empty($opt['mode']) && $opt['mode'] !== 'production')
-                                                            <span class="cf-choice__mode">{{ ucfirst($opt['mode']) }}</span>
-                                                        @endif
-                                                        @if (!empty($opt['fee_estimate']))
-                                                            <span class="cf-choice__fee">{{ $opt['fee_estimate']->label ?? ($opt['fee_estimate']->currency . ' ' . number_format($opt['fee_estimate']->amount, 2)) }}</span>
-                                                        @endif
-                                                    </span>
-                                                    <x-admin.icon name="chevron-right" class="w-4 h-4 cf-choice__go" />
-                                                </button>
+                                                <x-admin.choice.card
+                                                    :name="$opt['name']"
+                                                    :mode="!empty($opt['mode']) && $opt['mode'] !== 'production' ? ucfirst($opt['mode']) : null"
+                                                    :fee="!empty($opt['fee_estimate']) ? ($opt['fee_estimate']->label ?? ($opt['fee_estimate']->currency . ' ' . number_format($opt['fee_estimate']->amount, 2))) : null"
+                                                    data-courier-card="{{ $key }}"
+                                                    @click="chooseCourier('{{ $key }}')" />
                                             @else
-                                                <div class="cf-choice__card cf-choice__card--unconfigured" data-courier-card="{{ $key }}" data-courier-configured="false">
-                                                    <span class="cf-choice__unconfigured-body">
-                                                        <span class="cf-choice__unconfigured-head">
-                                                            <span class="cf-choice__name">{{ $opt['name'] }}</span>
-                                                            <span class="cf-choice__badge-unconfigured">Not configured</span>
-                                                        </span>
-                                                        <span class="cf-choice__unconfigured-msg">
-                                                            @if (!empty($opt['configIssues']))
-                                                                Missing {{ implode(' / ', $opt['configIssues']) }}.
-                                                            @endif
-                                                            Configure in <a href="{{ $opt['settingsUrl'] }}" class="cf-choice__unconfigured-link">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.
-                                                        </span>
-                                                    </span>
-                                                </div>
+                                                <x-admin.choice.card
+                                                    :name="$opt['name']"
+                                                    :available="false"
+                                                    state="Not configured"
+                                                    data-courier-card="{{ $key }}"
+                                                    data-courier-configured="false">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}" class="v-choice__offlink">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.</x-admin.choice.card>
                                             @endif
                                         @endforeach
-                                    </div>
+                                    </x-admin.choice>
                                 </div>
 
                                 {{-- Step 2: the chosen courier's form, from its option methods.

@@ -1,0 +1,135 @@
+/* ============================================================
+   Selectable card
+
+   A pick-one grid where each option is large enough to carry its own
+   qualifiers: a name, what it will cost, whether it is live. One
+   card per option, stacked, so the list of choices IS the markup and
+   there is nothing to expand.
+
+   An option that cannot be picked is a <div>, never a disabled
+   <button>: it structurally cannot advance, rather than merely being
+   told not to.
+   ============================================================ */
+
+.v-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.v-choice__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.v-choice__card:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-hover);
+}
+
+.v-choice__name { font-size: 14px; font-weight: 600; color: var(--text); }
+
+/* A qualifier that changes what picking this option means: a
+   non-production mode, a sandbox, a test key. */
+.v-choice__mode {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 8px;
+    color: var(--warning);
+    font-size: 12px;
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+/* The square mark the shared badge carries, drawn here rather than
+   tinting a capsule behind the word. */
+.v-choice__mode::before,
+.v-choice__state::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    background: currentColor;
+}
+
+.v-choice__fee {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.v-choice__go { color: var(--text-muted); flex: none; }
+
+/* ------------------------------------------------------------
+   The option that is present but not yet usable
+
+   It stays on the list instead of silently vanishing, because an
+   option a person switched on and cannot find reads as a bug. Muted
+   and dashed, with no accent anywhere and no hover affordance, so it
+   is unmistakably inert rather than an inviting choice.
+   ------------------------------------------------------------ */
+.v-choice__card--off {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    cursor: default;
+    background: var(--surface-sunken);
+    border-style: dashed;
+}
+
+.v-choice__card--off:hover {
+    background: var(--surface-sunken);
+    border-color: var(--border);
+}
+
+.v-choice__offbody {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.v-choice__offhead {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.v-choice__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--warning);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.v-choice__offmsg {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+.v-choice__offlink {
+    color: var(--warning);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.v-choice__offlink:hover { color: var(--text); }

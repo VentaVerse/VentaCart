@@ -1,0 +1,438 @@
+/* ============================================================
+   Figures: the measure treatment
+
+   Three tiers of the same job, promoted out of the day sheet.
+
+     .v-stat   a filled block, for the handful of figures a page is
+               opened to read from across the room.
+     .v-band   a ledger grid of figures with their comparisons.
+     .v-money  an amount, wherever one is printed.
+
+   COLOUR IS IDENTITY, NEVER STATE. The accent says which measure you
+   are reading, so a figure keeps its hue whether the news is good or
+   bad, and the written label is beside it in every case. Nothing
+   here goes red because it is low; state stays in the badges and the
+   change column, where it already lived.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. The filled block
+   ------------------------------------------------------------ */
+.v-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+@media (min-width: 900px)  { .v-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1280px) { .v-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+.v-stat {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 16px 17px 15px;
+    border-radius: var(--radius-lg);
+    /* The FILL stop, not the display stop. See the note beside the
+       tokens: white text cannot sit on the accents themselves. */
+    background: var(--v-fill);
+    color: #FFFFFF;
+    box-shadow: var(--bl-lift-2);
+    overflow: hidden;
+    text-decoration: none;
+    transition: transform var(--motion-base, 180ms) cubic-bezier(.2, .7, .3, 1),
+                box-shadow var(--motion-base, 180ms);
+}
+
+/* Two soft rounds of the block's own light, which is what stops a
+   flat rectangle of colour reading as a swatch. Behind the content
+   and never over it, and their opacity is part of the contrast
+   arithmetic: the figures are measured against the fill WITH these
+   composited, not against the bare fill. */
+.v-stat::before,
+.v-stat::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .10);
+    pointer-events: none;
+}
+
+.v-stat::before { inset: -56px -42px auto auto; width: 150px; height: 150px; }
+.v-stat::after  { inset: auto 20px -68px auto; width: 116px; height: 116px; background: rgba(255, 255, 255, .07); }
+
+.v-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(255, 255, 255, .30);
+}
+
+/* The focus ring is white here rather than brass: brass on a
+   saturated fill is 1.4:1 and would be a ring nobody can see, and
+   white clears 3:1 on every one of the six. */
+.v-stat:focus-visible {
+    outline: 2px solid #FFFFFF;
+    outline-offset: -4px;
+}
+
+.v-stat__top {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.v-stat__k {
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .005em;
+    color: #FFFFFF;
+}
+
+.v-stat__ic {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .18);
+    color: #FFFFFF;
+}
+
+.v-stat__v {
+    position: relative;
+    margin: 12px 0 5px;
+    font-size: clamp(23px, 2.1vw, 28px);
+    font-weight: 680;
+    letter-spacing: -.025em;
+    line-height: 1.08;
+    /* The figure is the point of the block, so it wraps rather than
+       being clipped: a peso total on a migrated store runs to nine
+       digits and a phone column is 170px wide. */
+    overflow-wrap: anywhere;
+}
+
+/* The currency mark travels with its digits and is set smaller, so a
+   seven figure total still reads as a number rather than as a symbol
+   with a number after it. */
+.v-stat__mark {
+    font-size: .68em;
+    font-weight: 600;
+    opacity: .85;
+    margin-right: 1px;
+}
+
+.v-stat__d {
+    position: relative;
+    font-size: 12px;
+    line-height: 1.35;
+    color: rgba(255, 255, 255, .92);
+}
+
+/* The six identities as fills. Flat, not a gradient: a 135deg ramp
+   from the lighter stop puts the block's worst contrast in the top
+   corner where the label sits, and the label is the text with the
+   least headroom to give. The light comes from the two rounds
+   instead, which are measured. */
+.v-stat--cyan   { --v-fill: var(--bl-a-cyan-fill); }
+.v-stat--violet { --v-fill: var(--bl-a-violet-fill); }
+.v-stat--green  { --v-fill: var(--bl-a-green-fill); }
+.v-stat--rose   { --v-fill: var(--bl-a-rose-fill); }
+.v-stat--indigo { --v-fill: var(--bl-a-indigo-fill); }
+
+/* Amber is the one fill white cannot sit on: darkened far enough for
+   white it stops being amber and becomes brown. So the fill keeps its
+   brightness and the TEXT goes to ink, which is the same escape hatch
+   the ERP documents and the reason --bl-a-amber-ink exists. */
+.v-stat--amber {
+    --v-fill: var(--bl-a-amber-fill);
+    color: var(--bl-a-amber-ink);
+}
+
+.v-stat--amber .v-stat__k { color: var(--bl-a-amber-ink); }
+
+/* .92, not .86. Measured on the rendered page the note came out at
+   4.51:1, which passes and has nothing left over; amber's fill is the
+   brightest of the six and its ink is the only text on the band that
+   is not white, so it is the one that has to be watched. Now 5.06:1. */
+.v-stat--amber .v-stat__d { color: rgba(44, 28, 2, .92); }
+
+.v-stat--amber .v-stat__ic { background: rgba(44, 28, 2, .16); color: var(--bl-a-amber-ink); }
+.v-stat--amber::before { background: rgba(255, 255, 255, .18); }
+.v-stat--amber::after  { background: rgba(255, 255, 255, .13); }
+.v-stat--amber:focus-visible { outline-color: var(--bl-a-amber-ink); }
+.v-stat--amber:hover { box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(44, 28, 2, .28); }
+
+/* A BOUNDED SURFACE NEEDS AN EDGE IT CLEARS 3:1 ON, and two cases
+   miss it on the fill alone: amber against the light paper (2.62:1,
+   because a bright fill on a light ground is the whole problem) and
+   the five deep fills against the dark paper (2.78 to 2.86:1). Both
+   get a hairline of the block's own text colour rather than being
+   re-tinted, because moving either fill to fix the edge would move
+   the text contrast with it and the text is the figure. */
+.v-stat--amber {
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(44, 28, 2, .22);
+}
+
+[data-theme="dark"] .v-stat {
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(255, 255, 255, .14);
+}
+
+[data-theme="dark"] .v-stat--amber {
+    box-shadow: var(--bl-lift-2), inset 0 0 0 1px rgba(44, 28, 2, .22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .v-stat { transition: none; }
+    .v-stat:hover { transform: none; }
+}
+
+/* ------------------------------------------------------------
+   2. The ledger band
+
+   The BAND is the grid and each row dissolves into it
+   (display: contents), so the three numeric columns size to their
+   own widest content and every figure lands on the same decimal
+   position. A fixed column width would align them too, but it would
+   also strand a currency mark half an inch from its digits on a
+   quiet day, which is precisely the day this page has to read well
+   on.
+
+   Column gap is 0 on purpose: the gap comes from each cell's own
+   left padding, which keeps the hairline rule continuous across the
+   row instead of chopping it into four segments.
+   ------------------------------------------------------------ */
+.v-band {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) repeat(3, max-content);
+    /* Stretch, never baseline: a baseline-aligned grid offsets each
+       cell's BOX to line the text up, which lands the four hairlines
+       of one row at four different heights and turns the ledger rule
+       into a staircase. The boxes align; the text is centred inside
+       them, which reads as one line across four type sizes. */
+    align-items: stretch;
+}
+
+.v-fig { display: contents; }
+
+.v-fig__name {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 9px 0;
+    border-top: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--text);
+}
+
+.v-fig__cell {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 9px 0 9px 34px;
+    border-top: 1px solid var(--border);
+    text-align: right;
+    font-size: 12.5px;
+    color: var(--text-muted);
+}
+
+.v-fig__cell > .v-money,
+.v-fig__cell > .v-fig__plain { flex: 1 1 auto; }
+
+.v-fig--head .v-fig__name,
+.v-fig--head .v-fig__cell {
+    padding-top: 0;
+    padding-bottom: 7px;
+    border-top: 0;
+}
+
+.v-fig__cell--now {
+    font-size: 17px;
+    color: var(--text);
+}
+
+/* The column heading names the period on wide screens, so repeating
+   it in every cell would be noise there. It stays in the document
+   for assistive technology at every width, and becomes the visible
+   label below 720px where the heading row is gone. */
+.v-fig__when {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+.v-fig__plain { color: var(--text); }
+.v-fig__cell:not(.v-fig__cell--now) .v-fig__plain { color: var(--text-muted); }
+.v-fig__plain--zero { color: var(--text-muted); }
+
+/* The change reads as a phrase, not as a signed number, and it takes
+   no colour. State tinting is reserved for things a person operates;
+   a quiet month is a fact, not a warning. */
+.v-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    color: var(--text-secondary);
+}
+
+.v-change--level { color: var(--text-muted); }
+
+.v-change__go {
+    width: 13px;
+    height: 13px;
+    flex: none;
+    color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------
+   3. Money
+
+   Accounting alignment: the currency mark holds the left of its
+   column and the digits are flushed right, so every amount on the
+   page shares one decimal position and one mark position. Tabular
+   figures do the rest. The mark is set quieter than the digits
+   because the digits are what is being read.
+   ------------------------------------------------------------ */
+.v-money {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6em;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.v-money__mark { color: var(--text-muted); }
+.v-money__amt { color: var(--text); }
+
+.v-fig__cell:not(.v-fig__cell--now) .v-money__amt { color: var(--text-muted); }
+
+/* Zero is a fact, not an alarm: it recedes rather than shouting. */
+.v-money--zero .v-money__amt { color: var(--text-muted); }
+
+/* An amount that owns its own cell rather than a ledger column:
+   right aligned, mono, with room beneath it for the one word that
+   qualifies it. */
+.v-amount {
+    display: block;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+}
+
+.v-amount__sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: right;
+}
+
+/* ------------------------------------------------------------
+   4. Facts
+
+   A name and a figure, the same grammar as the ledger lines, but
+   without a destination: these are readings, not work.
+   ------------------------------------------------------------ */
+.v-facts {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: baseline;
+    gap: 10px 16px;
+    padding: 14px 20px 18px;
+    font-size: 13px;
+}
+
+.v-facts dd { text-align: right; color: var(--text); }
+.v-facts__zero { color: var(--text-muted); }
+
+.v-facts__qual {
+    display: block;
+    margin-top: 2px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------
+   Narrow
+
+   The band keeps its order and loses only its columns. Each figure
+   becomes its own small block: the label and today's value on one
+   line, then each comparison on a line of its own carrying the
+   period it belongs to, so the money still aligns down the block.
+   ------------------------------------------------------------ */
+@media (max-width: 719px) {
+    .v-stat { padding: 14px 15px 13px; }
+
+    .v-facts { padding-inline: 16px; }
+
+    .v-band { display: block; }
+
+    .v-band .v-fig--head { display: none; }
+
+    .v-fig {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: baseline;
+        column-gap: 12px;
+        row-gap: 5px;
+        padding: 11px 0;
+        border-top: 1px solid var(--border);
+    }
+
+    .v-fig__name,
+    .v-fig__cell {
+        padding: 0;
+        border-top: 0;
+        text-align: left;
+    }
+
+    /* The period and the value read as one phrase opposite the
+       figure's name, rather than stacking into two lines. */
+    .v-fig__cell--now {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: flex-end;
+        gap: 4px 8px;
+        text-align: right;
+    }
+
+    .v-fig__cell > .v-money,
+    .v-fig__cell > .v-fig__plain { flex: 0 0 auto; }
+
+    .v-fig__cell .v-money { gap: 0.35em; }
+
+    .v-fig__cell:not(.v-fig__cell--now) {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .v-fig__when {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        overflow: visible;
+        clip-path: none;
+        color: var(--text-muted);
+    }
+
+    .v-fig__cell:not(.v-fig__cell--now) .v-money { flex: 0 0 auto; gap: 0.35em; }
+}

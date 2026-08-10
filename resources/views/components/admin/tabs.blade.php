@@ -1,3 +1,10 @@
+{{-- The Alpine-driven tab set. Its nav is now the shared segment bar,
+     so a tab set and a phase filter are the same control wearing the
+     same trough, whichever mechanism swaps the view underneath.
+
+     The prop API and the Alpine scope are unchanged: `default`,
+     `param`, `names`, `pick()` and the ?tab= address rewriting all
+     behave exactly as before. --}}
 @props(['default', 'param' => 'tab', 'names' => null])
 <div x-data="{
         tab: @js(request()->query($param, $default)),
@@ -15,6 +22,8 @@
             history.replaceState({}, '', url);
         },
     }" {{ $attributes->merge([]) }}>
-    <div class="flex items-center gap-1 overflow-x-auto border-b border-v-border" role="tablist">{{ $nav }}</div>
-    <div class="pt-5">{{ $slot }}</div>
+    <div class="v-segbar">
+        <div class="v-segment" role="tablist">{{ $nav }}</div>
+    </div>
+    <div class="pt-2">{{ $slot }}</div>
 </div>

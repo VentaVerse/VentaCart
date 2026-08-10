@@ -1,0 +1,47 @@
+/* ============================================================
+   Page head band
+
+   A page is a titled thing CONTAINING panels, not one slab with a
+   heading printed at the top of it, so the head sits on the paper
+   rather than inside a sheet. The title, one optional line of
+   standing beside it, and the page's own action set opposite.
+
+   `.v-day` is the page column: the vertical flow every region of a
+   page is a child of, and the thing `.v-settle` staggers.
+   ============================================================ */
+
+.v-day {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.v-day__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px 20px;
+    padding: 2px 2px 0;
+}
+
+.v-day__headtext { min-width: 0; }
+
+.v-day__date {
+    font-size: clamp(25px, 3.4vw, 33px);
+    font-weight: 640;
+    line-height: 1.08;
+    letter-spacing: -0.025em;
+    color: var(--text);
+    text-wrap: balance;
+}
+
+/* One line under the title. Not instruction: a reading, in the
+   product's own words, composed from figures the page already has. */
+.v-day__standing {
+    margin-top: 9px;
+    max-width: 62ch;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}

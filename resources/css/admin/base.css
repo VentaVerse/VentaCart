@@ -37,8 +37,8 @@ html[data-theme="dark"]:has(> body.v-admin) { color-scheme: dark; }
 
 /* Every figure in this interface aligns on its decimal. */
 .v-admin table,
-.v-admin .v-num { font-variant-numeric: tabular-nums; }
-.v-admin .v-num { font-family: var(--font-mono); }
+.v-num { font-variant-numeric: tabular-nums; }
+.v-num { font-family: var(--font-mono); }
 
 /* Brass, because focus is the clearest case of "you can act here".
    Amber stays reserved for "this needs you", a different sentence
@@ -123,13 +123,20 @@ html.v-scroll-lock { overflow: hidden; }
    uppercase tracking-widest) is retired: it was the single most
    dating detail in the build.
 
-   The metrics are stated at .v-admin specificity because nothing
-   should override them. The colour is stated at ZERO specificity
-   through :where(), because a label that names an accent-coloured
-   or danger-coloured section still has to be able to say so with
-   an ordinary text utility beside the class.
+   These are helpers, not components: an element carries one of them
+   ALONGSIDE its own class. So they sit at one-class specificity and
+   let document order decide, which is what lets a promoted primitive
+   state its own size on the same element (the ledger's column
+   headings are 12.5px because .v-fig__cell says so, even though they
+   also carry .v-label). Nesting them under .v-admin made them
+   outrank every de-nested primitive and silently resized them.
+
+   The colour is stated at ZERO specificity through :where(), because
+   a label that names an accent-coloured or danger-coloured section
+   still has to be able to say so with an ordinary text utility
+   beside the class.
    ------------------------------------------------------------ */
-.v-admin .v-label {
+.v-label {
     font-size: var(--bl-lab-size);
     font-stretch: var(--bl-lab-stretch);
     font-weight: var(--bl-lab-weight);
@@ -137,20 +144,20 @@ html.v-scroll-lock { overflow: hidden; }
     text-transform: var(--bl-lab-case);
 }
 
-:where(.v-admin) :where(.v-label) { color: var(--text-muted); }
+:where(.v-label) { color: var(--text-muted); }
 
 /* A section heading inside a sheet: the tier between the page title
    and a column label. Sentence case, ink, no tracking. */
-.v-admin .v-subhead {
+.v-subhead {
     font-size: 13px;
     font-weight: 650;
     letter-spacing: -0.005em;
 }
 
-:where(.v-admin) :where(.v-subhead) { color: var(--text); }
+:where(.v-subhead) { color: var(--text); }
 
 /* Identifiers: SKUs, order references, tracking numbers. */
-.v-admin .v-mono {
+.v-mono {
     font-family: var(--font-mono);
     font-size: 11.5px;
     letter-spacing: -0.02em;
@@ -159,4 +166,26 @@ html.v-scroll-lock { overflow: hidden; }
 
 /* Wide content scrolls inside its own box. A table that clips is a
    record you own and cannot reach. */
-.v-admin .v-scroll { overflow-x: auto; }
+.v-scroll { overflow-x: auto; }
+
+/* Visually hidden, still announced.
+
+   `left: 0` is load-bearing, not tidying. Without it the box keeps
+   its static position, and a static position inside a wide scrolling
+   table has no positioned ancestor, so its containing block is the
+   page: a 1px box lands hundreds of pixels out and gives the whole
+   document horizontal scroll. Pinning it to the left edge keeps it a
+   1px clipped box that widens nothing. */
+.v-sr {
+    position: absolute;
+    left: 0;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

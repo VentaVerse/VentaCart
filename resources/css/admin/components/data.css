@@ -1,0 +1,438 @@
+/* ============================================================
+   Data display
+
+   Every mark here is drawn as inline SVG on the token set: no
+   charting library, no canvas, no network request, and both themes
+   work because every colour is a var().
+
+   The six identity accents are the shared vocabulary. Amber's
+   display stop is 2.94:1 on a white sheet, under the 3:1 a mark
+   carrying meaning needs, so every swatch and arc takes the mark
+   stop instead. The other five clear it on their display stop.
+   ============================================================ */
+
+.v-slice-0 { fill: var(--bl-a-cyan); }
+.v-slice-1 { fill: var(--bl-a-violet); }
+.v-slice-2 { fill: var(--bl-a-green); }
+.v-slice-3 { fill: var(--bl-a-amber-mark); }
+.v-slice-4 { fill: var(--bl-a-rose); }
+.v-slice-5 { fill: var(--bl-a-indigo); }
+
+.v-stroke-0 { stroke: var(--bl-a-cyan); }
+.v-stroke-1 { stroke: var(--bl-a-violet); }
+.v-stroke-2 { stroke: var(--bl-a-green); }
+.v-stroke-3 { stroke: var(--bl-a-amber-mark); }
+.v-stroke-4 { stroke: var(--bl-a-rose); }
+.v-stroke-5 { stroke: var(--bl-a-indigo); }
+
+/* Tailwind's preflight sets svg { display: block }, which in a table
+   cell stacks the swatch above the name instead of beside it. */
+.v-tsw { display: inline-block; margin-right: 8px; vertical-align: -1px; }
+
+/* ------------------------------------------------------------
+   Composition: a main column and a rail
+
+   Two thirds to the work and its history, one third to the counts
+   beside it.
+   ------------------------------------------------------------ */
+.v-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+}
+
+@media (min-width: 1200px) {
+    .v-split { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+    /* A page with nothing for a rail to hold keeps the full measure
+       rather than leaving a third of itself empty beside three lines. */
+    .v-split--solo { grid-template-columns: minmax(0, 1fr); max-width: 860px; }
+}
+
+.v-split__main,
+.v-split__rail {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+/* ------------------------------------------------------------
+   Chips: a part-to-whole strip
+
+   One chip per part, each carrying its mark, its name, its own
+   figure and its share. A set of one collapses gracefully rather
+   than drawing an empty frame.
+   ------------------------------------------------------------ */
+.v-chans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+    gap: 12px;
+}
+
+.v-chan {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    padding: 13px 15px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--bl-lift);
+}
+
+.v-chan__ic { flex: none; width: 38px; height: 38px; }
+
+.v-chan__in {
+    fill: #FFFFFF;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+/* The truncation is stated by the component, not by a utility class
+   in the markup: "Bank Transfer (Union Bank)" is a label a merchant
+   can type and it must not push the figure off the chip. A rule the
+   component owns cannot be dropped by an edit to the view. */
+.v-chan__body { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+
+.v-chan__n,
+.v-chan__s {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.v-chan__n { font-size: 13.5px; font-weight: 640; color: var(--text); }
+.v-chan__s { font-size: 12.5px; color: var(--text-muted); }
+
+.v-chan__q { margin-left: auto; flex: none; text-align: right; }
+.v-chan__qv { font-size: 14px; font-weight: 620; color: var(--text); }
+.v-chan__ql { display: block; margin-top: 2px; font-size: 11.5px; color: var(--text-muted); }
+
+/* ------------------------------------------------------------
+   The ring
+
+   Beside its own table rather than above it: stacked, a ring spends
+   700px of height to state six figures and uses a quarter of the
+   width it is given.
+   ------------------------------------------------------------ */
+.v-breakdown {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 860px) {
+    .v-breakdown { grid-template-columns: 218px minmax(0, 1fr); }
+    .v-breakdown__records { border-left: 1px solid var(--border); }
+}
+
+.v-breakdown__ring {
+    display: grid;
+    place-items: center;
+    padding: 16px 20px;
+}
+
+.v-ring { display: block; margin: 0 auto; width: 100%; max-width: 180px; height: auto; }
+.v-ring__seg { fill: none; stroke-width: 25; }
+.v-ring__v { fill: var(--text); font-size: 25px; font-weight: 700; }
+.v-ring__k { fill: var(--text-muted); font-size: 11px; }
+.v-ring__s { fill: var(--text-muted); font-size: 10.5px; }
+
+/* The name replaces the unit word while reading, so it takes the
+   weight that word did not need. */
+.v-ring.is-reading .v-ring__k { fill: var(--text-secondary); font-weight: 640; }
+
+/* Which arc you are on, without moving anything: the others step back
+   rather than the hovered one growing, so the ring keeps its geometry
+   and nothing reflows under the pointer. */
+.v-ring__seg { transition: opacity 120ms; }
+.v-ring.is-reading .v-ring__seg { opacity: .3; }
+.v-ring.is-reading .v-ring__seg:hover { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+    .v-ring__seg { transition: none; }
+}
+
+/* ------------------------------------------------------------
+   Rankings and mixes
+
+   Name, figure, and a bar drawn against the leader of this list.
+   The bar is a shape that repeats the number beside it, never a
+   claim about share, which is why it carries no percentage.
+   ------------------------------------------------------------ */
+.v-accounts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 18px 36px;
+}
+
+.v-accounts__title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 6px;
+    color: var(--text-secondary);
+}
+
+.v-accounts__title--second { margin-top: 16px; }
+
+.v-rank__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 14px;
+    padding: 7px 0 0;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.v-rank > li:first-child .v-rank__row,
+.v-rank__row:first-child { border-top: 0; }
+
+.v-rank__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+}
+
+.v-rank__units { color: var(--text); }
+
+.v-rank__bar {
+    grid-column: 1 / -1;
+    display: block;
+    width: 100%;
+    height: 4px;
+    margin: 5px 0 7px;
+    overflow: visible;
+}
+
+/* A track under the fill, so the bar reads as a proportion of the
+   leader rather than as another hairline rule. */
+.v-rank__track { fill: var(--border-strong); }
+.v-rank__fill { fill: var(--bl-a-cyan); }
+.v-rank__fill--units { fill: var(--bl-a-violet); }
+
+/* A ranking of one carries no bar (a lone full-width strip reads as a
+   rule, not a share), so the row supplies the spacing the bar's own
+   margin normally does. */
+.v-rank__row--flat { padding-bottom: 7px; }
+
+.v-mix__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: baseline;
+    column-gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.v-mix > li:first-child .v-mix__row,
+.v-mix__row:first-child { border-top: 0; }
+
+.v-mix__name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+}
+
+.v-mix__share {
+    min-width: 4.5ch;
+    text-align: right;
+    color: var(--text-muted);
+}
+
+.v-mix__count { color: var(--text); }
+
+/* ------------------------------------------------------------
+   The plot
+
+   One measure, one scale, two periods.
+
+   The frame stretches horizontally only, so the strokes need
+   vector-effect to keep their weight, and no mark can be a circle:
+   under a non-uniform stretch a circle is a lopsided ellipse. The
+   endpoint dots are HTML spans positioned over the frame instead,
+   which is also what lets the reading follow the pointer.
+   ------------------------------------------------------------ */
+.v-plotcard { margin-top: 4px; }
+
+.v-plot__key {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 22px;
+    padding-bottom: 8px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+}
+
+.v-plot__keyitem { display: inline-flex; align-items: center; gap: 8px; }
+
+/* A period with no earlier trace hides its key item, readout row and
+   dot rather than removing them, so the swap back is one attribute.
+   The explicit display wins over the flex the visible state declares. */
+.v-plot__keyitem[hidden],
+.v-plot__rr[hidden],
+.v-plot__dot[hidden] { display: none; }
+.v-plot__sw { display: inline-block; flex: none; }
+.v-plot__sw-now { fill: var(--bl-a-indigo); }
+.v-plot__sw-then { fill: var(--bl-a-indigo-2); }
+
+/* The key doubles as the scale disclosure: both traces share one
+   vertical scale, and naming each peak is how a reader can see that
+   they do. */
+.v-plot__peak {
+    font-weight: 500;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.v-plot__frame { position: relative; }
+
+.v-plot {
+    display: block;
+    width: 100%;
+    height: 168px;
+    overflow: visible;
+}
+
+.v-plot__grid {
+    stroke: var(--border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.v-plot__now,
+.v-plot__then {
+    fill: none;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+}
+
+.v-plot__now { stroke: var(--bl-a-indigo); stroke-width: 2; }
+
+/* Dashed, so the two periods are told apart with the colour removed. */
+.v-plot__then {
+    stroke: var(--bl-a-indigo-2);
+    stroke-width: 1.5;
+    stroke-dasharray: 5 4;
+}
+
+.v-plot__area { stroke: none; }
+.v-plot__from { stop-color: var(--bl-a-indigo); stop-opacity: .20; }
+.v-plot__to { stop-color: var(--bl-a-indigo); stop-opacity: 0; }
+
+/* The hit rects exist to carry a <title> for assistive technology.
+   They paint nothing, because the guide below is the visible answer. */
+.v-plot__hit { fill: transparent; }
+
+.v-plot__axis {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    padding-top: 7px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.v-plot__axis > span { white-space: nowrap; }
+
+/* THE READING. A native <title> waits about a second before the
+   browser shows it, and no attribute shortens that, so a figure that
+   only lived there read as a broken chart. The guide, the two dots
+   and the readout are moved on pointermove; nothing here animates,
+   because the whole point is that the figure is there the instant
+   the pointer is. */
+.v-plot__guide,
+.v-plot__dot,
+.v-plot__readout {
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.v-plotcard.is-reading .v-plot__guide,
+.v-plotcard.is-reading .v-plot__dot,
+.v-plotcard.is-reading .v-plot__readout { opacity: 1; }
+
+.v-plot__guide {
+    width: 1px;
+    height: 168px;
+    background: var(--border-strong);
+}
+
+.v-plot__dot {
+    width: 9px;
+    height: 9px;
+    margin: -4.5px 0 0 -4.5px;
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+}
+
+.v-plot__dot--now { background: var(--bl-a-indigo); }
+.v-plot__dot--then { background: var(--bl-a-indigo-2); }
+
+.v-plot__readout {
+    top: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 11px;
+    border-radius: var(--radius-md);
+    background: var(--bl-tip-bg);
+    box-shadow: var(--bl-lift-2);
+    color: var(--bl-tip-ink);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    translate: -50% 0;
+}
+
+.v-plot__rd { font-weight: 650; }
+
+.v-plot__rr {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-variant-numeric: tabular-nums;
+}
+
+.v-plot__rk {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: 2px;
+}
+
+.v-plot__rk--now { background: var(--bl-a-indigo); }
+.v-plot__rk--then { background: var(--bl-a-indigo-2); }
+
+/* The newest reading sits at the key's far edge, so the plot's
+   latest value is on the card before anything is pointed at. */
+.v-plot__nowread { margin-left: auto; }
+
+@media (max-width: 719px) {
+    /* Two rankings side by side is 170px each on a phone, which is not
+       a ranking. They stack, in the order they are read. */
+    .v-accounts { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+
+    .v-plot { height: 132px; }
+    .v-plot__guide { height: 132px; }
+
+    /* Twelve labels across 358px is 30px each, which sets them
+       touching. Every third one, and the last, which is the one the
+       reader came for. */
+    .v-plot__axis > span:not(:nth-child(3n + 1)):not(:last-child) { display: none; }
+}

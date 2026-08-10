@@ -11,12 +11,12 @@
     It reads $automationHealth, shared with both compositions; the store
     that has never traded draws it only when something is actually wrong.
 --}}
-<section class="v-panel" aria-labelledby="v-sheet-autos">
-    <div class="v-panel__head">
-        <h2 class="v-subhead" id="v-sheet-autos">Automations</h2>
-        <a href="{{ route('admin.automations.index') }}" class="v-panel__link">Manage</a>
-    </div>
-
+<x-admin.panel
+    title="Automations"
+    id="v-sheet-autos"
+    :link="route('admin.automations.index')"
+    link-label="Manage"
+    flush>
     @if ($automationHealth['total'] === 0)
         <p class="v-panel__blank">None configured.</p>
     @else
@@ -46,4 +46,4 @@
             </p>
         @endif
     @endif
-</section>
+</x-admin.panel>

@@ -538,12 +538,19 @@ class FulfillmentQueueTest extends TestCase
             // advance it to step 2. QuadX's own card (fully configured)
             // still is.
             ->assertDontSee("chooseCourier('spx')", false)
-            // QuadX's card renders BYTE-IDENTICALLY to before this task —
-            // the exact pre-existing <button> tag, with no new attribute
-            // added to the frozen configured branch (review fix: a prior
-            // draft of this task added `data-courier-configured="true"`
-            // here, which this exact-tag assertion would now catch).
-            ->assertSee('<button type="button" class="cf-choice__card" data-courier-card="quadx" @click="chooseCourier(\'quadx\')">', false);
+            // QuadX's card is still the exact <button> tag it always was,
+            // with no new attribute added to the frozen configured branch
+            // (review fix: a prior draft of this task added
+            // `data-courier-configured="true"` here, which this exact-tag
+            // assertion would now catch).
+            //
+            // The class name moved from `cf-choice__card` to
+            // `v-choice__card` in the foundation sweep, when the selectable
+            // card was promoted out of this page into the shared admin
+            // layer and the extension's private `cf-`/`co-` namespace was
+            // absorbed. The property under test is unchanged: same tag,
+            // same handler, same attribute set, nothing added.
+            ->assertSee('<button type="button" class="v-choice__card" data-courier-card="quadx" @click="chooseCourier(\'quadx\')">', false);
     }
 
     /**

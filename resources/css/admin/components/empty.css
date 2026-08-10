@@ -1,5 +1,9 @@
 /* ============================================================
-   Empty state and menu
+   Nothing here, and not yet usable
+
+   Two states, one component, because they answer the same question
+   from opposite ends: the list is empty because nothing has happened
+   yet, or the screen cannot work until something is configured.
 
    The empty state's proportions come from the Blotter: generous
    vertical room, a 15px title at 650, one line of description
@@ -9,32 +13,91 @@
    and it says nothing the title does not already say.
    ============================================================ */
 
-.v-admin .v-empty {
+.v-empty {
     padding: 46px var(--bl-pad);
     text-align: center;
 }
 
-.v-admin .v-empty__title {
+.v-empty__title {
     margin: 0;
     font-size: 15px;
     font-weight: 650;
     color: var(--text);
 }
 
-.v-admin .v-empty__desc {
+.v-empty__desc {
     margin: 4px auto 0;
     max-width: 46ch;
     font-size: 13px;
     color: var(--text-secondary);
 }
 
-.v-admin .v-empty__action { margin-top: 16px; }
+.v-empty__action { margin-top: 16px; }
 
 /* An empty state that lands inside a table's own sheet takes the
    rule the missing header row would have drawn, so the sheet still
    reads as a table rather than as a stray panel. */
-.v-admin .v-table-wrap + .v-empty,
-.v-admin .v-empty--ruled { border-top: 1px solid var(--border-strong); }
+.v-table-wrap + .v-empty,
+.v-empty--ruled { border-top: 1px solid var(--border-strong); }
+
+/* ------------------------------------------------------------
+   The blocking setup state
+
+   Louder than a flash on purpose: a flash confirms something good
+   already happened, this says the screen cannot work yet. A band
+   rather than a centred column, because it sits above the thing it
+   is blocking rather than in place of it, and it carries its own way
+   out.
+   ------------------------------------------------------------ */
+.v-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 18px;
+    background: var(--bl-attn-wash);
+    border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+    border-radius: var(--radius-lg);
+}
+
+.v-notice__body {
+    flex: 1 1 320px;
+    min-width: 0;
+}
+
+.v-notice__title {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--warning);
+}
+
+.v-notice__text {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.v-notice__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: var(--control-h-sm);
+    padding: 0 14px;
+    background: var(--warning);
+    color: var(--surface);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity var(--motion-fast);
+}
+
+.v-notice__btn:hover { opacity: .9; }
 
 /* ------------------------------------------------------------
    Menu: the trigger is whatever the caller put in it; the panel is

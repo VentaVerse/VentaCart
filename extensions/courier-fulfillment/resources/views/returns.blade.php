@@ -32,19 +32,14 @@
             };
         @endphp
 
-        <div class="cf-table">
-            <div class="cf-table__scroll">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Order</th>
-                            <th class="cf-col-courier">Courier</th>
-                            <th class="cf-col-status">Status</th>
-                            <th>Last event</th>
-                            <th>Created</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        <x-admin.table ruled roomy>
+            <x-slot:head>
+                <th>Order</th>
+                <th class="cf-col-courier">Courier</th>
+                <th class="cf-col-status">Status</th>
+                <th>Last event</th>
+                <th>Created</th>
+            </x-slot:head>
                     @forelse ($orders as $order)
                         @php
                             $orderCourier = $order->courier_provider ? \Extensions\CourierFulfillment\CourierManager::get($order->courier_provider) : null;
@@ -73,19 +68,19 @@
                         @endphp
                         <tr>
                             <td>
-                                <a class="co-sn" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
+                                <a class="v-ref" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
                             </td>
                             <td class="cf-col-courier">
-                                <span class="co-carrier">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
+                                <span class="v-lead">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
                                 @if ($order->courier_tracking_number)
-                                    <span class="co-ship__no">{{ $order->courier_tracking_number }}</span>
+                                    <span class="v-sub">{{ $order->courier_tracking_number }}</span>
                                 @endif
                             </td>
                             <td class="cf-col-status">
-                                <div class="co-status">
+                                <div class="v-cellstack">
                                     <x-admin.badge :tone="$spineTone">{{ $spineLabel }}</x-admin.badge>
                                     @if ($order->courier_status)
-                                        <span class="co-status__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
+                                        <span class="v-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
                                     @endif
                                 </div>
                             </td>
@@ -94,7 +89,7 @@
                                     <span class="block text-[13px] text-v-text">{{ $humanizeStatus((string) $lastEvent['status'], $order->courier_provider) }}</span>
                                     <span class="block text-xs text-v-muted">{{ \Carbon\Carbon::createFromTimestamp($lastEvent['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia') }}</span>
                                 @else
-                                    <span class="co-empty-mark">-</span>
+                                    <span class="v-none">-</span>
                                 @endif
                             </td>
                             <td>
@@ -109,27 +104,8 @@
                             </td>
                         </tr>
                     @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </x-admin.table>
 
-        @if ($orders->total() > 0)
-            <div class="cf-pager">
-                <span class="cf-pager__count">{{ number_format($orders->firstItem() ?? 0) }} to {{ number_format($orders->lastItem() ?? 0) }} of {{ number_format($orders->total()) }}</span>
-                <div class="cf-pager__nav">
-                    @if ($orders->previousPageUrl())
-                        <x-admin.button size="sm" variant="secondary" href="{{ $orders->previousPageUrl() }}">Previous</x-admin.button>
-                    @else
-                        <x-admin.button size="sm" variant="secondary" disabled>Previous</x-admin.button>
-                    @endif
-                    @if ($orders->nextPageUrl())
-                        <x-admin.button size="sm" variant="secondary" href="{{ $orders->nextPageUrl() }}">Next</x-admin.button>
-                    @else
-                        <x-admin.button size="sm" variant="secondary" disabled>Next</x-admin.button>
-                    @endif
-                </div>
-            </div>
-        @endif
+        <x-admin.pager :paginator="$orders" />
     </x-admin.page>
 </x-admin.shell>

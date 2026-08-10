@@ -1,6 +1,13 @@
 /* ============================================================
    Table
 
+   One table, three densities. This file is where the admin's three
+   separate table implementations were collapsed: the shared
+   component's, the day sheet's ledger, and the fulfillment queue's
+   two-tier packing list. They differed in padding and in how rows
+   were divided, and in nothing else, so the differences are named as
+   modifiers and the rest is shared.
+
    The Blotter's table: a raised white sheet that scrolls sideways
    and never clips, hairline rules between rows, no zebra striping,
    and a hover row tinted from the brand rather than from grey, so
@@ -11,40 +18,252 @@
    normal width. The old wide-tracked uppercase micro-cap is gone.
    ============================================================ */
 
-.v-admin .v-table {
+.v-table {
+    width: 100%;
     border-collapse: collapse;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
 }
 
 /* Header cells sit on the sheet with a rule above and below rather
    than on a sunken band: the band made every table look like it had
    a toolbar it did not have. */
-.v-admin .v-table thead th {
+.v-table thead th {
     border-block: 1px solid var(--border-strong);
 }
 
-.v-admin .v-table thead tr:first-child th { border-top: 0; }
+.v-table thead tr:first-child th { border-top: 0; }
 
-.v-admin .v-table .v-row { transition: background-color var(--motion-fast); }
+/* A raw <th> inside a promoted table takes the column-label
+   treatment without needing a component, so a page that writes its
+   own header row still lands on the system.
 
-/* 4% of the brass mark on the sheet. Reads as warm rather than as
+   Alignment and colour are stated through :where(), at zero
+   specificity, because a right-aligned money column and a heading
+   that names an accented section both have to be able to say so with
+   an ordinary utility beside the class. The metrics are not: nothing
+   should override those. */
+.v-table thead th {
+    padding: 0 16px;
+    height: var(--row-h);
+    font-size: var(--bl-lab-size);
+    font-stretch: var(--bl-lab-stretch);
+    font-weight: var(--bl-lab-weight);
+    letter-spacing: var(--bl-lab-track);
+    text-transform: var(--bl-lab-case);
+    white-space: nowrap;
+}
+
+:where(.v-table thead th) {
+    text-align: left;
+    color: var(--text-muted);
+}
+
+.v-table .v-row { transition: background-color var(--motion-fast); }
+
+/* 5% of the brass mark on the sheet. Reads as warm rather than as
    grey dirt, and it is the same colour the focus ring uses, which
    is what ties "you can act here" together. */
-.v-admin .v-table .v-row:hover {
+.v-table .v-row:hover {
     background: color-mix(in srgb, var(--accent-mark) 5%, var(--surface));
 }
 
-.v-admin .v-table .v-row:focus-visible {
+.v-table .v-row:focus-visible {
     background: color-mix(in srgb, var(--accent-mark) 8%, var(--surface));
 }
 
 /* A row that stands for a record you can open gets the pointer and
    the whole row as the target, not just the link in the first cell. */
-.v-admin .v-table .v-row[data-href] { cursor: pointer; }
+.v-table .v-row[data-href] { cursor: pointer; }
 
-/* Wide tables scroll inside their own sheet. A table that clips is a
-   record you own and cannot reach. */
-.v-admin .v-table-wrap {
+/* ------------------------------------------------------------
+   Densities
+
+   `--ruled` divides with a border on the cell rather than with
+   divide-y on the body, which is the only way a table carrying
+   rowspans can rule correctly. `--roomy` is verification density:
+   rows carrying an image someone actually looks at.
+   ------------------------------------------------------------ */
+.v-table--ruled tbody td { border-top: 1px solid var(--border); }
+
+.v-table--roomy tbody td {
+    padding: 12px 16px;
+    vertical-align: top;
+}
+
+/* ------------------------------------------------------------
+   Two tiers
+
+   A band of record-level facts above one row per line item, with the
+   record's own columns rowspanned beside them. Line rows divide with
+   a soft dashed rule; the solid rule belongs to the next band, so
+   each record reads as a block.
+   ------------------------------------------------------------ */
+.v-table--tiered tbody tr.v-tier td {
+    background: var(--surface-sunken);
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.v-table--tiered tbody tr.v-subrow td { border-top: 0; }
+
+.v-table--tiered tbody tr.v-subrow:not(.v-subrow--last) td {
+    border-bottom: 1px dashed var(--border);
+}
+
+.v-tier__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+}
+
+.v-tier__left,
+.v-tier__right {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+}
+
+.v-tier__label { font-size: 12px; color: var(--text-muted); }
+
+.v-tier__value { font-size: 13px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+
+.v-tier__value--mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 500; }
+
+.v-tier__muted { font-size: 12px; color: var(--text-muted); }
+
+/* ------------------------------------------------------------
+   The scroll box
+
+   Wide tables scroll inside their own sheet. A table that clips is a
+   record you own and cannot reach. The box carries the sheet's own
+   radius so the outer columns still round with the panel rather than
+   being sliced by it.
+   ------------------------------------------------------------ */
+.v-table-wrap {
     overflow-x: auto;
     border-radius: inherit;
 }
+
+/* A table inside a panel starts below the panel's head, not at its
+   corner, so it takes no radius: rounding here would cut into the
+   header row. The 4px gutter puts the first column's text on the
+   same 20px margin as the head above it while still letting a wide
+   table scroll rather than clip. */
+.v-table-wrap--gutter {
+    padding-inline: 4px;
+    border-radius: 0;
+}
+
+/* ------------------------------------------------------------
+   Cell idioms
+
+   The handful of shapes that recur inside cells across the admin.
+   ------------------------------------------------------------ */
+
+/* A record reference: an order number, a SKU, a tracking number.
+   Mono because telling 0 from O is real work here. */
+.v-ref {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+}
+
+a.v-ref:hover { color: var(--accent); }
+
+/* A link that reads as the row's own text rather than as a coloured
+   link, because a column of brass names would say "act here" fifteen
+   times; the underline on hover and the focus ring say it on demand. */
+.v-quietlink {
+    color: inherit;
+    text-decoration: none;
+}
+
+.v-quietlink:hover { text-decoration: underline; }
+
+/* A multiplier in its own column so every count shares one edge down
+   the page. Bold, full contrast: a wrong count is expensive. */
+.v-qty {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* Two or three facts stacked inside one cell: the thing, then what
+   qualifies it. */
+.v-cellstack { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+
+.v-cellstack__note {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+.v-cellstack__error {
+    font-size: 11px;
+    color: var(--danger);
+    overflow-wrap: anywhere;
+    max-width: 26ch;
+}
+
+/* The lead line of a stacked cell, and the identifier under it. An
+   unbroken 15 to 25 character token must never push into the next
+   column. */
+.v-lead {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+.v-sub {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+
+a.v-sub:hover { color: var(--accent); text-decoration: underline; }
+
+/* Nothing to print. A word, not a blank cell, so the column still
+   reads as having an answer. */
+.v-none { color: var(--text-muted); }
+
+/* Row actions: every action a row's state allows is a visible
+   control. No overflow menus on a working surface. The targets are
+   the shared control heights, never a bare glyph. */
+.v-rowactions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.v-rowactions form { margin: 0; }
+
+.v-rowactions__danger { color: var(--danger) !important; }
+
+/* ------------------------------------------------------------
+   Column sizing
+
+   The one variable-width column takes the remainder; the bounded
+   ones hold their shape.
+   ------------------------------------------------------------ */
+.v-col-qty { width: 64px; }
+.v-col-amount { width: 130px; text-align: right; }
+td.v-col-amount { text-align: right; }
+.v-col-act { width: 1%; white-space: nowrap; }

@@ -5,33 +5,21 @@
     answers. A feed capped to a glance, newest first; the customer's own
     page carries their full history.
 --}}
-<section class="v-panel" aria-labelledby="v-sheet-activity">
-    <div class="v-panel__head">
-        <h2 class="v-subhead" id="v-sheet-activity">Customer activity</h2>
-    </div>
-
+<x-admin.panel title="Customer activity" id="v-sheet-activity" flush>
     @if ($activities->isEmpty())
         <p class="v-panel__blank">Nothing recorded yet.</p>
     @else
         <ul class="v-feed">
             @foreach ($activities as $activity)
-                <li class="v-feed__row">
-                    <span class="v-feed__ic {{ $activity->color }}">
-                        <x-admin.icon :name="$activity->icon" class="w-3.5 h-3.5" />
-                    </span>
-                    <span class="v-feed__body">
-                        <span class="v-feed__what">
-                            @if ($activity->customer)
-                                <a href="{{ route('admin.customers.edit', $activity->customer) }}" class="v-feed__who">{{ $activity->customer->first_name }} {{ $activity->customer->last_name }}</a>
-                            @else
-                                <span class="v-feed__gone">A deleted customer</span>
-                            @endif
-                            {{ lcfirst($activity->description) }}
-                        </span>
-                        <span class="v-feed__when">{{ $activity->created_at->diffForHumans() }}</span>
-                    </span>
-                </li>
+                <x-admin.feed.entry
+                    :icon="$activity->icon"
+                    :tone="$activity->color"
+                    :when="$activity->created_at->diffForHumans()"
+                    :who="$activity->customer ? $activity->customer->first_name . ' ' . $activity->customer->last_name : 'A deleted customer'"
+                    :who-href="$activity->customer ? route('admin.customers.edit', $activity->customer) : null">
+                    {{ lcfirst($activity->description) }}
+                </x-admin.feed.entry>
             @endforeach
         </ul>
     @endif
-</section>
+</x-admin.panel>
