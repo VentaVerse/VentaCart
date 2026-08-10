@@ -284,6 +284,32 @@
                     </x-admin.empty-state>
                 </x-admin.panel>
 
+                {{-- A table inside a panel that pads, written the way
+                     sixteen settings routes wrote it: the table drawing
+                     its own sheet on top of the sheet already holding
+                     it. It renders here with one edge and one ground,
+                     because a sheet inside a sheet is stripped in
+                     panel.css rather than left to a prop each caller
+                     has to remember. `bare` still says the same thing;
+                     it is no longer the only thing standing between a
+                     page and a doubled border. --}}
+                <x-admin.panel title="Table inside a panel" id="kit-table-nested">
+                    <x-admin.table>
+                        <x-slot:head>
+                            <x-admin.table.th>Currency</x-admin.table.th>
+                            <x-admin.table.th align="right">Rate</x-admin.table.th>
+                        </x-slot:head>
+                        <x-admin.table.row>
+                            <x-admin.table.cell>Philippine peso</x-admin.table.cell>
+                            <x-admin.table.cell align="right"><span class="v-num">1.000000</span></x-admin.table.cell>
+                        </x-admin.table.row>
+                        <x-admin.table.row>
+                            <x-admin.table.cell>United States dollar</x-admin.table.cell>
+                            <x-admin.table.cell align="right"><span class="v-num">0.017241</span></x-admin.table.cell>
+                        </x-admin.table.row>
+                    </x-admin.table>
+                </x-admin.panel>
+
                 {{-- The two-tier table with its line items, on its own
                      sheet: the packing density, at the size a packer
                      actually verifies against. --}}
@@ -349,6 +375,19 @@
                         </x-admin.field>
                         <x-admin.field name="demo_disabled" label="Disabled">
                             <x-admin.input name="demo_disabled" value="Not editable" disabled />
+                        </x-admin.field>
+                        {{-- A stored key, in the box that owns it: masked
+                             and read only at rest, revealed in place, and
+                             editable without the value moving or vanishing
+                             under the person editing it. The second one has
+                             nothing stored, so it is an ordinary field. --}}
+                        <x-admin.field name="demo_secret" label="Secret key">
+                            <x-admin.secret name="demo_secret"
+                                masked="••••••••••••••••••••••••••••fQ==" value="0x4AAAAAAAxHRaXaZFbqXkTfQ=="
+                                placeholder="Enter secret key" />
+                        </x-admin.field>
+                        <x-admin.field name="demo_secret_unset" label="Secret key, none stored">
+                            <x-admin.secret name="demo_secret_unset" placeholder="Enter secret key" />
                         </x-admin.field>
                         <div class="flex items-center gap-6">
                             <x-admin.toggle name="demo_active" :checked="true" />

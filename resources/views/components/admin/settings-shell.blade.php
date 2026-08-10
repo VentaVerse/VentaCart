@@ -14,8 +14,16 @@
     explicitly only where the URL genuinely can't say which sub-sidebar entry
     a page belongs to (e.g. a page mounted at a different literal path than
     its conceptual settings-nav home).
+
+    There is no `wide` prop any more. It was opt-in, twenty-seven of the
+    thirty-four settings screens opted in, and the seven that did not sat
+    229px narrower than the page the reader had just come from. Settings is
+    one workspace with one rail and one work column: a person moving between
+    thirty screens all day should see the column stay where it was. The
+    measure cap still exists on x-admin.workspace for a caller whose column
+    really is a page of prose; settings has none.
 --}}
-@props(['active' => null, 'title', 'wide' => false])
+@props(['active' => null, 'title'])
 @php
     $activeKey = $active ?? \App\Support\SettingsNav::activeKeyForPath(request()->path());
     $groups = collect(\App\Support\SettingsNav::groups(Auth::user()))
@@ -33,7 +41,7 @@
         @isset($actions)
             <x-slot:actions>{{ $actions }}</x-slot:actions>
         @endisset
-        <x-admin.workspace :groups="$groups" label="Settings sections" :narrow="! $wide"
+        <x-admin.workspace :groups="$groups" label="Settings sections"
             :back="route('admin.settings.index')" back-label="All Settings">
             {{ $slot }}
         </x-admin.workspace>

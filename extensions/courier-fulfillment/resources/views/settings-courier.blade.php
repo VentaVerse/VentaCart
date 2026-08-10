@@ -7,7 +7,7 @@
     name, which the path-derived breadcrumb picks up as the trailing crumb:
     Settings › Modules › Courier Fulfillment › {Name}.
 --}}
-<x-admin.settings-shell :title="$courier->getName()" :wide="true" active="fulfillment">
+<x-admin.settings-shell :title="$courier->getName()" active="fulfillment">
 
     <div class="space-y-6">
         <x-admin.card :title="$courier->getName()">

@@ -35,7 +35,7 @@
                 @endif
                 @foreach ($groups as $group)
                     <div class="v-sidenav__group">
-                        <p class="v-label v-sidenav__label">{{ $group['label'] }}</p>
+                        <p class="v-sidenav__label">{{ $group['label'] }}</p>
                         @foreach ($group['items'] as $item)
                             <a href="{{ $item['url'] }}" class="v-sidenav__link"
                                @if ($item['active'] ?? false) aria-current="page" @endif>{{ $item['label'] }}</a>

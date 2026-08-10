@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Shipping Couriers" :wide="true">
+<x-admin.settings-shell title="Shipping Couriers">
         <x-admin.card title="Couriers">
             <x-slot name="headerActions">
                 <x-admin.hint label="Tracking URL template" class="v-hint--end">Put {tracking_number} in the URL where the code belongs; it is substituted when an order is looked up.</x-admin.hint>

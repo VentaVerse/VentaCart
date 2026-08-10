@@ -1,4 +1,4 @@
-<x-admin.settings-shell :title="'Edit: ' . $emailTemplate->name" :wide="true">
+<x-admin.settings-shell :title="'Edit: ' . $emailTemplate->name">
         <div class="v-split">
             <div class="v-split__main">
                 <x-admin.card>
@@ -70,9 +70,10 @@
         <script>
             function copyPlaceholder(btn, name) {
                 var text = '{' + name + '}';
-                navigator.clipboard.writeText(text).then(function() {
+                window.vCopy(text).then(function (ok) {
+                    if (!ok) return;
                     var span = btn.querySelector('span');
-                    span.textContent = 'Copied!';
+                    span.textContent = 'Copied';
                     setTimeout(function() { span.textContent = text; }, 1500);
                 });
             }

@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Theme Settings" :wide="true">
+<x-admin.settings-shell title="Theme Settings">
         {{-- Theme Selector --}}
         <x-admin.card title="Active theme" class="mb-6">
             <div class="flex flex-wrap items-center justify-between gap-4">

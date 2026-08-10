@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Flat Rate" :wide="true">
+<x-admin.settings-shell title="Flat Rate">
     <div class="space-y-8">
 
         <x-admin.card title="Flat Rate">

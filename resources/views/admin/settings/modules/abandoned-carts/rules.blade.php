@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Rules" :wide="true">
+<x-admin.settings-shell title="Rules">
         <x-slot:actions>
             <x-admin.button href="{{ route('admin.abandoned-carts.rules.create') }}">Create Rule</x-admin.button>
         </x-slot:actions>

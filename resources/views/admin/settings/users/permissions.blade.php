@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Role Permissions" :wide="true">
+<x-admin.settings-shell title="Role Permissions">
         <x-admin.card>
             <form method="POST" action="{{ route('admin.permissions.update') }}" data-v-form>
                 @csrf

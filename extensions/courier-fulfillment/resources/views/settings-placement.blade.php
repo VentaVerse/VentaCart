@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Status Placement" :wide="true" active="fulfillment">
+<x-admin.settings-shell title="Status Placement" active="fulfillment">
     @php
         // The select's own vocabulary, built once: the empty value is a real
         // choice (not placed), and its LABEL carries the one consequence that

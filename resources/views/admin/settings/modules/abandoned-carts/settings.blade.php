@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Abandoned Cart Settings" :wide="true">
+<x-admin.settings-shell title="Abandoned Cart Settings">
         @include('admin.settings.modules.abandoned-carts.partials.nav')
 
         <div class="max-w-2xl space-y-6">

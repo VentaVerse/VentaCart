@@ -158,6 +158,7 @@ Monospace as a costume for "technical" is a refusal.
 | Standing line | 14px | 400 | `.v-day__standing` |
 | Trail | 12px | 400 | `.v-day__trail` |
 | Panel title | 13px | 650 | `.v-subhead` |
+| Rail group heading | 12.5px | 650 | `.v-sidenav__label` |
 | Body | 13px | 400 | default |
 | Supporting | 12.5px | 400 | |
 | Column label | 11.5px, `0.005em`, sentence case | 500 | `.v-label` |
@@ -176,7 +177,11 @@ sign-in) and reaches `x-admin.page` for its head. Two workspace shells sit
 between them and are **correct composition, not a bypass**:
 
 - **`x-admin.settings-shell`** wraps `x-admin.workspace` over
-  `App\Support\SettingsNav`, then `x-admin.page`.
+  `App\Support\SettingsNav`, then `x-admin.page`. It takes no width
+  prop: settings is one workspace, and every screen in it renders the
+  same work column. The opt-in `wide` it used to take was applied by
+  27 of 34 callers, so the seven that missed it sat 229px narrower than
+  the screen the reader had just come from.
 - **`x-admin.seo-shell`** does the same over the SEO registry.
 
 Both normalise their own registry into the `groups` array
@@ -246,6 +251,17 @@ component. All of them render in the UI kit.
 `x-admin.card` is the v2.0 prop API (`title`, `description`, `headerActions`,
 `footer`) rendering the same panel. **No caller needs editing**; new work
 should reach for `x-admin.panel`, which adds `note`, `link` and `flush`.
+
+**A surface inside a surface is stripped in the layer.** A `.v-sheet` or
+`.v-panel` with a `.v-sheet` or `.v-panel` ancestor drops its background,
+its border, its radius and its elevation, because the plane it needed to
+read as raised is already gone and all that is left is the doubled edge.
+`x-admin.table` still has `bare` and it still means the same thing; it is
+simply no longer the only thing standing between a page and a doubled
+border, which is what sixteen settings routes proved it was. These four
+selectors are the layer's only descendant rules, and they are context
+rather than weight: a sheet cannot know from its own class list whether
+something already painted the ground under it.
 
 `id` on a panel names the heading and points the `<section>` at it with
 `aria-labelledby`, so a panel is announced by its own title.
@@ -323,6 +339,7 @@ controls point `aria-describedby` at them through `@aware`.
 | `.v-toggle`, `.v-toggle__track/__knob` | `x-admin.toggle` |
 | `.v-switch`, `.v-switch__text`, `.v-switch--lead`, `.v-switch--top` | `x-admin.toggle label="..."` |
 | `.v-toggle--btn` | `x-admin.switch` (a toggle that posts or submits) |
+| `.v-secret`, `.v-secret__row/__box/__acts` | `x-admin.secret`; a stored key, masked and read only at rest, revealed by View, editable by Edit, and never printed outside the box that owns it |
 | `.v-checklist` | a bounded scroll box of checkboxes |
 | `.v-check`, `.v-check--bare` | `x-admin.checkbox`; the 24px target around a 16px box, square when no words widen it |
 | `.v-picker`, `.v-picker__opt/__mid` | `admin/partials/dual-listbox` |
@@ -440,15 +457,26 @@ only assistive technology needs.
    consequence may go in `x-admin.field`'s `help`, which renders as visible
    prose, so keep it to one line. An empty state's `description` and a
    `.v-panel__blank` line are sanctioned: they say what is not there.
-6. **Colour never alone**, tables scroll, icons from the component.
-7. **Both themes and 390 to 1440**, every time. Open the UI kit in both.
-8. **Real data.** The kit's fixtures are the longest real NGD product title
+6. **Every copy button goes through `window.vCopy(text)`**
+   (`resources/js/admin/admin.js`), which returns a promise for a
+   boolean. `navigator.clipboard` exists only in a secure context and
+   the admin is browsed over plain http on a LAN address as often as
+   over https, so a bare `navigator.clipboard.writeText(...)` throws
+   before it copies and Alpine swallows the error: six copy buttons
+   shipped that way and every one of them did nothing, silently, on
+   the owner's own machine. The helper tries the async API, falls back
+   to a selection and `execCommand`, and when neither works says so in
+   a toast. Flip a "Copied" label only on a true return; a button that
+   could not copy must not claim it did.
+7. **Colour never alone**, tables scroll, icons from the component.
+8. **Both themes and 390 to 1440**, every time. Open the UI kit in both.
+9. **Real data.** The kit's fixtures are the longest real NGD product title
    (103 characters), the longest real customer name (53), a nine-digit peso
    total, a zero and a 27,709. A primitive that has not met them is untested:
    the figure band's 390 layout collapsed under exactly that nine-digit
    figure and nothing else caught it.
-9. **Any new primitive lands in the UI kit in the same commit**, in its real
-   states, and gains a class-name assertion in `tests/Feature/AdminV2/UiKitTest.php`.
+10. **Any new primitive lands in the UI kit in the same commit**, in its real
+    states, and gains a class-name assertion in `tests/Feature/AdminV2/UiKitTest.php`.
 
 ---
 

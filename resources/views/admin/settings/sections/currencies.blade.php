@@ -1,5 +1,5 @@
 @php $defaultCurrency = $currencies->firstWhere('is_default', true); @endphp
-<x-admin.settings-shell title="Currencies" :wide="true">
+<x-admin.settings-shell title="Currencies">
     <div class="space-y-6">
         <x-admin.card title="Currencies">
             <x-slot name="headerActions">

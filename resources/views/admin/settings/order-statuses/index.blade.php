@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Order Statuses" :wide="true">
+<x-admin.settings-shell title="Order Statuses">
         <div class="space-y-5">
             <x-admin.card title="Statuses">
                 {{--

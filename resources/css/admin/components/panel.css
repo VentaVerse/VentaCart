@@ -102,6 +102,40 @@
 .v-panel--open { overflow: visible; }
 
 /* ------------------------------------------------------------
+   A surface inside a surface
+
+   The sheet is a raised white plane on a tinted ground: that is what
+   makes it read as raised. Draw a second one inside the first and
+   neither reads as anything, because the ground it needed is gone.
+   What you see instead is the doubled edge, two rounded rectangles
+   20px apart, and the second background sitting on top of a
+   background of the same colour.
+
+   `x-admin.table` carries a `bare` prop for exactly this and sixteen
+   settings routes never passed it, which is the shape of defect an
+   opt-in always produces. So the outer sheet keeps the ground, the
+   edge and the elevation, and the inner one drops all four of its
+   material properties and keeps only its own job: the table's
+   sideways scroller, the card's own rhythm. `bare` still works and
+   still means the same thing; it is simply no longer the only thing
+   standing between a page and a doubled border.
+
+   Stated as descendant selectors rather than at one class because the
+   condition genuinely is the context. This is not weight bought with
+   an ancestor; a sheet cannot know from its own class list whether
+   something already painted the plane underneath it.
+   ------------------------------------------------------------ */
+.v-sheet .v-sheet,
+.v-sheet .v-panel,
+.v-panel .v-sheet,
+.v-panel .v-panel {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* ------------------------------------------------------------
    The authored moment
 
    Each sheet settles and its rule is struck across from the left,

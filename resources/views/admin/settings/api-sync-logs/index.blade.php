@@ -4,7 +4,7 @@
     under — the 'API & Sync' settings-nav card (settings/api). URL-prefix
     matching can't infer that relationship, so it's pinned here.
 --}}
-<x-admin.settings-shell active="api" title="API Sync Logs" :wide="true">
+<x-admin.settings-shell active="api" title="API Sync Logs">
         <div class="mb-5">
             <x-admin.filters method="GET">
                 <x-admin.field name="method" label="Method">

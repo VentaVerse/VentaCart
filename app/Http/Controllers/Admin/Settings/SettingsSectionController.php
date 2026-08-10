@@ -45,6 +45,12 @@ class SettingsSectionController extends Controller
         }
         if ($section === 'security') {
             $data['maskedKeys'] = $this->mask($settings['security'] ?? [], ['turnstile_secret_key']);
+            // x-admin.secret's View state reads the stored key back in the
+            // field it lives in, so the page has to carry it. It goes no
+            // further than this screen, which sits behind the admin guard and
+            // the settings permission, and the field keeps it masked and read
+            // only until someone asks for it.
+            $data['secretKeys'] = $this->plain($settings['security'] ?? [], ['turnstile_secret_key']);
         }
 
         return view("admin.settings.sections.{$section}", $data);
@@ -53,19 +59,28 @@ class SettingsSectionController extends Controller
     private function mask(array $group, array $keys): array
     {
         $masked = [];
-        foreach ($keys as $key) {
-            if (! empty($group[$key])) {
-                try {
-                    $plain = Crypt::decryptString($group[$key]);
-                } catch (\Throwable) {
-                    // Fallback: value may not be encrypted yet (e.g. ERP token stored plaintext).
-                    // Mirrors ErpApiAuth's own decrypt-failure fallback.
-                    $plain = $group[$key];
-                }
-                $masked[$key] = str_repeat('•', max(strlen($plain) - 4, 0)).substr($plain, -4);
-            }
+        foreach ($this->plain($group, $keys) as $key => $plain) {
+            $masked[$key] = str_repeat('•', max(strlen($plain) - 4, 0)).substr($plain, -4);
         }
 
         return $masked;
+    }
+
+    private function plain(array $group, array $keys): array
+    {
+        $plain = [];
+        foreach ($keys as $key) {
+            if (! empty($group[$key])) {
+                try {
+                    $plain[$key] = Crypt::decryptString($group[$key]);
+                } catch (\Throwable) {
+                    // Fallback: value may not be encrypted yet (e.g. ERP token stored plaintext).
+                    // Mirrors ErpApiAuth's own decrypt-failure fallback.
+                    $plain[$key] = $group[$key];
+                }
+            }
+        }
+
+        return $plain;
     }
 }

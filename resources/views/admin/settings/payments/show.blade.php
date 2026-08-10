@@ -1,4 +1,4 @@
-<x-admin.settings-shell :title="$name" :wide="true">
+<x-admin.settings-shell :title="$name">
     <x-admin.tabs default="config" param="tab" :names="['config', 'availability']">
         <x-slot:nav>
             <x-admin.tabs.tab name="config">Configuration</x-admin.tabs.tab>

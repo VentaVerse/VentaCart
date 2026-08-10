@@ -85,10 +85,30 @@
     gap: 2px;
 }
 
-/* Carries .v-label for the type; this states only its place. */
+/* A group heading, not a column label.
+   It used to carry `.v-label`, which is 11.5px at weight 500 in the
+   muted stop: quieter and smaller than the 13px destinations listed
+   underneath it. That inverts the hierarchy, and the rail is the one
+   place in the admin where the reader is scanning headings first to
+   find which of five groups holds the screen they want. So the
+   heading is stated here, in full: the body stop rather than the
+   muted one, and the panel title's weight. The destinations under it
+   stay quiet, and the one that is current is the only brass in the
+   column.
+
+   The 16px between groups against the 4px under a heading is the
+   separation doing the grouping: more space above a heading than
+   below it. */
 .v-sidenav__label {
     margin-bottom: 4px;
     padding-inline: 8px;
+    font-size: 12.5px;
+    font-weight: 650;
+    font-stretch: normal;
+    letter-spacing: 0;
+    line-height: 1.35;
+    text-transform: none;
+    color: var(--text);
 }
 
 .v-sidenav__link {

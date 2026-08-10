@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Courier Settings" :wide="true" active="fulfillment">
+<x-admin.settings-shell title="Courier Settings" active="fulfillment">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -131,7 +131,7 @@
                             <input type="text" readonly value="{{ $card['webhookUrl'] }}" x-ref="hook" aria-label="{{ $card['courier']->getName() }} webhook URL"
                                 class="v-control flex-1 h-[var(--control-h)] rounded-v-md border border-v-border bg-v-sunken px-3 text-xs font-mono text-v-secondary">
                             <x-admin.button type="button" variant="secondary" size="sm"
-                                x-on:click="navigator.clipboard.writeText($refs.hook.value); copied=true; setTimeout(()=>copied=false,1500)">
+                                x-on:click="window.vCopy($refs.hook.value).then((ok) => { if (!ok) return; copied = true; setTimeout(() => copied = false, 1500); })">
                                 <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied &check;</span>
                             </x-admin.button>
                         </div>

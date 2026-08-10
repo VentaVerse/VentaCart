@@ -99,6 +99,9 @@ class UiKitTest extends TestCase
             'v-switch__text',   // switch, with its words
             'v-toggle--btn',    // switch, button driven
             'v-checklist',      // checklist
+            'v-secret__row',    // a stored key, masked and read only at rest
+            'v-secret__box',    // the box the key never leaves
+            'v-secret__acts',   // its View and Edit controls
             'v-picker__opt',    // picker, an option
             'v-picker__mid',    // picker, the traffic between the panes
             'v-day__title',     // page head, the page's own name

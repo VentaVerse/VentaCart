@@ -1,4 +1,4 @@
-<x-admin.settings-shell :title="'Edit Geo Zone: ' . $geoZone->name" :wide="true">
+<x-admin.settings-shell :title="'Edit Geo Zone: ' . $geoZone->name">
         <div class="max-w-4xl space-y-6" x-data="geoZoneEditor()">
             {{-- General --}}
             <x-admin.card title="General">

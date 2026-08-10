@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Weight Based" :wide="true">
+<x-admin.settings-shell title="Weight Based">
     <x-admin.card title="Weight Based">
         <x-slot name="headerActions">
             <x-admin.button variant="primary" size="sm" :href="route('admin.weight-based-methods.create')">Add method</x-admin.button>

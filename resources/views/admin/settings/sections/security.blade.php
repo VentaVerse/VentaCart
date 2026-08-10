@@ -34,10 +34,11 @@
                 <x-admin.field name="settings[turnstile_site_key]" label="Site key">
                     <x-admin.input name="settings[turnstile_site_key]" class="font-mono" placeholder="0x4AAAAAAA..." :value="$settings['security']['turnstile_site_key'] ?? ''" />
                 </x-admin.field>
-                <x-admin.field name="settings[turnstile_secret_key]" label="Secret key"
-                    :help="!empty($maskedKeys['turnstile_secret_key'] ?? null) ? 'Current: '.$maskedKeys['turnstile_secret_key'].'. Leave blank to keep it.' : 'Blank keeps no key set.'">
-                    <x-admin.input name="settings[turnstile_secret_key]" type="password" autocomplete="new-password" class="font-mono"
-                        :placeholder="!empty($maskedKeys['turnstile_secret_key'] ?? null) ? 'Leave blank to keep current' : 'Enter secret key'" />
+                <x-admin.field name="settings[turnstile_secret_key]" label="Secret key">
+                    <x-admin.secret name="settings[turnstile_secret_key]"
+                        :masked="$maskedKeys['turnstile_secret_key'] ?? null"
+                        :value="$secretKeys['turnstile_secret_key'] ?? null"
+                        placeholder="Enter secret key" />
                 </x-admin.field>
                 <x-admin.form-actions>
                     <x-admin.button variant="primary" type="submit">Save Turnstile</x-admin.button>

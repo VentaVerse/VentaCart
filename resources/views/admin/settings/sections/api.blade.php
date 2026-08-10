@@ -4,12 +4,11 @@
             <div class="space-y-4">
                 @if (session('new_erp_token'))
                     <div class="v-notice"
-                         x-data="{ copied: false, copy() {
-                             navigator.clipboard.writeText($refs.newTokenInput.value).then(() => {
-                                 this.copied = true;
-                                 setTimeout(() => this.copied = false, 2000);
-                             });
+                         x-data="{ copied: false, async copy() {
                              $refs.newTokenInput.select();
+                             if (!await window.vCopy($refs.newTokenInput.value)) return;
+                             this.copied = true;
+                             setTimeout(() => this.copied = false, 2000);
                          } }">
                         <div class="v-notice__body">
                             <p class="v-notice__title">New token generated</p>

@@ -289,10 +289,8 @@
                     this.importingUrl = false;
                 },
 
-                copyPath(path) {
-                    navigator.clipboard.writeText(path).then(() => {
-                        this.showToast('Path copied');
-                    });
+                async copyPath(path) {
+                    if (await window.vCopy(path)) this.showToast('Path copied');
                 },
 
                 askDelete(file) {

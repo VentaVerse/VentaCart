@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Shipping" :wide="true">
+<x-admin.settings-shell title="Shipping">
     <div class="space-y-8">
         {{--
             The chain, numbered in the real evaluation order from

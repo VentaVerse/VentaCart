@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Free Shipping" :wide="true">
+<x-admin.settings-shell title="Free Shipping">
     <div class="space-y-8">
 
         <x-admin.card title="Free Shipping Rules">

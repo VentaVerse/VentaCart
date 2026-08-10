@@ -7,7 +7,7 @@
     explicit link below; the only crossing in the other direction is the SEO
     workspace's single "Engine settings" item.
 --}}
-<x-admin.settings-shell title="SEO Engine" :wide="true">
+<x-admin.settings-shell title="SEO Engine">
     <x-slot:actions>
         <x-admin.button variant="ghost" :href="route('admin.extensions.seo.dashboard')">SEO workspace</x-admin.button>
     </x-slot:actions>

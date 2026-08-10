@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Stock Alerts" :wide="true">
+<x-admin.settings-shell title="Stock Alerts">
         <div class="v-stats mb-6">
             <x-admin.figure label="Waiting" :value="$totalWaiting" accent="amber" icon="cart" />
             <x-admin.figure label="Notified" :value="$totalNotified" accent="green" icon="customers" />

@@ -269,6 +269,49 @@ select { padding-top: 0; padding-bottom: 0; line-height: normal; }
 }
 
 /* ------------------------------------------------------------
+   Secret: a stored key, in the box that owns it
+
+   The value is a single unbroken run of characters, which is exactly
+   the thing that pushed the whole security page 289px sideways when
+   it was printed as prose under the field. Inside the box it cannot:
+   an input scrolls its own overflow. The row wraps at a narrow gutter
+   so the two controls drop under the box rather than squeezing it,
+   and the box keeps a floor wide enough to still read as a field when
+   they do.
+   ------------------------------------------------------------ */
+
+.v-secret__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.v-secret__box {
+    flex: 1 1 16rem;
+    min-width: 0;
+    height: var(--control-h);
+    padding-inline: 10px;
+    font-size: 13px;
+    background: var(--surface);
+    color: var(--text);
+    border-radius: var(--radius-md);
+    /* Read only is a state, not a disability: the value stays at full
+       contrast and the box keeps its edge, because it is still the
+       thing you are reading. Only the caret is gone. */
+    cursor: default;
+}
+
+.v-secret__box:not([readonly]) { cursor: text; }
+
+.v-secret__acts {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ------------------------------------------------------------
    Checklist: a bounded set of boxes
 
    Scoping controls (which zones, which customer groups, which

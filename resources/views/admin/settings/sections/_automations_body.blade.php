@@ -42,7 +42,7 @@
                          is exactly what @js() expands to; the {{ }} form is the
                          one that actually compiles on a component tag. --}}
                 <x-admin.button type="button" variant="secondary" size="sm"
-                    @click="navigator.clipboard.writeText({{ \Illuminate\Support\Js::from($crontabLine) }}).then(() => { copied = true; setTimeout(() => copied = false, 2000); })">
+                    @click="window.vCopy({{ \Illuminate\Support\Js::from($crontabLine) }}).then((ok) => { if (!ok) return; copied = true; setTimeout(() => copied = false, 2000); })">
                     <span x-show="!copied">Copy</span>
                     <span x-show="copied" x-cloak class="text-v-accent">Copied</span>
                 </x-admin.button>

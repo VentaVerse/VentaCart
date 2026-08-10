@@ -1160,28 +1160,41 @@ class ReskinWaveTest extends TestCase
     }
 
     /**
-     * Owner report: "Make global length of contents 1400. There are some
-     * that are squeezed. Such as Automations." Automations' schedule table
-     * was rendering inside settings-shell's narrow (672px) mode.
+     * Owner report, round one: "Make global length of contents 1400. There
+     * are some that are squeezed. Such as Automations." Automations' schedule
+     * table was rendering inside settings-shell's narrow (672px) mode.
      *
-     * The cap moved from a Tailwind utility on settings-shell's own column
-     * to the promoted workspace's `--narrow` modifier, so the pin follows
-     * it — and now pins BOTH directions, which the utility version never
-     * did: a table takes the room, a column of fields keeps the measure.
+     * Owner report, round two: "/general width is not uniform with other
+     * pages, it is narrower. Same on other settings pages." The `wide` prop
+     * that fixed automations was opt-in, and seven of the thirty-four
+     * settings screens never opted in, so a person moving between them
+     * watched the work column jump 229px at 1440. The prop is gone: settings
+     * is one workspace with one column width, and the measure cap stays on
+     * x-admin.workspace for callers that genuinely want it.
+     *
+     * So this pins the whole set, in both directions: every settings screen
+     * renders the work column, and none of them caps it.
      */
-    public function test_automations_section_renders_wide(): void
+    public function test_every_settings_section_renders_one_column_width(): void
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get(route('admin.settings.section', 'automations'))
+        foreach (['general', 'mail', 'checkout', 'currencies', 'api', 'security', 'automations'] as $section) {
+            $this->get(route('admin.settings.section', $section))
+                ->assertOk()
+                ->assertSee('v-workspace__main', false)
+                ->assertDontSee('v-workspace__main--narrow', false);
+        }
+
+        // The two settings screens outside the section controller, one a
+        // table and one a column of fields: same column either way.
+        $this->get(route('admin.permissions.index'))
             ->assertOk()
-            ->assertSee('v-workspace__main', false)
             ->assertDontSee('v-workspace__main--narrow', false);
 
-        // Mail is the converse: a column of fields, capped at a measure.
-        $this->get(route('admin.settings.section', 'mail'))
+        $this->get(route('admin.users.create'))
             ->assertOk()
-            ->assertSee('v-workspace__main--narrow', false);
+            ->assertDontSee('v-workspace__main--narrow', false);
     }
 
     /**

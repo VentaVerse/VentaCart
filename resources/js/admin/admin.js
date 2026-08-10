@@ -19,6 +19,61 @@ window.storageUrl = function (path) {
 };
 
 // ------------------------------------------------------------------
+// One copy mechanism for every copy button in the admin.
+//
+// `navigator.clipboard` only exists in a secure context. The admin is
+// browsed over plain http on a LAN address as often as it is over
+// https, and on http the property is undefined: every one of the six
+// copy buttons in the build read `navigator.clipboard.writeText(...)`
+// with no guard and no catch, so the expression threw before it copied
+// anything and Alpine swallowed the error. The button did nothing, said
+// nothing, and worked perfectly on the live site, which is why it went
+// unreported for so long.
+//
+// So: try the async API where it exists, fall back to a selection and
+// document.execCommand('copy') where it does not, and when neither
+// path works say so. A copy button that cannot copy has to tell the
+// person holding the value they still have to take it themselves.
+// Returns a promise for a boolean, so a caller can flip its own
+// "Copied" state only when the value really did land.
+window.vCopy = async function (text) {
+    const value = String(text ?? '');
+    if (!value) return false;
+
+    if (window.navigator?.clipboard?.writeText) {
+        try {
+            await window.navigator.clipboard.writeText(value);
+            return true;
+        } catch (e) {
+            // Denied permission, or a non-secure context that still
+            // exposes the object. Fall through to the selection path.
+        }
+    }
+
+    // The fallback every browser has had since long before the async
+    // API: a throwaway textarea, selected, copied, removed. It has to
+    // be on-screen and non-readonly for iOS to select it at all, so it
+    // is parked outside the viewport rather than hidden.
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = value;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;top:0;left:-9999px;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, value.length);
+        const ok = document.execCommand('copy');
+        ta.remove();
+        if (ok) return true;
+    } catch (e) {
+        // Nothing left to try.
+    }
+
+    window.Alpine?.store('toasts')?.push('Could not reach the clipboard. Select the value and copy it.', 'danger');
+    return false;
+};
+
+// ------------------------------------------------------------------
 // One dialog mechanism for every overlay in the admin.
 //
 // The admin has four surfaces that behave as dialogs and used to have

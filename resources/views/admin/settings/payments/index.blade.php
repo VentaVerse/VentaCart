@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Payments" :wide="true">
+<x-admin.settings-shell title="Payments">
     <div class="v-slates">
         @foreach ($cards as $card)
             @php
