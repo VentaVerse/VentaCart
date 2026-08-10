@@ -273,7 +273,7 @@
                             @foreach ($navItems as $item)
                                 <div class="flex items-center gap-3 bg-v-sunken rounded-v-lg p-3"
                                      draggable="true" data-id="{{ $item->id }}">
-                                    <svg class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                                    <x-admin.icon name="drag" class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" />
                                     <div class="flex-1 min-w-0">
                                         <span class="text-[13px] font-medium text-v-text">{{ $item->label }}</span>
                                         <span class="text-xs text-v-muted ml-2">
@@ -337,7 +337,7 @@
                                 <div class="bg-v-sunken rounded-v-lg p-4" x-data="{ expanded: false }"
                                      draggable="true" data-id="{{ $section->id }}">
                                     <div class="flex items-center gap-3">
-                                        <svg class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                                        <x-admin.icon name="drag" class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" />
                                         <x-admin.badge tone="info">{{ $section->type }}</x-admin.badge>
                                         <span class="text-[13px] font-medium text-v-text flex-1">{{ $section->title }}</span>
                                         <x-admin.badge :tone="$section->is_enabled ? 'success' : 'neutral'">{{ $section->is_enabled ? 'Active' : 'Disabled' }}</x-admin.badge>
@@ -543,8 +543,8 @@
 
                                         {{-- Header --}}
                                         <div class="flex items-center gap-3 p-4 cursor-pointer" @click="open = !open">
-                                            <svg class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" @click.stop fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
-                                            <svg class="w-4 h-4 text-v-muted transition-transform" :class="open && 'rotate-90'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                            <x-admin.icon name="drag" class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" @click.stop />
+                                            <x-admin.icon name="chevron-right" class="w-4 h-4 text-v-muted transition-transform" x-bind:class="open && 'rotate-90'" />
                                             <x-admin.badge tone="info">{{ $col->type }}</x-admin.badge>
                                             <input type="text" name="columns[{{ $col->id }}][title]" value="{{ $col->title }}" class="text-[13px] font-medium text-v-text flex-1 bg-transparent border-0 p-0 focus:ring-0" @click.stop>
                                             <label class="flex items-center gap-1" @click.stop>

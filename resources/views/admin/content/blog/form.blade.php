@@ -131,10 +131,7 @@
                     {{-- Publish --}}
                     <x-admin.card title="Publish">
                         <div class="space-y-4">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="is_published" :checked="$post?->is_published ?? false" />
-                                <span class="text-[13px] text-v-text">Published</span>
-                            </label>
+                            <x-admin.toggle name="is_published" :checked="$post?->is_published ?? false" label="Published" />
 
                             <x-admin.field name="published_at" label="Published Date">
                                 <x-admin.input type="datetime-local" name="published_at" :value="$post?->published_at?->format('Y-m-d\TH:i')" />

@@ -26,7 +26,7 @@
          action set. There is one page head in the admin and this is it,
          so the kit demonstrates it by wearing it rather than by drawing a
          second copy of it further down the page. --}}
-    <x-admin.page class="v-day" title="UI Kit"
+    <x-admin.page class="v-day v-settle" title="UI Kit"
         :breadcrumb="[['label' => 'Dashboard', 'url' => route('admin.dashboard')]]"
         standing="Every promoted primitive, in every state the admin can put it in.">
         <x-slot:actions>
@@ -205,7 +205,16 @@
                             </x-admin.table.cell>
                         </x-admin.table.row>
                         <x-admin.table.row href="#">
-                            <x-admin.table.cell class="text-v-text"><a href="#" class="v-quietlink">Ana Reyes</a></x-admin.table.cell>
+                            {{-- Two or three facts stacked in one cell: the
+                                 lead line, then the identifier under it. The
+                                 idiom twelve index views use for a record
+                                 that cannot be named in one word. --}}
+                            <x-admin.table.cell class="text-v-text">
+                                <span class="v-cellstack">
+                                    <a href="#" class="v-quietlink v-lead">Ana Reyes</a>
+                                    <span class="v-sub">ana.reyes@example.com</span>
+                                </span>
+                            </x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary"><span class="v-entry__item">Dunlop Tortex .88mm</span></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.badge tone="info">Shipped</x-admin.badge></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.money mark="₱" amount="899.00" /></x-admin.table.cell>
@@ -307,7 +316,7 @@
                 {{-- Forms: label, control, help, and the error state. --}}
                 <x-admin.panel title="Forms" id="kit-forms">
                     <form data-v-form class="max-w-xl space-y-5" onsubmit="return false;">
-                        <x-admin.field name="demo_name" label="Store name" help="Shown in the storefront header.">
+                        <x-admin.field name="demo_name" label="Store name" required help="Shown in the storefront header.">
                             <x-admin.input name="demo_name" value="New Gear Day" />
                         </x-admin.field>
                         <x-admin.field name="demo_country" label="Country">
@@ -495,6 +504,15 @@
                     <div class="v-tray mt-4">
                         <x-admin.empty-state title="No images yet" />
                     </div>
+
+                    {{-- The drag overlay, drawn resting so it can be read.
+                         On a real grid it is `x-show="dragover"`. --}}
+                    <div class="relative mt-4 h-28">
+                        <div class="v-drop">
+                            <x-admin.icon name="upload" class="w-8 h-8 text-v-accent" />
+                            <p class="v-drop__text">Drop files to upload</p>
+                        </div>
+                    </div>
                 </x-admin.panel>
 
                 {{-- Sortable rows: ordering that is stored rather than
@@ -664,6 +682,183 @@
                                 @endforeach
                             </ul>
                         </div>
+                    </div>
+                </x-admin.panel>
+
+                {{-- Measures and plots: the four shapes the brief named as
+                     promoted and which the kit did not carry until phase 5.
+                     The comparison band and its change words, the revenue
+                     plot, the share ring with its six identity strokes, and
+                     the part-to-whole chips. All four are drawn from
+                     fixtures here, on the same markup the dashboard uses, so
+                     a change to any of them fails visibly on this page
+                     before it reaches the page the owner reads daily. --}}
+                <x-admin.panel title="Measures and plots" id="kit-measures">
+                    @php
+                        // Hostile on purpose: a zero row, a nine digit row,
+                        // and one of each change direction.
+                        $kitBandRows = [
+                            ['label' => 'Revenue', 'money' => true, 'now' => '148,392,207.55', 'ref' => '96,120,004.10', 'dir' => 'ahead', 'words' => '54.4% ahead'],
+                            ['label' => 'Orders', 'money' => false, 'now' => '27,709', 'ref' => '31,004', 'dir' => 'behind', 'words' => '10.6% behind'],
+                            ['label' => 'Refunds', 'money' => false, 'now' => '0', 'ref' => '0', 'dir' => 'level', 'words' => 'Level'],
+                        ];
+                    @endphp
+
+                    <div class="v-bandblock">
+                        <h3 class="v-label v-bandblock__title">
+                            This month against last
+                            <x-admin.hint label="This month against last">Both columns count the same order statuses.</x-admin.hint>
+                        </h3>
+
+                        <div class="v-band v-band--pulse">
+                            <div class="v-fig v-fig--head" aria-hidden="true">
+                                <span class="v-fig__name"></span>
+                                <span class="v-fig__cell v-label">This month</span>
+                                <span class="v-fig__cell v-label">Last month</span>
+                                <span class="v-fig__cell v-label">Change</span>
+                            </div>
+
+                            @foreach ($kitBandRows as $row)
+                                <div class="v-fig">
+                                    <span class="v-fig__name">{{ $row['label'] }}</span>
+                                    @foreach ([['This month', $row['now'], true], ['Last month', $row['ref'], false]] as [$when, $raw, $lead])
+                                        <span class="v-fig__cell {{ $lead ? 'v-fig__cell--now' : '' }}">
+                                            <span class="v-fig__when">{{ $when }}</span>
+                                            @if ($row['money'])
+                                                <x-admin.money mark="₱" :amount="$raw" />
+                                            @else
+                                                <span class="v-num v-fig__plain {{ $raw === '0' ? 'v-fig__plain--zero' : '' }}">{{ $raw }}</span>
+                                            @endif
+                                        </span>
+                                    @endforeach
+                                    <span class="v-fig__cell v-fig__cell--change">
+                                        <span class="v-fig__when">Change</span>
+                                        <span class="v-change v-change--{{ $row['dir'] }}">
+                                            @if ($row['dir'] !== 'level')
+                                                <x-admin.icon :name="$row['dir'] === 'ahead' ? 'arrow-up-right' : 'arrow-down-right'" class="v-change__go" />
+                                            @endif
+                                            {{ $row['words'] }}
+                                        </span>
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Today against a usual weekday: one quiet sentence. --}}
+                    <p class="v-usual">A usual Monday takes <span class="v-num">₱41,200.00</span> across <span class="v-num">14</span> orders.</p>
+
+                    {{-- The plot. SalesPlot::payload is a pure function over
+                         a series, so the kit hands it a fixture and no query
+                         runs on this page. --}}
+                    @php
+                        $kitCurrent = [18400.0, 22750.0, 15900.0, 31200.0, 28650.0, 44100.0, 39800.0];
+                        $kitEarlier = [21000.0, 19400.0, 24800.0, 26100.0, 33500.0, 30200.0, 22900.0];
+                        $kitLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                        $kitFull = array_map(fn ($d) => $d . ' 4 Aug 2026', $kitLabels);
+                        $kitSeries = [
+                            'range' => 'this-week',
+                            'granularity' => 'day',
+                            'title' => 'This week',
+                            'nowName' => 'This week',
+                            'thenName' => 'Same days a year earlier',
+                            'labels' => $kitLabels,
+                            'full' => $kitFull,
+                            'earlierLabels' => array_map(fn ($d) => $d . ' 2025', $kitLabels),
+                            'current' => $kitCurrent,
+                            'earlier' => $kitEarlier,
+                            'now' => ['label' => 'Today', 'sofar' => true, 'value' => 39800.0],
+                            'hasEarlier' => true,
+                            'currentPeak' => max($kitCurrent),
+                            'earlierPeak' => max($kitEarlier),
+                            'peak' => max(max($kitCurrent), max($kitEarlier)),
+                            'hasTrade' => true,
+                        ];
+                    @endphp
+                    <div class="mt-4">
+                        @include('admin.partials.pulse-plot', ['plot' => $kitSeries, 'currency' => '₱'])
+                    </div>
+
+                    {{-- The ring and its records, and the chips. Six segments,
+                         so every identity stroke and every slice is on the
+                         page at once. --}}
+                    @php
+                        $kitRing = [
+                            ['label' => 'Metro Manila', 'orders' => 12480, 'revenue' => '6,240,000.00', 'share' => 45.1],
+                            ['label' => 'Calabarzon', 'orders' => 6120, 'revenue' => '3,060,000.00', 'share' => 22.1],
+                            ['label' => 'Central Luzon', 'orders' => 4010, 'revenue' => '2,005,000.00', 'share' => 14.5],
+                            ['label' => 'Central Visayas', 'orders' => 2600, 'revenue' => '1,300,000.00', 'share' => 9.4],
+                            ['label' => 'Davao Region', 'orders' => 1599, 'revenue' => '799,500.00', 'share' => 5.8],
+                            ['label' => 'Everywhere else', 'orders' => 900, 'revenue' => '450,000.00', 'share' => 3.1],
+                        ];
+                        $kitR = 78;
+                        $kitC = 2 * M_PI * $kitR;
+                        $kitAt = 0.0;
+                    @endphp
+                    <div class="v-breakdown mt-4">
+                        <div class="v-breakdown__ring">
+                            <svg class="v-ring" width="100%" height="180" viewBox="0 0 200 200"
+                                 role="img" aria-label="Share of orders by region. Every figure is in the table beside this ring.">
+                                @foreach ($kitRing as $i => $seg)
+                                    @php
+                                        $share = $seg['share'] / 100;
+                                        $dash = round($share * $kitC, 2);
+                                        $offset = round(-$kitAt * $kitC, 2);
+                                        $kitAt += $share;
+                                    @endphp
+                                    <circle class="v-ring__seg v-stroke-{{ $i % 6 }}"
+                                            cx="100" cy="100" r="{{ $kitR }}"
+                                            stroke-dasharray="{{ $dash }} {{ round($kitC, 2) }}"
+                                            stroke-dashoffset="{{ $offset }}"
+                                            transform="rotate(-90 100 100)">
+                                        <title>{{ $seg['label'] }}: {{ number_format($seg['orders']) }} orders</title>
+                                    </circle>
+                                @endforeach
+                                <text class="v-ring__v v-num" x="100" y="94" text-anchor="middle">27,709</text>
+                                <text class="v-ring__k" x="100" y="112" text-anchor="middle">orders</text>
+                                <text class="v-ring__s" x="100" y="128" text-anchor="middle"></text>
+                            </svg>
+                        </div>
+
+                        <x-admin.table bare class="v-table-wrap--gutter v-breakdown__records">
+                            <x-slot:head>
+                                <x-admin.table.th>Region</x-admin.table.th>
+                                <x-admin.table.th align="right">Orders</x-admin.table.th>
+                                <x-admin.table.th align="right">Revenue</x-admin.table.th>
+                                <x-admin.table.th align="right">Share</x-admin.table.th>
+                            </x-slot:head>
+                            @foreach ($kitRing as $i => $seg)
+                                <tr>
+                                    <x-admin.table.cell class="text-v-text">
+                                        <svg class="v-tsw" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true" focusable="false">
+                                            <rect class="v-slice-{{ $i % 6 }}" width="10" height="10" rx="3"></rect>
+                                        </svg>{{ $seg['label'] }}
+                                    </x-admin.table.cell>
+                                    <x-admin.table.cell><span class="v-num">{{ number_format($seg['orders']) }}</span></x-admin.table.cell>
+                                    <x-admin.table.cell><x-admin.money mark="₱" :amount="$seg['revenue']" /></x-admin.table.cell>
+                                    <x-admin.table.cell><span class="v-num">{{ $seg['share'] }}%</span></x-admin.table.cell>
+                                </tr>
+                            @endforeach
+                        </x-admin.table>
+                    </div>
+
+                    <div class="v-chans mt-4">
+                        @foreach ([['Bank Transfer (Union Bank of the Philippines)', 4820, '2,410,000.00', '61.4'], ['Cash on Delivery', 2410, '1,205,000.00', '30.7'], ['HitPay', 620, '310,000.00', '7.9']] as $i => [$label, $orders, $revenue, $share])
+                            <div class="v-chan">
+                                <svg class="v-chan__ic" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true" focusable="false">
+                                    <rect class="v-slice-{{ $i % 6 }}" width="38" height="38" rx="12"></rect>
+                                    <text class="v-chan__in" x="19" y="19" text-anchor="middle" dominant-baseline="central">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($label, 0, 1)) }}</text>
+                                </svg>
+                                <span class="v-chan__body">
+                                    <span class="v-chan__n">{{ $label }}</span>
+                                    <span class="v-chan__s">{{ number_format($orders) }} orders</span>
+                                </span>
+                                <span class="v-chan__q">
+                                    <x-admin.money mark="₱" :amount="$revenue" class="v-chan__qv" />
+                                    <span class="v-num v-chan__ql">{{ $share }}%</span>
+                                </span>
+                            </div>
+                        @endforeach
                     </div>
                 </x-admin.panel>
 

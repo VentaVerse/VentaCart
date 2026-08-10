@@ -16,7 +16,7 @@
             </div>
         </x-admin.card>
 
-        <x-admin.card title="Brand Voice &amp; Tone">
+        <x-admin.card title="Brand Voice and Tone">
             <div class="max-w-2xl">
                 <x-admin.textarea name="brand_voice" rows="3" :value="$seoSettings['brand_voice'] ?? ''"
                     placeholder="Example: Friendly, knowledgeable, enthusiastic about gear. Use simple English. Avoid overly technical jargon. Mention Philippines when relevant." />

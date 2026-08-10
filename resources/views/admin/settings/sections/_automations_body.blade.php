@@ -161,7 +161,7 @@
                     <h4 id="automation-editor-title" class="text-[15px] font-semibold text-v-text" x-text="editor.name"></h4>
                     <code class="text-xs font-vmono text-v-muted" x-text="editor.command"></code>
                 </div>
-                <button type="button" @click="closeEditor()" class="text-v-muted hover:text-v-text p-1 -m-1" aria-label="Close"
+                <button type="button" @click="closeEditor()" class="text-v-muted hover:text-v-text p-1 -m-1" aria-label="Close">
                     <x-admin.icon name="x" class="w-5 h-5" />
                 </button>
             </div>

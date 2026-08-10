@@ -14,10 +14,7 @@
 
 @if ($field['type'] === 'toggle')
     <x-admin.field :name="$name" :help="$help">
-        <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-            <x-admin.toggle :name="$name" :checked="($value ?? '0') === '1'" />
-            {{ $field['label'] }}
-        </label>
+        <x-admin.toggle :name="$name" :checked="($value ?? '0') === '1'" :label="$field['label']" />
     </x-admin.field>
 @elseif ($field['type'] === 'select')
     {{-- Blade component tags can't embed a bare @if/@endif inside their own

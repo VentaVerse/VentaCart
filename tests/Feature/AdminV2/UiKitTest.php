@@ -47,6 +47,7 @@ class UiKitTest extends TestCase
                 'Empty and unconfigured',
                 'Pagers',
                 'Data display',
+                'Measures and plots',
                 'Card',
             ]);
     }
@@ -96,6 +97,22 @@ class UiKitTest extends TestCase
             'v-picker__mid',    // picker, the traffic between the panes
             'v-day__title',     // page head, the page's own name
             'v-day__trail',     // page head, the ancestor trail
+            'v-tile__art',      // tile
+            'v-drop__text',     // tile grid, the drag overlay
+            'v-req',            // field, the required mark
+            'v-cellstack',      // table cell, facts stacked
+            'v-lead',           // table cell, the lead line
+            'v-band--pulse',    // the comparison band
+            'v-fig__cell',      // the comparison band's measures
+            'v-change--ahead',  // the change word, up
+            'v-change--behind', // the change word, down
+            'v-change--level',  // the change word, flat
+            'v-plot__key',      // the plot
+            'v-ring__seg',      // the share ring
+            'v-stroke-0',       // the ring's identity strokes
+            'v-chan__q',        // the part-to-whole chips
+            'v-usual',          // the one-sentence reading
+            'v-settle',         // the page stagger
         ] as $class) {
             $response->assertSee($class, false);
         }

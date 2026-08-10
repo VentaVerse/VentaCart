@@ -24,7 +24,12 @@
                     @foreach ($crumbs as $crumb)
                         @if (isset($crumb['url']))<a href="{{ $crumb['url'] }}">{{ $crumb['label'] }}</a>
                         @else<span>{{ $crumb['label'] }}</span>@endif
-                        <x-admin.icon name="chevron-right" class="w-3 h-3" />
+                        {{-- Between ancestors only. The chevron used to trail
+                             the last crumb because the 18px title sat on the
+                             same visual line and it pointed at it; under the
+                             33px band title on its own row it was a mark
+                             hanging in space. --}}
+                        @unless ($loop->last)<x-admin.icon name="chevron-right" class="w-3 h-3" />@endunless
                     @endforeach
                 </nav>
             @endif

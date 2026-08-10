@@ -13,12 +13,10 @@
              the page that fixes it, and disappears the moment any status is
              placed under To Handover. --}}
         @if (empty($handoverStatuses))
-            <div class="cf-setup-notice" role="status">
-                <div class="cf-setup-notice__body">
-                    <p class="cf-setup-notice__title">No order status is placed under To Handover, so booking is refused</p>
-                </div>
-                <a class="cf-setup-notice__btn" href="{{ route('admin.fulfillment.settings.placement') }}">Status placement</a>
-            </div>
+            <x-admin.empty-state variant="notice" role="status"
+                title="No order status is placed under To Handover, so booking is refused">
+                <a class="v-notice__btn" href="{{ route('admin.fulfillment.settings.placement') }}">Status placement</a>
+            </x-admin.empty-state>
         @endif
 
         {{-- Status placement lives on its own page: every order status, the
@@ -44,10 +42,7 @@
 
                 <x-admin.field name="settings[fulfillment_enabled]"
                     help="Turning this off hides Fulfillment from the Sales menu and pauses the queue. Bookings triggered by the ERP API keep working, and the extension stays installed.">
-                    <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                        <x-admin.toggle name="settings[fulfillment_enabled]" :checked="($settings['fulfillment_enabled'] ?? '1') !== '0'" />
-                        Fulfillment queue active, shown in the Sales menu
-                    </label>
+                    <x-admin.toggle name="settings[fulfillment_enabled]" :checked="($settings['fulfillment_enabled'] ?? '1') !== '0'" label="Fulfillment queue active, shown in the Sales menu" />
                 </x-admin.field>
 
                 {{-- fulfillment-tabs-v3 Task 4: the core status a queue
@@ -96,8 +91,10 @@
                 </x-admin.field>
 
                 <div>
-                    <h3 class="text-[13px] font-semibold text-v-text mb-1">COD payment methods</h3>
-                    <p class="text-xs text-v-muted mb-3">Orders paid with a checked method are booked as COD (the rider collects the order total). Everything else books as prepaid.</p>
+                    <div class="flex items-center gap-2 mb-3">
+                        <h3 class="v-subhead">COD payment methods</h3>
+                        <x-admin.hint label="About COD payment methods">An order paid with a checked method is booked as COD, so the rider collects the order total. Everything else books as prepaid.</x-admin.hint>
+                    </div>
                     <input type="hidden" name="settings[cod_payment_methods][]" value="__none__">
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
                         @foreach ($paymentMethodOptions as $slug => $method)

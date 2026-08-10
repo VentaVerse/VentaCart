@@ -235,8 +235,8 @@
                 <th>Products</th>
                 <th class="v-col-qty">Qty</th>
                 <th class="v-col-amount">Total</th>
-                <th class="cf-col-courier">Courier</th>
-                <th class="cf-col-status">Status</th>
+                <th class="v-col-courier">Courier</th>
+                <th class="v-col-status">Status</th>
                 <th class="v-col-act"><span class="v-sr">Actions</span></th>
             </x-slot:head>
                     @forelse ($orders as $order)
@@ -531,7 +531,7 @@
                                         <span class="v-amount">&#8369;{{ number_format($order->total, 2) }}</span>
                                         <span class="v-amount__sub">{{ $isCod ? 'COD' : ucwords(str_replace('_', ' ', (string) $order->payment_method)) }}</span>
                                     </td>
-                                    <td class="cf-col-courier" rowspan="{{ $lineCount }}">
+                                    <td class="v-col-courier" rowspan="{{ $lineCount }}">
                                         @if ($order->courier_tracking_number)
                                             <span class="v-lead">{{ $orderCourier?->getName() ?? strtoupper((string) $order->courier_provider) }}</span>
                                             @if ($trackingUrl)
@@ -543,7 +543,7 @@
                                             <span class="v-none">-</span>
                                         @endif
                                     </td>
-                                    <td class="cf-col-status" rowspan="{{ $lineCount }}">
+                                    <td class="v-col-status" rowspan="{{ $lineCount }}">
                                         <div class="v-cellstack">
                                             @if ($hasCourierData)
                                                 {{-- A booked row reports its SHIPMENT's spine
@@ -954,10 +954,7 @@
                                                 </x-admin.select>
                                             </x-admin.field>
                                         </div>
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <x-admin.toggle name="insure" />
-                                            <span class="text-[13px] text-v-text">Insure shipment (&asymp;1% fee, declared at order total)</span>
-                                        </label>
+                                        <x-admin.toggle name="insure" label="Insure shipment (&asymp;1% fee, declared at order total)" />
                                         <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2">
                                             <div class="text-xs font-medium text-v-muted mb-0.5">Buyer pays for goods</div>
                                             <div class="text-sm text-v-text" x-text="active.buyerPaymentLabel"></div>

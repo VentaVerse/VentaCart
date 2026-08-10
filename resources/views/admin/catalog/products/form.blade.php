@@ -111,13 +111,17 @@
                     </x-admin.card>
 
                     {{-- Base price --}}
+                    {{-- The two paragraphs that used to open this card said
+                         what the fields under them already name. What is not
+                         obvious is where a sale lands, so that is a hint on
+                         the head and the card body is fields again. --}}
                     <x-admin.card title="Base price">
-                        <p class="mb-4 text-xs text-v-muted" x-show="hasVariants">
-                            Variants on the next tab inherit from this base via signed modifiers (e.g. <span class="font-mono">+ ₱280</span>). Sales applied to this base ripple through every variant automatically.
-                        </p>
-                        <p class="mb-4 text-xs text-v-muted" x-show="!hasVariants">
-                            The price customers see for this product. Sales applied here override it during the active window.
-                        </p>
+                        <x-slot:headerActions>
+                            <x-admin.hint label="About the base price" class="v-hint--end">
+                                <span x-show="hasVariants">Variants inherit this base through signed modifiers, and a sale applied here ripples through every variant.</span>
+                                <span x-show="!hasVariants">A sale applied here overrides this price for the length of its window.</span>
+                            </x-admin.hint>
+                        </x-slot:headerActions>
                         <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
                             <div>
                                 <label for="price" class="{{ $vLabel }}">Price (₱)</label>
@@ -181,14 +185,8 @@
                     {{-- Status --}}
                     <x-admin.card>
                         <div class="flex items-center gap-8">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="is_active" :checked="$product?->is_active ?? true" />
-                                <span class="text-[13px] text-v-text">Active</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="track_stock" :checked="$product?->track_stock ?? true" />
-                                <span class="text-[13px] text-v-text">Track Stock</span>
-                            </label>
+                            <x-admin.toggle name="is_active" :checked="$product?->is_active ?? true" label="Active" />
+                            <x-admin.toggle name="track_stock" :checked="$product?->track_stock ?? true" label="Track Stock" />
                         </div>
                     </x-admin.card>
                 </x-admin.tabs.panel>
@@ -375,7 +373,7 @@
                             <div class="mb-3 flex items-center justify-between">
                                 <h3 class="v-label">Combinations <span x-text="'(' + variants.length + ')'"></span></h3>
                             </div>
-                            <div class="variant-table overflow-hidden rounded-v-md border border-v-border">
+                            <div class="v-nospin overflow-hidden rounded-v-md border border-v-border">
                                 {{-- Header --}}
                                 <div class="flex border-b border-v-border bg-v-sunken">
                                     <div class="w-32 shrink-0 px-3 py-2.5 v-label">Variant</div>

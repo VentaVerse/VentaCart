@@ -47,10 +47,7 @@
                 <div class="space-y-6">
                     <x-admin.card title="Publish">
                         <div class="space-y-4">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="is_active" :checked="$page?->is_active ?? true" />
-                                <span class="text-[13px] text-v-text">Active</span>
-                            </label>
+                            <x-admin.toggle name="is_active" :checked="$page?->is_active ?? true" label="Active" />
                             <x-admin.field name="sort_order" label="Sort Order">
                                 <x-admin.input type="number" name="sort_order" class="w-24" min="0" :value="$page?->sort_order ?? 0" />
                             </x-admin.field>

@@ -248,7 +248,7 @@
                                         <div class="flex items-center gap-1.5 mb-2">
                                             <button type="button" @click="openLayerImageBrowser()"
                                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-v-accent text-v-accent-text text-[11px] font-medium rounded-v-md hover:bg-v-accent-hover transition-colors">
-                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                                <x-admin.icon name="folder" class="w-3 h-3" />
                                                 Browse
                                             </button>
                                         </div>
@@ -457,14 +457,14 @@
                         <div x-show="!layerBrowserLoading" class="banner-picker-grid grid gap-2">
                             <template x-if="layerBrowserPath !== ''">
                                 <button type="button" @click="browseLayerDir(layerBrowserParent)" class="flex flex-col items-center p-3 rounded-v-lg hover:bg-v-hover transition-colors group">
-                                    <svg class="w-12 h-12 text-v-warning group-hover:opacity-80 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
+                                    <x-admin.icon name="folder" class="w-10 h-10 text-v-warning group-hover:opacity-80 transition-opacity" />
                                     <span class="text-xs text-v-muted mt-1.5 font-medium">..</span>
                                 </button>
                             </template>
 
                             <template x-for="folder in layerBrowserFolders" :key="folder.path">
                                 <button type="button" @click="browseLayerDir(folder.path)" class="flex flex-col items-center p-3 rounded-v-lg hover:bg-v-hover transition-colors group">
-                                    <svg class="w-12 h-12 text-v-warning group-hover:opacity-80 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
+                                    <x-admin.icon name="folder" class="w-10 h-10 text-v-warning group-hover:opacity-80 transition-opacity" />
                                     <span class="text-xs text-v-secondary mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
                                 </button>
                             </template>

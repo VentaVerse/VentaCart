@@ -75,14 +75,8 @@
                     {{-- Status --}}
                     <div class="border-t border-v-border pt-6">
                         <div class="flex items-center gap-8">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="is_active" :checked="$customer?->is_active ?? true" />
-                                <span class="text-[13px] text-v-text">Active</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="newsletter" :checked="$customer?->newsletter ?? false" />
-                                <span class="text-[13px] text-v-text">Newsletter</span>
-                            </label>
+                            <x-admin.toggle name="is_active" :checked="$customer?->is_active ?? true" label="Active" />
+                            <x-admin.toggle name="newsletter" :checked="$customer?->newsletter ?? false" label="Newsletter" />
                         </div>
                     </div>
                 </div>

@@ -67,6 +67,9 @@
 .v-sidenav__back {
     display: inline-flex;
     align-items: center;
+    /* A rail destination, not a word in a sentence, so it carries a
+       target rather than only a line height. */
+    min-height: 24px;
     gap: 6px;
     font-size: 12px;
     font-weight: 500;

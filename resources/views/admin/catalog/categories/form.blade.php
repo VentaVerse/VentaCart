@@ -62,10 +62,7 @@
 
                     {{-- Status --}}
                     <div class="border-t border-v-border pt-6">
-                        <label class="inline-flex items-center gap-2 cursor-pointer">
-                            <x-admin.toggle name="is_active" :checked="$category?->is_active ?? true" />
-                            <span class="text-[13px] text-v-text">Active</span>
-                        </label>
+                        <x-admin.toggle name="is_active" :checked="$category?->is_active ?? true" label="Active" />
                     </div>
 
                     {{-- SEO --}}

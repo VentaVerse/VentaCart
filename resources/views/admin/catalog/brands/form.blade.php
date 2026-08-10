@@ -148,11 +148,10 @@
                         <div class="space-y-4">
                             {{-- Status --}}
                             <div>
-                                <label class="flex items-center justify-between cursor-pointer">
-                                    <span class="text-[13px] text-v-text">Active</span>
-                                    <x-admin.toggle name="is_active" :checked="$brand?->is_active ?? true" />
-                                </label>
-                                <p class="text-xs text-v-muted mt-1">Inactive brands are hidden from the storefront</p>
+                                <div class="flex items-center gap-2">
+                                    <x-admin.toggle name="is_active" :checked="$brand?->is_active ?? true" label="Active" />
+                                    <x-admin.hint label="About inactive brands">An inactive brand is hidden from the storefront.</x-admin.hint>
+                                </div>
                             </div>
 
                             <hr class="border-v-border">

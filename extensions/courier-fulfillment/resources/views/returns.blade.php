@@ -2,18 +2,19 @@
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
-    <x-admin.page title="Returns">
+    {{-- Task W4: a MONITORING surface only: what's coming back, what
+         failed. Booking, cancelling, and the drawer stay on the main
+         queue; the full customer-initiated RMA process (refunds,
+         restock) is a distinct product feature, tracked separately.
+
+         The paragraph that used to sit under the head told the operator
+         where to go rather than what they were looking at. The scope of
+         the list is a reading, so it is the head's standing line; the
+         way out is the "All shipments" action beside the title. --}}
+    <x-admin.page title="Returns" standing="On their way back, or stuck in a failed courier state">
         <x-slot:actions>
             <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.index') }}">All shipments</x-admin.button>
         </x-slot:actions>
-
-        {{-- Task W4: a MONITORING surface only — what's coming back, what
-             failed. Booking, cancelling, and the drawer stay on the main
-             queue; the full customer-initiated RMA process (refunds,
-             restock) is a distinct product feature, tracked separately. --}}
-        <p class="text-[13px] text-v-secondary mb-4">
-            Orders on their way back to you, or stuck in a failed courier state. Book, cancel, and track shipments from the main queue: this page is for watching what needs attention.
-        </p>
 
         @php
             // Same cached-label source the queue uses (Refresh from {courier}
@@ -35,8 +36,8 @@
         <x-admin.table ruled roomy>
             <x-slot:head>
                 <th>Order</th>
-                <th class="cf-col-courier">Courier</th>
-                <th class="cf-col-status">Status</th>
+                <th class="v-col-courier">Courier</th>
+                <th class="v-col-status">Status</th>
                 <th>Last event</th>
                 <th>Created</th>
             </x-slot:head>
@@ -70,13 +71,13 @@
                             <td>
                                 <a class="v-ref" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
                             </td>
-                            <td class="cf-col-courier">
+                            <td class="v-col-courier">
                                 <span class="v-lead">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
                                 @if ($order->courier_tracking_number)
                                     <span class="v-sub">{{ $order->courier_tracking_number }}</span>
                                 @endif
                             </td>
-                            <td class="cf-col-status">
+                            <td class="v-col-status">
                                 <div class="v-cellstack">
                                     <x-admin.badge :tone="$spineTone">{{ $spineLabel }}</x-admin.badge>
                                     @if ($order->courier_status)

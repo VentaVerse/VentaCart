@@ -193,7 +193,7 @@
                 </x-admin.card>
 
                 {{-- 5. SHIPPING & TRACKING --}}
-                <x-admin.panel title="Shipping &amp; Tracking" id="order-tracking" flush>
+                <x-admin.panel title="Shipping and Tracking" id="order-tracking" flush>
                     @if ($order->tracking_number)
                         {{-- The courier over its own tracking number: the same
                              stacked cell the fulfillment queue prints, so a

@@ -137,7 +137,7 @@
                                             <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-v-accent-weak text-v-accent text-xs font-medium rounded-v-md">
                                                 <span x-text="item.label"></span>
                                                 <button type="button" @click="remove(item.id)" class="text-v-accent hover:opacity-70" :aria-label="'Remove ' + item.label">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                    <x-admin.icon name="x" class="w-3.5 h-3.5" />
                                                 </button>
                                             </span>
                                         </template>
@@ -153,11 +153,10 @@
                 <div class="space-y-6">
                     {{-- Status --}}
                     <x-admin.card title="Status">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-[13px] text-v-text">Active</span>
-                            <x-admin.toggle name="is_active" :checked="$coupon?->is_active ?? true" />
-                        </label>
-                        <p class="text-xs text-v-muted mt-1">Inactive coupons cannot be applied at checkout</p>
+                        <div class="flex items-center gap-2">
+                            <x-admin.toggle name="is_active" :checked="$coupon?->is_active ?? true" label="Active" />
+                            <x-admin.hint label="About inactive coupons">An inactive coupon cannot be applied at checkout.</x-admin.hint>
+                        </div>
                     </x-admin.card>
 
                     {{-- Eligibility --}}
@@ -185,11 +184,10 @@
 
                     {{-- Free Shipping --}}
                     <x-admin.card title="Free Shipping">
-                        <label class="flex items-center justify-between cursor-pointer">
-                            <span class="text-[13px] text-v-text">Grant free shipping</span>
-                            <x-admin.toggle name="free_shipping" :checked="$coupon?->free_shipping ?? false" />
-                        </label>
-                        <p class="text-xs text-v-muted mt-1">Add free shipping on top of the discount</p>
+                        <div class="flex items-center gap-2">
+                            <x-admin.toggle name="free_shipping" :checked="$coupon?->free_shipping ?? false" label="Grant free shipping" />
+                            <x-admin.hint label="About free shipping on a coupon">Free shipping is added on top of the discount.</x-admin.hint>
+                        </div>
                     </x-admin.card>
 
                     {{-- Limits --}}

@@ -37,7 +37,21 @@
     line-height: 1;
     /* `help`, not `pointer`: nothing navigates and nothing submits. */
     cursor: help;
+    /* The mark stays 16px, because a bigger ring beside a 13px label
+       would read as a control rather than an aside. The TARGET is 24,
+       which is 2.5.8's floor, carried by a transparent pad that does
+       not move anything around it. */
+    position: relative;
     transition: color 120ms, border-color 120ms, background-color 120ms;
+}
+
+/* The 24px hit area. Nothing is painted; the pad only catches the
+   pointer and the tap. */
+.v-hint__btn::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
 }
 
 .v-hint__btn:hover,

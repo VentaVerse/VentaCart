@@ -23,12 +23,9 @@
                         <x-admin.textarea name="description" rows="3" :value="$group?->description" />
                     </x-admin.field>
 
-                    <div>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <x-admin.toggle name="is_default" :checked="$group?->is_default ?? false" />
-                            <span class="text-[13px] text-v-text">Default group for new customers</span>
-                        </label>
-                        <p class="mt-1 text-xs text-v-muted">Only one group per store can be the default. Setting this will unset the current default.</p>
+                    <div class="flex items-center gap-2">
+                        <x-admin.toggle name="is_default" :checked="$group?->is_default ?? false" label="Default group for new customers" />
+                        <x-admin.hint label="About the default group">Only one group can be the default. Setting this unsets the current one.</x-admin.hint>
                     </div>
 
                     <x-admin.form-actions>

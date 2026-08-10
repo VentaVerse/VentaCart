@@ -59,11 +59,12 @@
                          disappears and the User ID / User Secret fields
                          below are the way to change it. --}}
                     @if (empty($settings['spx_user_id']))
-                        <div class="rounded-v-md border border-v-border bg-v-sunken px-4 py-3">
-                            <p class="text-[13px] font-medium text-v-text">No SPX shipper account yet</p>
-                            <p class="text-xs text-v-muted mt-0.5 mb-2">Creates a User ID / User Secret via SPX's Create Account API using this store's pickup contact number, and saves both here automatically.</p>
-                            <x-admin.button type="submit" form="create-account-form" variant="secondary" size="sm">Create shipper account</x-admin.button>
-                        </div>
+                        <x-admin.empty-state variant="notice" title="No SPX shipper account yet">
+                            <span class="flex items-center gap-2">
+                                <x-admin.button type="submit" form="create-account-form" variant="secondary" size="sm">Create shipper account</x-admin.button>
+                                <x-admin.hint label="About creating a shipper account" class="v-hint--end">Creates a User ID and User Secret through SPX using this store's pickup contact number, and saves both here.</x-admin.hint>
+                            </span>
+                        </x-admin.empty-state>
                     @endif
                 @endif
 

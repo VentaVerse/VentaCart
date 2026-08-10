@@ -17,5 +17,5 @@
    the width those two particular fields need, not a measurement the
    design system has any opinion about. */
 
-.cf-col-courier { width: 170px; }
-.cf-col-status  { width: 170px; }
+.v-col-courier { width: 170px; }
+.v-col-status  { width: 170px; }

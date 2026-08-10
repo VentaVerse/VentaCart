@@ -46,7 +46,7 @@
     bottom: 0;
     height: 1px;
     background: var(--border-strong);
-    transform: scaleX(0);
+    transform: scaleX(1);
     transform-origin: left center;
     animation: v-rule-strike 460ms cubic-bezier(.16, 1, .3, 1) both;
 }
