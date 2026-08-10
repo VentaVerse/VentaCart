@@ -1045,7 +1045,7 @@ class DaySheetTest extends TestCase
             ->assertSee('Products in the catalog')
             ->assertSee('Add a product')
             // None of the movements that would be a row of zeros.
-            ->assertDontSee('Standing')
+            ->assertDontSee('Last 12 months')
             ->assertDontSee('Running accounts')
             ->assertDontSee("Today&#039;s entries", false);
     }

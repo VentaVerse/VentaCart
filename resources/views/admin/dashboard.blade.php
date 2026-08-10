@@ -188,14 +188,33 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         @endif
                     </section>
 
-                    {{-- 4b. Standing ------------------------------------ --}}
+                    {{-- 4b. Sales ----------------------------------------
+                         The plot answers for whichever period the picker
+                         holds. The seven controls are real links carrying
+                         ?range=, so the section works without JavaScript;
+                         with it, day-sheet-plot.js intercepts, fetches the
+                         series from the sales-series endpoint and rebuilds
+                         the plot in place. The comparison table beneath is
+                         the MONTH'S table and deliberately does not follow
+                         the picker. --}}
                     <section class="v-panel" aria-labelledby="v-sheet-pulse">
                         <div class="v-panel__head">
-                            <h2 class="v-subhead" id="v-sheet-pulse">Standing</h2>
-                            <span class="v-panel__note">Twelve months against the year before</span>
+                            <h2 class="v-subhead" id="v-sheet-pulse">Sales</h2>
+                            <span class="v-panel__note" data-sales-period>{{ $plot['title'] }}</span>
                         </div>
 
                         <div class="v-panel__body">
+                            <nav class="v-range" aria-label="Sales period"
+                                 data-range-picker
+                                 data-range-endpoint="{{ route('admin.dashboard.sales-series') }}">
+                                @foreach ($salesRanges as $rangeKey => $rangeLabel)
+                                    <a href="{{ route('admin.dashboard', ['range' => $rangeKey]) }}"
+                                       class="v-range__item {{ $salesRange === $rangeKey ? 'is-active' : '' }}"
+                                       data-range="{{ $rangeKey }}"
+                                       @if ($salesRange === $rangeKey) aria-current="page" @endif>{{ $rangeLabel }}</a>
+                                @endforeach
+                            </nav>
+
                             @include('admin.partials.pulse-plot', ['plot' => $plot, 'currency' => $currency])
 
                             @foreach ($bands as $band)

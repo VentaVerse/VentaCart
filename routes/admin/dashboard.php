@@ -10,6 +10,8 @@ Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard'
 
 Route::get('dashboard/palette-search', [PaletteController::class, 'search'])->name('palette.search');
 
+Route::get('dashboard/sales-series', [DashboardController::class, 'salesSeries'])->name('dashboard.sales-series');
+
 if (app()->environment(['local', 'testing'])) {
     Route::view('dashboard/ui-kit', 'admin.ui-kit')->name('ui-kit');
 }

@@ -46,6 +46,25 @@ class Standing
     /** Months drawn on the plot, and therefore months compared. */
     public const PLOT_MONTHS = 12;
 
+    /**
+     * The seven periods the sales plot can be asked for, in the order the
+     * picker offers them. '12m' is the default and is what the sheet
+     * computes on an ordinary page load; every other range is asked for on
+     * demand, either by the ?range= link or by the series endpoint.
+     */
+    public const RANGES = ['30d', '90d', 'this-month', 'last-month', 'this-year', '12m', 'all'];
+
+    /** What the picker prints on each segment. */
+    public const RANGE_LABELS = [
+        '30d' => '30d',
+        '90d' => '90d',
+        'this-month' => 'This Month',
+        'last-month' => 'Last Month',
+        'this-year' => 'This Year',
+        '12m' => '12m',
+        'all' => 'All Time',
+    ];
+
     /** How many of the same weekday make up "usual". */
     public const WEEKDAY_SAMPLES = 8;
 
@@ -263,7 +282,7 @@ class Standing
      *
      * @return array<string, array{revenue:float, placed:int}>
      */
-    private static function dailyTotals(int $storeId, Carbon $from): array
+    private static function dailyTotals(int $storeId, Carbon $from, ?Carbon $to = null): array
     {
         $live = Revenue::condition($storeId);
 
@@ -271,6 +290,7 @@ class Standing
             ->where('store_id', $storeId)
             ->whereNotNull('orders.order_status_id')
             ->where('created_at', '>=', $from)
+            ->when($to, fn ($query) => $query->where('created_at', '<', $to))
             ->selectRaw(
                 'SUBSTR(created_at, 1, 10) AS d, COUNT(*) AS placed, '
                 . "SUM(CASE WHEN {$live} THEN 1 ELSE 0 END) AS live, "
@@ -431,6 +451,279 @@ class Standing
             'earlierPeak' => (float) max($earlier),
             'hasTrade' => $peak > 0,
         ];
+    }
+
+    /**
+     * The sales plot for one named range.
+     *
+     * GRANULARITY FOLLOWS THE SPAN. A month of trade read at monthly
+     * resolution is one point, which is not a plot; ninety days at monthly
+     * resolution is three. So the four short ranges (30d, 90d, This Month,
+     * Last Month) are drawn day by day, and the three long ones (This Year,
+     * 12m, All Time) month by month.
+     *
+     * THE OVERLAY IS ALWAYS THE SAME GROUND A YEAR EARLIER, never the
+     * preceding window. A seasonal store's preceding 30 days answer a
+     * different question ("what did the calendar just do") from the one the
+     * dashed line exists to answer ("is this season ahead of last season").
+     * All Time is the one range with no overlay, because a trace that IS
+     * the whole history has no earlier self to be compared with.
+     *
+     * COST. Each range is one or two grouped aggregates over
+     * orders_store_created_money_index, held for MONTHS_TTL exactly like
+     * the twelve-month series; the only live reads outside the cache are
+     * the sub-month cut aggregates, each bounded by 31 days.
+     */
+    public static function series(int $storeId, Carbon $now, string $range): array
+    {
+        $today = $now->copy()->startOfDay();
+        $tomorrow = $today->copy()->addDay();
+        $monthStart = $now->copy()->startOfMonth();
+        $lastMonthStart = $monthStart->copy()->subMonth();
+
+        return match ($range) {
+            '30d' => self::dailySeries($storeId, $now, '30d', $today->copy()->subDays(29), $tomorrow, 'Last 30 days'),
+            '90d' => self::dailySeries($storeId, $now, '90d', $today->copy()->subDays(89), $tomorrow, 'Last 90 days'),
+            'this-month' => self::dailySeries($storeId, $now, 'this-month', $monthStart, $tomorrow, $monthStart->format('F Y')),
+            'last-month' => self::dailySeries($storeId, $now, 'last-month', $lastMonthStart, $monthStart, $lastMonthStart->format('F Y')),
+            'this-year' => self::yearSeries($storeId, $now),
+            'all' => self::allTimeSeries($storeId, $now),
+            default => self::twelveMonthSeries($storeId, $now),
+        };
+    }
+
+    /**
+     * The metadata that turns the twelve-month plot into a range series,
+     * shared by the page's default path (which already has the plot on the
+     * pulse) and by series() (which builds it fresh for the endpoint).
+     */
+    public static function wrapTwelve(array $plot): array
+    {
+        $last = count($plot['current']) - 1;
+
+        return $plot + [
+            'range' => '12m',
+            'granularity' => 'month',
+            'title' => 'Last 12 months',
+            'hasEarlier' => true,
+            'nowName' => 'This year',
+            'thenName' => 'A year earlier',
+            'now' => ['label' => $plot['full'][$last], 'sofar' => true, 'value' => (float) $plot['current'][$last]],
+        ];
+    }
+
+    /**
+     * The twelve-month series built without the rest of the pulse, for the
+     * endpoint. Same cached monthly window, same same-span reference, and
+     * the month so far read as one live aggregate rather than from the
+     * eight-week daily series the full pulse happens to carry.
+     */
+    private static function twelveMonthSeries(int $storeId, Carbon $now): array
+    {
+        $monthStart = $now->copy()->startOfMonth();
+        $months = self::monthlyTotals($storeId, $monthStart->copy()->subMonths(self::PLOT_MONTHS * 2 - 1));
+        $reference = self::totalsBetween($storeId, $monthStart->copy()->subYear(), $now->copy()->subYear());
+        $monthSoFar = self::totalsBetween($storeId, $monthStart, $now);
+
+        return self::wrapTwelve(self::plot($monthStart, $months, $reference, $monthSoFar));
+    }
+
+    /**
+     * A daily-resolution series over [$from, $to), with the same dates a
+     * year earlier beneath it.
+     *
+     * LIKE FOR LIKE AT THE END, at daily grain too: when the window is
+     * still open (it ends after now), the overlay's final point is last
+     * year's same day cut at the same hour, for the same reason the
+     * monthly plot cuts its final month. A closed window (Last Month)
+     * compares two complete spans and cuts nothing.
+     */
+    private static function dailySeries(int $storeId, Carbon $now, string $range, Carbon $from, Carbon $to, string $title): array
+    {
+        $open = $to->gt($now);
+
+        $data = self::rememberSeries($storeId, $range, function () use ($storeId, $now, $from, $to, $open) {
+            return [
+                'current' => self::dailyTotals($storeId, $from, $to),
+                'earlier' => self::dailyTotals($storeId, $from->copy()->subYear(), $to->copy()->subYear()),
+                'cut' => $open
+                    ? self::totalsBetween($storeId, $now->copy()->startOfDay()->subYear(), $now->copy()->subYear())
+                    : null,
+            ];
+        });
+
+        $labels = [];
+        $full = [];
+        $earlierLabels = [];
+        $current = [];
+        $earlier = [];
+
+        for ($day = $from->copy(); $day->lt($to); $day->addDay()) {
+            $then = $day->copy()->subYear();
+            $labels[] = $day->format('j M');
+            $full[] = $day->format('j F Y');
+            $earlierLabels[] = $then->format('j F Y');
+            $current[] = $data['current'][$day->format('Y-m-d')]['revenue'] ?? 0.0;
+            $earlier[] = $data['earlier'][$then->format('Y-m-d')]['revenue'] ?? 0.0;
+        }
+
+        if ($data['cut'] !== null && $earlier !== []) {
+            $earlier[count($earlier) - 1] = $data['cut']['revenue'];
+        }
+
+        $sameMonth = in_array($range, ['this-month', 'last-month'], true);
+
+        return self::assemble([
+            'range' => $range,
+            'granularity' => 'day',
+            'title' => $title,
+            'nowName' => $title,
+            'thenName' => $sameMonth ? $from->copy()->subYear()->format('F Y') : 'Same days a year earlier',
+            'labels' => $labels,
+            'full' => $full,
+            'earlierLabels' => $earlierLabels,
+            'current' => $current,
+            'earlier' => $earlier,
+            'now' => $open
+                ? ['label' => 'Today', 'sofar' => true, 'value' => (float) end($current)]
+                : ['label' => $title, 'sofar' => false, 'value' => (float) array_sum($current)],
+        ]);
+    }
+
+    /**
+     * January to the current month, against the same months last year. Read
+     * from the SAME cached two-year window as the twelve-month plot (the
+     * window always reaches back past last January), so switching between
+     * the two costs no new grouped query. The final pair is patched live
+     * and cut to the same span, exactly as the twelve-month plot patches
+     * its own.
+     */
+    private static function yearSeries(int $storeId, Carbon $now): array
+    {
+        $monthStart = $now->copy()->startOfMonth();
+        $jan = $now->copy()->startOfYear();
+        $months = self::monthlyTotals($storeId, $monthStart->copy()->subMonths(self::PLOT_MONTHS * 2 - 1));
+
+        $labels = [];
+        $full = [];
+        $earlierLabels = [];
+        $current = [];
+        $earlier = [];
+
+        for ($month = $jan->copy(); $month->lte($monthStart); $month->addMonth()) {
+            $year = $month->copy()->subYear();
+            $labels[] = $month->format('M');
+            $full[] = $month->format('F Y');
+            $earlierLabels[] = $year->format('F Y');
+            $current[] = $months[$month->format('Y-m')]['revenue'] ?? 0.0;
+            $earlier[] = $months[$year->format('Y-m')]['revenue'] ?? 0.0;
+        }
+
+        $last = count($current) - 1;
+        $current[$last] = self::totalsBetween($storeId, $monthStart, $now)['revenue'];
+        $earlier[$last] = self::totalsBetween($storeId, $monthStart->copy()->subYear(), $now->copy()->subYear())['revenue'];
+
+        return self::assemble([
+            'range' => 'this-year',
+            'granularity' => 'month',
+            'title' => $now->format('Y'),
+            'nowName' => $now->format('Y'),
+            'thenName' => $now->copy()->subYear()->format('Y'),
+            'labels' => $labels,
+            'full' => $full,
+            'earlierLabels' => $earlierLabels,
+            'current' => $current,
+            'earlier' => $earlier,
+            'now' => ['label' => $monthStart->format('F Y'), 'sofar' => true, 'value' => (float) $current[$last]],
+        ]);
+    }
+
+    /**
+     * Every month the store has ever traded, first to now, one trace and no
+     * overlay: the whole history has no earlier self. One grouped aggregate
+     * over the covering index, held for MONTHS_TTL like every other series;
+     * only the current month's point is patched live.
+     */
+    private static function allTimeSeries(int $storeId, Carbon $now): array
+    {
+        $monthStart = $now->copy()->startOfMonth();
+
+        $data = self::rememberSeries($storeId, 'all', function () use ($storeId) {
+            $firstAt = Order::query()
+                ->where('store_id', $storeId)
+                ->whereNotNull('order_status_id')
+                ->min('created_at');
+
+            $from = $firstAt ? Carbon::parse($firstAt)->startOfMonth() : null;
+
+            return [
+                'from' => $from?->toDateString(),
+                'months' => $from ? self::readMonthlyTotals($storeId, $from) : [],
+            ];
+        });
+
+        $from = $data['from'] ? Carbon::parse($data['from']) : $monthStart->copy();
+
+        $labels = [];
+        $full = [];
+        $current = [];
+
+        for ($month = $from->copy(); $month->lte($monthStart); $month->addMonth()) {
+            $labels[] = $month->format('M Y');
+            $full[] = $month->format('F Y');
+            $current[] = $data['months'][$month->format('Y-m')]['revenue'] ?? 0.0;
+        }
+
+        $last = count($current) - 1;
+        $current[$last] = self::totalsBetween($storeId, $monthStart, $now)['revenue'];
+
+        return self::assemble([
+            'range' => 'all',
+            'granularity' => 'month',
+            'title' => 'All time',
+            'nowName' => 'All time',
+            'thenName' => null,
+            'labels' => $labels,
+            'full' => $full,
+            'earlierLabels' => [],
+            'current' => $current,
+            'earlier' => null,
+            'now' => ['label' => $monthStart->format('F Y'), 'sofar' => true, 'value' => (float) $current[$last]],
+        ]);
+    }
+
+    /**
+     * The peaks every series carries, derived once so no builder can forget
+     * one. A series with no overlay has no earlier peak rather than a peak
+     * of zero, which is a different fact.
+     */
+    private static function assemble(array $series): array
+    {
+        $hasEarlier = $series['earlier'] !== null;
+        $currentPeak = $series['current'] === [] ? 0.0 : (float) max($series['current']);
+        $earlierPeak = $hasEarlier && $series['earlier'] !== [] ? (float) max($series['earlier']) : null;
+
+        return $series + [
+            'hasEarlier' => $hasEarlier,
+            'currentPeak' => $currentPeak,
+            'earlierPeak' => $earlierPeak,
+            'peak' => max($currentPeak, $earlierPeak ?? 0.0),
+            'hasTrade' => max($currentPeak, $earlierPeak ?? 0.0) > 0,
+        ];
+    }
+
+    /**
+     * The same five-minute hold the twelve-month window gets, one key per
+     * range: dated so midnight rolls the window, salted with the
+     * revenue-bearing status ids so an edit on the Order Statuses page is
+     * never answered with the rule it just changed away from.
+     */
+    private static function rememberSeries(int $storeId, string $range, \Closure $read): array
+    {
+        $key = 'standing.series.' . $storeId . '.' . $range . '.'
+            . Carbon::now()->format('Y-m-d') . '.' . md5(implode(',', Revenue::statusIds($storeId)));
+
+        return Cache::remember($key, self::MONTHS_TTL, $read);
     }
 
     /**

@@ -817,6 +817,60 @@
    endpoint dots are HTML spans positioned over the frame instead,
    which is also what lets the reading follow the pointer.
    ------------------------------------------------------------ */
+/* The period picker: the Blotter's segment anatomy (the fulfillment
+   queue's bar is the sibling). A sunken trough holding a row of pills;
+   the active one is filled with ink because it states what you are
+   looking at, not because it is a brand surface, and the fill plus the
+   weight step keep it legible with the colour removed. At narrow
+   widths the seven options scroll inside the trough rather than
+   wrapping into a second row; the scrollbar stays hidden because the
+   trough's own clipped edge already says there is more. */
+.v-admin .v-range {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: max-content;
+    max-width: 100%;
+    margin-bottom: 14px;
+    padding: 3px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+.v-admin .v-range::-webkit-scrollbar { display: none; }
+
+.v-admin .v-range__item {
+    flex: none;
+    padding: 5px 12px;
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 12.5px;
+    font-weight: 550;
+    line-height: 1.35;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: color var(--motion-fast), background var(--motion-fast);
+}
+
+.v-admin .v-range__item:hover { background: var(--surface); color: var(--text); }
+
+.v-admin .v-range__item.is-active {
+    background: var(--text);
+    color: var(--canvas);
+    font-weight: 640;
+}
+
+/* The focus ring must survive the trough's own clipping, so the
+   focused pill draws its ring inside its own edge. */
+.v-admin .v-range__item:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+}
+
 .v-admin .v-plotcard { margin-top: 4px; }
 
 .v-admin .v-plot__key {
@@ -830,6 +884,14 @@
 }
 
 .v-admin .v-plot__keyitem { display: inline-flex; align-items: center; gap: 8px; }
+
+/* All Time has no year-earlier trace: its key item, readout row and
+   dot are hidden rather than removed, so the swap back is one
+   attribute. The explicit display wins over the flex the visible
+   state declares. */
+.v-admin .v-plot__keyitem[hidden],
+.v-admin .v-plot__rr[hidden],
+.v-admin .v-plot__dot[hidden] { display: none; }
 .v-admin .v-plot__sw { display: inline-block; flex: none; }
 .v-admin .v-plot__sw-now { fill: var(--bl-a-indigo); }
 .v-admin .v-plot__sw-then { fill: var(--bl-a-indigo-2); }

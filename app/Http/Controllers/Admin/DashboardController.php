@@ -16,6 +16,7 @@ use App\Support\AdminNav;
 use App\Support\Inventory;
 use App\Support\LowStock;
 use App\Support\RunningAccounts;
+use App\Support\SalesPlot;
 use App\Support\Standing;
 use Cron\CronExpression;
 use Illuminate\Http\Request;
@@ -139,6 +140,20 @@ class DashboardController extends Controller
 
         $pulse = Standing::for($storeId, $now);
 
+        // The sales plot's period. The seven picker controls are real links
+        // carrying ?range=, so the page answers every range without
+        // JavaScript; an ordinary load carries no param and costs nothing
+        // beyond the pulse it already computed, because the default series
+        // IS the pulse's own plot.
+        $range = (string) $request->query('range', '12m');
+        if (! in_array($range, Standing::RANGES, true)) {
+            $range = '12m';
+        }
+
+        $plot = $range === '12m'
+            ? Standing::wrapTwelve($pulse['plot'])
+            : Standing::series($storeId, $now, $range);
+
         $accountsFrom = $today->copy()->subDays(self::ACCOUNT_DAYS - 1);
         $accounts = RunningAccounts::for($storeId, $accountsFrom, $tomorrow);
 
@@ -151,7 +166,9 @@ class DashboardController extends Controller
             'pulse'            => $pulse,
             'bands'            => $this->pulseBands($pulse, $now),
             'usualLine'        => $this->usualLine($pulse, $currency),
-            'plot'             => $pulse['plot'],
+            'plot'             => $plot,
+            'salesRange'       => $range,
+            'salesRanges'      => Standing::RANGE_LABELS,
             'stats'            => $this->statBlocks($pulse, $fulfillment, $lowStockCount, $inventory, $cartsRecoverable),
             // The two figures the band now leads with are not repeated as
             // work lines underneath it. What is left is what the band did
@@ -167,6 +184,26 @@ class DashboardController extends Controller
             'entriesTruncated' => $entries['truncated'],
             'activities'       => $this->activities(),
         ]));
+    }
+
+    /**
+     * One range of the sales plot, as the same payload the Blade partial
+     * renders, for the picker's client-side swap. Behind the admin
+     * middleware exactly like the page it serves; a range the picker does
+     * not offer is not a series, it is a 404.
+     */
+    public function salesSeries(Request $request)
+    {
+        $range = (string) $request->query('range', '');
+
+        abort_unless(in_array($range, Standing::RANGES, true), 404);
+
+        $storeId = (int) config('app.store_id', 1);
+        $currency = Currency::where('is_default', true)->value('symbol') ?: '';
+
+        $series = Standing::series($storeId, Carbon::now(), $range);
+
+        return response()->json(SalesPlot::payload($series, $currency));
     }
 
     /**
