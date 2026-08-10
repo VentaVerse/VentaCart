@@ -12,7 +12,7 @@
 @endphp
 
 <x-admin.shell title="Order #{{ $order->id }}">
-    <x-admin.page title="{{ $order->first_name }} {{ $order->last_name }}">
+    <x-admin.page title="Order #{{ $order->id }}" standing="{{ $order->full_name }}">
         <x-slot:actions>
             <x-admin.button variant="secondary" href="{{ route('admin.orders.edit', $order) }}">Edit</x-admin.button>
             <x-admin.button variant="ghost" href="{{ route('admin.orders.index') }}">Back to Orders</x-admin.button>
