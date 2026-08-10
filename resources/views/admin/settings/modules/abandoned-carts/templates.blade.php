@@ -23,7 +23,7 @@
                             <x-admin.table.cell>
                                 <form method="POST" action="{{ route('admin.abandoned-carts.templates.toggle', $template) }}" data-v-form class="inline">
                                     @csrf
-                                    <button type="submit">
+                                    <button type="submit" class="v-badgebtn">
                                         <x-admin.badge :tone="$template->is_active ? 'success' : 'neutral'" class="cursor-pointer">
                                             {{ $template->is_active ? 'Active' : 'Inactive' }}
                                         </x-admin.badge>

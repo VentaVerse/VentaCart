@@ -90,6 +90,12 @@ class UiKitTest extends TestCase
             'v-sidenav__picker',// workspace rail, narrow
             'v-slate__mark',    // slate
             'v-slate__acts',    // slate, carrying controls
+            'v-slate__link',    // slate, a line that is a destination
+            'v-check',          // the target around a checkbox
+            'v-check--bare',    // the same, with no words to widen it
+            'v-badgebtn',       // a badge that is the control flipping it
+            'v-badge__x',       // a chip's remove control
+            'v-form-actions',   // the bar that carries a form's commit
             'v-switch__text',   // switch, with its words
             'v-toggle--btn',    // switch, button driven
             'v-checklist',      // checklist

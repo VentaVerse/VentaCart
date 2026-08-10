@@ -99,7 +99,7 @@
                     <x-admin.input name="sort_order" type="number" min="0" value="0" />
                 </x-admin.field>
                 <x-admin.field name="qr_image" label="QR code image" class="sm:col-span-2" help="Max 2MB. Shown to the customer after order placement.">
-                    <input type="file" name="qr_image" accept="image/*"
+                    <input type="file" name="qr_image" id="qr_image" accept="image/*"
                         class="block w-full text-[13px] text-v-secondary file:mr-3 file:h-8 file:rounded-v-md file:border-0 file:bg-v-sunken file:px-3 file:text-[13px] file:font-medium file:text-v-text hover:file:bg-v-hover">
                 </x-admin.field>
                 <x-admin.field name="instructions" label="Instructions (optional)" class="sm:col-span-2">

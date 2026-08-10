@@ -91,6 +91,25 @@
                         <x-admin.badge tone="accent">Scheduled</x-admin.badge>
                         <x-admin.badge tone="neutral" :dot="false">No mark</x-admin.badge>
                     </div>
+
+                    {{-- Two badges that are also controls. Both keep the
+                         12px mark and both take the 24px target: the
+                         first by growing its own box, the second by a
+                         transparent pad that moves nothing. --}}
+                    <div class="mt-4 flex flex-wrap items-center gap-4">
+                        <button type="button" class="v-badgebtn">
+                            <x-admin.badge tone="success">Active</x-admin.badge>
+                        </button>
+                        <button type="button" class="v-badgebtn">
+                            <x-admin.badge tone="neutral">Disabled</x-admin.badge>
+                        </button>
+                        <x-admin.badge tone="accent">
+                            Metro Manila
+                            <button type="button" class="v-badge__x" aria-label="Remove Metro Manila">
+                                <x-admin.icon name="x" class="w-3 h-3" />
+                            </button>
+                        </x-admin.badge>
+                    </div>
                 </x-admin.panel>
 
                 {{-- Segment bar: the trough. Three shapes, all one
@@ -333,7 +352,11 @@
                         </x-admin.field>
                         <div class="flex items-center gap-6">
                             <x-admin.toggle name="demo_active" :checked="true" />
+                            {{-- The box stays 16px; `.v-check` is the
+                                 target around it, 24 tall always and 24
+                                 wide when there are no words. --}}
                             <x-admin.checkbox name="demo_agree" label="Send review emails" :checked="true" />
+                            <x-admin.checkbox name="demo_bare" aria-label="Bare box, no words beside it" />
                         </div>
                         <x-admin.radio-group name="demo_mode" :options="['sale' => 'Sale price (strikethrough)', 'override' => 'Override (clean replacement)']" value="sale" />
                         <x-admin.form-actions>
@@ -373,6 +396,18 @@
                     <div class="v-slates">
                         <x-admin.slate title="Mail" icon="settings" href="#"
                             note="SMTP host, sender identity, and a test send." />
+                        <x-admin.slate title="Cash on Delivery" icon="cart"
+                            note="The rider collects the order total.">
+                            <x-slot:state>
+                                <x-admin.toggle name="kit_slate_cod" :checked="true" aria-label="Cash on Delivery enabled" />
+                            </x-slot:state>
+                            {{-- A line inside a slate that is itself a
+                                 destination, at the 24px floor. --}}
+                            <a href="#" class="v-slate__link">
+                                <x-admin.badge tone="warning">Restricted</x-admin.badge>
+                                <span class="truncate text-xs text-v-muted">Metro Manila only, under 20,000</span>
+                            </a>
+                        </x-admin.slate>
                         <x-admin.slate title="Courier Fulfillment" icon="fulfillment"
                             note="Book parcels with QuadX and SPX from the queue.">
                             <x-slot:state><x-admin.badge tone="success">Enabled</x-admin.badge></x-slot:state>

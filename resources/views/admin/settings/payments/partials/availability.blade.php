@@ -118,7 +118,7 @@
 
             {{-- Order limits --}}
             <div>
-                <h4 class="v-label mb-3">Order limits</h4>
+                <h3 class="v-label mb-3">Order limits</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <x-admin.field name="min_total" label="Min order total">
                         <x-admin.input type="number" name="min_total" :value="$restriction?->min_total"
@@ -150,7 +150,7 @@
             {{-- Include conditions --}}
             <div>
                 <div class="flex items-center gap-1.5 mb-4">
-                    <h4 class="v-label text-v-accent">Include conditions</h4>
+                    <h3 class="v-label text-v-accent">Include conditions</h3>
                     <x-admin.hint label="About include conditions">A section left empty is skipped; every section that has entries must match for {{ $name }} to appear.</x-admin.hint>
                 </div>
                 <div class="space-y-6">
@@ -211,7 +211,7 @@
             {{-- Exclude conditions --}}
             <div>
                 <div class="flex items-center gap-1.5 mb-4">
-                    <h4 class="v-label text-v-danger">Exclude conditions</h4>
+                    <h3 class="v-label text-v-danger">Exclude conditions</h3>
                     <x-admin.hint label="About exclude conditions">One match anywhere below is enough to hide {{ $name }}.</x-admin.hint>
                 </div>
                 <div class="space-y-6">

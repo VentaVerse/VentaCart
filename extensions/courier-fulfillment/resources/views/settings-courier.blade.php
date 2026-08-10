@@ -103,35 +103,39 @@
                         <x-admin.field name="pouch_presets_editor" label="Pouch presets" :help="$pouchField['help'] ?? null">
                             <div class="space-y-2">
                                 <template x-for="(p, idx) in presets" :key="idx">
-                                    <div class="grid grid-cols-12 gap-2 items-end">
-                                        <div class="col-span-4">
-                                            <label class="block text-[11px] text-v-muted mb-0.5">Label</label>
-                                            <input type="text" x-model="p.label" placeholder="e.g. Medium"
+                                    <div class="grid grid-cols-2 gap-2 items-end sm:grid-cols-12">
+                                        <div class="col-span-2 sm:col-span-4">
+                                            <span class="block text-[11px] text-v-muted mb-0.5">Label</span>
+                                            <input type="text" x-model="p.label" :aria-label="'Preset ' + (idx + 1) + ' label'" placeholder="e.g. Medium"
                                                 class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                         </div>
-                                        <div class="col-span-2">
-                                            <label class="block text-[11px] text-v-muted mb-0.5">Length (cm)</label>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.length_cm"
+                                        <div class="col-span-1 sm:col-span-2">
+                                            <span class="block text-[11px] text-v-muted mb-0.5">Length (cm)</span>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.length_cm" :aria-label="'Preset ' + (idx + 1) + ' length (cm)'"
                                                 class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                         </div>
-                                        <div class="col-span-2">
-                                            <label class="block text-[11px] text-v-muted mb-0.5">Width (cm)</label>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.width_cm"
+                                        <div class="col-span-1 sm:col-span-2">
+                                            <span class="block text-[11px] text-v-muted mb-0.5">Width (cm)</span>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.width_cm" :aria-label="'Preset ' + (idx + 1) + ' width (cm)'"
                                                 class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                         </div>
-                                        <div class="col-span-2">
-                                            <label class="block text-[11px] text-v-muted mb-0.5">Height (cm)</label>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.height_cm"
+                                        <div class="col-span-1 sm:col-span-2">
+                                            <span class="block text-[11px] text-v-muted mb-0.5">Height (cm)</span>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.height_cm" :aria-label="'Preset ' + (idx + 1) + ' height (cm)'"
                                                 class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                         </div>
-                                        <div class="col-span-1">
-                                            <label class="block text-[11px] text-v-muted mb-0.5">Max kg</label>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.max_weight_kg"
+                                        <div class="col-span-1 sm:col-span-1">
+                                            <span class="block text-[11px] text-v-muted mb-0.5">Max kg</span>
+                                            <input type="number" step="0.1" min="0.1" x-model.number="p.max_weight_kg" :aria-label="'Preset ' + (idx + 1) + ' max kg'"
                                                 class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                         </div>
-                                        <div class="col-span-1">
-                                            <button type="button" class="w-full h-[var(--control-h-sm)] text-v-danger hover:bg-v-hover rounded-v-md text-sm"
-                                                @click="presets.splice(idx, 1)" :disabled="presets.length <= 1" title="Remove preset">&times;</button>
+                                        <div class="col-span-2 flex justify-end sm:col-span-1 sm:block">
+                                            <x-admin.button type="button" variant="ghost" size="sm"
+                                                class="v-rowactions__danger sm:w-full"
+                                                @click="presets.splice(idx, 1)" ::disabled="presets.length <= 1"
+                                                ::aria-label="'Remove preset ' + (idx + 1)" title="Remove preset">
+                                                <x-admin.icon name="trash" class="w-4 h-4" />
+                                            </x-admin.button>
                                         </div>
                                     </div>
                                 </template>
@@ -200,7 +204,7 @@
                                             @endif
                                         </td>
                                         <td class="py-2">
-                                            <x-admin.select name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][order_status_id]" class="max-w-xs">
+                                            <x-admin.select name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][order_status_id]" class="max-w-xs" aria-label="Order status for {{ $label }}">
                                                 <option value="">(none)</option>
                                                 @foreach ($orderStatuses as $id => $name)
                                                     <option value="{{ $id }}" {{ (string) ($statusMap[$statusKey]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
@@ -209,9 +213,12 @@
                                         </td>
                                         <td class="py-2">
                                             <input type="hidden" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="0">
-                                            <input type="checkbox" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="1"
-                                                {{ !empty($statusMap[$statusKey]['notify']) ? 'checked' : '' }}
-                                                class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                            <label class="v-check v-check--bare">
+                                                <input type="checkbox" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="1"
+                                                    aria-label="Notify the customer on {{ $label }}"
+                                                    {{ !empty($statusMap[$statusKey]['notify']) ? 'checked' : '' }}
+                                                    class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                            </label>
                                         </td>
                                     </tr>
                                 @endforeach

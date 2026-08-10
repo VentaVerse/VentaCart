@@ -33,7 +33,7 @@
     <div class="v-toolbar" x-data="{ copied: false }">
         <div class="v-toolbar__row">
             <span class="v-label">Server crontab, times in {{ $tz }}</span>
-            <div class="flex flex-1 flex-wrap items-center gap-2">
+            <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                 <code class="block min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-v-md border border-v-border bg-v-surface px-3 py-2 text-xs font-vmono text-v-text">{{ $crontabLine }}</code>
                     {{-- Component-tag attributes only compile {{ }} echoes, not
                          @-directives (Blade's ComponentTagCompiler never runs the
@@ -158,7 +158,7 @@
 
             <div class="px-5 py-4 border-b border-v-border flex items-start justify-between">
                 <div>
-                    <h4 id="automation-editor-title" class="text-[15px] font-semibold text-v-text" x-text="editor.name"></h4>
+                    <h2 id="automation-editor-title" class="text-[15px] font-semibold text-v-text" x-text="editor.name"></h2>
                     <code class="text-xs font-vmono text-v-muted" x-text="editor.command"></code>
                 </div>
                 <button type="button" @click="closeEditor()" class="text-v-muted hover:text-v-text p-1 -m-1" aria-label="Close">

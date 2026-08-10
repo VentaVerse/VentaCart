@@ -151,7 +151,7 @@
         <form id="test-gsc-form" method="POST" action="{{ route('admin.extensions.seo.test-gsc') }}" class="hidden">@csrf</form>
         <form id="upload-gsc-form" method="POST" action="{{ route('admin.extensions.seo.upload-gsc') }}" enctype="multipart/form-data" class="hidden">
             @csrf
-            <input type="file" name="gsc_credentials" accept=".json" onchange="this.form.submit()">
+            <input type="file" name="gsc_credentials" accept=".json" aria-label="Google Search Console credentials JSON" onchange="this.form.submit()">
         </form>
 
         <x-admin.card title="Scheduling">

@@ -255,6 +255,11 @@ a.v-sub:hover { color: var(--accent); text-decoration: underline; }
 
 .v-rowactions form { margin: 0; }
 
+/* A check standing among row actions takes the row's control height
+   rather than the 24px floor, so its top edge lands on the buttons
+   beside it instead of 2px above them. */
+.v-rowactions .v-check { min-height: var(--control-h-sm); }
+
 .v-rowactions__danger { color: var(--danger) !important; }
 
 /* An actions cell packs controls, not text, so it takes its height

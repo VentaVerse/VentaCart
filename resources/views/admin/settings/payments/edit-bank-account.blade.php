@@ -36,7 +36,7 @@
                                     <x-admin.checkbox name="remove_qr" label="Remove QR image" />
                                 </div>
                             @endif
-                            <input type="file" name="qr_image" accept="image/*"
+                            <input type="file" name="qr_image" id="qr_image" accept="image/*"
                                 class="block w-full text-[13px] text-v-secondary file:mr-3 file:h-8 file:rounded-v-md file:border-0 file:bg-v-sunken file:px-3 file:text-[13px] file:font-medium file:text-v-text hover:file:bg-v-hover">
                         </x-admin.field>
 

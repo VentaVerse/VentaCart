@@ -82,11 +82,15 @@ a.v-slate:hover .v-slate__mark { color: var(--accent); }
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    min-height: 20px;
+    /* 24, not 20: the state slot carries a switch, whose target is 24,
+       and a head shorter than its own control leaves the name and the
+       switch 3px out of line. */
+    min-height: 24px;
 }
 
 .v-slate__name {
     min-width: 0;
+    overflow-wrap: anywhere;
     font-size: 13.5px;
     font-weight: 600;
     line-height: 1.3;
@@ -97,6 +101,21 @@ a.v-slate:hover .v-slate__mark { color: var(--accent); }
     font-size: 12.5px;
     line-height: 1.45;
     color: var(--text-secondary);
+}
+
+/* A line inside a slate that is itself a destination: a badge and the
+   fact beside it, wrapped in one link. It is a discrete target, not a
+   word inside a sentence, so it takes the 24px floor; written as a
+   row of Tailwind utilities on the payments hub it measured 17.4. */
+.v-slate__link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 24px;
+    margin-top: 2px;
+    text-decoration: none;
 }
 
 .v-slate__meta {

@@ -79,6 +79,12 @@ html[data-theme="dark"]:has(> body.v-admin) { color-scheme: dark; }
    confirm closes. scrollbar-gutter holds the width the scrollbar was
    occupying, so nothing behind the scrim shifts sideways. */
 html:has(> body.v-admin) { scrollbar-gutter: stable; }
+
+/* A form's commit bar is sticky at the bottom edge, so anything the
+   browser scrolls to by itself (a focused field, an anchored error)
+   would land underneath it. The bar is 57px; the padding clears it
+   with a little air. */
+html:has(> body.v-admin) { scroll-padding-block-end: 72px; }
 html.v-scroll-lock { overflow: hidden; }
 
 /* ------------------------------------------------------------

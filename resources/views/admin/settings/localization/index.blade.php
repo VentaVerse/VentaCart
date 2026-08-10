@@ -109,7 +109,7 @@
                             <div class="flex items-center justify-between">
                                 <form method="GET" class="flex items-center gap-3">
                                     <input type="hidden" name="tab" value="zones">
-                                    <select name="country" onchange="this.form.submit()"
+                                    <select name="country" aria-label="Country whose zones are listed" onchange="this.form.submit()"
                                         class="v-control h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                         @foreach ($countryList as $code => $name)
                                             <option value="{{ $code }}" {{ $selectedCountry === $code ? 'selected' : '' }}>{{ $name }} ({{ $code }})</option>

@@ -17,7 +17,7 @@
                 <x-admin.card>
                     <form method="GET" class="flex gap-3 mb-4">
                         <input type="hidden" name="tab" value="waitlist">
-                        <x-admin.input name="search" :value="$search" placeholder="Search product, name, or email..." class="flex-1" />
+                        <x-admin.input name="search" :value="$search" aria-label="Search the waitlist" placeholder="Search product, name, or email..." class="flex-1" />
                         <x-admin.button type="submit">Search</x-admin.button>
                         @if ($search)
                             <x-admin.button variant="secondary" href="{{ route('admin.stock-notifications.index', ['tab' => 'waitlist']) }}">Clear</x-admin.button>
@@ -35,7 +35,7 @@
                         <x-admin.table>
                             <x-slot:head>
                                 <x-admin.table.th class="w-8">
-                                    <input type="checkbox" aria-label="Select every row" @change="selected = $event.target.checked ? [{{ $waitlist->pluck('id')->join(',') }}] : []" class="rounded-v-sm border bg-v-surface text-v-accent focus:ring-v-accent">
+                                    <label class="v-check v-check--bare"><input type="checkbox" aria-label="Select every row" @change="selected = $event.target.checked ? [{{ $waitlist->pluck('id')->join(',') }}] : []" class="w-4 h-4 rounded-v-sm border bg-v-surface text-v-accent focus:ring-v-accent"></label>
                                 </x-admin.table.th>
                                 <x-admin.table.th>Customer</x-admin.table.th>
                                 <x-admin.table.th>Email</x-admin.table.th>
@@ -47,7 +47,7 @@
                             @forelse ($waitlist as $item)
                                 <x-admin.table.row>
                                     <x-admin.table.cell>
-                                        <input type="checkbox" :value="{{ $item->id }}" x-model.number="selected" aria-label="Select {{ $item->email }}" class="rounded-v-sm border bg-v-surface text-v-accent focus:ring-v-accent">
+                                        <label class="v-check v-check--bare"><input type="checkbox" :value="{{ $item->id }}" x-model.number="selected" aria-label="Select {{ $item->email }}" class="w-4 h-4 rounded-v-sm border bg-v-surface text-v-accent focus:ring-v-accent"></label>
                                     </x-admin.table.cell>
                                     <x-admin.table.cell class="text-v-text">{{ $item->name }}</x-admin.table.cell>
                                     <x-admin.table.cell class="text-v-secondary">{{ $item->email }}</x-admin.table.cell>

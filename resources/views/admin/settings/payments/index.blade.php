@@ -22,7 +22,7 @@
                     </form>
                 </x-slot:state>
 
-                <a href="{{ $availabilityUrl }}" class="mt-1 flex w-fit max-w-full items-center gap-1.5">
+                <a href="{{ $availabilityUrl }}" class="v-slate__link">
                     @if ($card['restricted'])
                         <x-admin.badge tone="warning">Restricted</x-admin.badge>
                         <span class="truncate text-xs text-v-muted" title="{{ $card['restriction_summary'] }}">{{ $card['restriction_summary'] }}</span>

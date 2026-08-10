@@ -132,10 +132,14 @@
 
 /* A sibling destination on the far side of the bar, never one more
    option: plain-link weight, outside the trough. */
+/* The way out of a workspace, so it is a destination and not a word
+   inside a sentence: it takes the 24px floor rather than the inline
+   link's exemption. It measured 17.4 tall. */
 .v-segbar__aside {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    min-height: 24px;
     flex: none;
     color: var(--text-secondary);
     font-size: 12px;

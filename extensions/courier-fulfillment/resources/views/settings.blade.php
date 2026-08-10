@@ -98,7 +98,7 @@
                     <input type="hidden" name="settings[cod_payment_methods][]" value="__none__">
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
                         @foreach ($paymentMethodOptions as $slug => $method)
-                            <label class="flex items-center gap-2 text-[13px] text-v-text cursor-pointer">
+                            <label class="v-check">
                                 <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $slug }}"
                                     {{ in_array($slug, $codMethods, true) ? 'checked' : '' }}
                                     class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
@@ -128,7 +128,7 @@
                     <div x-data="{ copied: false }">
                         <p class="text-[13px] font-semibold text-v-text mb-1.5">{{ $card['courier']->getName() }}</p>
                         <div class="flex items-center gap-2">
-                            <input type="text" readonly value="{{ $card['webhookUrl'] }}" x-ref="hook"
+                            <input type="text" readonly value="{{ $card['webhookUrl'] }}" x-ref="hook" aria-label="{{ $card['courier']->getName() }} webhook URL"
                                 class="v-control flex-1 h-[var(--control-h)] rounded-v-md border border-v-border bg-v-sunken px-3 text-xs font-mono text-v-secondary">
                             <x-admin.button type="button" variant="secondary" size="sm"
                                 x-on:click="navigator.clipboard.writeText($refs.hook.value); copied=true; setTimeout(()=>copied=false,1500)">

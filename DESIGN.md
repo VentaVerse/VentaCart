@@ -131,6 +131,11 @@ tinted ground and a focus indicator must clear 3:1 against what surrounds it.
 --bl-page-gutter 30px (16px at <=700px)
 --bl-pad         20px a panel's own padding
 --bl-col-pad     20px a column's inset from a divider
+--v-bleed        published BY `.v-panel__body` as its own inline
+                 padding (20px, 16px at <=719px) and read by anything
+                 inside the body that has to reach the sheet's inside
+                 edge. Defaults to 0, which is right for a bar with no
+                 sheet to reach the edge of.
 
 --motion-fast 120ms cubic-bezier(.2,.7,.3,1)
 --motion-base 220ms cubic-bezier(.2,.7,.3,1)
@@ -319,9 +324,17 @@ controls point `aria-describedby` at them through `@aware`.
 | `.v-switch`, `.v-switch__text`, `.v-switch--lead`, `.v-switch--top` | `x-admin.toggle label="..."` |
 | `.v-toggle--btn` | `x-admin.switch` (a toggle that posts or submits) |
 | `.v-checklist` | a bounded scroll box of checkboxes |
+| `.v-check`, `.v-check--bare` | `x-admin.checkbox`; the 24px target around a 16px box, square when no words widen it |
 | `.v-picker`, `.v-picker__opt/__mid` | `admin/partials/dual-listbox` |
-| `.v-form-actions` | `x-admin.form-actions` (a marker; the sticky bar is still stated in utilities on the component, the one primitive with no rule in the layer) |
+| `.v-form-actions` | `x-admin.form-actions`; stated in the layer, and it bleeds by `--v-bleed` rather than by a fixed number |
 | `.v-nospin` | strips number-input spinners in a numeric grid |
+
+**Every discrete control clears 24px, and the mark inside it does not
+have to.** A checkbox stays 16px inside a 24px `.v-check`; the switch
+stays a 36x20 pill inside a 24px label; the hint keeps a 16px ring and
+a transparent 24px pad; a chip's remove cross keeps 12px and takes the
+same pad. Growing the mark instead is the wrong repair: a 24px
+checkbox in a 34px row shouts over the row it belongs to.
 
 **Never wrap `x-admin.toggle` in your own `<label>`.** The component renders
 its own, so an outer one nests two labels, which is invalid. Pass `label` and
@@ -339,7 +352,8 @@ edge read as one control that moved.
 | `.v-empty*` | `x-admin.empty-state` | stands **in place of** what is missing |
 | `.v-notice*` | `x-admin.empty-state variant="notice"` | the blocking setup band, above what it blocks, carrying its own way out |
 | `.v-flash*` | | something good already happened |
-| `.v-slate*` | `x-admin.slate` | a record card: mark, name, state, one line, controls. `href` makes the whole card the target; a slate carrying controls renders as a `<section>` |
+| `.v-slate*` | `x-admin.slate` | a record card: mark, name, state, one line, controls. `href` makes the whole card the target; a slate carrying controls renders as a `<section>`. `.v-slate__link` is a line inside one that is itself a destination |
+| `.v-badgebtn`, `.v-badge__x` | | a badge that is the control flipping it, and a chip's remove control. Both keep their mark and take the 24px target |
 | `.v-choice*` | `x-admin.choice`, `x-admin.choice.card` | any pick-one grid, available and gated |
 | `.v-line*`, `.v-item*`, `.v-auto*` | `x-admin.line`, `x-admin.item` | list-row idioms |
 | `.v-feed`, `.v-entry*` | `x-admin.feed.entry` | activity and history |
@@ -411,21 +425,29 @@ only assistive technology needs.
    `@php ... @endphp` block in the same file silently swallows the markup
    between them and 500s the page. `view:cache` does not catch it. If a file
    needs both, the block comes first.
-3. **No em dashes.** Interface copy, documentation, commit messages.
-4. **No instructional interface text.** No help card, no paragraph under a
+3. **A Blade directive inside an attribute passed to a COMPONENT is
+   never compiled.** `<x-admin.slate x-show="@js($x)">` reaches the
+   browser as the literal source text and Alpine throws a SyntaxError
+   on it; the settings hub shipped 21 of them and its search filtered
+   nothing. Build the expression in PHP and bind it (`:x-show="..."`).
+   A valueless directive has the same problem in reverse: `@click.stop`
+   on a component renders as `@click.stop="@click.stop"`, so write
+   `@click.stop=""`.
+4. **No em dashes.** Interface copy, documentation, commit messages.
+5. **No instructional interface text.** No help card, no paragraph under a
    control explaining the control. Name the control well. A genuinely
    non-obvious consequence goes in `x-admin.hint`; a single short line of
    consequence may go in `x-admin.field`'s `help`, which renders as visible
    prose, so keep it to one line. An empty state's `description` and a
    `.v-panel__blank` line are sanctioned: they say what is not there.
-5. **Colour never alone**, tables scroll, icons from the component.
-6. **Both themes and 390 to 1440**, every time. Open the UI kit in both.
-7. **Real data.** The kit's fixtures are the longest real NGD product title
+6. **Colour never alone**, tables scroll, icons from the component.
+7. **Both themes and 390 to 1440**, every time. Open the UI kit in both.
+8. **Real data.** The kit's fixtures are the longest real NGD product title
    (103 characters), the longest real customer name (53), a nine-digit peso
    total, a zero and a 27,709. A primitive that has not met them is untested:
    the figure band's 390 layout collapsed under exactly that nine-digit
    figure and nothing else caught it.
-8. **Any new primitive lands in the UI kit in the same commit**, in its real
+9. **Any new primitive lands in the UI kit in the same commit**, in its real
    states, and gains a class-name assertion in `tests/Feature/AdminV2/UiKitTest.php`.
 
 ---

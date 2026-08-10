@@ -24,7 +24,7 @@
                     </div>
                 @else
                     <div>
-                        <p class="text-[13px] font-mono text-v-text">
+                        <p class="break-words text-[13px] font-mono text-v-text">
                             {{ $maskedKeys['erp_token'] ?? 'Not generated' }}
                         </p>
                     </div>

@@ -43,6 +43,27 @@
 input[type="checkbox"],
 input[type="radio"] { border-color: var(--border-control); }
 
+/* The box stays 16px, because a 24px checkbox in a 34px row reads as
+   a control shouting over the row it belongs to. What grows is the
+   label that wraps it, which is what a person actually clicks: 24px
+   tall always, and 24px wide as well when there are no words beside
+   the box to widen it. Measured across the settings region, 528 boxes
+   sat at 16x16. */
+.v-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.v-check--bare {
+    justify-content: center;
+    min-width: 24px;
+}
+
 .v-control[readonly],
 .v-control:disabled {
     background: var(--surface-sunken);
@@ -93,6 +114,11 @@ select { padding-top: 0; padding-bottom: 0; line-height: normal; }
 .v-field__hint {
     font-size: 12px;
     max-width: 62ch;
+    /* A hint is usually a sentence, but it also carries masked keys and
+       tokens, which are one unbroken run. Without this the Turnstile
+       hint measured 905px inside a 670px panel and pushed the whole
+       document 289px wide at 1440 and 857px at 390. */
+    overflow-wrap: anywhere;
 }
 
 :where(.v-field__hint) { color: var(--text-muted); }
@@ -122,6 +148,24 @@ select { padding-top: 0; padding-bottom: 0; line-height: normal; }
    ------------------------------------------------------------ */
 .v-toggle__track { background: var(--border-control); }
 .v-toggle__knob { background: var(--surface); }
+
+/* The pill is 36x20 and 20 is under 2.5.8's 24px floor, so the thing
+   you press grows and the thing you see does not: the label that
+   carries the track (and the button in the other driver) takes a 24px
+   minimum and centres the track inside it. The knob follows, keyed to
+   the track's centre rather than to a fixed 2px from the top, which
+   is what it used to be and what would have left it riding high in a
+   24px box. */
+.v-toggle > label,
+.v-toggle--btn {
+    min-height: 24px;
+    justify-content: flex-start;
+}
+
+.v-toggle__knob {
+    top: 50%;
+    margin-top: -8px;
+}
 
 .v-toggle input:checked ~ .v-toggle__knob { background: var(--accent-text); }
 
@@ -189,6 +233,40 @@ select { padding-top: 0; padding-bottom: 0; line-height: normal; }
 }
 
 .v-toggle--btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ------------------------------------------------------------
+   Form actions: the bar that carries a form's commit
+
+   This was the one primitive with no rule in the layer: the
+   component wrote `sticky bottom-0 -mx-6 px-6` in utilities, and a
+   24px bleed against a 20px gutter left a 4px lip of white sticking
+   out past the sheet's radius on every settings form, 8px at 390
+   where the gutter drops to 16. Outside a sheet, on the two forms
+   that sit straight on the work column, the same 24px pushed the bar
+   into the page gutter instead.
+
+   So the bleed is published BY the container rather than assumed by
+   the bar. `--v-bleed` defaults to nothing, which is right for a bar
+   that has no sheet to reach the edge of; a panel body sets it to
+   its own padding, so the bar reaches exactly the sheet's inside
+   edge and no further, at both gutters. `--v-bleed` is published in
+   panel.css, beside the padding it has to equal.
+   ------------------------------------------------------------ */
+
+.v-form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 32px;
+    margin-inline: calc(var(--v-bleed, 0px) * -1);
+    padding: 12px var(--v-bleed, 0px);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+}
 
 /* ------------------------------------------------------------
    Checklist: a bounded set of boxes

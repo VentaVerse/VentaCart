@@ -107,7 +107,7 @@
         <template x-for="item in selectedItems" :key="'tag-' + item.id">
             <x-admin.badge tone="accent">
                 <span x-text="item.name"></span>
-                <button type="button" class="text-v-muted hover:text-v-danger align-middle"
+                <button type="button" class="v-badge__x"
                     x-bind:aria-label="'Remove ' + item.name"
                     @click="selectedIds = selectedIds.filter(i => i !== item.id)">
                     <x-admin.icon name="x" class="w-3 h-3" />

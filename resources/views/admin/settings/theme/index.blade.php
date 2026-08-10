@@ -8,7 +8,7 @@
                 </div>
                 <form method="POST" action="{{ route('admin.theme.switch') }}" data-v-form class="flex items-center gap-3">
                     @csrf
-                    <x-admin.select name="theme">
+                    <x-admin.select name="theme" aria-label="Storefront theme">
                         @foreach ($installedThemes as $slug => $meta)
                             <option value="{{ $slug }}" {{ $slug === $activeTheme ? 'selected' : '' }}>{{ $meta['name'] }}</option>
                         @endforeach
@@ -96,15 +96,16 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                 @foreach ($colorGroups as $groupLabel => $fields)
                                     <div class="bg-v-sunken rounded-v-lg p-4">
-                                        <h4 class="v-label mb-3">{{ $groupLabel }}</h4>
+                                        <h3 class="v-label mb-3">{{ $groupLabel }}</h3>
                                         <div class="space-y-3">
                                             @foreach ($fields as $key => $label)
                                                 <div class="flex items-center justify-between gap-3">
-                                                    <label class="text-[13px] text-v-secondary min-w-0">{{ $label }}</label>
+                                                    <label for="color-{{ $key }}" class="text-[13px] text-v-secondary min-w-0">{{ $label }}</label>
                                                     <div class="flex items-center gap-1.5 shrink-0">
-                                                        <input type="color" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="h-8 w-10 rounded-v-sm border border-v-border cursor-pointer bg-v-surface"
+                                                        <input type="color" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="h-[var(--control-h-sm)] w-10 rounded-v-sm border border-v-border cursor-pointer bg-v-surface"
+                                                            aria-label="{{ $label }} colour picker"
                                                             oninput="this.nextElementSibling.value = this.value">
-                                                        <input type="text" name="settings[{{ $key }}]" value="{{ $settings['colors'][$key] ?? '#000000' }}"
+                                                        <input type="text" id="color-{{ $key }}" name="settings[{{ $key }}]" value="{{ $settings['colors'][$key] ?? '#000000' }}"
                                                             class="v-control w-20 h-[var(--control-h-sm)] px-2 text-xs font-mono bg-v-surface text-v-text border rounded-v-md"
                                                             oninput="this.previousElementSibling.value = this.value"
                                                             placeholder="#000000">
@@ -117,7 +118,7 @@
                             </div>
 
                             <div class="mt-6 flex items-center justify-between">
-                                <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger" @click="$dispatch('open-modal', 'revert-colors')">Revert to default</x-admin.button>
+                                <x-admin.button type="button" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'revert-colors')">Revert to default</x-admin.button>
                                 <x-admin.button type="submit">Save Colors</x-admin.button>
                             </div>
                         </form>
@@ -154,9 +155,9 @@
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                     {{-- Font Selection --}}
                                     <div class="space-y-6">
-                                        <h4 class="v-label">Font Family</h4>
+                                        <h3 class="v-label">Font Family</h3>
                                         <x-admin.field name="settings[heading]" label="Heading Font">
-                                            <select name="settings[heading]" x-model="headingFont" @change="loadPreviewFont(headingFont)"
+                                            <select name="settings[heading]" id="settings[heading]" x-model="headingFont" @change="loadPreviewFont(headingFont)"
                                                 class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                 @foreach ($fontOptions as $font)
                                                     <option value="{{ $font }}" {{ ($settings['fonts']['heading'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
@@ -164,7 +165,7 @@
                                             </select>
                                         </x-admin.field>
                                         <x-admin.field name="settings[body]" label="Body Font">
-                                            <select name="settings[body]" x-model="bodyFont" @change="loadPreviewFont(bodyFont)"
+                                            <select name="settings[body]" id="settings[body]" x-model="bodyFont" @change="loadPreviewFont(bodyFont)"
                                                 class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                 @foreach ($fontOptions as $font)
                                                     <option value="{{ $font }}" {{ ($settings['fonts']['body'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
@@ -172,7 +173,7 @@
                                             </select>
                                         </x-admin.field>
 
-                                        <h4 class="v-label pt-4">Font Sizes</h4>
+                                        <h3 class="v-label pt-4">Font Sizes</h3>
                                         @php
                                             $sizeFields = [
                                                 'size_logo' => ['label' => 'Logo / Store Name', 'default' => '32', 'min' => 18, 'max' => 60],
@@ -186,9 +187,9 @@
                                         <div class="space-y-3">
                                             @foreach ($sizeFields as $key => $cfg)
                                                 <div class="flex items-center justify-between gap-3">
-                                                    <label class="text-[13px] text-v-secondary">{{ $cfg['label'] }}</label>
+                                                    <label for="size-{{ $key }}" class="text-[13px] text-v-secondary">{{ $cfg['label'] }}</label>
                                                     <div class="flex items-center gap-2 shrink-0">
-                                                        <input type="number" name="settings[{{ $key }}]"
+                                                        <input type="number" id="size-{{ $key }}" name="settings[{{ $key }}]"
                                                             value="{{ $settings['fonts'][$key] ?? $cfg['default'] }}"
                                                             min="{{ $cfg['min'] }}" max="{{ $cfg['max'] }}"
                                                             class="v-control w-16 h-[var(--control-h-sm)] text-center text-[13px] bg-v-surface text-v-text border rounded-v-md">
@@ -201,7 +202,7 @@
 
                                     {{-- Live Preview --}}
                                     <div>
-                                        <h4 class="v-label mb-4">Preview</h4>
+                                        <h3 class="v-label mb-4">Preview</h3>
                                         <div class="bg-v-sunken rounded-v-lg p-6 border border-v-border space-y-4">
                                             <div :style="'font-family: \'' + headingFont + '\', sans-serif'" class="space-y-2">
                                                 <div class="text-3xl font-bold text-v-text" x-text="headingFont">Heading Font</div>
@@ -248,8 +249,8 @@
                                 <div x-data="topbarLinks()" class="space-y-2">
                                     <template x-for="(link, idx) in links" :key="idx">
                                         <div class="flex items-center gap-2">
-                                            <input type="text" x-model="link.label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="Label">
-                                            <input type="text" x-model="link.url" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="/url">
+                                            <input type="text" x-model="link.label" aria-label="Topbar link label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="Label">
+                                            <input type="text" x-model="link.url" aria-label="Topbar link URL" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="/url">
                                             <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger" @click="links.splice(idx, 1)" aria-label="Remove link">
                                                 <x-admin.icon name="trash" class="w-4 h-4" />
                                             </x-admin.button>
@@ -293,7 +294,7 @@
 
                         {{-- Add new item --}}
                         <div class="border-t border-v-border pt-4 mt-4" x-data="{ newType: 'category' }">
-                            <h4 class="text-[13px] font-medium text-v-text mb-3">Add Menu Item</h4>
+                            <h3 class="text-[13px] font-medium text-v-text mb-3">Add Menu Item</h3>
                             <form method="POST" action="{{ route('admin.theme.nav.store') }}" data-v-form class="space-y-3">
                                 @csrf
                                 <div class="grid grid-cols-2 gap-3 max-w-lg">
@@ -377,7 +378,7 @@
 
                         {{-- Add new section --}}
                         <div class="border-t border-v-border pt-4 mt-4">
-                            <h4 class="text-[13px] font-medium text-v-text mb-3">Add Section</h4>
+                            <h3 class="text-[13px] font-medium text-v-text mb-3">Add Section</h3>
                             <form method="POST" action="{{ route('admin.theme.sections.store') }}" data-v-form class="flex items-end gap-3 max-w-lg">
                                 @csrf
                                 <div class="flex-1">
@@ -543,13 +544,13 @@
 
                                         {{-- Header --}}
                                         <div class="flex items-center gap-3 p-4 cursor-pointer" @click="open = !open">
-                                            <x-admin.icon name="drag" class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" @click.stop />
+                                            <x-admin.icon name="drag" class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" @click.stop="" />
                                             <x-admin.icon name="chevron-right" class="w-4 h-4 text-v-muted transition-transform" x-bind:class="open && 'rotate-90'" />
                                             <x-admin.badge tone="info">{{ $col->type }}</x-admin.badge>
-                                            <input type="text" name="columns[{{ $col->id }}][title]" value="{{ $col->title }}" class="text-[13px] font-medium text-v-text flex-1 bg-transparent border-0 p-0 focus:ring-0" @click.stop>
-                                            <label class="flex items-center gap-1" @click.stop>
+                                            <input type="text" name="columns[{{ $col->id }}][title]" value="{{ $col->title }}" aria-label="Column title" class="text-[13px] font-medium text-v-text flex-1 bg-transparent border-0 p-0 focus:ring-0" @click.stop>
+                                            <label class="v-check v-check--bare" title="Column shown in the footer" @click.stop>
                                                 <input type="hidden" name="columns[{{ $col->id }}][is_enabled]" value="0">
-                                                <input type="checkbox" name="columns[{{ $col->id }}][is_enabled]" value="1" {{ $col->is_enabled ? 'checked' : '' }} class="w-3.5 h-3.5 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                                <input type="checkbox" name="columns[{{ $col->id }}][is_enabled]" value="1" {{ $col->is_enabled ? 'checked' : '' }} aria-label="Show this footer column" class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
                                             </label>
                                             <button type="button" @click.stop="$dispatch('open-modal', 'delete-footer-col-{{ $col->id }}')" class="text-v-muted hover:text-v-danger" aria-label="Delete {{ $col->title }} footer column">
                                                 <x-admin.icon name="trash" class="w-4 h-4" />
@@ -562,8 +563,8 @@
                                                 <div class="space-y-2 mb-3">
                                                     <template x-for="(link, idx) in links" :key="idx">
                                                         <div class="flex items-center gap-2">
-                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][label]'" x-model="link.label" placeholder="Label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md">
-                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="link.url" placeholder="/slug" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border rounded-v-md">
+                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][label]'" x-model="link.label" aria-label="Link label" placeholder="Label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md">
+                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="link.url" aria-label="Link URL" placeholder="/slug" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border rounded-v-md">
                                                             <button type="button" @click="links.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove link">
                                                                 <x-admin.icon name="x" class="w-4 h-4" />
                                                             </button>
@@ -576,13 +577,13 @@
                                                 <div class="space-y-2 mb-3">
                                                     <template x-for="(social, idx) in socials" :key="idx">
                                                         <div class="flex items-center gap-2">
-                                                            <select :name="'columns[{{ $col->id }}][config][links]['+idx+'][platform]'" x-model="social.platform" class="v-control w-32 h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
+                                                            <select :name="'columns[{{ $col->id }}][config][links]['+idx+'][platform]'" x-model="social.platform" aria-label="Social platform" class="v-control w-32 h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                                 <option value="facebook">Facebook</option>
                                                                 <option value="instagram">Instagram</option>
                                                                 <option value="youtube">YouTube</option>
                                                                 <option value="tiktok">TikTok</option>
                                                             </select>
-                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" placeholder="https://..." class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border rounded-v-md">
+                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" aria-label="Social profile URL" placeholder="https://..." class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border rounded-v-md">
                                                             <button type="button" @click="socials.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove social link">
                                                                 <x-admin.icon name="x" class="w-4 h-4" />
                                                             </button>
@@ -595,12 +596,12 @@
                                                 <div class="space-y-2 mb-3">
                                                     <template x-for="(icon, idx) in payIcons" :key="idx">
                                                         <div class="flex items-center gap-2 bg-v-sunken rounded-v-md p-2">
-                                                            <select :name="'columns[{{ $col->id }}][config][icons]['+idx+'][type]'" x-model="icon.type" class="v-control w-20 h-[var(--control-h-sm)] px-2 text-xs bg-v-surface text-v-text border rounded-v-md">
+                                                            <select :name="'columns[{{ $col->id }}][config][icons]['+idx+'][type]'" x-model="icon.type" aria-label="Payment mark kind" class="v-control w-20 h-[var(--control-h-sm)] px-2 text-xs bg-v-surface text-v-text border rounded-v-md">
                                                                 <option value="text">Text</option>
                                                                 <option value="image">Image</option>
                                                             </select>
                                                             <template x-if="icon.type === 'text'">
-                                                                <input type="text" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" x-model="icon.value" placeholder="e.g. Visa" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md">
+                                                                <input type="text" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" x-model="icon.value" aria-label="Payment mark label" placeholder="e.g. Visa" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                             </template>
                                                             <template x-if="icon.type === 'image'">
                                                                 <div class="flex-1 flex items-center gap-2">
@@ -608,7 +609,7 @@
                                                                         <img :src="icon.value.startsWith('http') || icon.value.startsWith('/') ? icon.value : '/storage/' + icon.value" class="h-6 rounded-v-sm" alt="">
                                                                     </template>
                                                                     <input type="hidden" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" :value="icon.value">
-                                                                    <input type="file" :name="'icon_uploads[{{ $col->id }}]['+idx+']'" accept="image/*" class="text-xs text-v-muted file:mr-2 file:py-1 file:px-2 file:rounded-v-sm file:border-0 file:text-xs file:bg-v-accent-weak file:text-v-accent">
+                                                                    <input type="file" :name="'icon_uploads[{{ $col->id }}]['+idx+']'" accept="image/*" aria-label="Payment mark image" class="text-xs text-v-muted file:mr-2 file:py-1 file:px-2 file:rounded-v-sm file:border-0 file:text-xs file:bg-v-accent-weak file:text-v-accent">
                                                                 </div>
                                                             </template>
                                                             <button type="button" @click="payIcons.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove payment icon">
@@ -620,7 +621,7 @@
                                                 <x-admin.button type="button" variant="ghost" size="sm" @click="payIcons.push({type: 'text', value: ''})"><x-admin.icon name="plus" class="w-3 h-3" /> Add payment method</x-admin.button>
 
                                             @elseif ($col->type === 'text')
-                                                <textarea name="columns[{{ $col->id }}][config][content]" rows="3" class="v-control w-full px-3 py-2 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="Free text content...">{{ $col->config['content'] ?? '' }}</textarea>
+                                                <textarea name="columns[{{ $col->id }}][config][content]" rows="3" aria-label="Column text" class="v-control w-full px-3 py-2 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="Free text content...">{{ $col->config['content'] ?? '' }}</textarea>
                                             @endif
                                         </div>
                                     </div>
@@ -640,7 +641,7 @@
                         @endforeach
 
                         <div class="border-t border-v-border pt-4 mt-6">
-                            <h4 class="text-[13px] font-medium text-v-text mb-3">Add Footer Column</h4>
+                            <h3 class="text-[13px] font-medium text-v-text mb-3">Add Footer Column</h3>
                             <form method="POST" action="{{ route('admin.theme.footer.store') }}" data-v-form class="flex items-end gap-3 max-w-lg">
                                 @csrf
                                 <div class="flex-1">

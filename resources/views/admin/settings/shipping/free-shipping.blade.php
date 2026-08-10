@@ -29,7 +29,7 @@
                             <x-admin.table.cell>
                                 <form method="POST" action="{{ route('admin.free-shipping-rules.toggle', $rule) }}" data-v-form>
                                     @csrf
-                                    <button type="submit">
+                                    <button type="submit" class="v-badgebtn">
                                         <x-admin.badge :tone="$rule->is_active ? 'success' : 'neutral'">
                                             {{ $rule->is_active ? 'Active' : 'Disabled' }}
                                         </x-admin.badge>

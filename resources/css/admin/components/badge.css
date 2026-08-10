@@ -61,3 +61,47 @@
         background: currentColor;
     }
 }
+
+/* ------------------------------------------------------------
+   Two badges that are also controls
+   ------------------------------------------------------------ */
+
+/* A badge that is the control which flips it: a one-field form whose
+   submit wears the state it is about to change. The word is the
+   state, so nothing rides on colour; what was missing was the target,
+   which measured 49x18.8 in three settings tables. */
+.v-badgebtn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+.v-badgebtn:hover .v-badge__label { text-decoration: underline; }
+
+/* The remove control on a removable chip. It measured 12x12, which is
+   half the floor. The cross keeps its 12px mark and the control around
+   it becomes a real 24 square rather than a transparent pad reaching
+   outside the chip, so the chip that holds it grows to 24 as well: a
+   chip carrying a control is a control, and it can be that tall. */
+.v-badge__x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color var(--motion-fast);
+}
+
+.v-badge:has(.v-badge__x) { min-height: 24px; }
+
+.v-badge__x:hover { color: var(--danger); }

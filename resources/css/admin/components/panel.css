@@ -66,7 +66,15 @@
 
 .v-panel__link:hover { border-bottom-color: currentColor; }
 
-.v-panel__body { padding: 14px 20px 18px; }
+/* `--v-bleed` is the body's own inline padding, published so anything
+   that has to reach the sheet's inside edge from within the body can
+   ask for it instead of guessing. `.v-form-actions` is the caller;
+   it used to guess 24 and overhang the sheet by 4px. Keep the two
+   numbers on these two lines equal. */
+.v-panel__body {
+    padding: 14px 20px 18px;
+    --v-bleed: 20px;
+}
 
 /* One quiet line where a body would be: nothing to show, nothing
    wrong. Not the empty state, which is a full stop with an action. */
@@ -139,4 +147,6 @@
     .v-panel__body,
     .v-panel__blank,
     .v-panel__foot { padding-inline: 16px; }
+
+    .v-panel__body { --v-bleed: 16px; }
 }

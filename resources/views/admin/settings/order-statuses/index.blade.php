@@ -62,7 +62,7 @@
                                      unchecked box post, so clearing it saves.
                                      Column header carries the one consequence
                                      worth stating. --}}
-                                <label class="inline-flex items-center cursor-pointer">
+                                <label class="v-check v-check--bare">
                                     <input type="hidden" form="{{ $editForm }}" name="deducts_stock" value="0">
                                     <input type="checkbox" form="{{ $editForm }}" name="deducts_stock" value="1" @checked(old('deducts_stock', $status->deducts_stock))
                                         aria-label="{{ $status->name }} deducts stock"
@@ -77,7 +77,7 @@
                                      start out agreeing (the flag is derived
                                      from stock on migrate) and part company
                                      whenever the merchant says so. --}}
-                                <label class="inline-flex items-center cursor-pointer">
+                                <label class="v-check v-check--bare">
                                     <input type="hidden" form="{{ $editForm }}" name="counts_as_revenue" value="0">
                                     <input type="checkbox" form="{{ $editForm }}" name="counts_as_revenue" value="1" @checked(old('counts_as_revenue', $status->counts_as_revenue))
                                         aria-label="{{ $status->name }} counts as revenue"
@@ -91,7 +91,7 @@
                             </x-admin.table.cell>
                             <x-admin.table.cell class="v-col-act">
                                 <div class="v-rowactions v-rowactions--end">
-                                    <label class="inline-flex cursor-pointer items-center gap-1.5 text-[13px] text-v-text">
+                                    <label class="v-check">
                                         <input type="hidden" form="{{ $editForm }}" name="is_default" value="0">
                                         <input type="checkbox" form="{{ $editForm }}" name="is_default" value="1" @checked(old('is_default', $status->is_default))
                                             class="w-4 h-4 rounded-v-sm text-v-accent focus:ring-v-accent bg-v-surface">

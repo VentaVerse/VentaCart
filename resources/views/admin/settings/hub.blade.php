@@ -9,24 +9,35 @@
             </div>
         </x-slot:actions>
 
+        @php
+            // Built here rather than inline in the attributes below. A Blade
+            // directive inside an attribute passed to a COMPONENT is never
+            // compiled: it reaches the browser as its own literal source text,
+            // which Alpine then tries to evaluate. That is what put a
+            // SyntaxError on this page and left the search filtering nothing.
+            // The slate below therefore builds its expression in PHP and binds
+            // it, which is the one spelling a component attribute survives.
+            $vHaystack = fn (array $i) => strtolower($i['label'] . ' ' . $i['description'] . ' ' . implode(' ', $i['keywords']));
+            $vAll = collect($groups)->flatMap(fn ($g) => array_map($vHaystack, $g['items']))->values();
+        @endphp
         <div x-data="{ q: '' }" x-on:settings-search.window="q = $event.detail.toLowerCase()" class="space-y-8">
             @foreach ($groups as $group)
                 @php
-                    $haystacks = collect($group['items'])->map(fn ($i) => strtolower($i['label'] . ' ' . $i['description'] . ' ' . implode(' ', $i['keywords'])));
+                    $vGroupHay = collect($group['items'])->map($vHaystack)->values();
                 @endphp
-                <section x-show="!q || @js($haystacks->values()) .some(h => h.includes(q))">
+                <section x-show="!q || @js($vGroupHay).some(h => h.includes(q))">
                     <h2 class="mb-3 v-label">{{ $group['label'] }}</h2>
                     <div class="v-slates">
                         @foreach ($group['items'] as $item)
                             <x-admin.slate :title="$item['label']" :icon="$item['icon']" :note="$item['description']"
                                 :href="\App\Support\SettingsNav::url($item)"
-                                x-show="!q || @js(strtolower($item['label'] . ' ' . $item['description'] . ' ' . implode(' ', $item['keywords']))).includes(q)" />
+                                :x-show="'!q || ' . json_encode($vHaystack($item)) . '.includes(q)'" />
                         @endforeach
                     </div>
                 </section>
             @endforeach
 
-            <div x-show="q && !@js(collect($groups)->flatMap(fn ($g) => collect($g['items'])->map(fn ($i) => strtolower($i['label'] . ' ' . $i['description'] . ' ' . implode(' ', $i['keywords']))))->values()).some(h => h.includes(q))" x-cloak>
+            <div x-show="q && !@js($vAll).some(h => h.includes(q))" x-cloak>
                 <x-admin.empty-state title="Nothing matches" description="No setting matches that search. Try a different word: cards also match hidden synonyms like &ldquo;smtp&rdquo; or &ldquo;gcash&rdquo;." />
             </div>
         </div>

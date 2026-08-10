@@ -33,7 +33,7 @@
                         </x-admin.select>
                     </x-admin.field>
 
-                    <div class="grid grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <x-admin.field name="max_sends" label="Max Sends" help="Per cart, per rule" required>
                             <x-admin.input type="number" name="max_sends" min="1" max="100" :value="$rule?->max_sends ?? 1" required />
                         </x-admin.field>

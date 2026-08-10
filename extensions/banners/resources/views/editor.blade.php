@@ -21,7 +21,7 @@
             <div class="v-panel transition-all duration-300 isolate"
                  :style="isFullWidth ? 'margin-left: -2rem; margin-right: -2rem; border-radius: 0; border-left: 0; border-right: 0;' : ''">
                 <div class="v-panel__head">
-                    <h3 class="v-subhead">Preview</h3>
+                    <h2 class="v-subhead">Preview</h2>
                     <span class="v-panel__note" x-text="isFullWidth ? 'Full width' : 'Contained'"></span>
                     <span class="ml-auto flex items-center gap-3">
                         <x-admin.button type="button" size="sm" variant="ghost" @click="playAnimations()">
@@ -81,7 +81,7 @@
 
                     {{-- Background Settings --}}
                     <x-admin.card>
-                        <h3 class="v-label mb-4">Background</h3>
+                        <h2 class="v-label mb-4">Background</h2>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 @include('admin.partials.single_image_picker', [
@@ -104,15 +104,15 @@
                         </div>
                         <div class="grid grid-cols-4 gap-3 mt-4">
                             <div>
-                                <label class="block text-xs font-medium text-v-secondary mb-1">BG Color</label>
+                                <label for="bg_color" class="block text-xs font-medium text-v-secondary mb-1">BG Color</label>
                                 <div class="flex items-center gap-2">
-                                    <input type="color" name="bg_color" x-model="bgColor" class="w-8 h-8 rounded-v-sm border border-v-border cursor-pointer p-0.5 bg-v-surface">
+                                    <input type="color" name="bg_color" id="bg_color" x-model="bgColor" class="w-8 h-8 shrink-0 rounded-v-sm border border-v-border cursor-pointer p-0.5 bg-v-surface">
                                     <span class="text-[11px] text-v-muted font-mono" x-text="bgColor"></span>
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-v-secondary mb-1">BG Size</label>
-                                <select name="bg_size" x-model="bgSize" class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                <label for="bg_size" class="block text-xs font-medium text-v-secondary mb-1">BG Size</label>
+                                <select name="bg_size" id="bg_size" x-model="bgSize" class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                     <option value="cover">Cover</option>
                                     <option value="contain">Contain</option>
                                     <option value="auto">Auto</option>
@@ -130,14 +130,14 @@
                                 <div class="flex items-center gap-1">
                                     <span class="text-[13px] text-v-text" x-text="heightMobile + 'px'"></span>
                                 </div>
-                                <a href="{{ route('admin.banners.edit', $group) }}" class="text-[10px] text-v-accent hover:opacity-80">Change in group settings</a>
+                                <a href="{{ route('admin.banners.edit', $group) }}" class="inline-flex min-h-[24px] items-center text-[10px] text-v-accent hover:opacity-80">Change in group settings</a>
                             </div>
                         </div>
                     </x-admin.card>
 
                     {{-- Slide Settings --}}
                     <x-admin.card>
-                        <h3 class="v-label mb-3">Slide Settings</h3>
+                        <h2 class="v-label mb-3">Slide Settings</h2>
                         <div class="space-y-3">
                             <div class="grid grid-cols-2 gap-3">
                                 <x-admin.field name="name" label="Name">
@@ -149,21 +149,21 @@
                             </div>
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-4">
-                                    <label class="flex items-center gap-1.5 text-xs text-v-secondary cursor-pointer">
+                                    <label class="v-check text-xs text-v-secondary">
                                         <input type="hidden" name="link_new_tab" value="0">
                                         <input type="checkbox" name="link_new_tab" value="1" {{ ($banner?->link_new_tab) ? 'checked' : '' }} class="w-3.5 h-3.5 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
                                         New tab
                                     </label>
                                     <span class="text-xs text-v-muted" x-text="isFullWidth ? 'Full width' : 'Contained'"></span>
-                                    <label class="flex items-center gap-1.5 text-xs text-v-secondary cursor-pointer">
+                                    <label class="v-check text-xs text-v-secondary">
                                         <input type="hidden" name="is_active" value="0">
                                         <input type="checkbox" name="is_active" value="1" {{ ($banner?->is_active ?? true) ? 'checked' : '' }} class="w-3.5 h-3.5 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
                                         Active
                                     </label>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <label class="v-label">Sort</label>
-                                    <input type="number" name="sort_order" value="{{ $banner?->sort_order ?? 0 }}" min="0" class="v-control w-14 h-[var(--control-h-sm)] text-[13px] text-center bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                    <label for="sort_order" class="v-label">Sort</label>
+                                    <input type="number" name="sort_order" id="sort_order" value="{{ $banner?->sort_order ?? 0 }}" min="0" class="v-control w-14 h-[var(--control-h-sm)] text-[13px] text-center bg-v-surface text-v-text border border-v-border rounded-v-md">
                                 </div>
                             </div>
                             <div class="grid grid-cols-2 gap-3">
@@ -184,7 +184,7 @@
                     {{-- Layers Panel --}}
                     <div class="v-panel">
                         <div class="v-panel__head">
-                            <h3 class="v-subhead">Layers</h3>
+                            <h2 class="v-subhead">Layers</h2>
                             <div class="ml-auto flex gap-1">
                                 <x-admin.button type="button" size="sm" variant="ghost" @click="addLayer('text')">
                                     <x-admin.icon name="text" class="w-3.5 h-3.5" /> Text
@@ -213,7 +213,7 @@
                                           :class="layer.type === 'text' ? 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]' : (layer.type === 'image' ? 'text-v-accent bg-v-accent-weak' : 'text-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]')"
                                           x-text="layer.type"></span>
                                     <span class="flex-1 truncate text-xs text-v-secondary" x-text="layer.content || layer.src?.split('/').pop() || '(empty)'"></span>
-                                    <button type="button" @click.stop="removeLayer(i)" class="text-v-muted hover:text-v-danger p-0.5 transition-colors" title="Remove layer">
+                                    <button type="button" @click.stop="removeLayer(i)" class="v-badge__x" :aria-label="'Remove layer ' + (i + 1)" title="Remove layer">
                                         <x-admin.icon name="x" class="w-3.5 h-3.5" />
                                     </button>
                                 </div>
@@ -225,7 +225,7 @@
                     <div x-show="selectedLayer !== null && layers[selectedLayer]" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-1" x-transition:enter-end="opacity-100 translate-y-0">
                         <x-admin.card>
                             <div class="flex items-center justify-between mb-3">
-                                <h3 class="v-label">Layer Properties</h3>
+                                <h2 class="v-label">Layer Properties</h2>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-[10px] font-semibold shrink-0 px-1.5 py-0.5 rounded-v-sm"
                                           :class="currentLayer?.type === 'text' ? 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]' : (currentLayer?.type === 'image' ? 'text-v-accent bg-v-accent-weak' : 'text-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]')"
@@ -444,7 +444,7 @@
                     <div class="flex items-center gap-3 px-5 py-3 border-b border-v-border bg-v-surface">
                         <div class="relative">
                             <x-admin.icon name="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-v-muted" />
-                            <input type="text" x-model="layerBrowserSearch" placeholder="Search..."
+                            <input type="text" x-model="layerBrowserSearch" aria-label="Search images" placeholder="Search..."
                                 class="v-control w-52 h-[var(--control-h)] pl-9 pr-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md placeholder:text-v-muted">
                         </div>
                     </div>
