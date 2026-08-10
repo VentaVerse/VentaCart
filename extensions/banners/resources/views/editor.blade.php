@@ -1,4 +1,7 @@
 <x-admin.shell :title="$banner ? 'Edit Slide: ' . ($banner->name ?: '#'.$banner->id) : 'New Slide'">
+    @push('head')
+        @vite('extensions/banners/resources/css/banners.css')
+    @endpush
     <x-admin.page :title="$banner ? 'Edit Slide: ' . ($banner->name ?: '#'.$banner->id) : 'New Slide'"
         :breadcrumb="[['label' => $group->name, 'url' => route('admin.banners.slides', $group)]]">
         <x-slot:actions>
@@ -15,34 +18,26 @@
             <input type="hidden" name="_selected_layer" :value="selectedLayer">
 
             {{-- ============ FULL-WIDTH PREVIEW ============ --}}
-            <div class="bg-v-surface rounded-v-lg border border-v-border overflow-hidden transition-all duration-300 isolate"
+            <div class="v-panel transition-all duration-300 isolate"
                  :style="isFullWidth ? 'margin-left: -2rem; margin-right: -2rem; border-radius: 0; border-left: 0; border-right: 0;' : ''">
-                <div class="px-4 py-2 border-b border-v-border bg-v-sunken flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <h3 class="v-label">Preview</h3>
-                        <span class="text-[10px] px-1.5 py-0.5 rounded-v-sm font-medium"
-                              :class="isFullWidth ? 'bg-v-accent-weak text-v-accent' : 'bg-v-sunken text-v-muted'"
-                              x-text="isFullWidth ? 'Full Width' : 'Contained'"></span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <button type="button" @click="playAnimations()"
-                            class="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium rounded-v-md bg-v-accent-weak text-v-accent hover:opacity-80 transition-colors"
-                            title="Preview animations">
-                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                            Play
-                        </button>
-                        <span class="text-[11px] text-v-muted font-mono" x-text="previewWidth + '×' + height + 'px'"></span>
-                    </div>
+                <div class="v-panel__head">
+                    <h3 class="v-subhead">Preview</h3>
+                    <span class="v-panel__note" x-text="isFullWidth ? 'Full width' : 'Contained'"></span>
+                    <span class="ml-auto flex items-center gap-3">
+                        <x-admin.button type="button" size="sm" variant="ghost" @click="playAnimations()">
+                            <x-admin.icon name="play" class="w-3.5 h-3.5" /> Play
+                        </x-admin.button>
+                        <span class="v-mono text-[11px] text-v-muted" x-text="previewWidth + '×' + height + 'px'"></span>
+                    </span>
                 </div>
-                <div class="bg-v-sunken flex justify-center"
-                     style="background-image: linear-gradient(45deg, #80808022 25%, transparent 25%), linear-gradient(-45deg, #80808022 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #80808022 75%), linear-gradient(-45deg, transparent 75%, #80808022 75%); background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0px;">
+                <div class="banner-stage">
                     <div class="relative overflow-hidden w-full" x-ref="previewCanvas"
                          @mousemove.prevent="onDrag($event)"
                          @mouseup.prevent="stopDrag()"
                          @mouseleave="stopDrag()"
                          :style="'height: ' + height + 'px; background-color: ' + bgColor + '; background-size: ' + bgSize + '; background-position: center; background-repeat: no-repeat;' + (bgImageUrl ? 'background-image: url(' + bgImageUrl + ')' : '')">
                         {{-- Centered stage container for layers (matches 1280px storefront stage) --}}
-                        <div style="position: absolute; inset: 0; max-width: 1280px; margin: 0 auto; left: 0; right: 0;">
+                        <div class="banner-frame">
                         <template x-for="(layer, i) in layers" :key="i">
                             <div :style="getLayerStyle(layer) + '; pointer-events: auto; z-index: ' + (selectedLayer === i ? 999 : 10 + i) + (animating && layer.delay ? '; animation-delay: ' + layer.delay + 'ms' : '')"
                                  :class="[
@@ -54,7 +49,7 @@
                                  class="absolute cursor-move select-none">
 
                                 {{-- Text layer --}}
-                                <div x-show="layer.type === 'text'" x-text="layer.content || 'Text'" style="white-space: pre-line; pointer-events: none;"></div>
+                                <div x-show="layer.type === 'text'" x-text="layer.content || 'Text'" class="banner-layer-text"></div>
 
                                 {{-- Image layer --}}
                                 <img x-show="layer.type === 'image'" alt="" aria-hidden="true"
@@ -65,13 +60,12 @@
                                 {{-- Button layer --}}
                                 <span x-show="layer.type === 'button'"
                                       :style="'background: ' + (layer.bgColor || '#ffffff') + '; color: ' + (layer.color || '#000000') + '; padding: ' + (layer.paddingY || 12) + 'px ' + (layer.paddingX || 32) + 'px; border-radius: ' + (layer.borderRadius || 0) + 'px; font-size: ' + (layer.fontSize || 14) + 'px; font-weight: ' + (layer.fontWeight || 600) + '; letter-spacing: ' + (layer.letterSpacing || 1) + 'px; pointer-events: none;'"
-                                      x-text="layer.content || 'BUTTON'"></span>
+                                      class="banner-layer-button" x-text="layer.content || 'BUTTON'"></span>
 
                                 {{-- Resize handle --}}
                                 <div x-show="selectedLayer === i"
                                      @mousedown.stop.prevent="startResize($event, i)"
-                                     class="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-v-accent border border-white rounded-v-sm cursor-se-resize shadow-v-lift"
-                                     style="pointer-events: auto; z-index: 50;"></div>
+                                     class="banner-handle absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-v-accent border border-white rounded-v-sm cursor-se-resize shadow-v-lift"></div>
                             </div>
                         </template>
                         </div>{{-- close stage --}}
@@ -188,32 +182,27 @@
                 <div class="space-y-5">
 
                     {{-- Layers Panel --}}
-                    <div class="bg-v-surface rounded-v-lg border border-v-border">
-                        <div class="px-4 py-2.5 border-b border-v-border bg-v-sunken flex items-center justify-between">
-                            <h3 class="v-label">Layers</h3>
-                            <div class="flex gap-1">
-                                <button type="button" @click="addLayer('text')" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-[color-mix(in_srgb,var(--info)_12%,transparent)] hover:opacity-80 rounded-v-sm text-v-info font-medium transition-colors" title="Add text layer">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 6v2m16-2v2M7 6v12m0 0h2m-2 0H5m12-12v12m0 0h2m-2 0h-2"/></svg>
-                                    Text
-                                </button>
-                                <button type="button" @click="addLayer('image')" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-v-accent-weak hover:opacity-80 rounded-v-sm text-v-accent font-medium transition-colors" title="Add image layer">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                    Image
-                                </button>
-                                <button type="button" @click="addLayer('button')" class="inline-flex items-center gap-1 px-2 py-1 text-[11px] bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] hover:opacity-80 rounded-v-sm text-v-warning font-medium transition-colors" title="Add button layer">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"/></svg>
-                                    Button
-                                </button>
+                    <div class="v-panel">
+                        <div class="v-panel__head">
+                            <h3 class="v-subhead">Layers</h3>
+                            <div class="ml-auto flex gap-1">
+                                <x-admin.button type="button" size="sm" variant="ghost" @click="addLayer('text')">
+                                    <x-admin.icon name="text" class="w-3.5 h-3.5" /> Text
+                                </x-admin.button>
+                                <x-admin.button type="button" size="sm" variant="ghost" @click="addLayer('image')">
+                                    <x-admin.icon name="media" class="w-3.5 h-3.5" /> Image
+                                </x-admin.button>
+                                <x-admin.button type="button" size="sm" variant="ghost" @click="addLayer('button')">
+                                    <x-admin.icon name="link" class="w-3.5 h-3.5" /> Button
+                                </x-admin.button>
                             </div>
                         </div>
 
                         {{-- Layer List --}}
                         <div class="divide-y divide-v-border max-h-52 overflow-y-auto">
                             <template x-if="layers.length === 0">
-                                <div class="px-5 py-8 text-center">
-                                    <svg class="w-8 h-8 mx-auto mb-2 text-v-muted/40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0L21.75 16.5 12 21.75 2.25 16.5l4.179-2.25m0 0l5.571 3 5.571-3"/></svg>
-                                    <p class="text-xs text-v-muted">No layers yet</p>
-                                    <p class="text-[10px] text-v-muted/70 mt-0.5">Add text, image, or button above</p>
+                                <div>
+                                    <x-admin.empty-state icon="layers" title="No layers yet" />
                                 </div>
                             </template>
                             <template x-for="(layer, i) in layers" :key="i">
@@ -424,8 +413,7 @@
 
             {{-- Layer Image Browser Modal --}}
             <div x-show="layerBrowserOpen" x-transition.opacity.duration.200ms
-                 class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-                 style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
+                 class="banner-veil fixed inset-0 z-[9999] flex items-center justify-center p-4"
                  @keydown.escape.window="layerBrowserOpen = false">
 
                 <div class="w-full max-w-5xl max-h-[85vh] flex flex-col bg-v-surface rounded-v-lg shadow-v-lift-2 border border-v-border overflow-hidden"
@@ -466,7 +454,7 @@
                             <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
                         </div>
 
-                        <div x-show="!layerBrowserLoading" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
+                        <div x-show="!layerBrowserLoading" class="banner-picker-grid grid gap-2">
                             <template x-if="layerBrowserPath !== ''">
                                 <button type="button" @click="browseLayerDir(layerBrowserParent)" class="flex flex-col items-center p-3 rounded-v-lg hover:bg-v-hover transition-colors group">
                                     <svg class="w-12 h-12 text-v-warning group-hover:opacity-80 transition-colors" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
@@ -502,42 +490,6 @@
 
         @push('head')
         {{-- Banner animation keyframes for admin preview --}}
-        <style>
-            .banner-anim { animation-duration: 0.8s; animation-fill-mode: both; animation-timing-function: ease-out; }
-            .banner-anim-fade-in { animation-name: bannerFadeIn; }
-            .banner-anim-fade-up { animation-name: bannerFadeUp; }
-            .banner-anim-fade-down { animation-name: bannerFadeDown; }
-            .banner-anim-fade-left { animation-name: bannerFadeLeft; }
-            .banner-anim-fade-right { animation-name: bannerFadeRight; }
-            .banner-anim-zoom-in { animation-name: bannerZoomIn; }
-            .banner-anim-zoom-out { animation-name: bannerZoomOut; }
-            .banner-anim-slide-up { animation-name: bannerSlideUp; }
-            .banner-anim-slide-down { animation-name: bannerSlideDown; }
-            .banner-anim-slide-left { animation-name: bannerSlideLeft; }
-            .banner-anim-slide-right { animation-name: bannerSlideRight; }
-            .banner-anim-bounce-in { animation-name: bannerBounceIn; animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
-            .banner-anim-bounce-up { animation-name: bannerBounceUp; animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1); }
-            .banner-anim-rotate-in { animation-name: bannerRotateIn; }
-            .banner-anim-flip-x { animation-name: bannerFlipX; }
-            .banner-anim-flip-y { animation-name: bannerFlipY; }
-
-            @keyframes bannerFadeIn { from { opacity: 0; } to { opacity: 1; } }
-            @keyframes bannerFadeUp { from { opacity: 0; transform: translateY(var(--anim-dist, 30px)); } to { opacity: 1; transform: translateY(0); } }
-            @keyframes bannerFadeDown { from { opacity: 0; transform: translateY(calc(-1 * var(--anim-dist, 30px))); } to { opacity: 1; transform: translateY(0); } }
-            @keyframes bannerFadeLeft { from { opacity: 0; transform: translateX(var(--anim-dist, 30px)); } to { opacity: 1; transform: translateX(0); } }
-            @keyframes bannerFadeRight { from { opacity: 0; transform: translateX(calc(-1 * var(--anim-dist, 30px))); } to { opacity: 1; transform: translateX(0); } }
-            @keyframes bannerZoomIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-            @keyframes bannerZoomOut { from { opacity: 0; transform: scale(1.2); } to { opacity: 1; transform: scale(1); } }
-            @keyframes bannerSlideUp { from { transform: translateY(var(--anim-dist, 100px)); } to { transform: translateY(0); } }
-            @keyframes bannerSlideDown { from { transform: translateY(calc(-1 * var(--anim-dist, 100px))); } to { transform: translateY(0); } }
-            @keyframes bannerSlideLeft { from { transform: translateX(var(--anim-dist, 100px)); } to { transform: translateX(0); } }
-            @keyframes bannerSlideRight { from { transform: translateX(calc(-1 * var(--anim-dist, 100px))); } to { transform: translateX(0); } }
-            @keyframes bannerBounceIn { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
-            @keyframes bannerBounceUp { from { opacity: 0; transform: translateY(var(--anim-dist, 60px)); } to { opacity: 1; transform: translateY(0); } }
-            @keyframes bannerRotateIn { from { opacity: 0; transform: rotate(-90deg) scale(0.5); } to { opacity: 1; transform: rotate(0) scale(1); } }
-            @keyframes bannerFlipX { from { opacity: 0; transform: perspective(400px) rotateX(90deg); } to { opacity: 1; transform: perspective(400px) rotateX(0); } }
-            @keyframes bannerFlipY { from { opacity: 0; transform: perspective(400px) rotateY(90deg); } to { opacity: 1; transform: perspective(400px) rotateY(0); } }
-        </style>
         <script>
         function bannerEditor() {
             return {

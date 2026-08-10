@@ -13,36 +13,43 @@
    else that says it is a field), so it needs a token the dividers do
    not share; and stating it on .v-control repairs the several dozen
    raw <input class="v-control ... border-v-strong"> row editors in
-   the admin without editing any of them, because a two-class
-   selector outranks a utility. */
-.v-admin .v-control {
+   the admin without editing any of them.
+
+   That repair used to run on weight: the rule was `.v-admin
+   .v-control` and outranked the utility. It now runs on order.
+   Every rule in this layer sits at one class, and admin.css is
+   linked after app.css, so a primitive and a utility naming the same
+   property tie and the primitive wins by coming last. Verified in
+   the browser: a bare `v-control border-v-strong` input still
+   resolves to var(--border-control). */
+.v-control {
     border-color: var(--border-control);
     transition: border-color var(--motion-fast);
 }
 
 /* A caller that says danger, in either spelling, still says danger. */
-.v-admin .v-control--error,
-.v-admin .v-control.border-v-danger { border-color: var(--danger); }
+.v-control--error,
+.v-control.border-v-danger { border-color: var(--danger); }
 
 /* Focus deepens the edge; the brass outline in base.css is the
    visible ring. One ring, not two. */
-.v-admin .v-control:focus { border-color: var(--text-secondary); }
+.v-control:focus { border-color: var(--text-secondary); }
 
 /* Checkbox and radio boxes are the other case where the edge is the
    whole component: an unchecked box is a 16px square of the sheet
    colour and its border is the only evidence it is there. Written
    against the element rather than a class because the admin has ~30
    raw checkboxes in row editors that carry no shared class. */
-.v-admin input[type="checkbox"],
-.v-admin input[type="radio"] { border-color: var(--border-control); }
+input[type="checkbox"],
+input[type="radio"] { border-color: var(--border-control); }
 
-.v-admin .v-control[readonly],
-.v-admin .v-control:disabled {
+.v-control[readonly],
+.v-control:disabled {
     background: var(--surface-sunken);
     color: var(--text-secondary);
 }
 
-.v-admin textarea.v-control { min-height: 96px; line-height: 1.5; resize: vertical; }
+textarea.v-control { min-height: 96px; line-height: 1.5; resize: vertical; }
 
 /*
  * Selects: @tailwindcss/forms gives bare <select> py-2 + line-height 1.5,
@@ -50,7 +57,7 @@
  * bottom (owner-reported "halved dropdowns"). Zero the vertical padding so
  * the fixed height centers the text; applies to component AND raw selects.
  */
-.v-admin select { padding-top: 0; padding-bottom: 0; line-height: normal; }
+select { padding-top: 0; padding-bottom: 0; line-height: normal; }
 
 /* ------------------------------------------------------------
    Field: label above the control, one message directly beneath the
@@ -58,14 +65,14 @@
    which makes a person hunt for the field the message is about.
    ------------------------------------------------------------ */
 
-.v-admin .v-field {
+.v-field {
     display: flex;
     flex-direction: column;
     gap: 4px;
     min-width: 0;
 }
 
-.v-admin .v-field__label {
+.v-field__label {
     display: flex;
     align-items: baseline;
     gap: 6px;
@@ -75,7 +82,7 @@
    reason the micro-cap did not: this is a two-state tag whose job is
    to be scannable down a column of labels without being read, and it
    is a single word that never grows. */
-.v-admin .v-req {
+.v-req {
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.06em;
@@ -83,14 +90,14 @@
     color: var(--warning);
 }
 
-.v-admin .v-field__hint {
+.v-field__hint {
     font-size: 12px;
     max-width: 62ch;
 }
 
-:where(.v-admin) :where(.v-field__hint) { color: var(--text-muted); }
+:where(.v-field__hint) { color: var(--text-muted); }
 
-.v-admin .v-field__error {
+.v-field__error {
     font-size: 12px;
     font-weight: 600;
     color: var(--danger);
@@ -113,16 +120,16 @@
    both would have been invisible in dark, where the accent is a pale
    brass.
    ------------------------------------------------------------ */
-.v-admin .v-toggle__track { background: var(--border-control); }
-.v-admin .v-toggle__knob { background: var(--surface); }
+.v-toggle__track { background: var(--border-control); }
+.v-toggle__knob { background: var(--surface); }
 
-.v-admin .v-toggle input:checked ~ .v-toggle__knob { background: var(--accent-text); }
+.v-toggle input:checked ~ .v-toggle__knob { background: var(--accent-text); }
 
 /* The indicator moves to the track. The input keeps the focus but
    paints nothing, because it is 1px wide and clipped. */
-.v-admin .v-toggle input:focus-visible { outline: none; }
+.v-toggle input:focus-visible { outline: none; }
 
-.v-admin .v-toggle input:focus-visible + .v-toggle__track {
+.v-toggle input:focus-visible + .v-toggle__track {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
@@ -145,7 +152,7 @@
    `aria-checked` and the CSS and the screen reader agree.
    ------------------------------------------------------------ */
 
-.v-admin .v-switch {
+.v-switch {
     display: inline-flex;
     align-items: center;
     gap: 10px;
@@ -154,12 +161,12 @@
 /* The words before the control, for a switch that sits at the
    trailing edge of a panel head, where "Enabled [switch]" reads in
    the order the eye arrives. */
-.v-admin .v-switch--lead { flex-direction: row-reverse; }
+.v-switch--lead { flex-direction: row-reverse; }
 
 /* Top-aligned, for the rare switch whose sentence wraps. */
-.v-admin .v-switch--top { align-items: flex-start; }
+.v-switch--top { align-items: flex-start; }
 
-.v-admin .v-switch__text {
+.v-switch__text {
     min-width: 0;
     font-size: 13px;
     line-height: 1.45;
@@ -167,21 +174,21 @@
     cursor: pointer;
 }
 
-.v-admin .v-toggle--btn {
+.v-toggle--btn {
     position: relative;
     display: inline-flex;
     align-items: center;
     flex: none;
 }
 
-.v-admin .v-toggle--btn[aria-checked="true"] .v-toggle__track { background: var(--accent); }
+.v-toggle--btn[aria-checked="true"] .v-toggle__track { background: var(--accent); }
 
-.v-admin .v-toggle--btn[aria-checked="true"] .v-toggle__knob {
+.v-toggle--btn[aria-checked="true"] .v-toggle__knob {
     background: var(--accent-text);
     transform: translateX(16px);
 }
 
-.v-admin .v-toggle--btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.v-toggle--btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ------------------------------------------------------------
    Checklist: a bounded set of boxes
@@ -193,7 +200,7 @@
    three different heights.
    ------------------------------------------------------------ */
 
-.v-admin .v-checklist {
+.v-checklist {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -205,17 +212,141 @@
     border-radius: var(--radius-md);
 }
 
-.v-admin .v-checklist:empty { display: none; }
+.v-checklist:empty { display: none; }
+
+/* ------------------------------------------------------------
+   Picker: two bounded lists and the traffic between them
+
+   The checklist's sibling, for the case the checklist cannot serve:
+   a set too long to print in full, where what is chosen has to read
+   as its own list rather than as the ticked members of a longer one.
+
+   Same contract as every other stateful control in this system: the
+   highlight lives on `aria-selected`, so the CSS and the screen
+   reader read one attribute, and an option is a real <button> so it
+   can be reached from the keyboard. The dual listbox spelled both as
+   a <div> with a click handler and a pair of Tailwind class strings.
+   ------------------------------------------------------------ */
+
+.v-picker { display: flex; align-items: stretch; }
+
+/* The two panes and the traffic column read as one joined box, so
+   only the outer corners round. */
+.v-picker__pane {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.v-picker__pane--in {
+    border-start-start-radius: var(--radius-md);
+    border-end-start-radius: var(--radius-md);
+}
+
+.v-picker__pane--out {
+    border-start-end-radius: var(--radius-md);
+    border-end-end-radius: var(--radius-md);
+}
+
+.v-picker__head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--border);
+}
+
+.v-picker__list {
+    height: 11rem;
+    overflow-y: auto;
+    background: var(--surface);
+}
+
+.v-picker__opt {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: left;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--motion-fast), color var(--motion-fast);
+}
+
+.v-picker__opt:hover { background: var(--surface-hover); }
+
+.v-picker__opt[aria-selected="true"] {
+    background: var(--accent-weak);
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* The trailing pane's highlight means "about to leave", so it takes
+   the danger wash. The word beside the arrow buttons says the same
+   thing, so the colour is never carrying it alone. */
+.v-picker__pane--out .v-picker__opt[aria-selected="true"] {
+    background: var(--bl-bad-wash);
+    color: var(--danger);
+}
+
+.v-picker__none {
+    padding: 24px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.v-picker__mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    gap: 8px;
+    padding: 0 8px;
+    background: var(--surface-sunken);
+    border-block: 1px solid var(--border);
+}
+
+/* Three columns do not fit a phone, so the traffic runs across
+   instead of down and the two lists stack. */
+@media (max-width: 640px) {
+    .v-picker { flex-direction: column; }
+
+    /* Stacked, the panes are sized by their own contents. Left at
+       `flex: 1 1 0` the basis would apply to HEIGHT and collapse both
+       lists to nothing. */
+    .v-picker__pane { flex: 0 0 auto; }
+
+    .v-picker__pane--in {
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .v-picker__pane--out {
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+
+    .v-picker__mid {
+        flex-direction: row;
+        padding: 8px;
+        border-block: 0;
+        border-inline: 1px solid var(--border);
+    }
+}
 
 /* A figure column in an editable grid reads as a column of figures.
    The browser's own stepper arrows put two chevrons inside every cell
    and the column stops aligning, so the variant and rate grids
    suppress them. Moved here from a <style> block in the product form,
    which is the rule this system does not allow. */
-.v-admin .variant-table input[type="number"]::-webkit-inner-spin-button,
-.v-admin .variant-table input[type="number"]::-webkit-outer-spin-button {
+.variant-table input[type="number"]::-webkit-inner-spin-button,
+.variant-table input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
 }
 
-.v-admin .variant-table input[type="number"] { -moz-appearance: textfield; }
+.variant-table input[type="number"] { -moz-appearance: textfield; }

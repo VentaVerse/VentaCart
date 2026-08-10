@@ -17,31 +17,35 @@
 
    Both selector families are needed: .tox-dialog covers a modal
    rendered inside the editor's own container, .tox-tinymce-aux covers
-   the one appended to <body>. Body carries .v-admin, so both resolve.
+   the one appended to <body>. Neither is scoped by an ancestor: the
+   scope is the bundle, which only the admin loads, and the weight
+   these rules need over the skin comes from !important, not from a
+   `.v-admin` in front of them. Verified in the browser against a real
+   Insert Link dialog, before and after that prefix came off.
 
    The same rules also lived in resources/css/app.css, the bundle the
    storefront loads, where they did nothing at all: TinyMCE exists only
    in the admin. That copy carried the indigo too, and it is gone.
    ============================================================ */
 
-.v-admin .tox .tox-dialog .tox-textfield,
-.v-admin .tox .tox-dialog .tox-textarea,
-.v-admin .tox .tox-dialog .tox-selectfield select,
-.v-admin .tox.tox-tinymce-aux .tox-textfield,
-.v-admin .tox.tox-tinymce-aux .tox-textarea,
-.v-admin .tox.tox-tinymce-aux .tox-selectfield select {
+.tox .tox-dialog .tox-textfield,
+.tox .tox-dialog .tox-textarea,
+.tox .tox-dialog .tox-selectfield select,
+.tox.tox-tinymce-aux .tox-textfield,
+.tox.tox-tinymce-aux .tox-textarea,
+.tox.tox-tinymce-aux .tox-selectfield select {
     border: 1px solid var(--border-control) !important;
     border-radius: var(--radius-sm) !important;
     padding: 6px 8px !important;
     font-size: 14px !important;
 }
 
-.v-admin .tox .tox-dialog .tox-textfield:focus,
-.v-admin .tox .tox-dialog .tox-textarea:focus,
-.v-admin .tox .tox-dialog .tox-selectfield select:focus,
-.v-admin .tox.tox-tinymce-aux .tox-textfield:focus,
-.v-admin .tox.tox-tinymce-aux .tox-textarea:focus,
-.v-admin .tox.tox-tinymce-aux .tox-selectfield select:focus {
+.tox .tox-dialog .tox-textfield:focus,
+.tox .tox-dialog .tox-textarea:focus,
+.tox .tox-dialog .tox-selectfield select:focus,
+.tox.tox-tinymce-aux .tox-textfield:focus,
+.tox.tox-tinymce-aux .tox-textarea:focus,
+.tox.tox-tinymce-aux .tox-selectfield select:focus {
     border-color: var(--focus) !important;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 28%, transparent) !important;
 }

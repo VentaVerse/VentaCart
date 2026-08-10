@@ -5,7 +5,14 @@
    that hold what is genuinely specific to one screen. A page-specific
    rule that has to win over a primitive wins on document order rather
    than by outweighing it with a `.v-admin` ancestor, which is what
-   kept the primitives from spreading in the first place. */
+   kept the primitives from spreading in the first place.
+
+   Every file below now states its selectors at one class. `.v-admin`
+   is the ground the body wears and the scope tokens.css and base.css
+   hang off; it is never used to buy weight. That was the last thing
+   dividing this layer into two specificity classes, where a promoted
+   primitive could lose silently to an older rule on the same element
+   and the only tell was a 1px change nobody sees in review. */
 
 @import "./tokens.css";
 @import "./base.css";

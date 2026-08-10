@@ -21,16 +21,19 @@
     $money = ['mark' => '₱', 'amount' => '148,392,207.55'];
 @endphp
 <x-admin.shell title="UI Kit">
-    <div class="v-day">
-        <header class="v-day__head">
-            <div class="v-day__headtext">
-                <h1 class="v-day__date">UI Kit</h1>
-                <p class="v-day__standing">Every promoted primitive, in every state the admin can put it in.</p>
-            </div>
+    {{-- The kit's own head IS the primitive: x-admin.page, with the trail
+         it derives from the path, the title, the standing line and the
+         action set. There is one page head in the admin and this is it,
+         so the kit demonstrates it by wearing it rather than by drawing a
+         second copy of it further down the page. --}}
+    <x-admin.page class="v-day" title="UI Kit"
+        :breadcrumb="[['label' => 'Dashboard', 'url' => route('admin.dashboard')]]"
+        standing="Every promoted primitive, in every state the admin can put it in.">
+        <x-slot:actions>
             <x-admin.button variant="primary">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Primary action
             </x-admin.button>
-        </header>
+        </x-slot:actions>
 
         {{-- ------------------------------------------------------------
              Figures: the filled measure block, all six identity accents.
@@ -410,6 +413,56 @@
                     </x-admin.field>
                 </x-admin.panel>
 
+                {{-- Picker: the checklist's sibling, for a set too long
+                     to print in full. Shown with the fixture the dual
+                     listbox actually carries: a highlighted option in
+                     each pane, so both states of `aria-selected` are on
+                     the page, and the trailing pane's danger wash beside
+                     the leading pane's accent. --}}
+                <x-admin.panel title="Picker" id="kit-picker">
+                    <div class="v-picker">
+                        <div class="v-picker__pane v-picker__pane--in">
+                            <div class="v-picker__head">
+                                <span class="v-label">Available</span>
+                                <input type="text" class="v-control w-full h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border rounded-v-md placeholder:text-v-muted" placeholder="Search..." aria-label="Search available kit items">
+                            </div>
+                            <div class="v-picker__list">
+                                <div role="listbox" aria-multiselectable="true" aria-label="Available kit items">
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="true">Metro Manila</button>
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="false">North Luzon</button>
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="false">{{ $longCustomer }}</button>
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="false">Visayas</button>
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="false">Mindanao</button>
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="false">International</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-picker__mid">
+                            <x-admin.button variant="secondary" size="sm" class="w-8 shrink-0 !px-0" aria-label="Add all">
+                                <x-admin.icon name="chevron-right" class="w-3.5 h-3.5 -mr-1.5" />
+                                <x-admin.icon name="chevron-right" class="w-3.5 h-3.5" />
+                            </x-admin.button>
+                            <x-admin.button variant="secondary" size="sm" class="w-8 shrink-0 !px-0" aria-label="Add highlighted">
+                                <x-admin.icon name="chevron-right" class="w-3.5 h-3.5" />
+                            </x-admin.button>
+                            <x-admin.button variant="secondary" size="sm" class="w-8 shrink-0 !px-0" aria-label="Remove highlighted" disabled>
+                                <x-admin.icon name="chevron-left" class="w-3.5 h-3.5" />
+                            </x-admin.button>
+                        </div>
+                        <div class="v-picker__pane v-picker__pane--out">
+                            <div class="v-picker__head">
+                                <span class="v-label">Selected <span class="text-v-accent">(2)</span></span>
+                            </div>
+                            <div class="v-picker__list">
+                                <div role="listbox" aria-multiselectable="true" aria-label="Selected kit items">
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="true">Domestic</button>
+                                    <button type="button" class="v-picker__opt" role="option" aria-selected="false">South Luzon</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </x-admin.panel>
+
                 {{-- Tiles: the grid of things you look at rather than
                      read. A folder, a file, a picked file, and a file
                      carrying its own controls. --}}
@@ -706,5 +759,5 @@
                 </x-admin.panel>
             </div>
         </div>
-    </div>
+    </x-admin.page>
 </x-admin.shell>

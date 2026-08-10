@@ -9,7 +9,7 @@
 /* ------------------------------------------------------------
    Slab
    ------------------------------------------------------------ */
-.v-admin .v-slab {
+.v-slab {
     background: var(--bl-slab);
     border-right: 1px solid var(--bl-slab-rule);
     color: var(--bl-slab-ink);
@@ -17,10 +17,10 @@
 }
 
 @media (min-width: 1024px) {
-    .v-admin .v-slab { transform: none !important; }
+    .v-slab { transform: none !important; }
 }
 
-.v-admin .v-slab__brand {
+.v-slab__brand {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -31,7 +31,7 @@
     color: var(--bl-slab-on);
 }
 
-.v-admin .v-slab__home {
+.v-slab__home {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -44,7 +44,7 @@
 /* The store's own logo, held to a strip so a tall or wide upload
    cannot set the height of the slab header. Contained, never cropped,
    so a wide wordmark and a square monogram both sit correctly. */
-.v-admin .v-slab__logo {
+.v-slab__logo {
     flex: none;
     width: auto;
     max-width: 116px;
@@ -60,7 +60,7 @@
    own mark in, and it makes any logo legible on the chrome: dark ink,
    light ink or full colour. It wraps only an uploaded logo, never the
    generated initial, which already carries its own brass. */
-.v-admin .v-logo-plate {
+.v-logo-plate {
     display: inline-grid;
     place-items: center;
     flex: none;
@@ -71,7 +71,7 @@
 
 /* The fallback when no logo is uploaded: the store's initial on a
    brass tile, so the header still has a mark to find at a glance. */
-.v-admin .v-slab__mark {
+.v-slab__mark {
     display: grid;
     place-items: center;
     flex: none;
@@ -85,7 +85,7 @@
     letter-spacing: -0.01em;
 }
 
-.v-admin .v-slab__name {
+.v-slab__name {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -96,15 +96,15 @@
     color: var(--bl-slab-on);
 }
 
-.v-admin .v-slab__close {
+.v-slab__close {
     margin-left: auto;
     flex: none;
     color: var(--bl-slab-ink);
 }
 
-.v-admin .v-slab__close:hover { color: var(--bl-slab-on); }
+.v-slab__close:hover { color: var(--bl-slab-on); }
 
-.v-admin .v-slab__foot {
+.v-slab__foot {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -115,7 +115,7 @@
     color: var(--bl-slab-ink);
 }
 
-.v-admin .v-slab__avatar {
+.v-slab__avatar {
     display: grid;
     place-items: center;
     flex: none;
@@ -128,8 +128,8 @@
     font-weight: 650;
 }
 
-.v-admin .v-slab__who { min-width: 0; flex: 1 1 auto; }
-.v-admin .v-slab__who b {
+.v-slab__who { min-width: 0; flex: 1 1 auto; }
+.v-slab__who b {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -138,26 +138,26 @@
     font-weight: 600;
     color: var(--bl-slab-on);
 }
-.v-admin .v-slab__who span {
+.v-slab__who span {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.v-admin .v-slab__act {
+.v-slab__act {
     flex: none;
     color: var(--bl-slab-ink);
     border-radius: var(--bl-r-dot);
 }
 
-.v-admin .v-slab__act:hover { color: var(--bl-slab-on); }
-.v-admin .v-slab :focus-visible { outline-color: var(--bl-slab-on); }
+.v-slab__act:hover { color: var(--bl-slab-on); }
+.v-slab :focus-visible { outline-color: var(--bl-slab-on); }
 
 /* ------------------------------------------------------------
    Navigation
    ------------------------------------------------------------ */
-.v-admin .v-nav {
+.v-nav {
     display: flex;
     flex-direction: column;
     gap: 1px;
@@ -166,9 +166,9 @@
     scrollbar-color: var(--bl-slab-active) transparent;
 }
 
-.v-admin .v-nav__item,
-.v-admin .v-nav__toggle,
-.v-admin .v-nav__child {
+.v-nav__item,
+.v-nav__toggle,
+.v-nav__child {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -181,20 +181,20 @@
     color: var(--bl-slab-ink);
 }
 
-.v-admin .v-nav__child {
+.v-nav__child {
     padding-left: 44px;
     font-size: 13px;
 }
 
-.v-admin .v-nav__item:hover,
-.v-admin .v-nav__toggle:hover,
-.v-admin .v-nav__child:hover {
+.v-nav__item:hover,
+.v-nav__toggle:hover,
+.v-nav__child:hover {
     background: var(--bl-slab-hover);
     color: var(--bl-slab-on);
 }
 
-.v-admin .v-nav__item.is-on,
-.v-admin .v-nav__child.is-on {
+.v-nav__item.is-on,
+.v-nav__child.is-on {
     background: var(--bl-slab-active);
     color: var(--bl-slab-on);
     font-weight: 600;
@@ -202,21 +202,21 @@
 
 /* The active entry is also marked on its edge, so which page you are
    on is not carried by a background tint alone. */
-.v-admin .v-nav__item.is-on,
-.v-admin .v-nav__child.is-on {
+.v-nav__item.is-on,
+.v-nav__child.is-on {
     box-shadow: inset 3px 0 0 var(--bl-brand);
 }
 
-.v-admin .v-nav__label { flex: 1 1 auto; min-width: 0; }
+.v-nav__label { flex: 1 1 auto; min-width: 0; }
 
-.v-admin .v-nav__chev {
+.v-nav__chev {
     flex: none;
     transition: transform 150ms cubic-bezier(.2, .7, .3, 1);
 }
 
-.v-admin .v-nav__toggle[aria-expanded="true"] .v-nav__chev { transform: rotate(90deg); }
+.v-nav__toggle[aria-expanded="true"] .v-nav__chev { transform: rotate(90deg); }
 
-.v-admin .v-nav__badge {
+.v-nav__badge {
     flex: none;
     min-width: 20px;
     padding: 0 6px;
@@ -238,15 +238,15 @@
    until it is open. The 0fr to 1fr grid row gives the browser both
    ends of the animation without anyone measuring anything, so the
    group expands and collapses smoothly in both directions. */
-.v-admin .v-collapse {
+.v-collapse {
     display: grid;
     grid-template-rows: 0fr;
     transition: grid-template-rows 220ms cubic-bezier(.2, .7, .3, 1);
 }
 
-.v-admin .v-collapse.is-open { grid-template-rows: 1fr; }
+.v-collapse.is-open { grid-template-rows: 1fr; }
 
-.v-admin .v-collapse__inner {
+.v-collapse__inner {
     display: flex;
     flex-direction: column;
     gap: 1px;
@@ -257,11 +257,11 @@
 /* Breathing room under an open group only. Left on the inner element
    it survives the clip and every closed group keeps a ghost, which
    reads as uneven spacing down the slab. */
-.v-admin .v-collapse.is-open .v-collapse__inner { padding-bottom: 4px; }
+.v-collapse.is-open .v-collapse__inner { padding-bottom: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
-    .v-admin .v-collapse { transition: none; }
-    .v-admin .v-nav__chev { transition: none; }
+    .v-collapse { transition: none; }
+    .v-nav__chev { transition: none; }
 }
 
 /* ------------------------------------------------------------
@@ -270,7 +270,7 @@
    It sits outside the content region, so it takes the page gutter
    directly: its search field has to line up with the page beneath it.
    ------------------------------------------------------------ */
-.v-admin .v-topbar {
+.v-topbar {
     display: flex;
     align-items: center;
     gap: 14px;
@@ -279,7 +279,7 @@
     background: var(--canvas);
 }
 
-.v-admin .v-topbar__right {
+.v-topbar__right {
     display: flex;
     align-items: center;
     gap: 12px;
@@ -292,11 +292,11 @@
    switch, a store link and an account, and it is still over the
    window at 768. It takes a second line rather than running off. */
 @media (max-width: 820px) {
-    .v-admin .v-topbar { flex-wrap: wrap; row-gap: 8px; }
-    .v-admin .v-topbar__right { flex: 1 1 100%; justify-content: flex-end; }
+    .v-topbar { flex-wrap: wrap; row-gap: 8px; }
+    .v-topbar__right { flex: 1 1 100%; justify-content: flex-end; }
 }
 
-.v-admin .v-search-trigger {
+.v-search-trigger {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -316,10 +316,10 @@
     cursor: pointer;
 }
 
-.v-admin .v-search-trigger:hover { border-color: var(--text-secondary); }
-.v-admin .v-search-trigger__label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-search-trigger:hover { border-color: var(--text-secondary); }
+.v-search-trigger__label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.v-admin .v-search-trigger__hint {
+.v-search-trigger__hint {
     flex: none;
     padding: 1px 5px;
     border: 1px solid var(--border);
@@ -331,12 +331,12 @@
 /* The keyboard hint is meaningless on a device with no keyboard, and
    it is the widest thing in the cluster. */
 @media (max-width: 640px) {
-    .v-admin .v-search-trigger__hint { display: none; }
+    .v-search-trigger__hint { display: none; }
 }
 
-.v-admin .v-theme { display: inline-flex; gap: 1px; }
+.v-theme { display: inline-flex; gap: 1px; }
 
-.v-admin .v-theme__btn {
+.v-theme__btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -349,12 +349,12 @@
     cursor: pointer;
 }
 
-.v-admin .v-theme__btn:hover { color: var(--text); }
-.v-admin .v-theme__btn.is-on { background: var(--text); color: var(--canvas); }
+.v-theme__btn:hover { color: var(--text); }
+.v-theme__btn.is-on { background: var(--text); color: var(--canvas); }
 
-.v-admin .v-account { position: relative; display: inline-flex; }
+.v-account { position: relative; display: inline-flex; }
 
-.v-admin .v-account__avatar {
+.v-account__avatar {
     display: grid;
     place-items: center;
     flex: none;
@@ -375,7 +375,7 @@
    forget it. Inside the region --bl-gutter resolves to nothing so a
    rule that already asks for it cannot double up.
    ------------------------------------------------------------ */
-.v-admin .v-content {
+.v-content {
     flex: 1 1 auto;
     width: 100%;
     min-width: 0;
@@ -396,7 +396,7 @@
    first stop in the tab order on every admin screen, which is what
    stops a keyboard user walking the slab before reaching the work.
    ------------------------------------------------------------ */
-.v-admin .v-skip {
+.v-skip {
     position: fixed;
     top: 8px;
     left: 8px;
@@ -415,7 +415,7 @@
     transform: translateY(-200%);
 }
 
-.v-admin .v-skip:focus-visible { transform: none; }
+.v-skip:focus-visible { transform: none; }
 
 /* ------------------------------------------------------------
    Tap targets
@@ -427,7 +427,7 @@
    the two controls that are a phone's only way in and out of the
    navigation, measured at 20px and 16px by the browser audit.
    ------------------------------------------------------------ */
-.v-admin .v-tap {
+.v-tap {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -439,7 +439,7 @@
 
 /* The close sits at the end of the brand row and gets there with an
    auto margin, which the shorthand above would have eaten. */
-.v-admin .v-slab__close.v-tap { margin-left: auto; }
+.v-slab__close.v-tap { margin-left: auto; }
 
 /* Above lg the slab is permanent: it has no close, and the topbar
    offers no hamburger for a drawer that cannot close. These two are
@@ -447,6 +447,6 @@
    Tailwind lg:hidden they used to carry lost to .v-tap's display on
    specificity, which is how a permanent sidebar came to wear an X. */
 @media (min-width: 1024px) {
-    .v-admin .v-slab__close,
-    .v-admin .v-topbar__menu { display: none; }
+    .v-slab__close,
+    .v-topbar__menu { display: none; }
 }

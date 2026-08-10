@@ -1,0 +1,104 @@
+/* ============================================================
+   Banners: the slide editor's own residue
+
+   Everything here was a <style> block or a static `style=` attribute
+   inside editor.blade.php, which is the rule this system does not
+   allow. Only what is genuinely specific to a canvas editor lives
+   here: the transparency checkerboard behind the stage, the stage's
+   own box, and the animation library the storefront plays back.
+
+   The layer geometry stays as an Alpine `:style` binding on the page,
+   because a layer's position, size and colour are a record's data and
+   cannot be named in a stylesheet.
+
+   The animation names below are the SAME vocabulary the three
+   storefront themes declare in their own theme.css. This file is the
+   editor's copy so the preview plays what the storefront will play;
+   the themes are not touched by it, and are not loaded here.
+   ============================================================ */
+
+/* The stage: the transparency checkerboard a slide is composed over,
+   so a background image with an alpha channel reads as transparent
+   rather than as white. */
+.banner-stage {
+    display: flex;
+    justify-content: center;
+    background-color: var(--surface-sunken);
+    background-image:
+        linear-gradient(45deg, #80808022 25%, transparent 25%),
+        linear-gradient(-45deg, #80808022 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #80808022 75%),
+        linear-gradient(-45deg, transparent 75%, #80808022 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+/* The centred layer frame, matching the 1280px storefront stage, so a
+   layer dragged to the middle here lands in the middle there. */
+.banner-frame {
+    position: absolute;
+    inset: 0;
+    left: 0;
+    right: 0;
+    max-width: 1280px;
+    margin-inline: auto;
+}
+
+/* A text layer keeps its authored line breaks and never eats the
+   pointer: the draggable wrapper around it owns the pointer. */
+.banner-layer-text,
+.banner-layer-button { white-space: pre-line; pointer-events: none; }
+
+.banner-handle { pointer-events: auto; z-index: 50; }
+
+/* The modal ground the media browser opens on. */
+.banner-veil {
+    background: rgba(0, 0, 0, .45);
+    backdrop-filter: blur(3px);
+}
+
+.banner-picker-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+
+/* ------------------------------------------------------------
+   The animation library, played in the preview
+   ------------------------------------------------------------ */
+
+.banner-anim {
+    animation-duration: .8s;
+    animation-fill-mode: both;
+    animation-timing-function: ease-out;
+}
+
+.banner-anim-fade-in { animation-name: bannerFadeIn; }
+.banner-anim-fade-up { animation-name: bannerFadeUp; }
+.banner-anim-fade-down { animation-name: bannerFadeDown; }
+.banner-anim-fade-left { animation-name: bannerFadeLeft; }
+.banner-anim-fade-right { animation-name: bannerFadeRight; }
+.banner-anim-zoom-in { animation-name: bannerZoomIn; }
+.banner-anim-zoom-out { animation-name: bannerZoomOut; }
+.banner-anim-slide-up { animation-name: bannerSlideUp; }
+.banner-anim-slide-down { animation-name: bannerSlideDown; }
+.banner-anim-slide-left { animation-name: bannerSlideLeft; }
+.banner-anim-slide-right { animation-name: bannerSlideRight; }
+.banner-anim-bounce-in { animation-name: bannerBounceIn; animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+.banner-anim-bounce-up { animation-name: bannerBounceUp; animation-timing-function: cubic-bezier(.34, 1.56, .64, 1); }
+.banner-anim-rotate-in { animation-name: bannerRotateIn; }
+.banner-anim-flip-x { animation-name: bannerFlipX; }
+.banner-anim-flip-y { animation-name: bannerFlipY; }
+
+@keyframes bannerFadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes bannerFadeUp { from { opacity: 0; transform: translateY(var(--anim-dist, 30px)); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bannerFadeDown { from { opacity: 0; transform: translateY(calc(-1 * var(--anim-dist, 30px))); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bannerFadeLeft { from { opacity: 0; transform: translateX(var(--anim-dist, 30px)); } to { opacity: 1; transform: translateX(0); } }
+@keyframes bannerFadeRight { from { opacity: 0; transform: translateX(calc(-1 * var(--anim-dist, 30px))); } to { opacity: 1; transform: translateX(0); } }
+@keyframes bannerZoomIn { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes bannerZoomOut { from { opacity: 0; transform: scale(1.2); } to { opacity: 1; transform: scale(1); } }
+@keyframes bannerSlideUp { from { transform: translateY(var(--anim-dist, 100px)); } to { transform: translateY(0); } }
+@keyframes bannerSlideDown { from { transform: translateY(calc(-1 * var(--anim-dist, 100px))); } to { transform: translateY(0); } }
+@keyframes bannerSlideLeft { from { transform: translateX(var(--anim-dist, 100px)); } to { transform: translateX(0); } }
+@keyframes bannerSlideRight { from { transform: translateX(calc(-1 * var(--anim-dist, 100px))); } to { transform: translateX(0); } }
+@keyframes bannerBounceIn { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+@keyframes bannerBounceUp { from { opacity: 0; transform: translateY(var(--anim-dist, 60px)); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bannerRotateIn { from { opacity: 0; transform: rotate(-90deg) scale(.5); } to { opacity: 1; transform: rotate(0) scale(1); } }
+@keyframes bannerFlipX { from { opacity: 0; transform: perspective(400px) rotateX(90deg); } to { opacity: 1; transform: perspective(400px) rotateX(0); } }
+@keyframes bannerFlipY { from { opacity: 0; transform: perspective(400px) rotateY(90deg); } to { opacity: 1; transform: perspective(400px) rotateY(0); } }

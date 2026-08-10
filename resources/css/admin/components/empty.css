@@ -104,7 +104,7 @@
    a floating sheet at the panel radius, carrying the resting lift.
    ------------------------------------------------------------ */
 
-.v-admin .v-menu__item {
+.v-menu__item {
     display: block;
     width: 100%;
     padding: 6px 14px;
@@ -118,14 +118,14 @@
     cursor: pointer;
 }
 
-.v-admin .v-menu__item:hover {
+.v-menu__item:hover {
     background: var(--surface-hover);
     color: var(--text);
 }
 
-.v-admin .v-menu__item--danger:hover { color: var(--danger); }
+.v-menu__item--danger:hover { color: var(--danger); }
 
-.v-admin .v-menu__sep {
+.v-menu__sep {
     height: 1px;
     margin: 4px 0;
     background: var(--border);

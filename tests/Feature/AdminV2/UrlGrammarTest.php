@@ -586,7 +586,7 @@ class UrlGrammarTest extends TestCase
     /** Asserts each label appears, in order, inside the rendered breadcrumb <nav>. */
     private function assertBreadcrumbTrail(string $html, array $expectedLabels): void
     {
-        $found = preg_match('/<nav[^>]*class="[^"]*mb-0\.5 flex items-center[^"]*"[^>]*>(.*?)<\/nav>/s', $html, $matches);
+        $found = preg_match('/<nav[^>]*class="[^"]*v-day__trail[^"]*"[^>]*>(.*?)<\/nav>/s', $html, $matches);
         $this->assertSame(1, $found, 'Breadcrumb <nav> not found in response HTML.');
 
         $trailText = trim(preg_replace('/\s+/', ' ', strip_tags($matches[1])));

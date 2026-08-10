@@ -116,37 +116,36 @@
         </template>
     </div>
 
-    {{-- Dual list --}}
+    {{-- The picker: two bounded lists and the traffic between them. --}}
     <div id="{{ $dlbId }}-panel" x-show="showList" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
-        class="flex items-stretch gap-0">
+        class="v-picker">
 
         {{-- Available --}}
-        <div class="flex-1 min-w-0 border border-v-border rounded-l-v-md overflow-hidden">
-            <div class="bg-v-sunken px-3 py-2 border-b border-v-border">
-                <div class="flex items-center justify-between mb-1.5">
-                    <span class="v-label">Available</span>
-                </div>
+        <div class="v-picker__pane v-picker__pane--in">
+            <div class="v-picker__head">
+                <span class="v-label">Available</span>
                 <input type="text" x-model="search" placeholder="Search..."
                     aria-label="Search available {{ $label }}"
-                    class="v-control w-full h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border border-v-strong rounded-v-md placeholder:text-v-muted">
+                    class="v-control w-full h-[var(--control-h-sm)] px-2.5 text-xs bg-v-surface text-v-text border rounded-v-md placeholder:text-v-muted">
             </div>
-            <div class="h-44 overflow-y-auto">
-                <template x-for="item in available" :key="item.id">
-                    <div @click="toggleHighlightAvailable(item.id, $event)"
-                        :class="highlightedAvailable.includes(item.id) ? 'bg-v-accent-weak text-v-accent font-medium' : 'text-v-secondary hover:bg-v-hover'"
-                        class="w-full text-left px-3 py-1.5 text-[13px] cursor-pointer select-none transition-colors">
-                        <span x-text="item.name"></span>
-                    </div>
-                </template>
-                <div x-show="available.length === 0" class="px-3 py-6 text-xs text-v-muted text-center">
+            <div class="v-picker__list">
+                <div role="listbox" aria-multiselectable="true" aria-label="Available {{ $label }}">
+                    <template x-for="item in available" :key="item.id">
+                        <button type="button" class="v-picker__opt" role="option"
+                            :aria-selected="highlightedAvailable.includes(item.id) ? 'true' : 'false'"
+                            @click="toggleHighlightAvailable(item.id, $event)"
+                            x-text="item.name"></button>
+                    </template>
+                </div>
+                <p x-show="available.length === 0" class="v-picker__none">
                     <span x-show="search">No matches</span>
                     <span x-show="!search">All items selected</span>
-                </div>
+                </p>
             </div>
         </div>
 
-        {{-- Center buttons --}}
-        <div class="flex flex-col items-center justify-center gap-2 px-2 bg-v-sunken border-y border-v-border">
+        {{-- The traffic --}}
+        <div class="v-picker__mid">
             <x-admin.button variant="secondary" size="sm" class="w-8 shrink-0 !px-0"
                 title="Add all" aria-label="Add all {{ $label }}" @click="addAll()">
                 <x-admin.icon name="chevron-right" class="w-3.5 h-3.5 -mr-1.5" />
@@ -171,23 +170,20 @@
         </div>
 
         {{-- Selected --}}
-        <div class="flex-1 min-w-0 border border-v-border rounded-r-v-md overflow-hidden">
-            <div class="bg-v-sunken px-3 py-2 border-b border-v-border">
-                <div class="flex items-center justify-between">
-                    <span class="v-label">Selected <span class="text-v-accent" x-text="'(' + selectedIds.length + ')'"></span></span>
-                </div>
+        <div class="v-picker__pane v-picker__pane--out">
+            <div class="v-picker__head">
+                <span class="v-label">Selected <span class="text-v-accent" x-text="'(' + selectedIds.length + ')'"></span></span>
             </div>
-            <div class="h-44 overflow-y-auto">
-                <template x-for="item in selectedItems" :key="item.id">
-                    <div @click="toggleHighlightSelected(item.id, $event)"
-                        :class="highlightedSelected.includes(item.id) ? 'bg-[var(--bl-bad-wash)] text-v-danger font-medium' : 'text-v-secondary hover:bg-v-hover'"
-                        class="w-full px-3 py-1.5 text-[13px] cursor-pointer select-none transition-colors">
-                        <span x-text="item.name"></span>
-                    </div>
-                </template>
-                <div x-show="selectedIds.length === 0" class="px-3 py-6 text-xs text-v-muted text-center">
-                    None selected
+            <div class="v-picker__list">
+                <div role="listbox" aria-multiselectable="true" aria-label="Selected {{ $label }}">
+                    <template x-for="item in selectedItems" :key="item.id">
+                        <button type="button" class="v-picker__opt" role="option"
+                            :aria-selected="highlightedSelected.includes(item.id) ? 'true' : 'false'"
+                            @click="toggleHighlightSelected(item.id, $event)"
+                            x-text="item.name"></button>
+                    </template>
                 </div>
+                <p x-show="selectedIds.length === 0" class="v-picker__none">None selected</p>
             </div>
         </div>
     </div>

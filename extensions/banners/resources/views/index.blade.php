@@ -6,38 +6,50 @@
             </x-admin.button>
         </x-slot:actions>
 
-        <p class="text-[13px] text-v-secondary mb-4">Each group is a carousel placement. Add slides inside a group.</p>
-
-        <div class="bg-v-surface border border-v-border rounded-v-lg">
-            @if ($groups->isEmpty())
-                <x-admin.empty-state icon="media" title="No banner groups yet" description='Click "New Group" to create your first banner carousel' />
-            @else
-                <div class="divide-y divide-v-border">
-                    @foreach ($groups as $group)
-                        <div class="flex items-center gap-4 px-6 py-4 hover:bg-v-hover group">
-                            <div class="flex-1 min-w-0">
-                                <a href="{{ route('admin.banners.slides', $group) }}" class="text-[13px] font-medium text-v-text hover:text-v-accent">{{ $group->name }}</a>
-                                <p class="text-xs text-v-muted font-mono mt-0.5">{{ $group->slug }}</p>
-                            </div>
-                            <div class="text-xs text-v-secondary shrink-0">
-                                {{ $group->slides_count }} {{ Str::plural('slide', $group->slides_count) }}
-                            </div>
-                            <div class="text-xs text-v-muted shrink-0">
-                                {{ $group->autoplay ? $group->speed . 'ms' : 'Manual' }}
-                            </div>
-                            <x-admin.badge :tone="$group->is_active ? 'success' : 'neutral'">{{ $group->is_active ? 'Active' : 'Draft' }}</x-admin.badge>
-                            <div class="flex items-center gap-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <a href="{{ route('admin.banners.slides', $group) }}" class="text-xs text-v-accent hover:opacity-80">Slides</a>
-                                <a href="{{ route('admin.banners.edit', $group) }}" class="text-xs text-v-secondary hover:text-v-text">Settings</a>
-                                <button type="button" class="text-xs text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-group-{{ $group->id }}')">Delete</button>
-                                <x-admin.confirm-dialog name="delete-group-{{ $group->id }}" title="Delete banner group"
-                                    message="Delete this group and all its slides?" confirm="Delete"
-                                    :action="route('admin.banners.destroy', $group)" method="DELETE" />
-                            </div>
+        <x-admin.table>
+            <x-slot:head>
+                <x-admin.table.th>Group</x-admin.table.th>
+                <x-admin.table.th align="right">Slides</x-admin.table.th>
+                <x-admin.table.th>Rotation</x-admin.table.th>
+                <x-admin.table.th>Status</x-admin.table.th>
+                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
+            </x-slot:head>
+            @forelse ($groups as $group)
+                <x-admin.table.row href="{{ route('admin.banners.slides', $group) }}">
+                    <x-admin.table.cell>
+                        <div class="min-w-0">
+                            <div class="truncate text-[13px] font-medium text-v-text">{{ $group->name }}</div>
+                            <div class="v-mono text-xs text-v-muted">{{ $group->slug }}</div>
                         </div>
-                    @endforeach
-                </div>
-            @endif
-        </div>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell align="right" mono>{{ $group->slides_count }}</x-admin.table.cell>
+                    <x-admin.table.cell>{{ $group->autoplay ? 'Every ' . $group->speed . 'ms' : 'Manual' }}</x-admin.table.cell>
+                    <x-admin.table.cell>
+                        <x-admin.badge :tone="$group->is_active ? 'success' : 'neutral'">{{ $group->is_active ? 'Active' : 'Draft' }}</x-admin.badge>
+                    </x-admin.table.cell>
+                    <x-admin.table.cell class="v-col-act">
+                        <div class="v-rowactions v-rowactions--end">
+                            <x-admin.button size="sm" variant="ghost" :href="route('admin.banners.slides', $group)">Slides</x-admin.button>
+                            <x-admin.button size="sm" variant="ghost" :href="route('admin.banners.edit', $group)">Settings</x-admin.button>
+                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-group-{{ $group->id }}')">Delete</x-admin.button>
+                        </div>
+                    </x-admin.table.cell>
+                </x-admin.table.row>
+            @empty
+                <tr>
+                    <td colspan="5">
+                        <x-admin.empty-state icon="media" title="No banner groups yet" description="A group is one carousel placement, and its slides live inside it.">
+                            <x-admin.button variant="primary" :href="route('admin.banners.create')">Create your first group</x-admin.button>
+                        </x-admin.empty-state>
+                    </td>
+                </tr>
+            @endforelse
+        </x-admin.table>
+
+        @foreach ($groups as $group)
+            <x-admin.confirm-dialog name="delete-group-{{ $group->id }}" title="Delete {{ $group->name }}?"
+                message="Delete this group and all its slides?" confirm="Delete"
+                :action="route('admin.banners.destroy', $group)" method="DELETE" />
+        @endforeach
     </x-admin.page>
 </x-admin.shell>

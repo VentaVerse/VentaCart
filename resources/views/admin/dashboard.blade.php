@@ -18,7 +18,7 @@
     $work = $hasTraded ? ($workRemaining ?? []) : $workLines;
 @endphp
 <x-admin.shell title="Today">
-    <div class="v-day v-settle">
+    <x-admin.page class="v-day v-settle" :title="$sheetDate->format('l, j F Y')" :standing="$standing">
         <!--
 IMPECCABLE DIRECTION CONTRACT
 THESIS: The admin's home is today's page in the shop's daybook, and it now leads with five figures a merchant can read from across the room. It refuses the widget-scatter dashboard, but it also refuses the flat sheet that gave every figure the same voice.
@@ -32,16 +32,13 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         {{-- 1. The head ------------------------------------------------
              On the paper rather than inside a sheet, so the page reads as
              a titled thing containing panels instead of one slab with a
-             heading printed on it. --}}
-        <header class="v-day__head">
-            <div class="v-day__headtext">
-                <h1 class="v-day__date" id="v-sheet-date">{{ $sheetDate->format('l, j F Y') }}</h1>
-                <p class="v-day__standing">{{ $standing }}</p>
-            </div>
+             heading printed on it. This band is now x-admin.page's own
+             render, so the other 96 views wear it too. --}}
+        <x-slot:actions>
             <x-admin.button variant="primary" :href="route('admin.orders.create')">
                 <x-admin.icon name="plus" class="w-4 h-4" /> New order
             </x-admin.button>
-        </header>
+        </x-slot:actions>
 
         @if ($hasTraded)
             {{-- 2. The band ---------------------------------------------
@@ -503,5 +500,5 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                 </div>
             </div>
         @endif
-    </div>
+    </x-admin.page>
 </x-admin.shell>

@@ -14,13 +14,13 @@
    `hidden`, which would take it out of the tree the description
    resolves against. It is only visually withheld.
    ============================================================ */
-.v-admin .v-hint {
+.v-hint {
     position: relative;
     display: inline-flex;
     vertical-align: middle;
 }
 
-.v-admin .v-hint__btn {
+.v-hint__btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -40,14 +40,14 @@
     transition: color 120ms, border-color 120ms, background-color 120ms;
 }
 
-.v-admin .v-hint__btn:hover,
-.v-admin .v-hint__btn:focus-visible {
+.v-hint__btn:hover,
+.v-hint__btn:focus-visible {
     border-color: var(--text-muted);
     background: var(--surface);
     color: var(--text);
 }
 
-.v-admin .v-hint__bubble {
+.v-hint__bubble {
     position: absolute;
     top: calc(100% + 7px);
     left: 0;
@@ -72,8 +72,8 @@
     transition: opacity 140ms ease, transform 140ms ease;
 }
 
-.v-admin .v-hint__btn:hover + .v-hint__bubble,
-.v-admin .v-hint__btn:focus + .v-hint__bubble {
+.v-hint__btn:hover + .v-hint__bubble,
+.v-hint__btn:focus + .v-hint__bubble {
     opacity: 1;
     transform: none;
 }
@@ -82,7 +82,7 @@
    into the page rather than off it. Position cannot be inferred from
    source order, so the caller states it. */
 @media (min-width: 901px) {
-    .v-admin .v-hint--end .v-hint__bubble {
+    .v-hint--end .v-hint__bubble {
         right: 0;
         left: auto;
     }
@@ -94,7 +94,7 @@
    for the same reason. It is still the button's description and still
    shown only while that button is focused. */
 @media (max-width: 900px) {
-    .v-admin .v-hint__bubble {
+    .v-hint__bubble {
         position: fixed;
         inset: auto 12px 12px;
         z-index: 200;
@@ -105,5 +105,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .v-admin .v-hint__bubble { transition: none; transform: none; }
+    .v-hint__bubble { transition: none; transform: none; }
 }

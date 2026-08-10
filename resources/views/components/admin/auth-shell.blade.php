@@ -22,7 +22,7 @@
 </head>
 <body class="v-admin min-h-screen flex items-center justify-center px-6 py-12">
     <div class="w-full max-w-[400px]">
-        <div class="mb-6 flex items-center justify-between gap-4">
+        <div class="mb-5 flex items-center justify-between gap-4">
             <a href="{{ route('login') }}" class="flex min-w-0 items-center gap-2.5 no-underline">
                 @if ($vLogo)
                     {{-- Same plate as the slab: the sign-in page follows the
@@ -38,22 +38,19 @@
             <x-admin.theme-toggle />
         </div>
 
-        <div class="bg-v-surface border border-v-border rounded-v-lg px-7 py-7">
-            <h1 class="text-[22px] font-semibold text-v-text tracking-tight leading-tight">{{ $title }}</h1>
-            @if ($subtitle)
-                <p class="mt-1.5 text-[13.5px] text-v-secondary leading-relaxed">{{ $subtitle }}</p>
-            @endif
-
-            <div class="mt-6">
+        {{-- Signing in wears the same page head as everything behind it:
+             the title on the paper, the sheet under it holding the form.
+             The trail is suppressed because there is nothing above a
+             sign-in page to walk back up to. --}}
+        <x-admin.page :title="$title" :standing="$subtitle" :breadcrumb="[]">
+            <div class="v-sheet p-7">
                 @if (session('status'))
-                    <div class="mb-5 rounded-v-md border border-v-border bg-v-accent-weak px-3.5 py-2.5 text-[13px] text-v-accent">
-                        {{ session('status') }}
-                    </div>
+                    <div class="v-flash"><span class="v-flash__text">{{ session('status') }}</span></div>
                 @endif
 
                 {{ $slot }}
             </div>
-        </div>
+        </x-admin.page>
 
         <p class="mt-6 text-center text-xs text-v-muted">
             <a href="/" class="hover:text-v-secondary">{{ $vStoreName }}</a> &middot; &copy; {{ date('Y') }}

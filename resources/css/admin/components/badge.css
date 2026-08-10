@@ -14,7 +14,7 @@
    other marks by position.
    ============================================================ */
 
-.v-admin .v-badge {
+.v-badge {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -24,7 +24,7 @@
     vertical-align: baseline;
 }
 
-.v-admin .v-badge__dot {
+.v-badge__dot {
     width: 8px;
     height: 8px;
     flex: none;
@@ -36,27 +36,27 @@
     background: var(--border-control);
 }
 
-:where(.v-admin) :where(.v-badge) { color: var(--text-muted); }
+:where(.v-badge) { color: var(--text-muted); }
 
-.v-admin .v-badge--success { color: var(--bl-good); }
-.v-admin .v-badge--success .v-badge__dot { background: var(--bl-good); }
+.v-badge--success { color: var(--bl-good); }
+.v-badge--success .v-badge__dot { background: var(--bl-good); }
 
-.v-admin .v-badge--warning { color: var(--bl-attn); }
-.v-admin .v-badge--warning .v-badge__dot { background: var(--bl-attn-fill); }
+.v-badge--warning { color: var(--bl-attn); }
+.v-badge--warning .v-badge__dot { background: var(--bl-attn-fill); }
 
-.v-admin .v-badge--danger { color: var(--bl-bad); }
-.v-admin .v-badge--danger .v-badge__dot { background: var(--bl-bad); }
+.v-badge--danger { color: var(--bl-bad); }
+.v-badge--danger .v-badge__dot { background: var(--bl-bad); }
 
-.v-admin .v-badge--info { color: var(--bl-cool); }
-.v-admin .v-badge--info .v-badge__dot { background: var(--bl-cool); }
+.v-badge--info { color: var(--bl-cool); }
+.v-badge--info .v-badge__dot { background: var(--bl-cool); }
 
-.v-admin .v-badge--accent { color: var(--accent); }
-.v-admin .v-badge--accent .v-badge__dot { background: var(--accent-mark); }
+.v-badge--accent { color: var(--accent); }
+.v-badge--accent .v-badge__dot { background: var(--accent-mark); }
 
 /* Under forced colours a background-painted square vanishes, so the
    mark grows an edge that the medium does render. */
 @media (forced-colors: active) {
-    .v-admin .v-badge__dot {
+    .v-badge__dot {
         border: 1px solid currentColor;
         background: currentColor;
     }

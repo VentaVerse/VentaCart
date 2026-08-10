@@ -52,10 +52,9 @@
    fixed filters beside it leave.
 
    Stated here rather than with a `min-w-` utility on the element,
-   because `.v-admin .v-field` sets `min-width: 0` at two classes and
-   outranks any utility on the same element. This rule ties it on
-   weight and wins on document order, which is the arrangement the
-   whole de-nested layer depends on. A width utility still works: only
+   because `.v-field` sets `min-width: 0` and would outrank a utility
+   on the same element by coming later in the bundle. This rule
+   outweighs it at two classes. A width utility still works: only
    min-width is contested. */
 .v-filters .v-field--grow {
     flex: 1 1 220px;

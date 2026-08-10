@@ -1,4 +1,4 @@
-.v-admin .v-palette {
+.v-palette {
     animation: v-palette-in var(--motion-base) both;
 }
 

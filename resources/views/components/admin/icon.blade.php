@@ -93,6 +93,13 @@ $paths = [
     /* Two rules, for the handle you drag a row by. Deliberately not an
        arrow: the row does not move on its own, you move it. */
     'drag' => 'M3.75 9h16.5M3.75 15h16.5',
+    /* The banner editor's three layer kinds and its preview control.
+       They were four inline SVGs on that page, off the 24 grid and at
+       three different stroke weights. `image` is `media`, which
+       already existed, and `button` is `link`, which also did. */
+    'text' => 'M4.5 6.75V4.5h15v2.25M12 4.5v15m-3 0h6',
+    'layers' => 'M12 3.75L3 8.25l9 4.5 9-4.5-9-4.5zM3.75 12.75L12 16.875l8.25-4.125M3.75 16.5L12 20.625l8.25-4.125',
+    'play' => 'M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z',
 ];
 @endphp
 {{-- One 24 grid, one stroke weight, every icon drawn. A unicode glyph

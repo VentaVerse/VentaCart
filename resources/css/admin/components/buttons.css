@@ -12,7 +12,7 @@
    wearing a shadow.
    ============================================================ */
 
-.v-admin .v-btn {
+.v-btn {
     /* Between medium and semibold. Archivo has the axis for it and
        the half step is what stops a dense row of controls reading
        as either limp or shouty. */
@@ -26,13 +26,13 @@
    The confirm dialog's own button IS the destructive act, so it is
    filled. A page covered in solid red buttons teaches people to
    ignore red. */
-.v-admin .v-confirm .v-btn--danger {
+.v-confirm .v-btn--danger {
     background: var(--danger);
     border-color: var(--danger);
     color: var(--danger-text);
 }
 
-.v-admin .v-confirm .v-btn--danger:hover {
+.v-confirm .v-btn--danger:hover {
     background: var(--danger);
     filter: brightness(1.08);
 }
@@ -40,11 +40,11 @@
 /* A control repeated once per row is not the page's primary action,
    whatever variant the caller reached for. Elevation is the page's one
    allowance and a table full of lifted buttons spends it forty times. */
-.v-admin table .v-btn--primary { box-shadow: none; }
+table .v-btn--primary { box-shadow: none; }
 
 /* data-loading is set by forms while submitting (see form-actions). */
-.v-admin .v-btn[data-loading="true"] { pointer-events: none; opacity: .7; }
-.v-admin .v-btn[data-loading="true"] .v-btn-spinner { display: inline-block; }
+.v-btn[data-loading="true"] { pointer-events: none; opacity: .7; }
+.v-btn[data-loading="true"] .v-btn-spinner { display: inline-block; }
 
 /* A control that is off is still a word a person has to read. Half
    opacity put the disabled pager's label at 3.33:1 on the sheet in
@@ -54,8 +54,8 @@
    and unmistakably not a thing you can press. Wins over the
    `disabled:opacity-50` utility on specificity, so no caller
    changes. */
-.v-admin .v-btn:disabled,
-.v-admin .v-btn[aria-disabled="true"] {
+.v-btn:disabled,
+.v-btn[aria-disabled="true"] {
     opacity: 1;
     background: var(--surface-sunken);
     border-color: var(--border-strong);

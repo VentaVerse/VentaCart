@@ -41,6 +41,7 @@ class UiKitTest extends TestCase
                 'Slates',
                 'Switches',
                 'Checklist',
+                'Picker',
                 'Selectable cards',
                 'Feedback',
                 'Empty and unconfigured',
@@ -91,6 +92,10 @@ class UiKitTest extends TestCase
             'v-switch__text',   // switch, with its words
             'v-toggle--btn',    // switch, button driven
             'v-checklist',      // checklist
+            'v-picker__opt',    // picker, an option
+            'v-picker__mid',    // picker, the traffic between the panes
+            'v-day__title',     // page head, the page's own name
+            'v-day__trail',     // page head, the ancestor trail
         ] as $class) {
             $response->assertSee($class, false);
         }
@@ -119,6 +124,10 @@ class UiKitTest extends TestCase
             // the same thing. Pin both ends of each.
             ->assertSee('aria-checked="true"', false)
             ->assertSee('aria-checked="false"', false)
-            ->assertSee('aria-current="page"', false);
+            ->assertSee('aria-current="page"', false)
+            // The picker keys its highlight on aria-selected for the same
+            // reason. Both ends again.
+            ->assertSee('aria-selected="true"', false)
+            ->assertSee('aria-selected="false"', false);
     }
 }
