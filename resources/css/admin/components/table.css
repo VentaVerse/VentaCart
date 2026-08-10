@@ -257,6 +257,26 @@ a.v-sub:hover { color: var(--accent); text-decoration: underline; }
 
 .v-rowactions__danger { color: var(--danger) !important; }
 
+/* An actions cell packs controls, not text, so it takes its height
+   from the controls and does not add a second set of paddings on top
+   of them. 28px of control inside 3px of gutter is exactly --row-h,
+   which is why converting a column of 18.8px text links into real
+   28px targets costs the table no height at all. */
+.v-table td.v-col-act { padding-block: 3px; }
+
+/* The last column of an index is the actions column, and it is the
+   one column that should never be the one that grows. Right-packed
+   so the controls sit against the sheet's edge under a heading that
+   is doing the same, and never wrapped: `v-col-act` shrinks the
+   column to its content, so a wrapping set would fold itself into a
+   one-control-wide column and double every row's height. The queue's
+   own row actions keep wrapping, because they sit in a rowspanned
+   cell that has real width to wrap inside. */
+.v-rowactions--end {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+}
+
 /* ------------------------------------------------------------
    Column sizing
 

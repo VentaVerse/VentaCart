@@ -29,9 +29,17 @@
 
 /* ------------------------------------------------------------
    Filters: one job each, on one line, with the way back beside them.
+
+   Bottom-aligned for the same reason the toolbar row is: an index
+   whose filters name themselves in a placeholder and one whose
+   filters carry a label above the control are the same row, and the
+   controls have to share a baseline either way. Without this, a
+   labelled field stretches to the row's height and its control drops
+   below the unlabelled ones beside it.
    ------------------------------------------------------------ */
 .v-filters {
     display: flex;
+    align-items: flex-end;
     gap: 8px;
     margin-bottom: 16px;
     flex-wrap: wrap;
@@ -39,6 +47,25 @@
 
 .v-filters__search { max-width: 280px; }
 .v-filters__select { width: auto; min-width: 132px; }
+
+/* The row's one elastic field: the search box that takes whatever the
+   fixed filters beside it leave.
+
+   Stated here rather than with a `min-w-` utility on the element,
+   because `.v-admin .v-field` sets `min-width: 0` at two classes and
+   outranks any utility on the same element. This rule ties it on
+   weight and wins on document order, which is the arrangement the
+   whole de-nested layer depends on. A width utility still works: only
+   min-width is contested. */
+.v-filters .v-field--grow {
+    flex: 1 1 220px;
+    min-width: 220px;
+    /* Capped for the same reason `.v-filters__search` is: a search box
+       that eats 800px of a wide screen because it was the only elastic
+       thing in the row is not a more useful search box, and it pushes
+       the filters beside it to the far edge. */
+    max-width: 420px;
+}
 
 .v-filters__reset {
     display: inline-flex;
@@ -138,4 +165,8 @@
     .v-toolbar { padding: 12px; }
 
     .v-filters__search { max-width: 100%; flex: 1 1 200px; }
+
+    /* On a phone the row is already stacking, so the elastic field
+       gives up its floor and takes the line it lands on. */
+    .v-filters .v-field--grow { min-width: 0; flex-basis: 160px; }
 }

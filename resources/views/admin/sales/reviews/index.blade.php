@@ -1,24 +1,13 @@
 <x-admin.shell title="Reviews">
     <x-admin.page title="Reviews">
-        <div class="space-y-5">
-            {{-- Tabs --}}
-            <nav class="flex flex-wrap gap-2" aria-label="Filter reviews by status">
+        <div>
+            <x-admin.segment label="Filter reviews by status">
                 @foreach (['pending', 'approved', 'rejected'] as $status)
-                    <a href="{{ route('admin.reviews.index', ['tab' => $status, 'search' => request('search')]) }}" @if ($tab === $status) aria-current="page" @endif
-                       class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
-                           {{ $tab === $status ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
-                        {{ ucfirst($status) }}
-                        @if ($counts[$status] > 0)
-                            <span class="v-num rounded-full bg-v-sunken px-1.5 text-[11px] {{ $tab === $status ? 'text-v-accent' : 'text-v-muted' }}">{{ $counts[$status] }}</span>
-                        @endif
-                    </a>
+                    <x-admin.segment.item :href="route('admin.reviews.index', ['tab' => $status, 'search' => request('search')])"
+                        :active="$tab === $status" :count="$counts[$status] > 0 ? $counts[$status] : null">{{ ucfirst($status) }}</x-admin.segment.item>
                 @endforeach
-                <a href="{{ route('admin.reviews.index', ['tab' => 'settings']) }}" @if ($tab === 'settings') aria-current="page" @endif
-                   class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors
-                       {{ $tab === 'settings' ? 'border-v-accent bg-v-accent-weak text-v-accent' : 'border-v-border bg-v-surface text-v-secondary hover:bg-v-hover hover:text-v-text' }}">
-                    Settings
-                </a>
-            </nav>
+                <x-admin.segment.item :href="route('admin.reviews.index', ['tab' => 'settings'])" :active="$tab === 'settings'">Settings</x-admin.segment.item>
+            </x-admin.segment>
 
             @if ($tab === 'settings')
                 {{-- Review Settings --}}
@@ -49,15 +38,17 @@
                                         <x-admin.input type="number" name="settings[trigger_delay_days]" :value="$settings['reviews']['trigger_delay_days'] ?? 7" min="0" max="90" class="w-32" />
                                     </x-admin.field>
 
-                                    <div>
-                                        <p class="mb-2 text-[13px] font-medium text-v-text">Customer groups that receive review requests</p>
-                                        <div class="max-h-48 space-y-1.5 overflow-y-auto">
+                                    <div class="v-field">
+                                        <span class="v-field__label v-label">
+                                            Customer groups that receive review requests
+                                            <x-admin.hint label="What an empty selection means">Leave all unchecked to send to all customer groups.</x-admin.hint>
+                                        </span>
+                                        <div class="v-scroll max-h-48 space-y-1.5 overflow-y-auto">
                                             @foreach ($customerGroups as $group)
                                                 <x-admin.checkbox name="settings[review_customer_groups][]" :value="$group->id" :label="$group->name"
                                                     :checked="in_array($group->id, json_decode($settings['reviews']['review_customer_groups'] ?? '[]', true) ?: [])" />
                                             @endforeach
                                         </div>
-                                        <p class="mt-1 text-xs text-v-muted">Leave all unchecked to send to all customer groups.</p>
                                     </div>
                                 </div>
                             </div>
@@ -112,18 +103,14 @@
                 </x-admin.card>
             @else
                 {{-- Search --}}
-                <x-admin.card>
-                    <form method="GET" action="{{ route('admin.reviews.index') }}" class="flex items-center gap-3">
-                        <input type="hidden" name="tab" value="{{ $tab }}">
-                        <div class="flex-1">
-                            <x-admin.input name="search" :value="$search" placeholder="Search by product, customer, or title..." />
-                        </div>
-                        <x-admin.button type="submit">Search</x-admin.button>
-                        @if ($search)
-                            <a href="{{ route('admin.reviews.index', ['tab' => $tab]) }}" class="text-[13px] text-v-muted hover:text-v-text">Clear</a>
-                        @endif
-                    </form>
-                </x-admin.card>
+                <x-admin.filters :action="route('admin.reviews.index')">
+                    <input type="hidden" name="tab" value="{{ $tab }}">
+                    <x-admin.input name="search" :value="$search" placeholder="Search by product, customer, or title..." aria-label="Search reviews" class="v-filters__search" />
+                    <x-admin.button type="submit" variant="secondary">Search</x-admin.button>
+                    @if ($search)
+                        <a href="{{ route('admin.reviews.index', ['tab' => $tab]) }}" class="v-filters__reset">Clear</a>
+                    @endif
+                </x-admin.filters>
 
                 {{-- Table --}}
                 <x-admin.table>
@@ -133,7 +120,7 @@
                         <x-admin.table.th>Rating</x-admin.table.th>
                         <x-admin.table.th>Title</x-admin.table.th>
                         <x-admin.table.th>Date</x-admin.table.th>
-                        <x-admin.table.th align="right">Actions</x-admin.table.th>
+                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                     </x-slot>
                     @forelse ($reviews as $review)
                         <x-admin.table.row :href="route('admin.reviews.show', $review)">
@@ -144,8 +131,8 @@
                                 @endif
                             </x-admin.table.cell>
                             <x-admin.table.cell>
-                                <div class="text-v-text">{{ $review->name }}</div>
-                                <div class="text-xs text-v-muted">{{ $review->email }}</div>
+                                <span class="v-lead">{{ $review->name }}</span>
+                                <span class="v-sub">{{ $review->email }}</span>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
                                 <div class="flex items-center gap-1.5">
@@ -160,21 +147,21 @@
                             </x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary">{{ Str::limit($review->title, 40) ?: '-' }}</x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary">{{ $review->created_at->format('M j, Y') }}</x-admin.table.cell>
-                            <x-admin.table.cell align="right">
-                                <div class="flex items-center justify-end gap-2">
-                                    <a href="{{ route('admin.reviews.show', $review) }}" class="text-xs font-medium text-v-accent hover:underline">View</a>
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <x-admin.button size="sm" variant="ghost" :href="route('admin.reviews.show', $review)">View</x-admin.button>
                                     @if ($tab === 'pending')
-                                        <form method="POST" action="{{ route('admin.reviews.approve', $review) }}" data-v-form class="inline">
+                                        <form method="POST" action="{{ route('admin.reviews.approve', $review) }}" data-v-form>
                                             @csrf
-                                            <button type="submit" class="text-xs font-medium text-v-accent hover:underline">Approve</button>
+                                            <x-admin.button size="sm" variant="secondary" type="submit">Approve</x-admin.button>
                                         </form>
-                                        <form method="POST" action="{{ route('admin.reviews.reject', $review) }}" data-v-form class="inline">
+                                        <form method="POST" action="{{ route('admin.reviews.reject', $review) }}" data-v-form>
                                             @csrf
-                                            <button type="submit" class="text-xs font-medium text-v-danger hover:underline">Reject</button>
+                                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="submit">Reject</x-admin.button>
                                         </form>
                                     @endif
-                                    <button type="button" class="text-xs font-medium text-v-muted hover:text-v-danger"
-                                        @click="$dispatch('open-modal', 'delete-review-{{ $review->id }}')">Delete</button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger"
+                                        @click="$dispatch('open-modal', 'delete-review-{{ $review->id }}')">Delete</x-admin.button>
                                 </div>
                                 <x-admin.confirm-dialog name="delete-review-{{ $review->id }}" title="Delete review"
                                     message="Delete this review? This cannot be undone." confirm="Delete"
@@ -182,7 +169,7 @@
                             </x-admin.table.cell>
                         </x-admin.table.row>
                     @empty
-                        <tr><td colspan="6" class="px-4 py-2"><x-admin.empty-state icon="reviews" title="No {{ $tab }} reviews found" /></td></tr>
+                        <tr><td colspan="6"><x-admin.empty-state title="No {{ $tab }} reviews found" /></td></tr>
                     @endforelse
 
                     <x-slot name="footer">

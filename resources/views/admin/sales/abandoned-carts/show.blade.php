@@ -11,29 +11,29 @@
                     <x-slot name="head">
                         <x-admin.table.th>Product</x-admin.table.th>
                         <x-admin.table.th>Variant</x-admin.table.th>
-                        <x-admin.table.th>Price</x-admin.table.th>
-                        <x-admin.table.th>Qty</x-admin.table.th>
+                        <x-admin.table.th align="right">Price</x-admin.table.th>
+                        <x-admin.table.th align="right">Qty</x-admin.table.th>
                         <x-admin.table.th align="right">Line Total</x-admin.table.th>
                     </x-slot>
                     @foreach ($cart->items as $item)
                         <x-admin.table.row>
                             <x-admin.table.cell>
-                                <div class="font-medium text-v-text">{{ $item->name }}</div>
+                                <span class="v-lead">{{ $item->name }}</span>
                                 @if ($item->sku)
-                                    <div class="text-xs text-v-muted">SKU: {{ $item->sku }}</div>
+                                    <span class="v-sub">SKU: {{ $item->sku }}</span>
                                 @endif
                             </x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary">{{ $item->variant_label ?? '-' }}</x-admin.table.cell>
-                            <x-admin.table.cell mono class="text-v-text">{{ number_format($item->price, 2) }}</x-admin.table.cell>
-                            <x-admin.table.cell mono class="text-v-text">{{ $item->quantity }}</x-admin.table.cell>
-                            <x-admin.table.cell align="right" mono class="font-medium text-v-text">{{ number_format($item->line_total, 2) }}</x-admin.table.cell>
+                            <x-admin.table.cell align="right"><x-admin.money mark="₱" :amount="number_format($item->price, 2)" /></x-admin.table.cell>
+                            <x-admin.table.cell align="right" mono class="text-v-text">{{ $item->quantity }}</x-admin.table.cell>
+                            <x-admin.table.cell align="right"><x-admin.money mark="₱" :amount="number_format($item->line_total, 2)" /></x-admin.table.cell>
                         </x-admin.table.row>
                     @endforeach
 
                     <x-slot name="footer">
                         <div class="flex justify-end gap-6 text-[13px]">
                             <span class="font-medium text-v-text">Total</span>
-                            <span class="v-num font-bold text-v-text">{{ number_format($cart->total, 2) }}</span>
+                            <x-admin.money mark="₱" :amount="number_format($cart->total, 2)" />
                         </div>
                     </x-slot>
                 </x-admin.table>
@@ -41,46 +41,37 @@
 
             {{-- Customer Info --}}
             <div class="space-y-6">
-                <x-admin.card title="Customer">
+                <x-admin.panel title="Customer" id="cart-customer" flush>
                     @if ($cart->customer)
-                        <dl class="space-y-3">
-                            <div>
-                                <dt class="text-xs text-v-muted">Name</dt>
-                                <dd class="text-[13px] text-v-text">{{ $cart->customer->first_name }} {{ $cart->customer->last_name }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs text-v-muted">Email</dt>
-                                <dd class="text-[13px] text-v-text">{{ $cart->customer->email }}</dd>
-                            </div>
+                        <dl class="v-facts">
+                            <dt class="v-label">Name</dt>
+                            <dd>{{ $cart->customer->first_name }} {{ $cart->customer->last_name }}</dd>
+                            <dt class="v-label">Email</dt>
+                            <dd>{{ $cart->customer->email }}</dd>
                             @if ($cart->customer->phone)
-                                <div>
-                                    <dt class="text-xs text-v-muted">Phone</dt>
-                                    <dd class="text-[13px] text-v-text">{{ $cart->customer->phone }}</dd>
-                                </div>
+                                <dt class="v-label">Phone</dt>
+                                <dd>{{ $cart->customer->phone }}</dd>
                             @endif
                         </dl>
                     @else
-                        <p class="text-[13px] text-v-muted">Guest session</p>
-                        <p class="mt-1 text-xs text-v-muted">Session: {{ $cart->session_id }}</p>
+                        <p class="v-panel__blank">Guest session</p>
+                        <dl class="v-facts">
+                            <dt class="v-label">Session</dt>
+                            <dd><span class="v-sub">{{ $cart->session_id }}</span></dd>
+                        </dl>
                     @endif
-                </x-admin.card>
+                </x-admin.panel>
 
-                <x-admin.card title="Timeline">
-                    <dl class="space-y-3">
-                        <div>
-                            <dt class="text-xs text-v-muted">Created</dt>
-                            <dd class="text-[13px] text-v-text">{{ $cart->created_at->format('M d, Y H:i') }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-v-muted">Last Activity</dt>
-                            <dd class="text-[13px] text-v-text">{{ $cart->updated_at->format('M d, Y H:i') }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-v-muted">Abandoned For</dt>
-                            <dd class="text-[13px] font-medium text-v-danger">{{ $cart->updated_at->diffForHumans() }}</dd>
-                        </div>
+                <x-admin.panel title="Timeline" id="cart-timeline" flush>
+                    <dl class="v-facts">
+                        <dt class="v-label">Created</dt>
+                        <dd>{{ $cart->created_at->format('M d, Y H:i') }}</dd>
+                        <dt class="v-label">Last Activity</dt>
+                        <dd>{{ $cart->updated_at->format('M d, Y H:i') }}</dd>
+                        <dt class="v-label">Abandoned For</dt>
+                        <dd>{{ $cart->updated_at->diffForHumans() }}</dd>
                     </dl>
-                </x-admin.card>
+                </x-admin.panel>
 
                 <x-admin.button variant="danger" class="w-full" type="button"
                     @click="$dispatch('open-modal', 'delete-cart')">

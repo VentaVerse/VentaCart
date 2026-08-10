@@ -28,7 +28,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-4">
                         <div class="flex items-center gap-3">
                             <x-admin.badge :tone="$statusTone">{{ $order->status?->name ?? 'No Status' }}</x-admin.badge>
-                            <span class="v-num text-2xl font-semibold text-v-text">{{ $currency }}{{ number_format($order->total, 2) }}</span>
+                            <x-admin.money :mark="$currency" :amount="number_format($order->total, 2)" class="text-2xl font-semibold text-v-text" />
                         </div>
                     </div>
                     <div class="mt-4 flex flex-wrap gap-x-8 gap-y-3 border-t border-v-border pt-4 text-[13px]">
@@ -47,7 +47,7 @@
                         @if ($order->payment_reference)
                             <div>
                                 <p class="v-label">Payment Reference</p>
-                                <p class="v-num mt-0.5 text-v-secondary">{{ $order->payment_reference }}</p>
+                                <p class="mt-0.5"><span class="v-sub">{{ $order->payment_reference }}</span></p>
                             </div>
                         @endif
                     </div>
@@ -57,7 +57,7 @@
                 <x-admin.card title="Customer">
                     <x-slot:headerActions>
                         @if ($order->customer)
-                            <a href="{{ route('admin.customers.edit', $order->customer) }}" class="text-[13px] font-medium text-v-accent hover:opacity-80">View Profile <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></a>
+                            <x-admin.button size="sm" variant="secondary" :href="route('admin.customers.edit', $order->customer)">View Profile <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
                         @endif
                     </x-slot:headerActions>
                     <div class="flex items-center gap-3">
@@ -130,7 +130,9 @@
                             <x-admin.table.row>
                                 <x-admin.table.cell>
                                     <div class="flex items-center gap-3">
-                                        @php($itemImage = $item->image ?? $item->product?->image)
+                                        @php
+                                            $itemImage = $item->image ?? $item->product?->image;
+                                        @endphp
                                         @if ($itemImage)
                                             <img src="{{ storage_url($itemImage) }}" alt="{{ $item->name }}" class="h-10 w-10 shrink-0 rounded-v-md border border-v-border object-cover">
                                         @else
@@ -138,14 +140,14 @@
                                                 <x-admin.icon name="products" class="h-5 w-5 text-v-muted" />
                                             </div>
                                         @endif
-                                        <div class="min-w-0">
-                                            <p class="font-medium text-v-text">{{ $item->name }}</p>
-                                            <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
+                                        <div class="v-item__body">
+                                            <p class="v-item__name">{{ $item->name }}</p>
+                                            <div class="v-item__meta">
                                                 @if ($item->variant_label)
-                                                    <span class="rounded px-1.5 py-0.5 text-[11px] font-medium text-v-accent bg-v-accent-weak">{{ $item->variant_label }}</span>
+                                                    <span class="v-item__var">{{ $item->variant_label }}</span>
                                                 @endif
                                                 @if ($item->sku)
-                                                    <span class="v-num text-[11px] text-v-muted">{{ $item->sku }}</span>
+                                                    <span class="v-item__sku">{{ $item->sku }}</span>
                                                 @endif
                                                 @if ($item->is_custom)
                                                     <x-admin.badge tone="warning">Custom</x-admin.badge>
@@ -154,61 +156,62 @@
                                         </div>
                                     </div>
                                 </x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono>{{ $currency }}{{ number_format($item->price, 2) }}</x-admin.table.cell>
+                                <x-admin.table.cell align="right"><x-admin.money :mark="$currency" :amount="number_format($item->price, 2)" /></x-admin.table.cell>
                                 <x-admin.table.cell align="right" mono>{{ $item->quantity }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono>{{ $currency }}{{ number_format($item->price * $item->quantity, 2) }}</x-admin.table.cell>
+                                <x-admin.table.cell align="right"><x-admin.money :mark="$currency" :amount="number_format($item->price * $item->quantity, 2)" /></x-admin.table.cell>
                             </x-admin.table.row>
                         @endforeach
                         <x-slot:footer>
                             <div class="flex justify-end">
-                                <div class="w-full space-y-1.5 sm:max-w-md">
-                                    <div class="flex justify-between text-[13px]">
-                                        <span class="text-v-muted">Subtotal</span>
-                                        <span class="v-num text-v-secondary">{{ $currency }}{{ number_format($order->subtotal, 2) }}</span>
-                                    </div>
-                                    <div class="flex items-start justify-between gap-3 text-[13px]">
-                                        <span class="break-words text-v-muted">Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</span>
-                                        <span class="v-num whitespace-nowrap text-v-secondary">{{ $order->shipping_cost > 0 ? $currency . number_format($order->shipping_cost, 2) : 'Free' }}</span>
-                                    </div>
+                                <dl class="v-facts v-facts--flush w-full sm:max-w-md">
+                                    <dt class="v-label">Subtotal</dt>
+                                    <dd><x-admin.money :mark="$currency" :amount="number_format($order->subtotal, 2)" /></dd>
+                                    <dt class="v-label">Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</dt>
+                                    <dd>
+                                        @if ($order->shipping_cost > 0)
+                                            <x-admin.money :mark="$currency" :amount="number_format($order->shipping_cost, 2)" />
+                                        @else
+                                            Free
+                                        @endif
+                                    </dd>
                                     @if ($order->coupon_code)
-                                        <div class="flex justify-between text-[13px]">
-                                            <span class="text-v-muted">Coupon ({{ $order->coupon_code }})</span>
-                                            <span class="v-num text-v-accent">-{{ $currency }}{{ number_format($order->coupon_discount, 2) }}</span>
-                                        </div>
+                                        <dt class="v-label">Coupon ({{ $order->coupon_code }})</dt>
+                                        <dd><x-admin.money mark="-{{ $currency }}" :amount="number_format($order->coupon_discount, 2)" /></dd>
                                     @endif
-                                    <div class="flex justify-between border-t border-v-border pt-2 text-[13px] font-bold">
-                                        <span class="text-v-text">Total</span>
-                                        <span class="v-num text-base text-v-text">{{ $currency }}{{ number_format($order->total, 2) }}</span>
-                                    </div>
-                                </div>
+                                    <dt class="v-label v-facts__sum">Total</dt>
+                                    <dd class="v-facts__sum"><x-admin.money :mark="$currency" :amount="number_format($order->total, 2)" /></dd>
+                                </dl>
                             </div>
                         </x-slot:footer>
                     </x-admin.table>
                     @if ($order->comment)
-                        <div class="mt-4 rounded-v-md px-3 py-2.5 text-[13px] bg-[color-mix(in_srgb,var(--warning)_10%,transparent)]">
-                            <span class="font-medium text-v-warning">Customer Note:</span>
-                            <span class="text-v-secondary">{{ $order->comment }}</span>
+                        <div class="mt-4">
+                            <p class="v-label">Customer Note</p>
+                            <p class="mt-1 text-[13px] text-v-secondary">{{ $order->comment }}</p>
                         </div>
                     @endif
                 </x-admin.card>
 
                 {{-- 5. SHIPPING & TRACKING --}}
-                <x-admin.card title="Shipping & Tracking">
+                <x-admin.panel title="Shipping &amp; Tracking" id="order-tracking" flush>
                     @if ($order->tracking_number)
-                        <div class="flex items-center gap-2 rounded-v-lg bg-v-accent-weak p-3 text-[13px]">
+                        {{-- The courier over its own tracking number: the same
+                             stacked cell the fulfillment queue prints, so a
+                             shipment reads the same on both screens. --}}
+                        <div class="v-panel__body">
                             @if ($order->shippingCourier)
-                                <span class="font-medium text-v-accent">{{ $order->shippingCourier->name }}</span>
+                                <span class="v-lead">{{ $order->shippingCourier->name }}</span>
                             @endif
                             @if ($order->tracking_link)
-                                <a href="{{ $order->tracking_link }}" target="_blank" class="v-num text-v-accent hover:underline">{{ $order->tracking_number }}</a>
+                                <a href="{{ $order->tracking_link }}" target="_blank" class="v-sub">{{ $order->tracking_number }}</a>
                             @else
-                                <span class="v-num text-v-accent">{{ $order->tracking_number }}</span>
+                                <span class="v-sub">{{ $order->tracking_number }}</span>
                             @endif
                         </div>
                     @else
-                        <p class="text-[13px] text-v-muted">No tracking yet.</p>
+                        <p class="v-panel__blank">No tracking yet.</p>
                     @endif
-                </x-admin.card>
+                </x-admin.panel>
             </div>
 
             {{-- RIGHT COLUMN --}}
@@ -247,43 +250,43 @@
                 </x-admin.card>
 
                 {{-- ORDER HISTORY --}}
-                <x-admin.card title="History">
+                <x-admin.panel title="History" id="order-history" flush>
                     @if ($order->histories->count() > 0)
-                        <div class="relative -mt-1">
-                            <div class="absolute bottom-2 left-[7px] top-2 w-px bg-v-border"></div>
-                            <div class="space-y-5">
-                                @foreach ($order->histories->sortByDesc('created_at') as $history)
-                                    <div class="group relative pl-7">
-                                        <div class="absolute left-0 top-1 h-[15px] w-[15px] rounded-full border-2 {{ $loop->first ? 'border-v-accent bg-v-accent-weak' : 'border-v-strong bg-v-surface' }}"></div>
-                                        <div class="flex items-start justify-between">
-                                            <div class="min-w-0">
-                                                <div class="flex flex-wrap items-center gap-2">
-                                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->status?->name ?? '-' }}</x-admin.badge>
-                                                    @if ($history->notify_customer)
-                                                        <span class="text-[10px] font-medium text-v-accent">Notified</span>
-                                                    @endif
-                                                </div>
-                                                @if ($history->comment)
-                                                    <p class="mt-1 text-[13px] text-v-secondary">{{ strip_tags($history->comment) }}</p>
-                                                @endif
-                                                <p class="mt-1 text-[11px] text-v-muted">
-                                                    {{ $history->created_at->format('M d, Y g:i A') }}
-                                                    @if ($history->createdByUser) by {{ $history->createdByUser->name }} @endif
-                                                </p>
-                                            </div>
-                                            <button type="button" class="ml-2 rounded p-1 text-v-muted transition-colors hover:bg-v-hover hover:text-v-danger" title="Delete"
-                                                @click="$dispatch('open-modal', 'delete-history-{{ $history->id }}')">
-                                                <x-admin.icon name="trash" class="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
+                        {{-- The feed, not a bespoke timeline. A dotted rail with
+                             a ring per entry was drawing a second structure over
+                             a list that already had one. --}}
+                        <ul class="v-feed">
+                            @foreach ($order->histories->sortByDesc('created_at') as $history)
+                                {{-- Built in PHP, not in the attribute: a Blade
+                                     directive inside a component attribute is
+                                     literal text, but the interpolation beside
+                                     it still runs, so an @if there evaluates
+                                     both branches. --}}
+                                @php
+                                    $when = $history->created_at->format('M d, Y g:i A')
+                                        . ($history->createdByUser ? ' by ' . $history->createdByUser->name : '');
+                                @endphp
+                                <x-admin.feed.entry icon="orders" tone="v-feed__ic--plain" :when="$when">
+                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->status?->name ?? '-' }}</x-admin.badge>
+                                    @if ($history->notify_customer)
+                                        <x-admin.badge tone="info" :dot="false">Notified</x-admin.badge>
+                                    @endif
+                                    @if ($history->comment)
+                                        <x-slot:note>{{ strip_tags($history->comment) }}</x-slot:note>
+                                    @endif
+                                    <x-slot:action>
+                                        <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" aria-label="Delete history entry"
+                                            @click="$dispatch('open-modal', 'delete-history-{{ $history->id }}')">
+                                            <x-admin.icon name="trash" class="w-3.5 h-3.5" />
+                                        </x-admin.button>
+                                    </x-slot:action>
+                                </x-admin.feed.entry>
+                            @endforeach
+                        </ul>
                     @else
-                        <p class="py-6 text-center text-[13px] text-v-muted">No history yet.</p>
+                        <p class="v-panel__blank">No history yet.</p>
                     @endif
-                </x-admin.card>
+                </x-admin.panel>
             </div>
         </div>
 

@@ -1,138 +1,140 @@
 <x-admin.shell title="Media Manager">
     <x-admin.page title="Media Manager">
-        <div x-data="mediaManager()" class="bg-v-surface border border-v-border rounded-v-lg" style="min-height: 70vh;">
+        <div x-data="mediaManager()">
 
-            {{-- Toolbar --}}
-            <div class="flex items-center gap-2 px-5 py-3 border-b border-v-border">
+            {{-- The toolbar is the row above the grid, not a band inside a
+                 sheet: the same anatomy every index in the admin uses. --}}
+            <x-admin.toolbar>
                 {{-- Breadcrumbs --}}
-                <nav class="flex items-center gap-0.5 text-[13px] min-w-0 overflow-x-auto flex-1">
-                    <button type="button" @click="browseDir('')" class="text-v-accent hover:opacity-80 font-medium shrink-0 flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4"/></svg>
+                <nav aria-label="Folder path" class="v-scroll flex flex-1 min-w-0 items-center gap-0.5 self-center overflow-x-auto text-[13px]">
+                    <button type="button" @click="browseDir('')" class="v-quietlink shrink-0 flex items-center gap-1 font-semibold">
+                        <x-admin.icon name="home" class="w-4 h-4" />
                         Files
                     </button>
                     <template x-for="(crumb, i) in breadcrumbs" :key="i">
                         <span class="flex items-center gap-0.5 shrink-0">
-                            <span class="text-v-muted">/</span>
-                            <button type="button" @click="browseDir(crumb.path)" class="text-v-accent hover:opacity-80 font-medium" x-text="crumb.name"></button>
+                            <span class="text-v-muted" aria-hidden="true">/</span>
+                            <button type="button" @click="browseDir(crumb.path)" class="v-quietlink font-semibold" x-text="crumb.name"></button>
                         </span>
                     </template>
                 </nav>
 
-                {{-- Search --}}
-                <div class="relative">
-                    <svg class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-v-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    <input type="text" x-model="search" placeholder="Filter..."
-                        @keydown.enter.prevent
-                        class="v-control w-40 h-[var(--control-h)] pl-8 pr-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md placeholder:text-v-muted">
+                <div class="v-toolbar__actions">
+                    {{-- File count --}}
+                    <span class="self-center shrink-0 text-xs text-v-muted" x-show="files.length > 0" x-text="filteredFiles.length + ' files'"></span>
+
+                    {{-- Search --}}
+                    <div class="relative">
+                        <x-admin.icon name="search" class="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-v-muted" />
+                        <input type="text" x-model="search" placeholder="Filter&hellip;" aria-label="Filter this folder"
+                            @keydown.enter.prevent
+                            class="v-control h-[var(--control-h)] w-40 rounded-v-md border bg-v-surface pl-8 pr-3 text-[13px] text-v-text placeholder:text-v-muted">
+                    </div>
+
+                    {{-- URL Import --}}
+                    <x-admin.button type="button" variant="secondary" aria-controls="media-url-bar"
+                        x-bind:aria-expanded="showUrlInput ? 'true' : 'false'"
+                        x-bind:aria-pressed="showUrlInput ? 'true' : 'false'"
+                        x-bind:class="showUrlInput && '!bg-v-accent-weak !border-v-accent !text-v-accent'"
+                        @click="showUrlInput = !showUrlInput">
+                        <x-admin.icon name="link" class="w-3.5 h-3.5" />
+                        URL
+                    </x-admin.button>
+
+                    {{-- Upload --}}
+                    <label class="v-btn v-btn--primary inline-flex h-[var(--control-h)] cursor-pointer items-center justify-center gap-1.5 rounded-v-md border border-v-accent bg-v-accent px-3.5 text-[13px] text-v-accent-text shadow-v-lift transition-colors hover:bg-v-accent-hover">
+                        <x-admin.icon name="upload" class="w-3.5 h-3.5" />
+                        Upload Here
+                        <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="uploadFiles($event)" class="sr-only">
+                    </label>
                 </div>
-
-                {{-- URL Import --}}
-                <button type="button" @click="showUrlInput = !showUrlInput"
-                    class="inline-flex items-center gap-1 px-2.5 py-1.5 text-[13px] font-medium rounded-v-md border transition-colors"
-                    :class="showUrlInput ? 'bg-v-accent-weak border-v-accent text-v-accent' : 'border-v-border text-v-secondary hover:bg-v-hover'">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                    URL
-                </button>
-
-                {{-- Upload --}}
-                <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-v-accent text-v-accent-text text-[13px] font-medium rounded-v-md hover:bg-v-accent-hover cursor-pointer transition-colors">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    Upload Here
-                    <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="uploadFiles($event)" class="sr-only">
-                </label>
-
-                {{-- File count --}}
-                <span class="text-xs text-v-muted shrink-0" x-show="files.length > 0" x-text="filteredFiles.length + ' files'"></span>
-            </div>
+            </x-admin.toolbar>
 
             {{-- URL Import Bar --}}
-            <div x-show="showUrlInput" x-transition class="px-5 py-2.5 border-b border-v-border bg-v-sunken">
-                <div class="flex gap-2">
-                    <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg"
-                        class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md placeholder:text-v-muted"
-                        @keydown.enter.prevent="importFromUrl()">
-                    <x-admin.button type="button" variant="primary" @click="importFromUrl()" x-bind:disabled="importingUrl">
-                        <span x-show="!importingUrl">Import</span>
-                        <span x-show="importingUrl" x-cloak>Importing...</span>
-                    </x-admin.button>
-                </div>
+            <div id="media-url-bar" x-show="showUrlInput" x-cloak x-transition class="mb-3 flex gap-2">
+                <input type="text" x-model="urlInput" placeholder="https://example.com/image.jpg" aria-label="Image URL"
+                    class="v-control h-[var(--control-h)] flex-1 rounded-v-md border bg-v-surface px-3 text-[13px] text-v-text placeholder:text-v-muted"
+                    @keydown.enter.prevent="importFromUrl()">
+                <x-admin.button type="button" variant="primary" @click="importFromUrl()" x-bind:disabled="importingUrl">
+                    <span x-show="!importingUrl">Import</span>
+                    <span x-show="importingUrl" x-cloak>Importing&hellip;</span>
+                </x-admin.button>
             </div>
 
             {{-- Content --}}
-            <div class="flex-1 p-5 relative"
+            <x-admin.panel flush class="relative min-h-[70vh]"
                  @dragover.prevent="dragover = true"
                  @dragleave.prevent="dragover = false"
                  @drop.prevent="dragover = false; handleDrop($event)">
 
                 {{-- Drag overlay --}}
-                <div x-show="dragover" x-cloak class="absolute inset-0 z-10 flex items-center justify-center bg-v-accent-weak border-2 border-dashed border-v-accent rounded-v-lg m-2 pointer-events-none">
-                    <div class="text-center">
-                        <svg class="w-10 h-10 mx-auto mb-2 text-v-accent" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        <p class="text-[13px] font-medium text-v-accent">Drop files to upload</p>
+                <div x-show="dragover" x-cloak class="v-drop">
+                    <x-admin.icon name="upload" class="w-8 h-8 text-v-accent" />
+                    <p class="v-drop__text">Drop files to upload</p>
+                </div>
+
+                <div class="v-panel__body">
+                    {{-- Upload progress --}}
+                    <div x-show="uploading" x-cloak class="mb-3 flex items-center gap-2" role="status" aria-live="polite">
+                        <x-admin.icon name="spinner" class="w-4 h-4 shrink-0 animate-spin text-v-accent" />
+                        <span class="text-xs text-v-muted" x-text="uploadStatus"></span>
+                    </div>
+
+                    {{-- Loading --}}
+                    <div x-show="loading" class="flex items-center justify-center py-20">
+                        <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
+                    </div>
+
+                    {{-- File grid --}}
+                    <div x-show="!loading" class="v-tiles">
+                        {{-- Back folder --}}
+                        <template x-if="currentPath !== ''">
+                            <button type="button" @click="browseDir(parentPath)" class="v-tile v-tile--dir" aria-label="Up one folder">
+                                <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                                <span class="v-tile__name v-tile__name--dim">..</span>
+                            </button>
+                        </template>
+
+                        {{-- Folders --}}
+                        <template x-for="folder in filteredFolders" :key="folder.path">
+                            <button type="button" @click="browseDir(folder.path)" class="v-tile v-tile--dir">
+                                <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                                <span class="v-tile__name" x-text="folder.name"></span>
+                            </button>
+                        </template>
+
+                        {{-- Files --}}
+                        <template x-for="file in filteredFiles" :key="file.path">
+                            <div class="v-tile-wrap">
+                                <div class="v-tile">
+                                    <span class="v-tile__art">
+                                        <img :src="file.url" :alt="file.name" class="v-tile__img" loading="lazy">
+                                    </span>
+                                    <span class="v-tile__name" x-text="file.name"></span>
+                                </div>
+                                {{-- Copy path + Delete --}}
+                                <div class="v-tile__acts">
+                                    <button type="button" class="v-tile__act" @click="copyPath(file.path)" :aria-label="'Copy path to ' + file.name">
+                                        <x-admin.icon name="copy" class="w-3.5 h-3.5" />
+                                    </button>
+                                    <button type="button" class="v-tile__act v-tile__act--danger" @click="askDelete(file)" :aria-label="'Delete ' + file.name">
+                                        <x-admin.icon name="trash" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    {{-- Empty --}}
+                    <div x-show="!loading && folders.length === 0 && files.length === 0">
+                        <x-admin.empty-state title="Empty folder" description="Drop files here or use Upload above" />
                     </div>
                 </div>
-
-                {{-- Upload progress --}}
-                <div x-show="uploading" x-cloak class="mb-3 flex items-center gap-2">
-                    <x-admin.icon name="spinner" class="w-4 h-4 animate-spin text-v-accent shrink-0" />
-                    <span class="text-xs text-v-muted" x-text="uploadStatus"></span>
-                </div>
-
-                {{-- Loading --}}
-                <div x-show="loading" class="flex items-center justify-center py-20">
-                    <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
-                </div>
-
-                {{-- File grid --}}
-                <div x-show="!loading" class="grid gap-3" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));">
-                    {{-- Back folder --}}
-                    <template x-if="currentPath !== ''">
-                        <button type="button" @click="browseDir(parentPath)" class="flex flex-col items-center p-3 rounded-v-lg hover:bg-v-hover transition-colors group">
-                            <x-admin.icon name="folder" class="w-14 h-14 text-v-muted group-hover:text-v-secondary transition-colors" />
-                            <span class="text-xs text-v-muted mt-1.5 font-medium">..</span>
-                        </button>
-                    </template>
-
-                    {{-- Folders --}}
-                    <template x-for="folder in filteredFolders" :key="folder.path">
-                        <button type="button" @click="browseDir(folder.path)" class="flex flex-col items-center p-3 rounded-v-lg hover:bg-v-hover transition-colors group">
-                            <x-admin.icon name="folder" class="w-14 h-14 text-v-muted group-hover:text-v-secondary transition-colors" />
-                            <span class="text-xs text-v-secondary mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
-                        </button>
-                    </template>
-
-                    {{-- Files --}}
-                    <template x-for="file in filteredFiles" :key="file.path">
-                        <div class="relative group">
-                            <div class="flex flex-col items-center p-2 rounded-v-lg hover:bg-v-hover transition-colors">
-                                <div class="w-full aspect-square rounded-v-md overflow-hidden bg-v-sunken border border-v-border">
-                                    <img :src="file.url" :alt="file.name" class="w-full h-full object-cover" loading="lazy">
-                                </div>
-                                <span class="text-[11px] text-v-muted mt-1.5 truncate w-full text-center leading-tight" x-text="file.name"></span>
-                            </div>
-                            {{-- Copy path + Delete --}}
-                            <div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button type="button" @click="copyPath(file.path)" :aria-label="'Copy path to ' + file.name"
-                                    class="w-6 h-6 bg-v-surface/90 backdrop-blur-sm rounded-full flex items-center justify-center text-v-muted hover:text-v-accent shadow-v-lift border border-v-border" title="Copy path">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-                                </button>
-                                <button type="button" @click="askDelete(file)" :aria-label="'Delete ' + file.name"
-                                    class="w-6 h-6 bg-v-surface/90 backdrop-blur-sm rounded-full flex items-center justify-center text-v-muted hover:text-v-danger shadow-v-lift border border-v-border" title="Delete">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                </button>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-
-                {{-- Empty --}}
-                <div x-show="!loading && folders.length === 0 && files.length === 0">
-                    <x-admin.empty-state icon="media" title="Empty folder" description="Drop files here or use Upload above" />
-                </div>
-            </div>
+            </x-admin.panel>
 
             {{-- Toast --}}
-            <div x-show="toast" x-cloak x-transition.opacity class="fixed bottom-6 right-6 z-[60] px-4 py-3 rounded-v-md shadow-v-lift-2 text-[13px]"
+            <div x-show="toast" x-cloak x-transition.opacity role="status" aria-live="polite"
+                 class="v-modal fixed bottom-6 right-6 z-[60] rounded-v-md px-4 py-3 text-[13px]"
                  :class="toastType === 'error' ? 'bg-v-danger text-v-danger-text' : 'bg-v-accent text-v-accent-text'">
                 <span x-text="toast"></span>
             </div>

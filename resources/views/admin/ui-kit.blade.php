@@ -45,6 +45,14 @@
             <x-admin.figure label="Running out" value="27,709" note="Below reorder point" accent="rose" icon="products" href="#" />
         </div>
 
+        {{-- A page that reads two measures rather than five. Same block,
+             capped so the pair keeps the figure's own width instead of
+             stretching across the page. --}}
+        <div class="v-stats v-stats--few mb-5">
+            <x-admin.figure label="Total Abandoned" value="312" accent="amber" icon="cart" />
+            <x-admin.figure label="Total Value" :value="$money['amount']" :mark="$money['mark']" accent="violet" icon="banknote" />
+        </div>
+
         <div class="v-split">
             <div class="v-split__main">
 
@@ -141,6 +149,23 @@
                         <a class="v-filters__reset" href="#">Reset</a>
                     </x-admin.filters>
 
+                    {{-- The same row carrying labelled fields. An index whose
+                         filters name themselves above the control and one whose
+                         filters name themselves inside it share a baseline. --}}
+                    <x-admin.filters>
+                        <x-admin.field name="kit_search" label="Search" class="min-w-[200px] flex-1">
+                            <x-admin.input type="search" name="kit_search" placeholder="Name, SKU&hellip;" />
+                        </x-admin.field>
+                        <x-admin.field name="kit_status" label="Status" class="w-40">
+                            <x-admin.select name="kit_status">
+                                <option>All Status</option>
+                                <option>Active</option>
+                            </x-admin.select>
+                        </x-admin.field>
+                        <x-admin.button variant="secondary">Filter</x-admin.button>
+                        <a class="v-filters__reset" href="#">Clear</a>
+                    </x-admin.filters>
+
                     <div class="v-tally">
                         <span class="v-tally__label">Parcels waiting for handover</span>
                         <span class="v-tally__item"><span class="v-tally__count">12</span> QuadX</span>
@@ -158,24 +183,47 @@
                             <x-admin.table.th>Bought</x-admin.table.th>
                             <x-admin.table.th>Status</x-admin.table.th>
                             <x-admin.table.th align="right">Total</x-admin.table.th>
+                            {{-- The actions column. `v-col-act` shrinks it to
+                                 its controls, and the cell drops its own
+                                 padding so 28px of button lands inside a 34px
+                                 row: a real target that costs no height. --}}
+                            <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                         </x-slot:head>
                         <x-admin.table.row href="#">
                             <x-admin.table.cell class="text-v-text"><a href="#" class="v-quietlink">{{ $longCustomer }}</a></x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary"><span class="v-entry__item">{{ $longProduct }}</span><span class="v-entry__more">and 4 more</span></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.badge tone="warning">Processing</x-admin.badge></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.money :mark="$money['mark']" :amount="$money['amount']" /></x-admin.table.cell>
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <x-admin.button size="sm" variant="ghost" href="#">Edit</x-admin.button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger">Delete</x-admin.button>
+                                </div>
+                            </x-admin.table.cell>
                         </x-admin.table.row>
                         <x-admin.table.row href="#">
                             <x-admin.table.cell class="text-v-text"><a href="#" class="v-quietlink">Ana Reyes</a></x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary"><span class="v-entry__item">Dunlop Tortex .88mm</span></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.badge tone="info">Shipped</x-admin.badge></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.money mark="₱" amount="899.00" /></x-admin.table.cell>
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <x-admin.button size="sm" variant="ghost" href="#">Edit</x-admin.button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger">Delete</x-admin.button>
+                                </div>
+                            </x-admin.table.cell>
                         </x-admin.table.row>
                         <x-admin.table.row href="#">
                             <x-admin.table.cell class="text-v-text"><a href="#" class="v-quietlink">Miguel Santos</a></x-admin.table.cell>
                             <x-admin.table.cell class="text-v-secondary"><span class="v-entry__more">No line items</span></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.badge tone="danger">Failed</x-admin.badge></x-admin.table.cell>
                             <x-admin.table.cell><x-admin.money mark="₱" amount="0.00" zero /></x-admin.table.cell>
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <x-admin.button size="sm" variant="ghost" href="#">Edit</x-admin.button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger">Delete</x-admin.button>
+                                </div>
+                            </x-admin.table.cell>
                         </x-admin.table.row>
                     </x-admin.table>
                 </x-admin.panel>
@@ -281,6 +329,90 @@
                             <x-admin.button variant="primary" type="submit">Save changes</x-admin.button>
                         </x-admin.form-actions>
                     </form>
+                </x-admin.panel>
+
+                {{-- Tiles: the grid of things you look at rather than
+                     read. A folder, a file, a picked file, and a file
+                     carrying its own controls. --}}
+                <x-admin.panel title="Tiles" id="kit-tiles">
+                    <div class="v-tiles">
+                        <button type="button" class="v-tile v-tile--dir">
+                            <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                            <span class="v-tile__name v-tile__name--dim">..</span>
+                        </button>
+                        <button type="button" class="v-tile v-tile--dir">
+                            <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                            <span class="v-tile__name">boss-pedals-and-a-very-long-folder-name</span>
+                        </button>
+                        <button type="button" class="v-tile" aria-pressed="true">
+                            <span class="v-tile__art"><span class="v-tile__mark"><x-admin.icon name="media" class="w-full h-full" /></span></span>
+                            <span class="v-tile__name">ds1-distortion-front-01.jpg</span>
+                        </button>
+                        <div class="v-tile-wrap">
+                            <div class="v-tile">
+                                <span class="v-tile__art"><span class="v-tile__mark"><x-admin.icon name="media" class="w-full h-full" /></span></span>
+                                <span class="v-tile__name">ernie-ball-2221-regular-slinky.jpg</span>
+                            </div>
+                            <div class="v-tile__acts">
+                                <button type="button" class="v-tile__act" aria-label="Copy path"><x-admin.icon name="copy" class="w-3.5 h-3.5" /></button>
+                                <button type="button" class="v-tile__act v-tile__act--danger" aria-label="Delete"><x-admin.icon name="trash" class="w-3.5 h-3.5" /></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="v-tray mt-4">
+                        <x-admin.empty-state title="No images yet" />
+                    </div>
+                </x-admin.panel>
+
+                {{-- Sortable rows: ordering that is stored rather than
+                     derived, one level of nesting. --}}
+                <x-admin.panel title="Sortable rows" id="kit-sort" flush>
+                    <div class="v-sortlist">
+                        <div>
+                            <div class="v-sortrow">
+                                <span class="v-sortrow__grip" aria-hidden="true"><x-admin.icon name="drag" class="w-4 h-4" /></span>
+                                <div class="v-sortrow__body">
+                                    <span class="v-sortrow__name">Pedals</span>
+                                    <span class="v-sortrow__slug">/pedals</span>
+                                </div>
+                                <span class="v-sortrow__fact">248 products</span>
+                                <x-admin.badge tone="success">Active</x-admin.badge>
+                                <div class="v-rowactions">
+                                    <x-admin.button size="sm" variant="ghost">Edit</x-admin.button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger">Delete</x-admin.button>
+                                </div>
+                            </div>
+                            <div class="v-sortnest v-sortlist">
+                                <div class="v-sortrow">
+                                    <span class="v-sortrow__grip" aria-hidden="true"><x-admin.icon name="drag" class="w-4 h-4" /></span>
+                                    <div class="v-sortrow__body">
+                                        <span class="v-sortrow__name">Overdrive and Distortion</span>
+                                        <span class="v-sortrow__slug">/pedals/overdrive-and-distortion</span>
+                                    </div>
+                                    <span class="v-sortrow__fact">91</span>
+                                    <x-admin.badge tone="neutral">Inactive</x-admin.badge>
+                                    <div class="v-rowactions">
+                                        <x-admin.button size="sm" variant="ghost">Edit</x-admin.button>
+                                        <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger">Delete</x-admin.button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="v-sortrow">
+                            <span class="v-sortrow__grip" aria-hidden="true"><x-admin.icon name="drag" class="w-4 h-4" /></span>
+                            <div class="v-sortrow__body">
+                                <span class="v-sortrow__name">Strings</span>
+                                <span class="v-sortrow__slug">/strings</span>
+                            </div>
+                            <span class="v-sortrow__fact">27,709 products</span>
+                            <x-admin.badge tone="success">Active</x-admin.badge>
+                            <div class="v-rowactions">
+                                <x-admin.button size="sm" variant="ghost">Edit</x-admin.button>
+                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger">Delete</x-admin.button>
+                            </div>
+                        </div>
+                    </div>
                 </x-admin.panel>
 
                 {{-- Selectable cards: one that can be picked, one that
@@ -431,6 +563,8 @@
                         <dd><x-admin.money :mark="$money['mark']" :amount="$money['amount']" /></dd>
                         <dt class="v-label">Out of stock</dt>
                         <dd><span class="v-num v-facts__zero">0</span></dd>
+                        <dt class="v-label v-facts__sum">Total</dt>
+                        <dd class="v-facts__sum"><x-admin.money :mark="$money['mark']" :amount="$money['amount']" /></dd>
                     </dl>
                 </x-admin.panel>
 
@@ -459,6 +593,32 @@
                         <x-admin.feed.entry icon="orders" when="2 minutes ago" who="{{ $longCustomer }}" who-href="#">placed an order</x-admin.feed.entry>
                         <x-admin.feed.entry icon="cart" when="an hour ago" who="A deleted customer">added something to a cart</x-admin.feed.entry>
                         <x-admin.feed.entry icon="customers" when="yesterday" who="Ana Reyes" who-href="#">signed in</x-admin.feed.entry>
+                    </ul>
+                </x-admin.panel>
+
+                {{-- The feed a record's own history runs: one kind of act,
+                     so one plain mark; the line somebody wrote; and the
+                     one control the row allows. --}}
+                <x-admin.panel title="History" id="kit-history" flush>
+                    <ul class="v-feed">
+                        <x-admin.feed.entry icon="orders" tone="v-feed__ic--plain" when="Aug 10, 2026 9:14am by Paolo">
+                            <x-admin.badge tone="success">Delivered</x-admin.badge>
+                            <x-admin.badge tone="info" :dot="false">Notified</x-admin.badge>
+                            <x-slot:note>Left with the building guard, second attempt. Customer confirmed by SMS.</x-slot:note>
+                            <x-slot:action>
+                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" aria-label="Delete history entry">
+                                    <x-admin.icon name="trash" class="w-3.5 h-3.5" />
+                                </x-admin.button>
+                            </x-slot:action>
+                        </x-admin.feed.entry>
+                        <x-admin.feed.entry icon="orders" tone="v-feed__ic--plain" when="Aug 8, 2026 4:02pm">
+                            <x-admin.badge tone="neutral">Processing</x-admin.badge>
+                            <x-slot:action>
+                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" aria-label="Delete history entry">
+                                    <x-admin.icon name="trash" class="w-3.5 h-3.5" />
+                                </x-admin.button>
+                            </x-slot:action>
+                        </x-admin.feed.entry>
                     </ul>
                 </x-admin.panel>
 

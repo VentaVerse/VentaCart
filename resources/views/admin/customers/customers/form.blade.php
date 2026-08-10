@@ -13,27 +13,28 @@
                 @method('PUT')
             @endif
 
-            {{-- Tab Navigation --}}
-            <x-admin.card class="p-0">
-                <nav class="flex border-b border-v-border px-2" role="tablist">
-                    <button type="button" @click="activeTab = 'general'" role="tab" :aria-selected="activeTab === 'general' ? 'true' : 'false'"
-                        :class="activeTab === 'general' ? 'border-v-accent text-v-accent' : 'border-transparent text-v-secondary hover:text-v-text'"
-                        class="-mb-px whitespace-nowrap px-3 py-2.5 border-b-2 text-[13px] font-medium transition-colors">General</button>
-                    <button type="button" @click="activeTab = 'addresses'" role="tab" :aria-selected="activeTab === 'addresses' ? 'true' : 'false'"
-                        :class="activeTab === 'addresses' ? 'border-v-accent text-v-accent' : 'border-transparent text-v-secondary hover:text-v-text'"
-                        class="-mb-px whitespace-nowrap px-3 py-2.5 border-b-2 text-[13px] font-medium transition-colors">
-                        Addresses
-                        <span class="ml-1 rounded-full bg-v-sunken px-2 py-0.5 text-xs text-v-secondary" x-text="addresses.length"></span>
+            {{-- Tab Navigation. The trough, keyed on aria-selected exactly as
+                 x-admin.tabs is, so this set and the shared component are the
+                 same control; the Alpine scope stays customerForm()'s own. --}}
+            <div class="v-segbar">
+                <div class="v-segment" role="tablist">
+                    <button type="button" class="v-segment__item" @click="activeTab = 'general'" role="tab"
+                        :aria-selected="activeTab === 'general' ? 'true' : 'false'">General</button>
+                    <button type="button" class="v-segment__item" @click="activeTab = 'addresses'" role="tab"
+                        :aria-selected="activeTab === 'addresses' ? 'true' : 'false'">
+                        <span>Addresses</span>
+                        <span class="v-segment__count" x-text="addresses.length"></span>
                     </button>
                     @if (isset($customer) && $customer->id)
-                        <button type="button" @click="activeTab = 'activity'" role="tab" :aria-selected="activeTab === 'activity' ? 'true' : 'false'"
-                            :class="activeTab === 'activity' ? 'border-v-accent text-v-accent' : 'border-transparent text-v-secondary hover:text-v-text'"
-                            class="-mb-px whitespace-nowrap px-3 py-2.5 border-b-2 text-[13px] font-medium transition-colors">Activity</button>
+                        <button type="button" class="v-segment__item" @click="activeTab = 'activity'" role="tab"
+                            :aria-selected="activeTab === 'activity' ? 'true' : 'false'">Activity</button>
                     @endif
-                </nav>
+                </div>
+            </div>
 
+            <x-admin.panel flush>
                 {{-- ===================== GENERAL ===================== --}}
-                <div x-show="activeTab === 'general'" class="p-6 space-y-6">
+                <div x-show="activeTab === 'general'" class="v-panel__body space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <input type="hidden" name="store_id" value="1">
 
@@ -87,16 +88,15 @@
                 </div>
 
                 {{-- ===================== ADDRESSES ===================== --}}
-                <div x-show="activeTab === 'addresses'" class="p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <p class="text-[13px] text-v-secondary">Manage customer shipping/billing addresses.</p>
+                <div x-show="activeTab === 'addresses'" class="v-panel__body">
+                    <div class="flex items-center justify-end mb-4">
                         <x-admin.button type="button" variant="primary" size="sm" @click="addAddress()">
                             <x-admin.icon name="plus" class="w-4 h-4" /> Add Address
                         </x-admin.button>
                     </div>
 
-                    <div x-show="addresses.length === 0" class="text-[13px] text-v-muted py-8 text-center">
-                        No addresses. Click "Add Address" to create one.
+                    <div x-show="addresses.length === 0">
+                        <x-admin.empty-state title="No addresses" />
                     </div>
 
                     <div class="space-y-4">
@@ -113,27 +113,27 @@
                                             <span class="ml-1 text-xs text-v-muted">Default</span>
                                         </label>
                                     </div>
-                                    <button type="button" @click="addresses.splice(aIndex, 1)" class="text-v-danger hover:opacity-80" aria-label="Remove address">
-                                        <x-admin.icon name="trash" class="w-5 h-5" />
-                                    </button>
+                                    <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="addresses.splice(aIndex, 1)" aria-label="Remove address">
+                                        <x-admin.icon name="trash" class="w-4 h-4" />
+                                    </x-admin.button>
                                 </div>
 
                                 <input type="hidden" :name="'addresses['+aIndex+'][id]'" :value="addr.id || ''">
                                 <input type="hidden" :name="'addresses['+aIndex+'][is_default]'" :value="addr.is_default ? '1' : '0'">
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-xs font-medium text-v-muted mb-1">First Name</label>
+                                    <div class="v-field">
+                                        <label class="v-field__label v-label">First Name</label>
                                         <input type="text" x-model="addr.first_name" :name="'addresses['+aIndex+'][first_name]'"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-v-muted mb-1">Last Name</label>
+                                    <div class="v-field">
+                                        <label class="v-field__label v-label">Last Name</label>
                                         <input type="text" x-model="addr.last_name" :name="'addresses['+aIndex+'][last_name]'"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-v-muted mb-1">Country</label>
+                                    <div class="v-field">
+                                        <label class="v-field__label v-label">Country</label>
                                         <select x-model="addr.country_id" :name="'addresses['+aIndex+'][country_id]'"
                                             @change="onAddrCountryChange(aIndex)"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
@@ -145,8 +145,8 @@
                                     </div>
 
                                     {{-- Provider: Province --}}
-                                    <div x-show="addrDropdowns[aIndex]?.hasProvider">
-                                        <label class="block text-xs font-medium text-v-muted mb-1">Province</label>
+                                    <div class="v-field" x-show="addrDropdowns[aIndex]?.hasProvider">
+                                        <label class="v-field__label v-label">Province</label>
                                         <select x-model="addr.state" :name="'addresses['+aIndex+'][state]'"
                                             @change="onAddrProvinceChange(aIndex)"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
@@ -157,8 +157,8 @@
                                         </select>
                                     </div>
                                     {{-- Provider: City --}}
-                                    <div x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.cities || []).length > 0">
-                                        <label class="block text-xs font-medium text-v-muted mb-1">City / Municipality</label>
+                                    <div class="v-field" x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.cities || []).length > 0">
+                                        <label class="v-field__label v-label">City / Municipality</label>
                                         <select x-model="addr.city" :name="'addresses['+aIndex+'][city]'"
                                             @change="onAddrCityChange(aIndex)"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
@@ -169,8 +169,8 @@
                                         </select>
                                     </div>
                                     {{-- Provider: District --}}
-                                    <div x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.districts || []).length > 0">
-                                        <label class="block text-xs font-medium text-v-muted mb-1">District</label>
+                                    <div class="v-field" x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.districts || []).length > 0">
+                                        <label class="v-field__label v-label">District</label>
                                         <select x-model="addr.district" :name="'addresses['+aIndex+'][district]'"
                                             @change="onAddrDistrictChange(aIndex)"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
@@ -181,8 +181,8 @@
                                         </select>
                                     </div>
                                     {{-- Provider: Barangay --}}
-                                    <div x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.barangays || []).length > 0">
-                                        <label class="block text-xs font-medium text-v-muted mb-1">Barangay</label>
+                                    <div class="v-field" x-show="addrDropdowns[aIndex]?.hasProvider && (addrDropdowns[aIndex]?.barangays || []).length > 0">
+                                        <label class="v-field__label v-label">Barangay</label>
                                         <select x-model="addr.barangay" :name="'addresses['+aIndex+'][barangay]'"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                             <option value="">Select Barangay</option>
@@ -193,8 +193,8 @@
                                     </div>
 
                                     {{-- Core: State / Zone --}}
-                                    <div x-show="!addrDropdowns[aIndex]?.hasProvider && addr.country_id">
-                                        <label class="block text-xs font-medium text-v-muted mb-1">State / Province</label>
+                                    <div class="v-field" x-show="!addrDropdowns[aIndex]?.hasProvider && addr.country_id">
+                                        <label class="v-field__label v-label">State / Province</label>
                                         <template x-if="(addrDropdowns[aIndex]?.zones || []).length > 0">
                                             <select x-model="addr.state" :name="'addresses['+aIndex+'][state]'"
                                                 class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
@@ -210,23 +210,23 @@
                                         </template>
                                     </div>
                                     {{-- Core: City --}}
-                                    <div x-show="!addrDropdowns[aIndex]?.hasProvider && addr.country_id">
-                                        <label class="block text-xs font-medium text-v-muted mb-1">City</label>
+                                    <div class="v-field" x-show="!addrDropdowns[aIndex]?.hasProvider && addr.country_id">
+                                        <label class="v-field__label v-label">City</label>
                                         <input type="text" x-model="addr.city" :name="'addresses['+aIndex+'][city]'" required
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                     </div>
-                                    <div class="md:col-span-2">
-                                        <label class="block text-xs font-medium text-v-muted mb-1">Address Line 1</label>
+                                    <div class="v-field md:col-span-2">
+                                        <label class="v-field__label v-label">Address Line 1</label>
                                         <input type="text" x-model="addr.address_1" :name="'addresses['+aIndex+'][address_1]'" required
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-v-muted mb-1">Postcode</label>
+                                    <div class="v-field">
+                                        <label class="v-field__label v-label">Postcode</label>
                                         <input type="text" x-model="addr.postcode" :name="'addresses['+aIndex+'][postcode]'"
                                             class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-medium text-v-muted mb-1">Phone</label>
+                                    <div class="v-field">
+                                        <label class="v-field__label v-label">Phone</label>
                                         <div class="flex gap-2">
                                             <span class="inline-flex items-center px-3 rounded-v-md border border-v-border bg-v-sunken text-[13px] text-v-muted"
                                                 x-text="phoneCodes[addr.country_id] ? '+' + phoneCodes[addr.country_id] : '-'"></span>
@@ -243,25 +243,25 @@
 
                 {{-- ===================== ACTIVITY ===================== --}}
                 @if (isset($customer) && $customer->id)
-                    <div x-show="activeTab === 'activity'" class="p-6">
-                        <div class="space-y-3">
-                            @forelse ($customer->activities->take(100) as $activity)
-                                <div class="flex items-start gap-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 {{ $activity->color }}">
-                                        <x-admin.icon :name="$activity->icon" class="w-4 h-4" />
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-[13px] text-v-text">{{ $activity->description }}</p>
-                                        <p class="text-xs text-v-muted">{{ $activity->created_at->format('M d, Y H:i') }} &middot; {{ $activity->created_at->diffForHumans() }}</p>
-                                    </div>
-                                </div>
-                            @empty
-                                <p class="text-[13px] text-v-muted text-center py-8">No activity recorded yet.</p>
-                            @endforelse
-                        </div>
+                    {{-- The same feed the day sheet's activity rail runs, at the
+                         same density, so one customer's history and the store's
+                         are the same list read at two scopes. --}}
+                    <div x-show="activeTab === 'activity'" class="py-2">
+                        @if ($customer->activities->isEmpty())
+                            <x-admin.empty-state title="No activity recorded yet" />
+                        @else
+                            <ul class="v-feed">
+                                @foreach ($customer->activities->take(100) as $activity)
+                                    <x-admin.feed.entry :icon="$activity->icon" :tone="$activity->color"
+                                        when="{{ $activity->created_at->format('M d, Y H:i') }} · {{ $activity->created_at->diffForHumans() }}">
+                                        {{ $activity->description }}
+                                    </x-admin.feed.entry>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
                 @endif
-            </x-admin.card>
+            </x-admin.panel>
 
             {{-- Submit --}}
             <x-admin.form-actions class="mt-6 rounded-v-lg border border-v-border">

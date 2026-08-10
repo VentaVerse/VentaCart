@@ -2,7 +2,7 @@
     $vInput = 'v-control w-full h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md placeholder:text-v-muted';
     $vSelect = 'v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md';
     $vInputSm = 'v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md';
-    $vLabel = 'block text-[13px] font-medium text-v-text mb-1';
+    $vLabel = 'v-field__label v-label mb-1';
     $vCheck = 'w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface';
 @endphp
 <x-admin.shell title="{{ $order ? 'Order #' . $order->id : 'Create Order' }}">
@@ -507,9 +507,9 @@
                                                 </td>
                                                 <td class="v-num px-3 py-2 text-[13px] font-medium text-v-text" x-text="(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)"></td>
                                                 <td class="px-3 py-2">
-                                                    <button type="button" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())" class="text-v-danger hover:opacity-80" aria-label="Remove line item">
+                                                    <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())" aria-label="Remove line item">
                                                         <x-admin.icon name="trash" class="h-4 w-4" />
-                                                    </button>
+                                                    </x-admin.button>
                                                 </td>
                                             </tr>
                                         </template>

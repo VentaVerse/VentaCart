@@ -41,11 +41,11 @@
                 {{-- Review Images --}}
                 @if ($review->images->isNotEmpty())
                     <div class="mt-6 border-t border-v-border pt-4">
-                        <h4 class="mb-3 text-[13px] font-medium text-v-text">Attached Photos</h4>
-                        <div class="flex flex-wrap gap-3">
+                        <h4 class="mb-3 v-subhead">Attached Photos</h4>
+                        <div class="v-tiles v-tiles--sm">
                             @foreach ($review->images as $img)
-                                <a href="{{ storage_url($img->path) }}" target="_blank" class="block h-32 w-32 overflow-hidden rounded-v-md border border-v-border">
-                                    <img src="{{ storage_url($img->path) }}" alt="Review photo" class="h-full w-full object-cover">
+                                <a href="{{ storage_url($img->path) }}" target="_blank" class="v-tile">
+                                    <span class="v-tile__art"><img src="{{ storage_url($img->path) }}" alt="Review photo" class="v-tile__img"></span>
                                 </a>
                             @endforeach
                         </div>
@@ -55,40 +55,38 @@
                 {{-- Coupon Info --}}
                 @if ($review->coupon)
                     <div class="mt-6 border-t border-v-border pt-4">
-                        <h4 class="mb-2 text-[13px] font-medium text-v-text">Coupon Issued</h4>
-                        <div class="rounded-v-md bg-v-sunken p-3 text-[13px] space-y-1">
-                            <p><span class="text-v-muted">Code:</span> <span class="v-num font-semibold text-v-text">{{ $review->coupon->coupon_code }}</span></p>
-                            <p><span class="text-v-muted">Discount:</span> {{ $review->coupon->discount_type === 'percent' ? $review->coupon->discount_value . '%' : '₱' . number_format($review->coupon->discount_value, 2) }}</p>
-                            <p><span class="text-v-muted">Expires:</span> {{ $review->coupon->expires_at?->format('M j, Y') ?? 'N/A' }}</p>
-                            <p><span class="text-v-muted">Used:</span> {{ $review->coupon->used ? 'Yes' : 'No' }}</p>
-                        </div>
+                        <h4 class="mb-2 v-subhead">Coupon Issued</h4>
+                        <dl class="v-facts v-facts--flush max-w-sm">
+                            <dt class="v-label">Code</dt>
+                            <dd><span class="v-ref">{{ $review->coupon->coupon_code }}</span></dd>
+                            <dt class="v-label">Discount</dt>
+                            <dd>{{ $review->coupon->discount_type === 'percent' ? $review->coupon->discount_value . '%' : '₱' . number_format($review->coupon->discount_value, 2) }}</dd>
+                            <dt class="v-label">Expires</dt>
+                            <dd>{{ $review->coupon->expires_at?->format('M j, Y') ?? 'N/A' }}</dd>
+                            <dt class="v-label">Used</dt>
+                            <dd>{{ $review->coupon->used ? 'Yes' : 'No' }}</dd>
+                        </dl>
                     </div>
                 @endif
             </x-admin.card>
 
             {{-- Sidebar --}}
-            <x-admin.card title="Details" class="h-fit">
-                <dl class="space-y-3">
-                    <div>
-                        <dt class="text-xs text-v-muted">Submitted</dt>
-                        <dd class="text-[13px] text-v-text">{{ $review->created_at->format('M j, Y g:i A') }}</dd>
-                    </div>
+            <x-admin.panel title="Details" id="review-details" class="h-fit" flush>
+                <dl class="v-facts">
+                    <dt class="v-label">Submitted</dt>
+                    <dd>{{ $review->created_at->format('M j, Y g:i A') }}</dd>
                     @if ($review->published_at)
-                        <div>
-                            <dt class="text-xs text-v-muted">Published</dt>
-                            <dd class="text-[13px] text-v-text">{{ $review->published_at->format('M j, Y g:i A') }}</dd>
-                        </div>
+                        <dt class="v-label">Published</dt>
+                        <dd>{{ $review->published_at->format('M j, Y g:i A') }}</dd>
                     @endif
                     @if ($review->order_id)
-                        <div>
-                            <dt class="text-xs text-v-muted">Order</dt>
-                            <dd><a href="{{ route('admin.orders.show', $review->order_id) }}" class="text-v-accent hover:underline">#{{ $review->order_id }}</a></dd>
-                        </div>
+                        <dt class="v-label">Order</dt>
+                        <dd><a href="{{ route('admin.orders.show', $review->order_id) }}" class="v-ref">#{{ $review->order_id }}</a></dd>
                     @endif
                 </dl>
 
                 {{-- Actions --}}
-                <div class="mt-6 space-y-2">
+                <div class="v-panel__body space-y-2">
                     @if ($review->status === 'pending')
                         <form method="POST" action="{{ route('admin.reviews.approve', $review) }}" data-v-form>
                             @csrf
@@ -117,7 +115,7 @@
                         message="Delete this review permanently? This cannot be undone." confirm="Delete"
                         :action="route('admin.reviews.destroy', $review)" method="DELETE" />
                 </div>
-            </x-admin.card>
+            </x-admin.panel>
         </div>
     </x-admin.page>
 </x-admin.shell>

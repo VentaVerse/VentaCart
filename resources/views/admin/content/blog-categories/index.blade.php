@@ -13,7 +13,7 @@
                 <x-admin.table.th>Slug</x-admin.table.th>
                 <x-admin.table.th align="right">Posts</x-admin.table.th>
                 <x-admin.table.th align="right">Sort</x-admin.table.th>
-                <x-admin.table.th align="right">Actions</x-admin.table.th>
+                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
             </x-slot:head>
             @forelse ($categories as $category)
                 <x-admin.table.row href="{{ route('admin.blog-categories.edit', $category) }}">
@@ -23,18 +23,18 @@
                     <x-admin.table.cell mono>{{ $category->slug }}</x-admin.table.cell>
                     <x-admin.table.cell align="right" mono>{{ $category->posts_count }}</x-admin.table.cell>
                     <x-admin.table.cell align="right" mono>{{ $category->sort_order }}</x-admin.table.cell>
-                    <x-admin.table.cell align="right">
-                        <div class="flex items-center justify-end gap-3">
-                            <a href="{{ route('admin.blog-categories.edit', $category) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
-                            <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-blog-category-{{ $category->id }}')">Delete</button>
+                    <x-admin.table.cell class="v-col-act">
+                        <div class="v-rowactions v-rowactions--end">
+                            <x-admin.button size="sm" variant="ghost" :href="route('admin.blog-categories.edit', $category)">Edit</x-admin.button>
+                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-blog-category-{{ $category->id }}')">Delete</x-admin.button>
                         </div>
                     </x-admin.table.cell>
                 </x-admin.table.row>
             @empty
                 <tr>
-                    <td colspan="5" class="px-4 py-2">
-                        <x-admin.empty-state icon="categories" title="No blog categories yet">
-                            <a href="{{ route('admin.blog-categories.create') }}" class="text-[13px] text-v-accent hover:underline">Create one</a>
+                    <td colspan="5">
+                        <x-admin.empty-state title="No blog categories yet">
+                            <x-admin.button variant="primary" :href="route('admin.blog-categories.create')">Create one</x-admin.button>
                         </x-admin.empty-state>
                     </td>
                 </tr>

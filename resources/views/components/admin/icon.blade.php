@@ -77,6 +77,22 @@ $paths = [
        `animate-spin` utility; the gap is what makes the rotation
        legible. */
     'spinner' => 'M12 3a9 9 0 109 9',
+    /* The root of a file tree. `dashboard` is also a house, but it
+       means the dashboard everywhere else in the admin, and a
+       breadcrumb that starts with the dashboard's own mark reads as a
+       link to the dashboard. */
+    'home' => 'M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125A1.125 1.125 0 005.625 21h12.75a1.125 1.125 0 001.125-1.125V9.75',
+    /* A chain, for importing a file by its address. `external` is an
+       arrow leaving the page, which is a different act. */
+    'link' => 'M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244',
+    /* Two stacked sheets: put this on the clipboard. */
+    'copy' => 'M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75',
+    /* The mark on every "write this for me" control in the admin. It
+       was drawn inline in four forms before it was a name. */
+    'sparkles' => 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z',
+    /* Two rules, for the handle you drag a row by. Deliberately not an
+       arrow: the row does not move on its own, you move it. */
+    'drag' => 'M3.75 9h16.5M3.75 15h16.5',
 ];
 @endphp
 {{-- One 24 grid, one stroke weight, every icon drawn. A unicode glyph

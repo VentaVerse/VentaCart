@@ -84,7 +84,7 @@
                                 @if ($post ?? false)
                                     <x-admin.button type="button" variant="primary" @click="optimize()" x-bind:disabled="loading">
                                         <template x-if="!loading">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+                                            <x-admin.icon name="sparkles" class="w-4 h-4" />
                                         </template>
                                         <template x-if="loading">
                                             <x-admin.icon name="spinner" class="w-4 h-4 animate-spin" />
@@ -168,7 +168,7 @@
                             <div x-show="selectedPath" class="relative inline-block">
                                 <img :src="previewUrl" class="w-full max-w-[200px] h-auto rounded-v-md border border-v-border" alt="Featured image">
                                 <button type="button" @click="selectedPath = ''" aria-label="Remove featured image" class="absolute top-1 right-1 w-6 h-6 bg-v-danger text-v-danger-text rounded-full flex items-center justify-center hover:opacity-90 shadow-v-lift">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    <x-admin.icon name="x" class="w-3 h-3" />
                                 </button>
                             </div>
 
@@ -179,10 +179,10 @@
 
                             {{-- Browser Modal --}}
                             <div x-show="browserOpen" x-cloak x-transition.opacity.duration.200ms
-                                 class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-                                 style="background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);"
+                                 class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[3px]"
                                  @keydown.escape.window="browserOpen = false">
-                                <div class="w-full max-w-4xl max-h-[80vh] flex flex-col bg-v-surface rounded-v-lg shadow-v-lift-2 border border-v-border overflow-hidden"
+                                <div class="v-modal w-full max-w-4xl max-h-[80vh] flex flex-col bg-v-surface rounded-v-lg border border-v-border overflow-hidden"
+                                     role="dialog" aria-modal="true" aria-label="Choose featured image"
                                      @click.outside="browserOpen = false">
                                     {{-- Header --}}
                                     <div class="flex items-center justify-between px-5 py-3.5 border-b border-v-border bg-v-sunken">
@@ -201,7 +201,7 @@
                                             </nav>
                                         </div>
                                         <button type="button" @click="browserOpen = false" aria-label="Close" class="text-v-muted hover:text-v-text p-1 rounded-v-md hover:bg-v-hover">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                            <x-admin.icon name="x" class="w-5 h-5" />
                                         </button>
                                     </div>
                                     {{-- Content --}}
@@ -209,25 +209,26 @@
                                         <div x-show="loading" class="flex items-center justify-center py-16">
                                             <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
                                         </div>
-                                        <div x-show="!loading" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
+                                        <div x-show="!loading" class="v-tiles v-tiles--sm">
                                             <template x-if="currentPath !== ''">
-                                                <button type="button" @click="browseDir(parentPath)" class="flex flex-col items-center p-3 rounded-v-lg hover:bg-v-hover transition-colors group">
-                                                    <svg class="w-12 h-12 text-v-warning" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
-                                                    <span class="text-xs text-v-muted mt-1.5 font-medium">..</span>
+                                                <button type="button" @click="browseDir(parentPath)" class="v-tile v-tile--dir">
+                                                    <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                                                    <span class="v-tile__name v-tile__name--dim">..</span>
                                                 </button>
                                             </template>
                                             <template x-for="folder in folders" :key="folder.path">
-                                                <button type="button" @click="browseDir(folder.path)" class="flex flex-col items-center p-3 rounded-v-lg hover:bg-v-hover transition-colors group">
-                                                    <svg class="w-12 h-12 text-v-warning" fill="currentColor" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.097.903 2 2 2h16c1.097 0 2-.903 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/></svg>
-                                                    <span class="text-xs text-v-secondary mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
+                                                <button type="button" @click="browseDir(folder.path)" class="v-tile v-tile--dir">
+                                                    <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                                                    <span class="v-tile__name" x-text="folder.name"></span>
                                                 </button>
                                             </template>
                                             <template x-for="file in files" :key="file.path">
-                                                <button type="button" @click="selectFile(file)" class="flex flex-col items-center p-2 rounded-v-lg hover:bg-v-hover transition-colors" :class="selectedPath === file.path ? 'ring-2 ring-v-accent bg-v-accent-weak' : ''">
-                                                    <div class="w-full aspect-square rounded-v-md overflow-hidden bg-v-sunken border border-v-border">
-                                                        <img :src="file.url" :alt="file.name" class="w-full h-full object-cover" loading="lazy">
-                                                    </div>
-                                                    <span class="text-[11px] text-v-muted mt-1.5 truncate w-full text-center" x-text="file.name"></span>
+                                                <button type="button" @click="selectFile(file)" class="v-tile"
+                                                    :aria-pressed="selectedPath === file.path ? 'true' : 'false'">
+                                                    <span class="v-tile__art">
+                                                        <img :src="file.url" :alt="file.name" class="v-tile__img" loading="lazy">
+                                                    </span>
+                                                    <span class="v-tile__name" x-text="file.name"></span>
                                                 </button>
                                             </template>
                                         </div>

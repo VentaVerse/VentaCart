@@ -16,14 +16,14 @@
     </div>
 
     {{-- Thumbnail Grid --}}
-    <div class="rounded-v-lg border-2 border-dashed border-v-strong bg-v-sunken p-4 min-h-[10rem]">
+    <div class="v-tray">
         {{-- Empty State --}}
         <div x-show="items.length === 0">
             <x-admin.empty-state title="No images yet" />
         </div>
 
         {{-- Grid (no x-for, rendered via JS to avoid SortableJS conflict) --}}
-        <div x-show="items.length > 0" x-ref="sortableGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3"></div>
+        <div x-show="items.length > 0" x-ref="sortableGrid" class="v-tiles"></div>
     </div>
 
     {{-- Toast --}}
@@ -127,11 +127,9 @@
                      @drop.prevent="browserDragover = false; handleBrowserDrop($event)">
 
                     {{-- Drag overlay --}}
-                    <div x-show="browserDragover" class="absolute inset-0 z-10 flex items-center justify-center bg-v-accent-weak border-2 border-dashed border-v-mark rounded-v-lg m-2 pointer-events-none">
-                        <div class="text-center">
-                            <x-admin.icon name="upload" class="w-10 h-10 mx-auto mb-2 text-v-accent" />
-                            <p class="text-[13px] font-medium text-v-accent">Drop to upload here</p>
-                        </div>
+                    <div x-show="browserDragover" class="v-drop">
+                        <x-admin.icon name="upload" class="w-8 h-8 text-v-accent" />
+                        <p class="v-drop__text">Drop to upload here</p>
                     </div>
 
                     {{-- Upload progress --}}
@@ -144,43 +142,43 @@
                         <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
                     </div>
 
-                    <div x-show="!browserLoading" class="grid gap-2 grid-cols-[repeat(auto-fill,minmax(120px,1fr))]">
+                    <div x-show="!browserLoading" class="v-tiles v-tiles--sm">
                         {{-- Parent Folder --}}
                         <template x-if="browserCurrentPath !== ''">
-                            <button type="button" @click="browseDir(browserParent)" aria-label="Go to parent folder"
-                                class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
-                                <x-admin.icon name="folder" class="w-12 h-12 text-v-mark" />
-                                <span class="text-xs text-v-secondary mt-1.5 font-medium">..</span>
+                            <button type="button" @click="browseDir(browserParent)" aria-label="Go to parent folder" class="v-tile v-tile--dir">
+                                <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                                <span class="v-tile__name v-tile__name--dim">..</span>
                             </button>
                         </template>
 
                         {{-- Folders --}}
                         <template x-for="folder in filteredBrowserFolders" :key="folder.path">
-                            <button type="button" @click="browseDir(folder.path)" x-bind:aria-label="'Open folder ' + folder.name"
-                                class="flex flex-col items-center p-3 rounded-v-md hover:bg-v-hover transition-colors">
-                                <x-admin.icon name="folder" class="w-12 h-12 text-v-mark" />
-                                <span class="text-xs text-v-secondary mt-1.5 truncate w-full text-center font-medium" x-text="folder.name"></span>
+                            <button type="button" @click="browseDir(folder.path)" x-bind:aria-label="'Open folder ' + folder.name" class="v-tile v-tile--dir">
+                                <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
+                                <span class="v-tile__name" x-text="folder.name"></span>
                             </button>
                         </template>
 
-                        {{-- Files --}}
+                        {{-- Files. Three states, and the ring is never the only
+                             thing saying which: an added file also carries the
+                             check mark, a picked one carries its own. --}}
                         <template x-for="file in filteredBrowserFiles" :key="file.path">
-                            <div class="relative group">
+                            <div class="v-tile-wrap">
                                 <button type="button" @click="toggleFileSelection(file)"
                                     x-bind:aria-label="isAlreadyAdded(file.path)
                                         ? file.name + ' (already added)'
                                         : (isSelected(file.path) ? 'Deselect ' + file.name : 'Select ' + file.name)"
                                     x-bind:aria-pressed="isSelected(file.path) ? 'true' : 'false'"
-                                    class="flex flex-col items-center p-2 rounded-v-md transition-colors w-full"
+                                    class="v-tile"
                                     x-bind:class="isAlreadyAdded(file.path)
                                         ? 'ring-2 ring-v-mark bg-v-accent-weak opacity-60 cursor-default'
                                         : isSelected(file.path)
                                             ? 'ring-2 ring-[var(--bl-good)] bg-[var(--bl-good-wash)]'
-                                            : 'hover:bg-v-hover'">
-                                    <div class="w-full aspect-square rounded-v-md overflow-hidden bg-v-sunken border border-v-border">
-                                        <img :src="file.url" alt="" aria-hidden="true" class="w-full h-full object-cover" loading="lazy">
-                                    </div>
-                                    <span class="text-[11px] text-v-secondary mt-1.5 truncate w-full text-center leading-tight" x-text="file.name"></span>
+                                            : ''">
+                                    <span class="v-tile__art">
+                                        <img :src="file.url" alt="" aria-hidden="true" class="v-tile__img" loading="lazy">
+                                    </span>
+                                    <span class="v-tile__name" x-text="file.name"></span>
                                 </button>
                                 {{-- Already-added indicator --}}
                                 <div x-show="isAlreadyAdded(file.path)"
@@ -192,10 +190,12 @@
                                      class="absolute top-3 left-3 w-5 h-5 bg-[var(--bl-good)] text-v-surface rounded-v-pill flex items-center justify-center pointer-events-none shadow-v-lift">
                                     <x-admin.icon name="check" class="w-3 h-3" />
                                 </div>
-                                <button type="button" @click="askDeleteFile(file)" x-bind:aria-label="'Delete ' + file.name + ' from the server'"
-                                    class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 w-5 h-5 bg-v-surface border border-v-danger text-v-danger rounded-v-pill flex items-center justify-center hover:bg-[var(--bl-bad-wash)] transition-all shadow-v-lift">
-                                    <x-admin.icon name="x" class="w-3 h-3" />
-                                </button>
+                                <div class="v-tile__acts">
+                                    <button type="button" class="v-tile__act v-tile__act--danger" @click="askDeleteFile(file)"
+                                        x-bind:aria-label="'Delete ' + file.name + ' from the server'">
+                                        <x-admin.icon name="trash" class="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
                             </div>
                         </template>
                     </div>

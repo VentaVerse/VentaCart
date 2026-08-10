@@ -1,6 +1,7 @@
 <x-admin.shell title="Categories">
     <x-admin.page title="Categories">
         <x-slot:actions>
+            <x-admin.hint label="How ordering works" class="v-hint--end">Subcategories are sorted within their parent.</x-admin.hint>
             <x-admin.button variant="primary" href="{{ route('admin.categories.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Category
             </x-admin.button>
@@ -11,61 +12,59 @@
             $children = $categories->whereNotNull('parent_id')->groupBy('parent_id');
         @endphp
 
-        {{-- Parent categories --}}
-        <div class="bg-v-surface border border-v-border rounded-v-lg overflow-hidden">
-            <div class="px-5 py-2.5 bg-v-sunken border-b border-v-border">
-                <p class="text-xs text-v-muted">Drag the handle to reorder. Subcategories are sorted within their parent.</p>
-            </div>
-
-            <div x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
+        <x-admin.panel flush>
+            <div class="v-sortlist" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
                 @forelse ($parents as $parent)
-                    <div data-id="{{ $parent->id }}" draggable="true" class="border-b border-v-border last:border-b-0">
+                    <div data-id="{{ $parent->id }}" draggable="true">
                         {{-- Parent row --}}
-                        <div class="flex items-center hover:bg-v-hover px-5 py-2.5 gap-3">
-                            <svg class="w-5 h-5 text-v-muted cursor-grab shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                        <div class="v-sortrow">
+                            <span class="v-sortrow__grip drag-handle" aria-hidden="true"><x-admin.icon name="drag" class="w-4 h-4" /></span>
                             @if ($parent->image)
-                                <img class="h-8 w-8 rounded-v-sm object-cover shrink-0" src="{{ storage_url($parent->image) }}" alt="">
+                                <img class="v-sortrow__art" src="{{ storage_url($parent->image) }}" alt="">
                             @endif
-                            <div class="flex-1 min-w-0">
-                                <span class="text-[13px] font-semibold text-v-text">{{ $parent->name }}</span>
-                                <span class="text-xs text-v-muted ml-2">/{{ $parent->slug }}</span>
+                            <div class="v-sortrow__body">
+                                <span class="v-sortrow__name">{{ $parent->name }}</span>
+                                <span class="v-sortrow__slug">/{{ $parent->slug }}</span>
                             </div>
-                            <span class="text-xs text-v-muted whitespace-nowrap">{{ $parent->products_count }} products</span>
+                            <span class="v-sortrow__fact">{{ $parent->products_count }} products</span>
                             <x-admin.badge :tone="$parent->is_active ? 'success' : 'neutral'">{{ $parent->is_active ? 'Active' : 'Inactive' }}</x-admin.badge>
-                            <a href="{{ route('admin.categories.edit', $parent) }}" class="text-[13px] text-v-accent hover:opacity-80 font-medium whitespace-nowrap">Edit</a>
-                            <button type="button" class="text-[13px] text-v-danger hover:opacity-80 font-medium whitespace-nowrap" @click="$dispatch('open-modal', 'delete-category-{{ $parent->id }}')">Delete</button>
+                            <div class="v-rowactions">
+                                <x-admin.button size="sm" variant="ghost" :href="route('admin.categories.edit', $parent)">Edit</x-admin.button>
+                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-category-{{ $parent->id }}')">Delete</x-admin.button>
+                            </div>
                         </div>
 
                         {{-- Children --}}
                         @if (isset($children[$parent->id]) && $children[$parent->id]->isNotEmpty())
-                            <div class="bg-v-sunken/50" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
+                            <div class="v-sortnest v-sortlist" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
                                 @foreach ($children[$parent->id]->sortBy('sort_order') as $child)
-                                    <div data-id="{{ $child->id }}" draggable="true" class="flex items-center hover:bg-v-hover px-5 py-2 border-t border-v-border gap-3">
-                                        <div class="w-8 shrink-0"></div>
-                                        <svg class="w-4 h-4 text-v-muted/70 cursor-grab shrink-0 drag-handle" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                                    <div data-id="{{ $child->id }}" draggable="true" class="v-sortrow">
+                                        <span class="v-sortrow__grip drag-handle" aria-hidden="true"><x-admin.icon name="drag" class="w-4 h-4" /></span>
                                         @if ($child->image)
-                                            <img class="h-6 w-6 rounded-v-sm object-cover shrink-0" src="{{ storage_url($child->image) }}" alt="">
+                                            <img class="v-sortrow__art" src="{{ storage_url($child->image) }}" alt="">
                                         @endif
-                                        <div class="flex-1 min-w-0">
-                                            <span class="text-[13px] text-v-secondary">{{ $child->name }}</span>
-                                            <span class="text-xs text-v-muted ml-2">/{{ $child->slug }}</span>
+                                        <div class="v-sortrow__body">
+                                            <span class="v-sortrow__name">{{ $child->name }}</span>
+                                            <span class="v-sortrow__slug">/{{ $child->slug }}</span>
                                         </div>
-                                        <span class="text-xs text-v-muted whitespace-nowrap">{{ $child->products_count }}</span>
+                                        <span class="v-sortrow__fact">{{ $child->products_count }}</span>
                                         <x-admin.badge :tone="$child->is_active ? 'success' : 'neutral'">{{ $child->is_active ? 'Active' : 'Inactive' }}</x-admin.badge>
-                                        <a href="{{ route('admin.categories.edit', $child) }}" class="text-[13px] text-v-accent hover:opacity-80 font-medium whitespace-nowrap">Edit</a>
-                                        <button type="button" class="text-[13px] text-v-danger hover:opacity-80 font-medium whitespace-nowrap" @click="$dispatch('open-modal', 'delete-category-{{ $child->id }}')">Delete</button>
+                                        <div class="v-rowactions">
+                                            <x-admin.button size="sm" variant="ghost" :href="route('admin.categories.edit', $child)">Edit</x-admin.button>
+                                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-category-{{ $child->id }}')">Delete</x-admin.button>
+                                        </div>
                                     </div>
                                 @endforeach
                             </div>
                         @endif
                     </div>
                 @empty
-                    <x-admin.empty-state icon="categories" title="No categories found">
-                        <a href="{{ route('admin.categories.create') }}" class="text-[13px] text-v-accent hover:underline">Create your first category</a>
+                    <x-admin.empty-state title="No categories found">
+                        <x-admin.button variant="primary" :href="route('admin.categories.create')">Create your first category</x-admin.button>
                     </x-admin.empty-state>
                 @endforelse
             </div>
-        </div>
+        </x-admin.panel>
 
         @foreach ($categories as $category)
             <x-admin.confirm-dialog name="delete-category-{{ $category->id }}" title="Delete {{ $category->name }}?"

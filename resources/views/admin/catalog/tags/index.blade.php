@@ -6,22 +6,16 @@
             </x-admin.button>
         </x-slot:actions>
 
-        <div class="space-y-5">
-            <x-admin.card>
-                <form method="GET" action="{{ route('admin.tags.index') }}" class="flex flex-wrap items-end gap-3">
-                    <div class="min-w-[220px]">
-                        <x-admin.field name="search" label="Search">
-                            <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search tags..." />
-                        </x-admin.field>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <x-admin.button type="submit" variant="primary">Search</x-admin.button>
-                        @if (request('search'))
-                            <a href="{{ route('admin.tags.index') }}" class="text-[13px] text-v-muted underline hover:text-v-text">Clear</a>
-                        @endif
-                    </div>
-                </form>
-            </x-admin.card>
+        <div>
+            <x-admin.filters :action="route('admin.tags.index')">
+                <x-admin.field name="search" label="Search" class="v-field--grow">
+                    <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search tags..." />
+                </x-admin.field>
+                <x-admin.button type="submit" variant="secondary">Search</x-admin.button>
+                @if (request('search'))
+                    <a href="{{ route('admin.tags.index') }}" class="v-filters__reset">Clear</a>
+                @endif
+            </x-admin.filters>
 
             <x-admin.table>
                 <x-slot:head>
@@ -29,7 +23,7 @@
                     <x-admin.table.th>Slug</x-admin.table.th>
                     <x-admin.table.th align="right">Products</x-admin.table.th>
                     <x-admin.table.th align="right">Blog Posts</x-admin.table.th>
-                    <x-admin.table.th align="right">Actions</x-admin.table.th>
+                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                 </x-slot:head>
                 @forelse ($tags as $tag)
                     <x-admin.table.row href="{{ route('admin.tags.edit', $tag) }}">
@@ -39,18 +33,18 @@
                         <x-admin.table.cell mono>{{ $tag->slug }}</x-admin.table.cell>
                         <x-admin.table.cell align="right" mono>{{ $tag->products_count }}</x-admin.table.cell>
                         <x-admin.table.cell align="right" mono>{{ $tag->blog_posts_count }}</x-admin.table.cell>
-                        <x-admin.table.cell align="right">
-                            <div class="flex items-center justify-end gap-3">
-                                <a href="{{ route('admin.tags.edit', $tag) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
-                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-tag-{{ $tag->id }}')">Delete</button>
+                        <x-admin.table.cell class="v-col-act">
+                            <div class="v-rowactions v-rowactions--end">
+                                <x-admin.button size="sm" variant="ghost" :href="route('admin.tags.edit', $tag)">Edit</x-admin.button>
+                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-tag-{{ $tag->id }}')">Delete</x-admin.button>
                             </div>
                         </x-admin.table.cell>
                     </x-admin.table.row>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-2">
-                            <x-admin.empty-state icon="tags" title="No tags yet" :description="request('search') ? 'Try adjusting your search.' : null">
-                                <a href="{{ route('admin.tags.create') }}" class="text-[13px] text-v-accent hover:underline">Create one</a>
+                        <td colspan="5">
+                            <x-admin.empty-state title="No tags yet" :description="request('search') ? 'Try adjusting your search.' : null">
+                                <x-admin.button variant="primary" :href="route('admin.tags.create')">Create one</x-admin.button>
                             </x-admin.empty-state>
                         </td>
                     </tr>

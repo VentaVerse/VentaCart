@@ -5,7 +5,13 @@
      of brass names would say "act here" eight times down one rail, so
      it takes the row's own colour and says it on demand instead. Pass
      it as `who` with `whoHref`, or leave `who` for a record that is
-     gone. --}}
+     gone.
+
+     Two optional slots carry the shapes a history has and an activity
+     rail does not. `note` is the line the act left behind: an
+     operator's comment on a status change, the reason a job failed.
+     `action` is the one control the row allows, which for a record of
+     something that happened is almost always "remove this record". --}}
 @props(['icon', 'when', 'tone' => null, 'who' => null, 'whoHref' => null])
 <li>
     <div {{ $attributes->merge(['class' => 'v-feed__row']) }}>
@@ -25,7 +31,9 @@
                 @endif
                 {{ $slot }}
             </span>
+            @isset($note)<span class="v-feed__note">{{ $note }}</span>@endisset
             <span class="v-feed__when">{{ $when }}</span>
         </span>
+        @isset($action)<span class="v-feed__act">{{ $action }}</span>@endisset
     </div>
 </li>

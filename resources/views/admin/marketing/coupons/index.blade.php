@@ -10,7 +10,7 @@
             {{-- Filters --}}
             <x-admin.card>
                 <form method="GET" action="{{ route('admin.coupons.index') }}" class="flex flex-wrap items-end gap-3">
-                    <div class="min-w-[220px] flex-1">
+                    <div class="v-field--grow">
                         <x-admin.field name="search" label="Search">
                             <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search code or name..." />
                         </x-admin.field>

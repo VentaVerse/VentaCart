@@ -22,7 +22,7 @@
     $vSelect = 'v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md';
     $vInputSm = 'v-control h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md';
     $vTextarea = 'v-control w-full px-3 py-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md placeholder:text-v-muted';
-    $vLabel = 'block text-[13px] font-medium text-v-text mb-1';
+    $vLabel = 'v-field__label v-label mb-1';
     $vCheck = 'w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface';
 @endphp
 <x-admin.shell title="{{ $product ? 'Edit Product' : 'Create Product' }}">
@@ -221,7 +221,7 @@
                             <div class="relative" @click.outside="open = false">
                                 <input type="text" x-model="search" @focus="open = true" @input="open = true"
                                     placeholder="Search categories..." class="{{ $vInput }} pr-8">
-                                <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-v-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                <x-admin.icon name="search" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-v-muted" />
 
                                 <div x-show="open && filtered.length > 0" x-transition class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-v-lift-2">
                                     <template x-for="cat in filtered" :key="cat.id">
@@ -275,7 +275,7 @@
                             <div class="relative" @click.outside="open = false">
                                 <input type="text" x-model="search" @focus="open = true" @input="open = true"
                                     placeholder="Search tags..." class="{{ $vInput }} pr-8">
-                                <svg class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-v-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                <x-admin.icon name="search" class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-v-muted" />
 
                                 <div x-show="open && filtered.length > 0" x-transition class="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface shadow-v-lift-2">
                                     <template x-for="tag in filtered" :key="tag.id">
@@ -437,10 +437,8 @@
                             </div>
                         </div>
 
-                        <div x-show="variantTypes.length === 0 && variants.length === 0" class="py-12 text-center">
-                            <svg class="mx-auto mb-3 h-10 w-10 text-v-muted/50" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                            <p class="text-[13px] text-v-muted">No variants configured</p>
-                            <p class="mt-1 text-xs text-v-muted/70">This product uses a single price and stock quantity</p>
+                        <div x-show="variantTypes.length === 0 && variants.length === 0">
+                            <x-admin.empty-state title="No variants configured" description="This product uses a single price and stock quantity" />
                         </div>
                     </x-admin.card>
                 </x-admin.tabs.panel>
@@ -513,9 +511,9 @@
                                                     class="{{ $vInputSm }} w-36">
                                             </td>
                                             <td class="px-3 py-2">
-                                                <button type="button" @click="specials.splice(sIndex, 1)" class="text-v-danger hover:opacity-80" aria-label="Remove price rule">
-                                                    <x-admin.icon name="trash" class="w-5 h-5" />
-                                                </button>
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="specials.splice(sIndex, 1)" aria-label="Remove price rule">
+                                                    <x-admin.icon name="trash" class="w-4 h-4" />
+                                                </x-admin.button>
                                             </td>
                                         </tr>
                                     </template>
@@ -595,7 +593,7 @@
                                 @if ($product ?? false)
                                     <x-admin.button type="button" variant="primary" @click="optimize()" x-bind:disabled="loading">
                                         <template x-if="!loading">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+                                            <x-admin.icon name="sparkles" class="w-4 h-4" />
                                         </template>
                                         <template x-if="loading">
                                             <x-admin.icon name="spinner" class="w-4 h-4 animate-spin" />

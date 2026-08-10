@@ -27,6 +27,16 @@
 @media (min-width: 900px)  { .v-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (min-width: 1280px) { .v-stats { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
 
+/* A page that reads two or three measures rather than five. The row
+   keeps the figure's own width instead of stretching two blocks
+   across 1400px, and it stops at two columns instead of leaving
+   three empty tracks beside them. Stated after the queries above so
+   document order decides, not weight. */
+.v-stats--few {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 560px;
+}
+
 .v-stat {
     position: relative;
     display: flex;
@@ -358,6 +368,19 @@
 
 .v-facts dd { text-align: right; color: var(--text); }
 .v-facts__zero { color: var(--text-muted); }
+
+/* A fact list that is already inside something with a gutter: an
+   order's totals in a table's footer band, a summary under a form. */
+.v-facts--flush { padding: 0; }
+
+/* The line the ones above it add up to. Ruled off and set in the
+   full ink, because it is the figure the page is actually about. */
+.v-facts__sum {
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 700;
+}
 
 .v-facts__qual {
     display: block;

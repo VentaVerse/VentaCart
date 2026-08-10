@@ -140,7 +140,99 @@
 }
 
 /* ------------------------------------------------------------
-   3. A name, a time and a state
+   3. A row you can pick up
+
+   Ordering that is stored rather than derived: categories, theme
+   presets, banners, a product's images. The handle is a real 24px
+   target with the grab cursor on it, and it is the only part of the
+   row that reads as draggable, because a row where everything is a
+   handle is a row where nothing is a link.
+
+   Nesting is one level and it is drawn by the ground, not by an
+   indent alone: a child sits on the sunken tint so a long list still
+   shows where each parent's block ends.
+   ------------------------------------------------------------ */
+.v-sortlist > * + * { border-top: 1px solid var(--border); }
+
+.v-sortrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px;
+    transition: background-color var(--motion-fast);
+}
+
+.v-sortrow:hover { background: color-mix(in srgb, var(--accent-mark) 5%, var(--surface)); }
+
+.v-sortrow__grip {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin-inline-start: -4px;
+    color: var(--text-muted);
+    cursor: grab;
+}
+
+.v-sortrow__grip:active { cursor: grabbing; }
+
+.v-sortrow__art {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+.v-sortrow__body {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.v-sortrow__name {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+.v-sortrow__slug {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+.v-sortrow__fact {
+    flex: none;
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* The nested block. Its own rows rule against the parent's ground
+   rather than the sheet's, so the two levels never look like one. */
+.v-sortnest { background: var(--surface-sunken); }
+
+.v-sortnest .v-sortrow {
+    padding-block: 6px;
+    padding-inline-start: 44px;
+}
+
+.v-sortnest .v-sortrow__name { font-weight: 500; color: var(--text-secondary); }
+
+.v-sortnest .v-sortrow__art { width: 24px; height: 24px; }
+
+.v-sortnest .v-sortrow:hover { background: color-mix(in srgb, var(--accent-mark) 6%, var(--surface-sunken)); }
+
+/* ------------------------------------------------------------
+   4. A name, a time and a state
 
    Read for exceptions, worst first, so the rows that are fine are
    one quiet line rather than a roster.
@@ -185,7 +277,16 @@
 @media (max-width: 719px) {
     .v-line,
     .v-auto,
+    .v-sortrow,
     .v-autos__rest { padding-inline: 16px; }
+
+    .v-sortnest .v-sortrow { padding-inline-start: 34px; }
+
+    /* At this width the row wraps: the controls take their own line
+       under the name rather than squeezing it to two characters. */
+    .v-sortrow { flex-wrap: wrap; }
+
+    .v-sortrow__body { flex-basis: 100%; }
 }
 
 @media (max-width: 640px) {
