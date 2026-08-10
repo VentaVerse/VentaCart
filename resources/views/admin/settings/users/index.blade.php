@@ -13,7 +13,7 @@
                 <x-admin.table.th>Role</x-admin.table.th>
                 <x-admin.table.th>Status</x-admin.table.th>
                 <x-admin.table.th>Created</x-admin.table.th>
-                <x-admin.table.th align="right">Actions</x-admin.table.th>
+                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
             </x-slot:head>
             @forelse ($users as $user)
                 <x-admin.table.row href="{{ route('admin.users.edit', $user) }}">
@@ -53,19 +53,20 @@
                     <x-admin.table.cell>
                         <span class="text-[13px] text-v-secondary">{{ $user->created_at->format('M j, Y') }}</span>
                     </x-admin.table.cell>
-                    <x-admin.table.cell align="right">
-                        <div class="flex items-center justify-end gap-3">
-                            <a href="{{ route('admin.users.edit', $user) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
+                    <x-admin.table.cell class="v-col-act">
+                        <div class="v-rowactions v-rowactions--end">
+                            <x-admin.button size="sm" variant="ghost" :href="route('admin.users.edit', $user)">Edit</x-admin.button>
                             @if ($user->id !== auth()->id())
-                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-user-{{ $user->id }}')">Delete</button>
+                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
+                                    @click="$dispatch('open-modal', 'delete-user-{{ $user->id }}')">Delete</x-admin.button>
                             @endif
                         </div>
                     </x-admin.table.cell>
                 </x-admin.table.row>
             @empty
                 <tr>
-                    <td colspan="7" class="px-4 py-2">
-                        <x-admin.empty-state icon="customers" title="No users found." />
+                    <td colspan="7">
+                        <x-admin.empty-state title="No users found" />
                     </td>
                 </tr>
             @endforelse

@@ -3,7 +3,7 @@
             <form method="POST" action="{{ route('admin.permissions.update') }}" data-v-form>
                 @csrf
 
-                <x-admin.table>
+                <x-admin.table ruled>
                     <x-slot:head>
                         <x-admin.table.th>Permission</x-admin.table.th>
                         @foreach ($roles as $role)
@@ -11,21 +11,24 @@
                         @endforeach
                     </x-slot:head>
                     @foreach ($groups as $group => $perms)
-                        <tr class="bg-v-sunken">
-                            <td colspan="{{ $roles->count() + 1 }}" class="px-4 py-2">
-                                <span class="v-label">{{ ucfirst($group) }}</span>
+                        <tr class="v-tier">
+                            <td colspan="{{ $roles->count() + 1 }}">
+                                <div class="v-tier__row">
+                                    <div class="v-tier__left"><span class="v-tier__label">{{ ucfirst($group) }}</span></div>
+                                </div>
                             </td>
                         </tr>
                         @foreach ($perms as $permission)
-                            <tr class="v-row">
-                                <td class="px-4 py-2 pl-8 text-[13px] text-v-text">{{ $permission->name }}</td>
+                            <x-admin.table.row>
+                                <x-admin.table.cell class="pl-8 text-v-text">{{ $permission->name }}</x-admin.table.cell>
                                 @foreach ($roles as $role)
-                                    <td class="px-4 py-2 text-right">
+                                    <x-admin.table.cell align="right">
                                         <x-admin.checkbox :name="'permissions[' . $role->id . '][]'" :value="$permission->id"
+                                            :aria-label="$permission->name . ' for ' . $role->name"
                                             :checked="$role->permissions->contains($permission->id)" />
-                                    </td>
+                                    </x-admin.table.cell>
                                 @endforeach
-                            </tr>
+                            </x-admin.table.row>
                         @endforeach
                     @endforeach
                 </x-admin.table>

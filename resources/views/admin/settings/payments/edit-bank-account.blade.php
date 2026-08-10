@@ -33,13 +33,7 @@
                             @if ($bankAccount->qr_image)
                                 <div class="flex items-start gap-4 mb-3">
                                     <img src="{{ storage_url($bankAccount->qr_image) }}" alt="QR Code" class="w-32 h-32 rounded-v-md border border-v-border object-contain">
-                                    <div>
-                                        <label class="flex items-center gap-2 text-[13px] text-v-danger cursor-pointer">
-                                            <input type="checkbox" name="remove_qr" value="1" class="w-4 h-4 rounded-v-sm border-v-strong text-v-danger focus:ring-v-danger bg-v-surface">
-                                            Remove QR image
-                                        </label>
-                                        <p class="text-xs text-v-muted mt-1">Or upload a new one below to replace it.</p>
-                                    </div>
+                                    <x-admin.checkbox name="remove_qr" label="Remove QR image" />
                                 </div>
                             @endif
                             <input type="file" name="qr_image" accept="image/*"
@@ -51,11 +45,9 @@
                             <x-admin.textarea name="instructions" rows="3" :value="$bankAccount->instructions" placeholder="Any additional notes for the customer..." />
                         </x-admin.field>
 
-                        {{-- Active --}}
-                        <label class="flex items-center gap-2 text-[13px] text-v-text cursor-pointer sm:col-span-2">
-                            <x-admin.toggle name="is_active" :checked="$bankAccount->is_active" />
-                            Active
-                        </label>
+                        <div class="sm:col-span-2">
+                            <x-admin.toggle name="is_active" label="Active" :checked="$bankAccount->is_active" />
+                        </div>
                     </div>
 
                     <x-admin.form-actions>

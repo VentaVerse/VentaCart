@@ -3,12 +3,10 @@
 @endphp
 
 <x-admin.card title="Rate Tester">
-    <!-- Form -->
-    <form action="{{ route('admin.shipping-settings.test') }}" method="POST" class="space-y-4 mb-6">
+    <form action="{{ route('admin.shipping-settings.test') }}" method="POST" class="space-y-4">
         @csrf
 
-        <div class="grid grid-cols-2 gap-4">
-            <!-- Country -->
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <x-admin.field name="country_id" label="Country" required>
                 <x-admin.select name="country_id"
                     value="{{ old('country_id', $rateTest['input']['country_id'] ?? $defaultCountryId) }}">
@@ -21,56 +19,50 @@
                 </x-admin.select>
             </x-admin.field>
 
-            <!-- Province -->
             <x-admin.field name="province" label="Province">
                 <x-admin.input name="province" type="text"
                     value="{{ old('province', $rateTest['input']['province'] ?? 'Metro Manila') }}"
                     placeholder="e.g., Metro Manila" />
             </x-admin.field>
 
-            <!-- City -->
             <x-admin.field name="city" label="City">
                 <x-admin.input name="city" type="text"
                     value="{{ old('city', $rateTest['input']['city'] ?? 'Quezon City') }}"
                     placeholder="e.g., Quezon City" />
             </x-admin.field>
 
-            <!-- Postcode -->
             <x-admin.field name="postcode" label="Postcode">
                 <x-admin.input name="postcode" type="text"
                     value="{{ old('postcode', $rateTest['input']['postcode'] ?? '') }}"
                     placeholder="e.g., 1108" />
             </x-admin.field>
 
-            <!-- Weight -->
             <x-admin.field name="weight" label="Weight (kg)" required>
                 <x-admin.input name="weight" type="number" step="0.01" min="0.01" max="1000"
                     value="{{ old('weight', $rateTest['input']['weight'] ?? '1.5') }}" required />
             </x-admin.field>
 
-            <!-- Subtotal -->
             <x-admin.field name="subtotal" label="Subtotal (₱)" required>
                 <x-admin.input name="subtotal" type="number" step="0.01" min="0"
                     value="{{ old('subtotal', $rateTest['input']['subtotal'] ?? '2500') }}" required />
             </x-admin.field>
 
-            <!-- Quantity -->
             <x-admin.field name="quantity" label="Quantity">
                 <x-admin.input name="quantity" type="number" min="1" max="999"
                     value="{{ old('quantity', $rateTest['input']['quantity'] ?? '') }}" />
             </x-admin.field>
         </div>
 
-        <div class="flex justify-end pt-2">
-            <x-admin.button variant="primary" type="submit">
-                Test Rates
-            </x-admin.button>
+        {{-- A plain action row, not the sticky form band: this card
+             sits above a form that already carries one, and two bars
+             pinned to the same edge read as one control that moved. --}}
+        <div class="flex justify-end pt-1">
+            <x-admin.button variant="primary" type="submit">Test rates</x-admin.button>
         </div>
     </form>
 
-    <!-- Results Table -->
     @if ($rateTest)
-        <div class="mt-6 pt-6 border-t border-v-border">
+        <div class="mt-6 border-t border-v-border pt-6">
             @if ($rateTest['quotes'])
                 <p class="text-[13px] text-v-secondary mb-3">{{ $rateTest['explanation'] }}</p>
                 <x-admin.table>

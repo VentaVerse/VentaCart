@@ -1,66 +1,53 @@
 <x-admin.settings-shell title="Modules" :wide="true">
     <div class="space-y-8">
         <div>
-            <p class="mb-3 v-label">Extensions</p>
+            <h2 class="mb-3 v-label">Extensions</h2>
 
             @if ($extensions->isEmpty())
-                <x-admin.empty-state icon="categories" title="No extensions found"
+                <x-admin.empty-state title="No extensions found"
                     description="Drop an extension folder with an extension.json manifest into extensions/ to see it here." />
             @else
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="v-slates">
                     @foreach ($extensions as $ext)
-                        <x-admin.card>
-                            <div class="flex items-start gap-3">
-                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-v-md bg-v-sunken text-v-secondary">
-                                    <x-admin.icon :name="$ext['icon']" class="w-5 h-5" />
-                                </span>
-                                <div class="min-w-0 flex-1">
-                                    <div class="flex items-center justify-between gap-2">
-                                        <h3 class="text-[14px] font-semibold text-v-text">{{ $ext['title'] }}</h3>
-                                        <x-admin.badge :tone="$ext['state_tone']">{{ $ext['state_label'] }}</x-admin.badge>
-                                    </div>
-                                    <p class="mt-1 text-[13px] leading-snug text-v-secondary">{{ $ext['description'] }}</p>
-                                    <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-                                        <span class="v-num text-xs text-v-muted">{{ $ext['version'] ? 'v' . $ext['version'] : '' }}</span>
-                                        <div class="flex items-center gap-2">
-                                            @if ($ext['configure'])
-                                                <x-admin.button variant="ghost" size="sm" :href="$ext['configure']">Configure <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
-                                            @endif
+                        <x-admin.slate :title="$ext['title']" :icon="$ext['icon']" :note="$ext['description']">
+                            <x-slot:state>
+                                <x-admin.badge :tone="$ext['state_tone']">{{ $ext['state_label'] }}</x-admin.badge>
+                            </x-slot:state>
+                            <x-slot:meta>{{ $ext['version'] ? 'v' . $ext['version'] : '' }}</x-slot:meta>
+                            <x-slot:actions>
+                                @if ($ext['configure'])
+                                    <x-admin.button variant="ghost" size="sm" :href="$ext['configure']">Configure</x-admin.button>
+                                @endif
 
-                                            @if (in_array('install', $ext['actions'], true))
-                                                <form method="POST" action="{{ route('admin.modules.install', $ext['name']) }}" data-v-form>
-                                                    @csrf
-                                                    <x-admin.button type="submit" variant="primary" size="sm">
-                                                        {{ $ext['state'] === 'needs_migration' ? 'Update' : 'Install' }}
-                                                    </x-admin.button>
-                                                </form>
-                                            @endif
+                                @if (in_array('install', $ext['actions'], true))
+                                    <form method="POST" action="{{ route('admin.modules.install', $ext['name']) }}" data-v-form>
+                                        @csrf
+                                        <x-admin.button type="submit" variant="primary" size="sm">
+                                            {{ $ext['state'] === 'needs_migration' ? 'Update' : 'Install' }}
+                                        </x-admin.button>
+                                    </form>
+                                @endif
 
-                                            @if (in_array('enable', $ext['actions'], true))
-                                                <form method="POST" action="{{ route('admin.modules.enable', $ext['name']) }}" data-v-form>
-                                                    @csrf
-                                                    <x-admin.button type="submit" variant="primary" size="sm">Enable</x-admin.button>
-                                                </form>
-                                            @endif
+                                @if (in_array('enable', $ext['actions'], true))
+                                    <form method="POST" action="{{ route('admin.modules.enable', $ext['name']) }}" data-v-form>
+                                        @csrf
+                                        <x-admin.button type="submit" variant="primary" size="sm">Enable</x-admin.button>
+                                    </form>
+                                @endif
 
-                                            @if (in_array('disable', $ext['actions'], true))
-                                                <form method="POST" action="{{ route('admin.modules.disable', $ext['name']) }}" data-v-form>
-                                                    @csrf
-                                                    <x-admin.button type="submit" variant="secondary" size="sm">Disable</x-admin.button>
-                                                </form>
-                                            @endif
+                                @if (in_array('disable', $ext['actions'], true))
+                                    <form method="POST" action="{{ route('admin.modules.disable', $ext['name']) }}" data-v-form>
+                                        @csrf
+                                        <x-admin.button type="submit" variant="secondary" size="sm">Disable</x-admin.button>
+                                    </form>
+                                @endif
 
-                                            @if (in_array('uninstall', $ext['actions'], true))
-                                                <button type="button" class="text-xs text-v-danger hover:opacity-80"
-                                                    @click="$dispatch('open-modal', 'uninstall-{{ $ext['name'] }}')">
-                                                    Uninstall
-                                                </button>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </x-admin.card>
+                                @if (in_array('uninstall', $ext['actions'], true))
+                                    <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger"
+                                        @click="$dispatch('open-modal', 'uninstall-{{ $ext['name'] }}')">Uninstall</x-admin.button>
+                                @endif
+                            </x-slot:actions>
+                        </x-admin.slate>
                     @endforeach
                 </div>
 
@@ -75,29 +62,20 @@
         </div>
 
         <div>
-            <p class="mb-3 v-label">Core Features</p>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <h2 class="mb-3 v-label">Core Features</h2>
+            <div class="v-slates">
                 @foreach ($coreFeatures as $module)
-                    <x-admin.card>
-                        <div class="flex items-start gap-3">
-                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-v-md bg-v-sunken text-v-secondary">
-                                <x-admin.icon :name="$module['icon']" class="w-5 h-5" />
-                            </span>
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center justify-between gap-2">
-                                    <h3 class="text-[14px] font-semibold text-v-text">{{ $module['name'] }}</h3>
-                                    <x-admin.badge :tone="$module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')">{{ $module['status_label'] }}</x-admin.badge>
-                                </div>
-                                <p class="mt-1 text-[13px] leading-snug text-v-secondary">{{ $module['description'] }}</p>
-                                <div class="mt-3 flex items-center justify-between">
-                                    <span class="v-num text-xs text-v-muted">{{ $module['stats'] ?? '' }}</span>
-                                    @if ($module['configure'])
-                                        <x-admin.button variant="ghost" size="sm" :href="$module['configure']">Configure <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                    </x-admin.card>
+                    <x-admin.slate :title="$module['name']" :icon="$module['icon']" :note="$module['description']">
+                        <x-slot:state>
+                            <x-admin.badge :tone="$module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')">{{ $module['status_label'] }}</x-admin.badge>
+                        </x-slot:state>
+                        <x-slot:meta>{{ $module['stats'] ?? '' }}</x-slot:meta>
+                        @if ($module['configure'])
+                            <x-slot:actions>
+                                <x-admin.button variant="ghost" size="sm" :href="$module['configure']">Configure</x-admin.button>
+                            </x-slot:actions>
+                        @endif
+                    </x-admin.slate>
                 @endforeach
             </div>
         </div>

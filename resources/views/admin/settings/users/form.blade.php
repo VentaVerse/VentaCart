@@ -33,10 +33,7 @@
                             </x-admin.select>
                         </x-admin.field>
 
-                        <div class="flex items-center gap-3">
-                            <x-admin.toggle name="is_active" :checked="$user->is_active ?? true" />
-                            <label for="is_active" class="text-[13px] font-medium text-v-text cursor-pointer">Active</label>
-                        </div>
+                        <x-admin.toggle name="is_active" label="Active" :checked="$user->is_active ?? true" />
                     </div>
 
                     <x-admin.form-actions>

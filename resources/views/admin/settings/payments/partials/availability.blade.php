@@ -85,11 +85,10 @@
             @if ($restriction)
                 <form method="POST" action="{{ route('admin.payment-restrictions.toggle', $restriction) }}" data-v-form>
                     @csrf
-                    <label class="flex items-center gap-2 text-[13px] text-v-secondary cursor-pointer">
-                        <span>{{ $restriction->is_active ? 'Active' : 'Disabled' }}</span>
-                        <x-admin.toggle name="toggle_active" :checked="$restriction->is_active"
-                            x-on:change="$el.closest('form').submit()" />
-                    </label>
+                    <x-admin.toggle name="toggle_active" lead
+                        label="{{ $restriction->is_active ? 'Active' : 'Disabled' }}"
+                        :checked="$restriction->is_active"
+                        x-on:change="$el.closest('form').submit()" />
                 </form>
             @endif
         </x-slot>
@@ -101,7 +100,7 @@
                 @endforeach
             </ul>
         @else
-            <p class="text-[13px] text-v-secondary">No restrictions: available everywhere</p>
+            <p class="v-panel__blank">Available everywhere.</p>
         @endif
     </x-admin.card>
 

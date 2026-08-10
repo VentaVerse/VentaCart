@@ -7,15 +7,9 @@
                     @csrf
                     <x-admin.card title="Abandoned Cart Notifications"
                         description="When enabled, the cron command will process rules and send notification emails to customers with abandoned carts.">
-                        <div class="space-y-3">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="enabled" :checked="$enabled" />
-                                <span class="text-[13px] font-medium text-v-text">Enable abandoned cart notifications</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <x-admin.toggle name="skip_out_of_stock" :checked="$skipOutOfStock" />
-                                <span class="text-[13px] text-v-text">Skip notifications when all cart items are out of stock</span>
-                            </label>
+                        <div class="flex flex-col items-start gap-3">
+                            <x-admin.toggle name="enabled" label="Enable abandoned cart notifications" :checked="$enabled" />
+                            <x-admin.toggle name="skip_out_of_stock" label="Skip notifications when all cart items are out of stock" :checked="$skipOutOfStock" />
                         </div>
                         <x-slot name="footer">
                             <div class="flex justify-end">

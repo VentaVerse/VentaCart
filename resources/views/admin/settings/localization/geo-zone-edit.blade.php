@@ -18,8 +18,7 @@
                         <x-admin.input name="description" :value="$geoZone->description" />
                     </x-admin.field>
                     <div class="flex items-center gap-3">
-                        <x-admin.toggle name="is_active" :checked="$geoZone->is_active" />
-                        <label for="is_active" class="text-[13px] text-v-text cursor-pointer">Enabled</label>
+                        <x-admin.toggle name="is_active" label="Enabled" :checked="$geoZone->is_active" />
                         <x-admin.button type="submit" class="ml-auto">Update</x-admin.button>
                     </div>
                 </form>
@@ -42,7 +41,7 @@
                             <x-slot:head>
                                 <x-admin.table.th>Country</x-admin.table.th>
                                 <x-admin.table.th>Zone / State</x-admin.table.th>
-                                <x-admin.table.th align="right"></x-admin.table.th>
+                                <x-admin.table.th class="v-col-act"><span class="v-sr">Remove</span></x-admin.table.th>
                             </x-slot:head>
                             <template x-for="(entry, idx) in entries" :key="idx">
                                 <tr class="v-row">
@@ -50,8 +49,8 @@
                                         <input type="hidden" :name="'entries[' + idx + '][country_id]'" :value="entry.country_id || ''">
                                         <input type="hidden" :name="'entries[' + idx + '][zone_id]'" :value="entry.zone_id || ''">
 
-                                        <select @change="onCountryChange(idx, $event.target.value)"
-                                            class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        <select @change="onCountryChange(idx, $event.target.value)" aria-label="Country"
+                                            class="v-control h-[var(--control-h-sm)] w-full rounded-v-md border bg-v-surface px-2 text-[13px] text-v-text">
                                             <option value="">Select country...</option>
                                             @foreach ($countries as $c)
                                                 <option value="{{ $c->id }}" :selected="entry.country_id == {{ $c->id }}">{{ $c->name }}</option>
@@ -59,20 +58,22 @@
                                         </select>
                                     </td>
                                     <td class="px-4 py-2.5">
-                                        <select @change="entry.zone_id = $event.target.value || null"
+                                        <select @change="entry.zone_id = $event.target.value || null" aria-label="Zone or state"
                                             :disabled="!entry.zones || entry.zones.length === 0"
-                                            class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md disabled:bg-v-sunken disabled:text-v-muted">
+                                            class="v-control h-[var(--control-h-sm)] w-full rounded-v-md border bg-v-surface px-2 text-[13px] text-v-text">
                                             <option value="">All zones</option>
                                             <template x-for="z in (entry.zones || [])" :key="z.id">
                                                 <option :value="z.id" :selected="entry.zone_id == z.id" x-text="z.name + (z.code ? ' (' + z.code + ')' : '')"></option>
                                             </template>
                                         </select>
                                     </td>
-                                    <td class="px-4 py-2.5 text-right">
-                                        <button type="button" @click="removeEntry(idx)"
-                                            class="text-v-muted hover:text-v-danger transition-colors" title="Remove">
-                                            <x-admin.icon name="trash" class="w-4 h-4" />
-                                        </button>
+                                    <td class="v-col-act">
+                                        <div class="v-rowactions v-rowactions--end">
+                                            <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger"
+                                                @click="removeEntry(idx)" aria-label="Remove entry">
+                                                <x-admin.icon name="trash" class="w-3.5 h-3.5" />
+                                            </x-admin.button>
+                                        </div>
                                     </td>
                                 </tr>
                             </template>
@@ -81,7 +82,7 @@
 
                     {{-- Empty state --}}
                     <div x-show="entries.length === 0" class="mb-4">
-                        <x-admin.empty-state icon="media" title="No entries yet" description="Click &ldquo;Add Entry&rdquo; to define which areas belong to this zone" />
+                        <x-admin.empty-state title="No entries yet" description="An entry is one country, optionally narrowed to one of its zones." />
                     </div>
 
                     <x-admin.button type="submit" x-show="entries.length > 0">Save Entries</x-admin.button>

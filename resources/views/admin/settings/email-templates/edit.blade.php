@@ -1,7 +1,6 @@
 <x-admin.settings-shell :title="'Edit: ' . $emailTemplate->name" :wide="true">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- Main Form --}}
-            <div class="lg:col-span-2 space-y-4">
+        <div class="v-split">
+            <div class="v-split__main">
                 <x-admin.card>
                     <form method="POST" action="{{ route('admin.email-templates.update', $emailTemplate) }}" id="template-form" data-v-form>
                         @csrf
@@ -13,7 +12,7 @@
                             </x-admin.field>
 
                             <x-admin.field name="body" label="Body (HTML)" required>
-                                <textarea name="body" id="body" class="tinymce-editor v-control w-full text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">{{ old('body', $emailTemplate->body) }}</textarea>
+                                <textarea name="body" id="body" class="tinymce-editor v-control w-full rounded-v-md border bg-v-surface text-[13px] text-v-text">{{ old('body', $emailTemplate->body) }}</textarea>
                             </x-admin.field>
                         </div>
 
@@ -25,46 +24,37 @@
 
                 <form method="POST" action="{{ route('admin.email-templates.send-test', $emailTemplate) }}" data-v-form class="flex items-center gap-2">
                     @csrf
-                    <x-admin.button type="submit" variant="secondary">Send Test Email</x-admin.button>
-                    <span class="text-xs text-v-muted">Sends to your admin email with sample data</span>
+                    <x-admin.button type="submit" variant="secondary">Send a test to {{ auth()->user()->email }}</x-admin.button>
+                    <x-admin.hint label="What a test email contains">Sample order and customer data, so every placeholder resolves to something readable.</x-admin.hint>
                 </form>
             </div>
 
-            {{-- Sidebar --}}
-            <div class="space-y-5">
-                {{-- Template Info --}}
-                <x-admin.card title="Template Info">
-                    <dl class="space-y-2.5 text-[13px]">
-                        <div class="flex justify-between">
-                            <dt class="text-v-secondary">Slug</dt>
-                            <dd class="v-num text-xs text-v-text">{{ $emailTemplate->slug }}</dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-v-secondary">Type</dt>
-                            <dd>
-                                <x-admin.badge :tone="$emailTemplate->type === 'customer' ? 'info' : 'neutral'">
-                                    {{ $emailTemplate->type === 'customer' ? 'Customer' : 'Admin' }}
-                                </x-admin.badge>
-                            </dd>
-                        </div>
-                        <div class="flex justify-between">
-                            <dt class="text-v-secondary">Status</dt>
-                            <dd>
-                                <x-admin.badge :tone="$emailTemplate->is_active ? 'success' : 'neutral'">
-                                    {{ $emailTemplate->is_active ? 'Active' : 'Disabled' }}
-                                </x-admin.badge>
-                            </dd>
-                        </div>
+            <div class="v-split__rail">
+                <x-admin.card title="Template">
+                    <dl class="v-facts v-facts--flush">
+                        <dt class="v-label">Slug</dt>
+                        <dd class="v-num text-xs">{{ $emailTemplate->slug }}</dd>
+                        <dt class="v-label">Type</dt>
+                        <dd>
+                            <x-admin.badge :tone="$emailTemplate->type === 'customer' ? 'info' : 'neutral'">
+                                {{ $emailTemplate->type === 'customer' ? 'Customer' : 'Admin' }}
+                            </x-admin.badge>
+                        </dd>
+                        <dt class="v-label">Status</dt>
+                        <dd>
+                            <x-admin.badge :tone="$emailTemplate->is_active ? 'success' : 'neutral'">
+                                {{ $emailTemplate->is_active ? 'Active' : 'Disabled' }}
+                            </x-admin.badge>
+                        </dd>
                     </dl>
                 </x-admin.card>
 
-                {{-- Placeholders --}}
                 @if (count($placeholders) > 0)
-                    <x-admin.card title="Available Placeholders">
-                        <p class="mb-3 text-xs text-v-secondary">Click to copy. Use these in the subject or body.</p>
+                    <x-admin.card title="Placeholders">
                         <div class="space-y-1.5">
                             @foreach ($placeholders as $placeholder)
                                 <button type="button" onclick="copyPlaceholder(this, '{{ $placeholder }}')"
+                                    title="Copy to clipboard"
                                     class="w-full cursor-pointer rounded-v-md border border-v-border bg-v-sunken px-3 py-1.5 text-left transition-colors hover:bg-v-hover">
                                     <span class="v-num text-xs text-v-warning">{!! '{' . e($placeholder) . '}' !!}</span>
                                 </button>

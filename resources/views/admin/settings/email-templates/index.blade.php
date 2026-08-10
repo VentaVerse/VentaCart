@@ -5,7 +5,7 @@
                 <x-admin.table.th>Slug</x-admin.table.th>
                 <x-admin.table.th>Type</x-admin.table.th>
                 <x-admin.table.th align="right">Status</x-admin.table.th>
-                <x-admin.table.th align="right">Actions</x-admin.table.th>
+                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
             </x-slot:head>
             @forelse ($templates as $template)
                 <x-admin.table.row href="{{ route('admin.email-templates.edit', $template) }}">
@@ -23,21 +23,19 @@
                     <x-admin.table.cell align="right">
                         <form method="POST" action="{{ route('admin.email-templates.toggle', $template) }}" data-v-form class="inline">
                             @csrf
-                            <button type="submit"
-                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors {{ $template->is_active ? 'bg-v-accent' : 'bg-[var(--border-control)]' }}"
-                                title="{{ $template->is_active ? 'Click to disable' : 'Click to enable' }}">
-                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform {{ $template->is_active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface' }}"></span>
-                            </button>
+                            <x-admin.switch type="submit" :checked="$template->is_active" label="{{ $template->name }} active" />
                         </form>
                     </x-admin.table.cell>
-                    <x-admin.table.cell align="right">
-                        <a href="{{ route('admin.email-templates.edit', $template) }}" class="text-[13px] font-medium text-v-accent hover:opacity-80">Edit</a>
+                    <x-admin.table.cell class="v-col-act">
+                        <div class="v-rowactions v-rowactions--end">
+                            <x-admin.button size="sm" variant="ghost" :href="route('admin.email-templates.edit', $template)">Edit</x-admin.button>
+                        </div>
                     </x-admin.table.cell>
                 </x-admin.table.row>
             @empty
                 <tr>
-                    <td colspan="5" class="px-4 py-2">
-                        <x-admin.empty-state icon="pages" title="No email templates found." description="Run the seeder to create default templates." />
+                    <td colspan="5">
+                        <x-admin.empty-state title="No email templates found" description="Run the seeder to create the default set." />
                     </td>
                 </tr>
             @endforelse

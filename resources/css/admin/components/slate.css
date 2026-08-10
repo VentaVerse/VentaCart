@@ -1,0 +1,147 @@
+/* ============================================================
+   Slate: one part of the store, named, with its state and its way in
+
+   The settings hub, the module list, the payment methods and the
+   shipping chain were four hand-rolled copies of the same twenty
+   lines: a mark, a name, whatever state the thing is in, a line
+   saying what it is, and the controls that act on it. They had
+   already drifted (36px marks against 40px, three grid breakpoint
+   sets, two gaps), which is what four copies always do.
+
+   A slate is not a card standing in for content. It is a record with
+   exactly one job: say what this thing is, whether it is on, and how
+   to get to it. Everything a slate carries is a fact the page
+   already had.
+   ============================================================ */
+
+.v-slates {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+}
+
+.v-slate {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--bl-lift);
+    text-align: left;
+}
+
+/* A slate that is itself the way in. The whole record is the target,
+   which is what makes it a real one rather than the 13px link at the
+   bottom of it. */
+a.v-slate {
+    transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+
+a.v-slate:hover {
+    border-color: var(--border-strong);
+    background: var(--surface-hover);
+}
+
+.v-slate__mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+    transition: color var(--motion-fast);
+}
+
+a.v-slate:hover .v-slate__mark { color: var(--accent); }
+
+/* The mark a numbered chain uses instead of a pictogram: the same
+   box, carrying its position. The shipping chain is evaluated in
+   order and the order is the fact worth printing. */
+.v-slate__mark--num {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.v-slate__body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+}
+
+.v-slate__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 20px;
+}
+
+.v-slate__name {
+    min-width: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text);
+}
+
+.v-slate__note {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+}
+
+.v-slate__meta {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+/* The controls, on their own line under the words, pushed to the
+   trailing edge so a column of slates has one column of actions. */
+.v-slate__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.v-slate__acts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+/* ------------------------------------------------------------
+   The one authored moment on a grid of slates: they arrive in
+   reading order. `both` holds a slate at opacity 0 until its delay
+   elapses, so collapsing the duration alone would leave a
+   reduced-motion reader looking at up to 200ms of blank cards. The
+   delay has to go with it.
+   ------------------------------------------------------------ */
+
+.v-slate { animation: v-slate-in var(--motion-base) both; }
+.v-slate:nth-child(2) { animation-delay: 40ms; }
+.v-slate:nth-child(3) { animation-delay: 80ms; }
+.v-slate:nth-child(4) { animation-delay: 120ms; }
+.v-slate:nth-child(5) { animation-delay: 160ms; }
+.v-slate:nth-child(6) { animation-delay: 200ms; }
+
+@keyframes v-slate-in {
+    from { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .v-slate { animation-delay: 0ms !important; }
+}

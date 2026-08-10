@@ -3,8 +3,15 @@
      ring. Both live in components/forms.css, where the off track
      takes the control edge stop and the knob takes the sheet colour
      off and the accent's text colour on, which is what keeps the knob
-     visible against a pale brass track in dark theme. --}}
-@props(['name', 'checked' => false])
+     visible against a pale brass track in dark theme.
+
+     `label` prints the words beside the switch. Twelve settings
+     screens used to write that row themselves, and every one of them
+     nested a <label> inside the <label> below, which is invalid. The
+     text now carries its own `for`, so the two are siblings pointing
+     at one input. `lead` puts the words first, for a switch that
+     sits at the trailing edge of a panel head. --}}
+@props(['name', 'checked' => false, 'label' => null, 'lead' => false])
 @aware(['help' => null, 'hint' => null, 'errorKey' => null])
 @php
     // Same association contract as x-admin.input; see the note there.
@@ -14,8 +21,9 @@
         ($hint ?? $help) ? $name . '-hint' : null,
         $vInvalid ? $vErrorKey . '-error' : null,
     ]));
+    $vWrap = 'v-toggle inline-flex' . ($label ? ' v-switch' : '') . ($label && $lead ? ' v-switch--lead' : '');
 @endphp
-<span class="v-toggle inline-flex">
+<span class="{{ $vWrap }}">
     <input type="hidden" name="{{ $name }}" value="0">
     <label class="relative inline-flex items-center cursor-pointer">
         <input type="checkbox" name="{{ $name }}" id="{{ $name }}" value="1" @checked(old($name, $checked))
@@ -27,4 +35,5 @@
         <span class="v-toggle__track w-9 h-5 rounded-full peer-checked:bg-v-accent transition-colors"></span>
         <span class="v-toggle__knob absolute left-0.5 top-0.5 w-4 h-4 rounded-full shadow peer-checked:translate-x-4 transition-transform"></span>
     </label>
+    @if ($label)<label for="{{ $name }}" class="v-switch__text">{{ $label }}</label>@endif
 </span>

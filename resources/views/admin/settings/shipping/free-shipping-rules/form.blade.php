@@ -45,25 +45,14 @@
                             <x-admin.input type="number" name="sort_order" :value="$rule?->sort_order ?? 0" min="0" />
                         </x-admin.field>
                     </div>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <x-admin.toggle name="is_active" :checked="$rule?->is_active ?? true" />
-                        <span class="text-[13px] text-v-text">Active</span>
-                    </label>
-                    <div class="border-t border-v-border pt-4 mt-2 space-y-3">
-                        <label class="flex items-start gap-2 cursor-pointer">
-                            <x-admin.toggle name="apply_whole_cart" :checked="$rule?->apply_whole_cart ?? false" class="mt-0.5" />
-                            <div>
-                                <span class="text-[13px] text-v-text font-medium">Apply to whole cart</span>
-                                <p class="text-xs text-v-muted">If ANY qualifying product is in the cart, the entire cart gets free shipping, even if other products don't match the brand/category conditions.</p>
-                            </div>
-                        </label>
-                        <label class="flex items-start gap-2 cursor-pointer">
-                            <x-admin.toggle name="show_badge" :checked="$rule?->show_badge ?? false" class="mt-0.5" />
-                            <div>
-                                <span class="text-[13px] text-v-text font-medium">Show "Free Shipping" badge</span>
-                                <p class="text-xs text-v-muted">Display a "Free Shipping" label on product cards and product pages for items that qualify for this rule.</p>
-                            </div>
-                        </label>
+                    <x-admin.toggle name="is_active" label="Active" :checked="$rule?->is_active ?? true" />
+                    <div class="mt-2 flex flex-col items-start gap-3 border-t border-v-border pt-4">
+                        <x-admin.field name="apply_whole_cart" help="One qualifying product frees the whole cart, including products that fail the brand and category conditions.">
+                            <x-admin.toggle name="apply_whole_cart" label="Apply to whole cart" :checked="$rule?->apply_whole_cart ?? false" />
+                        </x-admin.field>
+                        <x-admin.field name="show_badge" help="The label appears on product cards and product pages, on the storefront.">
+                            <x-admin.toggle name="show_badge" label="Show the Free Shipping badge" :checked="$rule?->show_badge ?? false" />
+                        </x-admin.field>
                     </div>
                 </div>
             </x-admin.card>

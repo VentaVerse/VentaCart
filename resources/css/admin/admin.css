@@ -25,11 +25,12 @@
 @import "./components/segment.css";
 @import "./components/toolbar.css";
 @import "./components/choice.css";
+@import "./components/slate.css";
 @import "./components/tiles.css";
 @import "./components/empty.css";
 @import "./components/pagination.css";
 @import "./components/palette.css";
-@import "./components/settings.css";
+@import "./components/sidenav.css";
 @import "./components/tinymce.css";
 
 /* Page residue */

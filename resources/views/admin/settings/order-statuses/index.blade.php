@@ -31,7 +31,7 @@
                              and is never revenue, whatever is ticked here. --}}
                         <x-admin.table.th title="Orders with no status never count, whatever this is set to.">Counts as revenue</x-admin.table.th>
                         <x-admin.table.th>Sort</x-admin.table.th>
-                        <x-admin.table.th align="right">Actions</x-admin.table.th>
+                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                     </x-slot:head>
                     @foreach ($statuses as $status)
                         @php $editForm = 'status-update-'.$status->id; @endphp
@@ -45,7 +45,8 @@
                                      column costs nothing. --}}
                                 <div class="flex min-w-[13rem] items-center gap-2">
                                     <input type="text" form="{{ $editForm }}" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
-                                        class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        aria-label="Status name"
+                                        class="v-control h-[var(--control-h-sm)] w-full rounded-v-md border bg-v-surface px-2 text-[13px] text-v-text">
                                     @if ($status->is_default)
                                         <x-admin.badge tone="success">Default</x-admin.badge>
                                     @endif
@@ -65,7 +66,7 @@
                                     <input type="hidden" form="{{ $editForm }}" name="deducts_stock" value="0">
                                     <input type="checkbox" form="{{ $editForm }}" name="deducts_stock" value="1" @checked(old('deducts_stock', $status->deducts_stock))
                                         aria-label="{{ $status->name }} deducts stock"
-                                        class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                        class="w-4 h-4 rounded-v-sm text-v-accent focus:ring-v-accent bg-v-surface">
                                 </label>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
@@ -80,24 +81,25 @@
                                     <input type="hidden" form="{{ $editForm }}" name="counts_as_revenue" value="0">
                                     <input type="checkbox" form="{{ $editForm }}" name="counts_as_revenue" value="1" @checked(old('counts_as_revenue', $status->counts_as_revenue))
                                         aria-label="{{ $status->name }} counts as revenue"
-                                        class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                        class="w-4 h-4 rounded-v-sm text-v-accent focus:ring-v-accent bg-v-surface">
                                 </label>
                             </x-admin.table.cell>
                             <x-admin.table.cell>
                                 <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
-                                    class="v-control w-20 h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                    aria-label="{{ $status->name }} sort order"
+                                    class="v-control h-[var(--control-h-sm)] w-20 rounded-v-md border bg-v-surface px-2 text-[13px] text-v-text">
                             </x-admin.table.cell>
-                            <x-admin.table.cell align="right">
-                                <div class="flex items-center justify-end gap-3">
-                                    <label class="inline-flex items-center gap-1.5 text-[13px] text-v-text cursor-pointer">
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <label class="inline-flex cursor-pointer items-center gap-1.5 text-[13px] text-v-text">
                                         <input type="hidden" form="{{ $editForm }}" name="is_default" value="0">
                                         <input type="checkbox" form="{{ $editForm }}" name="is_default" value="1" @checked(old('is_default', $status->is_default))
-                                            class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
+                                            class="w-4 h-4 rounded-v-sm text-v-accent focus:ring-v-accent bg-v-surface">
                                         <span>Default</span>
                                     </label>
                                     <x-admin.button variant="secondary" size="sm" type="submit" form="{{ $editForm }}">Save</x-admin.button>
                                     @unless ($status->is_default)
-                                        <x-admin.button variant="ghost" size="sm" type="button" class="text-v-danger hover:text-v-danger" @click="$dispatch('open-modal', 'delete-status-{{ $status->id }}')">Delete</x-admin.button>
+                                        <x-admin.button variant="ghost" size="sm" type="button" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-status-{{ $status->id }}')">Delete</x-admin.button>
                                     @endunless
                                 </div>
                             </x-admin.table.cell>

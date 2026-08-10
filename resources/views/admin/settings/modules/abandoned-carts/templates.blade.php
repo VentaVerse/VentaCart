@@ -6,14 +6,12 @@
         @include('admin.settings.modules.abandoned-carts.partials.nav')
 
         <div class="space-y-4">
-                <p class="text-[13px] text-v-secondary">Email templates used by abandoned cart notification rules. These are independent from the core email templates.</p>
-
                 <x-admin.table>
                     <x-slot name="head">
                         <x-admin.table.th>Name</x-admin.table.th>
                         <x-admin.table.th>Subject</x-admin.table.th>
                         <x-admin.table.th>Status</x-admin.table.th>
-                        <x-admin.table.th align="right">Actions</x-admin.table.th>
+                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                     </x-slot>
                     @forelse ($templates as $template)
                         <x-admin.table.row>
@@ -32,15 +30,15 @@
                                     </button>
                                 </form>
                             </x-admin.table.cell>
-                            <x-admin.table.cell align="right">
-                                <div class="flex items-center justify-end gap-3">
-                                    <a href="{{ route('admin.abandoned-carts.templates.edit', $template) }}" class="text-v-accent hover:underline">Edit</a>
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <x-admin.button size="sm" variant="ghost" :href="route('admin.abandoned-carts.templates.edit', $template)">Edit</x-admin.button>
                                     <form method="POST" action="{{ route('admin.abandoned-carts.templates.test', $template) }}" data-v-form class="inline">
                                         @csrf
-                                        <button type="submit" class="text-v-secondary hover:underline">Send Test</button>
+                                        <x-admin.button size="sm" variant="ghost" type="submit">Send test</x-admin.button>
                                     </form>
-                                    <button type="button" class="text-v-danger hover:underline"
-                                        @click="$dispatch('open-modal', 'delete-template-{{ $template->id }}')">Delete</button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
+                                        @click="$dispatch('open-modal', 'delete-template-{{ $template->id }}')">Delete</x-admin.button>
                                 </div>
                                 <x-admin.confirm-dialog name="delete-template-{{ $template->id }}" title="Delete template"
                                     message="Delete this template? This cannot be undone." confirm="Delete"
@@ -49,9 +47,9 @@
                         </x-admin.table.row>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-4 py-2">
-                                <x-admin.empty-state icon="cart" title="No templates found"
-                                    description="Run: php artisan db:seed --class=AbandonedCartTemplateSeeder" />
+                            <td colspan="4">
+                                <x-admin.empty-state title="No templates found"
+                                    description="Run the AbandonedCartTemplateSeeder to create the default set." />
                             </td>
                         </tr>
                     @endforelse

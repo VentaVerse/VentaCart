@@ -5,12 +5,9 @@
                 @csrf
                 <input type="hidden" name="group" value="payment">
                 <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'cod') }}">
-                <label class="flex items-center gap-2 text-[13px] text-v-secondary cursor-pointer">
-                    <span>Enabled</span>
-                    <x-admin.toggle name="settings[cod_enabled]"
-                        :checked="($settings['payment']['cod_enabled'] ?? '0') === '1'"
-                        x-on:change="$el.closest('form').submit()" />
-                </label>
+                <x-admin.toggle name="settings[cod_enabled]" label="Enabled" lead
+                    :checked="($settings['payment']['cod_enabled'] ?? '0') === '1'"
+                    x-on:change="$el.closest('form').submit()" />
             </form>
         </x-slot>
 

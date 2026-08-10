@@ -23,9 +23,8 @@
                     @endforeach
                 </x-admin.select>
             </x-admin.field>
-            <p class="text-xs text-v-muted">Slides, autoplay, and dimensions are configured in the Banner Group itself.</p>
         @else
-            <p class="text-[13px] text-v-secondary">Install the Banners extension to manage banner slides.</p>
+            <p class="v-panel__blank">Install the Banners extension to manage banner slides.</p>
         @endif
     </div>
 
@@ -88,7 +87,6 @@
                 <x-admin.input type="number" name="config[columns_desktop]" :value="$config['columns_desktop'] ?? 6" min="3" max="8" />
             </x-admin.field>
         </div>
-        <p class="text-xs text-v-muted">Categories for tabs will be selectable after the category selector is built.</p>
     </div>
 
 @elseif ($section->type === 'text_block')
@@ -124,7 +122,5 @@
     </div>
 
 @elseif ($section->type === 'recently_viewed')
-    <div>
-        <p class="text-xs text-v-muted">Shows products the visitor has recently browsed. Data comes from the browser, no configuration needed. The section only appears when the visitor has viewed at least one product.</p>
-    </div>
+    <p class="v-panel__blank">Nothing to configure. The section appears once a visitor has viewed a product.</p>
 @endif

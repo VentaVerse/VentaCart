@@ -28,10 +28,8 @@
                 <input type="hidden" name="group" value="security">
                 <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'security') }}">
                 <x-admin.field name="settings[turnstile_enabled]">
-                    <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                        <x-admin.toggle name="settings[turnstile_enabled]" :checked="($settings['security']['turnstile_enabled'] ?? '0') === '1'" />
-                        Enable Turnstile
-                    </label>
+                    <x-admin.toggle name="settings[turnstile_enabled]" label="Enable Turnstile"
+                        :checked="($settings['security']['turnstile_enabled'] ?? '0') === '1'" />
                 </x-admin.field>
                 <x-admin.field name="settings[turnstile_site_key]" label="Site key">
                     <x-admin.input name="settings[turnstile_site_key]" class="font-mono" placeholder="0x4AAAAAAA..." :value="$settings['security']['turnstile_site_key'] ?? ''" />

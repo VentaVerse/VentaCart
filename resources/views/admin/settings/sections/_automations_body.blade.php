@@ -27,29 +27,25 @@
         csrf: '{{ csrf_token() }}',
     })"
 >
-    {{-- Crontab hint --}}
-    <div class="rounded-v-lg border border-v-border bg-v-sunken px-4 py-3" x-data="{ copied: false }">
-        <div class="flex items-start gap-3">
-            <x-admin.icon name="info" class="w-4 h-4 text-v-muted mt-0.5 shrink-0" />
-            <div class="flex-1 min-w-0">
-                <p class="text-xs text-v-secondary mb-2">
-                    For the scheduler to fire, this line must live in the server's crontab. Times below are in
-                    <span class="font-vmono text-v-text">{{ $tz }}</span>.
-                </p>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <code class="flex-1 min-w-0 block bg-v-surface border border-v-border rounded-v-md px-3 py-2 text-xs font-vmono text-v-text overflow-x-auto whitespace-nowrap">{{ $crontabLine }}</code>
+    {{-- The one fact none of the schedules below can state for
+         themselves: none of them fire at all unless this line is in
+         the server's crontab. --}}
+    <div class="v-toolbar" x-data="{ copied: false }">
+        <div class="v-toolbar__row">
+            <span class="v-label">Server crontab, times in {{ $tz }}</span>
+            <div class="flex flex-1 flex-wrap items-center gap-2">
+                <code class="block min-w-0 flex-1 overflow-x-auto whitespace-nowrap rounded-v-md border border-v-border bg-v-surface px-3 py-2 text-xs font-vmono text-v-text">{{ $crontabLine }}</code>
                     {{-- Component-tag attributes only compile {{ }} echoes, not
                          @-directives (Blade's ComponentTagCompiler never runs the
                          directive compiler over non-bound attribute values) — @js()
                          here would render as literal, uncompiled text. Js::from()
                          is exactly what @js() expands to; the {{ }} form is the
                          one that actually compiles on a component tag. --}}
-                    <x-admin.button type="button" variant="secondary" size="sm"
-                        @click="navigator.clipboard.writeText({{ \Illuminate\Support\Js::from($crontabLine) }}).then(() => { copied = true; setTimeout(() => copied = false, 2000); })">
-                        <span x-show="!copied">Copy</span>
-                        <span x-show="copied" x-cloak class="text-v-accent">Copied</span>
-                    </x-admin.button>
-                </div>
+                <x-admin.button type="button" variant="secondary" size="sm"
+                    @click="navigator.clipboard.writeText({{ \Illuminate\Support\Js::from($crontabLine) }}).then(() => { copied = true; setTimeout(() => copied = false, 2000); })">
+                    <span x-show="!copied">Copy</span>
+                    <span x-show="copied" x-cloak class="text-v-accent">Copied</span>
+                </x-admin.button>
             </div>
         </div>
     </div>
@@ -63,7 +59,7 @@
                 <x-admin.table.th>Schedule</x-admin.table.th>
                 <x-admin.table.th>Enabled</x-admin.table.th>
                 <x-admin.table.th>Last Run</x-admin.table.th>
-                <x-admin.table.th align="right">Actions</x-admin.table.th>
+                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
             </x-slot>
 
             @forelse ($automations as $automation)
@@ -99,16 +95,9 @@
                         <code class="text-[11px] font-vmono text-v-muted mt-0.5 block">{{ $automation->cron_expression }}</code>
                     </x-admin.table.cell>
                     <x-admin.table.cell>
-                        <button type="button"
-                                role="switch"
-                                aria-label="Enable {{ $automation->name }}"
-                                :aria-checked="enabled.toString()"
-                                @click="toggle({{ $automation->id }}, $event)"
-                                :class="enabled ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
-                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-v-accent focus:ring-offset-1">
-                            <span :class="enabled ? 'translate-x-4 bg-v-accent-text' : 'translate-x-0.5 bg-v-surface'"
-                                  class="inline-block h-4 w-4 transform rounded-full shadow transition-transform"></span>
-                        </button>
+                        <x-admin.switch :checked="null" label="Enable {{ $automation->name }}"
+                            x-bind:aria-checked="enabled.toString()"
+                            @click="toggle({{ $automation->id }}, $event)" />
                     </x-admin.table.cell>
                     <x-admin.table.cell>
                         @if ($automation->last_run_status === 'success')
@@ -124,8 +113,8 @@
                             <div class="text-[11px] text-v-muted mt-1">{{ $automation->last_run_at->timezone($tz)->format('M j, Y H:i') }}</div>
                         @endif
                     </x-admin.table.cell>
-                    <x-admin.table.cell align="right">
-                        <div class="inline-flex items-center gap-2">
+                    <x-admin.table.cell class="v-col-act">
+                        <div class="v-rowactions v-rowactions--end">
                             <x-admin.button type="button" variant="secondary" size="sm" @click="openEditor({{ \Illuminate\Support\Js::from($editPayload) }})">
                                 Edit
                             </x-admin.button>
@@ -144,7 +133,7 @@
                     </x-admin.table.cell>
                 </x-admin.table.row>
             @empty
-                <tr><td colspan="6" class="px-4 py-10 text-center text-[13px] text-v-muted">No automations configured.</td></tr>
+                <tr><td colspan="6"><x-admin.empty-state title="No automations configured" /></td></tr>
             @endforelse
         </x-admin.table>
     </x-admin.card>

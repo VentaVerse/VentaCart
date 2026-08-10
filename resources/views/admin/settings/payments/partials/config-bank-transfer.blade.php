@@ -5,12 +5,9 @@
                 @csrf
                 <input type="hidden" name="group" value="payment">
                 <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'bank_transfer') }}">
-                <label class="flex items-center gap-2 text-[13px] text-v-secondary cursor-pointer">
-                    <span>Enabled</span>
-                    <x-admin.toggle name="settings[bank_transfer_enabled]"
-                        :checked="($settings['payment']['bank_transfer_enabled'] ?? '0') === '1'"
-                        x-on:change="$el.closest('form').submit()" />
-                </label>
+                <x-admin.toggle name="settings[bank_transfer_enabled]" label="Enabled" lead
+                    :checked="($settings['payment']['bank_transfer_enabled'] ?? '0') === '1'"
+                    x-on:change="$el.closest('form').submit()" />
             </form>
         </x-slot>
 
@@ -45,7 +42,7 @@
                 <x-admin.table.th>Account</x-admin.table.th>
                 <x-admin.table.th>Number</x-admin.table.th>
                 <x-admin.table.th>Status</x-admin.table.th>
-                <x-admin.table.th align="right">Actions</x-admin.table.th>
+                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
             </x-slot>
             @forelse ($bankAccounts as $acct)
                 <x-admin.table.row>
@@ -63,18 +60,18 @@
                     <x-admin.table.cell>
                         <x-admin.badge :tone="$acct->is_active ? 'success' : 'neutral'">{{ $acct->is_active ? 'Active' : 'Inactive' }}</x-admin.badge>
                     </x-admin.table.cell>
-                    <x-admin.table.cell align="right">
-                        <div class="flex items-center justify-end gap-3 text-[13px]">
-                            <a href="{{ route('admin.bank-accounts.edit', $acct) }}" class="text-v-accent hover:underline">Edit</a>
-                            <button type="button" class="text-v-danger hover:underline"
-                                    @click="$dispatch('open-modal', 'delete-bank-account-{{ $acct->id }}')">Delete</button>
+                    <x-admin.table.cell class="v-col-act">
+                        <div class="v-rowactions v-rowactions--end">
+                            <x-admin.button size="sm" variant="ghost" :href="route('admin.bank-accounts.edit', $acct)">Edit</x-admin.button>
+                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
+                                @click="$dispatch('open-modal', 'delete-bank-account-{{ $acct->id }}')">Delete</x-admin.button>
                         </div>
                     </x-admin.table.cell>
                 </x-admin.table.row>
             @empty
-                <x-admin.table.row>
-                    <x-admin.table.cell colspan="6" class="text-center text-v-muted">No bank accounts configured yet.</x-admin.table.cell>
-                </x-admin.table.row>
+                <tr>
+                    <td colspan="6"><x-admin.empty-state title="No bank accounts yet" /></td>
+                </tr>
             @endforelse
         </x-admin.table>
     </x-admin.card>
@@ -106,14 +103,12 @@
                         class="block w-full text-[13px] text-v-secondary file:mr-3 file:h-8 file:rounded-v-md file:border-0 file:bg-v-sunken file:px-3 file:text-[13px] file:font-medium file:text-v-text hover:file:bg-v-hover">
                 </x-admin.field>
                 <x-admin.field name="instructions" label="Instructions (optional)" class="sm:col-span-2">
-                    <textarea name="instructions" rows="2" placeholder="Any additional notes for the customer..."
-                        class="v-control w-full rounded-v-md border border-v-border bg-v-surface px-3 py-2 text-[13px] text-v-text placeholder:text-v-muted"></textarea>
+                    <x-admin.textarea name="instructions" rows="2" placeholder="Any additional notes for the customer&hellip;" />
                 </x-admin.field>
-                <label class="flex items-center gap-2 text-[13px] text-v-text sm:col-span-2">
+                <div class="sm:col-span-2">
                     <input type="hidden" name="is_active" value="0">
-                    <input type="checkbox" name="is_active" value="1" checked class="rounded border-v-border text-v-accent">
-                    Active
-                </label>
+                    <x-admin.checkbox name="is_active" label="Active" :checked="true" />
+                </div>
             </div>
             <x-admin.form-actions>
                 <x-admin.button variant="primary" type="submit">Add account</x-admin.button>

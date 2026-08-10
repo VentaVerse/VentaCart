@@ -8,12 +8,9 @@
                 @csrf
                 <input type="hidden" name="group" value="payment">
                 <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'hitpay') }}">
-                <label class="flex items-center gap-2 text-[13px] text-v-secondary cursor-pointer">
-                    <span>Enabled</span>
-                    <x-admin.toggle name="settings[hitpay_enabled]"
-                        :checked="($settings['payment']['hitpay_enabled'] ?? '0') === '1'"
-                        x-on:change="$el.closest('form').submit()" />
-                </label>
+                <x-admin.toggle name="settings[hitpay_enabled]" label="Enabled" lead
+                    :checked="($settings['payment']['hitpay_enabled'] ?? '0') === '1'"
+                    x-on:change="$el.closest('form').submit()" />
             </form>
         </x-slot>
 

@@ -20,16 +20,13 @@
         ['label' => 'Templates', 'route' => 'admin.abandoned-carts.templates', 'pattern' => 'admin.abandoned-carts.templates*'],
     ];
 @endphp
-<nav class="mb-5 flex items-center gap-1 overflow-x-auto border-b border-v-border" aria-label="Abandoned cart settings">
-    @foreach ($acSettingsNavItems as $item)
-        <a href="{{ route($item['route']) }}" @if (request()->routeIs($item['pattern'])) aria-current="page" @endif
-           class="-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors
-               {{ request()->routeIs($item['pattern']) ? 'border-v-accent text-v-accent' : 'border-transparent text-v-secondary hover:text-v-text' }}">
-            {{ $item['label'] }}
-        </a>
-    @endforeach
-    <a href="{{ route('admin.abandoned-carts.index') }}"
-       class="ml-auto shrink-0 whitespace-nowrap px-3 py-2 text-[13px] text-v-secondary hover:text-v-text hover:underline">
-        Carts workspace <x-admin.icon name="arrow-right" class="inline w-3.5 h-3.5 align-[-2px]" />
-    </a>
-</nav>
+<div class="mb-5">
+    <x-admin.segment label="Abandoned cart settings">
+        @foreach ($acSettingsNavItems as $item)
+            <x-admin.segment.item :href="route($item['route'])" :active="request()->routeIs($item['pattern'])">{{ $item['label'] }}</x-admin.segment.item>
+        @endforeach
+        <x-slot:aside>
+            <a class="v-segbar__aside" href="{{ route('admin.abandoned-carts.index') }}">Carts workspace <x-admin.icon name="chevron-right" class="w-3 h-3" /></a>
+        </x-slot:aside>
+    </x-admin.segment>
+</div>

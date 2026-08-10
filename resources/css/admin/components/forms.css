@@ -127,6 +127,86 @@
     outline-offset: 2px;
 }
 
+/* ------------------------------------------------------------
+   The switch, and the words beside it
+
+   Two things were hand-rolled across the settings screens. The first
+   was the row: a dozen copies of `<label class="flex items-center
+   gap-2 ...">` wrapping a toggle and its sentence, in four different
+   spellings, each of them nesting a <label> inside the toggle's own
+   <label>, which is invalid. `.v-switch` is that row, once, with the
+   text carrying its own `for` so the two labels are siblings.
+
+   The second was the switch a BUTTON drives rather than a checkbox:
+   a toggle that posts over fetch, or one that submits a form of its
+   own. Four copies of a 36x20 pill written in utilities. It is the
+   same material as `.v-toggle` and now shares its track and its
+   knob; only the driver differs, so the state reads off
+   `aria-checked` and the CSS and the screen reader agree.
+   ------------------------------------------------------------ */
+
+.v-admin .v-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* The words before the control, for a switch that sits at the
+   trailing edge of a panel head, where "Enabled [switch]" reads in
+   the order the eye arrives. */
+.v-admin .v-switch--lead { flex-direction: row-reverse; }
+
+/* Top-aligned, for the rare switch whose sentence wraps. */
+.v-admin .v-switch--top { align-items: flex-start; }
+
+.v-admin .v-switch__text {
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.v-admin .v-toggle--btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+}
+
+.v-admin .v-toggle--btn[aria-checked="true"] .v-toggle__track { background: var(--accent); }
+
+.v-admin .v-toggle--btn[aria-checked="true"] .v-toggle__knob {
+    background: var(--accent-text);
+    transform: translateX(16px);
+}
+
+.v-admin .v-toggle--btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ------------------------------------------------------------
+   Checklist: a bounded set of boxes
+
+   Scoping controls (which zones, which customer groups, which
+   entity types) are lists whose length the merchant decides, so the
+   box they live in has to be bounded and has to scroll. Four
+   shipping screens wrote this as its own stack of utilities, with
+   three different heights.
+   ------------------------------------------------------------ */
+
+.v-admin .v-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 12rem;
+    overflow-y: auto;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.v-admin .v-checklist:empty { display: none; }
+
 /* A figure column in an editable grid reads as a column of figures.
    The browser's own stepper arrows put two chevrons inside every cell
    and the column stops aligning, so the variant and rate grids

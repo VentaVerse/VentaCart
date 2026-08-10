@@ -5,8 +5,8 @@
     matching can't infer that relationship, so it's pinned here.
 --}}
 <x-admin.settings-shell active="api" title="API Sync Logs" :wide="true">
-        <x-admin.card class="mb-6">
-            <form method="GET" class="flex flex-wrap items-end gap-3">
+        <div class="mb-5">
+            <x-admin.filters method="GET">
                 <x-admin.field name="method" label="Method">
                     <x-admin.select name="method">
                         <option value="">All</option>
@@ -26,15 +26,14 @@
                 <x-admin.field name="search" label="Search">
                     <x-admin.input name="search" :value="request('search')" placeholder="Endpoint or SKU..." class="w-48" />
                 </x-admin.field>
-                <x-admin.button type="submit">Filter</x-admin.button>
+                <x-admin.button type="submit" variant="secondary">Filter</x-admin.button>
                 @if (request()->hasAny(['method', 'status', 'search']))
-                    <x-admin.button variant="ghost" href="{{ route('admin.api-sync-logs.index') }}">Clear</x-admin.button>
+                    <a href="{{ route('admin.api-sync-logs.index') }}" class="v-filters__reset">Clear</a>
                 @endif
-            </form>
-            <div class="mt-3">
-                <x-admin.button variant="danger" size="sm" type="button" @click="$dispatch('open-modal', 'destroy-all-logs')">Delete All Logs</x-admin.button>
-            </div>
-        </x-admin.card>
+                <x-admin.button variant="ghost" class="v-rowactions__danger ml-auto" type="button"
+                    @click="$dispatch('open-modal', 'destroy-all-logs')">Delete all logs</x-admin.button>
+            </x-admin.filters>
+        </div>
 
         <x-admin.table>
             <x-slot:head>
@@ -64,15 +63,15 @@
                 @endphp
                 <x-admin.table.row>
                     <x-admin.table.cell><x-admin.badge :tone="$methodTone">{{ $log->method }}</x-admin.badge></x-admin.table.cell>
-                    <x-admin.table.cell class="text-v-text font-mono text-xs">{{ $log->endpoint }}</x-admin.table.cell>
-                    <x-admin.table.cell class="text-v-secondary font-mono text-xs">{{ $log->sku ?? '-' }}</x-admin.table.cell>
+                    <x-admin.table.cell class="v-num text-xs text-v-text">{{ $log->endpoint }}</x-admin.table.cell>
+                    <x-admin.table.cell class="v-num text-xs text-v-secondary">{{ $log->sku ?? '-' }}</x-admin.table.cell>
                     <x-admin.table.cell><x-admin.badge :tone="$statusTone">{{ $log->status_code }}</x-admin.badge></x-admin.table.cell>
                     <x-admin.table.cell class="text-v-secondary">{{ $log->response_time_ms }}ms</x-admin.table.cell>
-                    <x-admin.table.cell class="text-v-muted font-mono text-xs">{{ $log->ip_address }}</x-admin.table.cell>
+                    <x-admin.table.cell class="v-num text-xs text-v-muted">{{ $log->ip_address }}</x-admin.table.cell>
                     <x-admin.table.cell class="text-v-secondary whitespace-nowrap">{{ $log->created_at?->format('M d, Y H:i:s') }}</x-admin.table.cell>
                 </x-admin.table.row>
             @empty
-                <tr><td colspan="7" class="px-4 py-2"><x-admin.empty-state icon="settings" title="No API logs found" /></td></tr>
+                <tr><td colspan="7"><x-admin.empty-state title="No API logs found" /></td></tr>
             @endforelse
 
             <x-slot:footer>

@@ -37,6 +37,10 @@ class UiKitTest extends TestCase
                 'Table, one row',
                 'Table, no rows',
                 'Forms',
+                'Workspace rail',
+                'Slates',
+                'Switches',
+                'Checklist',
                 'Selectable cards',
                 'Feedback',
                 'Empty and unconfigured',
@@ -80,6 +84,13 @@ class UiKitTest extends TestCase
             'v-flash__text',    // flash
             'v-rank__bar',      // data display
             'v-slice-0',        // data display, identity accents
+            'v-sidenav__link',  // workspace rail
+            'v-sidenav__picker',// workspace rail, narrow
+            'v-slate__mark',    // slate
+            'v-slate__acts',    // slate, carrying controls
+            'v-switch__text',   // switch, with its words
+            'v-toggle--btn',    // switch, button driven
+            'v-checklist',      // checklist
         ] as $class) {
             $response->assertSee($class, false);
         }
@@ -102,6 +113,12 @@ class UiKitTest extends TestCase
             ->assertSee('is-active', false)
             ->assertSee('is-disabled', false)
             ->assertSee('is-current', false)
-            ->assertSee('v-money--zero', false);
+            ->assertSee('v-money--zero', false)
+            // The switch and the segment both key state on an attribute
+            // rather than a class, so the CSS and the screen reader read
+            // the same thing. Pin both ends of each.
+            ->assertSee('aria-checked="true"', false)
+            ->assertSee('aria-checked="false"', false)
+            ->assertSee('aria-current="page"', false);
     }
 }

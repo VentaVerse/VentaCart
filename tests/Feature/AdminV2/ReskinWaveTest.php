@@ -1162,8 +1162,12 @@ class ReskinWaveTest extends TestCase
     /**
      * Owner report: "Make global length of contents 1400. There are some
      * that are squeezed. Such as Automations." Automations' schedule table
-     * was rendering inside settings-shell's narrow (max-w-2xl / 672px) mode.
-     * Pin that it now renders in wide mode.
+     * was rendering inside settings-shell's narrow (672px) mode.
+     *
+     * The cap moved from a Tailwind utility on settings-shell's own column
+     * to the promoted workspace's `--narrow` modifier, so the pin follows
+     * it — and now pins BOTH directions, which the utility version never
+     * did: a table takes the room, a column of fields keeps the measure.
      */
     public function test_automations_section_renders_wide(): void
     {
@@ -1171,8 +1175,13 @@ class ReskinWaveTest extends TestCase
 
         $this->get(route('admin.settings.section', 'automations'))
             ->assertOk()
-            ->assertSee('max-w-none', false)
-            ->assertDontSee('max-w-2xl', false);
+            ->assertSee('v-workspace__main', false)
+            ->assertDontSee('v-workspace__main--narrow', false);
+
+        // Mail is the converse: a column of fields, capped at a measure.
+        $this->get(route('admin.settings.section', 'mail'))
+            ->assertOk()
+            ->assertSee('v-workspace__main--narrow', false);
     }
 
     /**

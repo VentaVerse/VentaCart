@@ -41,10 +41,7 @@
                         <x-admin.field name="sort_order" label="Sort Order">
                             <x-admin.input type="number" name="sort_order" :value="$rate?->sort_order ?? 0" class="w-24" />
                         </x-admin.field>
-                        <label class="flex items-center gap-2 cursor-pointer pt-5">
-                            <x-admin.toggle name="is_active" :checked="$rate?->is_active ?? true" />
-                            <span class="text-[13px] text-v-text">Active</span>
-                        </label>
+                        <x-admin.toggle name="is_active" label="Active" :checked="$rate?->is_active ?? true" class="pt-5" />
                     </div>
 
                     <x-admin.form-actions>

@@ -12,10 +12,22 @@ class ContainerComponentsTest extends TestCase
             ->assertSeeInOrder(['Store details', 'Basic info.', 'Body here', 'Foot']);
     }
 
-    public function test_stat_renders_mono_value(): void
+    /**
+     * x-admin.stat is gone: the figure is the promoted measure block and the
+     * last three callers (SEO dashboard, SEO 404s, stock alerts) converted in
+     * phase 3, so the v2.0 component has no callers left. The pin follows the
+     * measure to its replacement, and gets stronger: it now also holds the
+     * figure's contract that the accent is IDENTITY, so it lands as a class on
+     * the block rather than as a colour on the value.
+     */
+    public function test_figure_renders_mono_value_and_identity_accent(): void
     {
-        $this->blade('<x-admin.stat label="TODAY" value="₱48,230" />')
-            ->assertSee('TODAY')->assertSee('₱48,230')->assertSee('v-num', false);
+        $this->blade('<x-admin.figure label="TODAY" value="₱48,230" accent="violet" note="6 more than yesterday" />')
+            ->assertSee('TODAY')
+            ->assertSee('₱48,230')
+            ->assertSee('6 more than yesterday')
+            ->assertSee('v-num', false)
+            ->assertSee('v-stat--violet', false);
     }
 
     public function test_empty_state_renders_icon_title_and_action(): void

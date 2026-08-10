@@ -1,10 +1,10 @@
 <x-admin.settings-shell title="Theme Settings" :wide="true">
         {{-- Theme Selector --}}
-        <x-admin.card class="mb-6">
-            <div class="flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                    <h3 class="text-[13px] font-semibold text-v-text">Active Theme</h3>
-                    <p class="text-[13px] text-v-secondary mt-1">{{ $installedThemes[$activeTheme]['name'] ?? $activeTheme }}: {{ $installedThemes[$activeTheme]['description'] ?? '' }}</p>
+        <x-admin.card title="Active theme" class="mb-6">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="min-w-0">
+                    <h3 class="v-subhead">{{ $installedThemes[$activeTheme]['name'] ?? $activeTheme }}</h3>
+                    <p class="v-panel__note mt-1">{{ $installedThemes[$activeTheme]['description'] ?? '' }}</p>
                 </div>
                 <form method="POST" action="{{ route('admin.theme.switch') }}" data-v-form class="flex items-center gap-3">
                     @csrf
@@ -22,11 +22,13 @@
             <x-admin.tabs default="{{ session('tab', 'colors') }}" param="tab"
                 :names="['colors', 'fonts', 'header', 'navigation', 'homepage', 'product_page', 'category_page', 'badges', 'footer', 'blog', 'theme-settings']">
                 <x-slot:nav>
+                    {{-- The tab list is built in Alpine rather than in Blade,
+                         so it cannot be x-admin.tabs.tab; it wears the same
+                         segment option and keys on the same attribute. --}}
                     <template x-for="t in tabs" :key="t.id">
                         <button type="button" role="tab" @click="pick(t.id)"
                             :aria-selected="tab === t.id ? 'true' : 'false'"
-                            :class="tab === t.id ? 'border-v-accent text-v-accent' : 'border-transparent text-v-secondary hover:text-v-text'"
-                            class="-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-[13px] font-medium transition-colors" x-text="t.label"></button>
+                            class="v-segment__item" x-text="t.label"></button>
                     </template>
                 </x-slot:nav>
 
@@ -103,7 +105,7 @@
                                                         <input type="color" value="{{ $settings['colors'][$key] ?? '#000000' }}" class="h-8 w-10 rounded-v-sm border border-v-border cursor-pointer bg-v-surface"
                                                             oninput="this.nextElementSibling.value = this.value">
                                                         <input type="text" name="settings[{{ $key }}]" value="{{ $settings['colors'][$key] ?? '#000000' }}"
-                                                            class="v-control w-20 h-[var(--control-h-sm)] px-2 text-xs font-mono bg-v-surface text-v-text border border-v-border rounded-v-md"
+                                                            class="v-control w-20 h-[var(--control-h-sm)] px-2 text-xs font-mono bg-v-surface text-v-text border rounded-v-md"
                                                             oninput="this.previousElementSibling.value = this.value"
                                                             placeholder="#000000">
                                                     </div>
@@ -115,7 +117,7 @@
                             </div>
 
                             <div class="mt-6 flex items-center justify-between">
-                                <button type="button" class="text-xs text-v-muted hover:text-v-danger font-medium" @click="$dispatch('open-modal', 'revert-colors')">Revert to Default</button>
+                                <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger" @click="$dispatch('open-modal', 'revert-colors')">Revert to default</x-admin.button>
                                 <x-admin.button type="submit">Save Colors</x-admin.button>
                             </div>
                         </form>
@@ -155,7 +157,7 @@
                                         <h4 class="v-label">Font Family</h4>
                                         <x-admin.field name="settings[heading]" label="Heading Font">
                                             <select name="settings[heading]" x-model="headingFont" @change="loadPreviewFont(headingFont)"
-                                                class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                 @foreach ($fontOptions as $font)
                                                     <option value="{{ $font }}" {{ ($settings['fonts']['heading'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
                                                 @endforeach
@@ -163,7 +165,7 @@
                                         </x-admin.field>
                                         <x-admin.field name="settings[body]" label="Body Font">
                                             <select name="settings[body]" x-model="bodyFont" @change="loadPreviewFont(bodyFont)"
-                                                class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                class="v-control w-full h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                 @foreach ($fontOptions as $font)
                                                     <option value="{{ $font }}" {{ ($settings['fonts']['body'] ?? '') === $font ? 'selected' : '' }}>{{ $font }}</option>
                                                 @endforeach
@@ -189,7 +191,7 @@
                                                         <input type="number" name="settings[{{ $key }}]"
                                                             value="{{ $settings['fonts'][$key] ?? $cfg['default'] }}"
                                                             min="{{ $cfg['min'] }}" max="{{ $cfg['max'] }}"
-                                                            class="v-control w-16 h-[var(--control-h-sm)] text-center text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                            class="v-control w-16 h-[var(--control-h-sm)] text-center text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                         <span class="text-xs text-v-muted">px</span>
                                                     </div>
                                                 </div>
@@ -233,10 +235,7 @@
                             <div class="space-y-6 max-w-lg">
                                 <h3 class="text-[13px] font-semibold text-v-text border-b border-v-border pb-2">Announcement Bar</h3>
                                 <x-admin.field name="settings[announcement_enabled]">
-                                    <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                                        <x-admin.toggle name="settings[announcement_enabled]" :checked="($settings['header']['announcement_enabled'] ?? '0') === '1'" />
-                                        Enable Announcement Bar
-                                    </label>
+                                    <x-admin.toggle name="settings[announcement_enabled]" :checked="($settings['header']['announcement_enabled'] ?? '0') === '1'" label="Enable Announcement Bar" />
                                 </x-admin.field>
                                 <x-admin.field name="settings[announcement_text]" label="Announcement Text">
                                     <x-admin.input name="settings[announcement_text]" :value="$settings['header']['announcement_text'] ?? ''" />
@@ -249,14 +248,14 @@
                                 <div x-data="topbarLinks()" class="space-y-2">
                                     <template x-for="(link, idx) in links" :key="idx">
                                         <div class="flex items-center gap-2">
-                                            <input type="text" x-model="link.label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md" placeholder="Label">
-                                            <input type="text" x-model="link.url" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md" placeholder="/url">
-                                            <button type="button" @click="links.splice(idx, 1)" class="text-v-danger hover:opacity-80" aria-label="Remove link">
+                                            <input type="text" x-model="link.label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="Label">
+                                            <input type="text" x-model="link.url" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="/url">
+                                            <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger" @click="links.splice(idx, 1)" aria-label="Remove link">
                                                 <x-admin.icon name="trash" class="w-4 h-4" />
-                                            </button>
+                                            </x-admin.button>
                                         </div>
                                     </template>
-                                    <button type="button" @click="links.push({label:'',url:''})" class="text-[13px] text-v-accent hover:opacity-80">+ Add Link</button>
+                                    <x-admin.button type="button" variant="ghost" size="sm" @click="links.push({label:'',url:''})"><x-admin.icon name="plus" class="w-3 h-3" /> Add link</x-admin.button>
                                     <input type="hidden" name="settings[topbar_links]" :value="JSON.stringify(links)">
                                 </div>
                             </div>
@@ -282,9 +281,9 @@
                                         </span>
                                     </div>
                                     <x-admin.badge :tone="$item->is_enabled ? 'success' : 'neutral'">{{ $item->is_enabled ? 'Active' : 'Disabled' }}</x-admin.badge>
-                                    <button type="button" class="text-v-danger hover:opacity-80" aria-label="Delete {{ $item->label }}" @click="$dispatch('open-modal', 'delete-nav-{{ $item->id }}')">
+                                    <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger" aria-label="Delete {{ $item->label }}" @click="$dispatch('open-modal', 'delete-nav-{{ $item->id }}')">
                                         <x-admin.icon name="trash" class="w-4 h-4" />
-                                    </button>
+                                    </x-admin.button>
                                     <x-admin.confirm-dialog name="delete-nav-{{ $item->id }}" title="Delete menu item"
                                         message="Delete this menu item?" confirm="Delete"
                                         :action="route('admin.theme.nav.destroy', $item)" method="DELETE" />
@@ -345,9 +344,9 @@
                                         <button type="button" @click="expanded = !expanded" class="text-v-secondary hover:text-v-text" aria-label="Section settings" :aria-expanded="expanded ? 'true' : 'false'">
                                             <x-admin.icon name="chevron-down" class="w-4 h-4 transition-transform" x-bind:class="expanded && 'rotate-180'" />
                                         </button>
-                                        <button type="button" class="text-v-danger hover:opacity-80" aria-label="Delete {{ $section->title }}" @click="$dispatch('open-modal', 'delete-section-{{ $section->id }}')">
+                                        <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger" aria-label="Delete {{ $section->title }}" @click="$dispatch('open-modal', 'delete-section-{{ $section->id }}')">
                                             <x-admin.icon name="trash" class="w-4 h-4" />
-                                        </button>
+                                        </x-admin.button>
                                         <x-admin.confirm-dialog name="delete-section-{{ $section->id }}" title="Delete section"
                                             message="Delete this section?" confirm="Delete"
                                             :action="route('admin.theme.sections.destroy', $section)" method="DELETE" />
@@ -422,10 +421,7 @@
                                 @endphp
                                 @foreach ($ppToggles as $key => $label)
                                     <x-admin.field name="settings[{{ $key }}]">
-                                        <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                                            <x-admin.toggle name="settings[{{ $key }}]" :checked="($settings['product_page'][$key] ?? '0') === '1'" />
-                                            {{ $label }}
-                                        </label>
+                                        <x-admin.toggle name="settings[{{ $key }}]" :checked="($settings['product_page'][$key] ?? '0') === '1'" label="{{ $label }}" />
                                     </x-admin.field>
                                 @endforeach
 
@@ -491,10 +487,7 @@
                                     @endphp
                                     @foreach ($filterToggles as $key => $label)
                                         <x-admin.field name="filters[{{ $key }}]">
-                                            <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                                                <x-admin.toggle name="filters[{{ $key }}]" :checked="($settings['filters'][$key] ?? '0') === '1'" />
-                                                {{ $label }}
-                                            </label>
+                                            <x-admin.toggle name="filters[{{ $key }}]" :checked="($settings['filters'][$key] ?? '0') === '1'" label="{{ $label }}" />
                                         </x-admin.field>
                                     @endforeach
                                 </div>
@@ -569,45 +562,45 @@
                                                 <div class="space-y-2 mb-3">
                                                     <template x-for="(link, idx) in links" :key="idx">
                                                         <div class="flex items-center gap-2">
-                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][label]'" x-model="link.label" placeholder="Label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="link.url" placeholder="/slug" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][label]'" x-model="link.label" placeholder="Label" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md">
+                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="link.url" placeholder="/slug" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border rounded-v-md">
                                                             <button type="button" @click="links.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove link">
                                                                 <x-admin.icon name="x" class="w-4 h-4" />
                                                             </button>
                                                         </div>
                                                     </template>
                                                 </div>
-                                                <button type="button" @click="links.push({label: '', url: ''})" class="text-xs text-v-accent hover:opacity-80 font-medium">+ Add Link</button>
+                                                <x-admin.button type="button" variant="ghost" size="sm" @click="links.push({label: '', url: ''})"><x-admin.icon name="plus" class="w-3 h-3" /> Add link</x-admin.button>
 
                                             @elseif ($col->type === 'social')
                                                 <div class="space-y-2 mb-3">
                                                     <template x-for="(social, idx) in socials" :key="idx">
                                                         <div class="flex items-center gap-2">
-                                                            <select :name="'columns[{{ $col->id }}][config][links]['+idx+'][platform]'" x-model="social.platform" class="v-control w-32 h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                            <select :name="'columns[{{ $col->id }}][config][links]['+idx+'][platform]'" x-model="social.platform" class="v-control w-32 h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                                 <option value="facebook">Facebook</option>
                                                                 <option value="instagram">Instagram</option>
                                                                 <option value="youtube">YouTube</option>
                                                                 <option value="tiktok">TikTok</option>
                                                             </select>
-                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" placeholder="https://..." class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                            <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" placeholder="https://..." class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] font-mono bg-v-surface text-v-text border rounded-v-md">
                                                             <button type="button" @click="socials.splice(idx, 1)" class="text-v-muted hover:text-v-danger p-1" aria-label="Remove social link">
                                                                 <x-admin.icon name="x" class="w-4 h-4" />
                                                             </button>
                                                         </div>
                                                     </template>
                                                 </div>
-                                                <button type="button" @click="socials.push({platform: 'facebook', url: ''})" class="text-xs text-v-accent hover:opacity-80 font-medium">+ Add Social</button>
+                                                <x-admin.button type="button" variant="ghost" size="sm" @click="socials.push({platform: 'facebook', url: ''})"><x-admin.icon name="plus" class="w-3 h-3" /> Add social link</x-admin.button>
 
                                             @elseif ($col->type === 'payment_icons')
                                                 <div class="space-y-2 mb-3">
                                                     <template x-for="(icon, idx) in payIcons" :key="idx">
                                                         <div class="flex items-center gap-2 bg-v-sunken rounded-v-md p-2">
-                                                            <select :name="'columns[{{ $col->id }}][config][icons]['+idx+'][type]'" x-model="icon.type" class="v-control w-20 h-[var(--control-h-sm)] px-2 text-xs bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                            <select :name="'columns[{{ $col->id }}][config][icons]['+idx+'][type]'" x-model="icon.type" class="v-control w-20 h-[var(--control-h-sm)] px-2 text-xs bg-v-surface text-v-text border rounded-v-md">
                                                                 <option value="text">Text</option>
                                                                 <option value="image">Image</option>
                                                             </select>
                                                             <template x-if="icon.type === 'text'">
-                                                                <input type="text" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" x-model="icon.value" placeholder="e.g. Visa" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                                <input type="text" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" x-model="icon.value" placeholder="e.g. Visa" class="v-control flex-1 h-[var(--control-h)] px-3 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                             </template>
                                                             <template x-if="icon.type === 'image'">
                                                                 <div class="flex-1 flex items-center gap-2">
@@ -624,10 +617,10 @@
                                                         </div>
                                                     </template>
                                                 </div>
-                                                <button type="button" @click="payIcons.push({type: 'text', value: ''})" class="text-xs text-v-accent hover:opacity-80 font-medium">+ Add Payment Method</button>
+                                                <x-admin.button type="button" variant="ghost" size="sm" @click="payIcons.push({type: 'text', value: ''})"><x-admin.icon name="plus" class="w-3 h-3" /> Add payment method</x-admin.button>
 
                                             @elseif ($col->type === 'text')
-                                                <textarea name="columns[{{ $col->id }}][config][content]" rows="3" class="v-control w-full px-3 py-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md" placeholder="Free text content...">{{ $col->config['content'] ?? '' }}</textarea>
+                                                <textarea name="columns[{{ $col->id }}][config][content]" rows="3" class="v-control w-full px-3 py-2 text-[13px] bg-v-surface text-v-text border rounded-v-md" placeholder="Free text content...">{{ $col->config['content'] ?? '' }}</textarea>
                                             @endif
                                         </div>
                                     </div>
@@ -691,16 +684,10 @@
                                     <x-admin.input type="number" name="settings[excerpt_length]" :value="$settings['blog']['excerpt_length'] ?? '150'" min="50" max="500" class="w-32" />
                                 </x-admin.field>
                                 <x-admin.field name="settings[show_view_count]">
-                                    <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                                        <x-admin.toggle name="settings[show_view_count]" :checked="($settings['blog']['show_view_count'] ?? '0') === '1'" />
-                                        Show View Count
-                                    </label>
+                                    <x-admin.toggle name="settings[show_view_count]" :checked="($settings['blog']['show_view_count'] ?? '0') === '1'" label="Show View Count" />
                                 </x-admin.field>
                                 <x-admin.field name="settings[show_related_articles]">
-                                    <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                                        <x-admin.toggle name="settings[show_related_articles]" :checked="($settings['blog']['show_related_articles'] ?? '0') === '1'" />
-                                        Show Related Articles on Product Pages
-                                    </label>
+                                    <x-admin.toggle name="settings[show_related_articles]" :checked="($settings['blog']['show_related_articles'] ?? '0') === '1'" label="Show Related Articles on Product Pages" />
                                 </x-admin.field>
                             </div>
                             <div class="mt-6 flex justify-end">
@@ -717,7 +704,6 @@
                             <form method="POST" action="{{ route('admin.theme.update-theme-settings') }}" data-v-form>
                                 @csrf
                                 <div class="space-y-4 max-w-md">
-                                    <p class="text-[13px] text-v-secondary mb-4">Settings specific to the <strong>{{ $installedThemes[$activeTheme]['name'] ?? $activeTheme }}</strong> theme.</p>
                                     @foreach ($themeSettingsSchema as $key => $schema)
                                         <x-admin.field name="theme_settings[{{ $key }}]" :label="$schema['label'] ?? $key">
                                             @if (($schema['type'] ?? '') === 'select')
@@ -727,10 +713,7 @@
                                                     @endforeach
                                                 </x-admin.select>
                                             @elseif (($schema['type'] ?? '') === 'toggle')
-                                                <label class="flex items-center gap-3 text-[13px] text-v-text cursor-pointer">
-                                                    <x-admin.toggle name="theme_settings[{{ $key }}]" :checked="($themeSettingValues[$key] ?? ($schema['default'] ?? false)) ? true : false" />
-                                                    Enabled
-                                                </label>
+                                                <x-admin.toggle name="theme_settings[{{ $key }}]" :checked="($themeSettingValues[$key] ?? ($schema['default'] ?? false)) ? true : false" label="Enabled" />
                                             @elseif (($schema['type'] ?? '') === 'color')
                                                 <input type="color" name="theme_settings[{{ $key }}]" value="{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '#000000') }}" class="h-10 w-14 rounded-v-md border border-v-border cursor-pointer bg-v-surface">
                                             @elseif (($schema['type'] ?? '') === 'number')
@@ -746,7 +729,7 @@
                                 </div>
                             </form>
                         @else
-                            <p class="text-[13px] text-v-secondary italic">This theme has no configurable settings.</p>
+                            <p class="v-panel__blank">This theme has no configurable settings.</p>
                         @endif
                     </x-admin.card>
                 </x-admin.tabs.panel>

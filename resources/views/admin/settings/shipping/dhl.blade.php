@@ -25,12 +25,12 @@
                 </x-admin.form-actions>
             </form>
 
-            <div class="flex items-center gap-3 border-t border-v-border pt-5">
+            <div class="flex items-center gap-2 border-t border-v-border pt-5">
                 <form method="POST" action="{{ route('admin.settings.test-dhl') }}" data-v-form>
                     @csrf
                     <x-admin.button variant="secondary" type="submit">Test connection</x-admin.button>
                 </form>
-                <span class="text-xs text-v-muted">Tests a rate quote from Manila to Singapore.</span>
+                <x-admin.hint label="What the test does">Requests one live rate quote, Manila to Singapore, and reports what DHL answered.</x-admin.hint>
             </div>
         </div>
     </x-admin.card>

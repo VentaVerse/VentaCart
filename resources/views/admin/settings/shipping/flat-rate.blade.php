@@ -7,7 +7,7 @@
             </x-slot>
 
             @if ($flatRates->isEmpty())
-                <x-admin.empty-state icon="fulfillment" title="No flat rate methods"
+                <x-admin.empty-state title="No flat rate methods"
                     description="Add a fixed-cost method scoped to a geo zone or customer group.">
                     <x-admin.button variant="primary" size="sm" :href="route('admin.flat-rates.create')">Add flat rate</x-admin.button>
                 </x-admin.empty-state>
@@ -19,7 +19,7 @@
                         <x-admin.table.th>Group</x-admin.table.th>
                         <x-admin.table.th align="right">Cost</x-admin.table.th>
                         <x-admin.table.th>Status</x-admin.table.th>
-                        <x-admin.table.th align="right">Actions</x-admin.table.th>
+                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                     </x-slot:head>
                     @foreach ($flatRates as $fr)
                         <x-admin.table.row>
@@ -30,11 +30,11 @@
                             <x-admin.table.cell>
                                 <x-admin.badge :tone="$fr->is_active ? 'success' : 'neutral'">{{ $fr->is_active ? 'Active' : 'Inactive' }}</x-admin.badge>
                             </x-admin.table.cell>
-                            <x-admin.table.cell align="right">
-                                <div class="flex items-center justify-end gap-3">
-                                    <a href="{{ route('admin.flat-rates.edit', $fr) }}" class="text-xs font-medium text-v-accent hover:underline">Edit</a>
-                                    <button type="button" class="text-xs font-medium text-v-danger hover:underline"
-                                        @click="$dispatch('open-modal', 'delete-fr-{{ $fr->id }}')">Delete</button>
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <x-admin.button size="sm" variant="ghost" :href="route('admin.flat-rates.edit', $fr)">Edit</x-admin.button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
+                                        @click="$dispatch('open-modal', 'delete-fr-{{ $fr->id }}')">Delete</x-admin.button>
                                 </div>
                             </x-admin.table.cell>
                         </x-admin.table.row>

@@ -1,14 +1,14 @@
 <x-admin.settings-shell title="Free Shipping" :wide="true">
     <div class="space-y-8">
 
-        <x-admin.card title="Free Shipping Rules"
-            description="First matching rule applies. Full condition editing lives on the dedicated rules page.">
+        <x-admin.card title="Free Shipping Rules">
             <x-slot name="headerActions">
-                <x-admin.button variant="secondary" size="sm" :href="route('admin.free-shipping-rules.index')">Manage rules <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
+                <x-admin.hint label="How the rules combine" class="v-hint--end">The first rule that matches applies; the ones below it are not evaluated.</x-admin.hint>
+                <x-admin.button variant="secondary" size="sm" :href="route('admin.free-shipping-rules.index')">Manage rules</x-admin.button>
             </x-slot>
 
             @if ($freeShippingRules->isEmpty())
-                <x-admin.empty-state icon="cart" title="No free shipping rules"
+                <x-admin.empty-state title="No free shipping rules"
                     description="Create a rule to automatically waive shipping when conditions are met.">
                     <x-admin.button variant="primary" size="sm" :href="route('admin.free-shipping-rules.create')">Add rule</x-admin.button>
                 </x-admin.empty-state>
@@ -19,7 +19,7 @@
                         <x-admin.table.th>Conditions</x-admin.table.th>
                         <x-admin.table.th>Order</x-admin.table.th>
                         <x-admin.table.th>Status</x-admin.table.th>
-                        <x-admin.table.th align="right">Actions</x-admin.table.th>
+                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                     </x-slot:head>
                     @foreach ($freeShippingRules as $rule)
                         <x-admin.table.row>
@@ -36,11 +36,11 @@
                                     </button>
                                 </form>
                             </x-admin.table.cell>
-                            <x-admin.table.cell align="right">
-                                <div class="flex items-center justify-end gap-3">
-                                    <a href="{{ route('admin.free-shipping-rules.edit', $rule) }}" class="text-xs font-medium text-v-accent hover:underline">Edit</a>
-                                    <button type="button" class="text-xs font-medium text-v-danger hover:underline"
-                                        @click="$dispatch('open-modal', 'delete-fsr-{{ $rule->id }}')">Delete</button>
+                            <x-admin.table.cell class="v-col-act">
+                                <div class="v-rowactions v-rowactions--end">
+                                    <x-admin.button size="sm" variant="ghost" :href="route('admin.free-shipping-rules.edit', $rule)">Edit</x-admin.button>
+                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
+                                        @click="$dispatch('open-modal', 'delete-fsr-{{ $rule->id }}')">Delete</x-admin.button>
                                 </div>
                             </x-admin.table.cell>
                         </x-admin.table.row>

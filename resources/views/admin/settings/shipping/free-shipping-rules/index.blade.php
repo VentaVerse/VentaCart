@@ -12,7 +12,7 @@
                 <x-admin.table.th>Conditions</x-admin.table.th>
                 <x-admin.table.th>Order</x-admin.table.th>
                 <x-admin.table.th>Status</x-admin.table.th>
-                <x-admin.table.th align="right">Actions</x-admin.table.th>
+                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
             </x-slot:head>
             @forelse ($rules as $rule)
                 <x-admin.table.row>
@@ -29,18 +29,19 @@
                             </button>
                         </form>
                     </x-admin.table.cell>
-                    <x-admin.table.cell align="right">
-                        <div class="flex items-center justify-end gap-3">
-                            <a href="{{ route('admin.free-shipping-rules.edit', $rule) }}" class="text-[13px] text-v-accent hover:underline">Edit</a>
-                            <button type="button" class="text-[13px] text-v-danger hover:underline" @click="$dispatch('open-modal', 'delete-fsr-{{ $rule->id }}')">Delete</button>
+                    <x-admin.table.cell class="v-col-act">
+                        <div class="v-rowactions v-rowactions--end">
+                            <x-admin.button size="sm" variant="ghost" :href="route('admin.free-shipping-rules.edit', $rule)">Edit</x-admin.button>
+                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
+                                @click="$dispatch('open-modal', 'delete-fsr-{{ $rule->id }}')">Delete</x-admin.button>
                         </div>
                     </x-admin.table.cell>
                 </x-admin.table.row>
             @empty
                 <tr>
-                    <td colspan="5" class="px-4 py-2">
-                        <x-admin.empty-state icon="cart" title="No free shipping rules" description="Create a rule to automatically waive shipping when conditions are met.">
-                            <a href="{{ route('admin.free-shipping-rules.create') }}" class="text-[13px] text-v-accent hover:underline">Create your first rule</a>
+                    <td colspan="5">
+                        <x-admin.empty-state title="No free shipping rules" description="Create a rule to automatically waive shipping when conditions are met.">
+                            <x-admin.button variant="primary" :href="route('admin.free-shipping-rules.create')">Create your first rule</x-admin.button>
                         </x-admin.empty-state>
                     </td>
                 </tr>

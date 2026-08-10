@@ -331,6 +331,85 @@
                     </form>
                 </x-admin.panel>
 
+                {{-- Workspace: the rail a region keeps beside its work,
+                     and the picker it becomes when there is no room for
+                     a rail. Shown at the width it is read at; on a real
+                     page it is the page, not a panel. --}}
+                <x-admin.panel title="Workspace rail" id="kit-workspace">
+                    <x-admin.workspace back="#" back-label="All Settings" label="Kit sections" narrow
+                        :groups="[
+                            ['label' => 'Store', 'items' => [
+                                ['label' => 'General', 'url' => '#', 'active' => true],
+                                ['label' => 'Checkout', 'url' => '#'],
+                                ['label' => 'Currencies', 'url' => '#'],
+                            ]],
+                            ['label' => 'Selling', 'items' => [
+                                ['label' => 'Payments', 'url' => '#'],
+                                ['label' => 'Shipping', 'url' => '#'],
+                                ['label' => 'Order Statuses', 'url' => '#'],
+                            ]],
+                        ]">
+                        <p class="text-[13px] text-v-secondary">The work column. It carries the page, and takes the measure when the page is a form.</p>
+                    </x-admin.workspace>
+                </x-admin.panel>
+
+                {{-- Slates: a grid of the store's own parts. Each says
+                     what it is, whether it is on, and the way in. One
+                     that IS the way in, one carrying its own controls,
+                     and one numbered by its place in a chain. --}}
+                <x-admin.panel title="Slates" id="kit-slates">
+                    <div class="v-slates">
+                        <x-admin.slate title="Mail" icon="settings" href="#"
+                            note="SMTP host, sender identity, and a test send." />
+                        <x-admin.slate title="Courier Fulfillment" icon="fulfillment"
+                            note="Book parcels with QuadX and SPX from the queue.">
+                            <x-slot:state><x-admin.badge tone="success">Enabled</x-admin.badge></x-slot:state>
+                            <x-slot:meta>v2.4.0</x-slot:meta>
+                            <x-slot:actions>
+                                <x-admin.button variant="ghost" size="sm" href="#">Configure</x-admin.button>
+                                <x-admin.button variant="ghost" size="sm" class="v-rowactions__danger">Uninstall</x-admin.button>
+                            </x-slot:actions>
+                        </x-admin.slate>
+                        <x-admin.slate title="Free Shipping" :number="1"
+                            note="Waives shipping when a rule matches the cart.">
+                            <x-slot:state><x-admin.badge tone="neutral">No active rules</x-admin.badge></x-slot:state>
+                            <x-slot:meta>0 rules</x-slot:meta>
+                            <x-slot:actions>
+                                <x-admin.hint label="What a match does">A matching rule replaces every paid method below it, rather than sitting alongside them.</x-admin.hint>
+                                <x-admin.button variant="ghost" size="sm" href="#">Configure</x-admin.button>
+                            </x-slot:actions>
+                        </x-admin.slate>
+                    </div>
+                </x-admin.panel>
+
+                {{-- Switches: one material, two drivers. A checkbox
+                     posts with the form around it; a button posts on
+                     its own. --}}
+                <x-admin.panel title="Switches" id="kit-switch">
+                    <div class="flex flex-col items-start gap-4">
+                        <x-admin.toggle name="kit_switch_a" label="Enable low stock email alerts" :checked="true" />
+                        <x-admin.toggle name="kit_switch_b" label="Skip notifications when every cart item is out of stock" />
+                        <x-admin.toggle name="kit_switch_c" label="Enabled" lead :checked="true" />
+                        <div class="flex items-center gap-4">
+                            <x-admin.switch :checked="true" label="Philippines enabled" />
+                            <x-admin.switch :checked="false" label="Singapore enabled" />
+                            <x-admin.switch :checked="false" label="A courier that cannot be reached" disabled />
+                        </div>
+                    </div>
+                </x-admin.panel>
+
+                {{-- Checklist: a bounded, scrolling set of boxes, for a
+                     scope whose length the merchant decides. --}}
+                <x-admin.panel title="Checklist" id="kit-checklist">
+                    <x-admin.field name="kit_zones" label="Geo zones" help="None checked quotes for every zone." class="max-w-sm">
+                        <div class="v-checklist">
+                            @foreach (['Domestic', 'Metro Manila', 'Luzon', 'Visayas', 'Mindanao', 'International'] as $i => $zone)
+                                <x-admin.checkbox name="kit_zones[]" :value="$i" :label="$zone" :checked="$i < 2" />
+                            @endforeach
+                        </div>
+                    </x-admin.field>
+                </x-admin.panel>
+
                 {{-- Tiles: the grid of things you look at rather than
                      read. A folder, a file, a picked file, and a file
                      carrying its own controls. --}}

@@ -10,15 +10,16 @@
                 {{-- ==================== COUNTRIES ==================== --}}
                 <x-admin.tabs.panel name="countries">
                     <x-admin.card>
-                        <div class="flex items-center justify-between mb-4">
-                            <p class="text-[13px] text-v-secondary">
-                                <span x-text="enabledCount">{{ $countries->where('is_active', true)->count() }}</span>
-                                of {{ $countries->count() }} countries enabled
-                            </p>
-                            <div class="relative">
-                                <svg class="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-v-muted" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                                <input type="text" x-model="countrySearch" placeholder="Search countries..."
-                                    class="v-control w-64 h-[var(--control-h)] pl-8 pr-3 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md placeholder:text-v-muted">
+                        <div class="v-toolbar">
+                            <div class="v-toolbar__row">
+                                <span class="text-[13px] text-v-secondary">
+                                    <span class="v-num" x-text="enabledCount">{{ $countries->where('is_active', true)->count() }}</span>
+                                    of <span class="v-num">{{ $countries->count() }}</span> countries enabled
+                                </span>
+                                <div class="v-toolbar__actions">
+                                    <input type="search" x-model="countrySearch" placeholder="Search countries&hellip;" aria-label="Search countries"
+                                        class="v-control h-[var(--control-h)] w-64 rounded-v-md border bg-v-surface px-2.5 text-[13px] text-v-text placeholder:text-v-muted">
+                                </div>
                             </div>
                         </div>
 
@@ -59,20 +60,16 @@
                                     </template>
                                     <template x-if="!editing">
                                         <td class="px-4 py-2.5 text-right">
-                                            <button type="button"
+                                            <x-admin.switch :checked="null" label="{{ $country->name }} enabled"
                                                 @click="toggleCountry({{ $country->id }}, $data)"
-                                                :disabled="toggling"
-                                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
-                                                :class="active ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
-                                                role="switch" :aria-checked="active"
-                                                :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
-                                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform" :class="active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface'"></span>
-                                            </button>
+                                                x-bind:disabled="toggling" x-bind:aria-checked="active" />
                                         </td>
                                     </template>
                                     <template x-if="!editing">
                                         <td class="px-4 py-2.5 text-right">
-                                            <button type="button" @click="editing = true" class="text-xs text-v-accent hover:opacity-80 opacity-0 group-hover:opacity-100 transition-opacity">Edit</button>
+                                            <div class="v-rowactions v-rowactions--end">
+                                                <x-admin.button type="button" size="sm" variant="ghost" @click="editing = true">Edit</x-admin.button>
+                                            </div>
                                         </td>
                                     </template>
 
@@ -82,18 +79,18 @@
                                             <form method="POST" action="{{ route('admin.localization.update-country', $country) }}" data-v-form class="flex items-center gap-2">
                                                 @csrf @method('PUT')
                                                 <input type="text" name="name" value="{{ $country->name }}" required placeholder="Country name"
-                                                    class="v-control h-[var(--control-h-sm)] flex-1 px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                    class="v-control h-[var(--control-h-sm)] flex-1 px-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                 <input type="text" name="iso2" value="{{ $country->iso2 }}" required maxlength="2" placeholder="US"
-                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center uppercase bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center uppercase bg-v-surface text-v-text border rounded-v-md">
                                                 <input type="text" name="iso3" value="{{ $country->iso3 }}" required maxlength="3" placeholder="USA"
-                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center uppercase bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center uppercase bg-v-surface text-v-text border rounded-v-md">
                                                 <div class="relative">
                                                     <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-v-muted">+</span>
                                                     <input type="text" name="phone_code" value="{{ $country->phone_code }}" placeholder="1"
-                                                        class="v-control h-[var(--control-h-sm)] w-20 pl-5 pr-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                        class="v-control h-[var(--control-h-sm)] w-20 pl-5 pr-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                 </div>
                                                 <input type="number" name="sort_order" value="{{ $country->sort_order }}" title="Sort order"
-                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center bg-v-surface text-v-text border rounded-v-md">
                                                 <x-admin.button type="submit" size="sm">Save</x-admin.button>
                                                 <x-admin.button type="button" variant="secondary" size="sm" @click="editing = false">Cancel</x-admin.button>
                                             </form>
@@ -113,7 +110,7 @@
                                 <form method="GET" class="flex items-center gap-3">
                                     <input type="hidden" name="tab" value="zones">
                                     <select name="country" onchange="this.form.submit()"
-                                        class="v-control h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                        class="v-control h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                         @foreach ($countryList as $code => $name)
                                             <option value="{{ $code }}" {{ $selectedCountry === $code ? 'selected' : '' }}>{{ $name }} ({{ $code }})</option>
                                         @endforeach
@@ -142,21 +139,17 @@
                                         </template>
                                         <template x-if="!editing">
                                             <td class="px-4 py-2.5 text-right">
-                                                <button type="button"
+                                                <x-admin.switch :checked="null" label="{{ $zone->name }} enabled"
                                                     @click="toggleZone({{ $zone->id }}, $data)"
-                                                    :disabled="toggling"
-                                                    class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
-                                                    :class="active ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
-                                                    role="switch" :aria-checked="active"
-                                                    :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
-                                                    <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform" :class="active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface'"></span>
-                                                </button>
+                                                    x-bind:disabled="toggling" x-bind:aria-checked="active" />
                                             </td>
                                         </template>
                                         <template x-if="!editing">
                                             <td class="px-4 py-2.5 text-right text-[13px]">
-                                                <button type="button" @click="editing = true" class="text-v-accent hover:opacity-80 opacity-0 group-hover:opacity-100 transition-opacity mr-3">Edit</button>
-                                                <button type="button" class="text-v-danger hover:opacity-80 opacity-0 group-hover:opacity-100 transition-opacity" @click="$dispatch('open-modal', 'delete-zone-{{ $zone->id }}')">Delete</button>
+                                                <div class="v-rowactions v-rowactions--end">
+                                                    <x-admin.button type="button" size="sm" variant="ghost" @click="editing = true">Edit</x-admin.button>
+                                                    <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-zone-{{ $zone->id }}')">Delete</x-admin.button>
+                                                </div>
                                             </td>
                                         </template>
 
@@ -166,9 +159,9 @@
                                                 <form method="POST" action="{{ route('admin.localization.update-zone', $zone) }}" data-v-form class="flex items-center gap-2">
                                                     @csrf @method('PUT')
                                                     <input type="text" name="name" value="{{ $zone->name }}" required
-                                                        class="v-control h-[var(--control-h-sm)] flex-1 px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                        class="v-control h-[var(--control-h-sm)] flex-1 px-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                     <input type="text" name="code" value="{{ $zone->code }}" placeholder="Code"
-                                                        class="v-control h-[var(--control-h-sm)] w-20 px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                                        class="v-control h-[var(--control-h-sm)] w-20 px-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
                                                     <input type="hidden" name="is_active" :value="active ? '1' : '0'">
                                                     <x-admin.button type="submit" size="sm">Save</x-admin.button>
                                                     <x-admin.button type="button" variant="secondary" size="sm" @click="editing = false">Cancel</x-admin.button>
@@ -178,8 +171,8 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="px-4 py-2">
-                                            <x-admin.empty-state icon="media" title="No zones for this country." />
+                                        <td colspan="4">
+                                            <x-admin.empty-state title="No zones for this country" />
                                         </td>
                                     </tr>
                                 @endforelse
@@ -209,8 +202,6 @@
                 {{-- ==================== GEO ZONES ==================== --}}
                 <x-admin.tabs.panel name="geo-zones">
                     <div class="space-y-5">
-                        <p class="text-[13px] text-v-secondary">Geographic zones are shared groupings used by shipping, payment, and other modules. Define a zone once, use it everywhere.</p>
-
                         <x-admin.card>
                             <x-admin.table>
                                 <x-slot:head>
@@ -228,25 +219,21 @@
                                         <td class="px-4 py-2.5 text-[13px] text-v-secondary">{{ $gz->entries_count }}</td>
                                         <td class="px-4 py-2.5 text-[13px] text-v-secondary v-num">{{ $gz->sort_order }}</td>
                                         <td class="px-4 py-2.5 text-right">
-                                            <button type="button"
+                                            <x-admin.switch :checked="null" label="{{ $gz->name }} enabled"
                                                 @click="toggleGeoZone({{ $gz->id }}, $data)"
-                                                :disabled="toggling"
-                                                class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50"
-                                                :class="active ? 'bg-v-accent' : 'bg-[var(--border-control)]'"
-                                                role="switch" :aria-checked="active"
-                                                :title="active ? 'Enabled: click to disable' : 'Disabled: click to enable'">
-                                                <span class="absolute left-0.5 top-0.5 h-4 w-4 rounded-full shadow transition-transform" :class="active ? 'translate-x-4 bg-v-accent-text' : 'bg-v-surface'"></span>
-                                            </button>
+                                                x-bind:disabled="toggling" x-bind:aria-checked="active" />
                                         </td>
                                         <td class="px-4 py-2.5 text-right text-[13px]">
-                                            <a href="{{ route('admin.localization.edit-geo-zone', $gz) }}" class="text-v-accent hover:opacity-80 mr-3">Edit</a>
-                                            <button type="button" class="text-v-danger hover:opacity-80 opacity-0 group-hover:opacity-100 transition-opacity" @click="$dispatch('open-modal', 'delete-geo-zone-{{ $gz->id }}')">Delete</button>
+                                            <div class="v-rowactions v-rowactions--end">
+                                                <x-admin.button size="sm" variant="ghost" :href="route('admin.localization.edit-geo-zone', $gz)">Edit</x-admin.button>
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-geo-zone-{{ $gz->id }}')">Delete</x-admin.button>
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-4 py-2">
-                                            <x-admin.empty-state icon="media" title="No geo zones yet." />
+                                        <td colspan="6">
+                                            <x-admin.empty-state title="No geo zones yet" />
                                         </td>
                                     </tr>
                                 @endforelse

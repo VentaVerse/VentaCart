@@ -30,7 +30,7 @@
                     <x-admin.table.th>Symbol</x-admin.table.th>
                     <x-admin.table.th>Rate</x-admin.table.th>
                     <x-admin.table.th>Status</x-admin.table.th>
-                    <x-admin.table.th align="right">Actions</x-admin.table.th>
+                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
                 </x-slot>
 
                 @foreach ($currencies as $cur)
@@ -41,17 +41,20 @@
                             {{-- Preserve enabled state: the controller reads is_enabled on every update. --}}
                             <input type="hidden" form="{{ $editForm }}" name="is_enabled" value="{{ $cur->is_enabled ? 1 : 0 }}">
                             <input type="text" form="{{ $editForm }}" name="name" value="{{ $cur->name }}" required maxlength="255" placeholder="Name"
-                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                aria-label="{{ $cur->code }} name"
+                                class="v-control h-[var(--control-h-sm)] w-full rounded-v-md border bg-v-surface px-2 text-[13px] text-v-text">
                         </x-admin.table.cell>
                         <x-admin.table.cell>
                             <input type="text" form="{{ $editForm }}" name="symbol" value="{{ $cur->symbol }}" required maxlength="10" placeholder="₱"
-                                class="v-control w-16 h-[var(--control-h-sm)] px-2 text-center text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
+                                aria-label="{{ $cur->code }} symbol"
+                                class="v-control h-[var(--control-h-sm)] w-16 rounded-v-md border bg-v-surface px-2 text-center text-[13px] text-v-text">
                         </x-admin.table.cell>
                         <x-admin.table.cell>
                             <input type="number" form="{{ $editForm }}" name="rate" value="{{ $cur->rate }}" step="0.000001" min="0.000001" required
                                 @if ($cur->is_default) readonly @endif
                                 title="{{ $cur->is_default ? 'Base currency: its rate is always 1.' : 'Units of '.$cur->code.' per 1 '.($defaultCurrency?->code ?? 'base') }}"
-                                class="v-control w-32 h-[var(--control-h-sm)] px-2 text-[13px] border border-v-border rounded-v-md {{ $cur->is_default ? 'bg-v-sunken text-v-muted cursor-not-allowed' : 'bg-v-surface text-v-text' }}">
+                                aria-label="{{ $cur->code }} rate"
+                                class="v-control h-[var(--control-h-sm)] w-32 rounded-v-md border px-2 text-[13px] {{ $cur->is_default ? 'cursor-not-allowed' : 'bg-v-surface text-v-text' }}">
                         </x-admin.table.cell>
                         <x-admin.table.cell>
                             @if ($cur->is_default)
@@ -60,8 +63,8 @@
                                 <x-admin.badge :tone="$cur->is_enabled ? 'success' : 'neutral'">{{ $cur->is_enabled ? 'Enabled' : 'Disabled' }}</x-admin.badge>
                             @endif
                         </x-admin.table.cell>
-                        <x-admin.table.cell align="right">
-                            <div class="flex items-center justify-end gap-3 text-[13px]">
+                        <x-admin.table.cell class="v-col-act">
+                            <div class="v-rowactions v-rowactions--end">
                                 <x-admin.button variant="secondary" size="sm" type="submit" form="{{ $editForm }}">Save</x-admin.button>
                                 @unless ($cur->is_default)
                                     <form method="POST" action="{{ route('admin.theme.currencies.update', $cur) }}" data-v-form>
@@ -70,9 +73,7 @@
                                         <input type="hidden" name="symbol" value="{{ $cur->symbol }}">
                                         <input type="hidden" name="rate" value="{{ $cur->rate }}">
                                         <input type="hidden" name="is_enabled" value="{{ $cur->is_enabled ? 0 : 1 }}">
-                                        <button type="submit" class="{{ $cur->is_enabled ? 'text-v-warning hover:underline' : 'text-v-accent hover:underline' }}">
-                                            {{ $cur->is_enabled ? 'Disable' : 'Enable' }}
-                                        </button>
+                                        <x-admin.button variant="ghost" size="sm" type="submit">{{ $cur->is_enabled ? 'Disable' : 'Enable' }}</x-admin.button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.theme.currencies.update', $cur) }}" data-v-form>
                                         @csrf @method('PUT')
@@ -81,10 +82,10 @@
                                         <input type="hidden" name="rate" value="{{ $cur->rate }}">
                                         <input type="hidden" name="is_default" value="1">
                                         <input type="hidden" name="is_enabled" value="1">
-                                        <button type="submit" class="text-v-accent hover:underline">Set default</button>
+                                        <x-admin.button variant="ghost" size="sm" type="submit">Set default</x-admin.button>
                                     </form>
-                                    <button type="button" class="text-v-danger hover:underline"
-                                            @click="$dispatch('open-modal', 'delete-currency-{{ $cur->id }}')">Delete</button>
+                                    <x-admin.button variant="ghost" size="sm" type="button" class="v-rowactions__danger"
+                                        @click="$dispatch('open-modal', 'delete-currency-{{ $cur->id }}')">Delete</x-admin.button>
                                 @endunless
                             </div>
                         </x-admin.table.cell>
