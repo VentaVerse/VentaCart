@@ -53,8 +53,8 @@
                             <span class="v-sub">{{ $order->email }}</span>
                         </x-admin.table.cell>
                         <x-admin.table.cell>
-                            <x-admin.badge :tone="$order->order_status_id ? ($statusTones[$order->status?->name] ?? 'neutral') : 'danger'">
-                                {{ $order->status?->name ?? 'Missing' }}
+                            <x-admin.badge :tone="$order->order_status_name ? ($statusTones[$order->order_status_name] ?? 'neutral') : 'danger'">
+                                {{ $order->order_status_name ?? 'Missing' }}
                             </x-admin.badge>
                         </x-admin.table.cell>
                         <x-admin.table.cell align="right" mono>{{ number_format($order->total, 2) }}</x-admin.table.cell>

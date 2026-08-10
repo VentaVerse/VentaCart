@@ -253,7 +253,7 @@ class Standing
 
         $rows = Order::query()
             ->where('store_id', $storeId)
-            ->whereNotNull('orders.order_status_id')
+            ->whereNotNull('orders.order_status_name')
             ->where('created_at', '>=', $from)
             ->selectRaw(
                 'SUBSTR(created_at, 1, 7) AS ym, COUNT(*) AS placed, '
@@ -288,7 +288,7 @@ class Standing
 
         $rows = Order::query()
             ->where('store_id', $storeId)
-            ->whereNotNull('orders.order_status_id')
+            ->whereNotNull('orders.order_status_name')
             ->where('created_at', '>=', $from)
             ->when($to, fn ($query) => $query->where('created_at', '<', $to))
             ->selectRaw(
@@ -322,7 +322,7 @@ class Standing
 
         $row = Order::query()
             ->where('store_id', $storeId)
-            ->whereNotNull('orders.order_status_id')
+            ->whereNotNull('orders.order_status_name')
             ->where('created_at', '>=', $from)
             ->where('created_at', '<', $to)
             ->selectRaw(
@@ -651,7 +651,7 @@ class Standing
         $data = self::rememberSeries($storeId, 'all', function () use ($storeId) {
             $firstAt = Order::query()
                 ->where('store_id', $storeId)
-                ->whereNotNull('order_status_id')
+                ->whereNotNull('order_status_name')
                 ->min('created_at');
 
             $from = $firstAt ? Carbon::parse($firstAt)->startOfMonth() : null;

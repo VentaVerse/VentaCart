@@ -3,14 +3,14 @@
         <div class="max-w-xl mx-auto">
             {{-- Product Info --}}
             <div class="text-center mb-8">
-                @php $productImage = $review->product->images->first(); @endphp
+                @php $productImage = $review->product?->images->first(); @endphp
                 @if ($productImage)
                     <div class="w-24 h-24 mx-auto mb-4 rounded-lg overflow-hidden bg-[#0F1A38]">
-                        <img src="{{ storage_url($productImage->path) }}" alt="{{ $review->product->name }}" class="w-full h-full object-contain">
+                        <img src="{{ storage_url($productImage->path) }}" alt="{{ $review->product?->name }}" class="w-full h-full object-contain">
                     </div>
                 @endif
                 <h1 class="text-2xl mb-2" class="font-heading-wide">WRITE A REVIEW</h1>
-                <p class="text-[#7A8299] text-sm">{{ $review->product->name }}</p>
+                <p class="text-[#7A8299] text-sm">{{ $review->product?->name ?? 'Deleted product' }}</p>
             </div>
 
             @if ($errors->any())

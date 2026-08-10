@@ -316,6 +316,15 @@ class ProductHardDeleteTest extends TestCase
 
         // The snapshot image is a file too, and it stays put.
         $this->assertImageOnDisk('catalog/hist.jpg');
+
+        // And the page still prints the line, off the order's own columns.
+        $this->actingAs($this->admin())
+            ->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Tube Screamer TS-808')
+            ->assertSee('HIST-1')
+            ->assertSee('Green')
+            ->assertSee('catalog/hist.jpg');
     }
 
     // ------------------------------------------------------------ the cascade

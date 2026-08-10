@@ -20,19 +20,24 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['customer', 'status']);
+        // No eager loads: the index renders only columns the order owns.
+        $query = Order::query();
 
         if ($request->filled('store_id')) {
             $query->where('store_id', $request->input('store_id'));
         }
 
         if ($request->input('order_status_id') === 'missing') {
-            $query->whereNull('order_status_id');
+            // "Missing" means the order never reached a status, which only the
+            // owned column can say. order_status_id also goes NULL when a
+            // status row is deleted, which would file real orders as ghosts.
+            $query->whereNull('order_status_name');
         } elseif ($request->filled('order_status_id')) {
+            // Filtering BY a status is a live question about a status that
+            // still exists, so it stays on the foreign key.
             $query->where('order_status_id', $request->input('order_status_id'));
         } else {
-            // By default, hide missing orders (NULL status)
-            $query->whereNotNull('order_status_id');
+            $query->whereNotNull('order_status_name');
         }
 
         if ($request->filled('search')) {
@@ -72,7 +77,9 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['customer', 'status', 'products.product:id,image', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
+        // customer stays only because the page links to its profile; every
+        // value rendered here now comes off the order itself.
+        $order->load(['customer:id', 'products', 'histories']);
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
 
@@ -185,17 +192,22 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
-        $order->load(['customer.customerGroup', 'status', 'products.product', 'histories.status', 'histories.createdByUser', 'shippingCourier']);
+        // products.product and customer are live links on purpose here: the edit
+        // screen reprices against today's specials and today's customer group.
+        $order->load(['customer', 'products.product']);
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
         $countries = Country::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
 
         $customerGroupId = $order->customer?->customer_group_id;
-        $customerGroupName = $order->customer?->customerGroup?->name;
+        // The name the order owns, not the group's current name. The badge on
+        // this page is history, while $customerGroupId above drives live
+        // repricing and so must stay a live link.
+        $customerGroupName = $order->customer_group_name;
 
         $now = now();
         $existingItems = $order->products->map(function ($item) use ($customerGroupId, $now) {
-            $image = $item->product?->image ? storage_url($item->product->image) : null;
+            $image = $item->image ? storage_url($item->image) : null;
             $groupPrice = null;
 
             if ($customerGroupId && $item->product) {
@@ -312,7 +324,7 @@ class OrderController extends Controller
             'tracking_number' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $oldStatus = $order->status?->name ?? 'Unknown';
+        $oldStatus = $order->order_status_name ?? 'Unknown';
         $validated['created_by'] = Auth::id();
         $validated['notify_customer'] = $request->has('notify_customer');
 
@@ -384,7 +396,7 @@ class OrderController extends Controller
                     'tracking_number' => $trackingUrl
                         ? '<a href="' . e($trackingUrl) . '" style="color: #F5A623; text-decoration: underline;">' . e($order->tracking_number) . '</a>'
                         : $order->tracking_number,
-                    'carrier_name' => $courier?->name ?? $order->shipping_method ?? 'Courier',
+                    'carrier_name' => $order->shipping_courier_name ?? $order->shipping_method ?? 'Courier',
                     'tracking_url' => $trackingUrl,
                     'store_name' => config('app.name'),
                 ]);
@@ -438,7 +450,7 @@ class OrderController extends Controller
                 'tracking_number' => $trackingUrl
                     ? '<a href="' . e($trackingUrl) . '" style="color: #F5A623; text-decoration: underline;">' . e($validated['tracking_number']) . '</a>'
                     : $validated['tracking_number'],
-                'carrier_name' => $courier?->name ?? $order->shipping_method ?? 'Courier',
+                'carrier_name' => $order->shipping_courier_name ?? $order->shipping_method ?? 'Courier',
                 'tracking_url' => $trackingUrl,
                 'store_name' => config('app.name'),
             ]);
@@ -788,6 +800,11 @@ class OrderController extends Controller
         $order->products()->delete();
 
         $items = $request->input('items', []);
+
+        // One lookup for the whole basket instead of a Product::find per line.
+        $images = Product::whereIn('id', collect($items)->pluck('product_id')->filter()->unique())
+            ->pluck('image', 'id');
+
         foreach ($items as $item) {
             if (empty($item['name'])) {
                 continue;
@@ -806,7 +823,7 @@ class OrderController extends Controller
                 'quantity' => $qty,
                 'total' => $price * $qty,
                 'is_custom' => !empty($item['is_custom']),
-                'image' => Product::find($item['product_id'] ?? null)?->image,
+                'image' => $images[$item['product_id'] ?? null] ?? null,
             ]);
         }
     }

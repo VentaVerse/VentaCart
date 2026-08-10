@@ -34,7 +34,7 @@
                                             <td>{{ $order->products_count ?? $order->products()->count() }}</td>
                                             <td class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</td>
                                             <td>
-                                                @php $statusName = $order->status?->name ?? 'Pending'; @endphp
+                                                @php $statusName = $order->order_status_name ?? 'Pending'; @endphp
                                                 <span class="account-status-badge account-status-{{ strtolower($statusName) }}">{{ $statusName }}</span>
                                             </td>
                                             <td><a href="{{ route('account.orders.show', $order) }}" class="text-xs text-[var(--color-primary)] hover:underline">View</a></td>

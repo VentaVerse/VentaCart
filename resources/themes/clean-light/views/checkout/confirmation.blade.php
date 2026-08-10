@@ -89,7 +89,7 @@
 
                 {{-- Payment & Status Card --}}
                 @php
-                    $statusName = $order->status?->name ?? 'Pending';
+                    $statusName = $order->order_status_name ?? 'Pending';
                     $bankAcct = null;
                     if (str_starts_with($order->payment_method, 'bank_transfer') && preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
                         $bankAcct = \App\Models\BankAccount::find((int) $m[1]);

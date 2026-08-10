@@ -39,6 +39,69 @@ class Order extends Model
     }
 
     /**
+     * Stamp the historical snapshots the order OWNS.
+     *
+     * Deliberately NOT mass-assignable: this hook is the single writer, so no
+     * request payload can ever forge an order's history, and no caller can
+     * forget to record it. Every write path (storefront checkout, admin order
+     * entry, the ERP API, the HitPay webhook, OrderStatusChanger) gets these
+     * columns by construction rather than by remembering to.
+     *
+     * A snapshot is (re)derived only when its foreign key changes, or when it
+     * is still empty (self-healing for rows written before this existed).
+     * A key left untouched never re-reads its source, so renaming a status or
+     * a courier can never rewrite what an old order says about itself.
+     *
+     * When the DB nulls a key via ON DELETE SET NULL it fires no model event,
+     * so the name survives the delete and later saves leave it alone.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $order): void {
+            $order->snapshot('order_status_id', 'order_status_name', fn ($id) => OrderStatus::whereKey($id)->value('name'));
+
+            $order->snapshot('created_by', 'created_by_name', fn ($id) => User::whereKey($id)->value('name'));
+
+            $order->snapshot('shipping_courier_id', 'shipping_courier_name', fn ($id) => ShippingCourier::whereKey($id)->value('name'));
+
+            $order->snapshot('customer_id', 'customer_group_name', fn ($id) => Customer::find($id)?->customerGroup?->name);
+        });
+    }
+
+    /**
+     * Resolve one snapshot column from its foreign key.
+     *
+     * An explicitly assigned snapshot always wins, so a caller that already
+     * knows the value (or is restoring history) is never second-guessed.
+     */
+    protected function snapshot(string $keyColumn, string $snapshotColumn, callable $resolve): void
+    {
+        if ($this->isDirty($snapshotColumn)) {
+            return;
+        }
+
+        $keyChanged = $this->isDirty($keyColumn);
+
+        if (! $keyChanged && $this->{$snapshotColumn} !== null) {
+            return;
+        }
+
+        $key = $this->{$keyColumn};
+
+        if ($key === null) {
+            // Only a deliberate key change may clear a name. A key the database
+            // nulled behind our back must not erase the history it pointed at.
+            if ($keyChanged) {
+                $this->{$snapshotColumn} = null;
+            }
+
+            return;
+        }
+
+        $this->{$snapshotColumn} = $resolve($key);
+    }
+
+    /**
      * Customer-facing shipping label, accessed via $order->courier_label.
      * Falls back through shipping_meta keys before the raw shipping_method
      * column for legacy orders that pre-date the standardized meta shape.
@@ -107,14 +170,22 @@ class Order extends Model
     /**
      * Orders a customer is allowed to see — excludes "missing"/ghost orders.
      *
-     * A NULL order_status_id is the deliberate sentinel for an abandoned
-     * checkout (order row written, payment never confirmed). These are
-     * hidden from the admin list by default and must never surface on the
-     * customer-facing storefront.
+     * The sentinel for an abandoned checkout (order row written, payment never
+     * confirmed) is that the order NEVER REACHED a status, so it never had a
+     * status name stamped on it. That is what order_status_name being null
+     * means, and it is why this scope keys on the owned column rather than on
+     * order_status_id.
+     *
+     * The foreign key cannot carry this meaning any more: deleting an order
+     * status nulls order_status_id on every order that used it, which under
+     * the old check made real, paid orders vanish from the customer's history
+     * and read as ghosts in admin. The snapshot distinguishes the two cases
+     * that the key conflates: never had a status vs. had one whose config row
+     * was later deleted.
      */
     public function scopeVisibleToCustomer(Builder $query): Builder
     {
-        return $query->whereNotNull('order_status_id');
+        return $query->whereNotNull('order_status_name');
     }
 
     public function getFullNameAttribute(): string

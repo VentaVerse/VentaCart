@@ -7,7 +7,7 @@
         'Canceled' => 'danger', 'Failed' => 'danger',
         'Refunded' => 'neutral', 'Expired' => 'neutral',
     ];
-    $statusTone = $statusTones[$order->status?->name] ?? 'neutral';
+    $statusTone = $statusTones[$order->order_status_name] ?? 'neutral';
     $shippingCourierLabel = $order->courier_label;
 @endphp
 
@@ -27,7 +27,7 @@
                 <x-admin.card>
                     <div class="flex flex-wrap items-center justify-between gap-4">
                         <div class="flex items-center gap-3">
-                            <x-admin.badge :tone="$statusTone">{{ $order->status?->name ?? 'No Status' }}</x-admin.badge>
+                            <x-admin.badge :tone="$statusTone">{{ $order->order_status_name ?? 'No Status' }}</x-admin.badge>
                             <x-admin.money :mark="$currency" :amount="number_format($order->total, 2)" class="text-2xl font-semibold text-v-text" />
                         </div>
                     </div>
@@ -67,8 +67,8 @@
                         <div>
                             <div class="flex items-center gap-2">
                                 <p class="text-[13px] font-semibold text-v-text">{{ $order->first_name }} {{ $order->last_name }}</p>
-                                @if ($order->customer?->customerGroup)
-                                    <x-admin.badge tone="neutral">{{ $order->customer->customerGroup->name }}</x-admin.badge>
+                                @if ($order->customer_group_name)
+                                    <x-admin.badge tone="neutral">{{ $order->customer_group_name }}</x-admin.badge>
                                 @endif
                             </div>
                             <a href="mailto:{{ $order->email }}" class="text-[13px] text-v-accent hover:opacity-80">{{ $order->email }}</a>
@@ -130,11 +130,8 @@
                             <x-admin.table.row>
                                 <x-admin.table.cell>
                                     <div class="flex items-center gap-3">
-                                        @php
-                                            $itemImage = $item->image ?? $item->product?->image;
-                                        @endphp
-                                        @if ($itemImage)
-                                            <img src="{{ storage_url($itemImage) }}" alt="{{ $item->name }}" class="h-10 w-10 shrink-0 rounded-v-md border border-v-border object-cover">
+                                        @if ($item->image)
+                                            <img src="{{ storage_url($item->image) }}" alt="{{ $item->name }}" class="h-10 w-10 shrink-0 rounded-v-md border border-v-border object-cover">
                                         @else
                                             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-v-md border border-v-border bg-v-sunken">
                                                 <x-admin.icon name="products" class="h-5 w-5 text-v-muted" />
@@ -199,8 +196,8 @@
                              stacked cell the fulfillment queue prints, so a
                              shipment reads the same on both screens. --}}
                         <div class="v-panel__body">
-                            @if ($order->shippingCourier)
-                                <span class="v-lead">{{ $order->shippingCourier->name }}</span>
+                            @if ($order->shipping_courier_name)
+                                <span class="v-lead">{{ $order->shipping_courier_name }}</span>
                             @endif
                             @if ($order->tracking_link)
                                 <a href="{{ $order->tracking_link }}" target="_blank" class="v-sub">{{ $order->tracking_number }}</a>
@@ -264,10 +261,10 @@
                                      both branches. --}}
                                 @php
                                     $when = $history->created_at->format('M d, Y g:i A')
-                                        . ($history->createdByUser ? ' by ' . $history->createdByUser->name : '');
+                                        . ($history->created_by_name ? ' by ' . $history->created_by_name : '');
                                 @endphp
                                 <x-admin.feed.entry icon="orders" tone="v-feed__ic--plain" :when="$when">
-                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->status?->name ?? '-' }}</x-admin.badge>
+                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->order_status_name ?? '-' }}</x-admin.badge>
                                     @if ($history->notify_customer)
                                         <x-admin.badge tone="info" :dot="false">Notified</x-admin.badge>
                                     @endif

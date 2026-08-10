@@ -158,7 +158,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                             <x-admin.money :mark="$m['mark']" :amount="$m['amount']" :zero="$m['zero']" />
                                         </x-admin.table.cell>
                                         <x-admin.table.cell>
-                                            <x-admin.badge :tone="$statusTones[$entry->status?->name] ?? 'neutral'">{{ $entry->status?->name }}</x-admin.badge>
+                                            <x-admin.badge :tone="$statusTones[$entry->order_status_name] ?? 'neutral'">{{ $entry->order_status_name }}</x-admin.badge>
                                         </x-admin.table.cell>
                                     </x-admin.table.row>
                                 @endforeach

@@ -100,7 +100,7 @@ class DashboardController extends Controller
         // nothing expensive runs behind it on a store with no trade.
         $hasTraded = Order::query()
             ->where('store_id', $storeId)
-            ->whereNotNull('order_status_id')
+            ->whereNotNull('order_status_name')
             ->exists();
 
         $fulfillment = $this->fulfillmentWork($storeId);
@@ -640,7 +640,7 @@ class DashboardController extends Controller
     {
         $days = Order::query()
             ->where('store_id', $storeId)
-            ->whereNotNull('order_status_id')
+            ->whereNotNull('order_status_name')
             ->where('created_at', '>=', $today)
             ->where('created_at', '<', $tomorrow)
             ->orderByDesc('created_at')
@@ -655,7 +655,7 @@ class DashboardController extends Controller
         $earlier = $fill > 0
             ? Order::query()
                 ->where('store_id', $storeId)
-                ->whereNotNull('order_status_id')
+                ->whereNotNull('order_status_name')
                 ->where('created_at', '<', $today)
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')

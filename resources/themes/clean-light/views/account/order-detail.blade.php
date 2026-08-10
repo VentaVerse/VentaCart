@@ -15,7 +15,7 @@
                         </div>
                         <div>
                             <span class="account-label">Status</span>
-                            @php $statusName = $order->status?->name ?? 'Pending'; @endphp
+                            @php $statusName = $order->order_status_name ?? 'Pending'; @endphp
                             <p><span class="account-status-badge account-status-{{ strtolower($statusName) }}">{{ $statusName }}</span></p>
                         </div>
                         <div>
@@ -75,8 +75,8 @@
                     <div class="account-card reveal">
                         <h2 class="account-section-title">Tracking</h2>
                         <p class="text-sm text-[var(--color-text-muted)]">
-                            @if ($order->shippingCourier)
-                                {{ $order->shippingCourier->name }}:
+                            @if ($order->shipping_courier_name)
+                                {{ $order->shipping_courier_name }}:
                             @endif
                             @if ($order->tracking_link)
                                 <a href="{{ $order->tracking_link }}" target="_blank" class="text-[var(--color-primary)] hover:underline">{{ $order->tracking_number }}</a>
@@ -151,8 +151,8 @@
                                 <div class="flex items-start gap-3 text-sm">
                                     <div class="text-[var(--color-text)] whitespace-nowrap pt-0.5">{{ $history->created_at->format('M d, Y H:i') }}</div>
                                     <div>
-                                        @if ($history->status)
-                                            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[#2A2A2A] text-[var(--color-text-muted)]">{{ $history->status->name }}</span>
+                                        @if ($history->order_status_name)
+                                            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[#2A2A2A] text-[var(--color-text-muted)]">{{ $history->order_status_name }}</span>
                                         @endif
                                         @if ($history->comment)
                                             <p class="text-[var(--color-text-muted)] mt-0.5">{{ strip_tags($history->comment) }}</p>

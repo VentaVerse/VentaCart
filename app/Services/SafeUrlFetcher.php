@@ -110,6 +110,15 @@ class SafeUrlFetcher
         }
 
         $host = trim($parts['host'], '[]');
+
+        // A trusted host is exempt from the IP check only. The scheme
+        // allowlist above and the redirect cap in get() still bind it, and
+        // every other hop is still checked, so an exempt host cannot forward
+        // this server on to an internal address.
+        if ($this->isTrustedHost($host, $parts['port'] ?? null, $scheme)) {
+            return;
+        }
+
         $ips = $this->resolveHostIps($host);
 
         if (empty($ips)) {
@@ -121,6 +130,33 @@ class SafeUrlFetcher
                 throw new UnsafeUrlException("Host '{$host}' resolves to a disallowed address.");
             }
         }
+    }
+
+    /**
+     * Is this exact host:port named in config('security.trusted_fetch_hosts')?
+     *
+     * Matching is exact and case-insensitive on the host. The port is always
+     * compared, defaulting to the scheme's own port when the URL omits one, so
+     * trusting `erp.internal:8000` never silently trusts `erp.internal:22`.
+     */
+    protected function isTrustedHost(string $host, ?int $port, string $scheme): bool
+    {
+        $trusted = config('security.trusted_fetch_hosts', []);
+
+        if (empty($trusted)) {
+            return false;
+        }
+
+        $port ??= $scheme === 'https' ? 443 : 80;
+        $candidate = strtolower($host).':'.$port;
+
+        foreach ($trusted as $entry) {
+            if (strtolower(trim((string) $entry)) === $candidate) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

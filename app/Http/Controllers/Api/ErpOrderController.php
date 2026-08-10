@@ -17,13 +17,12 @@ class ErpOrderController extends Controller
         $perPage = min((int) $request->input('per_page', 20), 100);
 
         $query = Order::query()
-            ->with('status:id,name')
             ->withCount('products as item_count');
 
         if ($request->filled('status_id')) {
             $query->where('order_status_id', $request->input('status_id'));
         } else {
-            $query->whereNotNull('order_status_id');
+            $query->whereNotNull('order_status_name');
         }
 
         if ($request->filled('since')) {
@@ -40,7 +39,7 @@ class ErpOrderController extends Controller
             return [
                 'id' => $order->id,
                 'order_number' => $order->id,
-                'status' => $order->status?->name,
+                'status' => $order->order_status_name,
                 'customer_name' => $order->full_name,
                 'customer_email' => $order->email,
                 'total' => $order->total,
@@ -55,10 +54,9 @@ class ErpOrderController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $order = Order::with([
-            'status:id,name',
             'customer:id,first_name,last_name,email',
             'products',
-            'histories.status:id,name',
+            'histories',
         ])->find($id);
 
         if (!$order) {
@@ -68,7 +66,7 @@ class ErpOrderController extends Controller
         $data = [
             'id' => $order->id,
             'order_number' => $order->id,
-            'status' => $order->status?->name,
+            'status' => $order->order_status_name,
             'status_id' => $order->order_status_id,
             'customer' => $order->customer ? [
                 'id' => $order->customer->id,
@@ -130,7 +128,7 @@ class ErpOrderController extends Controller
             'history' => $order->histories->map(function ($h) {
                 return [
                     'id' => $h->id,
-                    'status' => $h->status?->name,
+                    'status' => $h->order_status_name,
                     'comment' => $h->comment,
                     'created_at' => $h->created_at?->toIso8601String(),
                 ];
@@ -164,11 +162,9 @@ class ErpOrderController extends Controller
             'notify_customer' => false,
         ]);
 
-        $order->load('status:id,name');
-
         $data = [
             'id' => $order->id,
-            'status' => $order->status?->name,
+            'status' => $order->order_status_name,
             'status_id' => $order->order_status_id,
             'updated_at' => $order->updated_at?->toIso8601String(),
         ];
