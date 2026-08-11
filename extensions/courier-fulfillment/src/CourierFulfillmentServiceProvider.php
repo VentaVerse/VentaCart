@@ -26,11 +26,15 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
 
         // Status updates use the pull/fetch model. The poll runs as a managed
         // automation (Settings > Automations), driven by the global schedule:run
-        // cron — deliberately NOT a hardcoded schedule here. We only register the
-        // CLI command and seed its automation row (admin owns it thereafter).
-        if ($this->app->runningInConsole()) {
-            $this->commands([PollCourierStatus::class, ImportPickupAddressFromSettings::class]);
-        }
+        // cron, deliberately NOT a hardcoded schedule here.
+        //
+        // Registered unconditionally, not behind runningInConsole(). The
+        // Automations page's Run now calls Artisan::call() inside an HTTP
+        // request, where that check is false, so gating on it left the command
+        // unresolvable from the one screen built to run it. commands() is
+        // already lazy: it defers to Artisan::starting(), so a web request that
+        // never boots Artisan pays nothing for this.
+        $this->commands([PollCourierStatus::class, ImportPickupAddressFromSettings::class]);
 
         // Who may configure this module. Same answer FulfillmentController
         // already computes for its own "Courier settings" affordance (the
