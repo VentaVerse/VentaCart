@@ -3,6 +3,7 @@
 use Extensions\CourierFulfillment\Http\Controllers\CourierSettingsController;
 use Extensions\CourierFulfillment\Http\Controllers\CourierWebhookController;
 use Extensions\CourierFulfillment\Http\Controllers\FulfillmentController;
+use Extensions\CourierFulfillment\Http\Controllers\PickupAddressController;
 use Extensions\CourierFulfillment\Http\Controllers\StatusPlacementController;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
@@ -73,6 +74,18 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // never be captured as a courier key.
         Route::get('/status-placement', [StatusPlacementController::class, 'index'])->name('settings.placement');
         Route::post('/status-placement', [StatusPlacementController::class, 'update'])->name('settings.placement.update');
+        // Pickup addresses: the places parcels leave from, owned by this
+        // module (courier_fulfillment_pickup_addresses). STATIC segment,
+        // declared BEFORE the '/{courier}' wildcard below for the same
+        // reason status-placement is - otherwise 'pickup-addresses' would be
+        // captured as a courier key and 404.
+        Route::get('/pickup-addresses', [PickupAddressController::class, 'index'])->name('pickup-addresses.index');
+        Route::get('/pickup-addresses/create', [PickupAddressController::class, 'create'])->name('pickup-addresses.create');
+        Route::post('/pickup-addresses', [PickupAddressController::class, 'store'])->name('pickup-addresses.store');
+        Route::get('/pickup-addresses/{pickupAddress}/edit', [PickupAddressController::class, 'edit'])->name('pickup-addresses.edit');
+        Route::put('/pickup-addresses/{pickupAddress}', [PickupAddressController::class, 'update'])->name('pickup-addresses.update');
+        Route::post('/pickup-addresses/{pickupAddress}/default', [PickupAddressController::class, 'makeDefault'])->name('pickup-addresses.default');
+        Route::delete('/pickup-addresses/{pickupAddress}', [PickupAddressController::class, 'destroy'])->name('pickup-addresses.destroy');
         // Per-courier page: that courier's own schema fields, actions, and
         // status mapping. Unknown {courier} keys 404 in the controller
         // (CourierManager::get() miss), so this wildcard can never render

@@ -44,46 +44,27 @@
 
         @include('admin.settings.shipping.partials.rate-tester')
 
-        <x-admin.card id="origin" title="Origin">
-            <x-slot name="headerActions">
-                <x-admin.hint label="Where the origin is used" class="v-hint--end">Courier rate quotes and fulfillment bookings are both measured from this address.</x-admin.hint>
-            </x-slot>
-            <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
-                @csrf
-                <input type="hidden" name="group" value="shipping">
-                <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
+        {{-- The Origin card that stood here is gone. The store's pickup
+             origin is no longer eight flat settings rows edited in two
+             places: it is a record the courier-fulfillment module owns
+             (Settings > Modules > Courier Fulfillment > Pickup addresses),
+             where a store can keep more than one and pick which a parcel
+             leaves from at booking time. DHL rate quotes read the default
+             one. Linked only while that module is installed, so this page
+             stays coherent without it. --}}
+        @if (Route::has('admin.fulfillment.pickup-addresses.index'))
+            <x-admin.card title="Pickup addresses">
+                <x-slot name="headerActions">
+                    <x-admin.hint label="Where the origin is used" class="v-hint--end">DHL rate quotes and courier bookings are both measured from the default pickup address.</x-admin.hint>
+                    <x-admin.button variant="secondary" size="sm" :href="route('admin.fulfillment.pickup-addresses.index')">Configure</x-admin.button>
+                </x-slot>
+                @if ($pickupOrigin)
+                    <p class="text-[13px] text-v-secondary">{{ $pickupOrigin }}</p>
+                @else
+                    <x-admin.badge tone="warning">No default pickup address</x-admin.badge>
+                @endif
+            </x-admin.card>
+        @endif
 
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <x-admin.field name="settings[pickup_address]" label="Address" class="sm:col-span-2">
-                        <x-admin.input name="settings[pickup_address]" :value="$settings['shipping']['pickup_address'] ?? ''" placeholder="Unit / street / building" />
-                    </x-admin.field>
-                    <x-admin.field name="settings[pickup_barangay]" label="Barangay">
-                        <x-admin.input name="settings[pickup_barangay]" :value="$settings['shipping']['pickup_barangay'] ?? ''" />
-                    </x-admin.field>
-                    <x-admin.field name="settings[pickup_city]" label="City">
-                        <x-admin.input name="settings[pickup_city]" :value="$settings['shipping']['pickup_city'] ?? ''" />
-                    </x-admin.field>
-                    <x-admin.field name="settings[pickup_province]" label="Province">
-                        <x-admin.input name="settings[pickup_province]" :value="$settings['shipping']['pickup_province'] ?? ''" />
-                    </x-admin.field>
-                    <x-admin.field name="settings[pickup_postal_code]" label="Postal code">
-                        <x-admin.input name="settings[pickup_postal_code]" :value="$settings['shipping']['pickup_postal_code'] ?? ''" />
-                    </x-admin.field>
-                    <x-admin.field name="settings[pickup_contact_name]" label="Contact name">
-                        <x-admin.input name="settings[pickup_contact_name]" :value="$settings['shipping']['pickup_contact_name'] ?? ''" />
-                    </x-admin.field>
-                    <x-admin.field name="settings[pickup_contact_number]" label="Contact number">
-                        <x-admin.input name="settings[pickup_contact_number]" :value="$settings['shipping']['pickup_contact_number'] ?? ''" placeholder="e.g. 09171234567" />
-                    </x-admin.field>
-                    <x-admin.field name="settings[pickup_contact_email]" label="Contact email" class="sm:col-span-2">
-                        <x-admin.input type="email" name="settings[pickup_contact_email]" :value="$settings['shipping']['pickup_contact_email'] ?? ''" />
-                    </x-admin.field>
-                </div>
-
-                <x-admin.form-actions>
-                    <x-admin.button variant="primary" type="submit">Save origin</x-admin.button>
-                </x-admin.form-actions>
-            </form>
-        </x-admin.card>
     </div>
 </x-admin.settings-shell>

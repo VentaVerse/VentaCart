@@ -9,6 +9,7 @@ use App\Models\Setting;
 use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\PlacementMap;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -261,6 +262,23 @@ class FulfillmentController extends Controller
             'handoverByCourier' => $handoverByCourier,
             'paused' => false,
             'canConfigureCouriers' => $this->canConfigureCouriers(),
+            // Booking-time origin choice. A store with one address never sees
+            // a picker (the default is the only answer); with several, step 2
+            // offers them with the default pre-selected. Courier-agnostic:
+            // both adapters resolve the same way through
+            // PickupAddress::resolveFor().
+            'pickupAddresses' => PickupAddress::query()
+                ->orderByDesc('is_default')
+                ->orderBy('label')
+                ->get()
+                ->map(fn (PickupAddress $a) => [
+                    'id'        => $a->id,
+                    'label'     => $a->label,
+                    'summary'   => $a->summary(),
+                    'isDefault' => $a->is_default,
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 
@@ -551,6 +569,12 @@ class FulfillmentController extends Controller
             'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
             'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
             'pickup_slot'      => 'sometimes|nullable|string',
+            // Which of the store's pickup addresses this parcel leaves from.
+            // Absent (one address on file, so the picker never rendered)
+            // means "the default": PickupAddress::resolveFor() decides that,
+            // once, for every courier. `nullable` alongside `sometimes` for
+            // the same ConvertEmptyStringsToNull reason documented above.
+            'pickup_address_id' => 'sometimes|nullable|integer|exists:courier_fulfillment_pickup_addresses,id',
         ]);
 
         // Review fix (Critical): drop any of the optional keys above that
@@ -631,6 +655,10 @@ class FulfillmentController extends Controller
             'height_cm'        => 'sometimes|nullable|numeric|min:0.01',
             'weight_kg'        => 'sometimes|nullable|numeric|min:0.01',
             'pickup_slot'      => 'sometimes|nullable|string',
+            // The estimate is quoted from the SAME origin the booking would
+            // leave from, so a store with several addresses does not get a
+            // fee measured from one and a parcel collected from another.
+            'pickup_address_id' => 'sometimes|nullable|integer|exists:courier_fulfillment_pickup_addresses,id',
         ]);
 
         // Placement gate: the same single refusal FulfillmentService::book()

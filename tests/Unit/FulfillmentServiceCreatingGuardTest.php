@@ -152,12 +152,23 @@ class FulfillmentServiceCreatingGuardTest extends TestCase
                 ],
             ]),
         ]);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_province', 'value' => 'Metro Manila']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_city', 'value' => 'Makati']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_barangay', 'value' => 'Bel-Air']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_address', 'value' => '456 Warehouse Ave']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_postal_code', 'value' => '1200']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+        $country = \App\Models\Country::firstOrCreate(
+            ['iso2' => 'PH'],
+            ['iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]
+        );
+
+        \Extensions\CourierFulfillment\Models\PickupAddress::create([
+            'label'         => 'Store pickup',
+            'contact_name'  => 'Warehouse Team',
+            'contact_phone' => '09171112222',
+            'address_1'     => '456 Warehouse Ave',
+            'barangay'      => 'Bel-Air',
+            'district'      => null,
+            'city'          => 'Makati',
+            'state'         => 'Metro Manila',
+            'postcode'      => '1200',
+            'country_id'    => $country->id,
+        ]);
 
         $order = $this->makeOrder(); // courier_status is null — a fresh, never-booked order.
 

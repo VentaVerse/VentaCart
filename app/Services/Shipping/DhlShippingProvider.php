@@ -33,11 +33,7 @@ class DhlShippingProvider implements ShippingProviderInterface
             return [];
         }
 
-        $origin = [
-            'country_code' => 'PH',
-            'city' => Setting::where('group', 'shipping')->where('key', 'pickup_city')->value('value') ?? 'Manila',
-            'postal_code' => Setting::where('group', 'shipping')->where('key', 'pickup_postal_code')->value('value') ?? '1800',
-        ];
+        $origin = $this->origin();
 
         // Build destination from address — resolve country_id to ISO code for DHL API
         $destCountryId = $address['country_id'] ?? null;
@@ -85,6 +81,35 @@ class DhlShippingProvider implements ShippingProviderInterface
             Log::error('DhlShippingProvider: failed', ['error' => $e->getMessage()]);
             return [];
         }
+    }
+
+    /**
+     * Where a DHL quote is measured from.
+     *
+     * This used to read settings(group=shipping, key=pickup_city/
+     * pickup_postal_code). Those keys are retired: the store's origin is now
+     * a row the courier-fulfillment module owns, which is also where every
+     * courier booking reads it, so there is one address to edit rather than
+     * two that silently disagree.
+     *
+     * Core must stay coherent with that module removed (PRODUCT.md,
+     * "modules are additive"), so this is a guarded table read rather than a
+     * reference to the extension's model, and it keeps the same
+     * Manila/1800 fallbacks it always had for a store that has no origin on
+     * file at all.
+     */
+    private function origin(): array
+    {
+        $table = 'courier_fulfillment_pickup_addresses';
+        $pickup = \Illuminate\Support\Facades\Schema::hasTable($table)
+            ? \Illuminate\Support\Facades\DB::table($table)->where('is_default', true)->orderBy('id')->first()
+            : null;
+
+        return [
+            'country_code' => 'PH',
+            'city' => $pickup->city ?? 'Manila',
+            'postal_code' => $pickup->postcode ?? '1800',
+        ];
     }
 
     public function buildShippingMeta(string $quoteKey, array $quoteData): ?array

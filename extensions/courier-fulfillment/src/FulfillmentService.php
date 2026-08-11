@@ -7,6 +7,7 @@ use App\Models\OrderHistory;
 use App\Models\OrderStatus;
 use App\Models\Setting;
 use App\Services\OrderStatusChanger;
+use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -614,6 +615,20 @@ class FulfillmentService
         }
 
         $meta = $result['meta'] ?? [];
+        // Where this parcel actually left from, snapshotted (not a foreign
+        // key) so the drawer and the booking history still read correctly
+        // after the address is renamed, re-defaulted or deleted. Resolved
+        // through the SAME rule both adapters used to build the payload -
+        // PickupAddress::resolveFor($opts) - so the record can never
+        // disagree with what was sent.
+        $pickup = PickupAddress::resolveFor($opts);
+        if ($pickup) {
+            $meta['pickup_address'] = [
+                'id'      => $pickup->id,
+                'label'   => $pickup->label,
+                'summary' => $pickup->summary(),
+            ];
+        }
         $meta['previous_tracking_number'] = $previousTracking;
         $meta['pre_booking_order_status_id'] = $preBookingStatusId;
         if (isset($previousMeta['booking_history']) && is_array($previousMeta['booking_history'])) {

@@ -19,14 +19,34 @@ class ShippingPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_page_renders_chain_in_real_order_with_origin_card(): void
+    /**
+     * The Origin card is gone: the store's pickup origin moved into the
+     * courier-fulfillment module (Settings > Modules > Courier Fulfillment >
+     * Pickup addresses), where a store can keep more than one. This page
+     * links to it while that module is installed and says nothing about a
+     * pickup_* setting either way.
+     */
+    public function test_page_renders_chain_in_real_order_and_points_at_the_module_owned_origin(): void
     {
         $this->actingAs(User::factory()->create());
 
         $this->get(route('admin.shipping-settings.index'))
             ->assertOk()->assertSee('v-admin', false)
             ->assertSeeInOrder(['Free Shipping', 'Weight Based', 'Flat Rate', 'DHL'])
-            ->assertSee('Origin')->assertSee('settings[pickup_city]', false);
+            ->assertDontSee('settings[pickup_city]', false)
+            ->assertDontSee('settings[pickup_contact_name]', false);
+    }
+
+    public function test_the_page_links_to_the_module_owned_pickup_addresses_when_it_is_installed(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(\App\Services\ExtensionManager::class)->install('courier-fulfillment');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+
+        $this->get(route('admin.shipping-settings.index'))
+            ->assertOk()
+            ->assertSee('Pickup addresses')
+            ->assertSee(route('admin.fulfillment.pickup-addresses.index'), false);
     }
 
     public function test_index_lists_four_providers_with_configure_links_to_their_own_pages(): void
@@ -234,26 +254,7 @@ class ShippingPageTest extends TestCase
             ->assertOk();
     }
 
-    // ==================== Origin + rate tester stay on index ====================
-
-    public function test_origin_form_roundtrip_saves_pickup_fields(): void
-    {
-        $this->actingAs(User::factory()->create());
-
-        $this->post(route('admin.settings.update'), [
-            'group' => 'shipping',
-            '_redirect' => route('admin.shipping-settings.index'),
-            'settings' => [
-                'pickup_city' => 'Makati',
-                'pickup_province' => 'Metro Manila',
-                'pickup_contact_name' => 'Warehouse Team',
-            ],
-        ])->assertRedirect(route('admin.shipping-settings.index'));
-
-        $this->assertDatabaseHas('settings', [
-            'group' => 'shipping', 'key' => 'pickup_city', 'value' => 'Makati',
-        ]);
-    }
+    // ==================== Rate tester stays on index ====================
 
     public function test_rate_tester_returns_quotes_flash(): void
     {

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Country;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
@@ -10,6 +11,7 @@ use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxApiException;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxClient;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
+use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -69,16 +71,34 @@ class SpxFulfillmentTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'spx_user_secret', 'value' => \Illuminate\Support\Facades\Crypt::encryptString('fake-user-secret-not-real')]);
     }
 
-    /** Courier-agnostic pickup origin (settings group=shipping) — SPX's sender_info source, shared with QuadX/DHL. */
+    /**
+     * Courier-agnostic pickup origin — SPX's sender_info source, shared with
+     * QuadX. It used to be eight flat settings(group=shipping, key=pickup_*)
+     * rows; it is now a record the module owns
+     * (courier_fulfillment_pickup_addresses). The VALUES are unchanged, so
+     * every sender_* assertion in this file still describes the same payload.
+     * district stays null, which is exactly what the settings block (which
+     * had no district field) produced: sender_district falls back to the city.
+     */
     private function configurePickupOrigin(): void
     {
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_province', 'value' => 'Metro Manila']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_city', 'value' => 'Makati']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_barangay', 'value' => 'Bel-Air']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_address', 'value' => '456 Warehouse Ave']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_postal_code', 'value' => '1200']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_name', 'value' => 'Warehouse Team']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+        $country = Country::firstOrCreate(
+            ['iso2' => 'PH'],
+            ['iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]
+        );
+
+        PickupAddress::create([
+            'label'         => 'Store pickup',
+            'contact_name'  => 'Warehouse Team',
+            'contact_phone' => '09171112222',
+            'address_1'     => '456 Warehouse Ave',
+            'barangay'      => 'Bel-Air',
+            'district'      => null,
+            'city'          => 'Makati',
+            'state'         => 'Metro Manila',
+            'postcode'      => '1200',
+            'country_id'    => $country->id,
+        ]);
     }
 
     /** Cebu (non-NCR) delivery address, mirroring FulfillmentTest::makeBookableOrder(). */
@@ -166,10 +186,10 @@ class SpxFulfillmentTest extends TestCase
                 && $body['user_secret'] === 'fake-user-secret-not-real'
                 && $o['order_id'] === (string) $order->id
                 && $o['base_info']['service_type'] === 1
-                // sender_info from the shared pickup_* origin. Address
+                // sender_info from the shared pickup-address record. Address
                 // hierarchy per api.md's own worked examples (T2 review,
                 // IMPORTANT 5): *_street <- barangay, *_district <- city
-                // (no separate pickup "district" setting exists),
+                // (this record carries no district, so it falls back to city),
                 // *_detail_address <- the actual address text, never
                 // duplicated with street.
                 && $o['sender_info']['sender_state'] === 'Metro Manila'
@@ -367,7 +387,7 @@ class SpxFulfillmentTest extends TestCase
     public function test_create_shipment_fails_clearly_when_pickup_origin_is_incomplete(): void
     {
         $this->configureAccountCredentials();
-        // No pickup_* settings configured at all.
+        // No pickup address on file at all.
         Http::fake();
 
         $order = $this->makeOrder();
@@ -769,7 +789,7 @@ class SpxFulfillmentTest extends TestCase
     public function test_estimate_fee_returns_null_when_the_pickup_origin_is_incomplete(): void
     {
         $this->configureAccountCredentials();
-        // No pickup_* settings — never even calls SPX for an estimate it can't build.
+        // No pickup address on file — never even calls SPX for an estimate it can't build.
         Http::fake();
 
         $fee = $this->courier()->estimateFee($this->makeOrder(), ['parcel' => 'small', 'shipping_payment' => 'sender_pay']);

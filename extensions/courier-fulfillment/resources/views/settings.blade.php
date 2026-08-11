@@ -35,6 +35,23 @@
             </div>
         </x-admin.card>
 
+        {{-- Where parcels leave from. Module-owned data (not a courier's own
+             schema), so it sits beside status placement rather than on any
+             one courier's page. --}}
+        <x-admin.card title="Pickup addresses">
+            <x-slot:headerActions>
+                <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.pickup-addresses.index') }}">Configure</x-admin.button>
+            </x-slot:headerActions>
+            <div class="flex flex-wrap items-center gap-2">
+                @if ($defaultPickupAddress)
+                    <x-admin.badge tone="success">Default</x-admin.badge>
+                    <span class="text-xs text-v-secondary">{{ $defaultPickupAddress }}</span>
+                @else
+                    <x-admin.badge tone="warning">None, so booking is refused</x-admin.badge>
+                @endif
+            </div>
+        </x-admin.card>
+
         {{-- Module-level card: not owned by any one courier's schema. --}}
         <x-admin.card title="Fulfillment">
             <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" data-v-form class="space-y-6">

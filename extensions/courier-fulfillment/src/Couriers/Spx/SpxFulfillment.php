@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\Models\PickupAddress;
+use Extensions\CourierFulfillment\Support\PhPhone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -29,11 +31,12 @@ use Illuminate\Support\Str;
  * Extensions\CourierFulfillment\Jobs\ProcessCourierWebhookJob).
  *
  * Load-bearing decisions made in THIS task (documented in the T2 report too):
- *  - Sender address reuses the store-wide `settings(group=shipping,
- *    key=pickup_*)` origin (added when DPH was retired — see
- *    2026_05_01_000001_drop_dph_and_generalize_pickup_origin.php) rather than
- *    a new spx_sender_* settings block, since QuadX and DHL already share
- *    that exact origin — one pickup address serves every courier.
+ *  - Sender address reuses the module-wide pickup origin rather than a new
+ *    spx_sender_* settings block, since QuadX already shares that exact
+ *    origin — one pickup address serves every courier. That origin is now a
+ *    row in courier_fulfillment_pickup_addresses (a store may keep several
+ *    and choose one per booking); it used to be the eight flat
+ *    `settings(group=shipping, key=pickup_*)` rows, which are retired.
  *  - Deliver address is resolved by DIRECT best-effort field mapping (order's
  *    shipping_state/city/district/barangay/postcode), not by parsing SPX's
  *    5.1 Address API (which only returns an Excel download link — no JSON
@@ -1031,11 +1034,9 @@ class SpxFulfillment implements CourierFulfillmentInterface
             return ['ok' => false, 'error' => 'Set the App ID / App Secret before creating a shipper account.'];
         }
 
-        $phone = $this->normalizePhPhone(
-            (string) (Setting::where('group', 'shipping')->where('key', 'pickup_contact_number')->value('value') ?? '')
-        );
+        $phone = $this->normalizePhPhone(PickupAddress::defaultAddress()?->contact_phone);
         if ($phone === null) {
-            return ['ok' => false, 'error' => 'Set a valid PH mobile number as the pickup contact number (Settings > Shipping) before creating a shipper account.'];
+            return ['ok' => false, 'error' => 'Set a valid PH mobile number on the default pickup address (Settings > Modules > Courier Fulfillment > Pickup addresses) before creating a shipper account.'];
         }
 
         $email = config('mail.from.address');
@@ -1275,7 +1276,7 @@ class SpxFulfillment implements CourierFulfillmentInterface
      */
     private function buildOrderPayload(Order $order, array $opts): array
     {
-        $sender = $this->senderInfo();
+        $sender = $this->senderInfo($opts);
         if (!$sender['ok']) {
             return ['ok' => false, 'error' => $sender['error']];
         }
@@ -1301,46 +1302,58 @@ class SpxFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * Sender = the store's own pickup/warehouse origin. Reuses the
-     * courier-agnostic `settings(group=shipping, key=pickup_*)` block QuadX
-     * and DHL already read (see this class's docblock for why) rather than a
-     * new spx_sender_* settings block.
+     * Sender = the store's own pickup/warehouse origin, read from the
+     * module-owned pickup address record (courier_fulfillment_pickup_addresses).
+     * That record replaced the eight flat `settings(group=shipping,
+     * key=pickup_*)` rows this method used to read; QuadX reads the same
+     * record, so one origin still serves every courier and there is now
+     * exactly one place to edit it.
+     *
+     * Which record: the one chosen in the booking modal
+     * ($opts['pickup_address_id']) when the store keeps more than one,
+     * otherwise the default. PickupAddress::resolveFor() is the single
+     * implementation of that rule, shared with QuadX and FulfillmentService.
      *
      * Address hierarchy fix (T2 review, IMPORTANT 5): every worked example in
      * api.md puts the BARANGAY in `*_street` (e.g. "Barangay 294") and a
      * city-level administrative district in `*_district` (e.g. "Binondo",
      * "Intramuros") — the reverse of what this method originally sent.
-     * Venta's pickup settings have no separate "district" field distinct
-     * from barangay/city (only pickup_barangay + pickup_city exist), so
-     * sender_district falls back to city — the same fallback deliverInfo()
-     * uses when an order has no shipping_district on file, keeping both
-     * sides resolve the same way when the finer field doesn't exist.
-     * sender_street and sender_detail_address are no longer the same value
+     * sender_district now uses the record's own district when it has one (PH
+     * districts exist for Manila only) and falls back to the city otherwise —
+     * the same fallback deliverInfo() uses when an order has no
+     * shipping_district on file, and the exact value the retired settings
+     * block produced, which had no district field at all.
+     * sender_street and sender_detail_address are not the same value
      * duplicated — street is the barangay, detail_address is the actual
-     * unit/building text (pickup_address).
+     * unit/building text.
      *
      * @return array{ok:bool, info?:array, error?:string}
      */
-    private function senderInfo(): array
+    private function senderInfo(array $opts = []): array
     {
-        $s = fn (string $k, ?string $d = null) => Setting::where('group', 'shipping')->where('key', $k)->value('value') ?: $d;
+        $pickup = PickupAddress::resolveFor($opts);
 
-        $state    = (string) $s('pickup_province', '');
-        $city     = (string) $s('pickup_city', '');
-        $barangay = (string) $s('pickup_barangay', '');
-        $address  = (string) $s('pickup_address', '');
-        $postCode = (string) $s('pickup_postal_code', '');
-        $name     = (string) $s('pickup_contact_name', 'Sender');
-        $phone    = $this->normalizePhPhone($s('pickup_contact_number', ''));
+        $state    = (string) ($pickup->state ?? '');
+        $city     = (string) ($pickup->city ?? '');
+        $district = (string) ($pickup->district ?? '');
+        $barangay = (string) ($pickup->barangay ?? '');
+        $address  = (string) ($pickup->address_1 ?? '');
+        $postCode = (string) ($pickup->postcode ?? '');
+        $name     = (string) ($pickup->contact_name ?? '') ?: 'Sender';
+        $phone    = $this->normalizePhPhone($pickup->contact_phone ?? '');
 
         if ($state === '' || $city === '' || $barangay === '' || $address === '' || $postCode === '' || $phone === null) {
-            return ['ok' => false, 'error' => 'Set a complete pickup address (Settings > Shipping: province, city, barangay, address, postal code, a valid PH mobile number) before booking with SPX.'];
+            return ['ok' => false, 'error' => 'Set a complete pickup address (Settings > Modules > Courier Fulfillment > Pickup addresses: province, city, barangay, address, postal code, a valid PH mobile number) before booking with SPX.'];
+        }
+
+        if ($district === '') {
+            $district = $city;
         }
 
         return ['ok' => true, 'info' => [
             'sender_state'          => $state,
             'sender_city'           => $city,
-            'sender_district'       => $city,
+            'sender_district'       => $district,
             'sender_street'         => $barangay,
             'sender_post_code'      => $postCode,
             'sender_name'           => $name,
@@ -1422,25 +1435,15 @@ class SpxFulfillment implements CourierFulfillmentInterface
      * form. Returns null when nothing salvageable remains (empty, too
      * short, garbage) — every caller turns that into a clear pre-flight
      * failure rather than sending SPX a value it's guaranteed to reject.
+     *
+     * The rule itself moved to Support\PhPhone so the pickup-address form
+     * validates a mobile number by exactly the rule this method will later
+     * build the payload with. Behaviour is unchanged; this stays as the
+     * name every call site in this class already uses.
      */
     private function normalizePhPhone(?string $raw): ?string
     {
-        $digits = preg_replace('/\D+/', '', (string) $raw);
-        if ($digits === '') {
-            return null;
-        }
-
-        if (strlen($digits) === 12 && str_starts_with($digits, '63')) {
-            return $digits;
-        }
-        if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
-            return $digits;
-        }
-        if (strlen($digits) === 10 && str_starts_with($digits, '9')) {
-            return '0' . $digits;
-        }
-
-        return null;
+        return PhPhone::normalize($raw);
     }
 
     /**

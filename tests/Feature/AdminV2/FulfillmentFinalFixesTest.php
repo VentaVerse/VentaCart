@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\AdminV2;
 
+use App\Models\Country;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use Extensions\CourierFulfillment\PlacementMap;
@@ -9,6 +10,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\CourierManager;
+use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -80,14 +82,33 @@ class FulfillmentFinalFixesTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'spx_user_secret', 'value' => Crypt::encryptString('fake-user-secret-not-real')]);
     }
 
+    /**
+     * The store's pickup origin. It used to be flat
+     * settings(group=shipping, key=pickup_*) rows; it is now a record the
+     * fulfillment module owns. Same values, so the sender_info SPX receives
+     * is unchanged (contact_name is spelled out because the column is
+     * required, and 'Sender' is exactly what the settings version fell back
+     * to when no pickup_contact_name existed).
+     */
     private function configureSpxPickupOrigin(): void
     {
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_province', 'value' => 'Metro Manila']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_city', 'value' => 'Makati']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_barangay', 'value' => 'Bel-Air']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_address', 'value' => '456 Warehouse Ave']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_postal_code', 'value' => '1200']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+        $country = Country::firstOrCreate(
+            ['iso2' => 'PH'],
+            ['iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]
+        );
+
+        PickupAddress::create([
+            'label'         => 'Store pickup',
+            'contact_name'  => 'Sender',
+            'contact_phone' => '09171112222',
+            'address_1'     => '456 Warehouse Ave',
+            'barangay'      => 'Bel-Air',
+            'district'      => null,
+            'city'          => 'Makati',
+            'state'         => 'Metro Manila',
+            'postcode'      => '1200',
+            'country_id'    => $country->id,
+        ]);
     }
 
     /** Complete shipping address (SPX's buildOrderPayload() needs it), mirrors FulfillmentQueueTest::makeCompleteOrder(). */

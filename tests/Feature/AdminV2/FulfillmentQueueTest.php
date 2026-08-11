@@ -111,16 +111,31 @@ class FulfillmentQueueTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'quadx_enabled', 'value' => '1']);
     }
 
-    /** Courier-agnostic pickup origin (settings group=shipping) — SPX's sender_info source, mirrors SpxFulfillmentTest. */
+    /**
+     * Courier-agnostic pickup origin — SPX's sender_info source, mirrors
+     * SpxFulfillmentTest. It used to be flat settings(group=shipping,
+     * key=pickup_*) rows and is now a record the fulfillment module owns.
+     * Same values, so every payload assertion downstream is unchanged.
+     */
     private function configureSpxPickupOrigin(): void
     {
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_province', 'value' => 'Metro Manila']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_city', 'value' => 'Makati']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_barangay', 'value' => 'Bel-Air']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_address', 'value' => '456 Warehouse Ave']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_postal_code', 'value' => '1200']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_name', 'value' => 'Warehouse Team']);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+        $country = \App\Models\Country::firstOrCreate(
+            ['iso2' => 'PH'],
+            ['iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]
+        );
+
+        \Extensions\CourierFulfillment\Models\PickupAddress::create([
+            'label'         => 'Store pickup',
+            'contact_name'  => 'Warehouse Team',
+            'contact_phone' => '09171112222',
+            'address_1'     => '456 Warehouse Ave',
+            'barangay'      => 'Bel-Air',
+            'district'      => null,
+            'city'          => 'Makati',
+            'state'         => 'Metro Manila',
+            'postcode'      => '1200',
+            'country_id'    => $country->id,
+        ]);
     }
 
     /** An order with a COMPLETE shipping address — the estimate round-trip needs buildOrderPayload() to succeed, unlike makeOrder()'s minimal shape. */

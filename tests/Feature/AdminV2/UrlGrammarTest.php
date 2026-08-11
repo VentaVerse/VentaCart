@@ -611,6 +611,19 @@ class UrlGrammarTest extends TestCase
      */
     public function test_every_route_name_referenced_in_code_resolves(): void
     {
+        // Core views may name an EXTENSION-provided route, guarded by
+        // Route::has() so the page stays coherent without that module (the
+        // shipping page's link to the fulfillment module's pickup addresses
+        // is one). Those names only exist once the extension is booted, so
+        // every discovered extension is installed here before the route
+        // table is read - otherwise this guard would report a perfectly
+        // correct, guarded reference as stale.
+        $manager = app(\App\Services\ExtensionManager::class);
+        foreach ($manager->discovered()->keys() as $extension) {
+            $manager->install($extension);
+        }
+        $manager->bootEnabled();
+
         $names = collect(app('router')->getRoutes())
             ->map(fn ($r) => $r->getName())
             ->filter()

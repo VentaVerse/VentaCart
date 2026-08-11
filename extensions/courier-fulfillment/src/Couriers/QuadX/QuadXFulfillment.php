@@ -5,6 +5,8 @@ namespace Extensions\CourierFulfillment\Couriers\QuadX;
 use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
+use Extensions\CourierFulfillment\Models\PickupAddress;
+use Extensions\CourierFulfillment\Support\PickupCountry;
 
 /**
  * QuadX courier (a Philippine courier, LBC-backed).
@@ -490,7 +492,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'service'          => $opts['service'] ?? 'next_day',
             'reference_id'     => (string) $order->id,
             'delivery_address' => $this->deliveryAddress($order),
-            'pickup_address'   => $this->pickupAddress(),
+            'pickup_address'   => $this->pickupAddress($opts),
             'contact_number'   => $order->shipping_phone ?: ($order->phone ?: ''),
             'buyer_name'       => trim($order->shipping_first_name . ' ' . $order->shipping_last_name),
             // QuadX prices by parcel category (shipment), not by weight/dimensions —
@@ -533,18 +535,37 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         ];
     }
 
-    private function pickupAddress(): array
+    /**
+     * The store's own origin, read from the module-owned pickup address
+     * record (courier_fulfillment_pickup_addresses) that replaced the eight
+     * flat settings(group=shipping, key=pickup_*) rows. SPX reads the same
+     * record through the same resolver, so one origin still serves every
+     * courier.
+     *
+     * Which record: the one chosen in the booking modal
+     * ($opts['pickup_address_id']) when the store keeps more than one,
+     * otherwise the default.
+     *
+     * Field mapping is unchanged from the settings version, deliberately:
+     * QuadX's `district` still carries the barangay (its own delivery block
+     * does the same, see deliveryAddress()), now preferring the record's
+     * explicit district when it has one, which is exactly what
+     * deliveryAddress() does with shipping_district. `country` is the
+     * record's own country ISO rather than a hardcoded 'PH'.
+     */
+    private function pickupAddress(array $opts = []): array
     {
-        $s = fn ($k, $d = null) => Setting::where('group', 'shipping')->where('key', $k)->value('value') ?: $d;
+        $pickup = PickupAddress::resolveFor($opts);
+
         return [
-            'name'          => $s('pickup_contact_name', 'Sender'),
-            'mobile_number' => $s('pickup_contact_number', ''),
-            'line_1'        => $s('pickup_address', '-'),
-            'district'      => $s('pickup_barangay'),
-            'city'          => $this->resolver->normalizeCity($s('pickup_city'), $s('pickup_province')),
-            'state'         => $this->resolver->normalizeState($s('pickup_province')),
-            'postal_code'   => $s('pickup_postal_code', '-'),
-            'country'       => 'PH',
+            'name'          => ($pickup?->contact_name ?: 'Sender'),
+            'mobile_number' => $pickup?->contact_phone ?: '',
+            'line_1'        => $pickup?->address_1 ?: '-',
+            'district'      => ($pickup?->district ?: ($pickup?->barangay ?: null)),
+            'city'          => $this->resolver->normalizeCity($pickup?->city, $pickup?->state),
+            'state'         => $this->resolver->normalizeState($pickup?->state),
+            'postal_code'   => $pickup?->postcode ?: '-',
+            'country'       => $pickup?->country?->iso2 ?: PickupCountry::ISO,
         ];
     }
 

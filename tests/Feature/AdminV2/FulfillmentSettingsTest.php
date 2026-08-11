@@ -496,6 +496,32 @@ class FulfillmentSettingsTest extends TestCase
             ->assertDontSee('Create shipper account');
     }
 
+    /**
+     * The default pickup address SPX reads its account-creation phone from.
+     * It used to be settings(group=shipping, key=pickup_contact_number);
+     * the module now owns the origin, and the number is unchanged.
+     */
+    private function configurePickupOrigin(): void
+    {
+        $country = \App\Models\Country::firstOrCreate(
+            ['iso2' => 'PH'],
+            ['iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]
+        );
+
+        \Extensions\CourierFulfillment\Models\PickupAddress::create([
+            'label'         => 'Store pickup',
+            'contact_name'  => 'Warehouse Team',
+            'contact_phone' => '09171112222',
+            'address_1'     => '456 Warehouse Ave',
+            'barangay'      => 'Bel-Air',
+            'district'      => null,
+            'city'          => 'Makati',
+            'state'         => 'Metro Manila',
+            'postcode'      => '1200',
+            'country_id'    => $country->id,
+        ]);
+    }
+
     public function test_create_shipper_account_rejects_without_app_credentials_or_a_pickup_phone(): void
     {
         $this->actingAs(User::factory()->create());
@@ -507,7 +533,7 @@ class FulfillmentSettingsTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
         Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
 
-        // App credentials present, but no pickup contact number configured yet.
+        // App credentials present, but no pickup address on file yet.
         $this->post($this->settingsUrl('/spx/create-account'))->assertRedirect();
         $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'spx_user_id']);
     }
@@ -519,7 +545,7 @@ class FulfillmentSettingsTest extends TestCase
 
         Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
         Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+        $this->configurePickupOrigin();
 
         Http::fake([
             '*account/create*' => Http::response([
@@ -555,7 +581,7 @@ class FulfillmentSettingsTest extends TestCase
 
         Setting::create(['group' => 'courier', 'key' => 'spx_app_id', 'value' => '424242']);
         Setting::create(['group' => 'courier', 'key' => 'spx_secret_key', 'value' => Crypt::encryptString('fake-app-secret-not-real')]);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+        $this->configurePickupOrigin();
 
         Http::fake([
             '*account/create*' => Http::response(['ret_code' => 1009, 'message' => 'Signature expired.', 'data' => []]),
@@ -587,7 +613,7 @@ class FulfillmentSettingsTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'spx_user_id', 'value' => '999999']);
         $originalSecret = Crypt::encryptString('original-user-secret-not-real');
         Setting::create(['group' => 'courier', 'key' => 'spx_user_secret', 'value' => $originalSecret]);
-        Setting::create(['group' => 'shipping', 'key' => 'pickup_contact_number', 'value' => '09171112222']);
+        $this->configurePickupOrigin();
 
         // Http::fake() with NO stub registered — any outbound call this
         // test didn't anticipate throws, so Http::assertNothingSent() below

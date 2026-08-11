@@ -5,7 +5,10 @@ namespace Extensions\CourierFulfillment;
 use Extensions\CourierFulfillment\Console\Commands\PollCourierStatus;
 use Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
+use App\Support\SettingsNav;
+use Extensions\CourierFulfillment\Console\Commands\ImportPickupAddressFromSettings;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class CourierFulfillmentServiceProvider extends ServiceProvider
@@ -26,8 +29,24 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         // cron — deliberately NOT a hardcoded schedule here. We only register the
         // CLI command and seed its automation row (admin owns it thereafter).
         if ($this->app->runningInConsole()) {
-            $this->commands([PollCourierStatus::class]);
+            $this->commands([PollCourierStatus::class, ImportPickupAddressFromSettings::class]);
         }
+
+        // Who may configure this module. Same answer FulfillmentController
+        // already computes for its own "Courier settings" affordance (the
+        // settings-nav item's permission, null meaning any authenticated
+        // admin), stated once as an ability so the pickup-address CRUD's
+        // controller and its Form Request authorize against the same rule
+        // rather than each re-deriving it.
+        Gate::define('courier-fulfillment.configure', function ($user) {
+            $item = SettingsNav::find('fulfillment');
+
+            if (!$item) {
+                return false;
+            }
+
+            return $item['permission'] === null || $user->hasPermission($item['permission']);
+        });
         $this->registerSeeder(CourierFulfillmentAutomationSeeder::class);
 
         // NOTE: this provider used to also register a

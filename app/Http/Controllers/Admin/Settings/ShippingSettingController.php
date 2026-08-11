@@ -96,7 +96,7 @@ class ShippingSettingController extends Controller
 
         return view('admin.settings.shipping.index', compact(
             'settings', 'chain', 'countries', 'defaultCountryId'
-        ));
+        ) + ['pickupOrigin' => $this->pickupOriginLine()]);
     }
 
     public function freeShipping()
@@ -140,6 +140,38 @@ class ShippingSettingController extends Controller
         }
 
         return view('admin.settings.shipping.dhl', compact('settings', 'maskedKeys'));
+    }
+
+    /**
+     * The default pickup address as one readable line, or null when there
+     * is none (or the courier-fulfillment module that owns the table is not
+     * installed). A guarded table read, never a reference to the extension's
+     * model: core must render this page coherently with the module removed.
+     * DhlShippingProvider::origin() reads the same row.
+     */
+    private function pickupOriginLine(): ?string
+    {
+        $table = 'courier_fulfillment_pickup_addresses';
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable($table)) {
+            return null;
+        }
+
+        $row = \Illuminate\Support\Facades\DB::table($table)->where('is_default', true)->orderBy('id')->first();
+
+        if (!$row) {
+            return null;
+        }
+
+        $parts = array_filter([
+            $row->label,
+            $row->address_1,
+            $row->barangay,
+            $row->city,
+            trim($row->state . ' ' . $row->postcode),
+        ], fn ($p) => trim((string) $p) !== '');
+
+        return implode(', ', array_map(fn ($p) => trim((string) $p), $parts));
     }
 
     private function loadSettings(): array

@@ -19,3 +19,35 @@
 
 .v-col-courier { width: 170px; }
 .v-col-status  { width: 170px; }
+
+/* Pickup addresses.
+   -------------------------------------------------------------------
+   Two column floors and one inert control, all page-specific for the
+   same reason the two widths above are: they are measurements of this
+   page's own content, not opinions the design system holds.
+
+   The floors keep the table SCROLLING rather than crushing at 390.
+   Without them a full PH address (five levels, comma separated) wraps
+   mid-word into a 60px column while the row's actions fall off the
+   edge. The table wrap already scrolls; these just stop the cells
+   from collapsing before it does. */
+
+.v-col-pickup  { min-width: 22rem; }
+.v-col-contact { min-width: 10rem; white-space: nowrap; }
+
+/* The country field's answer is fixed (every courier this module books
+   with collects in one country), so the box states it rather than
+   inviting a change. It keeps the control's geometry so the field
+   still lines up with its neighbours, and drops the control's edge and
+   sheet so it never reads as somewhere to type. */
+.v-fixedvalue {
+    display: flex;
+    align-items: center;
+    min-height: var(--control-h);
+    padding-inline: 0.625rem;
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: default;
+}

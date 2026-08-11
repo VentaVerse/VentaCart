@@ -318,7 +318,11 @@ class CourierSettingsController extends Controller
             'unbookedOrderStatusId',
             'bookedDefaultName',
             'unbookedDefaultName'
-        ));
+        ) + [
+            // The store's origin, one readable line, so the hub says whether
+            // booking has somewhere to leave from without a second click.
+            'defaultPickupAddress' => \Extensions\CourierFulfillment\Models\PickupAddress::defaultAddress()?->summary(),
+        ]);
     }
 
     /**

@@ -479,6 +479,12 @@
                                 'phaseLabel' => $spineLabel,
                                 'timeline' => $timeline,
                                 'buyerPaymentLabel' => $buyerPaymentLabel,
+                                // Where this parcel actually left from, snapshotted onto
+                                // courier_meta at booking time (FulfillmentService::book()),
+                                // so it stays true after the address is renamed or deleted.
+                                'shipsFrom' => isset($meta['pickup_address']['label'])
+                                    ? trim($meta['pickup_address']['label'] . ' - ' . ($meta['pickup_address']['summary'] ?? ''), ' -')
+                                    : null,
                             ];
 
                             // Legacy shape: an order with no recorded items still renders one
@@ -724,6 +730,14 @@
                                 <span class="text-v-muted shrink-0">Ship to</span>
                                 <span class="font-medium text-v-text text-right" x-text="active.address"></span>
                             </div>
+                            {{-- Only on a booked parcel: it is a fact about the
+                                 shipment, recorded when the booking was made. --}}
+                            <template x-if="active.shipsFrom">
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-v-muted shrink-0">Ships from</span>
+                                    <span class="font-medium text-v-text text-right" x-text="active.shipsFrom"></span>
+                                </div>
+                            </template>
                         </div>
 
                         {{-- Tracking body / booking hand-off --}}
@@ -964,6 +978,23 @@
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                             </x-admin.select>
                                         </x-admin.field>
+
+                                        {{-- Origin choice, courier-agnostic. Rendered ONLY when the
+                                             store keeps more than one pickup address: with one there
+                                             is no choice to make, and an absent field means "the
+                                             default" to PickupAddress::resolveFor() on the server.
+                                             @if, not x-if: whether a picker exists at all is a
+                                             property of the store, known at render time, not of the
+                                             courier chosen in step 1. --}}
+                                        @if (count($pickupAddresses ?? []) > 1)
+                                            <x-admin.field name="pickup_address_id" label="Ships from" required>
+                                                <x-admin.select name="pickup_address_id">
+                                                    @foreach ($pickupAddresses as $pickup)
+                                                        <option value="{{ $pickup['id'] }}" @selected($pickup['isDefault'])>{{ $pickup['label'] }} - {{ $pickup['summary'] }}</option>
+                                                    @endforeach
+                                                </x-admin.select>
+                                            </x-admin.field>
+                                        @endif
 
                                         {{-- Task T4: SPX-only step-2 additions — rendered at all
                                              only when SPX is actually an enabled courier (never
