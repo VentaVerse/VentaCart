@@ -2,20 +2,22 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\RemoteImageFetchException;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
-use App\Services\SafeUrlFetcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ErpProductController extends Controller
 {
+    use FetchesRemoteImages;
     use LogsApiCalls;
 
     public function index(Request $request): JsonResponse
@@ -174,18 +176,6 @@ class ErpProductController extends Controller
         $storeId = (int) config('app.store_id', 1);
         $hasVariants = !empty($validated['variants']);
 
-        // Resolve brand: brand_id takes priority, then brand_name (find-or-create)
-        $brandId = $validated['brand_id'] ?? null;
-        if (!$brandId && !empty($validated['brand_name'])) {
-            $brandId = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
-        }
-
-        // Resolve categories: category_ids takes priority, then category_names (find-or-create)
-        $categoryIds = $validated['category_ids'] ?? [];
-        if (empty($categoryIds) && !empty($validated['category_names'])) {
-            $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
-        }
-
         $slug = Str::slug($validated['name']);
         $originalSlug = $slug;
         $counter = 1;
@@ -193,40 +183,71 @@ class ErpProductController extends Controller
             $slug = $originalSlug . '-' . $counter++;
         }
 
-        $product = DB::transaction(function () use ($validated, $storeId, $brandId, $slug, $categoryIds, $hasVariants) {
-            $product = Product::create([
-                'store_id' => $storeId,
-                'name' => $validated['name'],
-                'sku' => $validated['sku'],
-                'slug' => $slug,
-                'price' => $validated['price'],
-                'description' => $validated['description'] ?? null,
-                'brand_id' => $brandId,
-                'quantity' => $validated['quantity'] ?? 0,
-                'weight' => $validated['weight'] ?? 0,
-                'length' => $validated['length'] ?? null,
-                'width' => $validated['width'] ?? null,
-                'height' => $validated['height'] ?? null,
-                'cost' => $validated['cost'] ?? 0,
-                'is_active' => $validated['status'] ?? true,
-                'has_variants' => $hasVariants,
-                'meta_title' => $validated['meta_title'] ?? null,
-                'meta_description' => $validated['meta_description'] ?? null,
-            ]);
+        $imageUrls = $validated['images'] ?? [];
+        $writtenPaths = [];
 
-            if (!empty($categoryIds)) {
-                $product->categories()->sync($categoryIds);
-            }
+        try {
+            // The image downloads run inside the transaction deliberately. A
+            // push is all or nothing: if one image cannot be fetched, the
+            // product, its brand, its categories and its variants all have to
+            // disappear again rather than leave a half-synced product behind.
+            [$product, $uploadedImages] = DB::transaction(function () use ($validated, $storeId, $slug, $hasVariants, $imageUrls, &$writtenPaths) {
+                // Resolve brand: brand_id takes priority, then brand_name (find-or-create)
+                $brandId = $validated['brand_id'] ?? null;
+                if (!$brandId && !empty($validated['brand_name'])) {
+                    $brandId = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
+                }
 
-            if ($hasVariants) {
-                $this->syncVariantsFromErp($product, $validated['variants']);
-            }
+                // Resolve categories: category_ids takes priority, then category_names (find-or-create)
+                $categoryIds = $validated['category_ids'] ?? [];
+                if (empty($categoryIds) && !empty($validated['category_names'])) {
+                    $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
+                }
 
-            return $product;
-        });
+                $product = Product::create([
+                    'store_id' => $storeId,
+                    'name' => $validated['name'],
+                    'sku' => $validated['sku'],
+                    'slug' => $slug,
+                    'price' => $validated['price'],
+                    'description' => $validated['description'] ?? null,
+                    'brand_id' => $brandId,
+                    'quantity' => $validated['quantity'] ?? 0,
+                    'weight' => $validated['weight'] ?? 0,
+                    // length/width/height are NOT NULL DEFAULT 0. An explicit
+                    // null overrides the column default and blows up the
+                    // insert, so an omitted dimension has to become 0 here.
+                    'length' => $validated['length'] ?? 0,
+                    'width' => $validated['width'] ?? 0,
+                    'height' => $validated['height'] ?? 0,
+                    'cost' => $validated['cost'] ?? 0,
+                    'is_active' => $validated['status'] ?? true,
+                    'has_variants' => $hasVariants,
+                    'meta_title' => $validated['meta_title'] ?? null,
+                    'meta_description' => $validated['meta_description'] ?? null,
+                ]);
 
-        // Download and attach images from URLs
-        $imageResult = $this->downloadAndAttachImages($product, $validated['images'] ?? []);
+                if (!empty($categoryIds)) {
+                    $product->categories()->sync($categoryIds);
+                }
+
+                if ($hasVariants) {
+                    $this->syncVariantsFromErp($product, $validated['variants']);
+                }
+
+                $imageResult = $this->downloadAndAttachImages($product, $imageUrls, $writtenPaths);
+
+                if (!empty($imageResult['failed'])) {
+                    throw new RemoteImageFetchException($imageResult['failed'], count($imageUrls));
+                }
+
+                return [$product, $imageResult['uploaded']];
+            });
+        } catch (RemoteImageFetchException $e) {
+            $this->discardProductImageFiles($writtenPaths);
+
+            return $this->logAndRespond($request, $this->imageFailureBody($e, 'created'), 422, $validated['sku']);
+        }
 
         $product->load(['brand:id,name,slug', 'categories:id,name,slug']);
 
@@ -239,7 +260,7 @@ class ErpProductController extends Controller
             'quantity' => $product->quantity,
             'has_variants' => $product->has_variants,
             'status' => $product->is_active,
-            'images' => $imageResult['uploaded'],
+            'images' => $uploadedImages,
             'created_at' => $product->created_at?->toIso8601String(),
         ];
 
@@ -256,10 +277,6 @@ class ErpProductController extends Controller
                     'options' => $v->values->map(fn($val) => $val->value)->implode(' / '),
                 ];
             });
-        }
-
-        if (!empty($imageResult['failed'])) {
-            $data['images_failed'] = $imageResult['failed'];
         }
 
         return $this->logAndRespond($request, $data, 201, $product->sku);
@@ -307,92 +324,123 @@ class ErpProductController extends Controller
         ]);
 
         $storeId = (int) config('app.store_id', 1);
+        $imageUrls = $validated['images'] ?? [];
+        $writtenPaths = [];
 
-        DB::transaction(function () use ($request, $product, &$validated, $storeId) {
-            // Resolve brand_name to brand_id if provided
-            if (!$request->has('brand_id') && !empty($validated['brand_name'])) {
-                $validated['brand_id'] = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
-            }
+        // Columns that are NOT NULL DEFAULT 0. The ERP is allowed to send them
+        // as null (the rules say nullable), but an explicit null overrides the
+        // column default and fails the write, so null lands on the default.
+        $notNullDefaults = [
+            'weight' => 0,
+            'length' => 0,
+            'width' => 0,
+            'height' => 0,
+            'cost' => 0,
+        ];
 
-            $fillable = [];
-            $fieldMap = [
-                'name' => 'name',
-                'sku' => 'sku',
-                'price' => 'price',
-                'description' => 'description',
-                'brand_id' => 'brand_id',
-                'quantity' => 'quantity',
-                'weight' => 'weight',
-                'length' => 'length',
-                'width' => 'width',
-                'height' => 'height',
-                'cost' => 'cost',
-                'meta_title' => 'meta_title',
-                'meta_description' => 'meta_description',
-            ];
-
-            foreach ($fieldMap as $input => $column) {
-                if ($request->has($input) || ($input === 'brand_id' && !empty($validated['brand_name']))) {
-                    $fillable[$column] = $validated[$input] ?? null;
+        try {
+            // As with store(), the downloads run inside the transaction so a
+            // single unfetchable image leaves the product exactly as it was.
+            $imageResult = DB::transaction(function () use ($request, $product, &$validated, $storeId, $imageUrls, &$writtenPaths, $notNullDefaults) {
+                // Resolve brand_name to brand_id if provided
+                if (!$request->has('brand_id') && !empty($validated['brand_name'])) {
+                    $validated['brand_id'] = $this->resolveOrCreateBrand($validated['brand_name'], $storeId);
                 }
-            }
 
-            if ($request->has('status')) {
-                $fillable['is_active'] = $validated['status'];
-            }
+                $fillable = [];
+                $fieldMap = [
+                    'name' => 'name',
+                    'sku' => 'sku',
+                    'price' => 'price',
+                    'description' => 'description',
+                    'brand_id' => 'brand_id',
+                    'quantity' => 'quantity',
+                    'weight' => 'weight',
+                    'length' => 'length',
+                    'width' => 'width',
+                    'height' => 'height',
+                    'cost' => 'cost',
+                    'meta_title' => 'meta_title',
+                    'meta_description' => 'meta_description',
+                ];
 
-            if (isset($fillable['name']) && !$request->has('slug')) {
-                $slug = Str::slug($fillable['name']);
-                $originalSlug = $slug;
-                $counter = 1;
-                while (Product::where('slug', $slug)->where('id', '!=', $product->id)->exists()) {
-                    $slug = $originalSlug . '-' . $counter++;
-                }
-                $fillable['slug'] = $slug;
-            }
-
-            // Handle variants
-            if ($request->has('variants')) {
-                if (!empty($validated['variants'])) {
-                    $fillable['has_variants'] = true;
-                    $product->update($fillable);
-                    $this->syncVariantsFromErp($product, $validated['variants']);
-                } else {
-                    // Empty variants array = remove all variants
-                    $product->variants()->delete();
-                    $product->variantTypes()->delete();
-                    $fillable['has_variants'] = false;
-                    $product->update($fillable);
-                }
-            } else {
-                // Variants stay decoupled from a base-price-only update: their
-                // absolute prices don't move, but their modifier deltas need to
-                // refresh against the new base so the admin "+/-" widget reads
-                // truthful values.
-                $basePriceChanged = isset($fillable['price'])
-                    && (float) $fillable['price'] !== (float) $product->price;
-                $product->update($fillable);
-                if ($basePriceChanged && $product->has_variants) {
-                    foreach ($product->variants as $v) {
-                        $v->price_modifier = round((float) $v->price - (float) $product->price, 2);
-                        $v->save();
+                foreach ($fieldMap as $input => $column) {
+                    if ($request->has($input) || ($input === 'brand_id' && !empty($validated['brand_name']))) {
+                        $fillable[$column] = $validated[$input] ?? ($notNullDefaults[$column] ?? null);
                     }
                 }
-            }
 
-            // Resolve category_names to category_ids if provided
-            if (!$request->has('category_ids') && !empty($validated['category_names'])) {
-                $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
-                if (!empty($categoryIds)) {
-                    $product->categories()->sync($categoryIds);
+                if ($request->has('status')) {
+                    $fillable['is_active'] = $validated['status'];
                 }
-            } elseif ($request->has('category_ids')) {
-                $product->categories()->sync($validated['category_ids'] ?? []);
-            }
-        });
 
-        // Download and attach images from URLs (appends to existing)
-        $imageResult = $this->downloadAndAttachImages($product, $validated['images'] ?? []);
+                if (isset($fillable['name']) && !$request->has('slug')) {
+                    $slug = Str::slug($fillable['name']);
+                    $originalSlug = $slug;
+                    $counter = 1;
+                    while (Product::where('slug', $slug)->where('id', '!=', $product->id)->exists()) {
+                        $slug = $originalSlug . '-' . $counter++;
+                    }
+                    $fillable['slug'] = $slug;
+                }
+
+                // Handle variants
+                if ($request->has('variants')) {
+                    if (!empty($validated['variants'])) {
+                        $fillable['has_variants'] = true;
+                        $product->update($fillable);
+                        $this->syncVariantsFromErp($product, $validated['variants']);
+                    } else {
+                        // Empty variants array = remove all variants
+                        $product->variants()->delete();
+                        $product->variantTypes()->delete();
+                        $fillable['has_variants'] = false;
+                        $product->update($fillable);
+                    }
+                } else {
+                    // Variants stay decoupled from a base-price-only update: their
+                    // absolute prices don't move, but their modifier deltas need to
+                    // refresh against the new base so the admin "+/-" widget reads
+                    // truthful values.
+                    $basePriceChanged = isset($fillable['price'])
+                        && (float) $fillable['price'] !== (float) $product->price;
+                    $product->update($fillable);
+                    if ($basePriceChanged && $product->has_variants) {
+                        foreach ($product->variants as $v) {
+                            $v->price_modifier = round((float) $v->price - (float) $product->price, 2);
+                            $v->save();
+                        }
+                    }
+                }
+
+                // Resolve category_names to category_ids if provided
+                if (!$request->has('category_ids') && !empty($validated['category_names'])) {
+                    $categoryIds = $this->resolveOrCreateCategories($validated['category_names'], $storeId);
+                    if (!empty($categoryIds)) {
+                        $product->categories()->sync($categoryIds);
+                    }
+                } elseif ($request->has('category_ids')) {
+                    $product->categories()->sync($validated['category_ids'] ?? []);
+                }
+
+                // Download and attach images from URLs (appends to existing)
+                $imageResult = $this->downloadAndAttachImages($product, $imageUrls, $writtenPaths);
+
+                if (!empty($imageResult['failed'])) {
+                    throw new RemoteImageFetchException($imageResult['failed'], count($imageUrls));
+                }
+
+                return $imageResult;
+            });
+        } catch (RemoteImageFetchException $e) {
+            $this->discardProductImageFiles($writtenPaths);
+
+            // The in-memory model still carries the attributes the rolled-back
+            // write assigned, so reload it before anything reads it again.
+            $product->refresh();
+
+            return $this->logAndRespond($request, $this->imageFailureBody($e, 'updated'), 422, $sku);
+        }
 
         $product->load(['brand:id,name,slug', 'categories:id,name,slug']);
 
@@ -425,9 +473,6 @@ class ErpProductController extends Controller
 
         if (!empty($imageResult['uploaded'])) {
             $data['images'] = $imageResult['uploaded'];
-        }
-        if (!empty($imageResult['failed'])) {
-            $data['images_failed'] = $imageResult['failed'];
         }
 
         return $this->logAndRespond($request, $data, 200, $product->sku);
@@ -487,67 +532,52 @@ class ErpProductController extends Controller
 
         $brandSlug = $product->brand?->slug ?? '';
         $storagePath = $brandSlug ? 'products/' . $brandSlug : 'products/_unbranded';
-        $uploaded = [];
-        $failed = [];
+        $urls = $hasUrls ? ($request->input('image_urls') ?? $request->input('images')) : [];
+        $writtenPaths = [];
 
-        $maxSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? -1;
+        try {
+            $uploaded = DB::transaction(function () use ($request, $product, $storagePath, $hasFiles, $urls, &$writtenPaths) {
+                $uploaded = [];
+                $failed = [];
+                $maxSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? -1;
 
-        // Handle file uploads
-        if ($hasFiles) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store($storagePath, 'public');
-                $maxSort++;
+                // Handle file uploads
+                if ($hasFiles) {
+                    foreach ($request->file('images') as $image) {
+                        $path = $image->store($storagePath, 'public');
+                        $writtenPaths[] = $path;
+                        $maxSort++;
 
-                $record = ProductImage::create([
-                    'product_id' => $product->id,
-                    'path' => $path,
-                    'sort_order' => $maxSort,
-                ]);
+                        $record = ProductImage::create([
+                            'product_id' => $product->id,
+                            'path' => $path,
+                            'sort_order' => $maxSort,
+                        ]);
 
-                $uploaded[] = [
-                    'id' => $record->id,
-                    'path' => $path,
-                    'sort_order' => $record->sort_order,
-                ];
-            }
-        }
+                        $uploaded[] = [
+                            'id' => $record->id,
+                            'path' => $path,
+                            'sort_order' => $record->sort_order,
+                        ];
+                    }
+                }
 
-        // Handle URL downloads
-        if ($hasUrls) {
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            $maxSize = 5 * 1024 * 1024; // 5MB
+                // Handle URL downloads
+                $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 
-            $urls = $request->input('image_urls') ?? $request->input('images');
-            foreach ($urls as $url) {
-                try {
-                    $response = app(SafeUrlFetcher::class)->get($url);
+                foreach ($urls as $url) {
+                    $result = $this->fetchRemoteImage($url, self::IMAGE_ALLOWED_TYPES);
 
-                    if (!$response->successful()) {
-                        $failed[] = ['url' => $url, 'reason' => 'HTTP ' . $response->status()];
+                    if (!$result['ok']) {
+                        $failed[] = ['url' => $url, 'reason' => $result['reason']];
                         continue;
                     }
 
-                    $contentType = $response->header('Content-Type');
-                    $mimeType = explode(';', $contentType)[0] ?? '';
+                    $ext = $extensions[$result['mime']] ?? 'jpg';
+                    $path = $storagePath . '/' . Str::random(40) . '.' . $ext;
 
-                    if (!in_array($mimeType, $allowedTypes)) {
-                        $failed[] = ['url' => $url, 'reason' => 'Invalid type: ' . $mimeType];
-                        continue;
-                    }
-
-                    $body = $response->body();
-
-                    if (strlen($body) > $maxSize) {
-                        $failed[] = ['url' => $url, 'reason' => 'Exceeds 5MB limit'];
-                        continue;
-                    }
-
-                    $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-                    $ext = $extensions[$mimeType] ?? 'jpg';
-                    $filename = Str::random(40) . '.' . $ext;
-
-                    \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath . '/' . $filename, $body);
-                    $path = $storagePath . '/' . $filename;
+                    Storage::disk('public')->put($path, $result['body']);
+                    $writtenPaths[] = $path;
                     $maxSort++;
 
                     $record = ProductImage::create([
@@ -561,22 +591,32 @@ class ErpProductController extends Controller
                         'path' => $path,
                         'sort_order' => $record->sort_order,
                     ];
-                } catch (\Exception $e) {
-                    $failed[] = ['url' => $url, 'reason' => 'Download failed: ' . $e->getMessage()];
                 }
-            }
+
+                if (!empty($failed)) {
+                    throw new RemoteImageFetchException($failed, count($urls));
+                }
+
+                return $uploaded;
+            });
+        } catch (RemoteImageFetchException $e) {
+            $this->discardProductImageFiles($writtenPaths);
+
+            $failedCount = count($e->failures);
+
+            return $this->logAndRespond($request, [
+                'error' => 'images_unavailable',
+                'message' => "No images attached: {$failedCount} of {$e->attempted} image URL(s) could not be fetched. "
+                    . 'Every image in this request was rolled back, so the product still has exactly the images it had before. '
+                    . 'Fix the image URLs listed below and push again.',
+                'images_failed' => $e->failures,
+            ], 422, $sku);
         }
 
-        $response = [
+        return $this->logAndRespond($request, [
             'message' => count($uploaded) . ' image(s) uploaded',
             'images' => $uploaded,
-        ];
-
-        if (!empty($failed)) {
-            $response['failed'] = $failed;
-        }
-
-        return $this->logAndRespond($request, $response, 200, $sku);
+        ], 200, $sku);
     }
 
     public function destroy(Request $request, string $sku): JsonResponse
@@ -651,7 +691,9 @@ class ErpProductController extends Controller
             $variant = $product->variants()->create([
                 'sku' => $v['sku'],
                 'price' => $v['price'],
-                'cost' => $v['cost'] ?? null,
+                // product_variants.cost is NOT NULL DEFAULT 0, so an omitted
+                // cost has to land on the default rather than an explicit null.
+                'cost' => $v['cost'] ?? 0,
                 'quantity' => $v['quantity'] ?? 0,
                 'weight' => $v['weight'] ?? null,
                 'is_active' => $v['status'] ?? true,
@@ -672,8 +714,16 @@ class ErpProductController extends Controller
 
     /**
      * Download images from URLs and attach them to a product.
+     *
+     * Every file written is appended to $writtenPaths so the caller can undo
+     * the disk side of a rolled-back push. Nothing else may be added to that
+     * list: it is the only evidence of which files are this request's to
+     * delete.
+     *
+     * @param  array<int, string>  $urls
+     * @param  array<int, string>  $writtenPaths
      */
-    private function downloadAndAttachImages(Product $product, array $urls): array
+    private function downloadAndAttachImages(Product $product, array $urls, array &$writtenPaths = []): array
     {
         $uploaded = [];
         $failed = [];
@@ -685,64 +735,75 @@ class ErpProductController extends Controller
         $product->loadMissing('brand:id,slug');
         $brandSlug = $product->brand?->slug ?? '';
         $storagePath = $brandSlug ? 'products/' . $brandSlug : 'products/_unbranded';
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        $maxSize = 5 * 1024 * 1024;
         $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
 
         $maxSort = ProductImage::where('product_id', $product->id)->max('sort_order') ?? -1;
 
         foreach ($urls as $url) {
-            try {
-                $response = app(SafeUrlFetcher::class)->get($url);
+            $result = $this->fetchRemoteImage($url, self::IMAGE_ALLOWED_TYPES);
 
-                if (!$response->successful()) {
-                    $failed[] = ['url' => $url, 'reason' => 'HTTP ' . $response->status()];
-                    continue;
-                }
-
-                $contentType = explode(';', $response->header('Content-Type') ?? '')[0];
-
-                if (!in_array($contentType, $allowedTypes)) {
-                    $failed[] = ['url' => $url, 'reason' => 'Invalid type: ' . $contentType];
-                    continue;
-                }
-
-                $body = $response->body();
-
-                if (strlen($body) > $maxSize) {
-                    $failed[] = ['url' => $url, 'reason' => 'Exceeds 5MB limit'];
-                    continue;
-                }
-
-                $ext = $extensions[$contentType] ?? 'jpg';
-                $filename = Str::random(40) . '.' . $ext;
-
-                \Illuminate\Support\Facades\Storage::disk('public')->put($storagePath . '/' . $filename, $body);
-                $path = $storagePath . '/' . $filename;
-                $maxSort++;
-
-                $record = ProductImage::create([
-                    'product_id' => $product->id,
-                    'path' => $path,
-                    'sort_order' => $maxSort,
-                ]);
-
-                // Set as main image if first
-                if ($maxSort === 0 && !$product->image) {
-                    $product->update(['image' => $path]);
-                }
-
-                $uploaded[] = [
-                    'id' => $record->id,
-                    'path' => $path,
-                    'sort_order' => $record->sort_order,
-                ];
-            } catch (\Exception $e) {
-                $failed[] = ['url' => $url, 'reason' => 'Download failed: ' . $e->getMessage()];
+            if (!$result['ok']) {
+                $failed[] = ['url' => $url, 'reason' => $result['reason']];
+                continue;
             }
+
+            $ext = $extensions[$result['mime']] ?? 'jpg';
+            $path = $storagePath . '/' . Str::random(40) . '.' . $ext;
+
+            Storage::disk('public')->put($path, $result['body']);
+            $writtenPaths[] = $path;
+            $maxSort++;
+
+            $record = ProductImage::create([
+                'product_id' => $product->id,
+                'path' => $path,
+                'sort_order' => $maxSort,
+            ]);
+
+            // Set as main image if first
+            if ($maxSort === 0 && !$product->image) {
+                $product->update(['image' => $path]);
+            }
+
+            $uploaded[] = [
+                'id' => $record->id,
+                'path' => $path,
+                'sort_order' => $record->sort_order,
+            ];
         }
 
         return compact('uploaded', 'failed');
+    }
+
+    /**
+     * Body of the 422 a failed image fetch produces.
+     *
+     * `images_failed` keeps the key and the {url, reason} shape the ERP
+     * already reads, so an existing client keeps understanding the payload
+     * and only has to notice that the status is no longer a success.
+     */
+    private function imageFailureBody(RemoteImageFetchException $e, string $verb): array
+    {
+        $failedCount = count($e->failures);
+
+        return [
+            'error' => 'images_unavailable',
+            'message' => "Product not {$verb}: {$failedCount} of {$e->attempted} image(s) could not be fetched. "
+                . 'The whole push was rolled back, so nothing in the store changed. '
+                . 'Fix the image URLs listed below and push again.',
+            'images_failed' => $e->failures,
+        ];
+    }
+
+    /**
+     * Delete the files a rolled-back push wrote, and only those.
+     */
+    private function discardProductImageFiles(array $paths): void
+    {
+        $this->discardWrittenFiles($paths, function (string $path) {
+            return ProductImage::where('path', $path)->exists()
+                || Product::where('image', $path)->exists();
+        });
     }
 
     /**

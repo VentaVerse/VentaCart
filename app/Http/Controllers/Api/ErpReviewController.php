@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\RemoteImageFetchException;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\ReviewImage;
-use App\Services\SafeUrlFetcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 
 class ErpReviewController extends Controller
 {
+    use FetchesRemoteImages;
     use LogsApiCalls;
 
     public function store(Request $request): JsonResponse
@@ -63,50 +64,88 @@ class ErpReviewController extends Controller
             $productId = $product->id;
         }
 
-        $review = DB::transaction(function () use ($validated, $productId, $request) {
-            $review = Review::create([
-                'product_id' => $productId,
-                'name' => $validated['author'],
-                'email' => null,
-                'token' => Str::random(64),
-                'rating' => $validated['rating'],
-                'title' => $validated['title'] ?? null,
-                'body' => $validated['body'] ?? null,
-                'status' => $validated['status'] ?? 'approved',
-                'is_verified_purchase' => true,
-                'platform' => $validated['platform'],
-                'platform_review_id' => $validated['platform_review_id'],
-                'published_at' => $validated['date_added'] ?? now(),
-            ]);
+        $imageUrls = $validated['images'] ?? [];
+        $writtenPaths = [];
 
-            // Download and save images
-            if (! empty($validated['images'])) {
-                Storage::disk('public')->makeDirectory('reviews');
+        try {
+            $review = DB::transaction(function () use ($validated, $productId, $imageUrls, &$writtenPaths) {
+                $review = Review::create([
+                    'product_id' => $productId,
+                    'name' => $validated['author'],
+                    'email' => null,
+                    'token' => Str::random(64),
+                    'rating' => $validated['rating'],
+                    'title' => $validated['title'] ?? null,
+                    'body' => $validated['body'] ?? null,
+                    'status' => $validated['status'] ?? 'approved',
+                    'is_verified_purchase' => true,
+                    'platform' => $validated['platform'],
+                    'platform_review_id' => $validated['platform_review_id'],
+                    'published_at' => $validated['date_added'] ?? now(),
+                ]);
 
-                foreach ($validated['images'] as $imageUrl) {
-                    try {
-                        $response = app(SafeUrlFetcher::class)->get($imageUrl);
+                // Download and save images. A review whose photos could not be
+                // fetched is as half-synced as a product whose photos could
+                // not be fetched, and the ERP would file a 201 as a clean
+                // success either way, so this endpoint fails the same way the
+                // product push does. Retrying is safe: the review row is rolled
+                // back with everything else, and the duplicate check above
+                // still skips a review that did land earlier.
+                //
+                // What is deliberately NOT tightened here is which responses
+                // count as an image. Marketplace review photos arrive with all
+                // sorts of content types and this endpoint has always accepted
+                // any successful response, so narrowing that now would reject
+                // review pushes that work today. Only the handling of an
+                // outright fetch failure changes.
+                if (! empty($imageUrls)) {
+                    Storage::disk('public')->makeDirectory('reviews');
+                    $failed = [];
 
-                        if ($response->successful()) {
-                            $extension = $this->guessExtension($response->header('Content-Type'), $imageUrl);
-                            $filename = 'reviews/' . Str::uuid() . '.' . $extension;
+                    foreach ($imageUrls as $imageUrl) {
+                        $result = $this->fetchRemoteImage($imageUrl);
 
-                            Storage::disk('public')->put($filename, $response->body());
-
-                            ReviewImage::create([
-                                'review_id' => $review->id,
-                                'path' => $filename,
-                            ]);
+                        if (! $result['ok']) {
+                            $failed[] = ['url' => $imageUrl, 'reason' => $result['reason']];
+                            continue;
                         }
-                    } catch (\Throwable $e) {
-                        // Log but don't fail the whole review for a single image
-                        report($e);
+
+                        $extension = $this->guessExtension($result['mime'], $imageUrl);
+                        $filename = 'reviews/' . Str::uuid() . '.' . $extension;
+
+                        Storage::disk('public')->put($filename, $result['body']);
+                        $writtenPaths[] = $filename;
+
+                        ReviewImage::create([
+                            'review_id' => $review->id,
+                            'path' => $filename,
+                        ]);
+                    }
+
+                    if (! empty($failed)) {
+                        throw new RemoteImageFetchException($failed, count($imageUrls));
                     }
                 }
-            }
 
-            return $review;
-        });
+                return $review;
+            });
+        } catch (RemoteImageFetchException $e) {
+            // Only files this request wrote, each under a fresh uuid filename
+            // that existed nowhere before the call.
+            $this->discardWrittenFiles($writtenPaths, function (string $path) {
+                return ReviewImage::where('path', $path)->exists();
+            });
+
+            $failedCount = count($e->failures);
+
+            return $this->logAndRespond($request, [
+                'error' => 'images_unavailable',
+                'message' => "Review not created: {$failedCount} of {$e->attempted} image(s) could not be fetched. "
+                    . 'The whole push was rolled back, so nothing in the store changed. '
+                    . 'Fix the image URLs listed below and push again.',
+                'images_failed' => $e->failures,
+            ], 422);
+        }
 
         $review->load('images');
 
