@@ -123,6 +123,15 @@
                 $checkedCourierNames[] = $courierOption['name'];
             }
         }
+
+        // Which couriers carry artwork of their own, bound to a plate in
+        // fulfillment.css. A courier we have no logo for takes the drawn
+        // mark instead, so a fourth column joining this row later arrives
+        // as a card shaped like its neighbours rather than as a blank
+        // plate waiting on a file.
+        $markFor = function (string $courierKey) {
+            return in_array($courierKey, ['quadx', 'spx'], true) ? $courierKey : null;
+        };
     @endphp
 
     <div x-data="fulfillment()">
@@ -1046,6 +1055,8 @@
                                                 <x-admin.choice.card
                                                     :name="$opt['name']"
                                                     :mode="!empty($opt['mode']) && $opt['mode'] !== 'production' ? ucfirst($opt['mode']) : null"
+                                                    :mark="$markFor($key)"
+                                                    :icon="$markFor($key) ? null : 'fulfillment'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-state="serviceable"
                                                     x-show="verdict('{{ $key }}') === 'serviceable'"
@@ -1069,6 +1080,8 @@
                                                 <x-admin.choice.card
                                                     :name="$opt['name']"
                                                     state="Could not check"
+                                                    :mark="$markFor($key)"
+                                                    :icon="$markFor($key) ? null : 'fulfillment'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-state="unknown"
                                                     x-show="verdict('{{ $key }}') === 'unknown'"
@@ -1092,6 +1105,8 @@
                                                     :name="$opt['name']"
                                                     :available="false"
                                                     state="Not serviceable"
+                                                    :mark="$markFor($key)"
+                                                    :icon="$markFor($key) ? null : 'fulfillment'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-state="not_serviceable"
                                                     x-show="verdict('{{ $key }}') === 'not_serviceable'">
@@ -1105,6 +1120,8 @@
                                                     :name="$opt['name']"
                                                     :available="false"
                                                     state="Not configured"
+                                                    :mark="$markFor($key)"
+                                                    :icon="$markFor($key) ? null : 'fulfillment'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-configured="false">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}" class="v-choice__offlink">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.</x-admin.choice.card>
                                             @endif
@@ -1118,7 +1135,13 @@
                                              is what tells the operator what picking it means
                                              (nothing is sent, nothing comes back). --}}
                                         @if (!empty($manualCouriers))
-                                            <x-admin.choice.card name="Another courier" mode="Manual"
+                                            {{-- A drawn mark rather than a logo, because there
+                                                 is no one courier behind this card to carry
+                                                 one. The person is the mark: every option in
+                                                 this row is a parcel, and what separates this
+                                                 one is that somebody arranges it by hand
+                                                 instead of an API doing it. --}}
+                                            <x-admin.choice.card name="Another courier" mode="Manual" icon="user"
                                                 data-courier-card="__manual" @click="chooseManual()" />
                                         @endif
                                     </x-admin.choice>

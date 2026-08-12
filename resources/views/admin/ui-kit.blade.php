@@ -651,23 +651,30 @@
                         </x-admin.choice.card>
                     </x-admin.choice>
 
+                    {{-- The same set wearing its marks. `mark` names a plate
+                         a stylesheet binds artwork to, and is why the real
+                         courier logos live in the extension that knows whose
+                         they are; `icon` is the drawn alternative, on the
+                         same square, for an option no logo exists for. The
+                         three unavailable states drain their mark, so a
+                         greyed card greys as one thing. --}}
                     <p class="v-choice__note mt-5">No integrated courier will carry this order to Alegria, Caluya, Antique.</p>
                     <x-admin.choice cols>
-                        <x-admin.choice.card name="QuadX" mode="Staging" fee="from PHP 80.00" />
+                        <x-admin.choice.card name="QuadX" mode="Staging" fee="from PHP 80.00" icon="fulfillment" />
                         {{-- Could not check: greyed, and still a real button.
                              A courier we could not reach has refused
                              nothing. Its words are printed because this
                              failure is one we do not recognise. --}}
-                        <x-admin.choice.card name="SPX Express" state="Could not check">
+                        <x-admin.choice.card name="SPX Express" state="Could not check" icon="fulfillment">
                             SPX Express said:<span class="v-choice__said">Sorry, ESF calculation failed because of the address you selected does not match available route code</span>
                         </x-admin.choice.card>
                         {{-- Not serviceable: one sentence, ours, naming what
                              was refused. A failure we recognise never prints
                              the courier's words as well. --}}
-                        <x-admin.choice.card name="LBC Express" :available="false" state="Not serviceable">
+                        <x-admin.choice.card name="LBC Express" :available="false" state="Not serviceable" icon="fulfillment">
                             LBC Express does not deliver to Alegria, Caluya, Antique.
                         </x-admin.choice.card>
-                        <x-admin.choice.card name="Another courier" mode="Manual" />
+                        <x-admin.choice.card name="Another courier" mode="Manual" icon="user" />
                     </x-admin.choice>
 
                     {{-- Before any card can be drawn: a named wait, because

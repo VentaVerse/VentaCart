@@ -80,6 +80,47 @@
     width: 100%;
 }
 
+/* ------------------------------------------------------------
+   The mark a card wears
+
+   Either the option's own logo or, for an option nobody ships
+   artwork for, a drawn icon on the same 24 grid as every other icon
+   in the admin. One square, one radius, one place on every card, so
+   a row of four reads as a row rather than as four unrelated things.
+
+   It is decorative in the strict sense: the card already says the
+   option's name in text, so the tile is `aria-hidden` and the option
+   is announced once.
+
+   The plate belongs to the mark, not to the card. A logo drawn for a
+   white page has to carry a white page under it or it vanishes in
+   the dark theme, which is why a courier binding states its own
+   ground (the same reason the filled accent stops do not flip), and
+   why a hairline sits inside every plate: a white tile on a white
+   sheet has no edge of its own.
+   ------------------------------------------------------------ */
+.v-choice__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    flex: none;
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-sunken);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+    color: var(--text-secondary);
+}
+
+/* The drawn mark is made of tokens rather than of somebody's brand,
+   so it takes the layer's own edge instead of the plate hairline. */
+.v-choice__mark--drawn {
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
 /* The name and, on a card that can be picked, the mark that says so.
    The chevron is pinned to the top line rather than centred on the
    card, so it stays beside the name whether the card carries one line
@@ -204,6 +245,21 @@
 .v-choice__card--caution:hover {
     background: var(--surface-hover);
     border-color: var(--border-strong);
+}
+
+/* A logo that keeps its colour on a card nothing can pick reads as
+   the one card you SHOULD pick, and fights the grey around it. Both
+   unavailable states drain the mark and sink it toward the card's own
+   ground so the card greys as a single thing.
+
+   Contrast before opacity is what makes the two treatments land
+   together: a brand that brought a white plate and a brand that
+   brought a saturated one are pulled to the same middle first, then
+   faded, instead of one disappearing while the other stays a solid
+   grey square. */
+.v-choice__card--off .v-choice__mark,
+.v-choice__card--caution .v-choice__mark {
+    filter: grayscale(1) contrast(0.55) opacity(0.6);
 }
 
 /* The other side's own words, quoted, and shown only where we have

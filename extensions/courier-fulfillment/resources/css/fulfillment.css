@@ -38,6 +38,42 @@
 
 .v-bookmodal--couriers { max-width: 54rem; }
 
+/* The couriers' own marks.
+   -------------------------------------------------------------------
+   The tile, its size, its radius, where it sits on a card and how it
+   greys out are all the shared layer's (.v-choice__mark). What is
+   page-specific is only WHICH artwork a courier carries, for the same
+   reason the two column widths above are: "QuadX" and "SPX" are this
+   module's vocabulary, and the design system holds no opinion about
+   whose logo is whose.
+
+   Referenced by url() from this stylesheet so Vite fingerprints both
+   images and emits them beside it, exactly as the self-hosted fonts
+   are. Nothing is copied into public/ by hand, and no <img> needs a
+   Vite input of its own.
+
+   Both plates state their own ground and do not flip with the theme,
+   for the same reason the filled accent stops do not: a mark brings
+   the field it was drawn on. */
+
+/* SPX ships a full-bleed tile. The orange is baked into the artwork
+   and is genuinely the brand, so the image IS the plate, filling the
+   square and clipped by the radius the layer sets. */
+.v-choice__mark--spx {
+    background-image: url('../images/spx.png');
+    background-size: cover;
+}
+
+/* GoGo Xpress ships a wordmark on transparency whose lower line is
+   near-black, so it keeps the white page it was drawn for. Same
+   square, same radius as SPX's, which is what keeps the row even
+   instead of one card boxed and one floating. */
+.v-choice__mark--quadx {
+    background-color: #FFFFFF;
+    background-image: url('../images/gogo.png');
+    background-size: 88%;
+}
+
 /* The marker on a parcel leaving by a courier we do not integrate with.
    It sits under the courier's name in the same cell an integrated
    shipment uses, and its whole job is to stop an operator hunting for
