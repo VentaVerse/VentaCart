@@ -30,6 +30,13 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // Static segment, same reasoning as 'poll' above.
         Route::get('/returns', [FulfillmentController::class, 'returns'])->name('returns');
         Route::post('/{order}/book', [FulfillmentController::class, 'book'])->name('book');
+        // The third way a parcel can leave: a courier we do not integrate
+        // with, recorded by hand (no API call, no AWB, no polling). Writes
+        // core's own shipping_courier_id / tracking_number / tracking_link and
+        // leaves courier_provider null, which is what keeps courier:poll-status
+        // from ever seeing it. clear-manual is its undo.
+        Route::post('/{order}/book-manual', [FulfillmentController::class, 'bookManual'])->name('book-manual');
+        Route::post('/{order}/clear-manual', [FulfillmentController::class, 'clearManual'])->name('clear-manual');
         // Task T4: lazy, per-order/per-selection AJAX endpoints the booking
         // modal's step 2 hits on demand (SPX's estimate button / pickup-slot
         // fetch on courier choice) — never called during the queue's own

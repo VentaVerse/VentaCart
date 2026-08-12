@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\OrderStatus;
 use App\Models\Setting;
+use App\Models\ShippingCourier;
 use App\Services\OrderStatusChanger;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Support\Facades\Auth;
@@ -165,6 +166,28 @@ class FulfillmentService
      * cancelled statuses ARE those literals and bucket to the cancelled
      * phase anyway, so its behavior is unchanged on either path.
      */
+    /**
+     * Is this parcel leaving by a courier we do NOT integrate with?
+     *
+     * The whole of the manual mechanism, stated as one predicate: core's
+     * pre-existing `orders.shipping_courier_id` is set (the admin named a
+     * courier from `shipping_couriers`) and `courier_provider` is null (no
+     * integration owns this shipment).
+     *
+     * The null provider is load-bearing rather than incidental. Both loops in
+     * courier:poll-status select `where('courier_provider', $courier->getKey())`
+     * — a null provider matches no registered key, so a manual shipment is
+     * invisible to the poller BY CONSTRUCTION, with no exclusion list to keep
+     * in step. It also keeps `courier_provider` honestly meaning "a courier
+     * this app talks to", which is what every other reader of that column
+     * (CourierManager::get(), trackingLinks(), printLabel(), the webhook
+     * ingestor) already assumes.
+     */
+    public static function isManuallyShipped(Order $order): bool
+    {
+        return $order->shipping_courier_id !== null && $order->courier_provider === null;
+    }
+
     public static function isActivelyBooked(Order $order): bool
     {
         if (!$order->courier_tracking_number) {
@@ -425,18 +448,26 @@ class FulfillmentService
      *
      * Notify is OFF: the customer is told about a shipment by the status
      * map's own notify flag or the order page, never by this internal move.
+     *
+     * $comment replaces only the FIRST sentence (what happened); the status
+     * move is always appended by this method, so every history row still ends
+     * the same way. It exists for the manual path (bookManual() below), whose
+     * first sentence is honestly "Shipment recorded" plus the operator's own
+     * note, not "Courier booking confirmed" — no courier was contacted.
+     * Omitted by both integrated callers, whose rows are unchanged.
      */
-    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null): ?OrderStatus
+    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null, ?string $comment = null): ?OrderStatus
     {
         $status = self::bookedStatus();
         if (!$status || (int) $order->order_status_id === (int) $status->id) {
             return null;
         }
 
-        $comment = 'Courier booking confirmed'
+        $comment = ($comment ?? ('Courier booking confirmed'
             . ($courierName ? ' with ' . $courierName : '')
             . ($tracking ? ' (' . $tracking . ')' : '')
-            . '. Order status set to ' . $status->name . ' by fulfillment.';
+            . '.'))
+            . ' Order status set to ' . $status->name . ' by fulfillment.';
 
         // History row + status update + stock adjustment either all land or
         // none do, same as every other status change in the app.
@@ -494,6 +525,25 @@ class FulfillmentService
                 'success' => false,
                 'code'    => 'creation_in_progress',
                 'error'   => "Order #{$order->id} is already being booked with {$inProgressWith}. Please wait for it to finish (usually a few seconds) and try again.",
+            ];
+        }
+
+        // Manual-shipment guard. An order whose parcel has already been
+        // recorded as leaving by a courier we do not integrate with
+        // (isManuallyShipped()) carries a courier name, a tracking number and
+        // a tracking link that a real booking would silently overwrite,
+        // leaving two shipments' worth of record on one order and no way to
+        // tell which one the customer was given. The manual record has to be
+        // cleared first, which is one click on the row (clearManual()).
+        //
+        // Checked here, alongside the other "this order is already committed
+        // somewhere" guards, and before the courier is resolved so the answer
+        // does not depend on which courier was picked.
+        if (self::isManuallyShipped($order)) {
+            return [
+                'success' => false,
+                'code'    => 'manually_shipped',
+                'error'   => "Order #{$order->id} is already recorded as shipping with " . self::manualCourierName($order) . '. Clear that shipment first, then book.',
             ];
         }
 
@@ -674,5 +724,259 @@ class FulfillmentService
             'tracking_number' => $result['tracking_number'] ?? null,
             'status'          => $result['status'] ?? null,
         ];
+    }
+
+    /**
+     * Record a parcel leaving by a courier this app does not integrate with.
+     *
+     * WHY THIS IS A BRANCH AND NOT A COURIER. Both integrated couriers refuse
+     * to book a delivery to an address they do not serve (QuadX answers 422
+     * "Delivery address is not serviceable"; SPX marks such municipalities
+     * Support Deliver = 0), so for those destinations the merchant picks a
+     * courier nobody integrates with, arranges it by phone, and needs Venta to
+     * REMEMBER it. There is no API to call, no waybill to fetch, no status to
+     * poll — which is why this is not a CourierFulfillmentInterface
+     * implementation: nineteen of that contract's twenty-two methods would be
+     * no-ops, and the three that are not (getKey, getName, isEnabled) would
+     * put a manual pseudo-courier into the poller's two provider loops, the
+     * settings hub's per-courier card list, hasEnabled()'s "is this module
+     * usable" answer, and the flagged()/isFlagged() credential machinery,
+     * every one of which would then need an exception carved back out.
+     *
+     * Nothing new is stored. It writes core's own pre-existing manual courier
+     * columns — `shipping_courier_id`, `tracking_number`, `tracking_link` —
+     * which the order page has always rendered and which 12 orders already
+     * use. `courier_provider` is deliberately left null (see
+     * isManuallyShipped()).
+     *
+     * Every gate book() applies is applied here too, in the same order and
+     * from the same shared helpers, so "which orders may leave To Pack" has
+     * exactly one answer regardless of how the parcel ships.
+     *
+     * @param array{shipping_courier_id:int, tracking_number?:?string, note?:?string} $opts
+     * @return array{success:bool, courier?:string, tracking_number?:?string, error?:string, code?:string}
+     */
+    public function bookManual(Order $order, array $opts): array
+    {
+        if ((string) $order->courier_status === 'creating') {
+            $inProgressWith = CourierManager::get((string) $order->courier_provider)?->getName() ?: (string) $order->courier_provider;
+            return [
+                'success' => false,
+                'code'    => 'creation_in_progress',
+                'error'   => "Order #{$order->id} is already being booked with {$inProgressWith}. Wait for that to finish, cancel it, then record this shipment.",
+            ];
+        }
+
+        // An integrated booking is a real parcel with a real waybill. Recording
+        // a second, manual one over the top would leave the order claiming two
+        // shipments — cancel the booking first, which is the same order of
+        // operations cancelOrder() already demands.
+        if (self::isActivelyBooked($order)) {
+            $bookedWith = CourierManager::get((string) $order->courier_provider)?->getName()
+                ?: strtoupper((string) $order->courier_provider);
+            return [
+                'success' => false,
+                'code'    => 'already_booked',
+                'error'   => "Order #{$order->id} is already booked with {$bookedWith} ({$order->courier_tracking_number}). Cancel that booking first.",
+            ];
+        }
+
+        if (self::isManuallyShipped($order)) {
+            return [
+                'success' => false,
+                'code'    => 'manually_shipped',
+                'error'   => "Order #{$order->id} is already recorded as shipping with " . self::manualCourierName($order) . '. Clear that shipment first to record a different one.',
+            ];
+        }
+
+        $blocked = self::bookingBlockedReason($order);
+        if ($blocked !== null) {
+            return ['success' => false, 'code' => 'placement_blocked', 'error' => $blocked];
+        }
+
+        // Same destination gate as book(): a recorded shipment that cannot
+        // move the order onward would sit in To Pack offering to be recorded
+        // again. Refused before anything is written.
+        if (self::bookedStatus() === null) {
+            return [
+                'success' => false,
+                'code'    => 'no_booked_status',
+                'error'   => 'No order status is placed under To Handover, so a shipped order would have nowhere to go. Place one under Settings, Modules, Courier Fulfillment, Status placement.',
+            ];
+        }
+
+        $courier = ShippingCourier::where('is_active', true)->find((int) ($opts['shipping_courier_id'] ?? 0));
+        if (!$courier) {
+            return ['success' => false, 'code' => 'courier_unavailable', 'error' => 'That courier is not available. Choose an active courier under Sales, Couriers.'];
+        }
+
+        $tracking = trim((string) ($opts['tracking_number'] ?? '')) ?: null;
+        $note     = trim((string) ($opts['note'] ?? '')) ?: null;
+
+        // Built from the courier's own {tracking_number} template, and only
+        // when there is a number to put in it — a link to a tracking page with
+        // no consignment on it is worse than no link.
+        $trackingLink = $tracking ? $courier->getTrackingLink($tracking) : null;
+
+        $preBookingStatusId = (int) $order->order_status_id;
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        // Only the two keys the undo path reads survive: the audit trail of
+        // past bookings, and where this order came from. Any provider-owned
+        // residue from a previously cancelled booking is dropped, because no
+        // provider owns this shipment.
+        $meta = [
+            'booking_history'             => (isset($meta['booking_history']) && is_array($meta['booking_history'])) ? $meta['booking_history'] : [],
+            'pre_booking_order_status_id' => $preBookingStatusId,
+            'manual_shipment'             => [
+                'shipping_courier_id' => $courier->id,
+                'courier_name'        => $courier->name,
+                'tracking_number'     => $tracking,
+                'note'                => $note,
+                'recorded_at'         => now()->toIso8601String(),
+                'recorded_by'         => Auth::id(),
+            ],
+        ];
+        if ($meta['booking_history'] === []) {
+            unset($meta['booking_history']);
+        }
+
+        $comment = 'Shipment recorded with ' . $courier->name
+            . ($tracking ? ' (' . $tracking . ')' : ', no tracking number')
+            . '.' . ($note ? ' Note: ' . $note : '');
+
+        // The write and the status move either both land or neither does: an
+        // order carrying a courier name while still sitting in To Pack would
+        // offer to be booked again over a parcel that has already left.
+        DB::transaction(function () use ($order, $courier, $tracking, $trackingLink, $meta, $comment) {
+            // forceFill for courier_meta / courier_booked_at only (extension-
+            // owned, not in core Order::$fillable). The three columns that
+            // matter here are core's own and long-standing; they are written
+            // in the same call so the model saves once.
+            $order->forceFill([
+                'shipping_courier_id' => $courier->id,
+                'tracking_number'     => $tracking,
+                'tracking_link'       => $trackingLink,
+                'courier_meta'        => json_encode($meta),
+                'courier_booked_at'   => now(),
+            ])->save();
+
+            // Moves it to To Handover by the same shared helper an integrated
+            // booking uses, so a manual parcel walks the placement tabs
+            // exactly like every other order and the admin advances it by
+            // hand from there.
+            self::applyBookedStatus($order, $courier->name, $tracking, $comment);
+        });
+
+        return [
+            'success'         => true,
+            'courier'         => $courier->name,
+            'tracking_number' => $tracking,
+        ];
+    }
+
+    /**
+     * The undo: forget a recorded shipment and put the order back where it was
+     * before it was recorded, so it can be recorded again (wrong courier,
+     * wrong number) or booked with an integrated courier instead.
+     *
+     * Offered on To Handover only, which is the same placement Cancel booking
+     * is offered on and for the same reason: it is the step that undoes the
+     * move recording made. An order the admin has since advanced by hand is
+     * past this, and its tracking is edited on the order page, which has
+     * always been able to.
+     *
+     * @return array{success:bool, error?:string, code?:string, courier?:string, status?:string}
+     */
+    public function clearManual(Order $order): array
+    {
+        if (!self::isManuallyShipped($order)) {
+            return ['success' => false, 'code' => 'not_manual', 'error' => "Order #{$order->id} has no recorded shipment to clear."];
+        }
+
+        if (!in_array(self::tabBucket($order), [self::UNBOOKED_PLACEMENT, self::BOOKED_PLACEMENT], true)) {
+            $label = self::TAB_LABELS[self::BOOKED_PLACEMENT];
+            return [
+                'success' => false,
+                'code'    => 'placement_blocked',
+                'error'   => "Order #{$order->id} has moved past {$label}. Set its status back to one placed under {$label} to clear the shipment, or edit its tracking on the order page.",
+            ];
+        }
+
+        $courierName = self::manualCourierName($order);
+        $tracking = $order->tracking_number;
+
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $history = (isset($meta['booking_history']) && is_array($meta['booking_history'])) ? $meta['booking_history'] : [];
+        $preBookingStatusId = isset($meta['pre_booking_order_status_id']) ? (int) $meta['pre_booking_order_status_id'] : null;
+
+        // Same audit shape a cancelled courier booking leaves behind, so one
+        // reader covers both: what shipped, by whom, and that a human undid it.
+        $history[] = [
+            'courier'                  => null,
+            'shipping_courier_id'      => (int) $order->shipping_courier_id,
+            'courier_name'             => $courierName,
+            'tracking_number'          => $tracking,
+            'manual'                   => true,
+            'note'                     => $meta['manual_shipment']['note'] ?? null,
+            'previous_order_status_id' => $preBookingStatusId,
+            'admin_cancelled'          => true,
+            'cancelled_at'             => now()->toIso8601String(),
+        ];
+
+        $comment = 'Recorded shipment cleared: ' . $courierName
+            . ($tracking ? ' (' . $tracking . ')' : '') . '.';
+
+        $target = self::unbookedStatus($preBookingStatusId);
+
+        DB::transaction(function () use ($order, $history, $target, $comment) {
+            $order->forceFill([
+                'shipping_courier_id' => null,
+                'tracking_number'     => null,
+                'tracking_link'       => null,
+                // booking_history is the ONE key that survives, exactly as it
+                // does through a cancelled courier booking.
+                'courier_meta'        => json_encode(['booking_history' => $history]),
+                'courier_booked_at'   => null,
+            ])->save();
+
+            if ($target && (int) $order->order_status_id !== (int) $target->id) {
+                OrderStatusChanger::apply(
+                    $order,
+                    $target->id,
+                    $comment . ' Order status set to ' . $target->name . ', back under To Ship, To Pack.',
+                    false,
+                    Auth::id(),
+                );
+
+                return;
+            }
+
+            // Nowhere to move it to, or already there: the audit row still has
+            // to exist, and it says what actually happened.
+            OrderHistory::create([
+                'order_id'        => $order->id,
+                'order_status_id' => $order->order_status_id,
+                'comment'         => $comment . ' Order status unchanged (' . ($order->status?->name ?? 'its current status') . ').',
+                'notify_customer' => false,
+            ]);
+        });
+
+        return [
+            'success' => true,
+            'courier' => $courierName,
+            'status'  => $target?->name,
+        ];
+    }
+
+    /**
+     * What to call the courier on a manual shipment. The order's own snapshot
+     * first (it survives the courier being renamed or deleted, which is the
+     * whole point of Order's snapshot columns), then the live row for the
+     * pre-snapshot orders that predate it.
+     */
+    private static function manualCourierName(Order $order): string
+    {
+        return $order->shipping_courier_name
+            ?: ($order->shippingCourier?->name ?: 'another courier');
     }
 }

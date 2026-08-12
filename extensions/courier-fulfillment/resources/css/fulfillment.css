@@ -20,6 +20,34 @@
 .v-col-courier { width: 170px; }
 .v-col-status  { width: 170px; }
 
+/* The marker on a parcel leaving by a courier we do not integrate with.
+   It sits under the courier's name in the same cell an integrated
+   shipment uses, and its whole job is to stop an operator hunting for
+   a waybill that was never printed.
+
+   Deliberately not x-admin.badge: a badge in this table means a STATE
+   the system is reporting, and this is a fact about how the parcel was
+   arranged, which never changes. So it is quiet - muted text on the
+   sheet's own well, no colour of its own - and it is page-specific for
+   the same reason the two widths above are: "manual" is this module's
+   word, not a distinction the design system holds an opinion about.
+
+   Muted on the sunken well clears AA at 11px in both themes (light
+   5.5:1, dark 6.0:1). */
+.v-manual {
+    display: inline-block;
+    margin-block: 2px;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 /* Pickup addresses.
    -------------------------------------------------------------------
    Two column floors and one inert control, all page-specific for the

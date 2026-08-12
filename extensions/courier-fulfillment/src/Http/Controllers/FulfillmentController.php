@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\Setting;
+use App\Models\ShippingCourier;
 use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\Http\Requests\ManualShipmentRequest;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\PlacementMap;
 use Illuminate\Http\Request;
@@ -165,6 +167,13 @@ class FulfillmentController extends Controller
 
         $query = (clone $base)
             ->with('status:id,name')
+            // Core's own manual courier record (orders.shipping_courier_id),
+            // eager loaded so a page of manually shipped rows costs one query
+            // rather than one per row. The row still prefers the order's
+            // shipping_courier_name snapshot; this is the fallback for the
+            // pre-snapshot orders, and the source of a tracking link the
+            // accessor has to derive.
+            ->with('shippingCourier:id,name,tracking_url')
             ->with(['products' => function ($q) {
                 // Item rows for the two-tier table: snapshot name/sku/image on
                 // the line itself, live product image as the fallback.
@@ -250,9 +259,24 @@ class FulfillmentController extends Controller
             ];
         }
 
+        // The couriers a parcel can leave by WITHOUT an integration: core's own
+        // shipping_couriers table (LBC Express, J&T, Gogo), which already
+        // carries the {tracking_number} URL template the recorded link is
+        // built from. Nothing new is registered or configured for this; the
+        // store's courier list simply becomes reachable from the queue.
+        $manualCouriers = ShippingCourier::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (ShippingCourier $c) => ['id' => $c->id, 'name' => $c->name])
+            ->values()
+            ->all();
+
         return view('courier-fulfillment::index', [
             'orders' => $orders,
             'couriers' => $couriers,
+            'manualCouriers' => $manualCouriers,
             'primary' => $primary,
             'courierOptions' => $courierOptions,
             'filter' => $filter,
@@ -624,6 +648,49 @@ class FulfillmentController extends Controller
         return back()
             ->with('success', "Booked, tracking {$res['tracking_number']}.")
             ->with('label_url', route('admin.fulfillment.label', $order));
+    }
+
+    /**
+     * Record a parcel leaving by a courier this app does not integrate with:
+     * no API call, no waybill, no polling. See
+     * FulfillmentService::bookManual() for why this is a branch of its own
+     * rather than a pseudo-courier, and for the columns it writes.
+     *
+     * A refusal comes back on the row it was refused for, in the same flash
+     * channel a refused integrated booking uses, so the two read alike.
+     */
+    public function bookManual(ManualShipmentRequest $request, Order $order)
+    {
+        $res = app(FulfillmentService::class)->bookManual($order, $request->validated());
+
+        if (!$res['success']) {
+            return back()->with('error', $res['error'] ?? 'The shipment could not be recorded.');
+        }
+
+        $tracking = $res['tracking_number'] ?? null;
+
+        return back()->with('success', $tracking
+            ? "Shipment recorded with {$res['courier']}, tracking {$tracking}."
+            : "Shipment recorded with {$res['courier']}. Add the tracking number on the order when you have it.");
+    }
+
+    /**
+     * The undo for the above: forget the recorded courier, tracking number and
+     * tracking link, and return the order to To Pack so it can be recorded
+     * again or booked with an integrated courier instead. Contacts nobody,
+     * because nobody was contacted to create it.
+     */
+    public function clearManual(Order $order)
+    {
+        $res = app(FulfillmentService::class)->clearManual($order);
+
+        if (!$res['success']) {
+            return back()->with('error', $res['error'] ?? 'The recorded shipment could not be cleared.');
+        }
+
+        return back()->with('success', $res['status']
+            ? "Cleared the recorded shipment for order #{$order->id}. The order is back in To Ship, To Pack as {$res['status']}."
+            : "Cleared the recorded shipment for order #{$order->id}.");
     }
 
     /**

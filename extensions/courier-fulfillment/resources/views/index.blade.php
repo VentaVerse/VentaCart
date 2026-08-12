@@ -279,6 +279,24 @@
                             // showing a "To Pack" courier badge they never earned.
                             $hasCourierData = (bool) ($order->courier_tracking_number || $order->courier_provider);
 
+                            // A parcel leaving by a courier we do not integrate
+                            // with (FulfillmentService::isManuallyShipped()).
+                            // Deliberately NOT courier data in the sense above:
+                            // there is no provider, no courier status and no
+                            // waybill, so the row keeps reporting its CORE
+                            // ORDER STATUS, which is the only thing moving it.
+                            $manuallyShipped = \Extensions\CourierFulfillment\FulfillmentService::isManuallyShipped($order);
+                            // The order's own snapshot first, so a renamed or
+                            // deleted courier never rewrites what an old order
+                            // says about itself.
+                            $manualCourierName = $manuallyShipped
+                                ? ($order->shipping_courier_name ?: ($order->shippingCourier?->name ?: 'Courier'))
+                                : null;
+                            // Stored at recording time from the courier's own
+                            // {tracking_number} template; the accessor derives
+                            // it for the pre-snapshot orders.
+                            $manualTrackingUrl = $manuallyShipped ? $order->tracking_link : null;
+
                             // The row's spine bucket + tone: the one shared colour system every
                             // courier's statuses collapse onto (Support\PhaseTone). A SHIPMENT
                             // fact, never a tab fact (see FulfillmentService::tabBucket()).
@@ -379,10 +397,32 @@
                             // async create in flight) subtract the rest. An
                             // order with no courier configured at all has
                             // nothing to book with.
+                            //
+                            // A recorded manual shipment subtracts Book for the
+                            // same reason an active booking does: the parcel has
+                            // already left, and bookManual()/book() both refuse
+                            // it server-side until the record is cleared.
                             $canBook = \Extensions\CourierFulfillment\FulfillmentService::bookingBlockedReason($order) === null
                                 && !$activelyBooked
                                 && !$creating
-                                && !empty($courierOptions);
+                                && !$manuallyShipped
+                                && (!empty($courierOptions) || !empty($manualCouriers));
+
+                            // Clear shipment: the undo for a recorded manual
+                            // shipment. Offered across the two To Ship steps -
+                            // To Handover, which is where recording moved the
+                            // order, and To Pack, which is where clearing
+                            // returns it, so an admin who moved the status by
+                            // hand in between is never left with a courier
+                            // record and no way to undo it. Past those the
+                            // parcel is in transit or done and the order page's
+                            // own tracking fields are where it is corrected -
+                            // which is what clearManual() says when refusing.
+                            // Same set, same order of reasoning, server-side.
+                            $offersClearManual = $manuallyShipped && in_array($rowBucket, [
+                                \Extensions\CourierFulfillment\FulfillmentService::UNBOOKED_PLACEMENT,
+                                \Extensions\CourierFulfillment\FulfillmentService::BOOKED_PLACEMENT,
+                            ], true);
 
                             // Cancel order: Unpaid and To Pack rows, minus the
                             // rows cancelOrder() itself refuses (an active
@@ -545,6 +585,22 @@
                                             @else
                                                 <span class="v-sub">{{ $order->courier_tracking_number }}</span>
                                             @endif
+                                        @elseif ($manuallyShipped)
+                                            {{-- A parcel we arranged ourselves. The courier
+                                                 is named as plainly as an integrated one, with
+                                                 a quiet marker beside it so nobody goes hunting
+                                                 for a waybill that was never printed. The
+                                                 tracking number is optional here, so the cell
+                                                 stops after the name when there isn't one. --}}
+                                            <span class="v-lead">{{ $manualCourierName }}</span>
+                                            <span class="v-manual">Manual</span>
+                                            @if ($order->tracking_number)
+                                                @if ($manualTrackingUrl)
+                                                    <a class="v-sub" href="{{ $manualTrackingUrl }}" target="_blank" rel="noopener">{{ $order->tracking_number }}</a>
+                                                @else
+                                                    <span class="v-sub">{{ $order->tracking_number }}</span>
+                                                @endif
+                                            @endif
                                         @else
                                             <span class="v-none">-</span>
                                         @endif
@@ -608,6 +664,9 @@
                                             @if ($offersCancelOrder)
                                                 <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
                                             @endif
+                                            @if ($offersClearManual)
+                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'clear-manual-{{ $order->id }}')">Clear shipment</x-admin.button>
+                                            @endif
                                         </div>
                                         @if ($offersCancelOrder)
                                             <x-admin.confirm-dialog name="cancel-order-{{ $order->id }}" title="Cancel order #{{ $order->id }}?"
@@ -618,6 +677,11 @@
                                             <x-admin.confirm-dialog name="cancel-fulfillment-{{ $order->id }}" title="Cancel booking for order #{{ $order->id }}?"
                                                 message="This cancels the courier booking. The order returns to To Pack for rebooking."
                                                 confirm="Cancel booking" :action="route('admin.fulfillment.cancel', $order)" method="POST" />
+                                        @endif
+                                        @if ($offersClearManual)
+                                            <x-admin.confirm-dialog name="clear-manual-{{ $order->id }}" title="Clear the recorded shipment for order #{{ $order->id }}?"
+                                                message="This forgets the courier, tracking number and tracking link, and returns the order to To Pack. No courier is contacted."
+                                                confirm="Clear shipment" :action="route('admin.fulfillment.clear-manual', $order)" method="POST" />
                                         @endif
                                     </td>
                                 @endif
@@ -755,7 +819,7 @@
                                     <span class="font-medium">Creating shipment with <span x-text="active.provider"></span>&hellip;</span>
                                 </div>
                             </template>
-                            @if (!empty($courierOptions))
+                            @if (!empty($courierOptions) || !empty($manualCouriers))
                                 <template x-if="!active.activelyBooked && !active.creating">
                                     <div class="space-y-3">
                                         {{-- Final-review fix (Finding 2): the async create's permanent
@@ -872,8 +936,12 @@
              (enabled() — flag on AND fully configured): a flag-on-but-
              unconfigured courier must still open this modal so its step-1
              card (with its "not configured" message + settings link) is
-             reachable — see the step-1 markup below. --}}
-        @if (!empty($courierOptions))
+             reachable — see the step-1 markup below.
+
+             Also opens on $manualCouriers alone: a store with no integration
+             at all still ships parcels, and recording one is the whole point
+             of the third choice. --}}
+        @if (!empty($courierOptions) || !empty($manualCouriers))
             <div x-show="bookOpen" x-cloak class="fixed inset-0 z-[90] flex items-center justify-center p-4" @keydown.escape.window="closeBooking()">
                 <div class="absolute inset-0 bg-black/50" @click="closeBooking()"></div>
                 {{-- Hand-rolled for the same reason as the drawer above: it
@@ -931,6 +999,18 @@
                                                     data-courier-configured="false">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}" class="v-choice__offlink">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.</x-admin.choice.card>
                                             @endif
                                         @endforeach
+                                        {{-- The third way a parcel leaves, on the same
+                                             footing as the integrated couriers rather than
+                                             below them as a fallback: both integrations
+                                             refuse addresses they do not serve, and for
+                                             those the merchant arranges an LBC or a J&T by
+                                             hand. Named for what it is; the Manual qualifier
+                                             is what tells the operator what picking it means
+                                             (nothing is sent, nothing comes back). --}}
+                                        @if (!empty($manualCouriers))
+                                            <x-admin.choice.card name="Another courier" mode="Manual"
+                                                data-courier-card="__manual" @click="chooseManual()" />
+                                        @endif
                                     </x-admin.choice>
                                 </div>
 
@@ -938,7 +1018,7 @@
                                      For QuadX this is EXACTLY the pre-modal field set — courier,
                                      service, parcel, insure, shipping_payment — posting to the
                                      same route, so the request the server receives is unchanged. --}}
-                                <div x-show="step === 2">
+                                <div x-show="step === 2 && !manual">
                                     {{-- Task T4: x-ref (for the estimate button's FormData read)
                                          and x-model="parcel" (so the SPX-only section below can
                                          react to the custom-dims sentinel) are the ONLY two
@@ -1060,6 +1140,54 @@
                                         </div>
                                     </form>
                                 </div>
+
+                                {{-- Step 2, manual: three answers and nothing else,
+                                     because nothing is being negotiated with anybody.
+                                     A SIBLING form, never extra fields inside the
+                                     courier form above — an x-show'd block stays in the
+                                     DOM and its inputs still post, so sharing one form
+                                     would put shipping_courier_id into every QuadX
+                                     booking. Two forms cannot contaminate each other:
+                                     the browser submits only the one whose button was
+                                     pressed.
+
+                                     Rendered only when the store keeps an active
+                                     courier, which is the same condition that put the
+                                     card on step 1. --}}
+                                @if (!empty($manualCouriers))
+                                    <div x-show="step === 2 && manual">
+                                        <form :action="manualAction" method="POST" data-v-form class="space-y-4">
+                                            @csrf
+                                            <p class="text-[13px] text-v-secondary">Recording a shipment for order <span class="v-num" x-text="'#' + active.id"></span></p>
+
+                                            <x-admin.field name="shipping_courier_id" label="Courier" required>
+                                                <x-admin.select name="shipping_courier_id" required>
+                                                    @foreach ($manualCouriers as $manualCourier)
+                                                        <option value="{{ $manualCourier['id'] }}">{{ $manualCourier['name'] }}</option>
+                                                    @endforeach
+                                                </x-admin.select>
+                                            </x-admin.field>
+
+                                            <x-admin.field name="tracking_number" label="Tracking number">
+                                                <x-admin.input name="tracking_number" autocomplete="off" maxlength="190" />
+                                            </x-admin.field>
+
+                                            <x-admin.field name="note" label="Note">
+                                                <x-admin.textarea name="note" rows="2" maxlength="500" />
+                                            </x-admin.field>
+
+                                            {{-- The hint carries the one consequence the
+                                                 controls cannot name themselves: no courier is
+                                                 contacted, and the order still moves on exactly
+                                                 as a booked one would. --}}
+                                            <div class="flex items-center gap-2 pt-1">
+                                                <x-admin.button type="button" variant="ghost" @click="backToCouriers()">Back</x-admin.button>
+                                                <x-admin.button type="submit" variant="primary" class="flex-1">Record shipment</x-admin.button>
+                                                <x-admin.hint label="What recording a shipment does" class="v-hint--end">Venta contacts no courier and prints no waybill. The order moves to your To Handover status and advances by status from there.</x-admin.hint>
+                                            </div>
+                                        </form>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </template>
@@ -1078,6 +1206,11 @@
                 active: null,
                 courier: '',
                 parcel: '',
+                // Step 2 has two shapes now: an integrated courier's own form,
+                // or the manual record. One flag decides which, and it is
+                // cleared everywhere `courier` is, so the two can never both
+                // be showing.
+                manual: false,
                 // Task T4: SPX-only step-2 state. Fetched LAZILY (never on
                 // page load — see FulfillmentController::index()'s
                 // courierOptions comment for why) so a queue page visit
@@ -1100,6 +1233,7 @@
                 urlBase: '{{ url(config('admin.prefix', 'admin') . '/sales/fulfillment') }}',
                 get current() { return this.options[this.courier] ?? {name:'',services:[],parcels:[],payments:[]}; },
                 get bookAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/book'; },
+                get manualAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/book-manual'; },
                 get trackAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/track'; },
                 get labelUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/label'; },
                 get estimateAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/estimate'; },
@@ -1116,12 +1250,23 @@
                 openBooking(order) {
                     this.active = order;
                     this.courier = '';
+                    this.manual = false;
                     this.step = 1;
                     this.bookOpen = true;
                     this.resetSpxState();
                 },
+                // The third choice: no courier key, because no integration owns
+                // this shipment. That is the same distinction the server keeps
+                // by leaving courier_provider null.
+                chooseManual() {
+                    this.courier = '';
+                    this.manual = true;
+                    this.step = 2;
+                    this.resetSpxState();
+                },
                 chooseCourier(key) {
                     this.courier = key;
+                    this.manual = false;
                     this.step = 2;
                     this.parcel = '';
                     this.resetSpxState();
@@ -1134,10 +1279,12 @@
                 },
                 backToCouriers() {
                     this.step = 1;
+                    this.manual = false;
                 },
                 closeBooking() {
                     this.bookOpen = false;
                     this.step = 1;
+                    this.manual = false;
                 },
                 resetSpxState() {
                     this.spxPickupSlots = [];
