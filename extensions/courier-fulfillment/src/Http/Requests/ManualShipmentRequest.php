@@ -2,6 +2,7 @@
 
 namespace Extensions\CourierFulfillment\Http\Requests;
 
+use App\Models\OrderStatus;
 use App\Models\ShippingCourier;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -44,6 +45,20 @@ class ManualShipmentRequest extends FormRequest
             ],
             'tracking_number' => ['nullable', 'string', 'max:190'],
             'note'            => ['nullable', 'string', 'max:500'],
+            // Owner directive (2026-08-12): "Add in manual booking the order
+            // status change." Recording a manual shipment IS a status change
+            // like any other, so the operator states which one rather than
+            // having the module decide for them. Nullable, and absent means
+            // the module's own To-Handover-placed status, so an operator who
+            // ignores the field gets exactly today's behaviour.
+            //
+            // Gated the same way the order page's own status select is:
+            // every status belonging to this store, no invented subset.
+            'order_status_id' => [
+                'nullable',
+                'integer',
+                Rule::exists(OrderStatus::class, 'id')->where('store_id', (int) config('app.store_id', 1)),
+            ],
         ];
     }
 
@@ -51,6 +66,7 @@ class ManualShipmentRequest extends FormRequest
     {
         return [
             'shipping_courier_id' => 'courier',
+            'order_status_id'     => 'order status',
         ];
     }
 

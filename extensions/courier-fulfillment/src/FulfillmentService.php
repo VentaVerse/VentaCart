@@ -456,9 +456,13 @@ class FulfillmentService
      * note, not "Courier booking confirmed" — no courier was contacted.
      * Omitted by both integrated callers, whose rows are unchanged.
      */
-    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null, ?string $comment = null): ?OrderStatus
+    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null, ?string $comment = null, ?OrderStatus $chosen = null): ?OrderStatus
     {
-        $status = self::bookedStatus();
+        // $chosen is the manual path's operator-named status (owner
+        // directive, 2026-08-12). Absent everywhere else, so an integrated
+        // booking still moves to the module's own To-Handover-placed status
+        // and nothing about those two callers changes.
+        $status = $chosen ?? self::bookedStatus();
         if (!$status || (int) $order->order_status_id === (int) $status->id) {
             return null;
         }
@@ -794,10 +798,25 @@ class FulfillmentService
             return ['success' => false, 'code' => 'placement_blocked', 'error' => $blocked];
         }
 
+        // The operator's own answer to "what state is this order in now"
+        // (owner directive, 2026-08-12). Absent means the module's own
+        // To-Handover-placed status, which is exactly what this path has
+        // always applied, so ignoring the field changes nothing.
+        $chosenStatus = null;
+        if (!empty($opts['order_status_id'])) {
+            $chosenStatus = OrderStatus::where('store_id', (int) config('app.store_id', 1))
+                ->find((int) $opts['order_status_id']);
+            if (!$chosenStatus) {
+                return ['success' => false, 'code' => 'status_unavailable', 'error' => 'That order status is not available. Choose one from the list.'];
+            }
+        }
+
         // Same destination gate as book(): a recorded shipment that cannot
         // move the order onward would sit in To Pack offering to be recorded
-        // again. Refused before anything is written.
-        if (self::bookedStatus() === null) {
+        // again. Refused before anything is written, and only when nobody
+        // named a status themselves: an operator who did has answered the
+        // very question this gate exists to ask.
+        if ($chosenStatus === null && self::bookedStatus() === null) {
             return [
                 'success' => false,
                 'code'    => 'no_booked_status',
@@ -834,6 +853,9 @@ class FulfillmentService
                 'note'                => $note,
                 'recorded_at'         => now()->toIso8601String(),
                 'recorded_by'         => Auth::id(),
+                // Which state the operator said this order is now in. Null
+                // means they left it to the module's own placed status.
+                'applied_order_status_id' => $chosenStatus?->id,
             ],
         ];
         if ($meta['booking_history'] === []) {
@@ -847,7 +869,8 @@ class FulfillmentService
         // The write and the status move either both land or neither does: an
         // order carrying a courier name while still sitting in To Pack would
         // offer to be booked again over a parcel that has already left.
-        DB::transaction(function () use ($order, $courier, $tracking, $trackingLink, $meta, $comment) {
+        $applied = null;
+        DB::transaction(function () use ($order, $courier, $tracking, $trackingLink, $meta, $comment, $chosenStatus, &$applied) {
             // forceFill for courier_meta / courier_booked_at only (extension-
             // owned, not in core Order::$fillable). The three columns that
             // matter here are core's own and long-standing; they are written
@@ -860,17 +883,21 @@ class FulfillmentService
                 'courier_booked_at'   => now(),
             ])->save();
 
-            // Moves it to To Handover by the same shared helper an integrated
-            // booking uses, so a manual parcel walks the placement tabs
-            // exactly like every other order and the admin advances it by
-            // hand from there.
-            self::applyBookedStatus($order, $courier->name, $tracking, $comment);
+            // Moves it by the same shared helper an integrated booking uses,
+            // so a manual parcel walks the placement tabs exactly like every
+            // other order: same OrderStatusChanger call, same history row
+            // shape, same stock rules, same notification behaviour. The only
+            // difference is WHICH status, which the operator may name.
+            $applied = self::applyBookedStatus($order, $courier->name, $tracking, $comment, $chosenStatus);
         });
 
         return [
             'success'         => true,
             'courier'         => $courier->name,
             'tracking_number' => $tracking,
+            // Null when the order was already on that status, in which case
+            // nothing moved and the flash has nothing to report.
+            'status'          => $applied?->name,
         ];
     }
 
@@ -919,6 +946,10 @@ class FulfillmentService
             'manual'                   => true,
             'note'                     => $meta['manual_shipment']['note'] ?? null,
             'previous_order_status_id' => $preBookingStatusId,
+            // Which status the operator put this order in when they recorded
+            // it (null = the module's own placed one), so the audit row says
+            // what was actually chosen and not merely what was undone.
+            'applied_order_status_id'  => $meta['manual_shipment']['applied_order_status_id'] ?? null,
             'admin_cancelled'          => true,
             'cancelled_at'             => now()->toIso8601String(),
         ];

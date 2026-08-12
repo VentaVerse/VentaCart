@@ -80,6 +80,25 @@ class QuadXClient
         return $this->request('GET', '/orders/statuses');
     }
 
+    /**
+     * Rate estimate for an origin/destination pair. Verified live against
+     * QuadX staging (owner, 2026-08-12): a serviceable destination answers
+     * 200 with `data.attributes.shipping_fee` as a map of parcel category to
+     * peso amount; an unserviceable one answers 422 with
+     * `errors.detail = "Delivery address is not serviceable."`.
+     *
+     * It CREATES NOTHING (no waybill, no booking, no reservation), which is
+     * what makes it safe to call on every booking-modal open.
+     *
+     * $timeout is explicit rather than the class default of 40s because the
+     * booking modal blocks on this call: see
+     * ServiceabilityService::TIMEOUT_SECONDS.
+     */
+    public function estimateRates(array $attributes, ?int $timeout = null): array
+    {
+        return $this->request('POST', '/orders/estimates/rates', ['data' => ['attributes' => $attributes]], $timeout);
+    }
+
     /** Single AWB print. Returns the parsed JSON (contains presigned S3 'awb' + 'v35' URLs). */
     public function printAwb(string $trackingNumber, string $type = 'zebra'): array
     {
@@ -91,7 +110,7 @@ class QuadXClient
     /**
      * @return array{ok:bool, status:int, body:array, error:?string}
      */
-    private function request(string $method, string $path, ?array $body = null): array
+    private function request(string $method, string $path, ?array $body = null, ?int $timeout = null): array
     {
         if (!$this->isConfigured()) {
             return ['ok' => false, 'status' => 0, 'body' => [], 'error' => 'QuadX is not configured (missing API key/secret).'];
@@ -102,7 +121,12 @@ class QuadXClient
         try {
             $req = Http::withToken($this->jwt())
                 ->acceptJson()
-                ->timeout(40);
+                // A caller that a person is waiting on (the booking modal's
+                // serviceability check) passes its own, much shorter budget
+                // and both halves of it are bounded: an unresolvable host
+                // must fail inside the same window a slow response does.
+                ->connectTimeout($timeout ?? 40)
+                ->timeout($timeout ?? 40);
 
             $resp = match (strtoupper($method)) {
                 'POST'  => $req->post($url, $body ?? []),

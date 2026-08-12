@@ -20,6 +20,24 @@
 .v-col-courier { width: 170px; }
 .v-col-status  { width: 170px; }
 
+/* The booking sheet holds two different shapes and needs two widths.
+   The courier step lays its options out as columns, up to four wide
+   (three couriers plus the manual choice, with room for the fourth
+   this store is waiting on), and 54rem is what four cards need before
+   the shared grid drops them to two. The chosen courier's form is a
+   column of fields and reads worse stretched, so it keeps the sheet's
+   original 28rem.
+
+   Page-specific for the same reason the two widths above are: this is
+   a measurement of what THIS modal holds, not an opinion the design
+   system has about dialogs. */
+.v-bookmodal {
+    max-width: 28rem;
+    transition: max-width var(--motion-base);
+}
+
+.v-bookmodal--couriers { max-width: 54rem; }
+
 /* The marker on a parcel leaving by a courier we do not integrate with.
    It sits under the courier's name in the same cell an integrated
    shipment uses, and its whole job is to stop an operator hunting for

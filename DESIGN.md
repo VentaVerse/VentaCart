@@ -397,7 +397,7 @@ edge read as one control that moved.
 | `.v-flash*` | | something good already happened |
 | `.v-slate*` | `x-admin.slate` | a record card: mark, name, state, one line, controls. `href` makes the whole card the target; a slate carrying controls renders as a `<section>`. `.v-slate__link` is a line inside one that is itself a destination |
 | `.v-badgebtn`, `.v-badge__x` | | a badge that is the control flipping it, and a chip's remove control. Both keep their mark and take the 24px target |
-| `.v-choice*` | `x-admin.choice`, `x-admin.choice.card` | any pick-one grid, available and gated |
+| `.v-choice*` | `x-admin.choice`, `x-admin.choice.card` | any pick-one set, down or (with `cols`) up to four across. Four states, each carrying its own **word**: available, and three the `state` prop names. Two of those are inert `<div>`s; the third, "could not check", is greyed and **still a real button**, because something we could not reach has refused nothing |
 | `.v-line*`, `.v-item*`, `.v-auto*` | `x-admin.line`, `x-admin.item` | list-row idioms |
 | `.v-feed`, `.v-entry*` | `x-admin.feed.entry` | activity and history |
 | `.v-tiles`, `.v-tile*`, `.v-tray`, `.v-drop` | | a grid of things you look at rather than read. A tile carries no border and no elevation at rest |
@@ -524,7 +524,7 @@ Silence is a pass. It compiles all 285 views.
 **Build.** `npm run build` clean, then `php artisan view:clear`.
 
 **Tests.** `php artisan test --testsuite=Feature --filter=AdminV2` is green
-(491 passing). The full suite lands at 730 passed / 23 failed, which is the
+(569 passing). The full suite lands at 862 passed / 23 failed, which is the
 pre-existing storefront-auth baseline. A test pinning a class name or a token
 value gets **updated deliberately, never weakened**.
 

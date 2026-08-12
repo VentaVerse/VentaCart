@@ -553,19 +553,25 @@ class FulfillmentQueueTest extends TestCase
             // advance it to step 2. QuadX's own card (fully configured)
             // still is.
             ->assertDontSee("chooseCourier('spx')", false)
-            // QuadX's card is still the exact <button> tag it always was,
-            // with no new attribute added to the frozen configured branch
-            // (review fix: a prior draft of this task added
-            // `data-courier-configured="true"` here, which this exact-tag
-            // assertion would now catch).
+            // QuadX's card is still a real <button> wired to
+            // chooseCourier(), and SPX's still is not.
             //
             // The class name moved from `cf-choice__card` to
             // `v-choice__card` in the foundation sweep, when the selectable
             // card was promoted out of this page into the shared admin
             // layer and the extension's private `cf-`/`co-` namespace was
-            // absorbed. The property under test is unchanged: same tag,
-            // same handler, same attribute set, nothing added.
-            ->assertSee('<button type="button" class="v-choice__card" data-courier-card="quadx" @click="chooseCourier(\'quadx\')">', false);
+            // absorbed.
+            //
+            // Updated deliberately for the 2026-08-12 serviceability work:
+            // a configured courier now has THREE cards, one per verdict,
+            // exactly one of them shown. This pins the one that means "will
+            // carry it", so the two attributes that decide which verdict it
+            // belongs to are part of the tag under test. The property this
+            // assertion has always protected is unchanged: same tag, same
+            // handler, and still nothing that says whether the courier is
+            // configured (a prior draft added `data-courier-configured="true"`
+            // here, which this exact-tag assertion caught).
+            ->assertSee('<button type="button" class="v-choice__card" data-courier-card="quadx" data-courier-state="serviceable" x-show="verdict(\'quadx\') === \'serviceable\'" @click="chooseCourier(\'quadx\')">', false);
     }
 
     /**
@@ -854,7 +860,18 @@ class FulfillmentQueueTest extends TestCase
     // Interface evolutions #4/#5 — QuadX-safe defaults.
     // ------------------------------------------------------------------
 
-    public function test_quadx_inherits_the_null_fee_estimate_and_empty_pickup_slot_defaults(): void
+    /**
+     * Updated deliberately (2026-08-12 serviceability work): QuadX's
+     * estimateFee() used to be a hardcoded `return null` because its rate
+     * endpoint had not been mapped. It now quotes for real from
+     * /orders/estimates/rates, so what is asserted here is the CONTRACT that
+     * did not change: null still means "no figure to show", and QuadX still
+     * offers no pickup slots.
+     *
+     * With no credentials configured, the client refuses before any request
+     * is made, so this asserts the null path without an outbound call.
+     */
+    public function test_quadx_shows_no_fee_when_it_cannot_quote_and_never_offers_pickup_slots(): void
     {
         $this->installExtension();
 
@@ -863,6 +880,29 @@ class FulfillmentQueueTest extends TestCase
 
         $this->assertNull($quadx->estimateFee($order, []));
         $this->assertSame([], $quadx->getPickupSlots($order));
+    }
+
+    /** The other half of the same contract: a real figure, for the parcel the operator actually chose. */
+    public function test_quadx_quotes_the_chosen_parcels_own_fee(): void
+    {
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        Http::fake(['api.staging.quadx.xyz/v2/orders/estimates/rates' => Http::response([
+            'data' => ['attributes' => ['shipping_fee' => [
+                'box' => 300, 'big-pouch' => 120, 'small-pouch' => 80,
+            ]]],
+        ], 200)]);
+
+        $order = $this->makeOrder();
+        $quadx = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment();
+
+        $estimate = $quadx->estimateFee($order, ['parcel' => 'big-pouch']);
+        $this->assertNotNull($estimate);
+        $this->assertSame(120.0, $estimate->amount);
+        $this->assertSame('PHP', $estimate->currency);
+
+        // A parcel QuadX did not price gets no invented figure.
+        $this->assertNull($quadx->estimateFee($order, ['parcel' => 'oversized']));
     }
 
     // ------------------------------------------------------------------

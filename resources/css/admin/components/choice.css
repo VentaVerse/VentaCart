@@ -1,14 +1,26 @@
 /* ============================================================
    Selectable card
 
-   A pick-one grid where each option is large enough to carry its own
-   qualifiers: a name, what it will cost, whether it is live. One
-   card per option, stacked, so the list of choices IS the markup and
-   there is nothing to expand.
+   A pick-one set where each option is large enough to carry its own
+   qualifiers: a name, what it will cost, whether it is live, and
+   whether it can be picked at all. One card per option, so the list
+   of choices IS the markup and there is nothing to expand.
+
+   Every card is in exactly one of four states, and the state is
+   always carried by a WORD, never by grey alone:
+
+     available        name, any qualifier, and a price when one was
+                      quoted
+     not configured   inert, and says what is missing
+     not serviceable  inert, and says who refused and in whose words
+     could not check  greyed but STILL CLICKABLE, because a courier we
+                      could not reach has not refused anything and the
+                      operator is entitled to go and ask it
 
    An option that cannot be picked is a <div>, never a disabled
    <button>: it structurally cannot advance, rather than merely being
-   told not to.
+   told not to. The fourth state above is the exact opposite case and
+   stays a real button for exactly that reason.
    ============================================================ */
 
 .v-choice {
@@ -17,11 +29,35 @@
     gap: 8px;
 }
 
+/* The same options across rather than down, for a set that is short,
+   equal in weight, and compared side by side (the couriers a parcel
+   can leave by). Four is the ceiling because a fifth column crushes
+   a courier name below reading width in a dialog.
+
+   It degrades by DROPPING columns, never by squeezing them: four
+   across, two when the sheet narrows, one on a phone. auto-fit is
+   what makes three options fill the row instead of leaving a hole
+   where a fourth courier will eventually go. */
+.v-choice--cols {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11.5rem, 1fr));
+    align-items: stretch;
+    gap: 10px;
+}
+
+@media (max-width: 56.25rem) {
+    .v-choice--cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 28.75rem) {
+    .v-choice--cols { grid-template-columns: minmax(0, 1fr); }
+}
+
 .v-choice__card {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
     width: 100%;
     padding: 14px 16px;
     background: var(--surface);
@@ -37,7 +73,45 @@
     background: var(--surface-hover);
 }
 
-.v-choice__name { font-size: 14px; font-weight: 600; color: var(--text); }
+.v-choice__body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+/* The name and, on a card that can be picked, the mark that says so.
+   The chevron is pinned to the top line rather than centred on the
+   card, so it stays beside the name whether the card carries one line
+   or five. */
+.v-choice__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.v-choice__name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    min-width: 0;
+}
+
+.v-choice__go {
+    color: var(--text-muted);
+    flex: none;
+    margin-top: 1px;
+}
+
+/* Qualifiers, on their own line so a narrow column wraps the words
+   rather than the name above them. */
+.v-choice__tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 
 /* A qualifier that changes what picking this option means: a
    non-production mode, a sandbox, a test key. */
@@ -45,11 +119,20 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-left: 8px;
     color: var(--warning);
     font-size: 12px;
     font-weight: 600;
-    vertical-align: middle;
+}
+
+/* The word that carries the state. It is never decoration: with the
+   grey removed this word is still the whole answer. */
+.v-choice__state {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--warning);
+    font-size: 12px;
+    font-weight: 600;
 }
 
 /* The square mark the shared badge carries, drawn here rather than
@@ -72,10 +155,14 @@
     white-space: nowrap;
 }
 
-.v-choice__go { color: var(--text-muted); flex: none; }
+.v-choice__msg {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
 
 /* ------------------------------------------------------------
-   The option that is present but not yet usable
+   The option that is present but not usable
 
    It stays on the list instead of silently vanishing, because an
    option a person switched on and cannot find reads as a bug. Muted
@@ -83,10 +170,6 @@
    is unmistakably inert rather than an inviting choice.
    ------------------------------------------------------------ */
 .v-choice__card--off {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
     cursor: default;
     background: var(--surface-sunken);
     border-style: dashed;
@@ -97,35 +180,6 @@
     border-color: var(--border);
 }
 
-.v-choice__offbody {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    width: 100%;
-}
-
-.v-choice__offhead {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.v-choice__state {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--warning);
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.v-choice__offmsg {
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--text-muted);
-}
-
 .v-choice__offlink {
     color: var(--warning);
     font-weight: 600;
@@ -133,3 +187,78 @@
 }
 
 .v-choice__offlink:hover { color: var(--text); }
+
+/* ------------------------------------------------------------
+   The option we could not verify
+
+   Greyed like the inert card because something is wrong, but a real
+   button with a real hover, because nothing has actually refused it.
+   A courier whose API did not answer has said nothing about this
+   address, and the operator is allowed to go and ask it.
+   ------------------------------------------------------------ */
+.v-choice__card--caution {
+    background: var(--surface-sunken);
+    border-style: dashed;
+}
+
+.v-choice__card--caution:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-strong);
+}
+
+/* The other side's own words, quoted, and shown only where we have
+   no sentence of our own: a failure we recognise is better described
+   by us (we can name the destination), and printing both was
+   redundant. An unrecognised one has nothing better than theirs. */
+.v-choice__said {
+    display: block;
+    margin-top: 4px;
+    padding-left: 8px;
+    border-left: 1px solid var(--border-strong);
+    color: var(--text-muted);
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+/* ------------------------------------------------------------
+   Before the cards can be drawn
+
+   A real network call is happening, so the pause is named rather
+   than spun at. The mark pulses; the sentence says who is being
+   asked and about where.
+   ------------------------------------------------------------ */
+.v-choice__wait {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 2px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.v-choice__waitmark {
+    width: 8px;
+    height: 8px;
+    flex: none;
+    border-radius: var(--radius-pill);
+    background: var(--accent-mark);
+    animation: v-choice-wait 1.4s cubic-bezier(.2, .7, .3, 1) infinite;
+}
+
+@keyframes v-choice-wait {
+    0%, 100% { opacity: 0.25; transform: scale(0.7); }
+    45%      { opacity: 1;    transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .v-choice__waitmark { animation: none; opacity: 1; }
+}
+
+/* One line naming a situation the cards below can only show one
+   fragment of each. */
+.v-choice__note {
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}

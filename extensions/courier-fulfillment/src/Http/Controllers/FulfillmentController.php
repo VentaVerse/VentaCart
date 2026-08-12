@@ -5,6 +5,7 @@ namespace Extensions\CourierFulfillment\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderHistory;
+use App\Models\OrderStatus;
 use App\Models\Setting;
 use App\Models\ShippingCourier;
 use App\Support\SettingsNav;
@@ -13,6 +14,7 @@ use Extensions\CourierFulfillment\FulfillmentService;
 use Extensions\CourierFulfillment\Http\Requests\ManualShipmentRequest;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\PlacementMap;
+use Extensions\CourierFulfillment\ServiceabilityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -286,6 +288,16 @@ class FulfillmentController extends Controller
             'handoverByCourier' => $handoverByCourier,
             'paused' => false,
             'canConfigureCouriers' => $this->canConfigureCouriers(),
+            // Owner directive (2026-08-12): recording a manual shipment is a
+            // status change like any other, so the operator names the status.
+            // The SAME list the order page offers (every status of this
+            // store, in its own sort order), never a subset this module
+            // invents, and defaulted to what the module would have applied on
+            // its own so ignoring the field changes nothing.
+            'orderStatuses' => OrderStatus::where('store_id', (int) config('app.store_id', 1))
+                ->orderBy('sort_order')
+                ->get(['id', 'name']),
+            'manualDefaultStatusId' => FulfillmentService::bookedStatus()?->id,
             // Booking-time origin choice. A store with one address never sees
             // a picker (the default is the only answer); with several, step 2
             // offers them with the default pre-selected. Courier-agnostic:
@@ -669,9 +681,18 @@ class FulfillmentController extends Controller
 
         $tracking = $res['tracking_number'] ?? null;
 
-        return back()->with('success', $tracking
+        $message = $tracking
             ? "Shipment recorded with {$res['courier']}, tracking {$tracking}."
-            : "Shipment recorded with {$res['courier']}. Add the tracking number on the order when you have it.");
+            : "Shipment recorded with {$res['courier']}. Add the tracking number on the order when you have it.";
+
+        // Which state the order is now in, named, because the operator chose
+        // it and a status change they cannot see confirmed is a status change
+        // they will go and check.
+        if (!empty($res['status'])) {
+            $message .= " Order status set to {$res['status']}.";
+        }
+
+        return back()->with('success', $message);
     }
 
     /**
@@ -765,6 +786,47 @@ class FulfillmentController extends Controller
             'amount'   => $estimate->amount,
             'currency' => $estimate->currency,
             'label'    => $estimate->label ?? ($estimate->currency . ' ' . number_format($estimate->amount, 2)),
+        ]);
+    }
+
+    /**
+     * Who will carry this parcel? Asked once, when the booking modal opens,
+     * and answered for every configured courier at once (owner ruling,
+     * 2026-08-12: the modal waits and then draws settled cards, rather than
+     * drawing cards that rearrange themselves under the operator's hand).
+     *
+     * Lazy for the same reason the estimate and pickup-slot endpoints are:
+     * the queue page itself must never pay for an outbound courier call, so
+     * this runs on modal open and not on page load. The per-courier budget
+     * (ServiceabilityService::TIMEOUT_SECONDS) is what keeps that wait
+     * bounded.
+     *
+     * Creates nothing. Both endpoints behind it are quote endpoints.
+     * JSON-only: an AJAX endpoint, never a page.
+     */
+    public function serviceability(Order $order)
+    {
+        // The same placement gate estimate() applies, and for the same
+        // reason: an order that cannot be booked cannot be shipped by
+        // anyone, so asking two couriers about it spends outbound calls on a
+        // question with no consequence. The modal only ever opens from a
+        // bookable row, so this is defence in depth rather than a state the
+        // UI can reach. The caller reads a refusal here as "could not
+        // check", which is the honest reading and leaves every card
+        // clickable.
+        if (FulfillmentService::bookingBlockedReason($order) !== null) {
+            return response()->json(['ok' => false, 'couriers' => [], 'all_refused' => false]);
+        }
+
+        $verdicts = ServiceabilityService::forOrder($order);
+
+        return response()->json([
+            'ok'          => true,
+            'couriers'    => array_map(fn ($v) => $v->toArray(), $verdicts),
+            // Every courier we could ask said no. The modal prints one plain
+            // line above the cards for this; the manual card stays selectable
+            // exactly as it always is.
+            'all_refused' => ServiceabilityService::allRefused($verdicts),
         ]);
     }
 

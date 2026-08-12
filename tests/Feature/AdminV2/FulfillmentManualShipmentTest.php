@@ -742,4 +742,130 @@ class FulfillmentManualShipmentTest extends TestCase
         $this->assertNull($order->shipping_courier_id);
         $this->assertFalse(FulfillmentService::isManuallyShipped($order));
     }
+
+    // ------------------------------------------------------------------
+    // The order status the operator names (owner directive, 2026-08-12:
+    // "Add in manual booking the order status change"). Nothing is sent to a
+    // carrier here, so the operator states plainly what state the order is
+    // now in.
+    // ------------------------------------------------------------------
+
+    public function test_the_manual_form_offers_every_order_status_defaulted_to_the_one_it_would_have_applied(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->lbc();
+
+        $handover = $this->statusWithStage('to_handover', 'Order Being Shipped');
+        $this->statusWithStage('delivered', 'Delivered');
+        $this->makeOrder();
+
+        $response = $this->get($this->queueUrl())->assertOk();
+
+        // The same list the order page offers, never a subset this module
+        // invents.
+        $response->assertSee('name="order_status_id"', false)
+            ->assertSee('Order Being Shipped')
+            ->assertSee('Delivered')
+            // Defaulted to what the module would have applied on its own, so
+            // an operator who ignores the field gets today's behaviour.
+            ->assertSee('value="' . $handover->id . '" selected', false);
+    }
+
+    public function test_the_chosen_status_is_what_gets_applied_through_the_normal_status_path(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $this->statusWithStage('to_handover', 'Order Being Shipped');
+        $shipping = $this->statusWithStage('shipping', 'Shipped');
+
+        $order = $this->makeOrder();
+
+        $this->post($this->manualUrl($order), [
+            'shipping_courier_id' => $this->lbc()->id,
+            'tracking_number'     => 'LBC-STATUS-1',
+            'order_status_id'     => $shipping->id,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertSame($shipping->id, (int) $order->order_status_id);
+        $this->assertSame('shipping', FulfillmentService::tabBucket($order));
+
+        // History carries it in the same shape every other status change
+        // does: one row, on the new status, saying what happened.
+        $history = $order->histories()->latest('id')->first();
+        $this->assertSame($shipping->id, (int) $history->order_status_id);
+        $this->assertStringContainsString('Shipment recorded with LBC Express', (string) $history->comment);
+        $this->assertStringContainsString('Order status set to Shipped', (string) $history->comment);
+
+        // And the record says which status the operator chose.
+        $meta = json_decode((string) $order->courier_meta, true);
+        $this->assertSame($shipping->id, (int) $meta['manual_shipment']['applied_order_status_id']);
+    }
+
+    public function test_omitting_the_status_keeps_todays_behaviour_exactly(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        $handover = $this->statusWithStage('to_handover', 'Order Being Shipped');
+        $order = $this->makeOrder();
+
+        $this->post($this->manualUrl($order), ['shipping_courier_id' => $this->lbc()->id])
+            ->assertRedirect()->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertSame($handover->id, (int) $order->order_status_id);
+        $meta = json_decode((string) $order->courier_meta, true);
+        $this->assertNull($meta['manual_shipment']['applied_order_status_id']);
+    }
+
+    public function test_a_status_that_is_not_a_real_order_status_is_refused(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->statusWithStage('to_handover', 'Order Being Shipped');
+
+        $order = $this->makeOrder();
+
+        $this->post($this->manualUrl($order), [
+            'shipping_courier_id' => $this->lbc()->id,
+            'order_status_id'     => 999999,
+        ])->assertSessionHasErrors('order_status_id');
+
+        $this->assertNull($order->refresh()->shipping_courier_id);
+    }
+
+    public function test_clearing_still_returns_the_order_to_where_it_was_recorded_from_after_a_non_default_choice(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+
+        // A second To-Handover-placed status, so the operator's choice is
+        // genuinely not the default one and clearing is still offered.
+        $this->statusWithStage('to_handover', 'Order Being Shipped');
+        $handedToRider = $this->statusWithStage('to_handover', 'Handed to rider');
+
+        $order = $this->makeOrder();
+        $preStatusId = (int) $order->order_status_id;
+
+        $this->post($this->manualUrl($order), [
+            'shipping_courier_id' => $this->lbc()->id,
+            'tracking_number'     => 'LBC-UNDO-2',
+            'order_status_id'     => $handedToRider->id,
+        ])->assertRedirect();
+
+        $this->assertSame($handedToRider->id, (int) $order->refresh()->order_status_id);
+
+        $this->post($this->clearUrl($order))->assertRedirect()->assertSessionHas('success');
+
+        $order->refresh();
+        $this->assertSame($preStatusId, (int) $order->order_status_id);
+        $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
+
+        // The audit row remembers which status it had been put in.
+        $history = json_decode((string) $order->courier_meta, true)['booking_history'] ?? [];
+        $this->assertSame($handedToRider->id, (int) $history[0]['applied_order_status_id']);
+    }
 }

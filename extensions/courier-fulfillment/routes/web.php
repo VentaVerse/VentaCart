@@ -45,6 +45,12 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // index()'s courierOptions payload.
         Route::post('/{order}/estimate', [FulfillmentController::class, 'estimate'])->name('estimate');
         Route::get('/{order}/pickup-slots', [FulfillmentController::class, 'pickupSlots'])->name('pickup-slots');
+        // Owner directive (2026-08-12, "the booking modal says who will
+        // carry it before you choose"): every configured courier's answer to
+        // "do you serve this address", asked when the booking modal opens.
+        // Same laziness rule as the two endpoints above: never on page
+        // load. GET because it asks and creates nothing.
+        Route::get('/{order}/serviceability', [FulfillmentController::class, 'serviceability'])->name('serviceability');
         Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel');
         // fulfillment-tabs-v3 Task 4: the REAL order cancel (sets the core
         // order status to the module's configured cancel status through the

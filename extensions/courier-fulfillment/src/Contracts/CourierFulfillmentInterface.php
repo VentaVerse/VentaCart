@@ -178,6 +178,40 @@ interface CourierFulfillmentInterface
     public function estimateFee(Order $order, array $options): ?object;
 
     /**
+     * Will this courier carry a parcel to this order's delivery address?
+     * Sanctioned interface evolution #7 (owner directive, 2026-08-12,
+     * "the booking modal says who will carry it before you choose"), and the
+     * seam the 2026-08-11 serviceability design hangs from.
+     *
+     * Asked BEFORE anything is booked, from the booking modal's courier step,
+     * so an address a courier will not serve is visible as a greyed card with
+     * the courier's own words on it instead of a red banner after the
+     * operator has already chosen.
+     *
+     * THREE answers, never two (see ServiceabilityVerdict): serviceable,
+     * not_serviceable(reason), and unknown. The third is load-bearing: a
+     * network timeout, a dead DNS record or an unparseable response is NOT a
+     * refusal, and reporting it as one would tell an operator a courier
+     * refuses an address it has never been asked about. `unknown` keeps the
+     * card clickable: the courier itself stays the authority.
+     *
+     * The DEFAULT is `unknown`, which every courier gets for free by using
+     * Support\AnswersUnknownServiceability (PHP interfaces carry no bodies,
+     * so that trait is the default). A courier that cannot predict is never
+     * forced to pretend.
+     *
+     * Implementations MUST bound their own network call to
+     * ServiceabilityService::TIMEOUT_SECONDS and resolve anything slower to
+     * `unknown`: the modal blocks on every courier at once, so one slow
+     * courier must never hold the packing desk.
+     *
+     * This call MUST NOT create anything. It is a question, and the endpoints
+     * behind it (QuadX /orders/estimates/rates, SPX batch_check_order) are
+     * quote endpoints that book nothing.
+     */
+    public function checkServiceability(Order $order): \Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
+
+    /**
      * Pickup time slots the operator can choose from when booking this order
      * (SPX's pickup-time endpoint). Sanctioned interface evolution #5
      * (fulfillment-workflow-v2 spec) with a QuadX-safe default: couriers

@@ -639,16 +639,43 @@
                     </div>
                 </x-admin.panel>
 
-                {{-- Selectable cards: one that can be picked, one that
-                     cannot. --}}
+                {{-- Selectable cards, down and across, in all four states.
+                     The state is a word every time: with the grey removed,
+                     the card still says what it is. --}}
                 <x-admin.panel title="Selectable cards" id="kit-choice">
                     <x-admin.choice>
-                        <x-admin.choice.card name="QuadX" mode="Staging" fee="PHP 145.00" />
+                        <x-admin.choice.card name="QuadX" mode="Staging" fee="from PHP 145.00" />
                         <x-admin.choice.card name="SPX Express" />
                         <x-admin.choice.card name="LBC Express" :available="false" state="Not configured">
                             Missing App ID / App Secret. Configure in <a href="#" class="v-choice__offlink">Settings &rarr; Courier Fulfillment &rarr; LBC Express</a>.
                         </x-admin.choice.card>
                     </x-admin.choice>
+
+                    <p class="v-choice__note mt-5">No integrated courier will carry this order to Alegria, Caluya, Antique.</p>
+                    <x-admin.choice cols>
+                        <x-admin.choice.card name="QuadX" mode="Staging" fee="from PHP 80.00" />
+                        {{-- Could not check: greyed, and still a real button.
+                             A courier we could not reach has refused
+                             nothing. Its words are printed because this
+                             failure is one we do not recognise. --}}
+                        <x-admin.choice.card name="SPX Express" state="Could not check">
+                            SPX Express said:<span class="v-choice__said">Sorry, ESF calculation failed because of the address you selected does not match available route code</span>
+                        </x-admin.choice.card>
+                        {{-- Not serviceable: one sentence, ours, naming what
+                             was refused. A failure we recognise never prints
+                             the courier's words as well. --}}
+                        <x-admin.choice.card name="LBC Express" :available="false" state="Not serviceable">
+                            LBC Express does not deliver to Alegria, Caluya, Antique.
+                        </x-admin.choice.card>
+                        <x-admin.choice.card name="Another courier" mode="Manual" />
+                    </x-admin.choice>
+
+                    {{-- Before any card can be drawn: a named wait, because
+                         a real network call is happening. --}}
+                    <div class="v-choice__wait">
+                        <span class="v-choice__waitmark" aria-hidden="true"></span>
+                        <span>Asking QuadX, SPX Express and LBC Express whether they deliver to Alegria, Caluya, Antique</span>
+                    </div>
                 </x-admin.panel>
 
                 {{-- Feedback: what the system says back. --}}

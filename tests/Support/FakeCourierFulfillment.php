@@ -17,6 +17,13 @@ use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
  */
 class FakeCourierFulfillment implements CourierFulfillmentInterface
 {
+    /**
+     * Proves the sanctioned default is genuinely free: a courier that cannot
+     * predict coverage says so by using this trait and writes no code of its
+     * own. checkServiceability() therefore returns `unknown` here.
+     */
+    use \Extensions\CourierFulfillment\Support\AnswersUnknownServiceability;
+
     public function getKey(): string
     {
         return 'fake';

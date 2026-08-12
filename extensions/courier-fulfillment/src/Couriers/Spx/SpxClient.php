@@ -171,14 +171,24 @@ class SpxClient
         ]);
     }
 
-    /** 2.1 Check Shipping Fee (batch_check_order) — estimated fee BEFORE order creation. */
-    public function checkOrderFee(array $orders): array
+    /**
+     * 2.1 Check Shipping Fee (batch_check_order): estimated fee BEFORE
+     * order creation, and therefore also SPX's only pre-booking answer on
+     * whether it serves an address at all (api.md §2.1's fail_list carries
+     * the 1002x/1006x serviceability codes). It creates nothing.
+     *
+     * $timeout is explicit for the caller a person is waiting on (the
+     * booking modal's serviceability check, see
+     * ServiceabilityService::TIMEOUT_SECONDS); the estimate button keeps the
+     * class default.
+     */
+    public function checkOrderFee(array $orders, ?int $timeout = null): array
     {
         return $this->post('/open/api/v1/order/batch_check_order', [
             'user_id'     => (int) $this->userId(),
             'user_secret' => (string) $this->userSecret(),
             'orders'      => $orders,
-        ]);
+        ], $timeout);
     }
 
     /** 2.2 Get Order Fee (batch_get_asf) — ACTUAL fee AFTER order creation. */
@@ -306,7 +316,7 @@ class SpxClient
      * @throws \RuntimeException  not configured, transport failure, or a response
      *                            that isn't a well-formed SPX envelope at all
      */
-    public function post(string $path, array $body): array
+    public function post(string $path, array $body, ?int $timeout = null): array
     {
         if (!$this->isConfigured()) {
             throw new \RuntimeException('SPX is not configured (missing app-id/secret-key).');
@@ -340,7 +350,12 @@ class SpxClient
                     'random-num' => $randomNum,
                 ])
                 ->withBody($payload, 'application/json')
-                ->timeout(40)
+                // Both halves are bounded by the caller's budget when it
+                // sets one: SPX's UAT host stopped resolving in DNS, and an
+                // unresolvable host has to fail inside the same window a
+                // slow response does.
+                ->connectTimeout($timeout ?? 40)
+                ->timeout($timeout ?? 40)
                 ->post($url);
         } catch (\Throwable $e) {
             Log::error('SPX request failed', ['path' => $path, 'error' => $e->getMessage()]);

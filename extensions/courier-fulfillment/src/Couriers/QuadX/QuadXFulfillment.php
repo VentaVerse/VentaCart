@@ -6,7 +6,9 @@ use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\Models\PickupAddress;
+use Extensions\CourierFulfillment\ServiceabilityService;
 use Extensions\CourierFulfillment\Support\PickupCountry;
+use Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
 
 /**
  * QuadX courier (a Philippine courier, LBC-backed).
@@ -271,15 +273,148 @@ class QuadXFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * QuadX has no fee-quoting API (it prices by parcel category at
-     * remittance time), so no estimate is ever shown for it — the interface's
-     * sanctioned null default. Deliberately NOT derived from any rate table:
-     * inventing a figure QuadX never quoted would be a lie on a screen the
-     * operator commits money from.
+     * QuadX DOES quote, through the same endpoint that answers whether it
+     * will carry the parcel at all: POST /orders/estimates/rates returns a
+     * fee per parcel category for a given origin/destination pair. This
+     * method used to return null because that endpoint had not been mapped;
+     * the figure below is QuadX's own, for the category the operator has
+     * actually selected, and nothing is ever derived from a local rate table
+     * (inventing a figure QuadX never quoted would be a lie on a screen the
+     * operator commits money from).
+     *
+     * Null still means exactly what it always did: no figure to show. That
+     * covers an unreachable API, an unserviceable address, and a category
+     * QuadX did not price.
      */
     public function estimateFee(Order $order, array $options): ?object
     {
-        return null;
+        $quote = $this->rateQuote($order, $options);
+        if (!$quote['ok']) {
+            return null;
+        }
+
+        $parcel = (string) ($options['parcel'] ?? '');
+        $amount = $quote['fees'][$parcel] ?? null;
+        if (!is_numeric($amount)) {
+            return null;
+        }
+
+        return (object) [
+            'amount'   => (float) $amount,
+            'currency' => 'PHP',
+            'label'    => '₱' . number_format((float) $amount, 2),
+        ];
+    }
+
+    /**
+     * QuadX publishes coverage through its rate endpoint: a destination it
+     * serves is priced (200), one it does not is refused in words (422,
+     * `errors.detail` = "Delivery address is not serviceable.", verified
+     * live against staging with Caluya, Antique).
+     *
+     * The refusal branch is deliberately narrow. Only a 4xx whose message
+     * actually SAYS serviceable is read as a refusal. Every other failure,
+     * a timeout, a 500, an auth error, a validation complaint about a postal
+     * code, resolves to `unknown`, because those are all "we could not ask",
+     * and telling an operator that QuadX refuses an address it never
+     * evaluated is the one outcome this feature exists to prevent.
+     *
+     * QuadX answers everything address-shaped with the SAME sentence, for a
+     * real uncovered municipality and for one that does not exist, so this
+     * never tries to tell those apart: one recognised kind (destination), and
+     * anything else it says is carried through in its own words.
+     */
+    public function checkServiceability(Order $order): ServiceabilityVerdict
+    {
+        if (!$this->isEnabled()) {
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
+
+        $quote = $this->rateQuote($order, [], ServiceabilityService::TIMEOUT_SECONDS);
+
+        if ($quote['ok']) {
+            return ServiceabilityVerdict::serviceable($quote['fees'], 'PHP');
+        }
+
+        $said = (string) ($quote['error'] ?? '');
+        $status = (int) $quote['status'];
+
+        // Status 0 is QuadXClient's transport failure: no response at all, so
+        // `$said` is curl's message and not QuadX's. It is never shown.
+        if ($status === 0) {
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
+
+        if ($status >= 500) {
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_THEIR_SIDE);
+        }
+
+        if ($status >= 400 && stripos($said, 'serviceable') !== false) {
+            return ServiceabilityVerdict::notServiceable(ServiceabilityVerdict::KIND_DESTINATION, $said);
+        }
+
+        // Something QuadX refused that we do not recognise. We have no
+        // sentence of our own worth writing, so its words are carried
+        // through, and the card stays clickable because we do not know that
+        // this was about the address at all.
+        return ServiceabilityVerdict::unknown(null, $said !== '' ? $said : null);
+    }
+
+    /**
+     * One call behind both estimateFee() and checkServiceability(), so the
+     * fee an operator is shown and the coverage answer they are shown can
+     * never disagree.
+     *
+     * The origin is the SAME record every booking leaves from
+     * (PickupAddress::resolveFor()), and the destination is built by the same
+     * normalizer the booking payload uses, so a quote describes the shipment
+     * that would actually be created.
+     *
+     * @return array{ok:bool, status:int, fees:array<string,float>, error:?string}
+     */
+    private function rateQuote(Order $order, array $opts = [], ?int $timeout = null): array
+    {
+        $service = (string) ($opts['service'] ?? '')
+            ?: (string) (Setting::where('group', 'courier')->where('key', 'quadx_default_service')->value('value') ?: 'next_day');
+
+        $res = $this->client->estimateRates([
+            'service_type'     => $service,
+            'pickup_address'   => self::rateAddress($this->pickupAddress($opts)),
+            'delivery_address' => self::rateAddress($this->deliveryAddress($order)),
+        ], $timeout);
+
+        if (!$res['ok']) {
+            return ['ok' => false, 'status' => (int) $res['status'], 'fees' => [], 'error' => $res['error'] ?? null];
+        }
+
+        $fees = $res['body']['data']['attributes']['shipping_fee'] ?? [];
+
+        return [
+            'ok'     => true,
+            'status' => (int) $res['status'],
+            'fees'   => is_array($fees) ? array_filter($fees, 'is_numeric') : [],
+            'error'  => null,
+        ];
+    }
+
+    /**
+     * The rate endpoint takes the address alone (no contact block), so the
+     * booking payload's name/mobile_number are dropped here rather than sent
+     * to an endpoint that has no use for them. `line_2` is carried as an
+     * empty string because Venta stopped storing a second address line
+     * (2026-03-06 migration) and the field is optional to QuadX.
+     */
+    private static function rateAddress(array $address): array
+    {
+        return [
+            'line_1'      => $address['line_1'] ?? '-',
+            'line_2'      => '',
+            'district'    => $address['district'] ?? null,
+            'city'        => $address['city'] ?? null,
+            'state'       => $address['state'] ?? null,
+            'postal_code' => $address['postal_code'] ?? '-',
+            'country'     => $address['country'] ?? 'PH',
+        ];
     }
 
     /**

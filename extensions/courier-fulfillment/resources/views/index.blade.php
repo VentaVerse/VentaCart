@@ -110,6 +110,19 @@
             'to_pack'     => 'To Pack',
             'to_handover' => 'To Handover',
         ];
+
+        // The couriers the booking modal actually ASKS about coverage when
+        // it opens: configured ones only, since a courier with no
+        // credentials cannot be asked and its card already says so. Named
+        // here (in the file's FIRST @php block, per the house rule that a
+        // block must precede any inline @php in the same file) so the
+        // modal's waiting line can say who is being waited on.
+        $checkedCourierNames = [];
+        foreach ($courierOptions ?? [] as $courierOption) {
+            if (!empty($courierOption['configured'])) {
+                $checkedCourierNames[] = $courierOption['name'];
+            }
+        }
     @endphp
 
     <div x-data="fulfillment()">
@@ -488,6 +501,18 @@
                                 'date' => optional($order->created_at)->format('M d, Y g:ia'),
                                 'customerName' => trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-',
                                 'address' => trim(collect([$order->shipping_address_1, $order->shipping_city, $order->shipping_state])->filter()->implode(', ')) ?: '-',
+                                // The place a courier is being asked about,
+                                // in the customer's own words: barangay,
+                                // city, province. Named in the booking
+                                // modal's waiting line and in its refusal
+                                // sentences, so an operator reads WHERE the
+                                // answer is about and not just which courier
+                                // gave it.
+                                'destination' => trim(collect([$order->shipping_barangay, $order->shipping_city, $order->shipping_state])->filter()->implode(', ')) ?: 'this address',
+                                // Named on its own when a courier's refusal is
+                                // about the postcode specifically, which is a
+                                // ten-second fix once somebody says so.
+                                'postcode' => $order->shipping_postcode,
                                 'statusName' => $order->status?->name ?? 'Missing',
                                 'itemsCount' => $order->products_count ?? 0,
                                 'activelyBooked' => $activelyBooked,
@@ -948,8 +973,15 @@
                      needs `active`, `step` and the courier form state from the
                      queue's own scope. x-dialog gives it the same focus
                      contract every x-admin.modal has. --}}
+                {{-- Two widths, one sheet: the courier step lays its options
+                     out as columns and needs the room for up to four of them,
+                     while the chosen courier's form is a column of fields and
+                     reads worse stretched. Both widths are named in the
+                     module's own stylesheet (never a class assembled in
+                     Alpine), and the sheet animates between them. --}}
                 <div x-show="bookOpen" x-transition
-                     class="v-modal relative w-full max-w-md bg-v-surface border border-v-border rounded-v-lg max-h-full overflow-y-auto"
+                     class="v-modal v-bookmodal relative w-full bg-v-surface border border-v-border rounded-v-lg max-h-full overflow-y-auto"
+                     :class="step === 1 ? 'v-bookmodal--couriers' : ''"
                      x-dialog="bookOpen" tabindex="-1"
                      role="dialog" aria-modal="true" :aria-label="'Book order #' + (active ? active.id : '')">
                     <template x-if="active">
@@ -981,15 +1013,93 @@
                                      click handler to wire up, not merely a disabled one. --}}
                                 <div x-show="step === 1">
                                     <p class="text-[13px] text-v-secondary mb-3">How will this order ship?</p>
-                                    <x-admin.choice>
+
+                                    {{-- The wait is a real network call to every
+                                         configured courier, so it is named rather than
+                                         spun at: who is being asked, and about where.
+                                         The cards are drawn only once every courier has
+                                         answered (owner ruling, 2026-08-12). A card
+                                         that rearranges itself under the operator's hand
+                                         is worse than a pause they can read. --}}
+                                    <div x-show="checking" class="v-choice__wait">
+                                        <span class="v-choice__waitmark" aria-hidden="true"></span>
+                                        <span x-text="waitLine"></span>
+                                    </div>
+
+                                    <div x-show="!checking">
+                                        {{-- Every courier we could ask said no. One line,
+                                             the refused cards still readable below it with
+                                             their own reasons, and the manual card
+                                             selectable exactly as it always is. --}}
+                                        <p class="v-choice__note" x-show="allRefused" x-text="refusedLine"></p>
+                                    <x-admin.choice cols>
                                         @foreach ($courierOptions as $key => $opt)
                                             @if ($opt['configured'])
+                                                {{-- Three cards, one per verdict, exactly
+                                                     one of them shown. Written out rather
+                                                     than assembled in Alpine so each state
+                                                     is a real, inspectable piece of markup:
+                                                     the refusal genuinely cannot advance
+                                                     (it is a <div> with no handler) and the
+                                                     unreachable one genuinely can (a real
+                                                     <button> wired to chooseCourier). --}}
                                                 <x-admin.choice.card
                                                     :name="$opt['name']"
                                                     :mode="!empty($opt['mode']) && $opt['mode'] !== 'production' ? ucfirst($opt['mode']) : null"
-                                                    :fee="!empty($opt['fee_estimate']) ? ($opt['fee_estimate']->label ?? ($opt['fee_estimate']->currency . ' ' . number_format($opt['fee_estimate']->amount, 2))) : null"
                                                     data-courier-card="{{ $key }}"
-                                                    @click="chooseCourier('{{ $key }}')" />
+                                                    data-courier-state="serviceable"
+                                                    x-show="verdict('{{ $key }}') === 'serviceable'"
+                                                    @click="chooseCourier('{{ $key }}')">
+                                                    {{-- The cheapest parcel this courier
+                                                         quoted for this address. A from-price,
+                                                         because which parcel goes in the box is
+                                                         still step 2's question. --}}
+                                                    <x-slot:fee><span x-text="fromPrice('{{ $key }}')"></span></x-slot:fee>
+                                                </x-admin.choice.card>
+
+                                                {{-- Could not check. A timeout, a dead DNS
+                                                     record, a failure on the courier's own
+                                                     side, or a complaint about the parcel we
+                                                     guessed is NOT a refusal of the address,
+                                                     so this card stays clickable and says only
+                                                     what is true: we could not ask.
+                                                     Collapsing this into "not serviceable"
+                                                     would make the modal lie during an
+                                                     outage. --}}
+                                                <x-admin.choice.card
+                                                    :name="$opt['name']"
+                                                    state="Could not check"
+                                                    data-courier-card="{{ $key }}"
+                                                    data-courier-state="unknown"
+                                                    x-show="verdict('{{ $key }}') === 'unknown'"
+                                                    @click="chooseCourier('{{ $key }}')">
+                                                    <span x-show="sentenceFor('{{ $key }}')" x-text="sentenceFor('{{ $key }}')"></span>
+                                                    <template x-if="!sentenceFor('{{ $key }}') && reason('{{ $key }}')">
+                                                        <span>{{ $opt['name'] }} said:<span class="v-choice__said" x-text="reason('{{ $key }}')"></span></span>
+                                                    </template>
+                                                </x-admin.choice.card>
+
+                                                {{-- Not serviceable. One sentence, ours,
+                                                     naming what was actually refused: the
+                                                     destination, the pickup origin, COD at
+                                                     this address, or the postcode. The
+                                                     courier's own words appear ONLY when we
+                                                     did not recognise what it said (owner
+                                                     ruling, 2026-08-12: printing both was
+                                                     redundant, since ours names the place and
+                                                     reads the same across couriers). --}}
+                                                <x-admin.choice.card
+                                                    :name="$opt['name']"
+                                                    :available="false"
+                                                    state="Not serviceable"
+                                                    data-courier-card="{{ $key }}"
+                                                    data-courier-state="not_serviceable"
+                                                    x-show="verdict('{{ $key }}') === 'not_serviceable'">
+                                                    <span x-show="sentenceFor('{{ $key }}')" x-text="sentenceFor('{{ $key }}')"></span>
+                                                    <template x-if="!sentenceFor('{{ $key }}') && reason('{{ $key }}')">
+                                                        <div>{{ $opt['name'] }} said:<span class="v-choice__said" x-text="reason('{{ $key }}')"></span></div>
+                                                    </template>
+                                                </x-admin.choice.card>
                                             @else
                                                 <x-admin.choice.card
                                                     :name="$opt['name']"
@@ -1012,6 +1122,7 @@
                                                 data-courier-card="__manual" @click="chooseManual()" />
                                         @endif
                                     </x-admin.choice>
+                                    </div>
                                 </div>
 
                                 {{-- Step 2: the chosen courier's form, from its option methods.
@@ -1042,13 +1153,23 @@
                                                     <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                                 </x-admin.select>
                                             </x-admin.field>
+                                            {{-- Each parcel carries the exact fee this
+                                                 courier quoted for it, from the same
+                                                 answer step 1's from-price came from,
+                                                 so choosing the parcel IS choosing the
+                                                 price. A parcel the courier did not
+                                                 price keeps its plain label: no figure
+                                                 is better than an invented one. --}}
                                             <x-admin.field name="parcel" label="Parcel" required>
                                                 <x-admin.select name="parcel" x-model="parcel">
-                                                    <template x-for="o in current.parcels" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
+                                                    <template x-for="o in current.parcels" :key="o.value"><option :value="o.value" x-text="parcelLabel(o)"></option></template>
                                                 </x-admin.select>
                                             </x-admin.field>
                                         </div>
-                                        <x-admin.toggle name="insure" label="Insure shipment (&asymp;1% fee, declared at order total)" />
+                                        {{-- A literal ≈ rather than the HTML entity: this
+                                             is a PROP, so Blade escapes it and the entity
+                                             printed itself on screen. --}}
+                                        <x-admin.toggle name="insure" label="Insure shipment (≈1% fee, declared at order total)" />
                                         <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2">
                                             <div class="text-xs font-medium text-v-muted mb-0.5">Buyer pays for goods</div>
                                             <div class="text-sm text-v-text" x-text="active.buyerPaymentLabel"></div>
@@ -1172,6 +1293,21 @@
                                                 <x-admin.input name="tracking_number" autocomplete="off" maxlength="190" />
                                             </x-admin.field>
 
+                                            {{-- Nothing is sent to a carrier here, so the
+                                                 operator says plainly what state the order
+                                                 is now in. The same statuses the order page
+                                                 offers, pre-selected to the one this module
+                                                 would have applied on its own. --}}
+                                            @if (!empty($orderStatuses) && count($orderStatuses) > 0)
+                                                <x-admin.field name="order_status_id" label="Order status" required>
+                                                    <x-admin.select name="order_status_id" required>
+                                                        @foreach ($orderStatuses as $orderStatus)
+                                                            <option value="{{ $orderStatus->id }}" @selected($orderStatus->id === $manualDefaultStatusId)>{{ $orderStatus->name }}</option>
+                                                        @endforeach
+                                                    </x-admin.select>
+                                                </x-admin.field>
+                                            @endif
+
                                             <x-admin.field name="note" label="Note">
                                                 <x-admin.textarea name="note" rows="2" maxlength="500" />
                                             </x-admin.field>
@@ -1183,7 +1319,7 @@
                                             <div class="flex items-center gap-2 pt-1">
                                                 <x-admin.button type="button" variant="ghost" @click="backToCouriers()">Back</x-admin.button>
                                                 <x-admin.button type="submit" variant="primary" class="flex-1">Record shipment</x-admin.button>
-                                                <x-admin.hint label="What recording a shipment does" class="v-hint--end">Venta contacts no courier and prints no waybill. The order moves to your To Handover status and advances by status from there.</x-admin.hint>
+                                                <x-admin.hint label="What recording a shipment does" class="v-hint--end">Venta contacts no courier and prints no waybill. The order moves to the status chosen above and advances by status from there.</x-admin.hint>
                                             </div>
                                         </form>
                                     </div>
@@ -1220,6 +1356,20 @@
                 spxEstimate: null,
                 spxEstimateError: null,
                 spxEstimateLoading: false,
+                // Serviceability (owner directive, 2026-08-12): every
+                // configured courier's answer to "do you deliver here",
+                // asked once when the modal opens and held for this
+                // session only. The map is keyed by courier and each
+                // entry is {status, reason, fees, currency, from}:
+                // status is one of serviceable / not_serviceable /
+                // unknown, and an ABSENT courier reads as unknown, which
+                // is the safe direction: unknown is still bookable.
+                serviceability: {},
+                checking: false,
+                // Who gets asked. Configured couriers only; a courier
+                // with no credentials cannot answer and its card already
+                // says why.
+                checkedCouriers: @js($checkedCourierNames),
                 options: @js($courierOptions),
                 // Same tone -> class map x-admin.badge renders server-side,
                 // for the drawer's Alpine-driven terminal phase badge.
@@ -1238,6 +1388,97 @@
                 get labelUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/label'; },
                 get estimateAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/estimate'; },
                 get pickupSlotsUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/pickup-slots'; },
+                get serviceabilityUrl() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/serviceability'; },
+                // What is happening and why it is taking a moment. Named,
+                // because it is a real call to somebody else's network.
+                get waitLine() {
+                    const who = this.checkedCouriers.length > 1
+                        ? this.checkedCouriers.slice(0, -1).join(', ') + ' and ' + this.checkedCouriers[this.checkedCouriers.length - 1]
+                        : (this.checkedCouriers[0] || '');
+                    return 'Asking ' + who + ' whether they deliver to ' + (this.active ? this.active.destination : '');
+                },
+                // Every courier that answered, refused. Never true when
+                // there was nobody to ask: no courier means no refusal.
+                get allRefused() {
+                    const keys = Object.keys(this.serviceability);
+                    return keys.length > 0 && keys.every(k => this.serviceability[k].status === 'not_serviceable');
+                },
+                // "Will carry this order", not "delivers here": a refusal can
+                // be about COD or the pickup origin rather than the
+                // destination, and this one line has to be true of all of
+                // them.
+                get refusedLine() {
+                    return 'No integrated courier will carry this order to ' + (this.active ? this.active.destination : '') + '.';
+                },
+                verdict(key) {
+                    const v = this.serviceability[key];
+                    return v ? v.status : 'unknown';
+                },
+                // The courier's own words, verbatim. Shown ONLY when
+                // sentenceFor() below has nothing of its own to say, i.e.
+                // when we did not recognise what the courier refused.
+                reason(key) {
+                    const v = this.serviceability[key];
+                    return (v && v.reason) ? v.reason : '';
+                },
+                courierName(key) {
+                    return (this.options[key] && this.options[key].name) ? this.options[key].name : key;
+                },
+                // OUR sentence for a failure we recognise: what was actually
+                // refused, named, and reading the same whichever courier said
+                // it. Returns '' when we did not recognise the failure, which
+                // is what makes the card print the courier's own words
+                // instead.
+                sentenceFor(key) {
+                    const v = this.serviceability[key];
+                    if (!v) return '';
+                    const c = this.courierName(key);
+                    const place = this.active ? this.active.destination : '';
+                    switch (v.kind) {
+                        case 'destination':
+                            return c + ' does not deliver to ' + place + '.';
+                        case 'origin':
+                            return c + ' will not collect from your pickup address.';
+                        // Deliverable, just not with cash collected at the
+                        // door. Saying "does not deliver" here would be
+                        // wrong, and this store sells heavily on COD.
+                        case 'cod':
+                            return c + ' will not collect cash on delivery at ' + place + '.';
+                        case 'postcode':
+                            return c + ' does not accept the postcode' + (this.active && this.active.postcode ? ' ' + this.active.postcode : '') + ' on this address.';
+                        // About the parcel we guessed, not about the address:
+                        // the real parcel is chosen in step 2, where Get
+                        // estimate quotes it exactly.
+                        case 'parcel':
+                            return c + ' refused the parcel this check quoted, so its coverage here is unconfirmed. Choose a parcel and check the fee.';
+                        case 'slot':
+                            return c + ' would not accept the pickup arrangement this check used, so its coverage here is unconfirmed.';
+                        case 'their_side':
+                            return c + ' had a failure on its own side, so its coverage here is unconfirmed.';
+                        case 'unreachable':
+                            return c + ' did not answer, so its coverage here is unconfirmed.';
+                    }
+                    // Unrecognised, and the courier said something: its words
+                    // are the only useful description we have.
+                    if (v.reason) return '';
+                    return v.status === 'unknown' ? (c + ' did not answer, so its coverage here is unconfirmed.') : '';
+                },
+                // The cheapest parcel this courier quoted, as a from-price.
+                fromPrice(key) {
+                    const v = this.serviceability[key];
+                    return (v && v.from !== null && v.from !== undefined) ? ('from ' + this.peso(v.from)) : '';
+                },
+                // The exact fee for one parcel option, appended to its own
+                // label in step 2. A parcel with no quote keeps its plain
+                // label rather than gaining a zero.
+                parcelLabel(option) {
+                    const v = this.serviceability[this.courier];
+                    const fee = (v && v.fees) ? v.fees[option.value] : null;
+                    return (fee === null || fee === undefined) ? option.label : (option.label + ' (' + this.peso(fee) + ')');
+                },
+                peso(amount) {
+                    return '₱' + Number(amount).toFixed(2);
+                },
                 openDrawer(order) {
                     this.active = order;
                     this.drawerOpen = true;
@@ -1254,6 +1495,41 @@
                     this.step = 1;
                     this.bookOpen = true;
                     this.resetSpxState();
+                    this.loadServiceability();
+                },
+                // Asked on OPEN, and the cards wait for it (owner ruling,
+                // 2026-08-12). The server holds every courier to a 5s
+                // budget, so this pause is bounded even when a courier is
+                // unreachable, and an unreachable courier comes back as
+                // `unknown`, which still renders a card the operator can
+                // click.
+                loadServiceability() {
+                    this.serviceability = {};
+                    if (!this.active || this.checkedCouriers.length === 0) {
+                        this.checking = false;
+                        return;
+                    }
+                    this.checking = true;
+                    // The modal serves every row, so an answer that lands
+                    // after the operator has moved to another order belongs
+                    // to nobody: it is dropped rather than shown against the
+                    // wrong address.
+                    const askedFor = this.active.id;
+                    fetch(this.serviceabilityUrl, { headers: { 'Accept': 'application/json' } })
+                        .then(r => r.json())
+                        .then(d => {
+                            if (!this.active || this.active.id !== askedFor) return;
+                            this.serviceability = (d && d.couriers) ? d.couriers : {};
+                            this.checking = false;
+                        })
+                        .catch(() => {
+                            if (!this.active || this.active.id !== askedFor) return;
+                            // We could not even ask our own server. Every
+                            // courier reads as unknown, which is honest and
+                            // leaves every card clickable.
+                            this.serviceability = {};
+                            this.checking = false;
+                        });
                 },
                 // The third choice: no courier key, because no integration owns
                 // this shipment. That is the same distinction the server keeps

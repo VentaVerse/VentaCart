@@ -7,7 +7,9 @@ use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\FulfillmentService;
 use Extensions\CourierFulfillment\Models\PickupAddress;
+use Extensions\CourierFulfillment\ServiceabilityService;
 use Extensions\CourierFulfillment\Support\PhPhone;
+use Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Http;
@@ -104,6 +106,81 @@ class SpxFulfillment implements CourierFulfillmentInterface
         '6003' => 'Returned',
         '7001' => 'Cancelled',
     ];
+
+    /**
+     * SPX's failures, classified by GROUP rather than one code at a time
+     * (owner ruling, 2026-08-12), so a code nobody has seen yet still lands
+     * somewhere sensible instead of falling through as a mystery.
+     *
+     * These four are REFUSALS of this shipment: the card goes inert and the
+     * modal writes its own sentence for the group, naming the destination.
+     * Codes are the owner's own grouping of docs/spx/guide.md's error tables.
+     *
+     * Two of them are deliberately NOT "does not deliver here":
+     *  - `cod` is an address SPX will happily deliver to, just not collecting
+     *    cash at, which matters because this store sells heavily on COD.
+     *  - `postcode` is a field on the address, and naming it is what lets an
+     *    operator fix it in ten seconds.
+     */
+    private const REFUSAL_GROUPS = [
+        // Destination not covered. 10062 and 10066 are guide.md codes outside
+        // the owner's table, added here because they say the same thing:
+        // "no route code for this address", "basic serviceable area not
+        // configured".
+        ServiceabilityVerdict::KIND_DESTINATION => [10016, 10017, 10019, 10023, 10026, 10033, 10062, 10066],
+        // Origin not covered. 10065 ("pickup and delivery are not supported")
+        // is guide.md's, and lands here because a pickup address SPX will not
+        // collect from blocks every order, not just this one.
+        ServiceabilityVerdict::KIND_ORIGIN      => [10014, 10015, 10018, 10025, 10054, 10065],
+        // COD not supported at this address.
+        ServiceabilityVerdict::KIND_COD         => [10029, 10030, 10031, 10032, 10043],
+        // The postcode itself is the problem.
+        ServiceabilityVerdict::KIND_POSTCODE    => [10027, 10028],
+    ];
+
+    /**
+     * Failures that say NOTHING about whether SPX serves this address, so
+     * they resolve to `unknown` and leave the card clickable:
+     *
+     *  - `parcel`: about the parcel or the COD amount, and the parcel is not
+     *    chosen until step 2. The check quotes SPX's smallest preset, so a
+     *    refusal here is a refusal of OUR guess, and the operator can pick a
+     *    real parcel and quote it exactly with Get estimate.
+     *  - `slot`: a pickup slot is our own form's field, not SPX's coverage.
+     *    10024 ("pickup option not supported") is guide.md's, and it is about
+     *    the collect_type WE sent.
+     *  - `their_side`: an outage. Same bucket as a dead DNS record, for the
+     *    same reason: nobody evaluated the address.
+     */
+    private const UNCERTAIN_GROUPS = [
+        ServiceabilityVerdict::KIND_PARCEL     => [10001, 10003, 10004, 10011, 10050, 10064],
+        ServiceabilityVerdict::KIND_SLOT       => [10013, 10024, 10038, 10039, 10040, 10056],
+        ServiceabilityVerdict::KIND_THEIR_SIDE => [10020, 10044, 10045, 10049, 10052],
+    ];
+
+    /**
+     * Which group a code belongs to, and whether that group is a refusal.
+     *
+     * @return array{0:?string, 1:bool} [kind, isRefusal]. A null kind is a
+     *   code we do not recognise: never a refusal, and the caller carries
+     *   SPX's own words through instead of inventing a sentence for it.
+     */
+    private static function classify(int $code): array
+    {
+        foreach (self::REFUSAL_GROUPS as $kind => $codes) {
+            if (in_array($code, $codes, true)) {
+                return [$kind, true];
+            }
+        }
+
+        foreach (self::UNCERTAIN_GROUPS as $kind => $codes) {
+            if (in_array($code, $codes, true)) {
+                return [$kind, false];
+            }
+        }
+
+        return [null, false];
+    }
 
     /** api.md §"Order status codes" (also integration-brief.md §5's table), bucketed for statusPhase()/terminalStatuses()/cancelableStatuses(). */
     private const DELIVERED = ['4001'];
@@ -536,6 +613,90 @@ class SpxFulfillment implements CourierFulfillmentInterface
             'currency' => 'PHP',
             'label'    => '₱' . number_format($amount, 2),
         ];
+    }
+
+    /**
+     * SPX's serviceability answer, from the same 2.1 batch_check_order call
+     * that quotes the fee, the only pre-booking question SPX will answer at
+     * all (it otherwise refuses at create time, with the codes below).
+     *
+     * Implemented against docs/spx/api.md §2.1 and guide.md's error tables,
+     * NOT against a live run: SPX's UAT host `test-stable.spx.ph` no longer
+     * resolves in DNS, so every call from this machine dies in the resolver.
+     * That is precisely why the third verdict exists: a dead DNS record is
+     * caught below as `unknown` ("could not check", still clickable), never
+     * as a refusal. If this ever silently reported "not serviceable" for an
+     * SPX outage, the modal would be lying about coverage SPX never
+     * evaluated.
+     *
+     * Every code is classified by GROUP (see REFUSAL_GROUPS /
+     * UNCERTAIN_GROUPS), so an unseen code still lands somewhere sensible.
+     * Only the four refusal groups make the card inert; a parcel complaint, a
+     * pickup-slot complaint and an SPX-side failure all leave it clickable.
+     */
+    public function checkServiceability(Order $order): ServiceabilityVerdict
+    {
+        if (!$this->client->hasAccountCredentials()) {
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
+
+        // No booking options exist yet at this point in the modal (the
+        // courier has not even been chosen), so the payload is built with
+        // defaults: buildOrderPayload() falls back to the first pouch
+        // preset, which is the smallest and therefore the cheapest, making
+        // the quoted fee a genuine from-price.
+        $built = $this->buildOrderPayload($order, []);
+        if (!$built['ok']) {
+            // Our own missing data (an incomplete pickup origin, an address
+            // we cannot map), so nothing was asked and nothing was refused.
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
+
+        try {
+            $data = $this->client->checkOrderFee([$built['payload']], ServiceabilityService::TIMEOUT_SECONDS);
+        } catch (SpxApiException $e) {
+            // ->retCode, never getCode(): SpxApiException carries SPX's own
+            // code in its own property and leaves the RuntimeException code
+            // at zero.
+            return self::verdictForCode($e->retCode, $e->getMessage());
+        } catch (\Throwable $e) {
+            // Transport: DNS, connection, timeout, or a response that was not
+            // an SPX envelope at all. We could not ask, and the message is
+            // curl's rather than SPX's, so it is logged and never shown.
+            Log::warning('SPX serviceability check could not reach SPX', [
+                'order' => $order->id, 'error' => $e->getMessage(),
+            ]);
+
+            return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_UNREACHABLE);
+        }
+
+        $first = ($data['orders'] ?? [])[0] ?? null;
+        if (is_array($first) && isset($first['estimated_shipping_fee'])) {
+            return ServiceabilityVerdict::serviceable(
+                ['estimate' => (float) $first['estimated_shipping_fee']],
+                'PHP'
+            );
+        }
+
+        // api.md §2.1: a per-order failure comes back inside data.fail_list
+        // with its own ret_code, rather than failing the whole envelope.
+        $failed = ($data['fail_list'] ?? [])[0] ?? null;
+        if (is_array($failed)) {
+            return self::verdictForCode((int) ($failed['ret_code'] ?? 0), (string) ($failed['message'] ?? ''));
+        }
+
+        return ServiceabilityVerdict::unknown(ServiceabilityVerdict::KIND_THEIR_SIDE);
+    }
+
+    /** One SPX error code, classified by group, carrying SPX's words only when we do not recognise it. */
+    private static function verdictForCode(int $code, string $message): ServiceabilityVerdict
+    {
+        [$kind, $isRefusal] = self::classify($code);
+        $said = trim($message) !== '' ? trim($message) : null;
+
+        return $isRefusal
+            ? ServiceabilityVerdict::notServiceable($kind, $said)
+            : ServiceabilityVerdict::unknown($kind, $said);
     }
 
     /**

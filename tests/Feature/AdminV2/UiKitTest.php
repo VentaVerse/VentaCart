@@ -81,6 +81,12 @@ class UiKitTest extends TestCase
             'v-auto__name',     // list row, name and state
             'v-feed__row',      // feed
             'v-choice__card',   // selectable card
+            'v-choice--cols',   // selectable cards, across
+            'v-choice__card--caution', // selectable card, unverified but pickable
+            'v-choice__state',  // selectable card, the word that carries the state
+            'v-choice__said',   // selectable card, the other side's own words
+            'v-choice__wait',   // selectable cards, the named wait before they resolve
+            'v-choice__note',   // selectable cards, one line naming the situation
             'v-empty__title',   // empty state
             'v-notice__title',  // unconfigured state
             'v-flash__text',    // flash
