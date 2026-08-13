@@ -89,6 +89,7 @@ class UiKitTest extends TestCase
             'v-choice__note',   // selectable cards, one line naming the situation
             'v-choice__mark',   // selectable card, the mark it wears
             'v-choice__mark--drawn', // selectable card, the drawn mark
+            'v-choice__glyph',  // selectable card, the glyph inside a drawn mark
             'v-empty__title',   // empty state
             'v-notice__title',  // unconfigured state
             'v-flash__text',    // flash

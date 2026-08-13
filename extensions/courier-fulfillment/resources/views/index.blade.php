@@ -1056,7 +1056,7 @@
                                                     :name="$opt['name']"
                                                     :mode="!empty($opt['mode']) && $opt['mode'] !== 'production' ? ucfirst($opt['mode']) : null"
                                                     :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'fulfillment'"
+                                                    :icon="$markFor($key) ? null : 'brands'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-state="serviceable"
                                                     x-show="verdict('{{ $key }}') === 'serviceable'"
@@ -1081,7 +1081,7 @@
                                                     :name="$opt['name']"
                                                     state="Could not check"
                                                     :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'fulfillment'"
+                                                    :icon="$markFor($key) ? null : 'brands'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-state="unknown"
                                                     x-show="verdict('{{ $key }}') === 'unknown'"
@@ -1106,7 +1106,7 @@
                                                     :available="false"
                                                     state="Not serviceable"
                                                     :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'fulfillment'"
+                                                    :icon="$markFor($key) ? null : 'brands'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-state="not_serviceable"
                                                     x-show="verdict('{{ $key }}') === 'not_serviceable'">
@@ -1121,7 +1121,7 @@
                                                     :available="false"
                                                     state="Not configured"
                                                     :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'fulfillment'"
+                                                    :icon="$markFor($key) ? null : 'brands'"
                                                     data-courier-card="{{ $key }}"
                                                     data-courier-configured="false">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}" class="v-choice__offlink">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.</x-admin.choice.card>
                                             @endif
@@ -1141,7 +1141,7 @@
                                                  this row is a parcel, and what separates this
                                                  one is that somebody arranges it by hand
                                                  instead of an API doing it. --}}
-                                            <x-admin.choice.card name="Another courier" mode="Manual" icon="user"
+                                            <x-admin.choice.card name="Another courier" mode="Manual" icon="fulfillment"
                                                 data-courier-card="__manual" @click="chooseManual()" />
                                         @endif
                                     </x-admin.choice>

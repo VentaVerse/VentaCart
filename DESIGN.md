@@ -32,7 +32,7 @@ different system and are not covered here.
 An extension keeps its own residue in its own stylesheet, pushed with
 `@vite` from its view, and picked up by `getThemeEntries()` in
 `vite.config.js`. It uses the shared primitives and invents none of its own:
-`extensions/courier-fulfillment/resources/css/fulfillment.css` is 135 lines and
+`extensions/courier-fulfillment/resources/css/fulfillment.css` is 140 lines and
 `extensions/banners/resources/css/banners.css` is 104.
 
 ### Two rules the whole layer depends on
@@ -397,7 +397,7 @@ edge read as one control that moved.
 | `.v-flash*` | | something good already happened |
 | `.v-slate*` | `x-admin.slate` | a record card: mark, name, state, one line, controls. `href` makes the whole card the target; a slate carrying controls renders as a `<section>`. `.v-slate__link` is a line inside one that is itself a destination |
 | `.v-badgebtn`, `.v-badge__x` | | a badge that is the control flipping it, and a chip's remove control. Both keep their mark and take the 24px target |
-| `.v-choice*` | `x-admin.choice`, `x-admin.choice.card` | any pick-one set, down or (with `cols`) up to four across. Four states, each carrying its own **word**: available, and three the `state` prop names. Two of those are inert `<div>`s; the third, "could not check", is greyed and **still a real button**, because something we could not reach has refused nothing. `.v-choice__mark` is the square a card wears: a logo bound to a plate by whoever owns the artwork, or `--drawn` for an option nobody ships one for. Decorative, so it is `aria-hidden`, and drained in all three unavailable states so a full-colour logo never reads as the pickable card |
+| `.v-choice*` | `x-admin.choice`, `x-admin.choice.card` | any pick-one set, down or (with `cols`) up to four across. Four states, each carrying its own **word**: available, and three the `state` prop names. Two of those are inert `<div>`s; the third, "could not check", is greyed and **still a real button**, because something we could not reach has refused nothing. A card across is **1:1** and gives the mark every pixel its words have not claimed (198 square with four across at 1440, a 233x164 plate); one column drops to 4:3 so three options still fit a 390 screen without scrolling. `.v-choice__mark` is the plate a card wears: a logo bound to it by whoever owns the artwork, or `--drawn` (holding a `.v-choice__glyph`) for an option nobody ships one for. The plate states its own inset in percent, so a binding states artwork and ground and never a size. Decorative, so it is `aria-hidden`, and drained in all three unavailable states so a full-colour logo never reads as the pickable card. The words sit **under** the plate, never over it: text on the artwork needs a scrim, and a scrim heavy enough to carry the amber state word measured 2.49:1 on it in the light theme and erased the bottom third of the mark it sat on |
 | `.v-line*`, `.v-item*`, `.v-auto*` | `x-admin.line`, `x-admin.item` | list-row idioms |
 | `.v-feed`, `.v-entry*` | `x-admin.feed.entry` | activity and history |
 | `.v-tiles`, `.v-tile*`, `.v-tray`, `.v-drop` | | a grid of things you look at rather than read. A tile carries no border and no elevation at rest |
@@ -541,7 +541,7 @@ Each is deliberate, each is small, and each should shrink rather than grow.
   genuinely only the dashboard's: its pulse-band titles, one money-alignment
   exception, the ledger's "Bought" clamp, and which ledger column that page
   can afford to drop when narrow.
-- `extensions/courier-fulfillment/resources/css/fulfillment.css` (135 lines) is
+- `extensions/courier-fulfillment/resources/css/fulfillment.css` (140 lines) is
   measurements of this module's own content and bindings to its own couriers:
   four column widths, the two widths its booking sheet takes, the marker on a
   manually arranged parcel, one inert field, and which artwork each courier's

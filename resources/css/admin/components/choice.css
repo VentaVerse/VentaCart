@@ -53,6 +53,10 @@
     .v-choice--cols { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* A card across is square and its mark fills what the words leave.
+   That geometry is stated below the card and the mark it reshapes, so
+   it reads in the order it applies. */
+
 .v-choice__card {
     display: flex;
     flex-direction: column;
@@ -98,6 +102,14 @@
    ground (the same reason the filled accent stops do not flip), and
    why a hairline sits inside every plate: a white tile on a white
    sheet has no edge of its own.
+
+   The margin a mark keeps inside its plate is stated once, in percent,
+   so it holds at 48px and at the far larger plate a card across wears.
+   A courier binding therefore states its artwork and its ground and
+   nothing about size: `contain` inside that inset is as large as a mark
+   can be drawn without cropping itself, and a brand that ships a
+   full-bleed tile states that tile's colour as the plate, so the inset
+   still reads as edge to edge.
    ------------------------------------------------------------ */
 .v-choice__mark {
     display: inline-flex;
@@ -107,7 +119,9 @@
     height: 48px;
     flex: none;
     border-radius: var(--radius-sm);
+    padding: 6%;
     background-color: var(--surface-sunken);
+    background-origin: content-box;
     background-position: center;
     background-repeat: no-repeat;
     background-size: contain;
@@ -115,10 +129,80 @@
     color: var(--text-secondary);
 }
 
+/* The drawn mark's glyph, sized by the plate it sits on rather than by
+   a utility, so one rule moves it when the plate grows. */
+.v-choice__glyph {
+    width: 24px;
+    height: 24px;
+}
+
 /* The drawn mark is made of tokens rather than of somebody's brand,
    so it takes the layer's own edge instead of the plate hairline. */
 .v-choice__mark--drawn {
     box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* ------------------------------------------------------------
+   The card across, and the mark that fills it
+
+   Square, because a set compared side by side reads as a set when the
+   cards are one shape, and because a square is the most plate a card
+   can carry without the row going taller than the dialog. The mark
+   then takes every pixel the words have not already claimed: 233x164
+   inside a 267 card with three across, 198 square with four.
+
+   The words were tried ON the artwork first and the attempt is kept in
+   `.superpowers/design/shots/courier-cards-square/`. It failed twice
+   over. Legible text needs a scrim, and a scrim heavy enough to carry
+   the amber state word erases the bottom third of the mark it sits on,
+   which is the opposite of enlarging it. And a scrim is a ground the
+   theme does not control: the light theme's amber (#9A5A04) measured
+   2.49:1 on it against a floor of 4.5. So the words sit under the
+   artwork, on the card's own surface, in the card's own colours, and
+   every contrast here is one the tokens already hold.
+
+   The mark keeps the plate's inset, radius and hairline rather than
+   bleeding to the card's edge: a full-bleed image against the card's
+   own border doubles the edge, and the hairline is what gives a white
+   plate a shape on a white sheet.
+   ------------------------------------------------------------ */
+.v-choice--cols .v-choice__card { aspect-ratio: 1; }
+
+.v-choice--cols .v-choice__body { flex: 1; }
+
+/* `flex: 1` rather than a fixed band: the plate is whatever the card
+   has left after its words, so a card with a refusal to explain gives
+   some of its plate back instead of clipping the sentence.
+   `min-height: 0` is what lets it do that inside a square. */
+.v-choice--cols .v-choice__mark {
+    width: 100%;
+    height: auto;
+    flex: 1;
+    min-height: 0;
+    border-radius: var(--radius-md);
+}
+
+/* Sized off the plate's WIDTH, which is definite, rather than off its
+   height, which is whatever the words left over. A percentage height
+   has nothing to resolve against here, so the glyph would fall back to
+   a replaced element's default 300x150 and drag the whole row taller
+   than the square it was asked for. */
+.v-choice--cols .v-choice__glyph {
+    width: 42%;
+    height: auto;
+}
+
+/* One column is where a square stops being a card and starts being a
+   screenful: at 390 a square card is 301 tall, and three of them put
+   the last option two thumb-scrolls under the question. So the single
+   column keeps the enlarged mark and gives up the square, at 4:3,
+   which is what fits the whole set on one phone screen with nothing to
+   scroll. The share above is the other half of that fit: a glyph wide
+   enough to outgrow the plate its card can spare pushes the drawn card
+   taller than the two beside it, and `max-height: 100%` was measured
+   not to clamp it back. */
+@media (max-width: 28.75rem) {
+    .v-choice--cols .v-choice__card { aspect-ratio: 4 / 3; }
 }
 
 /* The name and, on a card that can be picked, the mark that says so.

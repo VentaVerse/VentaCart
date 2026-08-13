@@ -44,7 +44,7 @@
             @if ($markToken)
                 <span class="v-choice__mark v-choice__mark--{{ $markToken }}" aria-hidden="true"></span>
             @elseif ($icon)
-                <span class="v-choice__mark v-choice__mark--drawn" aria-hidden="true"><x-admin.icon :name="$icon" class="w-6 h-6" /></span>
+                <span class="v-choice__mark v-choice__mark--drawn" aria-hidden="true"><x-admin.icon :name="$icon" class="v-choice__glyph" /></span>
             @endif
             <span class="v-choice__head">
                 <span class="v-choice__name">{{ $name }}</span>
@@ -70,7 +70,7 @@
             @if ($markToken)
                 <span class="v-choice__mark v-choice__mark--{{ $markToken }}" aria-hidden="true"></span>
             @elseif ($icon)
-                <span class="v-choice__mark v-choice__mark--drawn" aria-hidden="true"><x-admin.icon :name="$icon" class="w-6 h-6" /></span>
+                <span class="v-choice__mark v-choice__mark--drawn" aria-hidden="true"><x-admin.icon :name="$icon" class="v-choice__glyph" /></span>
             @endif
             <div class="v-choice__head">
                 <span class="v-choice__name">{{ $name }}</span>

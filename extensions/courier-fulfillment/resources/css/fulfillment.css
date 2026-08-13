@@ -56,22 +56,27 @@
    for the same reason the filled accent stops do not: a mark brings
    the field it was drawn on. */
 
-/* SPX ships a full-bleed tile. The orange is baked into the artwork
-   and is genuinely the brand, so the image IS the plate, filling the
-   square and clipped by the radius the layer sets. */
+/* Both files are trimmed to their own ink and state their ground here
+   instead of carrying it as pixels. Both arrived as a wordmark adrift
+   in a 512 square (GoGo's lettering was 30% of its canvas height), so
+   `contain` was fitting mostly empty artwork and the mark came out a
+   third of the size the plate could carry. Trimmed, each one fills the
+   width of whatever plate it is given, and the two read as a pair
+   because they now share an aspect (2.56 and 2.48) rather than sharing
+   a canvas that hid it.
+
+   SPX's orange is genuinely the brand and was baked into its tile, so
+   the plate states that same orange and the tile still reads edge to
+   edge. GoGo's lower line is near-black on transparency, so it keeps
+   the white page it was drawn for or it vanishes in the dark theme. */
 .v-choice__mark--spx {
+    background-color: #EE4D2D;
     background-image: url('../images/spx.png');
-    background-size: cover;
 }
 
-/* GoGo Xpress ships a wordmark on transparency whose lower line is
-   near-black, so it keeps the white page it was drawn for. Same
-   square, same radius as SPX's, which is what keeps the row even
-   instead of one card boxed and one floating. */
 .v-choice__mark--quadx {
     background-color: #FFFFFF;
     background-image: url('../images/gogo.png');
-    background-size: 88%;
 }
 
 /* The marker on a parcel leaving by a courier we do not integrate with.

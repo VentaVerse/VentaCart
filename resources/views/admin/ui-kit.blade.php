@@ -660,21 +660,21 @@
                          greyed card greys as one thing. --}}
                     <p class="v-choice__note mt-5">No integrated courier will carry this order to Alegria, Caluya, Antique.</p>
                     <x-admin.choice cols>
-                        <x-admin.choice.card name="QuadX" mode="Staging" fee="from PHP 80.00" icon="fulfillment" />
+                        <x-admin.choice.card name="QuadX" mode="Staging" fee="from PHP 80.00" icon="brands" />
                         {{-- Could not check: greyed, and still a real button.
                              A courier we could not reach has refused
                              nothing. Its words are printed because this
                              failure is one we do not recognise. --}}
-                        <x-admin.choice.card name="SPX Express" state="Could not check" icon="fulfillment">
+                        <x-admin.choice.card name="SPX Express" state="Could not check" icon="brands">
                             SPX Express said:<span class="v-choice__said">Sorry, ESF calculation failed because of the address you selected does not match available route code</span>
                         </x-admin.choice.card>
                         {{-- Not serviceable: one sentence, ours, naming what
                              was refused. A failure we recognise never prints
                              the courier's words as well. --}}
-                        <x-admin.choice.card name="LBC Express" :available="false" state="Not serviceable" icon="fulfillment">
+                        <x-admin.choice.card name="LBC Express" :available="false" state="Not serviceable" icon="brands">
                             LBC Express does not deliver to Alegria, Caluya, Antique.
                         </x-admin.choice.card>
-                        <x-admin.choice.card name="Another courier" mode="Manual" icon="user" />
+                        <x-admin.choice.card name="Another courier" mode="Manual" icon="fulfillment" />
                     </x-admin.choice>
 
                     {{-- Before any card can be drawn: a named wait, because
