@@ -141,7 +141,10 @@
                 <x-admin.hint label="About these URLs" class="v-hint--end">Each URL is unique to this store. A courier given the wrong one cannot push its status updates.</x-admin.hint>
             </x-slot>
             <div class="space-y-4">
-                @foreach ($courierCards as $key => $card)
+                {{-- A courier with no push API of its own (LBC) has no URL to
+                     be given, so it gets no row here rather than a box
+                     holding an address nobody will ever post to. --}}
+                @foreach (array_filter($courierCards, fn ($c) => filled($c['webhookUrl'])) as $key => $card)
                     <div x-data="{ copied: false }">
                         <p class="text-[13px] font-semibold text-v-text mb-1.5">{{ $card['courier']->getName() }}</p>
                         <div class="flex items-center gap-2">

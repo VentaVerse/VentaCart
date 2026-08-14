@@ -78,6 +78,7 @@
                         'field' => $field,
                         'value' => $settings[$field['key']] ?? null,
                         'masked' => $masked[$field['key']] ?? null,
+                        'plain' => $plain[$field['key']] ?? null,
                         'isModeField' => $field['key'] === $modeFieldKey,
                     ])
                 @endforeach
@@ -155,6 +156,7 @@
                                 'field' => $field,
                                 'value' => $settings[$field['key']] ?? null,
                                 'masked' => $masked[$field['key']] ?? null,
+                                'plain' => $plain[$field['key']] ?? null,
                                 'isModeField' => false,
                             ])
                         @endforeach
@@ -176,7 +178,14 @@
                 {{-- Order status mapping — courier status -> Venta order status.
                      Statuses come from $courier->mappableStatuses(); saved keys are
                      "{key}_status_map" (StatusMapper::currentMap($key)), still through
-                     this same form and this courier's own allowlist. --}}
+                     this same form and this courier's own allowlist.
+
+                     A courier that exposes no mappable vocabulary (LBC, whose
+                     tracking client does not exist yet) gets no section at
+                     all rather than a table of column headings over nothing,
+                     and no "Refresh from" button for a list it cannot
+                     fetch. --}}
+                @if (!empty($courierStatuses))
                 <div class="mt-8 pt-6 border-t border-v-border">
                     <div class="flex items-center justify-between mb-1">
                         <span class="flex items-center gap-2">
@@ -226,6 +235,7 @@
                         </table>
                     </div>
                 </div>
+                @endif
 
                 <x-admin.form-actions>
                     <x-admin.button type="submit">Save</x-admin.button>

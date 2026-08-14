@@ -3,6 +3,7 @@
 namespace Extensions\CourierFulfillment;
 
 use Extensions\CourierFulfillment\Console\Commands\PollCourierStatus;
+use Extensions\CourierFulfillment\Couriers\Lbc\LbcFulfillment;
 use Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
 use App\Support\SettingsNav;
@@ -23,6 +24,11 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         // Register couriers. Adding a competitor later = one more line here.
         CourierManager::register(QuadXFulfillment::class);
         CourierManager::register(SpxFulfillment::class);
+        // LBC is registered for its settings page alone: it can never be
+        // enabled (LbcFulfillment::isEnabled() is false unconditionally), so
+        // registering it adds a place to keep four subscription keys and
+        // nothing that can book a parcel.
+        CourierManager::register(LbcFulfillment::class);
 
         // Status updates use the pull/fetch model. The poll runs as a managed
         // automation (Settings > Automations), driven by the global schedule:run

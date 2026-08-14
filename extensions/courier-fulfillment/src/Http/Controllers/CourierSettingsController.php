@@ -65,6 +65,21 @@ class CourierSettingsController extends Controller
     ];
 
     /**
+     * Couriers this store generates no `?token=` webhook token for, and so
+     * has no token-bearing URL to hand out. Two different reasons, both
+     * about not showing a value nobody checks:
+     *
+     *  - `spx` authenticates its webhook with a signed `check-sign` header
+     *    it computes from its own app-secret (see CourierWebhookController's
+     *    SPX branch), so a token in the URL would never be read. Its card
+     *    still shows the bare URL, which SPX genuinely posts to.
+     *  - `lbc` has no push API at all. All four documented LBC APIs are
+     *    request/response, and Track and Trace V2 is POLLED over SOAP, so
+     *    there is no URL to give LBC and its card shows none.
+     */
+    private const NO_WEBHOOK_URL = ['spx', 'lbc'];
+
+    /**
      * The ONLY keys writable via the given courier's page. Anything else in
      * the request is ignored — prevents arbitrary writes into the 'courier'
      * settings group (e.g. overwriting the server-generated
@@ -127,7 +142,7 @@ class CourierSettingsController extends Controller
         // the query string entirely rather than showing a value that's
         // never actually checked.
         foreach (CourierManager::all() as $courier) {
-            if ($courier->getKey() === 'spx') {
+            if (in_array($courier->getKey(), self::NO_WEBHOOK_URL, true)) {
                 continue;
             }
             $tokenKey = $courier->getKey() . '_webhook_token';
@@ -189,12 +204,16 @@ class CourierSettingsController extends Controller
                 // This store's own webhook URL — copy and send to the courier.
                 // Module-level plumbing (server-generated token), so it lives
                 // on the hub, not the courier's own form. SPX gets no
-                // `?token=` (see the loop above) — its auth is a signed
+                // `?token=` (see NO_WEBHOOK_URL): its auth is a signed
                 // header SPX computes itself from the app-secret it was
                 // issued, nothing this store needs to hand it via the URL.
-                'webhookUrl'     => rtrim((string) config('app.url'), '/')
+                // LBC gets no URL at all: it has no push API to give one to,
+                // and the hub renders nothing for a null (see settings.blade).
+                'webhookUrl'     => $key === 'lbc' ? null : (
+                    rtrim((string) config('app.url'), '/')
                     . '/webhooks/courier/' . $key
-                    . ($key === 'spx' ? '' : ('?token=' . $settings[$key . '_webhook_token'])),
+                    . ($key === 'spx' ? '' : ('?token=' . ($settings[$key . '_webhook_token'] ?? '')))
+                ),
                 'url'            => route('admin.fulfillment.settings.courier', $key),
             ];
         }
@@ -339,12 +358,20 @@ class CourierSettingsController extends Controller
         $key = $c->getKey();
         $schema = $c->settingsSchema();
 
+        // Decrypted alongside the mask, for schema fields declared
+        // type='secret', the one-field stored-key control the security
+        // settings page already uses, where View reveals the value in the
+        // same box it rests in. type='password' fields never render this,
+        // so QuadX's and SPX's own pages are unchanged: the value is
+        // computed, not printed.
         $masked = [];
+        $plain = [];
         foreach (self::courierEncryptedKeys($c) as $k) {
             if (!empty($settings[$k])) {
                 try {
-                    $plain = Crypt::decryptString($settings[$k]);
-                    $masked[$k] = str_repeat('*', max(0, strlen($plain) - 4)) . substr($plain, -4);
+                    $decrypted = Crypt::decryptString($settings[$k]);
+                    $plain[$k] = $decrypted;
+                    $masked[$k] = str_repeat('*', max(0, strlen($decrypted) - 4)) . substr($decrypted, -4);
                 } catch (\Throwable) {
                     $masked[$k] = '********';
                 }
@@ -422,6 +449,7 @@ class CourierSettingsController extends Controller
             'courier'         => $c,
             'settings'        => $settings,
             'masked'          => $masked,
+            'plain'           => $plain,
             'topFields'       => $topFields,
             'modeGroups'      => $modeGroups,
             'modeFieldKey'    => $modeField['key'] ?? null,

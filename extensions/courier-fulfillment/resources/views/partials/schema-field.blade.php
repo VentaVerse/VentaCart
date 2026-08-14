@@ -5,11 +5,24 @@
       $field        the schema field array (key/label/type/options/encrypted/help)
       $value        current stored value for non-encrypted types
       $masked       masked display value for encrypted types, or null
+      $plain        decrypted value for type='secret' only, or null
       $isModeField  true for the field driving this card's Alpine `mode` state
+
+    Two additive extensions, both opt-in from a courier's own schema, so no
+    field QuadX or SPX declares renders any differently than before:
+
+      type='secret'  the one-field stored key the security settings page
+                     already uses (x-admin.secret): masked and read only at
+                     rest, revealed by View, editable by Edit, and posting
+                     nothing at all unless edited. type='password' keeps its
+                     old always-empty box.
+      placeholder    greyed text in an empty box, for a field with a real
+                     default the operator should be able to see.
 --}}
 @php
     $name = 'settings[' . $field['key'] . ']';
     $help = $field['help'] ?? null;
+    $plain = $plain ?? null;
 @endphp
 
 @if ($field['type'] === 'toggle')
@@ -35,6 +48,11 @@
             </x-admin.select>
         @endif
     </x-admin.field>
+@elseif ($field['type'] === 'secret')
+    <x-admin.field :name="$name" :label="$field['label']" :help="$help">
+        <x-admin.secret :name="$name" :masked="$masked" :value="$plain"
+            :placeholder="$field['placeholder'] ?? null" />
+    </x-admin.field>
 @elseif ($field['type'] === 'password')
     <x-admin.field :name="$name" :label="$field['label']"
         :help="!empty($masked) ? 'Current value ends in ' . $masked . '. Leave blank to keep it.' : $help">
@@ -42,6 +60,6 @@
     </x-admin.field>
 @else
     <x-admin.field :name="$name" :label="$field['label']" :help="$help">
-        <x-admin.input :name="$name" :value="$value" />
+        <x-admin.input :name="$name" :value="$value" :placeholder="$field['placeholder'] ?? null" />
     </x-admin.field>
 @endif
