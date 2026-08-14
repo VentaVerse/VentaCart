@@ -8,6 +8,7 @@ use Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment;
 use App\Support\SettingsNav;
 use Extensions\CourierFulfillment\Console\Commands\ImportPickupAddressFromSettings;
+use Extensions\CourierFulfillment\Console\Commands\MigrateLbcKeysToModes;
 use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -26,8 +27,8 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         CourierManager::register(SpxFulfillment::class);
         // LBC is registered for its settings page alone: it can never be
         // enabled (LbcFulfillment::isEnabled() is false unconditionally), so
-        // registering it adds a place to keep four subscription keys and
-        // nothing that can book a parcel.
+        // registering it adds a place to keep its subscription keys (four per
+        // mode) and nothing that can book a parcel.
         CourierManager::register(LbcFulfillment::class);
 
         // Status updates use the pull/fetch model. The poll runs as a managed
@@ -40,7 +41,11 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         // unresolvable from the one screen built to run it. commands() is
         // already lazy: it defers to Artisan::starting(), so a web request that
         // never boots Artisan pays nothing for this.
-        $this->commands([PollCourierStatus::class, ImportPickupAddressFromSettings::class]);
+        $this->commands([
+            PollCourierStatus::class,
+            ImportPickupAddressFromSettings::class,
+            MigrateLbcKeysToModes::class,
+        ]);
 
         // Who may configure this module. Same answer FulfillmentController
         // already computes for its own "Courier settings" affordance (the

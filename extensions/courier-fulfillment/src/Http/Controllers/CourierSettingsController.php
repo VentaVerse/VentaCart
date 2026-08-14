@@ -80,6 +80,14 @@ class CourierSettingsController extends Controller
     private const NO_WEBHOOK_URL = ['spx', 'lbc'];
 
     /**
+     * Mode values that mean "the real environment", and so earn no chip on a
+     * courier's hub card. One list rather than one literal because the word
+     * is the courier's own: QuadX and SPX call it production, LBC calls it
+     * live. Every other value is a test environment and gets the chip.
+     */
+    private const LIVE_MODES = ['production', 'live'];
+
+    /**
      * The ONLY keys writable via the given courier's page. Anything else in
      * the request is ignored — prevents arbitrary writes into the 'courier'
      * settings group (e.g. overwriting the server-generated
@@ -168,12 +176,14 @@ class CourierSettingsController extends Controller
                 ? ($settings[$modeField['key']] ?? ($modeField['options'][0]['value'] ?? null))
                 : null;
 
-            // Mode chip label — shown only when the mode is NOT production
+            // Mode chip label — shown only when the mode is NOT the real one
             // (same convention as the booking modal's step-1 courier cards):
-            // production is the unremarkable default, anything else deserves
-            // a loud chip so staging credentials are never mistaken for live.
+            // the live environment is the unremarkable default, anything else
+            // deserves a loud chip so test credentials are never mistaken for
+            // live ones. Couriers spell that environment differently (QuadX
+            // and SPX say "production", LBC says "live"), so both words count.
             $modeLabel = null;
-            if ($modeField && $mode !== null && $mode !== 'production') {
+            if ($modeField && $mode !== null && !in_array($mode, self::LIVE_MODES, true)) {
                 $modeLabel = collect($modeField['options'] ?? [])
                     ->firstWhere('value', $mode)['label'] ?? ucfirst($mode);
             }

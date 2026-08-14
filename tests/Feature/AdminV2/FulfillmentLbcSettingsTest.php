@@ -17,8 +17,8 @@ use Tests\TestCase;
  * 2026-08-14: "Create the settings UI first, I'll drop the keys, once drop,
  * you can test it").
  *
- * Two things this file exists to pin, because both are easy to break later
- * by accident:
+ * Four things this file exists to pin, because all four are easy to break
+ * later by accident:
  *
  *  1. LBC can never be enabled and never looks bookable. isEnabled() is
  *     false whatever the toggle and the keys say, and the booking modal
@@ -27,6 +27,12 @@ use Tests\TestCase;
  *     whole file, so a future adapter that starts reaching out from a
  *     settings-page code path fails this suite instead of spending the
  *     owner's real subscription quota.
+ *  3. The auth header is per API, not uniform (Pickup Request answers on
+ *     Ocp-Apim-Subscription-Key, the other three on lbcOAkey). A wrong
+ *     header returns a 401 that names the KEY, so this is pinned in a test
+ *     rather than left to be rediscovered against the live gateway.
+ *  4. Test versus live is a key, not a host, and the page must therefore
+ *     hold both halves and send only one.
  */
 class FulfillmentLbcSettingsTest extends TestCase
 {
@@ -120,33 +126,84 @@ class FulfillmentLbcSettingsTest extends TestCase
         $this->installExtension();
         $lbc = CourierManager::get('lbc');
 
-        // Nothing stored at all: one fact, not five labels, because the booking
-        // modal's card gives its artwork whatever room the words leave.
+        // Nothing stored at all: one fact for the keys, not four labels,
+        // because the booking modal's card gives its artwork whatever room
+        // the words leave. The merchant constants and the tracking series are
+        // named individually, each being a separate thing to go and get.
         $this->assertSame(
-            [LbcFulfillment::NO_KEYS_AT_ALL, LbcFulfillment::NOT_BUILT],
+            [
+                LbcFulfillment::NO_KEYS_AT_ALL,
+                'Client code',
+                'Shipper Account No',
+                LbcFulfillment::NO_TRACKING_SERIES,
+                LbcFulfillment::NOT_BUILT,
+            ],
             $lbc->configurationIssues()
         );
 
         // Partial configuration is the normal state (LBC approves each
         // subscription separately), so the moment one key lands the rest are
         // named individually.
-        Setting::create(['group' => 'courier', 'key' => 'lbc_airwaybill_key', 'value' => Crypt::encryptString('k')]);
+        Setting::create(['group' => 'courier', 'key' => 'lbc_test_airwaybill_key', 'value' => Crypt::encryptString('k')]);
 
         $issues = $lbc->configurationIssues();
         $this->assertNotContains(LbcFulfillment::NO_KEYS_AT_ALL, $issues);
         $this->assertNotContains('Air Waybill key', $issues);
-        $this->assertContains('Corporate PSGC Lookup key', $issues);
+        $this->assertContains('Common API key', $issues);
         $this->assertContains('Track and Trace key', $issues);
-        $this->assertContains('Pickup Request AppKey', $issues);
+        $this->assertContains('Pickup Request key', $issues);
 
         // The adapter entry never leaves, whatever is filled in.
         foreach ($this->schemaKeys() as $key) {
             Setting::updateOrCreate(
                 ['group' => 'courier', 'key' => $key],
-                ['value' => Crypt::encryptString('k')]
+                ['value' => str_ends_with($key, '_key') ? Crypt::encryptString('k') : 'filled']
             );
         }
         $this->assertSame([LbcFulfillment::NOT_BUILT], $lbc->configurationIssues());
+    }
+
+    /**
+     * Only the mode being used is reported. Both halves carry the same four
+     * labels, so naming both would print "Air Waybill key" twice and say
+     * nothing about which one to go and get.
+     */
+    public function test_configuration_issues_follow_the_active_mode(): void
+    {
+        $this->installExtension();
+
+        foreach (['common', 'airwaybill', 'pickup', 'track'] as $api) {
+            Setting::create([
+                'group' => 'courier',
+                'key'   => 'lbc_test_' . $api . '_key',
+                'value' => Crypt::encryptString('t'),
+            ]);
+        }
+
+        // Test mode: all four of its keys are on file, so none is named.
+        $issues = (new LbcFulfillment())->configurationIssues();
+        $this->assertNotContains(LbcFulfillment::NO_KEYS_AT_ALL, $issues);
+        $this->assertNotContains('Air Waybill key', $issues);
+
+        // Switching to live must not inherit them: a different set of keys is
+        // a different set of missing keys.
+        Setting::create(['group' => 'courier', 'key' => 'lbc_mode', 'value' => 'live']);
+        $this->assertContains(LbcFulfillment::NO_KEYS_AT_ALL, (new LbcFulfillment())->configurationIssues());
+    }
+
+    /** Both ends of the block are needed, because half a range allocates nothing. */
+    public function test_tracking_series_is_outstanding_until_both_ends_are_known(): void
+    {
+        $this->installExtension();
+
+        Setting::create(['group' => 'courier', 'key' => 'lbc_tracking_series_start', 'value' => '28310000000040']);
+        $issues = (new LbcFulfillment())->configurationIssues();
+        $this->assertContains(LbcFulfillment::NO_TRACKING_SERIES, $issues);
+        // Named once, not once per end.
+        $this->assertSame(1, count(array_keys($issues, LbcFulfillment::NO_TRACKING_SERIES, true)));
+
+        Setting::create(['group' => 'courier', 'key' => 'lbc_tracking_series_end', 'value' => '28310000000140']);
+        $this->assertNotContains(LbcFulfillment::NO_TRACKING_SERIES, (new LbcFulfillment())->configurationIssues());
     }
 
     public function test_every_operation_refuses_honestly_and_calls_nothing(): void
@@ -183,7 +240,7 @@ class FulfillmentLbcSettingsTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // The gateway, one field, no mode
+    // The gateway, one host for both modes
     // ------------------------------------------------------------------
 
     public function test_gateway_url_defaults_and_is_overridable_with_one_trailing_slash(): void
@@ -200,17 +257,120 @@ class FulfillmentLbcSettingsTest extends TestCase
         $this->assertSame('https://elsewhere.example/api/', (new LbcFulfillment())->gatewayUrl());
     }
 
+    // ------------------------------------------------------------------
+    // Test versus live is a key, not a host
+    // ------------------------------------------------------------------
+
     /**
-     * No mode selector, and that is the finding rather than an omission:
-     * all four LBC PDFs document a single gateway host and no sandbox/UAT
-     * environment. A "_mode"-suffixed key would make the settings page
-     * render mode-scoped credential groups that describe nothing.
+     * The mode select exists, offers exactly the two environments LBC has,
+     * and carries the "_mode" suffix the settings page keys its mode-scoped
+     * groups off.
      */
-    public function test_schema_declares_no_mode_field(): void
+    public function test_schema_declares_a_mode_field_with_test_and_live(): void
     {
-        foreach ($this->schemaKeys() as $key) {
-            $this->assertStringEndsNotWith('_mode', $key);
+        $mode = collect((new LbcFulfillment())->settingsSchema())->firstWhere('key', 'lbc_mode');
+
+        $this->assertNotNull($mode);
+        $this->assertSame('select', $mode['type']);
+        $this->assertSame(['test', 'live'], array_column($mode['options'], 'value'));
+        $this->assertSame(['Test', 'Live'], array_column($mode['options'], 'label'));
+        // Test first: the settings page and the hub both fall back to the
+        // first option, and an unconfigured store must not default to live.
+        $this->assertSame('test', $mode['options'][0]['value']);
+        $this->assertSame(LbcFulfillment::DEFAULT_MODE, $mode['options'][0]['value']);
+    }
+
+    /** Four APIs, two modes, eight keys, every one of them encrypted at rest. */
+    public function test_every_api_has_a_key_in_each_mode_and_no_app_key_survives(): void
+    {
+        $schema = (new LbcFulfillment())->settingsSchema();
+
+        foreach (['test', 'live'] as $mode) {
+            $scoped = array_values(array_filter(
+                $schema,
+                fn (array $f) => ($f['mode_scoped'] ?? null) === $mode
+            ));
+
+            $this->assertSame([
+                'lbc_' . $mode . '_common_key',
+                'lbc_' . $mode . '_airwaybill_key',
+                'lbc_' . $mode . '_pickup_key',
+                'lbc_' . $mode . '_track_key',
+            ], array_column($scoped, 'key'));
+
+            foreach ($scoped as $field) {
+                $this->assertTrue($field['encrypted'], $field['key'] . ' must be encrypted at rest');
+                $this->assertSame('secret', $field['type']);
+            }
         }
+
+        // Disproven live: a pickup was created with the <AppKey> node removed
+        // entirely, so a field for it would be a box nobody can fill right.
+        $this->assertNotContains('lbc_pickup_app_key', $this->schemaKeys());
+
+        // The two merchant constants are identifiers, not credentials, so
+        // they are plain text and never masked behind a View button.
+        foreach (['lbc_client_code', 'lbc_shipper_account_no'] as $key) {
+            $field = collect($schema)->firstWhere('key', $key);
+            $this->assertNotNull($field, $key . ' is missing from the schema');
+            $this->assertSame('text', $field['type']);
+            $this->assertEmpty($field['encrypted'] ?? false);
+        }
+    }
+
+    public function test_mode_defaults_to_test_and_rejects_anything_it_does_not_know(): void
+    {
+        $this->installExtension();
+
+        $this->assertSame('test', (new LbcFulfillment())->mode());
+
+        Setting::create(['group' => 'courier', 'key' => 'lbc_mode', 'value' => 'live']);
+        $this->assertSame('live', (new LbcFulfillment())->mode());
+
+        // Never quietly go live on a value nobody recognises.
+        Setting::where('key', 'lbc_mode')->update(['value' => 'production']);
+        $this->assertSame('test', (new LbcFulfillment())->mode());
+    }
+
+    public function test_the_active_mode_decides_which_key_is_read(): void
+    {
+        $this->installExtension();
+
+        Setting::create(['group' => 'courier', 'key' => 'lbc_test_pickup_key', 'value' => Crypt::encryptString('secondary')]);
+        Setting::create(['group' => 'courier', 'key' => 'lbc_live_pickup_key', 'value' => Crypt::encryptString('primary')]);
+
+        $lbc = new LbcFulfillment();
+        $this->assertSame('lbc_test_pickup_key', $lbc->keySetting('pickup'));
+        $this->assertSame('secondary', $lbc->subscriptionKey('pickup'));
+
+        Setting::create(['group' => 'courier', 'key' => 'lbc_mode', 'value' => 'live']);
+        $lbc = new LbcFulfillment();
+        $this->assertSame('lbc_live_pickup_key', $lbc->keySetting('pickup'));
+        $this->assertSame('primary', $lbc->subscriptionKey('pickup'));
+
+        // An unset key is null, not an empty string that would be sent as a
+        // header value and answered with a misleading 401.
+        $this->assertNull($lbc->subscriptionKey('track'));
+    }
+
+    /**
+     * The single most expensive fact about LBC: the auth header is NOT the
+     * same for all four APIs, and the 401 for a wrong one reads like a bad
+     * key. Verified live 2026-08-14, see docs/lbc/integration-notes.md.
+     */
+    public function test_the_auth_header_is_per_api(): void
+    {
+        $lbc = new LbcFulfillment();
+
+        $this->assertSame('Ocp-Apim-Subscription-Key', $lbc->authHeader('pickup'));
+        $this->assertSame('lbcOAkey', $lbc->authHeader('common'));
+        $this->assertSame('lbcOAkey', $lbc->authHeader('airwaybill'));
+        $this->assertSame('lbcOAkey', $lbc->authHeader('track'));
+
+        // Guessing a header would produce that same misleading 401, so an
+        // unknown API is refused loudly instead.
+        $this->expectException(\InvalidArgumentException::class);
+        $lbc->authHeader('nope');
     }
 
     // ------------------------------------------------------------------
@@ -230,7 +390,15 @@ class FulfillmentLbcSettingsTest extends TestCase
 
         $response
             ->assertSee('Air Waybill key')
-            ->assertSee('Pickup Request AppKey')
+            ->assertSee('Common API key')
+            // Both mode groups are in the document; the page shows one at a
+            // time (x-show on the mode select), so both must render.
+            ->assertSee('Test credentials')
+            ->assertSee('Live credentials')
+            ->assertSee('Client code')
+            ->assertSee('Shipper Account No')
+            // The disproven field is gone from the page as well as the schema.
+            ->assertDontSee('AppKey')
             // The gateway default is visible in the empty box, so the
             // operator can see where calls would go without saving first.
             ->assertSee(LbcFulfillment::DEFAULT_GATEWAY_URL, false)
@@ -254,33 +422,49 @@ class FulfillmentLbcSettingsTest extends TestCase
 
         $this->post($this->settingsUrl('/lbc'), [
             'settings' => [
-                'lbc_enabled'        => '1',
-                'lbc_gateway_url'    => 'https://lbcapigateway.lbcapps.com/',
-                'lbc_psgc_key'       => 'psgc-secret',
-                'lbc_airwaybill_key' => 'awb-secret',
-                'lbc_pickup_key'     => 'pickup-secret',
-                'lbc_track_key'      => 'track-secret',
-                'lbc_pickup_app_key' => 'appkey-secret',
+                'lbc_enabled'             => '1',
+                'lbc_mode'                => 'live',
+                'lbc_gateway_url'         => 'https://lbcapigateway.lbcapps.com/',
+                'lbc_client_code'         => 'TEST',
+                'lbc_shipper_account_no'  => '2015062300003',
+                'lbc_test_common_key'     => 'test-common',
+                'lbc_test_airwaybill_key' => 'test-awb',
+                'lbc_test_pickup_key'     => 'test-pickup',
+                'lbc_test_track_key'      => 'test-track',
+                'lbc_live_common_key'     => 'live-common',
+                'lbc_live_airwaybill_key' => 'live-awb',
+                'lbc_live_pickup_key'     => 'live-pickup',
+                'lbc_live_track_key'      => 'live-track',
                 // Smuggled: another courier's key and a module key. The
                 // per-courier allowlist must discard both.
                 'quadx_enabled'         => '1',
                 'spx_app_id'            => 'nope',
                 'fulfillment_enabled'   => '0',
                 'lbc_webhook_token'     => 'forged',
+                // The retired field: no longer in the schema, so no longer
+                // writable, whatever a stale form posts.
+                'lbc_pickup_app_key'    => 'appkey-secret',
             ],
         ])->assertRedirect();
 
         $stored = Setting::where('group', 'courier')->pluck('value', 'key');
 
         $this->assertSame('1', $stored['lbc_enabled']);
+        $this->assertSame('live', $stored['lbc_mode']);
         $this->assertSame('https://lbcapigateway.lbcapps.com/', $stored['lbc_gateway_url']);
+        $this->assertSame('TEST', $stored['lbc_client_code']);
+        $this->assertSame('2015062300003', $stored['lbc_shipper_account_no']);
+        $this->assertArrayNotHasKey('lbc_pickup_app_key', $stored->all());
 
         foreach ([
-            'lbc_psgc_key'       => 'psgc-secret',
-            'lbc_airwaybill_key' => 'awb-secret',
-            'lbc_pickup_key'     => 'pickup-secret',
-            'lbc_track_key'      => 'track-secret',
-            'lbc_pickup_app_key' => 'appkey-secret',
+            'lbc_test_common_key'     => 'test-common',
+            'lbc_test_airwaybill_key' => 'test-awb',
+            'lbc_test_pickup_key'     => 'test-pickup',
+            'lbc_test_track_key'      => 'test-track',
+            'lbc_live_common_key'     => 'live-common',
+            'lbc_live_airwaybill_key' => 'live-awb',
+            'lbc_live_pickup_key'     => 'live-pickup',
+            'lbc_live_track_key'      => 'live-track',
         ] as $key => $plain) {
             $this->assertNotSame($plain, $stored[$key], $key . ' was stored in the clear');
             $this->assertSame($plain, Crypt::decryptString($stored[$key]));
@@ -299,7 +483,7 @@ class FulfillmentLbcSettingsTest extends TestCase
 
         Setting::create([
             'group' => 'courier',
-            'key'   => 'lbc_airwaybill_key',
+            'key'   => 'lbc_test_airwaybill_key',
             'value' => Crypt::encryptString('abcdefgh1234'),
         ]);
 
@@ -316,7 +500,120 @@ class FulfillmentLbcSettingsTest extends TestCase
 
         $this->assertSame(
             'abcdefgh1234',
-            Crypt::decryptString(Setting::where('key', 'lbc_airwaybill_key')->value('value'))
+            Crypt::decryptString(Setting::where('key', 'lbc_test_airwaybill_key')->value('value'))
         );
+    }
+
+    // ------------------------------------------------------------------
+    // The one-off carry-over of the pre-mode keys
+    // ------------------------------------------------------------------
+
+    /** The four retired keys and the values they held. */
+    private function seedLegacyKeys(): array
+    {
+        $plain = [
+            'lbc_psgc_key'       => 'psgc-secondary',
+            'lbc_airwaybill_key' => 'awb-secondary',
+            'lbc_pickup_key'     => 'pickup-secondary',
+            'lbc_track_key'      => 'track-secondary',
+        ];
+
+        foreach ($plain as $key => $value) {
+            Setting::create(['group' => 'courier', 'key' => $key, 'value' => Crypt::encryptString($value)]);
+        }
+
+        return $plain;
+    }
+
+    /**
+     * $this->artisan() reuses the console Kernel's memoized
+     * Illuminate\Console\Application, built during setUp()'s own migrate run,
+     * so a provider booted mid-test by installExtension() is too late for
+     * ServiceProvider::commands() to reach it (see FulfillmentTest's
+     * registerPollCommand() for the long version). Registering straight onto
+     * the already-built instance sidesteps the ordering entirely.
+     */
+    private function registerMigrateCommand(): void
+    {
+        $this->app->make(\Illuminate\Contracts\Console\Kernel::class)
+            ->registerCommand(new \Extensions\CourierFulfillment\Console\Commands\MigrateLbcKeysToModes());
+    }
+
+    /**
+     * The values already on file are the owner's SECONDARY keys, which LBC
+     * treats as test, so they land in Test mode and still decrypt to exactly
+     * what they decrypted to before: the ciphertext is moved, not re-typed.
+     */
+    public function test_the_one_off_command_moves_the_pre_mode_keys_into_test(): void
+    {
+        $this->registerMigrateCommand();
+        $this->installExtension();
+        $plain = $this->seedLegacyKeys();
+        Setting::create(['group' => 'courier', 'key' => 'lbc_pickup_app_key', 'value' => Crypt::encryptString('dead')]);
+
+        $this->artisan('fulfillment:lbc-migrate-keys')->assertSuccessful();
+
+        foreach ([
+            'lbc_test_common_key'     => $plain['lbc_psgc_key'],
+            'lbc_test_airwaybill_key' => $plain['lbc_airwaybill_key'],
+            'lbc_test_pickup_key'     => $plain['lbc_pickup_key'],
+            'lbc_test_track_key'      => $plain['lbc_track_key'],
+        ] as $key => $expected) {
+            $stored = Setting::where('group', 'courier')->where('key', $key)->value('value');
+            $this->assertNotNull($stored, $key . ' did not arrive');
+            $this->assertNotSame($expected, $stored, $key . ' was written in the clear');
+            $this->assertSame($expected, Crypt::decryptString($stored));
+        }
+
+        // Nothing is left behind to be read by mistake, the AppKey row least
+        // of all.
+        foreach (['lbc_psgc_key', 'lbc_airwaybill_key', 'lbc_pickup_key', 'lbc_track_key', 'lbc_pickup_app_key'] as $gone) {
+            $this->assertFalse(
+                Setting::where('group', 'courier')->where('key', $gone)->exists(),
+                $gone . ' survived the move'
+            );
+        }
+
+        // Test is the default mode, so the moved keys are the ones in use.
+        $this->assertSame('test', (new LbcFulfillment())->mode());
+        $this->assertSame($plain['lbc_pickup_key'], (new LbcFulfillment())->subscriptionKey('pickup'));
+    }
+
+    public function test_the_one_off_command_is_idempotent_and_never_overwrites(): void
+    {
+        $this->registerMigrateCommand();
+        $this->installExtension();
+        $this->seedLegacyKeys();
+
+        // An operator's own paste wins over a legacy row.
+        Setting::create(['group' => 'courier', 'key' => 'lbc_test_track_key', 'value' => Crypt::encryptString('pasted')]);
+
+        $this->artisan('fulfillment:lbc-migrate-keys')->assertSuccessful();
+
+        $this->assertSame(
+            'pasted',
+            Crypt::decryptString(Setting::where('key', 'lbc_test_track_key')->value('value'))
+        );
+        // …and the legacy row it refused to move is left where it is rather
+        // than dropped.
+        $this->assertTrue(Setting::where('key', 'lbc_track_key')->exists());
+
+        // A second run finds nothing left to do and changes nothing.
+        $before = Setting::where('group', 'courier')->pluck('value', 'key')->toArray();
+        $this->artisan('fulfillment:lbc-migrate-keys')->assertSuccessful();
+        $this->assertSame($before, Setting::where('group', 'courier')->pluck('value', 'key')->toArray());
+    }
+
+    public function test_the_one_off_command_dry_run_writes_nothing(): void
+    {
+        $this->registerMigrateCommand();
+        $this->installExtension();
+        $this->seedLegacyKeys();
+
+        $before = Setting::where('group', 'courier')->pluck('value', 'key')->toArray();
+
+        $this->artisan('fulfillment:lbc-migrate-keys', ['--dry-run' => true])->assertSuccessful();
+
+        $this->assertSame($before, Setting::where('group', 'courier')->pluck('value', 'key')->toArray());
     }
 }
