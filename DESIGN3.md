@@ -156,5 +156,8 @@ forms alike (owner-directed 2026-08-16).
   select with a live-count confirm, and the alert template under
   the doctrine with TinyMCE wired in.
 
+- Modules: extensions and core features as directory rows carrying
+  state badges, action forms, and uninstall confirms.
+
 Still on the v2 shell inside Settings: automations, localization
-index, theme, payments, shipping, modules.
+index, theme, payments, shipping.

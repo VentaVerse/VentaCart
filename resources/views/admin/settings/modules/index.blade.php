@@ -1,59 +1,66 @@
-<x-admin.settings-shell title="Modules">
-    <div class="space-y-8">
+<x-admin3.settings-shell title="Modules" active="modules">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Modules</h1>
+            <p class="v3-head__standing">Extensions and the core features that switch on and off.</p>
+        </div>
+    </div>
+
+    <div class="v3-settle">
         <div>
-            <h2 class="mb-3 v-label">Extensions</h2>
-
+            <div class="v3-label v3-gap-sm">Extensions</div>
             @if ($extensions->isEmpty())
-                <x-admin.empty-state title="No extensions found"
-                    description="Drop an extension folder with an extension.json manifest into extensions/ to see it here." />
+                <div class="v3-empty">
+                    <p class="v3-empty__title">No extensions found</p>
+                    <p class="v3-empty__line">Drop an extension folder with an extension.json manifest into extensions/ to see it here.</p>
+                </div>
             @else
-                <div class="v-slates">
+                <div class="v3-dir">
                     @foreach ($extensions as $ext)
-                        <x-admin.slate :title="$ext['title']" :icon="$ext['icon']" :note="$ext['description']">
-                            <x-slot:state>
-                                <x-admin.badge :tone="$ext['state_tone']">{{ $ext['state_label'] }}</x-admin.badge>
-                            </x-slot:state>
-                            <x-slot:meta>{{ $ext['version'] ? 'v' . $ext['version'] : '' }}</x-slot:meta>
-                            <x-slot:actions>
+                        <div class="v3-dir__card v3-dir__card--static">
+                            <span class="v3-dir__ico"><x-admin3.icon :name="in_array($ext['icon'] ?? '', ['fulfillment']) ? 'package' : 'modules'" /></span>
+                            <span class="v3-dir__body">
+                                <span class="v3-dir__name">{{ $ext['title'] }}
+                                    @if ($ext['version'])<span class="v3-mono v3-cell-quiet"> v{{ $ext['version'] }}</span>@endif
+                                </span>
+                                <span class="v3-dir__line v3-block">{{ $ext['description'] }}</span>
+                            </span>
+                            <span class="v3-dir__state">
+                                <span class="v3-badge {{ ($ext['state_tone'] ?? '') === 'success' ? 'v3-badge--good' : (($ext['state_tone'] ?? '') === 'warning' ? 'v3-badge--warn' : 'v3-badge--quiet') }}">{{ $ext['state_label'] }}</span>
+                            </span>
+                            <span class="v3-actrow">
                                 @if ($ext['configure'])
-                                    <x-admin.button variant="ghost" size="sm" :href="$ext['configure']">Configure</x-admin.button>
+                                    <a href="{{ $ext['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
                                 @endif
-
                                 @if (in_array('install', $ext['actions'], true))
-                                    <form method="POST" action="{{ route('admin.modules.install', $ext['name']) }}" data-v-form>
+                                    <form method="POST" action="{{ route('admin.modules.install', $ext['name']) }}">
                                         @csrf
-                                        <x-admin.button type="submit" variant="primary" size="sm">
-                                            {{ $ext['state'] === 'needs_migration' ? 'Update' : 'Install' }}
-                                        </x-admin.button>
+                                        <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">{{ $ext['state'] === 'needs_migration' ? 'Update' : 'Install' }}</button>
                                     </form>
                                 @endif
-
                                 @if (in_array('enable', $ext['actions'], true))
-                                    <form method="POST" action="{{ route('admin.modules.enable', $ext['name']) }}" data-v-form>
+                                    <form method="POST" action="{{ route('admin.modules.enable', $ext['name']) }}">
                                         @csrf
-                                        <x-admin.button type="submit" variant="primary" size="sm">Enable</x-admin.button>
+                                        <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Enable</button>
                                     </form>
                                 @endif
-
                                 @if (in_array('disable', $ext['actions'], true))
-                                    <form method="POST" action="{{ route('admin.modules.disable', $ext['name']) }}" data-v-form>
+                                    <form method="POST" action="{{ route('admin.modules.disable', $ext['name']) }}">
                                         @csrf
-                                        <x-admin.button type="submit" variant="secondary" size="sm">Disable</x-admin.button>
+                                        <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">Disable</button>
                                     </form>
                                 @endif
-
                                 @if (in_array('uninstall', $ext['actions'], true))
-                                    <x-admin.button type="button" variant="ghost" size="sm" class="v-rowactions__danger"
-                                        @click="$dispatch('open-modal', 'uninstall-{{ $ext['name'] }}')">Uninstall</x-admin.button>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'uninstall-{{ $ext['name'] }}')">Uninstall</button>
                                 @endif
-                            </x-slot:actions>
-                        </x-admin.slate>
+                            </span>
+                        </div>
                     @endforeach
                 </div>
 
                 @foreach ($extensions as $ext)
                     @if (in_array('uninstall', $ext['actions'], true))
-                        <x-admin.confirm-dialog name="uninstall-{{ $ext['name'] }}" title="Uninstall {{ $ext['title'] }}?"
+                        <x-admin3.confirm name="uninstall-{{ $ext['name'] }}" title="Uninstall {{ $ext['title'] }}?"
                             message="This removes this extension's database tables and all of its data. This cannot be undone."
                             confirm="Uninstall" :action="route('admin.modules.uninstall', $ext['name'])" method="POST" />
                     @endif
@@ -61,23 +68,29 @@
             @endif
         </div>
 
-        <div>
-            <h2 class="mb-3 v-label">Core Features</h2>
-            <div class="v-slates">
+        <div class="v3-gap-lg">
+            <div class="v3-label v3-gap-sm">Core features</div>
+            <div class="v3-dir">
                 @foreach ($coreFeatures as $module)
-                    <x-admin.slate :title="$module['name']" :icon="$module['icon']" :note="$module['description']">
-                        <x-slot:state>
-                            <x-admin.badge :tone="$module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')">{{ $module['status_label'] }}</x-admin.badge>
-                        </x-slot:state>
-                        <x-slot:meta>{{ $module['stats'] ?? '' }}</x-slot:meta>
-                        @if ($module['configure'])
-                            <x-slot:actions>
-                                <x-admin.button variant="ghost" size="sm" :href="$module['configure']">Configure</x-admin.button>
-                            </x-slot:actions>
-                        @endif
-                    </x-admin.slate>
+                    <div class="v3-dir__card v3-dir__card--static">
+                        <span class="v3-dir__ico"><x-admin3.icon name="modules" /></span>
+                        <span class="v3-dir__body">
+                            <span class="v3-dir__name">{{ $module['name'] }}
+                                @if (!empty($module['stats']))<span class="v3-mono v3-cell-quiet"> {{ $module['stats'] }}</span>@endif
+                            </span>
+                            <span class="v3-dir__line v3-block">{{ $module['description'] }}</span>
+                        </span>
+                        <span class="v3-dir__state">
+                            <span class="v3-badge {{ ($module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')) === 'success' ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $module['status_label'] }}</span>
+                        </span>
+                        <span class="v3-actrow">
+                            @if ($module['configure'])
+                                <a href="{{ $module['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
+                            @endif
+                        </span>
+                    </div>
                 @endforeach
             </div>
         </div>
     </div>
-</x-admin.settings-shell>
+</x-admin3.settings-shell>

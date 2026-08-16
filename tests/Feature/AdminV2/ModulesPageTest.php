@@ -16,7 +16,7 @@ class ModulesPageTest extends TestCase
 
         $this->get(route('admin.modules.index'))
             ->assertOk()
-            ->assertSee('v-admin', false)   // new shell
+            ->assertSee('class="v3"', false)   // v3 settings shell
             ->assertSee('Stock Alerts')->assertSee('Abandoned Carts')->assertSee('SEO')
             ->assertSee('Configure');
     }
