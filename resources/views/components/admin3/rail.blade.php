@@ -38,20 +38,24 @@
 @endphp
 @if ($condensed)
     <nav class="v3-irail" aria-label="Main">
+        {{-- Labels ride each icon as an instant styled pill (no native
+             title attributes: the browser's tooltip is slow and plain). --}}
         <a href="{{ route('admin.dashboard') }}" class="v3-irail__mark"
-           title="{{ $railStore }} dashboard" aria-label="{{ $railStore }} dashboard">{{ mb_substr($railStore, 0, 1) }}</a>
+           aria-label="{{ $railStore }} dashboard">{{ mb_substr($railStore, 0, 1) }}<span class="v3-irail__tip">{{ $railStore }}</span></a>
         @foreach ($railParents as $item)
             <a href="{{ route($item['route']) }}" class="v3-irail__item"
-               title="{{ $item['label'] }}" aria-label="{{ $item['label'] }}"
+               aria-label="{{ $item['label'] }}"
                @if ($active === $item['key']) aria-current="page" @endif>
                 <x-admin3.icon :name="$item['icon']" />
+                <span class="v3-irail__tip">{{ $item['label'] }}</span>
             </a>
         @endforeach
         <span class="v3-irail__foot">
             <a href="{{ route('admin.settings.index') }}" class="v3-irail__item"
-               title="Settings" aria-label="Settings"
+               aria-label="Settings"
                @if ($active === 'settings') aria-current="page" @endif>
                 <x-admin3.icon name="settings" />
+                <span class="v3-irail__tip">Settings</span>
             </a>
         </span>
     </nav>

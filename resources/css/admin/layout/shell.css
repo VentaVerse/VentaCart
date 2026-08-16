@@ -461,10 +461,10 @@
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
     .v-cross .v-slab__brand,
     .v-cross .v-slab .v-nav {
-        animation: v-seat .23s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: v-seat .18s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     @keyframes v-seat {
-        from { transform: translateX(-12px); opacity: 0; }
+        from { transform: translateX(-26px); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
     }
 }

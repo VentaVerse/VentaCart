@@ -290,9 +290,8 @@
    The settings nav takes the full rail beside it. */
 
 .v3-irail {
-    z-index: 2; /* paints above the settings nav */
+    z-index: 2; /* paints above the settings nav; pills extend past it */
     background: var(--v3-slab);
-    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -316,6 +315,7 @@
     margin-bottom: 10px;
 }
 .v3-irail__item {
+    position: relative;
     width: 40px; height: 40px;
     display: grid; place-items: center;
     border-radius: var(--v3-r-md);
@@ -329,6 +329,34 @@
     box-shadow: inset 3px 0 0 var(--v3-act-fill);
 }
 .v3-irail__item svg { width: 19px; height: 19px; flex-shrink: 0; }
+.v3-irail__mark { position: relative; }
+.v3-irail__tip {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    translate: 0 -50%;
+    z-index: 5;
+    padding: 5px 11px;
+    background: var(--v3-slab);
+    border: 1px solid var(--v3-slab-2);
+    border-radius: var(--v3-r-md);
+    box-shadow: 0 4px 14px rgba(10, 20, 34, .28);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 560;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-3px);
+    pointer-events: none;
+    transition: opacity .06s ease-out, transform .09s ease-out;
+}
+.v3-irail__item:hover .v3-irail__tip,
+.v3-irail__item:focus-visible .v3-irail__tip,
+.v3-irail__mark:hover .v3-irail__tip,
+.v3-irail__mark:focus-visible .v3-irail__tip {
+    opacity: 1;
+    transform: translateX(0);
+}
 .v3-irail__rule { width: 26px; border: 0; border-top: 1px solid var(--v3-slab-line); margin: 8px 0; }
 .v3-irail__foot { margin-top: auto; }
 
@@ -359,17 +387,17 @@
    Settings. Within Settings nothing moves. */
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
     .v3-cross .v3-snav > * {
-        animation: v3-seat .23s cubic-bezier(0.16, 1, 0.3, 1) both;
+        animation: v3-seat .18s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    .v3-cross .v3-snav > *:nth-child(2) { animation-delay: .03s; }
-    .v3-cross .v3-snav > *:nth-child(3) { animation-delay: .06s; }
-    .v3-cross .v3-snav > *:nth-child(4) { animation-delay: .09s; }
-    .v3-cross .v3-snav > *:nth-child(n+5) { animation-delay: .12s; }
+    .v3-cross .v3-snav > *:nth-child(2) { animation-delay: .025s; }
+    .v3-cross .v3-snav > *:nth-child(3) { animation-delay: .05s; }
+    .v3-cross .v3-snav > *:nth-child(4) { animation-delay: .075s; }
+    .v3-cross .v3-snav > *:nth-child(n+5) { animation-delay: .1s; }
     .v3-cross .v3-snav__item[aria-current="page"] {
-        animation: v3-seat-brass .13s ease-out .18s backwards;
+        animation: v3-seat-brass .13s ease-out .14s backwards;
     }
     @keyframes v3-seat {
-        from { transform: translateX(-12px); opacity: 0; }
+        from { transform: translateX(-26px); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
     }
     @keyframes v3-seat-brass {
