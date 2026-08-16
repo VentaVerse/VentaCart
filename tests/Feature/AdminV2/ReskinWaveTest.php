@@ -1128,7 +1128,7 @@ class ReskinWaveTest extends TestCase
 
         $this->get(route('admin.settings.section', 'automations'))
             ->assertOk()
-            ->assertSee('v-admin', false)
+            ->assertSee('class="v3"', false)
             ->assertSee('Currency Exchange Rates')
             ->assertDontSee('bg-gray-50', false)
             ->assertDontSee('bg-indigo-600', false)
@@ -1208,12 +1208,10 @@ class ReskinWaveTest extends TestCase
                 ->assertSee('v3-settings__main', false);
         }
 
-        foreach (['automations'] as $section) {
-            $this->get(route('admin.settings.section', $section))
-                ->assertOk()
-                ->assertSee('v-workspace__main', false)
-                ->assertDontSee('v-workspace__main--narrow', false);
-        }
+        // Automations migrated to the v3 settings shell.
+        $this->get(route('admin.settings.section', 'automations'))
+            ->assertOk()
+            ->assertSee('v3-settings__main', false);
 
         // The two settings screens outside the section controller, one a
         // table and one a column of fields: same column either way.

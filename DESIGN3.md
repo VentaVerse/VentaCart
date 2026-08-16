@@ -181,5 +181,18 @@ forms alike (owner-directed 2026-08-16).
   with a v3 edit page. HitPay credential hints show only the
   last-4 tail, with neutral wording when decryption fails.
 
-Still on the v2 shell inside Settings: automations, localization
-index.
+- Localization: countries, zones, and geo zones under one tab bar.
+  250 country rows stay plain HTML with ONE shared editor panel;
+  per-row x-if edit templates at that scale stall Alpine's boot.
+  Toggles post through v3Post with optimistic flip and rollback.
+
+- Automations: crontab notice with copy, schedule table with
+  optimistic toggles and dimmed disabled rows, a hand-rolled v3
+  modal for the schedule editor (live preview text + cron), and a
+  JS-resolving run-now confirm. The x-admin3.confirm component only
+  fits form-action confirms; JS-callback confirms hand-roll the
+  same v3-overlay/v3-modal structure.
+
+Every page inside Settings now renders on the v3 shell. Outside
+Settings, api-sync-logs and profile edit still carry the v2 shell
+until their areas migrate.

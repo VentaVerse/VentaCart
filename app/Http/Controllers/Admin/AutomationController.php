@@ -49,6 +49,7 @@ class AutomationController extends Controller
         return response()->json([
             'success' => true,
             'enabled' => $automation->enabled,
+            'message' => $automation->name . ' ' . ($automation->enabled ? 'enabled.' : 'disabled.'),
         ]);
     }
 
