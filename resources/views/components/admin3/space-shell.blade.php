@@ -52,7 +52,10 @@
     </script>
     @stack('head')
 </head>
-<body class="v3">
+{{-- x-data on body: Alpine only binds directives inside an x-data tree,
+     and confirm triggers sit outside any component scope. The full-rail
+     shell already does this; without it those buttons are dead. --}}
+<body class="v3" x-data>
     <div class="v3-settings-root">
         <x-admin3.rail condensed :active="$railActive" />
 
