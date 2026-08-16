@@ -22,19 +22,19 @@
             <x-admin.field name="province" label="Province">
                 <x-admin.input name="province" type="text"
                     value="{{ old('province', $rateTest['input']['province'] ?? 'Metro Manila') }}"
-                    placeholder="e.g., Metro Manila" />
+                    />
             </x-admin.field>
 
             <x-admin.field name="city" label="City">
                 <x-admin.input name="city" type="text"
                     value="{{ old('city', $rateTest['input']['city'] ?? 'Quezon City') }}"
-                    placeholder="e.g., Quezon City" />
+                    />
             </x-admin.field>
 
             <x-admin.field name="postcode" label="Postcode">
                 <x-admin.input name="postcode" type="text"
                     value="{{ old('postcode', $rateTest['input']['postcode'] ?? '') }}"
-                    placeholder="e.g., 1108" />
+                    />
             </x-admin.field>
 
             <x-admin.field name="weight" label="Weight (kg)" required>

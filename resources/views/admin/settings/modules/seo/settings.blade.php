@@ -47,7 +47,7 @@
                             <x-admin.badge :tone="$gscCredentialsExist ? 'success' : 'neutral'">{{ $gscCredentialsExist ? 'Connected' : 'Optional' }}</x-admin.badge>
                         </h3>
                         <x-admin.field name="gsc_site_url" label="Site URL">
-                            <x-admin.input type="text" name="gsc_site_url" :value="$seoSettings['gsc_site_url'] ?? ''" placeholder="https://example.com" />
+                            <x-admin.input type="text" name="gsc_site_url" :value="$seoSettings['gsc_site_url'] ?? ''" />
                         </x-admin.field>
                         <x-admin.field name="gsc_credentials" label="Service account credentials">
                             @if ($gscCredentialsExist)

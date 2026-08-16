@@ -3,8 +3,12 @@
     @if ($title || isset($acts))
         <div class="v3-panel__head">
             <div>
-                @if ($title)<h2 class="v3-panel__title">{{ $title }}</h2>@endif
-                @if ($note)<p class="v3-panel__note">{{ $note }}</p>@endif
+                @if ($title)
+                    <h2 class="v3-panel__title">
+                        {{ $title }}
+                        @if ($note)<x-admin3.help :text="$note" />@endif
+                    </h2>
+                @endif
             </div>
             @isset($acts)
                 <div class="v3-panel__acts">{{ $acts }}</div>

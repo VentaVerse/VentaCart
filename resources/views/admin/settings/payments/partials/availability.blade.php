@@ -82,27 +82,27 @@
         <div class="v3-label v3-gap-sm">Order limits</div>
         <div class="v3-grid v3-grid--3">
             <x-admin3.field name="min_total" label="Min order total">
-                <input type="number" name="min_total" min="0" step="0.01" class="v3-control v3-mono" placeholder="e.g. 500" value="{{ old('min_total', $restriction?->min_total) }}">
+                <input type="number" name="min_total" min="0" step="0.01" class="v3-control v3-mono" value="{{ old('min_total', $restriction?->min_total) }}">
             </x-admin3.field>
             <x-admin3.field name="max_total" label="Max order total">
-                <input type="number" name="max_total" min="0" step="0.01" class="v3-control v3-mono" placeholder="e.g. 50000" value="{{ old('max_total', $restriction?->max_total) }}">
+                <input type="number" name="max_total" min="0" step="0.01" class="v3-control v3-mono" value="{{ old('max_total', $restriction?->max_total) }}">
             </x-admin3.field>
             <x-admin3.field name="min_weight" label="Min weight (kg)">
-                <input type="number" name="min_weight" min="0" step="0.01" class="v3-control v3-mono" placeholder="e.g. 0.5" value="{{ old('min_weight', $restriction?->min_weight) }}">
+                <input type="number" name="min_weight" min="0" step="0.01" class="v3-control v3-mono" value="{{ old('min_weight', $restriction?->min_weight) }}">
             </x-admin3.field>
             <x-admin3.field name="max_weight" label="Max weight (kg)">
-                <input type="number" name="max_weight" min="0" step="0.01" class="v3-control v3-mono" placeholder="e.g. 30" value="{{ old('max_weight', $restriction?->max_weight) }}">
+                <input type="number" name="max_weight" min="0" step="0.01" class="v3-control v3-mono" value="{{ old('max_weight', $restriction?->max_weight) }}">
             </x-admin3.field>
             <x-admin3.field name="min_quantity" label="Min quantity">
-                <input type="number" name="min_quantity" min="1" class="v3-control v3-mono" placeholder="e.g. 1" value="{{ old('min_quantity', $restriction?->min_quantity) }}">
+                <input type="number" name="min_quantity" min="1" class="v3-control v3-mono" value="{{ old('min_quantity', $restriction?->min_quantity) }}">
             </x-admin3.field>
             <x-admin3.field name="max_quantity" label="Max quantity">
-                <input type="number" name="max_quantity" min="1" class="v3-control v3-mono" placeholder="e.g. 100" value="{{ old('max_quantity', $restriction?->max_quantity) }}">
+                <input type="number" name="max_quantity" min="1" class="v3-control v3-mono" value="{{ old('max_quantity', $restriction?->max_quantity) }}">
             </x-admin3.field>
         </div>
 
         <div class="v3-gap-lg">
-            <div class="v3-label v3-gap-sm">Include conditions (a section left empty is skipped; every filled section must match)</div>
+            <div class="v3-label v3-gap-sm">Include conditions <x-admin3.help text="A section left empty is skipped; every filled section must match." /></div>
             <x-admin3.picklist name="geo_zone_ids" label="Only for these geo zones"
                 hint="The shipping address must fall in one of the picked zones."
                 :items="$zoneItems" :selected="old('geo_zone_ids', $restriction?->geo_zone_ids ?? [])" />
@@ -129,7 +129,7 @@
         </div>
 
         <div class="v3-gap-lg">
-            <div class="v3-label v3-gap-sm">Exclude conditions (one match anywhere below hides {{ $name }})</div>
+            <div class="v3-label v3-gap-sm">Exclude conditions <x-admin3.help :text="'One match anywhere below hides ' . $name . '.'" /></div>
             <x-admin3.picklist name="exclude_geo_zone_ids" label="Exclude geo zones"
                 :items="$zoneItems" :selected="old('exclude_geo_zone_ids', $restriction?->exclude_geo_zone_ids ?? [])" />
             <div class="v3-gap">

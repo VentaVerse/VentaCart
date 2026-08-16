@@ -85,13 +85,13 @@
         @csrf
         <div class="v3-grid v3-grid--2">
             <x-admin3.field name="bank_name" label="Bank name" required>
-                <input type="text" name="bank_name" required class="v3-control" placeholder="e.g. BDO, BPI, GCash">
+                <input type="text" name="bank_name" required class="v3-control">
             </x-admin3.field>
             <x-admin3.field name="account_name" label="Account name" required>
-                <input type="text" name="account_name" required class="v3-control" placeholder="Account holder name">
+                <input type="text" name="account_name" required class="v3-control">
             </x-admin3.field>
             <x-admin3.field name="account_number" label="Account number" required>
-                <input type="text" name="account_number" required class="v3-control v3-mono" placeholder="Account or mobile number">
+                <input type="text" name="account_number" required class="v3-control v3-mono">
             </x-admin3.field>
             <x-admin3.field name="sort_order" label="Sort order">
                 <input type="number" name="sort_order" min="0" value="0" class="v3-control v3-mono v3-w-sort">
@@ -104,7 +104,7 @@
         </div>
         <div class="v3-gap">
             <x-admin3.field name="instructions" label="Instructions">
-                <textarea name="instructions" rows="2" class="v3-control" placeholder="Any additional notes for the customer…"></textarea>
+                <textarea name="instructions" rows="2" class="v3-control"></textarea>
             </x-admin3.field>
         </div>
         <div class="v3-gap v3-actrow">

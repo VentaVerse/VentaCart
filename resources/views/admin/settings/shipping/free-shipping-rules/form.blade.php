@@ -31,21 +31,21 @@
         <x-admin3.panel title="General">
             <div class="v3-grid v3-grid--2">
                 <x-admin3.field name="name" label="Rule name" hint="Admin reference." required>
-                    <input type="text" name="name" required class="v3-control" placeholder="e.g. Free shipping over ₱5,000"
+                    <input type="text" name="name" required class="v3-control"
                            value="{{ old('name', $rule?->name) }}">
                 </x-admin3.field>
                 <x-admin3.field name="checkout_name" label="Checkout name" hint="Shown to the customer; blank falls back to the rule name.">
-                    <input type="text" name="checkout_name" class="v3-control" placeholder="e.g. Free Shipping"
+                    <input type="text" name="checkout_name" class="v3-control"
                            value="{{ old('checkout_name', $rule?->checkout_name) }}">
                 </x-admin3.field>
             </div>
             <div class="v3-grid v3-grid--3 v3-gap">
                 <x-admin3.field name="min_order_total" label="Minimum order total">
-                    <input type="number" name="min_order_total" min="0" step="0.01" class="v3-control v3-mono" placeholder="e.g. 5000"
+                    <input type="number" name="min_order_total" min="0" step="0.01" class="v3-control v3-mono"
                            value="{{ old('min_order_total', $rule?->min_order_total) }}">
                 </x-admin3.field>
                 <x-admin3.field name="min_quantity" label="Minimum quantity">
-                    <input type="number" name="min_quantity" min="1" class="v3-control v3-mono" placeholder="e.g. 3"
+                    <input type="number" name="min_quantity" min="1" class="v3-control v3-mono"
                            value="{{ old('min_quantity', $rule?->min_quantity) }}">
                 </x-admin3.field>
                 <x-admin3.field name="sort_order" label="Sort order">

@@ -17,7 +17,7 @@
         <x-admin3.panel title="Method">
             <div class="v3-narrow">
                 <x-admin3.field name="name" label="Name" hint="Appears at checkout exactly as typed." required>
-                    <input type="text" name="name" required class="v3-control" placeholder="e.g. Standard Flat Rate, Store Pickup"
+                    <input type="text" name="name" required class="v3-control"
                            value="{{ old('name', $rate?->name) }}">
                 </x-admin3.field>
                 <div class="v3-gap">

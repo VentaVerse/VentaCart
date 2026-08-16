@@ -76,12 +76,12 @@
             </x-admin3.field>
             <x-admin3.field name="groups.general.default_meta_keywords" label="Meta keywords" hint="Comma separated. Low impact on modern search.">
                 <input type="text" name="groups[general][default_meta_keywords]" class="v3-control"
-                       placeholder="guitar pedals, music gear, Philippines"
+                      
                        value="{{ $settings['general']['default_meta_keywords'] ?? '' }}">
             </x-admin3.field>
             <x-admin3.field name="groups.general.google_site_verification" label="Google site verification" hint="The content value from the Search Console verification meta tag.">
                 <input type="text" name="groups[general][google_site_verification]" class="v3-control v3-mono"
-                       placeholder="google-site-verification=..."
+                      
                        value="{{ $settings['general']['google_site_verification'] ?? '' }}">
             </x-admin3.field>
         </x-admin3.panel>

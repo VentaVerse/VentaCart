@@ -24,7 +24,7 @@
                     </div>
                     <div class="v3-rowedit__line">
                         <input type="text" name="tracking_url" x-model="edit.tracking"
-                               placeholder="https://example.com/track/{tracking_number}" aria-label="Tracking URL template"
+                               aria-label="Tracking URL template"
                                class="v3-control v3-mono">
                         <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Save</button>
                         <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="editing = false">Cancel</button>
@@ -95,7 +95,7 @@
                 @csrf
                 <div class="v3-addrow v3-addrow--3">
                     <x-admin3.field name="name" label="Courier" required>
-                        <input type="text" name="name" required placeholder="e.g. GoGo Express" class="v3-control">
+                        <input type="text" name="name" required class="v3-control">
                     </x-admin3.field>
                     <x-admin3.field name="sort_order" label="Order">
                         <input type="number" name="sort_order" value="0" min="0" class="v3-control v3-mono">
@@ -109,8 +109,8 @@
                     </div>
                 </div>
                 <div class="v3-inline v3-gap">
-                    <x-admin3.field name="tracking_url" label="Tracking URL template">
-                        <input type="text" name="tracking_url" placeholder="https://example.com/track/{tracking_number}" class="v3-control v3-mono">
+                    <x-admin3.field name="tracking_url" label="Tracking URL template" hint="Example: https://example.com/track/{tracking_number}">
+                        <input type="text" name="tracking_url" class="v3-control v3-mono">
                     </x-admin3.field>
                     <button type="submit" class="v3-btn v3-btn--primary">Add courier</button>
                 </div>

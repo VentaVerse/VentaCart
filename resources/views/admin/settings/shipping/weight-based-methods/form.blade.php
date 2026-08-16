@@ -35,11 +35,11 @@
         <x-admin3.panel title="Method">
             <div class="v3-grid v3-grid--2">
                 <x-admin3.field name="admin_name" label="Admin name" hint="Never shown to customers. Blank copies the checkout name.">
-                    <input type="text" name="admin_name" class="v3-control" placeholder="e.g. WB - Metro Manila Default"
+                    <input type="text" name="admin_name" class="v3-control"
                            value="{{ old('admin_name', $method?->admin_name) }}">
                 </x-admin3.field>
                 <x-admin3.field name="name" label="Checkout name" required>
-                    <input type="text" name="name" required class="v3-control" placeholder="e.g. Standard Shipping"
+                    <input type="text" name="name" required class="v3-control"
                            value="{{ old('name', $method?->name) }}">
                 </x-admin3.field>
             </div>

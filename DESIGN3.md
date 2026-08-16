@@ -150,10 +150,14 @@ forms alike (owner-directed 2026-08-16).
 6b. No instructional text prints on a page. A field's explanation
    lives behind `x-admin3.help`, the question mark beside the label
    (hover or focus reveals it); `x-admin3.field` routes its `hint`
-   prop there automatically. Inside a toggle's label the mark guards
-   against activating the control. State and feedback (validation
-   errors, dynamic tails, conditional warnings) stay inline; only
-   instruction hides.
+   prop there automatically, and `x-admin3.panel` routes its `note`
+   prop the same way. Inputs carry NO example placeholders ("e.g.
+   ..." belongs in a hint when the format genuinely needs showing,
+   otherwise nowhere); placeholders that show live state (the
+   current default, the signed-in email) are state, not instruction,
+   and stay. Inside a toggle's label the mark guards against
+   activating the control. Validation errors, dynamic tails, and
+   conditional warnings stay inline; only instruction hides.
 7. Both themes, 390 to 1440, every page; the v2 gates (compiled-view
    lint, build, suite) still apply.
 8. A list page's rows are plain server HTML, visible before any

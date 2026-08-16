@@ -53,15 +53,15 @@
                             </select>
                         </x-admin3.field>
                         <x-admin3.field name="province" label="Province">
-                            <input type="text" name="province" class="v3-control" placeholder="e.g. Metro Manila"
+                            <input type="text" name="province" class="v3-control"
                                    value="{{ old('province', $rateTest['input']['province'] ?? 'Metro Manila') }}">
                         </x-admin3.field>
                         <x-admin3.field name="city" label="City">
-                            <input type="text" name="city" class="v3-control" placeholder="e.g. Quezon City"
+                            <input type="text" name="city" class="v3-control"
                                    value="{{ old('city', $rateTest['input']['city'] ?? 'Quezon City') }}">
                         </x-admin3.field>
                         <x-admin3.field name="postcode" label="Postcode">
-                            <input type="text" name="postcode" class="v3-control v3-mono" placeholder="e.g. 1108"
+                            <input type="text" name="postcode" class="v3-control v3-mono"
                                    value="{{ old('postcode', $rateTest['input']['postcode'] ?? '') }}">
                         </x-admin3.field>
                         <x-admin3.field name="weight" label="Weight (kg)" required>

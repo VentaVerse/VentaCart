@@ -171,10 +171,10 @@
                     @csrf
                     <input type="hidden" name="country_id" value="{{ $selectedCountry }}">
                     <x-admin3.field name="name" label="Name" required>
-                        <input type="text" name="name" required placeholder="Zone name" class="v3-control">
+                        <input type="text" name="name" required class="v3-control">
                     </x-admin3.field>
                     <x-admin3.field name="code" label="Code">
-                        <input type="text" name="code" placeholder="e.g. NY" class="v3-control v3-mono">
+                        <input type="text" name="code" class="v3-control v3-mono">
                     </x-admin3.field>
                     <button type="submit" class="v3-btn v3-btn--primary">Add zone</button>
                 </form>
@@ -230,10 +230,10 @@
                 <form method="POST" action="{{ route('admin.localization.store-geo-zone') }}" class="v3-addrow v3-addrow--3">
                     @csrf
                     <x-admin3.field name="name" label="Name" required>
-                        <input type="text" name="name" required placeholder="e.g. Domestic" class="v3-control">
+                        <input type="text" name="name" required class="v3-control">
                     </x-admin3.field>
                     <x-admin3.field name="description" label="Description">
-                        <input type="text" name="description" placeholder="Optional description" class="v3-control">
+                        <input type="text" name="description" class="v3-control">
                     </x-admin3.field>
                     <button type="submit" class="v3-btn v3-btn--primary">Add geo zone</button>
                 </form>

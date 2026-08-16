@@ -42,12 +42,12 @@
                 <div class="v3-label v3-gap-sm">Sandbox credentials</div>
                 <x-admin3.field name="settings.hitpay_sandbox_api_key" label="API key"
                     :hint="$tailHint($maskedKeys['hitpay_sandbox_api_key'] ?? null, 'key')">
-                    <input type="password" name="settings[hitpay_sandbox_api_key]" autocomplete="off" class="v3-control v3-mono" placeholder="Enter sandbox API key">
+                    <input type="password" name="settings[hitpay_sandbox_api_key]" autocomplete="off" class="v3-control v3-mono">
                 </x-admin3.field>
                 <div class="v3-gap">
                     <x-admin3.field name="settings.hitpay_sandbox_salt" label="Salt"
                         :hint="$tailHint($maskedKeys['hitpay_sandbox_salt'] ?? null, 'salt')">
-                        <input type="password" name="settings[hitpay_sandbox_salt]" autocomplete="off" class="v3-control v3-mono" placeholder="Enter sandbox salt">
+                        <input type="password" name="settings[hitpay_sandbox_salt]" autocomplete="off" class="v3-control v3-mono">
                     </x-admin3.field>
                 </div>
             </div>
@@ -56,12 +56,12 @@
                 <div class="v3-label v3-gap-sm">Production credentials</div>
                 <x-admin3.field name="settings.hitpay_production_api_key" label="API key"
                     :hint="$tailHint($maskedKeys['hitpay_production_api_key'] ?? null, 'key')">
-                    <input type="password" name="settings[hitpay_production_api_key]" autocomplete="off" class="v3-control v3-mono" placeholder="Enter production API key">
+                    <input type="password" name="settings[hitpay_production_api_key]" autocomplete="off" class="v3-control v3-mono">
                 </x-admin3.field>
                 <div class="v3-gap">
                     <x-admin3.field name="settings.hitpay_production_salt" label="Salt"
                         :hint="$tailHint($maskedKeys['hitpay_production_salt'] ?? null, 'salt')">
-                        <input type="password" name="settings[hitpay_production_salt]" autocomplete="off" class="v3-control v3-mono" placeholder="Enter production salt">
+                        <input type="password" name="settings[hitpay_production_salt]" autocomplete="off" class="v3-control v3-mono">
                     </x-admin3.field>
                 </div>
             </div>

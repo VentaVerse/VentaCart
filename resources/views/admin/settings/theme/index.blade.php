@@ -544,7 +544,7 @@
                                                         <option value="youtube">YouTube</option>
                                                         <option value="tiktok">TikTok</option>
                                                     </select>
-                                                    <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" aria-label="Social profile URL" placeholder="https://…" class="v3-control v3-mono">
+                                                    <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" aria-label="Social profile URL" class="v3-control v3-mono">
                                                     <button type="button" class="v3-row__x" @click="socials.splice(idx, 1)" aria-label="Remove social link"><x-admin3.icon name="x" /></button>
                                                 </div>
                                             </template>
@@ -559,7 +559,7 @@
                                                         <option value="image">Image</option>
                                                     </select>
                                                     <template x-if="icon.type === 'text'">
-                                                        <input type="text" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" x-model="icon.value" aria-label="Payment mark label" placeholder="e.g. Visa" class="v3-control">
+                                                        <input type="text" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" x-model="icon.value" aria-label="Payment mark label" class="v3-control">
                                                     </template>
                                                     <template x-if="icon.type === 'image'">
                                                         <span class="v3-actrow">

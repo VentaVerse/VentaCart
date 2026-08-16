@@ -28,7 +28,7 @@
                 </div>
                 <div class="v3-gap">
                     <x-admin3.field name="settings.dhl_account_number" label="Account number">
-                        <input type="text" name="settings[dhl_account_number]" class="v3-control v3-mono" placeholder="e.g. 642344995"
+                        <input type="text" name="settings[dhl_account_number]" class="v3-control v3-mono"
                                value="{{ $settings['shipping']['dhl_account_number'] ?? '' }}">
                     </x-admin3.field>
                 </div>

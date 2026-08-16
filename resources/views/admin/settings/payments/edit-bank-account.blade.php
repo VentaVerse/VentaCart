@@ -16,15 +16,15 @@
         <x-admin3.panel title="Account">
             <div class="v3-grid v3-grid--2">
                 <x-admin3.field name="bank_name" label="Bank name" required>
-                    <input type="text" name="bank_name" required class="v3-control" placeholder="e.g. BDO, BPI, GCash"
+                    <input type="text" name="bank_name" required class="v3-control"
                            value="{{ old('bank_name', $bankAccount->bank_name) }}">
                 </x-admin3.field>
                 <x-admin3.field name="account_name" label="Account name" required>
-                    <input type="text" name="account_name" required class="v3-control" placeholder="Account holder name"
+                    <input type="text" name="account_name" required class="v3-control"
                            value="{{ old('account_name', $bankAccount->account_name) }}">
                 </x-admin3.field>
                 <x-admin3.field name="account_number" label="Account number" required>
-                    <input type="text" name="account_number" required class="v3-control v3-mono" placeholder="Account or mobile number"
+                    <input type="text" name="account_number" required class="v3-control v3-mono"
                            value="{{ old('account_number', $bankAccount->account_number) }}">
                 </x-admin3.field>
                 <x-admin3.field name="sort_order" label="Sort order">
@@ -48,7 +48,7 @@
             </div>
             <div class="v3-gap">
                 <x-admin3.field name="instructions" label="Instructions">
-                    <textarea name="instructions" rows="3" class="v3-control" placeholder="Any additional notes for the customer…">{{ old('instructions', $bankAccount->instructions) }}</textarea>
+                    <textarea name="instructions" rows="3" class="v3-control">{{ old('instructions', $bankAccount->instructions) }}</textarea>
                 </x-admin3.field>
             </div>
             <div class="v3-gap">
