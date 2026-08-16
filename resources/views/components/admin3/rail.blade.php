@@ -45,6 +45,10 @@
                title="{{ $item['label'] }}" aria-label="{{ $item['label'] }}"
                @if ($active === $item['key']) aria-current="page" @endif>
                 <x-admin3.icon :name="$item['icon']" />
+                {{-- Visible only during the entering-settings collapse:
+                     the rail starts at main-nav width and narrows while
+                     these fade, exactly the main nav condensing. --}}
+                <span class="v3-irail__label" aria-hidden="true">{{ $item['label'] }}</span>
             </a>
         @endforeach
         <span class="v3-irail__foot">
@@ -52,6 +56,7 @@
                title="Settings" aria-label="Settings"
                @if ($active === 'settings') aria-current="page" @endif>
                 <x-admin3.icon name="settings" />
+                <span class="v3-irail__label" aria-hidden="true">Settings</span>
             </a>
         </span>
     </nav>

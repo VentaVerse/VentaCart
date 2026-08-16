@@ -290,8 +290,9 @@
    The settings nav takes the full rail beside it. */
 
 .v3-irail {
-    z-index: 2; /* paints above the settings nav during its arrival slide */
+    z-index: 2; /* paints above the settings nav */
     background: var(--v3-slab);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -327,7 +328,8 @@
     color: var(--v3-slab-on);
     box-shadow: inset 3px 0 0 var(--v3-act-fill);
 }
-.v3-irail__item svg { width: 19px; height: 19px; }
+.v3-irail__item svg { width: 19px; height: 19px; flex-shrink: 0; }
+.v3-irail__label { display: none; }
 .v3-irail__rule { width: 26px; border: 0; border-top: 1px solid var(--v3-slab-line); margin: 8px 0; }
 .v3-irail__foot { margin-top: auto; }
 
@@ -348,24 +350,44 @@
 }
 
 
-/* --- Arrival without a view transition -------------------------
-   Hard entries (refresh, bookmark, first load) and browsers without
-   cross-document view transitions never see the rail morph, so the
-   destination plays the same directional story alone: the rail leads
-   in from the left edge and the settings menu follows out of its
-   shadow. A navigation that ran the morph skips this (admin3.js). */
-@media (prefers-reduced-motion: no-preference) {
-    .v3-arrive .v3-irail {
-        animation: v3-arrive-rail .4s cubic-bezier(0.16, 1, 0.3, 1) both;
+/* --- Entering Settings: the Easypanel collapse -----------------
+   Live-DOM animation, no snapshots: the rail arrives at main-nav
+   width with its parent labels showing, then narrows to 56px over
+   500ms ease-in-out while the labels fade in the first 150ms and
+   the icons hold their exact x. The settings nav and content ride
+   the reflow leftward, which is the directional push. Applied by
+   the shell's head script whenever the previous page was outside
+   Settings (clicks, hard entries, every browser alike). Icon
+   geometry: rail padding 8px + 10px item padding + 19px icon keeps
+   the icon center at 27.5px in both the wide and narrow states. */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    .v3-cross .v3-irail {
+        align-items: stretch;
+        animation: v3-cross-rail .5s ease-in-out both;
     }
-    .v3-arrive .v3-snav {
-        animation: v3-arrive-snav .5s cubic-bezier(0.16, 1, 0.3, 1) .08s both;
+    .v3-cross .v3-irail__mark { align-self: flex-start; margin-left: 3px; }
+    .v3-cross .v3-irail__rule { margin-left: 7px; }
+    .v3-cross .v3-irail__item {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 10px;
+        padding-left: 10px;
     }
-    @keyframes v3-arrive-rail {
-        from { transform: translateX(-56px); }
+    .v3-cross .v3-irail__label {
+        display: inline;
+        white-space: nowrap;
+        font-size: 13px;
+        font-weight: 550;
+        animation: v3-cross-label .15s ease-out both;
     }
-    @keyframes v3-arrive-snav {
-        from { transform: translateX(-56px); opacity: 0; }
-        60% { opacity: 1; }
+    @keyframes v3-cross-rail {
+        from { width: 216px; }
+        to { width: 56px; }
+    }
+    @keyframes v3-cross-label {
+        from { opacity: 1; }
+        to { opacity: 0; }
     }
 }

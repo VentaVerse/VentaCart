@@ -56,91 +56,22 @@ body.v3 {
 /* ============================================================
    Cross-document motion (View Transitions)
    ============================================================
-   The one story this motion tells: the nav never disappears, it
-   CONDENSES. Both renditions of the rail share one transition name,
-   so navigating into Settings morphs the full azure sidebar into
-   the 56px icon strip, and leaving morphs it back. The settings
-   nav holds still between settings pages while the brass active
-   highlight slides to the new section. Browsers without support
-   navigate instantly; nothing depends on the animation. */
+   ONE job only: holding frames. Without a transition the browser
+   paints a blank white frame between two MPA page loads. Nothing
+   here choreographs; the Easypanel nav collapse is a live-DOM
+   animation in shell.css (.v3-cross), deterministic in every
+   browser and never freezing input. Do not add named pairs back:
+   snapshot morphs raced servers and caches through four owner
+   rounds before this architecture settled. */
 
 @view-transition {
     navigation: auto;
 }
 
-/* Desktop only: mobile navs are drawers or hidden and must not
-   donate snapshots to the morph. */
-@media (min-width: 1024px) {
-    .v3-rail { view-transition-name: v3-nav; }
-    .v3-irail { view-transition-name: v3-nav; }
-}
-.v3-snav { view-transition-name: v3-context; }
-.v3-snav__item[aria-current="page"] { view-transition-name: v3-context-active; }
-.v3-settings__top { view-transition-name: v3-band; }
-
-/* Every navigation runs a transition; its default job is holding
-   frames (no white gap between page loads), not choreography. A
-   routine swap is a 120ms crossfade, and the named pairs snap. */
 ::view-transition-old(root),
-::view-transition-new(root) {
-    animation-duration: .12s;
-}
+::view-transition-new(root),
 ::view-transition-group(root) {
-    animation-duration: .12s; /* the longest animation is the input hold */
-}
-::view-transition-group(v3-nav),
-::view-transition-group(v3-context),
-::view-transition-group(v3-band) {
-    animation-duration: 0s;
-}
-
-/* Between settings pages the brass highlight still slides. */
-::view-transition-group(v3-context-active) {
-    animation-duration: .2s;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* The crossing (tagged by the arriving page in admin3.js) earns the
-   Easypanel morph: a SOLID slab-colored panel narrows 500ms
-   ease-in-out while the labels FADE (150ms, they never get cut by
-   the moving edge) and the icons persist; the settings menu slides
-   rightward out of the panel's shadow. The panel's solidity comes
-   from the image-pair background tracking the animating box. */
-html:active-view-transition-type(crossing)::view-transition-group(v3-nav) {
-    animation-duration: .5s;
-    animation-timing-function: ease-in-out;
-    z-index: 2;
-}
-html:active-view-transition-type(crossing)::view-transition-image-pair(v3-nav) {
-    overflow: clip;
-    background: var(--v3-slab);
-}
-html:active-view-transition-type(crossing)::view-transition-old(v3-nav),
-html:active-view-transition-type(crossing)::view-transition-new(v3-nav) {
-    height: 100%;
-    width: auto;
-    object-fit: none;
-    object-position: top left;
-}
-html:active-view-transition-type(crossing)::view-transition-old(v3-nav) {
-    animation: v3-nav-labels-out .15s ease-out both;
-}
-html:active-view-transition-type(crossing)::view-transition-new(v3-nav) {
-    animation: v3-nav-icons-in .2s ease-out .12s both;
-}
-@keyframes v3-nav-labels-out {
-    to { opacity: 0; }
-}
-@keyframes v3-nav-icons-in {
-    from { opacity: 0; }
-}
-html:active-view-transition-type(crossing)::view-transition-new(v3-context):only-child {
-    animation: v3-context-in .5s ease-in-out both;
-}
-@keyframes v3-context-in {
-    from { transform: translateX(-56px); opacity: 0; }
-    40%  { opacity: 1; }
-    to   { transform: translateX(0); }
+    animation-duration: .12s;
 }
 
 @media (prefers-reduced-motion: reduce) {

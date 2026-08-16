@@ -39,24 +39,24 @@
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/Archivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/JetBrainsMono.woff2') }}" as="font" type="font/woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
-    {{-- Arrival entrance decision, pre-paint: when no view transition
-         runs this navigation (hard entry, or a browser without the
-         feature), the nav plays its own entrance. Inline so it beats
-         first render; a deferred module can land after paint and jump. --}}
+    {{-- The crossing decision, pre-paint: when the previous page was on
+         the other side of the Settings boundary (or this is a hard
+         entry), the nav plays its live-DOM Easypanel move (shell css,
+         .v-cross). navigation.activation names the real previous entry
+         (correct on back/forward); referrer is the fallback. --}}
     <script>
         (() => {
-            // The settings boundary comes from the router, so a custom
-            // admin prefix of any shape cannot break the check.
             const root = window.__vSettingsRoot = @js(parse_url(route('admin.settings.index'), PHP_URL_PATH));
             let fromSettings = false;
             try {
-                const r = document.referrer ? new URL(document.referrer) : null;
-                fromSettings = !!r && r.origin === location.origin
-                    && (r.pathname === root || r.pathname.startsWith(root + '/'));
-            } catch (e) { /* unparsable referrer: treat as external */ }
-            const arrive = () => { if (fromSettings) document.documentElement.classList.add('v-arrive'); };
-            if ('onpagereveal' in window) addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });
-            else arrive();
+                const prev = window.navigation?.activation?.from?.url ?? document.referrer ?? '';
+                if (prev) {
+                    const u = new URL(prev, location.origin);
+                    fromSettings = u.origin === location.origin
+                        && (u.pathname === root || u.pathname.startsWith(root + '/'));
+                }
+            } catch (e) { /* unparsable: treat as external */ }
+            if (fromSettings) document.documentElement.classList.add('v-cross');
         })();
     </script>
     @stack('head')
