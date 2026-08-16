@@ -52,33 +52,3 @@ body.v3 {
     color: var(--v3-ink-3);
     letter-spacing: .004em;
 }
-
-/* ============================================================
-   Cross-document motion (View Transitions)
-   ============================================================
-   ONE job only: holding frames. Without a transition the browser
-   paints a blank white frame between two MPA page loads. Nothing
-   here choreographs; the Easypanel nav collapse is a live-DOM
-   animation in shell.css (.v3-cross), deterministic in every
-   browser and never freezing input. Do not add named pairs back:
-   snapshot morphs raced servers and caches through four owner
-   rounds before this architecture settled. */
-
-@view-transition {
-    navigation: auto;
-}
-
-::view-transition-old(root),
-::view-transition-new(root),
-::view-transition-group(root) {
-    animation-duration: .12s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    ::view-transition-group(*),
-    ::view-transition-image-pair(*),
-    ::view-transition-old(*),
-    ::view-transition-new(*) {
-        animation-duration: 1ms !important;
-    }
-}

@@ -83,15 +83,19 @@ forms alike (owner-directed 2026-08-16).
   saw before entering Settings. The full rendition still reads
   `admin3-nav.php` pending the first work-area migration. Full mode
   expects the work shell's Alpine `nav` drawer boolean in scope.
-- Motion architecture (settled after five owner rounds): view
-  transitions do ONE job, holding frames. Every admin navigation
-  runs a bare 120ms root crossfade so the browser never paints the
-  blank white inter-page frame (the flicker in every MPA), and
-  theme-boot paints html itself canvas-colored for cold loads. NO
-  named view-transition pairs exist anywhere: snapshot morphs raced
-  servers, caches, and browsers through four failed rounds, and a
-  pair on the settings-nav active item produced an unasked highlight
-  animation. Do not add pairs back.
+- Motion architecture, final form: NO view transitions anywhere.
+  The opt-in was tried as a frame-hold against the white inter-page
+  flash and measurably EXTENDED the blank gap instead (owner saw it
+  worse than main; screencast frame analysis confirmed the document
+  swap gap shrank from 244ms to 176ms when the opt-in was removed).
+  Two defenses replace it: (1) theme-boot paints the html element
+  with the app's own SILHOUETTE pre-CSS (azure nav band + paper,
+  per theme; shells override --boot-band, settings uses 56px), so
+  any between-pages frame wears the app's frame, never white;
+  (2) Alpine starts one frame after first paint (double rAF in
+  app.js/admin3.js) so script work never delays the first frame
+  past the browser's native paint holding. Do not reintroduce
+  @view-transition.
 - The crossing move is Venta's own, named "taking a seat", built
   inside the world's motion tokens (130/230ms), not any reference
   product's. Furniture never travels: the rail, the slab, and both

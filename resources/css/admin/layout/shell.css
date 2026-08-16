@@ -454,33 +454,6 @@
     .v-slab__close,
     .v-topbar__menu { display: none; }
 }
-
-
-/* --- Crossing into Settings ------------------------------------
-   Both documents opt into cross-document view transitions for ONE
-   job: holding frames so no white gap paints between page loads.
-   No named pairs, no choreography here; the nav motion is live-DOM
-   (.v-cross below and .v3-cross on the Settings side). */
-@view-transition {
-    navigation: auto;
-}
-
-::view-transition-old(root),
-::view-transition-new(root),
-::view-transition-group(root) {
-    animation-duration: .12s;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    ::view-transition-group(*),
-    ::view-transition-image-pair(*),
-    ::view-transition-old(*),
-    ::view-transition-new(*) {
-        animation-duration: 1ms !important;
-    }
-}
-
-
 /* --- Returning from Settings: the slab contents take their seat -
    The azure slab itself appears seated; its brand and nav slide in
    12px and settle as one piece (230ms). Applied by the shell's

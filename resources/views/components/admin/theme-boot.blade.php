@@ -13,6 +13,14 @@
 <style>
     html { background-color: #EDF1F7; }
     html[data-theme="dark"] { background-color: #0B1017; }
+    /* Desktop: the background is the app's own silhouette (azure nav
+       band on paper), so a between-pages frame looks like the app's
+       frame, never a white flash. Shells with a different band width
+       override --boot-band in their own head. */
+    @media (min-width: 1024px) {
+        html { background: linear-gradient(to right, #1E4368 0 var(--boot-band, 216px), #EDF1F7 var(--boot-band, 216px)); }
+        html[data-theme="dark"] { background: linear-gradient(to right, #10273C 0 var(--boot-band, 216px), #0B1017 var(--boot-band, 216px)); }
+    }
 </style>
 <script>
     (function () {
