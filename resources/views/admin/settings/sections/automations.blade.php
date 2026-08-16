@@ -25,8 +25,8 @@
                  this.copied = true;
                  setTimeout(() => this.copied = false, 2000);
              } }">
-            <p class="v3-notice__title">Server crontab</p>
-            <p class="v3-notice__text">The schedules below only fire while this line is installed on the server.</p>
+            <p class="v3-notice__title">Server crontab
+                <x-admin3.help text="The schedules below only fire while this line is installed on the server." /></p>
             <div class="v3-noticerow">
                 <input type="text" x-ref="crontab" readonly value="{{ $crontabLine }}" onclick="this.select()"
                        aria-label="Crontab line" class="v3-control v3-mono">
@@ -60,8 +60,10 @@
                             @endphp
                             <tr x-data="{ enabled: @js((bool) $automation->enabled), running: false }" :class="{ 'v3-row-dim': !enabled }">
                                 <td>
-                                    <div>{{ $automation->name }}</div>
-                                    <div class="v3-cell-quiet">{{ $automation->description }}</div>
+                                    {{ $automation->name }}
+                                    @if ($automation->description)
+                                        <x-admin3.help :text="$automation->description" />
+                                    @endif
                                 </td>
                                 <td><code class="v3-mono">{{ $automation->command }}</code></td>
                                 <td>

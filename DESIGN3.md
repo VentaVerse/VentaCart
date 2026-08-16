@@ -138,6 +138,13 @@ forms alike (owner-directed 2026-08-16).
    settings-to-settings referrer replays nothing. Reduced motion
    collapses all of it.
 6. No em dashes anywhere, comments included.
+6b. No instructional text prints on a page. A field's explanation
+   lives behind `x-admin3.help`, the question mark beside the label
+   (hover or focus reveals it); `x-admin3.field` routes its `hint`
+   prop there automatically. Inside a toggle's label the mark guards
+   against activating the control. State and feedback (validation
+   errors, dynamic tails, conditional warnings) stay inline; only
+   instruction hides.
 7. Both themes, 390 to 1440, every page; the v2 gates (compiled-view
    lint, build, suite) still apply.
 8. A list page's rows are plain server HTML, visible before any

@@ -629,3 +629,51 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-dir__sub { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 
 .v3-w-search { max-width: 240px; }
+
+
+/* --- Help (the question mark) ---------------------------------- */
+
+.v3-help {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px; height: 15px;
+    margin-left: 2px;
+    border: 1px solid var(--v3-line-2);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 650;
+    color: var(--v3-ink-3);
+    cursor: help;
+    vertical-align: text-bottom;
+    user-select: none;
+}
+.v3-help:hover, .v3-help:focus-visible { color: var(--v3-act); border-color: var(--v3-act); }
+.v3-help__tip {
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: -8px;
+    z-index: 30;
+    width: max-content;
+    max-width: 260px;
+    padding: 7px 10px;
+    background: var(--v3-surface);
+    color: var(--v3-ink-2);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md);
+    box-shadow: 0 6px 18px rgba(15, 25, 40, .14);
+    font-size: 12.5px;
+    font-weight: 430;
+    line-height: 1.45;
+    white-space: normal;
+    opacity: 0;
+    transform: translateY(3px);
+    pointer-events: none;
+    transition: opacity var(--v3-fast), transform var(--v3-fast);
+}
+.v3-help:hover .v3-help__tip,
+.v3-help:focus-visible .v3-help__tip {
+    opacity: 1;
+    transform: translateY(0);
+}

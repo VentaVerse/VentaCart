@@ -18,13 +18,14 @@
                 Allow guest checkout
             </label>
             <div class="v3-gap">
-                <x-admin3.field name="groups.checkout.block_out_of_stock" hint="A cart that went out of stock after the item was added is blocked too.">
+                <x-admin3.field name="groups.checkout.block_out_of_stock">
                     <label class="v3-toggle">
                         <input type="hidden" name="groups[checkout][block_out_of_stock]" value="0">
                         <input type="checkbox" name="groups[checkout][block_out_of_stock]" value="1"
                                @checked(($settings['checkout']['block_out_of_stock'] ?? '1') === '1')>
                         <span class="v3-toggle__track" aria-hidden="true"></span>
                         Block checkout for out-of-stock items
+                        <x-admin3.help text="A cart that went out of stock after the item was added is blocked too." />
                     </label>
                 </x-admin3.field>
             </div>

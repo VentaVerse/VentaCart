@@ -62,22 +62,24 @@
                 </label>
             </div>
             <div class="v3-gap">
-                <x-admin3.field name="apply_whole_cart" hint="One qualifying product frees the whole cart, including products that fail the brand and category conditions.">
+                <x-admin3.field name="apply_whole_cart">
                     <label class="v3-toggle">
                         <input type="hidden" name="apply_whole_cart" value="0">
                         <input type="checkbox" name="apply_whole_cart" value="1" @checked(old('apply_whole_cart', $rule?->apply_whole_cart ?? false))>
                         <span class="v3-toggle__track" aria-hidden="true"></span>
                         Apply to the whole cart
+                        <x-admin3.help text="One qualifying product frees the whole cart, including products that fail the brand and category conditions." />
                     </label>
                 </x-admin3.field>
             </div>
             <div class="v3-gap">
-                <x-admin3.field name="show_badge" hint="The label appears on product cards and product pages, on the storefront.">
+                <x-admin3.field name="show_badge">
                     <label class="v3-toggle">
                         <input type="hidden" name="show_badge" value="0">
                         <input type="checkbox" name="show_badge" value="1" @checked(old('show_badge', $rule?->show_badge ?? false))>
                         <span class="v3-toggle__track" aria-hidden="true"></span>
                         Show the Free Shipping badge
+                        <x-admin3.help text="The label appears on product cards and product pages, on the storefront." />
                     </label>
                 </x-admin3.field>
             </div>
