@@ -15,7 +15,11 @@ window.storageUrl = window.storageUrl || function (path) {
 // The boundary is /<admin-prefix>/settings, matched as a path
 // segment: substring checks would trip on routes that merely
 // contain the word (e.g. a module's own /settings subpage).
-const v3InSettings = (p) => /^\/[^/]+\/settings(\/|$)/.test(p);
+const v3InSettings = (p) => {
+    const root = window.__vSettingsRoot;
+    if (root) return p === root || p.startsWith(root + '/');
+    return /^\/[^/]+\/settings(\/|$)/.test(p);
+};
 addEventListener('pageswap', (e) => {
     if (!e.viewTransition) return;
     const here = v3InSettings(location.pathname);

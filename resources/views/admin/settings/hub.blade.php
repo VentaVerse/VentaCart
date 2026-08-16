@@ -17,7 +17,7 @@
         $v3AllHays = $v3DirGroups->flatMap(fn ($g) => collect($g['items'])->map(fn ($i) => strtolower($i['label'] . ' ' . $i['line'])))->values();
     @endphp
 
-    <div class="v3-settle" x-data="{ q: '', hit(h) { return !this.q || h.includes(this.q.toLowerCase()); } }">
+    <div class="v3-settle" x-data="{ q: '', hit(h) { const t = this.q.trim().toLowerCase(); return !t || h.includes(t); } }">
         <x-admin3.field name="q" label="Find a setting">
             <input type="search" class="v3-control v3-narrow" x-model="q" placeholder="Search settings…">
         </x-admin3.field>
@@ -45,7 +45,7 @@
             </div>
         @endforeach
 
-        <div class="v3-empty v3-gap-lg" x-show="q && !@js($v3AllHays).some(h => hit(h))" x-cloak>
+        <div class="v3-empty v3-gap-lg" x-show="q.trim() && !@js($v3AllHays).some(h => hit(h))" x-cloak>
             <p class="v3-empty__title">No setting matches</p>
             <p class="v3-empty__line">Nothing here is named that. Try the section names on the left.</p>
         </div>

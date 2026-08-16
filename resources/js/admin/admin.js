@@ -14,7 +14,11 @@ import './day-sheet-plot.js';
 // The boundary is /<admin-prefix>/settings, matched as a path
 // segment: substring checks would trip on routes that merely
 // contain the word (e.g. a module's own /settings subpage).
-const vInSettings = (p) => /^\/[^/]+\/settings(\/|$)/.test(p);
+const vInSettings = (p) => {
+    const root = window.__vSettingsRoot;
+    if (root) return p === root || p.startsWith(root + '/');
+    return /^\/[^/]+\/settings(\/|$)/.test(p);
+};
 addEventListener('pageswap', (e) => {
     if (!e.viewTransition) return;
     const here = vInSettings(location.pathname);

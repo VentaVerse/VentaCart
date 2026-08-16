@@ -23,7 +23,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title }}: Settings: {{ $v3Store }}</title>
+    <title>{{ $title === 'Settings' ? 'Settings' : $title . ': Settings' }}: {{ $v3Store }}</title>
     <x-admin.theme-boot />
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/Archivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/JetBrainsMono.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -34,11 +34,14 @@
          first render; a deferred module can land after paint and jump. --}}
     <script>
         (() => {
+            // The settings boundary comes from the router, so a custom
+            // admin prefix of any shape cannot break the check.
+            const root = window.__vSettingsRoot = @js(parse_url(route('admin.settings.index'), PHP_URL_PATH));
             let fromSettings = false;
             try {
                 const r = document.referrer ? new URL(document.referrer) : null;
                 fromSettings = !!r && r.origin === location.origin
-                    && /^\/[^/]+\/settings(\/|$)/.test(r.pathname);
+                    && (r.pathname === root || r.pathname.startsWith(root + '/'));
             } catch (e) { /* unparsable referrer: treat as external */ }
             const arrive = () => { if (!fromSettings) document.documentElement.classList.add('v3-arrive'); };
             if ('onpagereveal' in window) addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });

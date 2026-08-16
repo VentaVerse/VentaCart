@@ -45,11 +45,14 @@
          first render; a deferred module can land after paint and jump. --}}
     <script>
         (() => {
+            // The settings boundary comes from the router, so a custom
+            // admin prefix of any shape cannot break the check.
+            const root = window.__vSettingsRoot = @js(parse_url(route('admin.settings.index'), PHP_URL_PATH));
             let fromSettings = false;
             try {
                 const r = document.referrer ? new URL(document.referrer) : null;
                 fromSettings = !!r && r.origin === location.origin
-                    && /^\/[^/]+\/settings(\/|$)/.test(r.pathname);
+                    && (r.pathname === root || r.pathname.startsWith(root + '/'));
             } catch (e) { /* unparsable referrer: treat as external */ }
             const arrive = () => { if (fromSettings) document.documentElement.classList.add('v-arrive'); };
             if ('onpagereveal' in window) addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });
