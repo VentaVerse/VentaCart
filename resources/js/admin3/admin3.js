@@ -187,5 +187,6 @@ window.v3Post = async function (url, data = {}) {
 window.Alpine = window.Alpine || Alpine;
 if (!window.__v3AlpineStarted) {
     window.__v3AlpineStarted = true;
-    Alpine.start();
+    // Paint first, hydrate after (see resources/js/app.js).
+    requestAnimationFrame(() => requestAnimationFrame(() => Alpine.start()));
 }
