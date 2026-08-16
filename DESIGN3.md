@@ -131,6 +131,13 @@ forms alike (owner-directed 2026-08-16).
 6. No em dashes anywhere, comments included.
 7. Both themes, 390 to 1440, every page; the v2 gates (compiled-view
    lint, build, suite) still apply.
+8. A list page's rows are plain server HTML, visible before any
+   JavaScript. Per-row x-if edit templates hide the data until
+   Alpine boots (owner-reported blank courier list on slow loads)
+   and stall boot at scale (250-row localization). The idiom is one
+   shared editor panel above the table, prefilled from an @js()
+   payload on Edit. x-if stays for modals and interaction-gated
+   editors only.
 
 ## Doctrine mechanics added in round two
 

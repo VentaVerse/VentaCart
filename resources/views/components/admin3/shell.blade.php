@@ -13,6 +13,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title }}: {{ $v3Store }}</title>
     <x-admin.theme-boot />
+    <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/Archivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/JetBrainsMono.woff2') }}" as="font" type="font/woff2" crossorigin>
     @vite(['resources/css/admin3/admin3.css', 'resources/js/admin3/admin3.js'])
     @stack('head')
 </head>
