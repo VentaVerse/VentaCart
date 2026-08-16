@@ -8,7 +8,7 @@
     $vLogo = \App\Support\StoreIdentity::logoUrl();
     $vFavicon = \App\Support\StoreIdentity::faviconUrl();
 
-    $vNavGroups = \App\Support\AdminNav::sidebarGroups(Auth::user());
+    $vNavGroups = \App\Support\AdminNav::groups(Auth::user());
     $vActive = \App\Support\AdminNav::activeItemKey(request()->path());
 
     // One group is open at a time, and the value lives on the <nav> rather

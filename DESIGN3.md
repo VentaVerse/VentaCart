@@ -28,11 +28,15 @@ stated in `tokens.css` with AA-checked stops.
   not registered. NOT yet mounted by any page; first consumer is the
   next migrated area.
 - `x-admin3.settings-shell`: inside Settings the work nav condenses,
-  never disappears: a 56px azure icon rail on the far left (store
-  mark to the dashboard, every work object and module a direct
-  one-click jump, Settings active at its foot), with the grouped
-  settings nav (248px) from `config/admin3-settings-nav.php` (Store,
-  Commerce, Communication, System) beside it. Below 1024px the rail
+  never disappears: a 56px azure icon rail on the far left showing
+  the SAME parents as the main menu in the same order (Dashboard,
+  Sales, Catalog, Customers, Content, Marketing; Settings active at
+  its foot), derived from `config/admin-nav.php` so the two can
+  never drift. A parent has no page of its own: its icon jumps to
+  the group's first destination and the tooltip names the parent.
+  Beside it, the grouped settings nav (248px) from
+  `config/admin3-settings-nav.php` (Store, Commerce, Communication,
+  System). Below 1024px the rail
   hides, the top band grows a back arrow, and the nav becomes a
   select picker. General is general; a module's settings live with
   the module. (Owner-directed revision of the original full-screen
@@ -73,10 +77,22 @@ forms alike (owner-directed 2026-08-16).
 ## Nav components
 
 - `x-admin3.rail`: THE main nav, both renditions of it. Full azure
-  sidebar by default; `condensed` renders the 56px icon strip. One
-  registry (`admin3-nav.php`), one component, so the two states can
-  never drift. Full mode expects the work shell's Alpine `nav`
-  drawer boolean in scope.
+  sidebar by default; `condensed` renders the 56px icon strip of
+  main-menu parents derived from `config/admin-nav.php` (the v2 main
+  menu's registry), so the rail can never drift from what the person
+  saw before entering Settings. The full rendition still reads
+  `admin3-nav.php` pending the first work-area migration. Full mode
+  expects the work shell's Alpine `nav` drawer boolean in scope.
+- Crossing into Settings animates: the v2 shell opts into
+  cross-document view transitions and its sidebar shares the
+  `v3-nav` name with the icon rail, so the wide slab morphs into
+  the 56px strip (and back) on one 500ms ease-in-out clock, old
+  snapshot gone in 200ms so labels vanish at the start of the
+  shrink (Easypanel choreography, decoded from its shadcn/ui
+  sidebar: 300px wrapper widening to rail+secondary, labels fading
+  early, desktop only). In the main menu Settings is a flat door
+  item, not a dropdown; `AdminNav::sidebarGroups()` (the old
+  dropdown expansion) is gone.
 - `x-admin3.context-nav`: any second menu column beside the rail
   (settings today, a module's sections tomorrow). Caller passes
   resolved groups with urls; the component lists them and knows

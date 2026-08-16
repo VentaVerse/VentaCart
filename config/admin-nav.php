@@ -78,11 +78,12 @@ return [
         ],
     ],
     [
-        'label' => 'System',
-        'icon' => 'settings',
-        'segment' => 'settings',
+        // Settings is a door, not a dropdown: one click leaves the work
+        // area and opens the Settings space (the main nav condenses to
+        // the icon rail there).
+        'label' => null,
         'items' => [
-            ['key' => 'settings', 'label' => 'Settings', 'route' => 'admin.settings.index', 'icon' => 'settings', 'permission' => null, 'keywords' => ['configuration', 'preferences', 'hub']],
+            ['key' => 'settings', 'label' => 'Settings', 'route' => 'admin.settings.index', 'icon' => 'settings', 'permission' => null, 'keywords' => ['configuration', 'preferences', 'hub', 'system']],
         ],
     ],
 ];

@@ -52,49 +52,7 @@ class AdminNav
             ->all();
     }
 
-    /**
-     * groups() with the Settings hub item expanded into the full destination
-     * list from SettingsNav, for the sidebar only. The palette must NOT use
-     * this: it already merges SettingsNav::paletteEntries() and would list
-     * every destination twice. Each injected item carries a resolved 'url'
-     * because section pages need a route parameter plain route() can't supply.
-     */
-    public static function sidebarGroups(?User $user = null): array
-    {
-        $groups = static::groups($user);
-
-        foreach ($groups as $gi => $group) {
-            foreach ($group['items'] as $ii => $item) {
-                if ($item['route'] !== 'admin.settings.index') {
-                    continue;
-                }
-
-                $children = [];
-                foreach (SettingsNav::groups($user) as $settingsGroup) {
-                    foreach ($settingsGroup['items'] as $child) {
-                        $children[] = [
-                            'key' => $child['key'],
-                            'label' => $child['label'],
-                            'route' => $child['route'],
-                            'icon' => $child['icon'],
-                            'permission' => $child['permission'],
-                            'keywords' => $child['keywords'],
-                            'url' => SettingsNav::url($child),
-                        ];
-                    }
-                }
-
-                if ($children !== []) {
-                    array_splice($groups[$gi]['items'], $ii, 1, $children);
-                }
-
-                return $groups;
-            }
-        }
-
-        return $groups;
-    }
-
+    
     /**
      * The registry entry for $key IF it is currently reachable for this
      * user, otherwise null.
@@ -244,11 +202,11 @@ class AdminNav
             foreach (config('admin-nav') as $group) {
                 foreach ($group['items'] as $item) {
                     if ($item['route'] === 'admin.settings.index') {
-                        // The sidebar lists every settings destination, so the
-                        // active item is the specific one, not the hub.
+                        // Settings is one door in the main nav; finer-grained
+                        // active-state belongs to the Settings space's own nav.
                         return [
                             'group' => $group['label'],
-                            'item' => SettingsNav::activeKeyForPath($path) ?? $item['key'],
+                            'item' => $item['key'],
                         ];
                     }
                 }

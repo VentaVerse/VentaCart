@@ -14,7 +14,15 @@ class AdminNavTest extends TestCase
 
         $this->assertContains('Sales', $labels);
         $this->assertContains('Catalog', $labels);
-        $this->assertContains('System', $labels);
+
+        // Settings is a flat door item (no System dropdown); it lives in
+        // an ungrouped entry, not under a labeled group.
+        $this->assertNotContains('System', $labels);
+        $flatKeys = collect($groups)
+            ->filter(fn ($g) => $g['label'] === null)
+            ->flatMap(fn ($g) => collect($g['items'])->pluck('key'))
+            ->all();
+        $this->assertContains('settings', $flatKeys);
     }
 
     public function test_every_item_route_exists(): void

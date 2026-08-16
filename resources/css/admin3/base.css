@@ -68,23 +68,32 @@ body.v3 {
     navigation: auto;
 }
 
-.v3-rail { view-transition-name: v3-nav; }
-.v3-irail { view-transition-name: v3-nav; }
+/* Desktop only: mobile navs are drawers or hidden and must not
+   donate snapshots to the morph. */
+@media (min-width: 1024px) {
+    .v3-rail { view-transition-name: v3-nav; }
+    .v3-irail { view-transition-name: v3-nav; }
+}
 .v3-snav { view-transition-name: v3-context; }
 .v3-snav__item[aria-current="page"] { view-transition-name: v3-context-active; }
 .v3-settings__top { view-transition-name: v3-band; }
 
-/* The rail morph: confident deceleration, snapshots clipped so the
-   azure block reads as one object changing width, not two fading. */
+/* The rail morph: one width change on one clock (500ms ease-in-out),
+   snapshots clipped so the azure block reads as one object changing
+   width, not two fading. The old snapshot leaves early so labels
+   vanish at the start of the shrink instead of being squeezed. */
 ::view-transition-group(v3-nav) {
-    animation-duration: .35s;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-duration: .5s;
+    animation-timing-function: ease-in-out;
 }
 ::view-transition-old(v3-nav),
 ::view-transition-new(v3-nav) {
     height: 100%;
     object-fit: cover;
     overflow: clip;
+}
+::view-transition-old(v3-nav) {
+    animation-duration: .2s;
 }
 
 /* The brass highlight slides between sections. */

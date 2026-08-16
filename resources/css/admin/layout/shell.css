@@ -454,3 +454,48 @@
     .v-slab__close,
     .v-topbar__menu { display: none; }
 }
+
+/* --- Crossing into Settings ------------------------------------
+   Both documents must opt in for a cross-document view transition;
+   the Settings side (admin3) already does. The slab shares the
+   v3-nav name with the Settings icon rail, so leaving for Settings
+   morphs the wide sidebar into the 56px strip instead of cutting.
+   Desktop only: the mobile slab is an off-canvas drawer and must
+   not donate an off-screen snapshot. */
+@view-transition {
+    navigation: auto;
+}
+
+@media (min-width: 1024px) {
+    .v-slab { view-transition-name: v3-nav; }
+}
+
+/* Timing for the return trip (the new document's rules drive the
+   animation): same clock as admin3's, one width change, labels
+   gone early. */
+::view-transition-group(v3-nav) {
+    animation-duration: .5s;
+    animation-timing-function: ease-in-out;
+}
+::view-transition-old(v3-nav),
+::view-transition-new(v3-nav) {
+    height: 100%;
+    object-fit: cover;
+    overflow: clip;
+}
+::view-transition-old(v3-nav) {
+    animation-duration: .2s;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: .18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-image-pair(*),
+    ::view-transition-old(*),
+    ::view-transition-new(*) {
+        animation-duration: 1ms !important;
+    }
+}
