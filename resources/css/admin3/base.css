@@ -5,9 +5,17 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 html { -webkit-text-size-adjust: 100%; }
+/* This bundle loads on v3 pages only; the clip belongs to the
+   viewport scroller itself (body-level clip does not always
+   propagate past phantom scroll-container overflow in Chromium). */
+html { overflow-x: clip; }
 
 body.v3 {
     margin: 0;
+    /* Wide scroll-container content (v3-tablewrap tables) propagates
+       inert horizontal overflow to the page in Chromium even though
+       nothing paints there; clip kills the phantom sideways pan. */
+    overflow-x: clip;
     background: var(--v3-canvas);
     color: var(--v3-ink);
     font-family: var(--v3-font);
