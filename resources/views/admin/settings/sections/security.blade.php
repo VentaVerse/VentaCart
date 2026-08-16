@@ -7,6 +7,7 @@
     </div>
 
     <x-admin3.form :action="route('admin.settings.update')" class="v3-settle">
+        <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'security') }}">
         <x-admin3.panel title="Admin URL">
             <x-admin3.field name="groups.security.admin_prefix" label="Admin path"
                 hint="Lowercase letters, numbers, and hyphens, starting with a letter. Saving a new path redirects the whole admin there.">
@@ -38,7 +39,7 @@
                 <x-admin3.field name="groups.security.turnstile_secret_key" label="Secret key">
                     <x-admin3.secret name="groups[security][turnstile_secret_key]"
                         :masked="$maskedKeys['turnstile_secret_key'] ?? null"
-                        :value="$secretKeys['turnstile_secret_key'] ?? null"
+                        :reveal-url="route('admin.settings.reveal-secret', ['group' => 'security', 'key' => 'turnstile_secret_key'])"
                         placeholder="Enter secret key" />
                 </x-admin3.field>
             </div>

@@ -61,9 +61,12 @@
         </x-admin3.panel>
 
         <x-admin3.panel title="Send a test" note="Tests the values as typed above, saved or not.">
-            <div class="v3-inline" x-data="{ to: '{{ auth()->user()->email }}', sending: false }">
+            <div class="v3-inline" x-data="{ to: @js(auth()->user()->email), sending: false }">
                 <x-admin3.field name="test_to" label="Send to">
-                    <input type="email" class="v3-control" x-model="to">
+                    {{-- Enter runs the test, never the page save: the panel
+                         rides inside the one form, and a test must not submit. --}}
+                    <input type="email" class="v3-control" x-model="to"
+                           @keydown.enter.prevent="$el.closest('.v3-inline').querySelector('button').click()">
                 </x-admin3.field>
                 <button type="button" class="v3-btn v3-btn--secondary" :disabled="sending || !to"
                         @click="

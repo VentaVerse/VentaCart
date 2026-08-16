@@ -262,6 +262,37 @@ class SettingController extends Controller
         return back()->with($ok ? 'success' : 'error', $message)->with('tab', 'mail');
     }
 
+    /**
+     * Reveal a stored secret on demand, so plaintext never rides in a
+     * rendered page. Hard allowlist: only keys a settings screen offers a
+     * View button for. Everything else 404s.
+     */
+    private const REVEALABLE = [
+        'security' => ['turnstile_secret_key'],
+    ];
+
+    public function revealSecret(Request $request)
+    {
+        $group = (string) $request->input('group');
+        $key = (string) $request->input('key');
+        abort_unless(in_array($key, self::REVEALABLE[$group] ?? [], true), 404);
+
+        $value = Setting::where('group', $group)->where('key', $key)->value('value');
+        if ($value !== null && in_array($key, self::ENCRYPTED_KEYS)) {
+            try {
+                $value = Crypt::decryptString($value);
+            } catch (\Throwable) {
+                return response()->json(['ok' => false, 'message' => 'The stored key could not be decrypted.']);
+            }
+        }
+
+        if ($value === null || $value === '') {
+            return response()->json(['ok' => false, 'message' => 'No key is stored.']);
+        }
+
+        return response()->json(['ok' => true, 'value' => $value]);
+    }
+
     public function generateErpToken()
     {
         $token = bin2hex(random_bytes(32));

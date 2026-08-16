@@ -23,17 +23,33 @@
             <div class="v3-grid v3-grid--2 v3-gap">
                 @foreach ($vMarks as $mark)
                     <x-admin3.field :name="$mark['key']" :label="$mark['label']" :hint="$mark['help']">
-                        <div class="v3-markrow v3-gap-sm">
-                            <div class="v3-markbox {{ $mark['url'] ? '' : 'v3-markbox--empty' }}">
-                                @if ($mark['url'])
-                                    <img src="{{ $mark['url'] }}" alt="{{ $vStoreName }} {{ strtolower($mark['label']) }}">
-                                @else
-                                    None set
-                                @endif
+                        {{-- Removal happens in place: no navigation, so typed
+                             edits elsewhere on the page survive it. Two-step
+                             confirm; the second click within 4s executes. --}}
+                        <div class="v3-markrow v3-gap-sm"
+                             x-data="{ url: @js($mark['url']), arm: false, busy: false,
+                                async remove() {
+                                    if (!this.arm) { this.arm = true; setTimeout(() => this.arm = false, 4000); return; }
+                                    this.busy = true;
+                                    const r = await v3Post(@js(route('admin.settings.identity.remove', $mark['key'])));
+                                    if (r.ok) { this.url = null; }
+                                    this.busy = false; this.arm = false;
+                                } }">
+                            <div class="v3-markbox" :class="!url && 'v3-markbox--empty'">
+                                <template x-if="url">
+                                    <img :src="url" alt="{{ $vStoreName }} {{ strtolower($mark['label']) }}">
+                                </template>
+                                <template x-if="!url">
+                                    <span>None set</span>
+                                </template>
                             </div>
-                            @if ($mark['url'])
-                                <button form="remove-{{ $mark['key'] }}" type="submit" class="v3-btn v3-btn--ghost v3-btn--sm">Remove {{ strtolower($mark['label']) }}</button>
-                            @endif
+                            <template x-if="url">
+                                <button type="button" class="v3-btn v3-btn--sm"
+                                        :class="arm ? 'v3-btn--danger' : 'v3-btn--ghost'"
+                                        :disabled="busy"
+                                        @click="remove()"
+                                        x-text="arm ? 'Really remove?' : 'Remove {{ strtolower($mark['label']) }}'">Remove {{ strtolower($mark['label']) }}</button>
+                            </template>
                         </div>
                         <input type="file" name="{{ $mark['key'] }}" accept="{{ $mark['accept'] }}" class="v3-file">
                     </x-admin3.field>
@@ -71,14 +87,4 @@
         </x-admin3.panel>
     </x-admin3.form>
 
-    {{-- Mark removal is an immediate action, not a save; forms cannot
-         nest, so the Remove buttons reach these by id. --}}
-    @foreach ($vMarks as $mark)
-        @if ($mark['url'])
-            <form id="remove-{{ $mark['key'] }}" method="POST" action="{{ route('admin.settings.identity.destroy', $mark['key']) }}">
-                @csrf
-                @method('DELETE')
-            </form>
-        @endif
-    @endforeach
 </x-admin3.settings-shell>

@@ -36,6 +36,7 @@ Route::prefix('settings')->group(function () {
     Route::get('/', [SettingsHubController::class, 'index'])->name('settings.index');
     Route::post('/', [SettingController::class, 'update'])->name('settings.update');
     Route::post('/test-mail', [SettingController::class, 'testMail'])->name('settings.test-mail');
+    Route::post('/reveal-secret', [SettingController::class, 'revealSecret'])->name('settings.reveal-secret');
     Route::post('/test-dhl', [SettingController::class, 'testDhl'])->name('settings.test-dhl');
     Route::post('/generate-erp-token', [SettingController::class, 'generateErpToken'])->name('settings.generate-erp-token');
     Route::post('/upload-gsc-credentials', [SettingController::class, 'uploadGscCredentials'])->name('settings.upload-gsc-credentials');
@@ -45,6 +46,7 @@ Route::prefix('settings')->group(function () {
     // generic setter has no business carrying, and replacing one has to
     // delete the file it replaced.
     Route::post('/identity', [StoreIdentityController::class, 'update'])->name('settings.identity.update');
+    Route::post('/identity/{asset}/remove', [StoreIdentityController::class, 'destroy'])->name('settings.identity.remove');
     Route::delete('/identity/{asset}', [StoreIdentityController::class, 'destroy'])
         ->whereIn('asset', ['logo', 'favicon'])
         ->name('settings.identity.destroy');

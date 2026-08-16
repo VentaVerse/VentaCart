@@ -86,6 +86,45 @@ document.addEventListener('alpine:init', () => {
             window.location.reload();
         },
     }; });
+
+    // The masked-secret field. A closure holds the component root: the
+    // buttons live inside x-if clones that die on mode switches, so any
+    // deferred $root/$el reference would point at a detached node.
+    Alpine.data('v3Secret', (cfg) => { let root = null; return {
+        mode: cfg.display ? 'rest' : 'edit',
+        shown: null,
+        busy: false,
+
+        init() { root = this.$el; },
+
+        edit() {
+            this.mode = 'edit';
+            this.shown = null;
+            this.$nextTick(() => root.querySelector('input')?.focus());
+        },
+
+        cancel() {
+            this.mode = 'rest';
+            this.$nextTick(() => root.closest('form')?.dispatchEvent(new Event('input')));
+        },
+
+        async reveal() {
+            if (this.shown !== null) { this.shown = null; return; }
+            this.busy = true;
+            try {
+                const res = await fetch(cfg.revealUrl, {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '' },
+                });
+                const body = await res.json();
+                if (body.ok) { this.shown = body.value; }
+                else { Alpine.store('toasts').push(body.message || 'Could not reveal the key.', 'bad'); }
+            } catch (e) {
+                Alpine.store('toasts').push('Could not reach the server.', 'bad');
+            }
+            this.busy = false;
+        },
+    }; });
 });
 
 // One mechanism for every in-page action button (test sends, generate

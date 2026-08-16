@@ -69,6 +69,7 @@
     --v3-bad:        #B4232C;
     --v3-bad-wash:   rgba(180, 35, 44, .08);
     --v3-focus:      #2E6FBF;   /* ring only; 3.2:1 on canvas and surface */
+    --v3-plate:      #FFFFFF;   /* logo plate; deliberately white in both themes */
 
     /* --- Material --------------------------------------------- */
     --v3-r-sm:  6px;            /* a mark */

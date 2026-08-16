@@ -45,12 +45,9 @@ class SettingsSectionController extends Controller
         }
         if ($section === 'security') {
             $data['maskedKeys'] = $this->mask($settings['security'] ?? [], ['turnstile_secret_key']);
-            // x-admin.secret's View state reads the stored key back in the
-            // field it lives in, so the page has to carry it. It goes no
-            // further than this screen, which sits behind the admin guard and
-            // the settings permission, and the field keeps it masked and read
-            // only until someone asks for it.
-            $data['secretKeys'] = $this->plain($settings['security'] ?? [], ['turnstile_secret_key']);
+            // v3: the plaintext never rides in the rendered page; the
+            // secret field's View fetches it on demand through the
+            // allowlisted reveal endpoint.
         }
 
         return view("admin.settings.sections.{$section}", $data);

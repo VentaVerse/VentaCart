@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Services\ThemeService;
 use App\Support\StoreIdentity;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -68,12 +69,21 @@ class StoreIdentityController extends Controller
         return $this->done('Identity updated.');
     }
 
-    public function destroy(string $asset): RedirectResponse
+    public function destroy(Request $request, string $asset)
     {
         abort_unless(in_array($asset, self::ASSETS, true), 404);
 
         $this->deleteFile($this->currentPath($asset));
         $this->write($asset, null);
+
+        // v3 removes in place: answer JSON so the page never navigates
+        // and typed edits elsewhere on it survive the removal.
+        if ($request->wantsJson()) {
+            app(ThemeService::class)->clearCache();
+            StoreIdentity::flush();
+
+            return response()->json(['ok' => true, 'message' => ucfirst($asset).' removed.']);
+        }
 
         return $this->done(ucfirst($asset).' removed.');
     }

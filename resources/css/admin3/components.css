@@ -330,7 +330,7 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
     height: 56px;
     display: grid; place-items: center;
     padding: 6px 10px;
-    background: #fff;
+    background: var(--v3-plate);
     border: 1px solid var(--v3-line);
     border-radius: var(--v3-r-md);
 }
