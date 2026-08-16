@@ -3,8 +3,11 @@
      sidebar on work pages, the 56px icon strip when condensed (Settings).
      Condensed renders the SAME parents as the main menu, in the same
      order, straight from config/admin-nav.php — so the two can never
-     drift. A parent group has no page of its own; its icon jumps to the
-     group's first destination and the tooltip names the parent.
+     drift. Settings rides the list as the seventh icon like any other
+     parent (owner ruling: nothing is pinned apart or hidden; the rail
+     is simply the main menu, condensed). A parent group has no page of
+     its own; its icon jumps to the group's first destination and the
+     tooltip names the parent.
      Full mode expects an Alpine `nav` boolean in scope for the mobile
      drawer (the work shell provides it); condensed mode has no drawer. --}}
 @php
@@ -25,9 +28,6 @@
     foreach (\App\Support\AdminNav::groups(auth()->user()) as $railGroup) {
         if ($railGroup['label'] === null) {
             foreach ($railGroup['items'] as $railItem) {
-                if ($railItem['key'] === 'settings') {
-                    continue; // pinned at the foot below
-                }
                 $railParents[] = ['label' => $railItem['label'], 'icon' => $railIcon($railItem['icon']), 'route' => $railItem['route'], 'key' => $railItem['key']];
             }
         } else {
@@ -50,14 +50,6 @@
                 <span class="v3-irail__tip">{{ $item['label'] }}</span>
             </a>
         @endforeach
-        <span class="v3-irail__foot">
-            <a href="{{ route('admin.settings.index') }}" class="v3-irail__item"
-               aria-label="Settings"
-               @if ($active === 'settings') aria-current="page" @endif>
-                <x-admin3.icon name="settings" />
-                <span class="v3-irail__tip">Settings</span>
-            </a>
-        </span>
     </nav>
 @else
     <aside class="v3-rail" :class="nav && 'is-open'" aria-label="Navigation">
