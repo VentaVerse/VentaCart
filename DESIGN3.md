@@ -191,6 +191,17 @@ forms alike (owner-directed 2026-08-16).
   `v3Post` behind a two-step arm-confirm button (4s disarm), so
   typed edits elsewhere on the page survive them.
 
+## Save-scope law (owner ruling, 2026-08-16)
+
+A page whose rows are ALWAYS-EDITABLE inputs is one save scope and
+must carry the doctrine form and save bar (order statuses and
+currencies were converted the day this shipped: their per-row Save
+buttons read as the old process). Directory pages whose rows are
+read-only until an explicit Edit (couriers, localization, users,
+email templates, payments, modules) save per record and correctly
+have no bar. The test: if typing into the page is possible without
+pressing Edit first, the bar owns it.
+
 ## Migrated so far
 
 - Settings landing (`admin/settings/hub.blade.php`): grouped

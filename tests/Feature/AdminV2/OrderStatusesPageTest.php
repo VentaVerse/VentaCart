@@ -81,11 +81,12 @@ class OrderStatusesPageTest extends TestCase
 
         $content = $this->get(route('admin.order-statuses.index'))->assertOk()->getContent();
 
-        // Three controls: one per row, plus the Add status form's own. Exactly
-        // one is checked - the deducting row - and a brand new status starts
-        // unchecked.
-        $this->assertSame(3, substr_count($content, 'name="deducts_stock" value="1"'));
-        $this->assertSame(1, substr_count($content, 'name="deducts_stock" value="1" checked'));
+        // Doctrine markup: rows ride the bulk form as rows[id][deducts_stock];
+        // the Add status form keeps the bare name. Exactly one row control is
+        // checked - the deducting row - and a brand new status starts unchecked.
+        $this->assertSame(2, substr_count($content, '[deducts_stock]" value="1"'));
+        $this->assertSame(1, substr_count($content, 'name="deducts_stock" value="1"'));
+        $this->assertSame(1, substr_count($content, '[deducts_stock]" value="1" checked'));
     }
 
     public function test_create_and_update_round_trip_the_stock_flag(): void
@@ -168,9 +169,11 @@ class OrderStatusesPageTest extends TestCase
             // The one consequence a merchant cannot infer from the label.
             ->assertSee('Orders with no status never count', false);
 
-        // Two rows plus the add form, exactly one of them ticked.
-        $this->assertSame(3, substr_count($content, 'name="counts_as_revenue" value="1"'));
-        $this->assertSame(1, substr_count($content, 'name="counts_as_revenue" value="1" checked'));
+        // Two doctrine rows plus the add form's bare-named control, exactly
+        // one row ticked.
+        $this->assertSame(2, substr_count($content, '[counts_as_revenue]" value="1"'));
+        $this->assertSame(1, substr_count($content, 'name="counts_as_revenue" value="1"'));
+        $this->assertSame(1, substr_count($content, '[counts_as_revenue]" value="1" checked'));
 
         // The stock column is untouched and still sits beside it.
         $response->assertSee('Deducts stock');

@@ -70,6 +70,11 @@
    cannot forget the gap between panels (zero-height confirm roots
    collapse through in block flow and add nothing). */
 .v3-settle > * + * { margin-top: 18px; }
+/* NEVER give the save bar layout margins: it is fixed-position, so a
+   margin offsets it from its parked top and a sliver of Save shows
+   at rest (this exact bug has now happened twice via well-meant
+   global rules on settle children). */
+.v3-settle > .v3-savebar, .v3-settle .v3-savebar { margin-top: 0; }
 
 .v3-grid { display: grid; gap: 16px; }
 .v3-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }

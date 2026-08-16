@@ -112,6 +112,49 @@ class OrderStatusController extends Controller
             ->with('success', 'Order status updated.');
     }
 
+    /**
+     * The whole table is one save scope (the doctrine): every row's
+     * fields ride one submit, and the default is a radio, so exactly
+     * one status holds it by construction.
+     */
+    public function updateAll(Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.name' => ['required', 'string', 'max:255'],
+            'rows.*.deducts_stock' => ['boolean'],
+            'rows.*.counts_as_revenue' => ['boolean'],
+            'rows.*.sort_order' => ['nullable', 'integer', 'min:0'],
+            'default_id' => ['required', 'integer'],
+        ]);
+
+        $statuses = OrderStatus::where('store_id', $this->storeId)
+            ->whereIn('id', array_keys($validated['rows']))
+            ->get()
+            ->keyBy('id');
+
+        abort_unless($statuses->has((int) $validated['default_id']), 422);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $statuses) {
+            foreach ($validated['rows'] as $id => $row) {
+                $status = $statuses->get((int) $id);
+                if (! $status) {
+                    continue;
+                }
+                $status->update([
+                    'name' => $row['name'],
+                    'deducts_stock' => filter_var($row['deducts_stock'] ?? false, FILTER_VALIDATE_BOOL),
+                    'counts_as_revenue' => filter_var($row['counts_as_revenue'] ?? false, FILTER_VALIDATE_BOOL),
+                    'sort_order' => $row['sort_order'] ?? 0,
+                    'is_default' => (int) $id === (int) $validated['default_id'],
+                ]);
+            }
+        });
+
+        return redirect()->route('admin.order-statuses.index')
+            ->with('success', 'Statuses saved.');
+    }
+
     public function destroy(OrderStatus $orderStatus)
     {
         $this->authorizeStore($orderStatus);

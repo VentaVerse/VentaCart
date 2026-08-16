@@ -68,6 +68,7 @@ Route::prefix('settings')->group(function () {
     // Order Statuses
     Route::get('/order-statuses', [OrderStatusController::class, 'index'])->name('order-statuses.index');
     Route::post('/order-statuses', [OrderStatusController::class, 'store'])->name('order-statuses.store');
+    Route::put('/order-statuses', [OrderStatusController::class, 'updateAll'])->name('order-statuses.update-all');
     Route::put('/order-statuses/{orderStatus}', [OrderStatusController::class, 'update'])->name('order-statuses.update');
     Route::delete('/order-statuses/{orderStatus}', [OrderStatusController::class, 'destroy'])->name('order-statuses.destroy');
 
@@ -145,6 +146,7 @@ Route::prefix('settings')->group(function () {
     // below — there is deliberately no literal GET '/' here)
     Route::prefix('currencies')->group(function () {
         Route::post('/', [CurrencyController::class, 'store'])->name('theme.currencies.store');
+        Route::put('/', [CurrencyController::class, 'updateAll'])->name('theme.currencies.update-all');
         Route::put('/{currency}', [CurrencyController::class, 'update'])->name('theme.currencies.update');
         Route::delete('/{currency}', [CurrencyController::class, 'destroy'])->name('theme.currencies.destroy');
         Route::post('/fetch-rates', [CurrencyController::class, 'fetchRates'])->name('theme.currencies.fetch-rates');

@@ -68,6 +68,44 @@ class CurrencyController extends Controller
         return back()->with('success', 'Currency updated.')->with('tab', 'currency');
     }
 
+    /**
+     * One save for the whole table (the doctrine). The default
+     * currency keeps rate 1 and stays enabled regardless of input;
+     * changing WHICH currency is default remains its own action
+     * because it recalculates every rate.
+     */
+    public function updateAll(Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.name' => ['required', 'string', 'max:255'],
+            'rows.*.symbol' => ['required', 'string', 'max:10'],
+            'rows.*.rate' => ['required', 'numeric', 'min:0.000001'],
+            'rows.*.is_enabled' => ['boolean'],
+        ]);
+
+        $currencies = Currency::whereIn('id', array_keys($validated['rows']))->get()->keyBy('id');
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $currencies) {
+            foreach ($validated['rows'] as $id => $row) {
+                $currency = $currencies->get((int) $id);
+                if (! $currency) {
+                    continue;
+                }
+                $currency->update([
+                    'name' => $row['name'],
+                    'symbol' => $row['symbol'],
+                    'rate' => $currency->is_default ? 1.000000 : $row['rate'],
+                    'is_enabled' => $currency->is_default ? true : filter_var($row['is_enabled'] ?? false, FILTER_VALIDATE_BOOL),
+                ]);
+            }
+        });
+
+        app(ThemeService::class)->clearCache();
+
+        return back()->with('success', 'Currencies saved.');
+    }
+
     public function destroy(Currency $currency)
     {
         if ($currency->is_default) {

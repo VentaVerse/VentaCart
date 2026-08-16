@@ -7,78 +7,67 @@
     </div>
 
     <div class="v3-settle">
-        {{-- Per-row forms via the id'd-form + form="" idiom: a status is a
-             record, so each row saves itself. --}}
-        @foreach ($statuses as $status)
-            <form id="status-update-{{ $status->id }}" method="POST" action="{{ route('admin.order-statuses.update', $status) }}" hidden>
-                @csrf @method('PUT')
-            </form>
-        @endforeach
-
-        <x-admin3.panel title="Statuses" flush>
-            <div class="v3-tablewrap">
-                <table class="v3-table">
-                    <thead>
-                        <tr>
-                            <th>Status</th>
-                            {{-- The one non-obvious consequence each flag carries,
-                                 stated once in its header. --}}
-                            <th title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">Deducts stock</th>
-                            <th title="Orders with no status never count, whatever this is set to.">Counts as revenue</th>
-                            <th>Sort</th>
-                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($statuses as $status)
-                            @php $editForm = 'status-update-'.$status->id; @endphp
+        {{-- Always-editable rows are ONE save scope (the doctrine): every
+             field rides the save bar's single submit, and the default is
+             a radio so exactly one status holds it. Deletes stay record
+             actions through the confirm's own form. --}}
+        <x-admin3.form :action="route('admin.order-statuses.update-all')" method="PUT">
+            <x-admin3.panel title="Statuses" flush>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
                             <tr>
-                                <td class="v3-cell-name">
-                                    <span class="v3-namerow">
-                                        <input type="text" form="{{ $editForm }}" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
+                                <th>Status</th>
+                                <th><span class="v3-namerow">Deducts stock <x-admin3.help text="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned." /></span></th>
+                                <th><span class="v3-namerow">Counts as revenue <x-admin3.help text="Orders with no status never count, whatever this is set to." /></span></th>
+                                <th>Sort</th>
+                                <th>Default</th>
+                                <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($statuses as $status)
+                                <tr>
+                                    <td class="v3-cell-name">
+                                        <input type="text" name="rows[{{ $status->id }}][name]" value="{{ old('rows.'.$status->id.'.name', $status->name) }}" required maxlength="255"
                                                aria-label="Status name" class="v3-control">
-                                        @if ($status->is_default)
-                                            <span class="v3-badge v3-badge--good">Default</span>
-                                        @endif
-                                    </span>
-                                </td>
-                                <td>
-                                    <label class="v3-check">
-                                        <input type="hidden" form="{{ $editForm }}" name="deducts_stock" value="0">
-                                        <input type="checkbox" form="{{ $editForm }}" name="deducts_stock" value="1" @checked(old('deducts_stock', $status->deducts_stock))
-                                               aria-label="{{ $status->name }} deducts stock">
-                                    </label>
-                                </td>
-                                <td>
-                                    <label class="v3-check">
-                                        <input type="hidden" form="{{ $editForm }}" name="counts_as_revenue" value="0">
-                                        <input type="checkbox" form="{{ $editForm }}" name="counts_as_revenue" value="1" @checked(old('counts_as_revenue', $status->counts_as_revenue))
-                                               aria-label="{{ $status->name }} counts as revenue">
-                                    </label>
-                                </td>
-                                <td>
-                                    <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
-                                           aria-label="{{ $status->name }} sort order" class="v3-control v3-mono v3-w-sort">
-                                </td>
-                                <td class="v3-cell-act">
-                                    <span class="v3-actrow">
+                                    </td>
+                                    <td>
                                         <label class="v3-check">
-                                            <input type="hidden" form="{{ $editForm }}" name="is_default" value="0">
-                                            <input type="checkbox" form="{{ $editForm }}" name="is_default" value="1" @checked(old('is_default', $status->is_default))>
-                                            Default
+                                            <input type="hidden" name="rows[{{ $status->id }}][deducts_stock]" value="0">
+                                            <input type="checkbox" name="rows[{{ $status->id }}][deducts_stock]" value="1" @checked(old('rows.'.$status->id.'.deducts_stock', $status->deducts_stock))
+                                                   aria-label="{{ $status->name }} deducts stock">
                                         </label>
-                                        <button type="submit" form="{{ $editForm }}" class="v3-btn v3-btn--secondary v3-btn--sm">Save</button>
+                                    </td>
+                                    <td>
+                                        <label class="v3-check">
+                                            <input type="hidden" name="rows[{{ $status->id }}][counts_as_revenue]" value="0">
+                                            <input type="checkbox" name="rows[{{ $status->id }}][counts_as_revenue]" value="1" @checked(old('rows.'.$status->id.'.counts_as_revenue', $status->counts_as_revenue))
+                                                   aria-label="{{ $status->name }} counts as revenue">
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="rows[{{ $status->id }}][sort_order]" value="{{ old('rows.'.$status->id.'.sort_order', $status->sort_order) }}" min="0"
+                                               aria-label="{{ $status->name }} sort order" class="v3-control v3-mono v3-w-sort">
+                                    </td>
+                                    <td>
+                                        <label class="v3-check">
+                                            <input type="radio" name="default_id" value="{{ $status->id }}" @checked(old('default_id', $statuses->firstWhere('is_default', true)?->id) == $status->id)
+                                                   aria-label="{{ $status->name }} is the default status">
+                                        </label>
+                                    </td>
+                                    <td class="v3-cell-act">
                                         @unless ($status->is_default)
                                             <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-status-{{ $status->id }}')">Delete</button>
                                         @endunless
-                                    </span>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </x-admin3.panel>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin3.panel>
+        </x-admin3.form>
 
         @foreach ($statuses as $status)
             @unless ($status->is_default)
