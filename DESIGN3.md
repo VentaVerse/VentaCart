@@ -61,6 +61,28 @@ method spoof, and the save bar; a page cannot opt out.
 - Validation failures round-trip the merchant's edits: dynamic
   editors seed from `old(...)` before falling back to the database.
 
+## Layout law: the measure centers
+
+Content lives in a 1080px measure, sized for the standard laptop and
+1080p majority, and it CENTERS in whatever space the nav columns
+leave. No v3 surface anchors content off-center; slack on an
+ultrawide splits evenly and is the normal cost of a bounded measure,
+never a reason to stretch or hug. One measure everywhere, tables and
+forms alike (owner-directed 2026-08-16).
+
+## Nav components
+
+- `x-admin3.rail`: THE main nav, both renditions of it. Full azure
+  sidebar by default; `condensed` renders the 56px icon strip. One
+  registry (`admin3-nav.php`), one component, so the two states can
+  never drift. Full mode expects the work shell's Alpine `nav`
+  drawer boolean in scope.
+- `x-admin3.context-nav`: any second menu column beside the rail
+  (settings today, a module's sections tomorrow). Caller passes
+  resolved groups with urls; the component lists them and knows
+  nothing else.
+- The shells compose these; nav markup lives nowhere else.
+
 ## Rules the layer depends on
 
 1. Everything at one class (`v3-` prefix). Element resets in

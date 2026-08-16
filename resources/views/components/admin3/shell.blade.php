@@ -1,12 +1,9 @@
 @props(['title' => 'Admin', 'active' => null])
 @php
     $v3Store = \App\Support\StoreIdentity::name();
-    $v3Logo = \App\Support\StoreIdentity::logoUrl();
-    $v3Nav = config('admin3-nav');
     $v3User = Auth::user();
     $v3UserName = $v3User->name ?: $v3User->username;
     $v3Initials = strtoupper(mb_substr($v3UserName, 0, 2));
-    $routeOk = fn ($item) => \Illuminate\Support\Facades\Route::has($item['route']);
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -32,46 +29,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     <div class="v3-shell">
         <div class="v3-scrim" x-show="nav" x-transition.opacity @click="nav = false" x-cloak aria-hidden="true"></div>
 
-        <aside class="v3-rail" :class="nav && 'is-open'" aria-label="Navigation">
-            <div class="v3-rail__brand">
-                @if ($v3Logo)
-                    <img src="{{ $v3Logo }}" alt="{{ $v3Store }}" class="v3-rail__logo">
-                @else
-                    <span class="v3-rail__mark" aria-hidden="true">{{ mb_substr($v3Store, 0, 1) }}</span>
-                    <span class="v3-rail__store">{{ $v3Store }}</span>
-                @endif
-            </div>
-
-            <nav class="v3-nav" aria-label="Main">
-                @foreach (array_filter($v3Nav['work'], $routeOk) as $item)
-                    <a href="{{ route($item['route']) }}" class="v3-nav__item"
-                       @if ($active === $item['key']) aria-current="page" @endif>
-                        <x-admin3.icon :name="$item['icon']" />
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-
-                @php $v3Modules = array_filter($v3Nav['modules'], $routeOk); @endphp
-                @if ($v3Modules !== [])
-                    <div class="v3-nav__group">Modules</div>
-                    @foreach ($v3Modules as $item)
-                        <a href="{{ route($item['route']) }}" class="v3-nav__item"
-                           @if ($active === $item['key']) aria-current="page" @endif>
-                            <x-admin3.icon :name="$item['icon']" />
-                            {{ $item['label'] }}
-                        </a>
-                    @endforeach
-                @endif
-            </nav>
-
-            <div class="v3-rail__foot">
-                <a href="{{ route('admin.settings.index') }}" class="v3-nav__item"
-                   @if ($active === 'settings') aria-current="page" @endif>
-                    <x-admin3.icon name="settings" />
-                    Settings
-                </a>
-            </div>
-        </aside>
+        <x-admin3.rail :active="$active" />
 
         <div>
             <header class="v3-top">

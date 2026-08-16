@@ -244,7 +244,7 @@
 .v3-settings__main { padding: 26px var(--v3-gutter) 96px; min-width: 0; }
 /* The nav columns hug the left edge; the content keeps a reading
    measure inside the room they freed. */
-.v3-settings__measure { max-width: 1080px; }
+.v3-settings__measure { max-width: 1080px; margin-inline: auto; }
 
 /* --- Mobile -------------------------------------------------- */
 
