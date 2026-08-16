@@ -33,17 +33,19 @@
                                                aria-label="Status name" class="v3-control">
                                     </td>
                                     <td>
-                                        <label class="v3-check">
+                                        <label class="v3-toggle">
                                             <input type="hidden" name="rows[{{ $status->id }}][deducts_stock]" value="0">
                                             <input type="checkbox" name="rows[{{ $status->id }}][deducts_stock]" value="1" @checked(old('rows.'.$status->id.'.deducts_stock', $status->deducts_stock))
                                                    aria-label="{{ $status->name }} deducts stock">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
                                         </label>
                                     </td>
                                     <td>
-                                        <label class="v3-check">
+                                        <label class="v3-toggle">
                                             <input type="hidden" name="rows[{{ $status->id }}][counts_as_revenue]" value="0">
                                             <input type="checkbox" name="rows[{{ $status->id }}][counts_as_revenue]" value="1" @checked(old('rows.'.$status->id.'.counts_as_revenue', $status->counts_as_revenue))
                                                    aria-label="{{ $status->name }} counts as revenue">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
                                         </label>
                                     </td>
                                     <td>
@@ -87,14 +89,16 @@
                     <input type="number" name="sort_order" min="0" value="0" class="v3-control v3-mono">
                 </x-admin3.field>
                 <div class="v3-addrow__opts">
-                    <label class="v3-check" title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">
+                    <label class="v3-toggle" title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">
                         <input type="hidden" name="deducts_stock" value="0">
                         <input type="checkbox" name="deducts_stock" value="1">
+                        <span class="v3-toggle__track" aria-hidden="true"></span>
                         Deducts stock
                     </label>
-                    <label class="v3-check" title="Orders with no status never count, whatever this is set to.">
+                    <label class="v3-toggle" title="Orders with no status never count, whatever this is set to.">
                         <input type="hidden" name="counts_as_revenue" value="0">
                         <input type="checkbox" name="counts_as_revenue" value="1">
+                        <span class="v3-toggle__track" aria-hidden="true"></span>
                         Counts as revenue
                     </label>
                     <label class="v3-check">

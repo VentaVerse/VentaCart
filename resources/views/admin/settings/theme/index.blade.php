@@ -443,9 +443,10 @@
                                                 <input type="text" name="title" value="{{ $section->title }}" class="v3-control">
                                             </x-admin3.field>
                                             <div class="v3-addrow__opts">
-                                                <label class="v3-check">
+                                                <label class="v3-toggle">
                                                     <input type="hidden" name="is_enabled" value="0">
                                                     <input type="checkbox" name="is_enabled" value="1" @checked($section->is_enabled)>
+                                                    <span class="v3-toggle__track" aria-hidden="true"></span>
                                                     Enabled
                                                 </label>
                                             </div>

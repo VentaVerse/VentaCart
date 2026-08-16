@@ -53,11 +53,12 @@
                                                aria-label="{{ $cur->code }} rate" class="v3-control v3-mono v3-w-rate">
                                     </td>
                                     <td>
-                                        <label class="v3-check">
+                                        <label class="v3-toggle">
                                             <input type="hidden" name="rows[{{ $cur->id }}][is_enabled]" value="0">
                                             <input type="checkbox" name="rows[{{ $cur->id }}][is_enabled]" value="1"
                                                    @checked(old('rows.'.$cur->id.'.is_enabled', $cur->is_enabled)) @disabled($cur->is_default)
                                                    aria-label="{{ $cur->code }} enabled">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
                                             @if ($cur->is_default)<input type="hidden" name="rows[{{ $cur->id }}][is_enabled]" value="1">@endif
                                         </label>
                                     </td>

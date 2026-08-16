@@ -163,10 +163,18 @@ forms alike (owner-directed 2026-08-16).
 8. A list page's rows are plain server HTML, visible before any
    JavaScript. Per-row x-if edit templates hide the data until
    Alpine boots (owner-reported blank courier list on slow loads)
-   and stall boot at scale (250-row localization). The idiom is one
-   shared editor panel above the table, prefilled from an @js()
-   payload on Edit. x-if stays for modals and interaction-gated
-   editors only.
+   and stall boot at scale (250-row localization). x-if stays for
+   modals and interaction-gated editors only.
+8b. Editing a record navigates to a DEDICATED page with its own
+   doctrine form (couriers set the pattern, owner ruling: the
+   populate-a-panel-above shared editor was near-invisible
+   feedback). Localization's shared editors are the remaining users
+   of the old idiom, pending the same treatment.
+8c. Control vocabulary: the SWITCH (label.v3-toggle with track) is
+   the only boolean-state control, everywhere; a bare checkbox
+   (v3-check) means multi-selection (picklists, bulk select, the
+   permissions matrix); a radio means one-of-many (default status).
+   The hidden-0 companion input always rides the switch.
 
 ## Doctrine mechanics added in round two
 

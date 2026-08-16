@@ -76,6 +76,8 @@ Route::prefix('settings')->group(function () {
     // Couriers & Tracking (configuration — operational booking, if any,
     // stays elsewhere; this is rate/tracking-URL setup)
     Route::get('/couriers', [ShippingCourierController::class, 'index'])->name('shipping-couriers.index');
+    Route::get('/couriers/create', [ShippingCourierController::class, 'create'])->name('shipping-couriers.create');
+    Route::get('/couriers/{shippingCourier}/edit', [ShippingCourierController::class, 'edit'])->name('shipping-couriers.edit');
     Route::post('/couriers', [ShippingCourierController::class, 'store'])->name('shipping-couriers.store');
     Route::put('/couriers/{shippingCourier}', [ShippingCourierController::class, 'update'])->name('shipping-couriers.update');
     Route::delete('/couriers/{shippingCourier}', [ShippingCourierController::class, 'destroy'])->name('shipping-couriers.destroy');

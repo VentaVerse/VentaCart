@@ -63,9 +63,10 @@
                                     <x-admin3.field :name="'methods.' . $wm->id . '.sort_order'" label="Sort">
                                         <input type="number" name="methods[{{ $wm->id }}][sort_order]" value="{{ $wm->sort_order }}" class="v3-control v3-mono v3-w-sort">
                                     </x-admin3.field>
-                                    <label class="v3-check">
+                                    <label class="v3-toggle">
                                         <input type="hidden" name="methods[{{ $wm->id }}][is_active]" value="0">
                                         <input type="checkbox" name="methods[{{ $wm->id }}][is_active]" value="1" @checked($wm->is_active)>
+                                        <span class="v3-toggle__track" aria-hidden="true"></span>
                                         Active
                                     </label>
                                 </div>

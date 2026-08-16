@@ -1,38 +1,15 @@
 <x-admin3.settings-shell title="Couriers & Tracking" active="couriers">
     <div class="v3-head">
         <div class="v3-head__body">
-            <h1 class="v3-head__title">Couriers & Tracking</h1>
-            <p class="v3-head__standing">The couriers orders ship with, and the link a tracking number turns into. Put {{ '{tracking_number}' }} where the code belongs.</p>
+            <h1 class="v3-head__title">Couriers & Tracking
+                <x-admin3.help text="The couriers orders ship with, and the link a tracking number turns into." /></h1>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.shipping-couriers.create') }}" class="v3-btn v3-btn--primary">Add courier</a>
         </div>
     </div>
 
-    {{-- Rows are plain server HTML (visible before any JS); one shared
-         editor panel serves the whole table, prefilled on Edit. --}}
-    <div class="v3-settle" x-data="{ editing: false, edit: { url: '', name: '', tracking: '', sort: 0, active: true } }">
-        <x-admin3.panel x-show="editing" x-cloak title="Edit courier">
-            <form method="POST" :action="edit.url">
-                @csrf @method('PUT')
-                <div class="v3-rowedit">
-                    <div class="v3-rowedit__line">
-                        <input type="text" name="name" x-model="edit.name" required aria-label="Courier name" class="v3-control v3-w-name">
-                        <input type="number" name="sort_order" x-model="edit.sort" min="0" aria-label="Sort order" class="v3-control v3-mono v3-w-sort">
-                        <label class="v3-check">
-                            <input type="hidden" name="is_active" value="0">
-                            <input type="checkbox" name="is_active" value="1" x-model="edit.active">
-                            Active
-                        </label>
-                    </div>
-                    <div class="v3-rowedit__line">
-                        <input type="text" name="tracking_url" x-model="edit.tracking"
-                               aria-label="Tracking URL template"
-                               class="v3-control v3-mono">
-                        <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Save</button>
-                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="editing = false">Cancel</button>
-                    </div>
-                </div>
-            </form>
-        </x-admin3.panel>
-
+    <div class="v3-settle">
         <x-admin3.panel title="Couriers" flush>
             <div class="v3-tablewrap">
                 <table class="v3-table">
@@ -47,16 +24,7 @@
                     </thead>
                     <tbody>
                         @forelse ($couriers as $courier)
-                            @php
-                                $courierEdit = [
-                                    'url' => route('admin.shipping-couriers.update', $courier),
-                                    'name' => $courier->name,
-                                    'tracking' => $courier->tracking_url,
-                                    'sort' => $courier->sort_order,
-                                    'active' => (bool) $courier->is_active,
-                                ];
-                            @endphp
-                            <tr>
+                            <tr class="{{ $courier->is_active ? '' : 'v3-row-dim' }}">
                                 <td>{{ $courier->name }}</td>
                                 <td class="v3-mono v3-cell-url" title="{{ $courier->tracking_url }}">{{ $courier->tracking_url ?? '-' }}</td>
                                 <td class="v3-mono">{{ $courier->sort_order }}</td>
@@ -64,8 +32,7 @@
                                     <span class="v3-badge {{ $courier->is_active ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $courier->is_active ? 'Active' : 'Inactive' }}</span>
                                 </td>
                                 <td class="v3-cell-act">
-                                    <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm"
-                                            @click="edit = @js($courierEdit); editing = true; window.scrollTo({top: 0, behavior: 'smooth'})">Edit</button>
+                                    <a href="{{ route('admin.shipping-couriers.edit', $courier) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
                                     <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-courier-{{ $courier->id }}')">Delete</button>
                                 </td>
                             </tr>
@@ -89,32 +56,5 @@
                 message="This cannot be undone. Orders that already carry its tracking links keep them."
                 confirm="Delete" :action="route('admin.shipping-couriers.destroy', $courier)" method="DELETE" />
         @endforeach
-
-        <x-admin3.panel title="Add courier">
-            <form method="POST" action="{{ route('admin.shipping-couriers.store') }}">
-                @csrf
-                <div class="v3-addrow v3-addrow--3">
-                    <x-admin3.field name="name" label="Courier" required>
-                        <input type="text" name="name" required class="v3-control">
-                    </x-admin3.field>
-                    <x-admin3.field name="sort_order" label="Order">
-                        <input type="number" name="sort_order" value="0" min="0" class="v3-control v3-mono">
-                    </x-admin3.field>
-                    <div class="v3-addrow__opts">
-                        <label class="v3-check">
-                            <input type="hidden" name="is_active" value="0">
-                            <input type="checkbox" name="is_active" value="1" checked>
-                            Active
-                        </label>
-                    </div>
-                </div>
-                <div class="v3-inline v3-gap">
-                    <x-admin3.field name="tracking_url" label="Tracking URL template" hint="Example: https://example.com/track/{tracking_number}">
-                        <input type="text" name="tracking_url" class="v3-control v3-mono">
-                    </x-admin3.field>
-                    <button type="submit" class="v3-btn v3-btn--primary">Add courier</button>
-                </div>
-            </form>
-        </x-admin3.panel>
     </div>
 </x-admin3.settings-shell>

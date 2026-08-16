@@ -24,6 +24,18 @@ class ShippingCourierController extends Controller
         return view('admin.settings.shipping-couriers.index', compact('couriers'));
     }
 
+    public function create()
+    {
+        return view('admin.settings.shipping-couriers.form', ['courier' => null]);
+    }
+
+    public function edit(ShippingCourier $shippingCourier)
+    {
+        abort_unless($shippingCourier->store_id === $this->storeId, 404);
+
+        return view('admin.settings.shipping-couriers.form', ['courier' => $shippingCourier]);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

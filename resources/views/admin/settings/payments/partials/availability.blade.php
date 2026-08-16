@@ -136,9 +136,10 @@
         </div>
 
         <div class="v3-gap v3-actrow">
-            <label class="v3-check">
+            <label class="v3-toggle">
                 <input type="hidden" name="is_active" value="0">
                 <input type="checkbox" name="is_active" value="1" @checked((bool) old('is_active', $restriction?->is_active ?? true))>
+                <span class="v3-toggle__track" aria-hidden="true"></span>
                 Active
             </label>
             @if ($restriction)
