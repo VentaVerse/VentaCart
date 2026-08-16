@@ -11,7 +11,10 @@
      centered in what remains. Settings wears it through its thin
      wrapper; module spaces (SEO first) pass their own registry. One
      component, so the spaces can never drift. --}}
-@php $v3Store = \App\Support\StoreIdentity::name(); @endphp
+@php
+    $v3Store = \App\Support\StoreIdentity::name();
+    $v3Favicon = \App\Support\StoreIdentity::faviconUrl();
+@endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
@@ -19,6 +22,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title === $space ? $space : $title . ': ' . $space }}: {{ $v3Store }}</title>
+    @if ($v3Favicon)
+        <link rel="icon" href="{{ $v3Favicon }}">
+    @endif
     <x-admin.theme-boot />
     <style> html { --boot-band: 56px; } </style>
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/Archivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin>

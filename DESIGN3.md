@@ -83,7 +83,12 @@ span URL prefixes, e.g. SEO's /marketing/seo and
 /extensions/seo/settings). Settings and SEO wear it through thin
 wrappers (`settings-shell`, `seo-shell`) that only resolve their
 registries (`admin3-settings-nav`, `admin3-seo-nav`). The v2 shell's
-return seat recognizes every space root. The SEO space (first
+return seat recognizes every space root. The rail law: the
+condensed rail renders the COMPLETE icon set (every main-menu
+parent plus the Settings gear) in every space unconditionally, with
+only the highlight changing; a space never subtracts icons (owner
+directive: show every icon regardless of which second menu is
+open). The store's browser favicon rides every shell. The SEO space (first
 module space, 2026-08-16) holds all nine SEO pages including Engine
 settings, dissolving the old foreign-workspace-nav dilemma: a space
 nav never hands out another workspace's menu. Trap to remember:
