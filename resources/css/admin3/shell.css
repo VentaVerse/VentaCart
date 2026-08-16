@@ -329,7 +329,6 @@
     box-shadow: inset 3px 0 0 var(--v3-act-fill);
 }
 .v3-irail__item svg { width: 19px; height: 19px; flex-shrink: 0; }
-.v3-irail__label { display: none; }
 .v3-irail__rule { width: 26px; border: 0; border-top: 1px solid var(--v3-slab-line); margin: 8px 0; }
 .v3-irail__foot { margin-top: auto; }
 
@@ -350,44 +349,30 @@
 }
 
 
-/* --- Entering Settings: the Easypanel collapse -----------------
-   Live-DOM animation, no snapshots: the rail arrives at main-nav
-   width with its parent labels showing, then narrows to 56px over
-   500ms ease-in-out while the labels fade in the first 150ms and
-   the icons hold their exact x. The settings nav and content ride
-   the reflow leftward, which is the directional push. Applied by
-   the shell's head script whenever the previous page was outside
-   Settings (clicks, hard entries, every browser alike). Icon
-   geometry: rail padding 8px + 10px item padding + 19px icon keeps
-   the icon center at 27.5px in both the wide and narrow states. */
+/* --- Crossing in: the settings menu takes its seat --------------
+   Venta's own move, inside its own motion tokens. The rail and the
+   column's ground are furniture and appear seated; the menu's
+   groups slide in 12px and settle (230ms, staggered ~30ms), then
+   the brass wash ignites on the active item, a 130ms stamp landing
+   after the column is still. Transform and opacity only; applied
+   by the shell's head script when the previous page was outside
+   Settings. Within Settings nothing moves. */
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-    .v3-cross .v3-irail {
-        align-items: stretch;
-        animation: v3-cross-rail .5s ease-in-out both;
+    .v3-cross .v3-snav > * {
+        animation: v3-seat .23s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    .v3-cross .v3-irail__mark { align-self: flex-start; margin-left: 3px; }
-    .v3-cross .v3-irail__rule { margin-left: 7px; }
-    .v3-cross .v3-irail__item {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 10px;
-        padding-left: 10px;
+    .v3-cross .v3-snav > *:nth-child(2) { animation-delay: .03s; }
+    .v3-cross .v3-snav > *:nth-child(3) { animation-delay: .06s; }
+    .v3-cross .v3-snav > *:nth-child(4) { animation-delay: .09s; }
+    .v3-cross .v3-snav > *:nth-child(n+5) { animation-delay: .12s; }
+    .v3-cross .v3-snav__item[aria-current="page"] {
+        animation: v3-seat-brass .13s ease-out .18s backwards;
     }
-    .v3-cross .v3-irail__label {
-        display: inline;
-        white-space: nowrap;
-        font-size: 13px;
-        font-weight: 550;
-        animation: v3-cross-label .15s ease-out both;
+    @keyframes v3-seat {
+        from { transform: translateX(-12px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
-    @keyframes v3-cross-rail {
-        from { width: 216px; }
-        to { width: 56px; }
-    }
-    @keyframes v3-cross-label {
-        from { opacity: 1; }
-        to { opacity: 0; }
+    @keyframes v3-seat-brass {
+        from { background: transparent; color: inherit; }
     }
 }

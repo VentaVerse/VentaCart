@@ -480,30 +480,18 @@
     }
 }
 
-/* --- Returning from Settings: the Easypanel expansion ----------
-   The slab arrives rail-width and widens back to its column over
-   500ms ease-in-out, labels fading in near the end. Its grid
-   column stays fixed, so the slab sweeps rightward over the canvas
-   and content holds still. Applied by the shell's head script when
-   the previous page was inside Settings. */
+
+/* --- Returning from Settings: the slab contents take their seat -
+   The azure slab itself appears seated; its brand and nav slide in
+   12px and settle as one piece (230ms). Applied by the shell's
+   head script when the previous page was inside Settings. */
 @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-    .v-cross .v-slab {
-        overflow: hidden;
-        animation: v-cross-slab .5s ease-in-out both;
+    .v-cross .v-slab__brand,
+    .v-cross .v-slab .v-nav {
+        animation: v-seat .23s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
-    .v-cross .v-slab .v-nav__label,
-    .v-cross .v-slab .v-slab__name,
-    .v-cross .v-slab .v-nav__badge,
-    .v-cross .v-slab .v-nav__chev {
-        white-space: nowrap;
-        animation: v-cross-label .2s ease-out .25s both;
-    }
-    @keyframes v-cross-slab {
-        from { width: 56px; }
-        to { width: var(--sidebar-w); }
-    }
-    @keyframes v-cross-label {
-        from { opacity: 0; }
-        to { opacity: 1; }
+    @keyframes v-seat {
+        from { transform: translateX(-12px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
     }
 }

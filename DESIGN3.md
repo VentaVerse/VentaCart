@@ -92,22 +92,23 @@ forms alike (owner-directed 2026-08-16).
   servers, caches, and browsers through four failed rounds, and a
   pair on the settings-nav active item produced an unasked highlight
   animation. Do not add pairs back.
-- The Easypanel nav move is LIVE-DOM animation, deterministic in
-  every browser (Firefox included) and never freezing input. The
-  shells' pre-paint head scripts compare navigation.activation.from
-  (referrer fallback) against window.__vSettingsRoot and set one
-  class: `v3-cross` on the settings shell when the previous page was
-  outside Settings, `v-cross` on the work shell when it was inside.
-  Entering: the icon rail arrives at 216px with real parent-label
-  spans showing, narrows to 56px over 500ms ease-in-out while
-  labels fade in the first 150ms; icon centers hold at 27.5px in
-  both states (8px rail padding + 10px item padding + 19px icon);
-  the settings nav and content ride the reflow leftward. Leaving:
-  the slab arrives at 56px inside its fixed grid column and widens
-  back, labels fading in near the end, sweeping rightward over the
-  canvas. Settings-to-settings navigations animate NOTHING.
-  Desktop only; reduced motion collapses everything. In the main
-  menu Settings is a flat door item, not a dropdown;
+- The crossing move is Venta's own, named "taking a seat", built
+  inside the world's motion tokens (130/230ms), not any reference
+  product's. Furniture never travels: the rail, the slab, and both
+  grounds appear seated instantly. What animates is the menu
+  contents. Entering Settings the menu's children slide in 12px and
+  settle over 230ms (cubic-bezier(0.16,1,0.3,1)) with a 30ms
+  cascade capped at 120ms, then the brass wash IGNITES on the
+  active item, a 130ms stamp delayed 180ms, landing after the
+  column is still (the one branded moment; plays only when a
+  section is active, so the hub stays quiet). Leaving, the slab's
+  brand and nav take their seat as one piece, same clock. The
+  shells' pre-paint head scripts decide it (`v3-cross`/`v-cross`)
+  from navigation.activation against window.__vSettingsRoot.
+  Transform and opacity only: deterministic in every browser, never
+  freezes input. Within Settings and between work pages NOTHING
+  moves. Desktop only; reduced motion collapses everything. In the
+  main menu Settings is a flat door item, not a dropdown;
   `AdminNav::sidebarGroups()` (the old dropdown expansion) is gone.
 - `x-admin3.context-nav`: any second menu column beside the rail
   (settings today, a module's sections tomorrow). Caller passes
