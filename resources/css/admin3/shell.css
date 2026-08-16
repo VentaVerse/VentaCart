@@ -282,3 +282,65 @@
     }
     .v3-settings__main { padding: 18px 16px 110px; }
 }
+
+/* --- Icon rail (the slab, condensed) --------------------------
+   Inside Settings the work nav does not disappear; it condenses to
+   a strip of icons on the far left, every one still a direct jump.
+   The settings nav takes the full rail beside it. */
+
+.v3-irail {
+    background: var(--v3-slab);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 12px 8px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 56px;
+    flex-shrink: 0;
+}
+.v3-irail__mark {
+    width: 34px; height: 34px;
+    display: grid; place-items: center;
+    background: var(--v3-act-fill);
+    color: var(--v3-act-ink);
+    border-radius: var(--v3-r-sm);
+    font-weight: 700;
+    font-size: 16px;
+    text-decoration: none;
+    margin-bottom: 10px;
+}
+.v3-irail__item {
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    border-radius: var(--v3-r-md);
+    color: var(--v3-slab-ink);
+    transition: background var(--v3-fast), color var(--v3-fast);
+}
+.v3-irail__item:hover { background: var(--v3-slab-2); color: var(--v3-slab-on); }
+.v3-irail__item[aria-current="page"] {
+    background: var(--v3-slab-2);
+    color: var(--v3-slab-on);
+    box-shadow: inset 3px 0 0 var(--v3-act-fill);
+}
+.v3-irail__item svg { width: 19px; height: 19px; }
+.v3-irail__rule { width: 26px; border: 0; border-top: 1px solid var(--v3-slab-line); margin: 8px 0; }
+.v3-irail__foot { margin-top: auto; }
+
+.v3-settings-root { display: flex; }
+
+/* Above the breakpoint the icon rail carries the way home; the top
+   band's back arrow exists only where the rail is hidden. */
+.v3-settings__back--mobile { display: none; }
+@media (max-width: 1023px) {
+    .v3-settings__back--mobile { display: flex; }
+}
+
+/* The settings frame beside the rail */
+.v3-settings__frame { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+@media (max-width: 1023px) {
+    .v3-irail { display: none; }
+}

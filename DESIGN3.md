@@ -27,11 +27,16 @@ stated in `tokens.css` with AA-checked stops.
   Registry: `config/admin3-nav.php`; items drop when their route is
   not registered. NOT yet mounted by any page; first consumer is the
   next migrated area.
-- `x-admin3.settings-shell`: Settings takes the whole screen. Top
-  band with "Back to admin"; grouped left nav (248px) from
-  `config/admin3-settings-nav.php` (Store, Commerce, Communication,
-  System); below 1024px the nav becomes a select picker. General is
-  general; a module's settings live with the module.
+- `x-admin3.settings-shell`: inside Settings the work nav condenses,
+  never disappears: a 56px azure icon rail on the far left (store
+  mark to the dashboard, every work object and module a direct
+  one-click jump, Settings active at its foot), with the grouped
+  settings nav (248px) from `config/admin3-settings-nav.php` (Store,
+  Commerce, Communication, System) beside it. Below 1024px the rail
+  hides, the top band grows a back arrow, and the nav becomes a
+  select picker. General is general; a module's settings live with
+  the module. (Owner-directed revision of the original full-screen
+  Shopify takeover, 2026-08-16.)
 
 ## The save doctrine (the reason v3 exists)
 
