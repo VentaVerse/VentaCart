@@ -1183,7 +1183,15 @@ class ReskinWaveTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        foreach (['general', 'mail', 'checkout', 'currencies', 'api', 'security', 'automations'] as $section) {
+        // general/mail/checkout/security migrated to the v3 settings shell;
+        // they render its marker instead of the v2 workspace column.
+        foreach (['general', 'mail', 'checkout', 'security'] as $section) {
+            $this->get(route('admin.settings.section', $section))
+                ->assertOk()
+                ->assertSee('v3-settings__main', false);
+        }
+
+        foreach (['currencies', 'api', 'automations'] as $section) {
             $this->get(route('admin.settings.section', $section))
                 ->assertOk()
                 ->assertSee('v-workspace__main', false)

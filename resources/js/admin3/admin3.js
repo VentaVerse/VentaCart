@@ -88,6 +88,34 @@ document.addEventListener('alpine:init', () => {
     }; });
 });
 
+// One mechanism for every in-page action button (test sends, generate
+// buttons): POST as JSON, never navigate, toast the server's own verdict.
+// Returns { ok, message } so a caller can react beyond the toast.
+window.v3Post = async function (url, data = {}) {
+    let result;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '',
+            },
+            body: JSON.stringify(data),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 422 && body.errors) {
+            result = { ok: false, message: Object.values(body.errors).flat()[0] || 'Validation failed.' };
+        } else {
+            result = { ok: body.ok ?? res.ok, message: body.message || (res.ok ? 'Done.' : 'The request failed.') };
+        }
+    } catch (e) {
+        result = { ok: false, message: 'Could not reach the server. Check the connection and retry.' };
+    }
+    window.Alpine?.store('toasts')?.push(result.message, result.ok ? 'good' : 'bad');
+    return result;
+};
+
 window.Alpine = window.Alpine || Alpine;
 if (!window.__v3AlpineStarted) {
     window.__v3AlpineStarted = true;

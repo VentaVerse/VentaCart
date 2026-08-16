@@ -1,49 +1,47 @@
-<x-admin.settings-shell title="Security">
-    <div class="space-y-6">
-        <x-admin.card title="Admin URL">
-            <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
-                @csrf
-                <input type="hidden" name="group" value="security">
-                <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'security') }}">
-                <x-admin.field name="settings[admin_prefix]" label="Admin path"
-                    help="Current: /{{ $settings['security']['admin_prefix'] ?? 'admin' }}. Lowercase letters, numbers, and hyphens only, starting with a letter. You'll be redirected to the new URL after saving.">
-                    <div class="flex items-center gap-1">
-                        <span class="text-[13px] text-v-secondary">/</span>
-                        <x-admin.input name="settings[admin_prefix]" class="font-mono" pattern="[a-z][a-z0-9\-]*" required
-                            :value="$settings['security']['admin_prefix'] ?? 'admin'" placeholder="admin" />
-                    </div>
-                </x-admin.field>
-                <x-admin.form-actions>
-                    <x-admin.button variant="primary" type="submit">Save admin URL</x-admin.button>
-                </x-admin.form-actions>
-            </form>
-        </x-admin.card>
+<x-admin3.settings-shell title="Security" active="security">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Security</h1>
+            <p class="v3-head__standing">Where the admin lives, and the challenge in front of the public forms.</p>
+        </div>
+    </div>
 
-        <x-admin.card title="Turnstile">
-            <x-slot name="headerActions">
-                <x-admin.hint label="What Turnstile protects" class="v-hint--end">Login, registration, contact and stock notification forms are challenged once this is on. Keys come from dash.cloudflare.com/turnstile.</x-admin.hint>
-            </x-slot>
-            <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5">
-                @csrf
-                <input type="hidden" name="group" value="security">
-                <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'security') }}">
-                <x-admin.field name="settings[turnstile_enabled]">
-                    <x-admin.toggle name="settings[turnstile_enabled]" label="Enable Turnstile"
-                        :checked="($settings['security']['turnstile_enabled'] ?? '0') === '1'" />
-                </x-admin.field>
-                <x-admin.field name="settings[turnstile_site_key]" label="Site key">
-                    <x-admin.input name="settings[turnstile_site_key]" class="font-mono" placeholder="0x4AAAAAAA..." :value="$settings['security']['turnstile_site_key'] ?? ''" />
-                </x-admin.field>
-                <x-admin.field name="settings[turnstile_secret_key]" label="Secret key">
-                    <x-admin.secret name="settings[turnstile_secret_key]"
+    <x-admin3.form :action="route('admin.settings.update')" class="v3-settle">
+        <x-admin3.panel title="Admin URL">
+            <x-admin3.field name="groups.security.admin_prefix" label="Admin path"
+                hint="Lowercase letters, numbers, and hyphens, starting with a letter. Saving a new path redirects the whole admin there.">
+                <div class="v3-adorn">
+                    <span class="v3-adorn__fix" aria-hidden="true">/</span>
+                    <input type="text" name="groups[security][admin_prefix]" class="v3-control v3-mono"
+                           pattern="[a-z][a-z0-9\-]*" required
+                           value="{{ $settings['security']['admin_prefix'] ?? 'admin' }}">
+                </div>
+            </x-admin3.field>
+        </x-admin3.panel>
+
+        <x-admin3.panel title="Turnstile" note="Challenges login, registration, contact, and stock notification forms. Keys come from dash.cloudflare.com/turnstile.">
+            <label class="v3-toggle">
+                <input type="hidden" name="groups[security][turnstile_enabled]" value="0">
+                <input type="checkbox" name="groups[security][turnstile_enabled]" value="1"
+                       @checked(($settings['security']['turnstile_enabled'] ?? '0') === '1')>
+                <span class="v3-toggle__track" aria-hidden="true"></span>
+                Enable Turnstile
+            </label>
+            <div class="v3-gap">
+                <x-admin3.field name="groups.security.turnstile_site_key" label="Site key">
+                    <input type="text" name="groups[security][turnstile_site_key]" class="v3-control v3-mono"
+                           placeholder="0x4AAAAAAA..." autocomplete="off"
+                           value="{{ $settings['security']['turnstile_site_key'] ?? '' }}">
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap">
+                <x-admin3.field name="groups.security.turnstile_secret_key" label="Secret key">
+                    <x-admin3.secret name="groups[security][turnstile_secret_key]"
                         :masked="$maskedKeys['turnstile_secret_key'] ?? null"
                         :value="$secretKeys['turnstile_secret_key'] ?? null"
                         placeholder="Enter secret key" />
-                </x-admin.field>
-                <x-admin.form-actions>
-                    <x-admin.button variant="primary" type="submit">Save Turnstile</x-admin.button>
-                </x-admin.form-actions>
-            </form>
-        </x-admin.card>
-    </div>
-</x-admin.settings-shell>
+                </x-admin3.field>
+            </div>
+        </x-admin3.panel>
+    </x-admin3.form>
+</x-admin3.settings-shell>

@@ -280,6 +280,9 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
    panel column settle in, staggered once, on arrival. */
 @media (prefers-reduced-motion: no-preference) {
     .v3-settle > * { animation: v3-settle .45s cubic-bezier(.2, .7, .3, 1) both; }
+    /* The settle's fill-mode would pin transform:none on the save bar
+       and hold it on screen; the bar owns its own transform. */
+    .v3-settle > .v3-savebar { animation: none; }
     .v3-settle > *:nth-child(2) { animation-delay: .05s; }
     .v3-settle > *:nth-child(3) { animation-delay: .1s; }
     .v3-settle > *:nth-child(4) { animation-delay: .15s; }
@@ -288,3 +291,59 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
         to { opacity: 1; transform: none; }
     }
 }
+
+/* --- Secret (masked stored key) ------------------------------- */
+
+.v3-secret__row { display: flex; align-items: center; gap: 8px; }
+.v3-secret__value {
+    flex: 1;
+    min-height: var(--v3-control-h);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    background: var(--v3-sunken);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md);
+    color: var(--v3-ink-2);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* --- File input ------------------------------------------------ */
+
+.v3-file { font-size: 12.5px; color: var(--v3-ink-2); width: 100%; cursor: pointer; }
+.v3-file::file-selector-button {
+    margin-right: 10px;
+    min-height: 30px;
+    padding: 0 11px;
+    border: 1px solid var(--v3-edge);
+    border-radius: var(--v3-r-sm);
+    background: var(--v3-surface);
+    color: var(--v3-ink);
+    font: inherit;
+    font-weight: 570;
+    cursor: pointer;
+}
+.v3-file::file-selector-button:hover { background: var(--v3-hover); }
+
+/* --- Identity mark preview ------------------------------------ */
+
+.v3-markbox {
+    height: 56px;
+    display: grid; place-items: center;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md);
+}
+.v3-markbox--empty { background: var(--v3-sunken); color: var(--v3-ink-3); font-size: 11.5px; }
+.v3-markbox img { height: 42px; width: auto; max-width: 128px; object-fit: contain; }
+.v3-markrow { display: flex; align-items: center; gap: 12px; }
+
+/* --- Inline action row (a field beside its action) ------------- */
+
+.v3-inline { display: flex; align-items: flex-end; gap: 10px; }
+.v3-inline > :first-child { flex: 1; }
+
+/* --- Adorned control (a fixed prefix before an input) ---------- */
+
+.v3-adorn { display: flex; align-items: center; gap: 6px; }
+.v3-adorn__fix { color: var(--v3-ink-3); font-family: var(--v3-font-mono); font-size: 13px; }

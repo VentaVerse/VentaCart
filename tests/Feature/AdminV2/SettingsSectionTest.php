@@ -40,11 +40,13 @@ class SettingsSectionTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
+        // Migrated to the v3 settings shell: one form, one save, its own
+        // full-screen nav.
         $this->get(route('admin.settings.section', 'mail'))
             ->assertOk()
-            ->assertSee('v-admin', false)      // new shell
-            ->assertSee('All Settings')        // sub-sidebar back link
-            ->assertSee('SMTP');
+            ->assertSee('class="v3"', false)
+            ->assertSee('Back to admin')
+            ->assertSee('Mail server');
     }
 
     public function test_every_section_renders(): void

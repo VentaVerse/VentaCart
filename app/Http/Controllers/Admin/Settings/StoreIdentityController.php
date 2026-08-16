@@ -44,6 +44,25 @@ class StoreIdentityController extends Controller
             }
         }
 
+        // v3 doctrine: the General page saves identity AND its plain
+        // setting groups in the same submit (groups[general][...]).
+        // None of these keys are encrypted.
+        if (is_array($request->input('groups'))) {
+            foreach ($request->input('groups') as $group => $data) {
+                if (!is_array($data)) {
+                    continue;
+                }
+                foreach ($data as $key => $value) {
+                    Setting::updateOrCreate(
+                        ['group' => $group, 'key' => $key],
+                        ['value' => is_array($value) ? json_encode($value) : $value]
+                    );
+                }
+            }
+
+            return $this->done('General settings saved.');
+        }
+
         return $this->done('Identity updated.');
     }
 

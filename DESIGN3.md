@@ -74,6 +74,26 @@ method spoof, and the save bar; a page cannot opt out.
 7. Both themes, 390 to 1440, every page; the v2 gates (compiled-view
    lint, build, suite) still apply.
 
+## Doctrine mechanics added in round two
+
+- One submit may carry several setting groups
+  (`groups[checkout][...]` + `groups[stock][...]`);
+  `SettingController::updateGroups` validates everything before the
+  first write.
+- `window.v3Post(url, data)`: every in-page action button (test
+  sends, generators) POSTs JSON, never navigates, and toasts the
+  server's own verdict.
+- Test buttons test the values as typed: `testMail` accepts an
+  `override` block applied to this request's mailer only, with a 10s
+  transport cap so a dead host answers fast.
+- `x-admin3.secret`: a stored key rendered masked and read-only at
+  rest, revealed by View, replaced by Edit; blank on submit means
+  keep (the controller skips null password values). Secrets are
+  never echoed into value attributes.
+- The settle entrance never animates the save bar
+  (`.v3-settle > .v3-savebar { animation: none }`): the fill-mode
+  would pin `transform: none` and hold the bar on screen.
+
 ## Migrated so far
 
 - Settings landing (`admin/settings/hub.blade.php`): grouped
@@ -81,3 +101,14 @@ method spoof, and the save bar; a page cannot opt out.
 - Geo zone editor (`admin/settings/localization/geo-zone-edit`): the
   doctrine's proof page; one form saves zone and entries in one
   transaction (`LocalizationController::updateGeoZone`).
+- General (`sections/general`): identity, marks, and defaults in one
+  save (`StoreIdentityController::update` carries the groups payload).
+- Notifications (`sections/mail`): server + sender in one save, the
+  password masked, and a test that never navigates.
+- Checkout & Stock (`sections/checkout`): two setting groups, one save.
+- Security (`sections/security`): admin path + Turnstile in one save,
+  the secret key masked.
+
+Still on the v2 shell inside Settings: currencies, api, automations,
+localization index, theme, payments, shipping, order statuses,
+couriers, email templates, stock alerts, users, permissions, modules.
