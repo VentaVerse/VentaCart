@@ -100,13 +100,18 @@ forms alike (owner-directed 2026-08-16).
   inside the world's motion tokens (130/230ms), not any reference
   product's. Furniture never travels: the rail, the slab, and both
   grounds appear seated instantly. What animates is the menu
-  contents. Entering Settings the menu's children slide in 12px and
-  settle over 230ms (cubic-bezier(0.16,1,0.3,1)) with a 30ms
-  cascade capped at 120ms, then the brass wash IGNITES on the
-  active item, a 130ms stamp delayed 180ms, landing after the
-  column is still (the one branded moment; plays only when a
-  section is active, so the hub stays quiet). Leaving, the slab's
-  brand and nav take their seat as one piece, same clock. The
+  contents. Entering Settings the menu's children slide in 26px and
+  settle over 180ms (cubic-bezier(0.16,1,0.3,1)) with a 25ms
+  cascade capped at 100ms (owner correction round: more pronounced
+  and faster than the first 12px/230ms cut), then the brass wash
+  IGNITES on the active item, a 130ms stamp delayed 140ms (the one
+  branded moment; plays only when a section is active, so the hub
+  stays quiet). Leaving, the slab's brand and nav take their seat
+  as one piece, same clock. The icon rail's labels are INSTANT
+  PILLS (.v3-irail__tip): a slab-colored pill beside the hovered or
+  focused icon, 60ms reveal, replacing the browser's slow native
+  title tooltips (removed from the rail; aria-labels stay). Scoped
+  to the rail by owner choice. The
   shells' pre-paint head scripts decide it (`v3-cross`/`v-cross`)
   from navigation.activation against window.__vSettingsRoot.
   Transform and opacity only: deterministic in every browser, never
