@@ -159,5 +159,13 @@ forms alike (owner-directed 2026-08-16).
 - Modules: extensions and core features as directory rows carrying
   state badges, action forms, and uninstall confirms.
 
+- Theme: the critique's worst multi-save offender rebuilt as ONE
+  doctrine form spanning seven settings tabs (colors, fonts, header,
+  product page, category page + filters, badges, blog); record tabs
+  (navigation, homepage sections, footer columns, theme options) are
+  sibling panels with record-scoped forms; the storefront switch and
+  the colors-and-fonts revert both confirm first; drag reorder toasts
+  its verdict.
+
 Still on the v2 shell inside Settings: automations, localization
-index, theme, payments, shipping.
+index, payments, shipping.

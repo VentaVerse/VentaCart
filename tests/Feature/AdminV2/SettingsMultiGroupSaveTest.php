@@ -82,6 +82,23 @@ class SettingsMultiGroupSaveTest extends TestCase
           ->assertJsonPath('message', 'The server details changed. Type the password to test the new transport.');
     }
 
+    public function test_theme_settings_save_carries_every_tab_in_one_submit(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.theme.settings.update'), [
+            'groups' => [
+                'colors' => ['primary' => '#123456'],
+                'badges' => ['new_count' => '7'],
+                'filters' => ['price_enabled' => '1'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertSame('#123456', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
+        $this->assertSame('7', Setting::where('group', 'badges')->where('key', 'new_count')->value('value'));
+        $this->assertSame('1', Setting::where('group', 'filters')->where('key', 'price_enabled')->value('value'));
+    }
+
     public function test_identity_endpoint_only_writes_the_general_group(): void
     {
         $this->actingAs(User::factory()->create());

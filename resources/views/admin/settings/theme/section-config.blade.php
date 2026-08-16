@@ -3,124 +3,113 @@
 @if ($section->type === 'banner')
     @php
         // The extension kernel decouples class-loadability from install
-        // state (routes/DB rows can be absent even once a class has been
-        // autoloaded once), so class_exists alone no longer proves the
-        // underlying table exists — guard it explicitly, same as
-        // BannerServiceProvider's own boot-time checks do.
+        // state, so class_exists alone no longer proves the table exists.
         $bannerGroups = (class_exists(\Extensions\Banners\Models\BannerGroup::class) && \Illuminate\Support\Facades\Schema::hasTable('banner_groups'))
             ? \Extensions\Banners\Models\BannerGroup::orderBy('name')->get()
             : collect();
     @endphp
-    <div class="space-y-3">
-        @if ($bannerGroups->isNotEmpty())
-            <x-admin.field name="config[banner_group]" label="Banner Group">
-                <x-admin.select name="config[banner_group]">
-                    <option value="">Select a banner group</option>
-                    @foreach ($bannerGroups as $group)
-                        <option value="{{ $group->slug }}" {{ ($config['banner_group'] ?? '') === $group->slug ? 'selected' : '' }}>
-                            {{ $group->name }} ({{ $group->slides()->count() }} slides)
-                        </option>
-                    @endforeach
-                </x-admin.select>
-            </x-admin.field>
-        @else
-            <p class="v-panel__blank">Install the Banners extension to manage banner slides.</p>
-        @endif
-    </div>
+    @if ($bannerGroups->isNotEmpty())
+        <x-admin3.field name="config.banner_group" label="Banner group">
+            <select name="config[banner_group]" class="v3-control">
+                <option value="">Select a banner group</option>
+                @foreach ($bannerGroups as $group)
+                    <option value="{{ $group->slug }}" @selected(($config['banner_group'] ?? '') === $group->slug)>
+                        {{ $group->name }} ({{ $group->slides()->count() }} slides)
+                    </option>
+                @endforeach
+            </select>
+        </x-admin3.field>
+    @else
+        <p class="v3-cell-quiet">Install the Banners extension to manage banner slides.</p>
+    @endif
 
 @elseif ($section->type === 'products')
-    <div class="space-y-3">
-        <x-admin.field name="config[filter]" label="Product Filter">
-            <x-admin.select name="config[filter]">
-                <option value="new" {{ ($config['filter'] ?? '') === 'new' ? 'selected' : '' }}>New Arrivals</option>
-                <option value="featured" {{ ($config['filter'] ?? '') === 'featured' ? 'selected' : '' }}>Featured</option>
-                <option value="specials" {{ ($config['filter'] ?? '') === 'specials' ? 'selected' : '' }}>On Sale / Specials</option>
-                <option value="category" {{ ($config['filter'] ?? '') === 'category' ? 'selected' : '' }}>By Category</option>
-                <option value="brand" {{ ($config['filter'] ?? '') === 'brand' ? 'selected' : '' }}>By Brand</option>
-                <option value="best_sellers" {{ ($config['filter'] ?? '') === 'best_sellers' ? 'selected' : '' }}>Best Sellers</option>
-            </x-admin.select>
-        </x-admin.field>
-        <x-admin.field name="config[limit]" label="Limit">
-            <x-admin.input type="number" name="config[limit]" :value="$config['limit'] ?? 12" min="2" max="48" class="w-24" />
-        </x-admin.field>
-        <div class="grid grid-cols-3 gap-3">
-            <x-admin.field name="config[columns_mobile]" label="Mobile Cols">
-                <x-admin.input type="number" name="config[columns_mobile]" :value="$config['columns_mobile'] ?? 2" min="1" max="3" />
-            </x-admin.field>
-            <x-admin.field name="config[columns_tablet]" label="Tablet Cols">
-                <x-admin.input type="number" name="config[columns_tablet]" :value="$config['columns_tablet'] ?? 3" min="2" max="4" />
-            </x-admin.field>
-            <x-admin.field name="config[columns_desktop]" label="Desktop Cols">
-                <x-admin.input type="number" name="config[columns_desktop]" :value="$config['columns_desktop'] ?? 6" min="3" max="8" />
-            </x-admin.field>
-        </div>
+    <x-admin3.field name="config.filter" label="Product filter">
+        <select name="config[filter]" class="v3-control">
+            @foreach (['new' => 'New arrivals', 'featured' => 'Featured', 'specials' => 'On sale / specials', 'category' => 'By category', 'brand' => 'By brand', 'best_sellers' => 'Best sellers'] as $v => $label)
+                <option value="{{ $v }}" @selected(($config['filter'] ?? '') === $v)>{{ $label }}</option>
+            @endforeach
+        </select>
+    </x-admin3.field>
+    <div class="v3-gap">
+        <x-admin3.field name="config.limit" label="Limit">
+            <input type="number" name="config[limit]" value="{{ $config['limit'] ?? 12 }}" min="2" max="48" class="v3-control v3-mono v3-w-rate">
+        </x-admin3.field>
+    </div>
+    <div class="v3-grid v3-grid--3 v3-gap">
+        <x-admin3.field name="config.columns_mobile" label="Mobile columns">
+            <input type="number" name="config[columns_mobile]" value="{{ $config['columns_mobile'] ?? 2 }}" min="1" max="3" class="v3-control v3-mono">
+        </x-admin3.field>
+        <x-admin3.field name="config.columns_tablet" label="Tablet columns">
+            <input type="number" name="config[columns_tablet]" value="{{ $config['columns_tablet'] ?? 3 }}" min="2" max="4" class="v3-control v3-mono">
+        </x-admin3.field>
+        <x-admin3.field name="config.columns_desktop" label="Desktop columns">
+            <input type="number" name="config[columns_desktop]" value="{{ $config['columns_desktop'] ?? 6 }}" min="3" max="8" class="v3-control v3-mono">
+        </x-admin3.field>
     </div>
 
 @elseif ($section->type === 'brands')
-    <div class="space-y-3">
-        <div class="grid grid-cols-3 gap-3">
-            <x-admin.field name="config[per_page]" label="Per Page">
-                <x-admin.input type="number" name="config[per_page]" :value="$config['per_page'] ?? 8" min="4" max="20" />
-            </x-admin.field>
-            <div class="flex items-end pb-1.5">
-                <x-admin.checkbox name="config[autoplay]" :checked="$config['autoplay'] ?? false" label="Autoplay" />
-            </div>
-            <x-admin.field name="config[speed]" label="Speed (ms)">
-                <x-admin.input type="number" name="config[speed]" :value="$config['speed'] ?? 3000" min="1000" step="500" />
-            </x-admin.field>
+    <div class="v3-grid v3-grid--3">
+        <x-admin3.field name="config.per_page" label="Per page">
+            <input type="number" name="config[per_page]" value="{{ $config['per_page'] ?? 8 }}" min="4" max="20" class="v3-control v3-mono">
+        </x-admin3.field>
+        <div class="v3-addrow__opts">
+            <label class="v3-check">
+                <input type="checkbox" name="config[autoplay]" value="1" @checked($config['autoplay'] ?? false)>
+                Autoplay
+            </label>
         </div>
+        <x-admin3.field name="config.speed" label="Speed (ms)">
+            <input type="number" name="config[speed]" value="{{ $config['speed'] ?? 3000 }}" min="1000" step="500" class="v3-control v3-mono">
+        </x-admin3.field>
     </div>
 
 @elseif ($section->type === 'category_tabs')
-    <div class="space-y-3">
-        <x-admin.field name="config[limit]" label="Limit per tab">
-            <x-admin.input type="number" name="config[limit]" :value="$config['limit'] ?? 6" min="2" max="24" class="w-24" />
-        </x-admin.field>
-        <div class="grid grid-cols-3 gap-3">
-            <x-admin.field name="config[columns_mobile]" label="Mobile Cols">
-                <x-admin.input type="number" name="config[columns_mobile]" :value="$config['columns_mobile'] ?? 2" min="1" max="3" />
-            </x-admin.field>
-            <x-admin.field name="config[columns_tablet]" label="Tablet Cols">
-                <x-admin.input type="number" name="config[columns_tablet]" :value="$config['columns_tablet'] ?? 3" min="2" max="4" />
-            </x-admin.field>
-            <x-admin.field name="config[columns_desktop]" label="Desktop Cols">
-                <x-admin.input type="number" name="config[columns_desktop]" :value="$config['columns_desktop'] ?? 6" min="3" max="8" />
-            </x-admin.field>
-        </div>
+    <x-admin3.field name="config.limit" label="Limit per tab">
+        <input type="number" name="config[limit]" value="{{ $config['limit'] ?? 6 }}" min="2" max="24" class="v3-control v3-mono v3-w-rate">
+    </x-admin3.field>
+    <div class="v3-grid v3-grid--3 v3-gap">
+        <x-admin3.field name="config.columns_mobile" label="Mobile columns">
+            <input type="number" name="config[columns_mobile]" value="{{ $config['columns_mobile'] ?? 2 }}" min="1" max="3" class="v3-control v3-mono">
+        </x-admin3.field>
+        <x-admin3.field name="config.columns_tablet" label="Tablet columns">
+            <input type="number" name="config[columns_tablet]" value="{{ $config['columns_tablet'] ?? 3 }}" min="2" max="4" class="v3-control v3-mono">
+        </x-admin3.field>
+        <x-admin3.field name="config.columns_desktop" label="Desktop columns">
+            <input type="number" name="config[columns_desktop]" value="{{ $config['columns_desktop'] ?? 6 }}" min="3" max="8" class="v3-control v3-mono">
+        </x-admin3.field>
     </div>
 
 @elseif ($section->type === 'text_block')
-    <div class="space-y-3">
-        <x-admin.field name="config[content]" label="Content">
-            <x-admin.textarea name="config[content]" rows="4" :value="$config['content'] ?? ''" />
-        </x-admin.field>
-        <x-admin.field name="config[alignment]" label="Alignment">
-            <x-admin.select name="config[alignment]">
-                <option value="left" {{ ($config['alignment'] ?? '') === 'left' ? 'selected' : '' }}>Left</option>
-                <option value="center" {{ ($config['alignment'] ?? 'center') === 'center' ? 'selected' : '' }}>Center</option>
-                <option value="right" {{ ($config['alignment'] ?? '') === 'right' ? 'selected' : '' }}>Right</option>
-            </x-admin.select>
-        </x-admin.field>
+    <x-admin3.field name="config.content" label="Content">
+        <textarea name="config[content]" rows="4" class="v3-control">{{ $config['content'] ?? '' }}</textarea>
+    </x-admin3.field>
+    <div class="v3-gap">
+        <x-admin3.field name="config.alignment" label="Alignment">
+            <select name="config[alignment]" class="v3-control">
+                <option value="left" @selected(($config['alignment'] ?? '') === 'left')>Left</option>
+                <option value="center" @selected(($config['alignment'] ?? 'center') === 'center')>Center</option>
+                <option value="right" @selected(($config['alignment'] ?? '') === 'right')>Right</option>
+            </select>
+        </x-admin3.field>
     </div>
 
 @elseif ($section->type === 'blog_posts')
-    <div class="space-y-3">
-        <x-admin.field name="config[limit]" label="Limit">
-            <x-admin.input type="number" name="config[limit]" :value="$config['limit'] ?? 4" min="2" max="12" class="w-24" />
-        </x-admin.field>
-        <div class="grid grid-cols-3 gap-3">
-            <x-admin.field name="config[columns_mobile]" label="Mobile Cols">
-                <x-admin.input type="number" name="config[columns_mobile]" :value="$config['columns_mobile'] ?? 2" min="1" max="3" />
-            </x-admin.field>
-            <x-admin.field name="config[columns_tablet]" label="Tablet Cols">
-                <x-admin.input type="number" name="config[columns_tablet]" :value="$config['columns_tablet'] ?? 3" min="2" max="4" />
-            </x-admin.field>
-            <x-admin.field name="config[columns_desktop]" label="Desktop Cols">
-                <x-admin.input type="number" name="config[columns_desktop]" :value="$config['columns_desktop'] ?? 4" min="3" max="8" />
-            </x-admin.field>
-        </div>
+    <x-admin3.field name="config.limit" label="Limit">
+        <input type="number" name="config[limit]" value="{{ $config['limit'] ?? 4 }}" min="2" max="12" class="v3-control v3-mono v3-w-rate">
+    </x-admin3.field>
+    <div class="v3-grid v3-grid--3 v3-gap">
+        <x-admin3.field name="config.columns_mobile" label="Mobile columns">
+            <input type="number" name="config[columns_mobile]" value="{{ $config['columns_mobile'] ?? 2 }}" min="1" max="3" class="v3-control v3-mono">
+        </x-admin3.field>
+        <x-admin3.field name="config.columns_tablet" label="Tablet columns">
+            <input type="number" name="config[columns_tablet]" value="{{ $config['columns_tablet'] ?? 3 }}" min="2" max="4" class="v3-control v3-mono">
+        </x-admin3.field>
+        <x-admin3.field name="config.columns_desktop" label="Desktop columns">
+            <input type="number" name="config[columns_desktop]" value="{{ $config['columns_desktop'] ?? 4 }}" min="3" max="8" class="v3-control v3-mono">
+        </x-admin3.field>
     </div>
 
 @elseif ($section->type === 'recently_viewed')
-    <p class="v-panel__blank">Nothing to configure. The section appears once a visitor has viewed a product.</p>
+    <p class="v3-cell-quiet">Nothing to configure. The section appears once a visitor has viewed a product.</p>
 @endif

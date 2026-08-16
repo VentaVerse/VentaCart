@@ -859,17 +859,12 @@ class ReskinWaveTest extends TestCase
 
         ApiSyncLog::create(['method' => 'POST', 'endpoint' => '/api/products', 'sku' => 'DIST-1', 'status_code' => 200, 'response_time_ms' => 120, 'ip_address' => '127.0.0.1']);
 
-        $routes = [
-            route('admin.theme.index'),
-            route('admin.api-sync-logs.index'),
-        ];
+        $this->get(route('admin.api-sync-logs.index'))
+            ->assertOk()->assertSee('v-admin', false);
 
-        foreach ($routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v-admin', false);
-        }
-
-        // Couriers and Stock Alerts migrated to the v3 settings shell.
+        // Theme, Couriers, and Stock Alerts migrated to the v3 settings shell.
         $v3Routes = [
+            route('admin.theme.index'),
             route('admin.shipping-couriers.index'),
             route('admin.stock-notifications.index'),
             route('admin.stock-notifications.index', ['tab' => 'template']),

@@ -553,3 +553,59 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-dir__card--static:hover { background: var(--v3-surface); }
 .v3-dir__body { flex: 1; min-width: 0; }
 .v3-dir__state { flex-shrink: 0; margin-right: 6px; }
+
+/* --- Theme page: color wells, swatches, drag rows -------------- */
+
+.v3-tabs--wrap { flex-wrap: wrap; }
+.v3-wells { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.v3-well {
+    background: var(--v3-sunken);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md);
+    padding: 14px;
+}
+.v3-colorrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; }
+.v3-colorrow__label { font-size: 13px; color: var(--v3-ink-2); min-width: 0; }
+.v3-colorrow__pair { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.v3-swatch {
+    width: 40px; height: 30px;
+    padding: 2px;
+    border: 1px solid var(--v3-edge);
+    border-radius: var(--v3-r-sm);
+    background: var(--v3-surface);
+    cursor: pointer;
+}
+.v3-swatch--lg { width: 56px; height: 36px; }
+.v3-w-hex { max-width: 96px; min-height: 30px; font-size: 12px; }
+
+.v3-preview-h { font-size: 28px; font-weight: 700; }
+.v3-preview-sub { font-size: 19px; font-weight: 600; color: var(--v3-ink-2); margin-top: 4px; }
+.v3-preview-price { font-size: 17px; font-weight: 700; color: var(--v3-act); margin-top: 4px; }
+.v3-preview-rule { width: 100%; margin: 12px 0; border-color: var(--v3-line-2); }
+.v3-preview-body { font-size: 13.5px; }
+.v3-preview-copy { font-size: 13.5px; color: var(--v3-ink-2); margin-top: 6px; line-height: 1.55; }
+.v3-preview-hint { font-size: 12px; color: var(--v3-ink-3); margin-top: 6px; }
+
+.v3-dragrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--v3-sunken);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md);
+    padding: 10px 14px;
+    margin-bottom: 8px;
+}
+.v3-dragrow--bare { background: none; border: 0; margin: 0; padding: 10px 0; }
+.v3-dragrow__grip { width: 16px; height: 16px; color: var(--v3-ink-3); cursor: grab; flex-shrink: 0; }
+.v3-dragrow__end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.v3-dragcard {
+    background: var(--v3-sunken);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md);
+    padding: 2px 14px;
+    margin-bottom: 8px;
+}
+.v3-dragcard__body { border-top: 1px solid var(--v3-line-2); padding: 14px 0; }
+.is-dragging { opacity: .4; }
+.v3-payicon { height: 24px; border-radius: var(--v3-r-sm); }

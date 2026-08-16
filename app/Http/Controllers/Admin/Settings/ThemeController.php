@@ -47,6 +47,27 @@ class ThemeController extends Controller
 
     public function updateSettings(Request $request)
     {
+        // v3 doctrine: one save carries every settings tab at once
+        // (groups[colors][...], groups[fonts][...], ...). Per-theme
+        // snapshots still happen at switch time, unchanged.
+        if (is_array($request->input('groups'))) {
+            foreach ($request->input('groups') as $group => $data) {
+                if (!is_array($data)) {
+                    continue;
+                }
+                foreach ($data as $key => $value) {
+                    Setting::updateOrCreate(
+                        ['group' => $group, 'key' => $key],
+                        ['value' => is_array($value) ? json_encode($value) : $value]
+                    );
+                }
+            }
+
+            app(ThemeService::class)->clearCache();
+
+            return back()->with('success', 'Theme settings saved.');
+        }
+
         $group = $request->input('group');
         $data = $request->input('settings', []);
 
