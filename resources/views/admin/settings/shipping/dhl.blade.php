@@ -1,37 +1,47 @@
-<x-admin.settings-shell title="DHL Express">
-    <x-admin.card title="DHL Express">
-        <div class="space-y-6">
-            <form method="POST" action="{{ route('admin.settings.update') }}" data-v-form class="space-y-5 max-w-lg">
-                @csrf
-                <input type="hidden" name="group" value="shipping">
-                <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.dhl') }}">
-
-                <x-admin.field name="settings[dhl_site_id]" label="Site ID"
-                    :help="!empty($maskedKeys['dhl_site_id'] ?? null) ? 'Current key ends in ' . $maskedKeys['dhl_site_id'] . '. Leave blank to keep it.' : null">
-                    <x-admin.input name="settings[dhl_site_id]" autocomplete="off" placeholder="Enter Site ID" />
-                </x-admin.field>
-
-                <x-admin.field name="settings[dhl_password]" label="Password"
-                    :help="!empty($maskedKeys['dhl_password'] ?? null) ? 'Current password ends in ' . $maskedKeys['dhl_password'] . '. Leave blank to keep it.' : null">
-                    <x-admin.input type="password" name="settings[dhl_password]" autocomplete="new-password" placeholder="Enter Password" />
-                </x-admin.field>
-
-                <x-admin.field name="settings[dhl_account_number]" label="Account number">
-                    <x-admin.input name="settings[dhl_account_number]" :value="$settings['shipping']['dhl_account_number'] ?? ''" placeholder="e.g. 642344995" />
-                </x-admin.field>
-
-                <x-admin.form-actions>
-                    <x-admin.button variant="primary" type="submit">Save credentials</x-admin.button>
-                </x-admin.form-actions>
-            </form>
-
-            <div class="flex items-center gap-2 border-t border-v-border pt-5">
-                <form method="POST" action="{{ route('admin.settings.test-dhl') }}" data-v-form>
-                    @csrf
-                    <x-admin.button variant="secondary" type="submit">Test connection</x-admin.button>
-                </form>
-                <x-admin.hint label="What the test does">Requests one live rate quote, Manila to Singapore, and reports what DHL answered.</x-admin.hint>
+<x-admin3.settings-shell title="DHL Express" active="shipping">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.shipping-settings.index') }}">Shipping</a>
+                <span aria-hidden="true">/</span>
+                <span>DHL Express</span>
             </div>
+            <h1 class="v3-head__title">DHL Express</h1>
         </div>
-    </x-admin.card>
-</x-admin.settings-shell>
+    </div>
+
+    <x-admin3.form :action="route('admin.settings.update')" class="v3-settle">
+        <input type="hidden" name="group" value="shipping">
+        <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.dhl') }}">
+
+        <x-admin3.panel title="Credentials">
+            <div class="v3-narrow">
+                <x-admin3.field name="settings.dhl_site_id" label="Site ID"
+                    :hint="!empty($maskedKeys['dhl_site_id'] ?? null) ? 'The current key ends in ' . $maskedKeys['dhl_site_id'] . '. Blank keeps it.' : null">
+                    <input type="text" name="settings[dhl_site_id]" autocomplete="off" class="v3-control v3-mono" placeholder="Enter Site ID">
+                </x-admin3.field>
+                <div class="v3-gap">
+                    <x-admin3.field name="settings.dhl_password" label="Password"
+                        :hint="!empty($maskedKeys['dhl_password'] ?? null) ? 'The current password ends in ' . $maskedKeys['dhl_password'] . '. Blank keeps it.' : null">
+                        <input type="password" name="settings[dhl_password]" autocomplete="new-password" class="v3-control v3-mono" placeholder="Enter Password">
+                    </x-admin3.field>
+                </div>
+                <div class="v3-gap">
+                    <x-admin3.field name="settings.dhl_account_number" label="Account number">
+                        <input type="text" name="settings[dhl_account_number]" class="v3-control v3-mono" placeholder="e.g. 642344995"
+                               value="{{ $settings['shipping']['dhl_account_number'] ?? '' }}">
+                    </x-admin3.field>
+                </div>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.panel title="Test connection" note="Requests one live rate quote (Manila to Singapore) with the SAVED credentials, so save first.">
+            <div x-data="{ testing: false }">
+                <button type="button" class="v3-btn v3-btn--secondary" :disabled="testing"
+                        @click="testing = true; v3Post(@js(route('admin.settings.test-dhl'))).finally(() => testing = false)">
+                    <span x-text="testing ? 'Testing…' : 'Test connection'">Test connection</span>
+                </button>
+            </div>
+        </x-admin3.panel>
+    </x-admin3.form>
+</x-admin3.settings-shell>

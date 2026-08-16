@@ -253,6 +253,15 @@ class SettingController extends Controller
         }
     }
 
+    private function dhlResult(bool $ok, string $message)
+    {
+        if (request()->wantsJson()) {
+            return response()->json(['ok' => $ok, 'message' => $message]);
+        }
+
+        return back()->with($ok ? 'success' : 'error', $message)->with('tab', 'dhl');
+    }
+
     private function testMailResult(Request $request, bool $ok, string $message)
     {
         if ($request->wantsJson()) {
@@ -318,7 +327,7 @@ class SettingController extends Controller
         $service = new \App\Services\DhlExpressService();
 
         if (!$service->isConfigured()) {
-            return back()->with('error', 'DHL credentials not configured. Save them first.')->with('tab', 'dhl');
+            return $this->dhlResult(false, 'DHL credentials not configured. Save them first.');
         }
 
         try {
@@ -329,16 +338,16 @@ class SettingController extends Controller
             );
 
             if (empty($quotes)) {
-                return back()->with('error', 'DHL returned no services. Check your account status.')->with('tab', 'dhl');
+                return $this->dhlResult(false, 'DHL returned no services. Check your account status.');
             }
 
             $summary = collect($quotes)->map(function ($q) {
                 return $q['name'] . ': ' . ($q['cost'] > 0 ? $q['currency'] . ' ' . $q['cost'] : 'No rate');
             })->join(', ');
 
-            return back()->with('success', 'DHL connection successful. Services: ' . $summary)->with('tab', 'dhl');
+            return $this->dhlResult(true, 'DHL connection successful. Services: ' . $summary);
         } catch (\Throwable $e) {
-            return back()->with('error', 'DHL test failed: ' . $e->getMessage())->with('tab', 'dhl');
+            return $this->dhlResult(false, 'DHL test failed: ' . $e->getMessage());
         }
     }
 

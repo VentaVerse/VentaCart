@@ -1,138 +1,123 @@
-<x-admin.shell :title="$rule ? 'Edit Rule: ' . $rule->name : 'Create Free Shipping Rule'">
-    <x-admin.page :title="$rule ? 'Edit Rule: ' . $rule->name : 'Create Free Shipping Rule'" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Free Shipping Rules', 'url' => route('admin.free-shipping-rules.index')]]">
-        <x-slot:actions>
-            <x-admin.button variant="ghost" :href="route('admin.free-shipping-rules.index')">Back to Rules</x-admin.button>
-        </x-slot:actions>
-
-        @php
-            $brandItems = $brands->map(fn($b) => ['id' => $b->id, 'name' => $b->name])->values()->all();
-            $categoryItems = [];
-            foreach ($categories as $cat) {
-                $categoryItems[] = ['id' => $cat->id, 'name' => $cat->name];
-                foreach ($cat->children as $child) {
-                    $categoryItems[] = ['id' => $child->id, 'name' => '- ' . $child->name];
-                }
-            }
-            $groupItems = $customerGroups->map(fn($g) => ['id' => $g->id, 'name' => $g->name])->values()->all();
-            $zoneItems = $shippingZones->map(fn($z) => ['id' => $z->id, 'name' => $z->name])->values()->all();
-        @endphp
-
-        <form method="POST"
-              action="{{ $rule ? route('admin.free-shipping-rules.update', $rule) : route('admin.free-shipping-rules.store') }}"
-              data-v-form>
-            @csrf
-            @if ($rule)
-                @method('PUT')
-            @endif
-
-            {{-- General --}}
-            <x-admin.card title="General">
-                <div class="space-y-4">
-                    <x-admin.field name="name" label="Rule Name" help="Admin reference" required>
-                        <x-admin.input type="text" name="name" :value="$rule?->name" required placeholder="e.g. Free Shipping over ₱5,000" />
-                    </x-admin.field>
-                    <x-admin.field name="checkout_name" label="Checkout Name" help="Shown to customer; falls back to Rule Name">
-                        <x-admin.input type="text" name="checkout_name" :value="$rule?->checkout_name" placeholder="e.g. Free Shipping" />
-                    </x-admin.field>
-                    <div class="grid grid-cols-3 gap-4">
-                        <x-admin.field name="min_order_total" label="Min Order Total">
-                            <x-admin.input type="number" name="min_order_total" :value="$rule?->min_order_total" min="0" step="0.01" placeholder="e.g. 5000" />
-                        </x-admin.field>
-                        <x-admin.field name="min_quantity" label="Min Quantity">
-                            <x-admin.input type="number" name="min_quantity" :value="$rule?->min_quantity" min="1" placeholder="e.g. 3" />
-                        </x-admin.field>
-                        <x-admin.field name="sort_order" label="Sort Order">
-                            <x-admin.input type="number" name="sort_order" :value="$rule?->sort_order ?? 0" min="0" />
-                        </x-admin.field>
-                    </div>
-                    <x-admin.toggle name="is_active" label="Active" :checked="$rule?->is_active ?? true" />
-                    <div class="mt-2 flex flex-col items-start gap-3 border-t border-v-border pt-4">
-                        <x-admin.field name="apply_whole_cart" help="One qualifying product frees the whole cart, including products that fail the brand and category conditions.">
-                            <x-admin.toggle name="apply_whole_cart" label="Apply to whole cart" :checked="$rule?->apply_whole_cart ?? false" />
-                        </x-admin.field>
-                        <x-admin.field name="show_badge" help="The label appears on product cards and product pages, on the storefront.">
-                            <x-admin.toggle name="show_badge" label="Show the Free Shipping badge" :checked="$rule?->show_badge ?? false" />
-                        </x-admin.field>
-                    </div>
-                </div>
-            </x-admin.card>
-
-            {{-- Conditions --}}
-            <x-admin.card title="Conditions" class="mt-6">
-                <x-slot name="headerActions">
-                    <x-admin.hint label="How conditions combine" class="v-hint--end">A section left empty is skipped; every section that has entries must match.</x-admin.hint>
-                </x-slot>
-                <div class="space-y-6">
-                    @include('admin.partials.dual-listbox', [
-                        'name' => 'brand_ids',
-                        'label' => 'Only for these Brands',
-                        'hint' => 'Cart must contain ONLY products from selected brands.',
-                        'items' => $brandItems,
-                        'selected' => old('brand_ids', $rule?->brand_ids ?? []),
-                    ])
-
-                    @include('admin.partials.dual-listbox', [
-                        'name' => 'category_ids',
-                        'label' => 'Only for these Categories',
-                        'hint' => 'Cart must contain ONLY products from selected categories.',
-                        'items' => $categoryItems,
-                        'selected' => old('category_ids', $rule?->category_ids ?? []),
-                    ])
-
-                    @include('admin.partials.dual-listbox', [
-                        'name' => 'customer_group_ids',
-                        'label' => 'Only for these Customer Groups',
-                        'hint' => 'Leave empty = all groups.',
-                        'items' => $groupItems,
-                        'selected' => old('customer_group_ids', $rule?->customer_group_ids ?? []),
-                    ])
-
-                    @include('admin.partials.dual-listbox', [
-                        'name' => 'shipping_zone_ids',
-                        'label' => 'Only for these Shipping Zones',
-                        'hint' => 'Leave empty = all zones.',
-                        'items' => $zoneItems,
-                        'selected' => old('shipping_zone_ids', $rule?->shipping_zone_ids ?? []),
-                    ])
-                </div>
-            </x-admin.card>
-
-            {{-- Exclusions --}}
-            <x-admin.card title="Exclusions" class="mt-6">
-                <x-slot name="headerActions">
-                    <x-admin.hint label="How exclusions combine" class="v-hint--end">One match anywhere below is enough to withhold free shipping.</x-admin.hint>
-                </x-slot>
-                <div class="space-y-6">
-                    @include('admin.partials.dual-listbox', [
-                        'name' => 'exclude_customer_group_ids',
-                        'label' => 'Exclude Customer Groups',
-                        'hint' => 'These groups will never get free shipping from this rule.',
-                        'items' => $groupItems,
-                        'selected' => old('exclude_customer_group_ids', $rule?->exclude_customer_group_ids ?? []),
-                    ])
-
-                    @include('admin.partials.dual-listbox', [
-                        'name' => 'exclude_brand_ids',
-                        'label' => 'Exclude Brands',
-                        'hint' => 'If cart contains ANY product from these brands, free shipping won\'t apply.',
-                        'items' => $brandItems,
-                        'selected' => old('exclude_brand_ids', $rule?->exclude_brand_ids ?? []),
-                    ])
-
-                    @include('admin.partials.dual-listbox', [
-                        'name' => 'exclude_category_ids',
-                        'label' => 'Exclude Categories',
-                        'hint' => 'If cart contains ANY product from these categories, free shipping won\'t apply.',
-                        'items' => $categoryItems,
-                        'selected' => old('exclude_category_ids', $rule?->exclude_category_ids ?? []),
-                    ])
-                </div>
-            </x-admin.card>
-
-            <div class="mt-6 flex justify-end gap-3">
-                <x-admin.button variant="secondary" :href="route('admin.free-shipping-rules.index')">Cancel</x-admin.button>
-                <x-admin.button type="submit">{{ $rule ? 'Update Rule' : 'Create Rule' }}</x-admin.button>
+<x-admin3.settings-shell :title="$rule ? $rule->name : 'Add free shipping rule'" active="shipping">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.shipping-settings.index') }}">Shipping</a>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.free-shipping-rules.index') }}">Free Shipping</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $rule?->name ?? 'New' }}</span>
             </div>
-        </form>
-    </x-admin.page>
-</x-admin.shell>
+            <h1 class="v3-head__title">{{ $rule ? $rule->name : 'Add free shipping rule' }}</h1>
+        </div>
+    </div>
+
+    @php
+        $brandItems = $brands->map(fn ($b) => ['id' => $b->id, 'name' => $b->name])->values()->all();
+        $categoryItems = [];
+        foreach ($categories as $cat) {
+            $categoryItems[] = ['id' => $cat->id, 'name' => $cat->name];
+            foreach ($cat->children as $child) {
+                $categoryItems[] = ['id' => $child->id, 'name' => '- ' . $child->name];
+            }
+        }
+        $groupItems = $customerGroups->map(fn ($g) => ['id' => $g->id, 'name' => $g->name])->values()->all();
+        $zoneItems = $shippingZones->map(fn ($z) => ['id' => $z->id, 'name' => $z->name])->values()->all();
+    @endphp
+
+    <x-admin3.form :action="$rule ? route('admin.free-shipping-rules.update', $rule) : route('admin.free-shipping-rules.store')"
+                   :method="$rule ? 'PUT' : 'POST'" class="v3-settle">
+
+        <x-admin3.panel title="General">
+            <div class="v3-grid v3-grid--2">
+                <x-admin3.field name="name" label="Rule name" hint="Admin reference." required>
+                    <input type="text" name="name" required class="v3-control" placeholder="e.g. Free shipping over ₱5,000"
+                           value="{{ old('name', $rule?->name) }}">
+                </x-admin3.field>
+                <x-admin3.field name="checkout_name" label="Checkout name" hint="Shown to the customer; blank falls back to the rule name.">
+                    <input type="text" name="checkout_name" class="v3-control" placeholder="e.g. Free Shipping"
+                           value="{{ old('checkout_name', $rule?->checkout_name) }}">
+                </x-admin3.field>
+            </div>
+            <div class="v3-grid v3-grid--3 v3-gap">
+                <x-admin3.field name="min_order_total" label="Minimum order total">
+                    <input type="number" name="min_order_total" min="0" step="0.01" class="v3-control v3-mono" placeholder="e.g. 5000"
+                           value="{{ old('min_order_total', $rule?->min_order_total) }}">
+                </x-admin3.field>
+                <x-admin3.field name="min_quantity" label="Minimum quantity">
+                    <input type="number" name="min_quantity" min="1" class="v3-control v3-mono" placeholder="e.g. 3"
+                           value="{{ old('min_quantity', $rule?->min_quantity) }}">
+                </x-admin3.field>
+                <x-admin3.field name="sort_order" label="Sort order">
+                    <input type="number" name="sort_order" min="0" class="v3-control v3-mono"
+                           value="{{ old('sort_order', $rule?->sort_order ?? 0) }}">
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap">
+                <label class="v3-toggle">
+                    <input type="hidden" name="is_active" value="0">
+                    <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $rule?->is_active ?? true))>
+                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    Active
+                </label>
+            </div>
+            <div class="v3-gap">
+                <x-admin3.field name="apply_whole_cart" hint="One qualifying product frees the whole cart, including products that fail the brand and category conditions.">
+                    <label class="v3-toggle">
+                        <input type="hidden" name="apply_whole_cart" value="0">
+                        <input type="checkbox" name="apply_whole_cart" value="1" @checked(old('apply_whole_cart', $rule?->apply_whole_cart ?? false))>
+                        <span class="v3-toggle__track" aria-hidden="true"></span>
+                        Apply to the whole cart
+                    </label>
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap">
+                <x-admin3.field name="show_badge" hint="The label appears on product cards and product pages, on the storefront.">
+                    <label class="v3-toggle">
+                        <input type="hidden" name="show_badge" value="0">
+                        <input type="checkbox" name="show_badge" value="1" @checked(old('show_badge', $rule?->show_badge ?? false))>
+                        <span class="v3-toggle__track" aria-hidden="true"></span>
+                        Show the Free Shipping badge
+                    </label>
+                </x-admin3.field>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.panel title="Conditions" note="A section left empty is skipped; every section that has entries must match.">
+            <x-admin3.picklist name="brand_ids" label="Only for these brands"
+                hint="The cart must contain ONLY products from the picked brands."
+                :items="$brandItems" :selected="old('brand_ids', $rule?->brand_ids ?? [])" />
+            <div class="v3-gap">
+                <x-admin3.picklist name="category_ids" label="Only for these categories"
+                    hint="The cart must contain ONLY products from the picked categories."
+                    :items="$categoryItems" :selected="old('category_ids', $rule?->category_ids ?? [])" />
+            </div>
+            <div class="v3-gap">
+                <x-admin3.picklist name="customer_group_ids" label="Only for these customer groups"
+                    hint="Empty means every group."
+                    :items="$groupItems" :selected="old('customer_group_ids', $rule?->customer_group_ids ?? [])" />
+            </div>
+            <div class="v3-gap">
+                <x-admin3.picklist name="shipping_zone_ids" label="Only for these shipping zones"
+                    hint="Empty means every zone."
+                    :items="$zoneItems" :selected="old('shipping_zone_ids', $rule?->shipping_zone_ids ?? [])" />
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.panel title="Exclusions" note="One match anywhere below is enough to withhold free shipping.">
+            <x-admin3.picklist name="exclude_customer_group_ids" label="Exclude customer groups"
+                hint="These groups never get free shipping from this rule."
+                :items="$groupItems" :selected="old('exclude_customer_group_ids', $rule?->exclude_customer_group_ids ?? [])" />
+            <div class="v3-gap">
+                <x-admin3.picklist name="exclude_brand_ids" label="Exclude brands"
+                    hint="Any product from these brands in the cart withholds free shipping."
+                    :items="$brandItems" :selected="old('exclude_brand_ids', $rule?->exclude_brand_ids ?? [])" />
+            </div>
+            <div class="v3-gap">
+                <x-admin3.picklist name="exclude_category_ids" label="Exclude categories"
+                    hint="Any product from these categories in the cart withholds free shipping."
+                    :items="$categoryItems" :selected="old('exclude_category_ids', $rule?->exclude_category_ids ?? [])" />
+            </div>
+        </x-admin3.panel>
+    </x-admin3.form>
+</x-admin3.settings-shell>

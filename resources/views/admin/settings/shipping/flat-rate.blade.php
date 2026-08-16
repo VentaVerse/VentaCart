@@ -1,52 +1,55 @@
-<x-admin.settings-shell title="Flat Rate">
-    <div class="space-y-8">
-
-        <x-admin.card title="Flat Rate">
-            <x-slot name="headerActions">
-                <x-admin.button variant="primary" size="sm" :href="route('admin.flat-rates.create')">Add flat rate</x-admin.button>
-            </x-slot>
-
-            @if ($flatRates->isEmpty())
-                <x-admin.empty-state title="No flat rate methods"
-                    description="Add a fixed-cost method scoped to a geo zone or customer group.">
-                    <x-admin.button variant="primary" size="sm" :href="route('admin.flat-rates.create')">Add flat rate</x-admin.button>
-                </x-admin.empty-state>
-            @else
-                <x-admin.table>
-                    <x-slot:head>
-                        <x-admin.table.th>Name</x-admin.table.th>
-                        <x-admin.table.th>Geo zone</x-admin.table.th>
-                        <x-admin.table.th>Group</x-admin.table.th>
-                        <x-admin.table.th align="right">Cost</x-admin.table.th>
-                        <x-admin.table.th>Status</x-admin.table.th>
-                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                    </x-slot:head>
-                    @foreach ($flatRates as $fr)
-                        <x-admin.table.row>
-                            <x-admin.table.cell><span class="font-medium text-v-text">{{ $fr->name ?: 'Unnamed' }}</span></x-admin.table.cell>
-                            <x-admin.table.cell><span class="text-v-secondary">{{ $fr->geoZone?->name ?? 'All' }}</span></x-admin.table.cell>
-                            <x-admin.table.cell><span class="text-v-secondary">{{ $fr->customerGroup?->name ?? 'All' }}</span></x-admin.table.cell>
-                            <x-admin.table.cell align="right" mono>₱{{ number_format($fr->cost, 2) }}</x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <x-admin.badge :tone="$fr->is_active ? 'success' : 'neutral'">{{ $fr->is_active ? 'Active' : 'Inactive' }}</x-admin.badge>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell class="v-col-act">
-                                <div class="v-rowactions v-rowactions--end">
-                                    <x-admin.button size="sm" variant="ghost" :href="route('admin.flat-rates.edit', $fr)">Edit</x-admin.button>
-                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
-                                        @click="$dispatch('open-modal', 'delete-fr-{{ $fr->id }}')">Delete</x-admin.button>
-                                </div>
-                            </x-admin.table.cell>
-                        </x-admin.table.row>
-                    @endforeach
-                </x-admin.table>
-            @endif
-        </x-admin.card>
-        @foreach ($flatRates as $fr)
-            <x-admin.confirm-dialog name="delete-fr-{{ $fr->id }}" title="Delete “{{ $fr->name ?: 'this flat rate' }}”?"
-                message="This flat rate method will no longer be offered at checkout." confirm="Delete"
-                :action="route('admin.flat-rates.destroy', $fr)" method="DELETE" />
-        @endforeach
-
+<x-admin3.settings-shell title="Flat Rate" active="shipping">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.shipping-settings.index') }}">Shipping</a>
+                <span aria-hidden="true">/</span>
+                <span>Flat Rate</span>
+            </div>
+            <h1 class="v3-head__title">Flat Rate</h1>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.flat-rates.create') }}" class="v3-btn v3-btn--primary"><x-admin3.icon name="plus" /> Add flat rate</a>
+        </div>
     </div>
-</x-admin.settings-shell>
+
+    <div class="v3-settle">
+        <x-admin3.panel title="Flat rate methods" flush>
+            @if ($flatRates->isEmpty())
+                <div class="v3-empty">
+                    <p class="v3-empty__title">No flat rate methods</p>
+                    <p class="v3-empty__line">Add a fixed-cost method scoped to a geo zone or customer group.</p>
+                </div>
+            @else
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr><th>Name</th><th>Geo zone</th><th>Group</th><th>Cost</th><th>Status</th><th class="v3-cell-act"><span class="v3-sr">Actions</span></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($flatRates as $fr)
+                                <tr>
+                                    <td><a href="{{ route('admin.flat-rates.edit', $fr) }}" class="v3-cell-link">{{ $fr->name ?: 'Unnamed' }}</a></td>
+                                    <td class="v3-cell-quiet">{{ $fr->geoZone?->name ?? 'All' }}</td>
+                                    <td class="v3-cell-quiet">{{ $fr->customerGroup?->name ?? 'All' }}</td>
+                                    <td class="v3-mono">₱{{ number_format($fr->cost, 2) }}</td>
+                                    <td><span class="v3-badge {{ $fr->is_active ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $fr->is_active ? 'Active' : 'Inactive' }}</span></td>
+                                    <td class="v3-cell-act">
+                                        <a href="{{ route('admin.flat-rates.edit', $fr) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                        <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-fr-{{ $fr->id }}')">Delete</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </x-admin3.panel>
+
+        @foreach ($flatRates as $fr)
+            <x-admin3.confirm name="delete-fr-{{ $fr->id }}" title="Delete {{ $fr->name ?: 'this flat rate' }}?"
+                message="The method stops being offered at checkout immediately."
+                confirm="Delete" :action="route('admin.flat-rates.destroy', $fr)" method="DELETE" />
+        @endforeach
+    </div>
+</x-admin3.settings-shell>

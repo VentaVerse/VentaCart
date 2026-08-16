@@ -669,6 +669,11 @@ class ReskinWaveTest extends TestCase
             route('admin.coupons.index', ['search' => 'SUMMER', 'type' => 'percent', 'status' => 'active']),
             route('admin.coupons.create'),
             route('admin.coupons.edit', $coupon),
+            route('admin.bank-accounts.edit', $bankAccount),
+        ];
+
+        // The shipping child forms migrated to the v3 settings shell.
+        $v3Routes = [
             route('admin.flat-rates.create'),
             route('admin.flat-rates.edit', $flatRate),
             route('admin.weight-based-methods.create'),
@@ -676,8 +681,11 @@ class ReskinWaveTest extends TestCase
             route('admin.free-shipping-rules.index'),
             route('admin.free-shipping-rules.create'),
             route('admin.free-shipping-rules.edit', $freeShippingRule),
-            route('admin.bank-accounts.edit', $bankAccount),
         ];
+
+        foreach ($v3Routes as $url) {
+            $this->get($url)->assertOk()->assertSee('class="v3"', false);
+        }
 
         foreach ($routes as $url) {
             $this->get($url)->assertOk()->assertSee('v-admin', false);

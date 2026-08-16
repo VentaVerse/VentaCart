@@ -1,58 +1,64 @@
-<x-admin.settings-shell title="Free Shipping">
-    <div class="space-y-8">
-
-        <x-admin.card title="Free Shipping Rules">
-            <x-slot name="headerActions">
-                <x-admin.hint label="How the rules combine" class="v-hint--end">The first rule that matches applies; the ones below it are not evaluated.</x-admin.hint>
-                <x-admin.button variant="secondary" size="sm" :href="route('admin.free-shipping-rules.index')">Manage rules</x-admin.button>
-            </x-slot>
-
-            @if ($freeShippingRules->isEmpty())
-                <x-admin.empty-state title="No free shipping rules"
-                    description="Create a rule to automatically waive shipping when conditions are met.">
-                    <x-admin.button variant="primary" size="sm" :href="route('admin.free-shipping-rules.create')">Add rule</x-admin.button>
-                </x-admin.empty-state>
-            @else
-                <x-admin.table>
-                    <x-slot:head>
-                        <x-admin.table.th>Rule</x-admin.table.th>
-                        <x-admin.table.th>Conditions</x-admin.table.th>
-                        <x-admin.table.th>Order</x-admin.table.th>
-                        <x-admin.table.th>Status</x-admin.table.th>
-                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                    </x-slot:head>
-                    @foreach ($freeShippingRules as $rule)
-                        <x-admin.table.row>
-                            <x-admin.table.cell><span class="font-medium text-v-text">{{ $rule->name }}</span></x-admin.table.cell>
-                            <x-admin.table.cell><span class="text-v-secondary">{{ $rule->getConditionsSummary() }}</span></x-admin.table.cell>
-                            <x-admin.table.cell><span class="text-v-secondary">{{ $rule->sort_order }}</span></x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <form method="POST" action="{{ route('admin.free-shipping-rules.toggle', $rule) }}" data-v-form>
-                                    @csrf
-                                    <button type="submit" class="v-badgebtn">
-                                        <x-admin.badge :tone="$rule->is_active ? 'success' : 'neutral'">
-                                            {{ $rule->is_active ? 'Active' : 'Disabled' }}
-                                        </x-admin.badge>
-                                    </button>
-                                </form>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell class="v-col-act">
-                                <div class="v-rowactions v-rowactions--end">
-                                    <x-admin.button size="sm" variant="ghost" :href="route('admin.free-shipping-rules.edit', $rule)">Edit</x-admin.button>
-                                    <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
-                                        @click="$dispatch('open-modal', 'delete-fsr-{{ $rule->id }}')">Delete</x-admin.button>
-                                </div>
-                            </x-admin.table.cell>
-                        </x-admin.table.row>
-                    @endforeach
-                </x-admin.table>
-            @endif
-        </x-admin.card>
-        @foreach ($freeShippingRules as $rule)
-            <x-admin.confirm-dialog name="delete-fsr-{{ $rule->id }}" title="Delete “{{ $rule->name }}”?"
-                message="This free shipping rule will stop applying immediately." confirm="Delete"
-                :action="route('admin.free-shipping-rules.destroy', $rule)" method="DELETE" />
-        @endforeach
-
+<x-admin3.settings-shell title="Free Shipping" active="shipping">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.shipping-settings.index') }}">Shipping</a>
+                <span aria-hidden="true">/</span>
+                <span>Free Shipping</span>
+            </div>
+            <h1 class="v3-head__title">Free Shipping</h1>
+            <p class="v3-head__standing">The first matching rule applies; the ones below it are not evaluated.</p>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.free-shipping-rules.create') }}" class="v3-btn v3-btn--primary"><x-admin3.icon name="plus" /> Add rule</a>
+        </div>
     </div>
-</x-admin.settings-shell>
+
+    <div class="v3-settle">
+        <x-admin3.panel title="Rules" flush>
+            @if ($freeShippingRules->isEmpty())
+                <div class="v3-empty">
+                    <p class="v3-empty__title">No free shipping rules</p>
+                    <p class="v3-empty__line">Create a rule to waive shipping automatically when its conditions are met.</p>
+                </div>
+            @else
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr><th>Rule</th><th>Conditions</th><th>Order</th><th>Active</th><th class="v3-cell-act"><span class="v3-sr">Actions</span></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($freeShippingRules as $rule)
+                                <tr>
+                                    <td><a href="{{ route('admin.free-shipping-rules.edit', $rule) }}" class="v3-cell-link">{{ $rule->name }}</a></td>
+                                    <td class="v3-cell-quiet">{{ $rule->getConditionsSummary() }}</td>
+                                    <td class="v3-mono">{{ $rule->sort_order }}</td>
+                                    <td>
+                                        <form method="POST" action="{{ route('admin.free-shipping-rules.toggle', $rule) }}">
+                                            @csrf
+                                            <button type="submit" class="v3-toggle v3-toggle--btn" role="switch"
+                                                    aria-checked="{{ $rule->is_active ? 'true' : 'false' }}"
+                                                    aria-label="{{ $rule->name }} active">
+                                                <span class="v3-toggle__track" aria-hidden="true"></span>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td class="v3-cell-act">
+                                        <a href="{{ route('admin.free-shipping-rules.edit', $rule) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                        <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-fsr-{{ $rule->id }}')">Delete</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </x-admin3.panel>
+
+        @foreach ($freeShippingRules as $rule)
+            <x-admin3.confirm name="delete-fsr-{{ $rule->id }}" title="Delete {{ $rule->name }}?"
+                message="The rule stops applying immediately."
+                confirm="Delete" :action="route('admin.free-shipping-rules.destroy', $rule)" method="DELETE" />
+        @endforeach
+    </div>
+</x-admin3.settings-shell>

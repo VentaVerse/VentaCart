@@ -1,55 +1,61 @@
-<x-admin.shell :title="$rate ? 'Edit Flat Rate' : 'New Flat Rate'">
-    <x-admin.page :title="$rate ? 'Edit Flat Rate' : 'New Flat Rate'" :breadcrumb="[['label' => 'Settings', 'url' => route('admin.settings.index')], ['label' => 'Shipping', 'url' => route('admin.shipping-settings.flat-rate')]]">
-        <x-slot:actions>
-            <x-admin.button variant="ghost" :href="route('admin.shipping-settings.flat-rate')">Back to Shipping</x-admin.button>
-        </x-slot:actions>
-
-        <div class="max-w-xl">
-            <x-admin.card>
-                <form method="POST" action="{{ $rate ? route('admin.flat-rates.update', $rate) : route('admin.flat-rates.store') }}" data-v-form class="space-y-5">
-                    @csrf
-                    @if ($rate) @method('PUT') @endif
-
-                    <x-admin.field name="name" label="Name" help="This name appears in checkout exactly as you type it" required>
-                        <x-admin.input type="text" name="name" required :value="$rate?->name" placeholder="e.g. Standard Flat Rate, Store Pickup" />
-                    </x-admin.field>
-
-                    <x-admin.field name="cost" label="Cost (₱)" help="Set to 0 for free pickup or promotional methods" required>
-                        <x-admin.input type="number" name="cost" step="0.01" min="0" required :value="$rate?->cost ?? '0.00'" class="w-40" />
-                    </x-admin.field>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <x-admin.field name="geo_zone_id" label="Geo Zone">
-                            <x-admin.select name="geo_zone_id">
-                                <option value="">All zones</option>
-                                @foreach ($geoZones as $zone)
-                                    <option value="{{ $zone->id }}" {{ old('geo_zone_id', $rate?->geo_zone_id) == $zone->id ? 'selected' : '' }}>{{ $zone->name }}</option>
-                                @endforeach
-                            </x-admin.select>
-                        </x-admin.field>
-                        <x-admin.field name="customer_group_id" label="Customer Group">
-                            <x-admin.select name="customer_group_id">
-                                <option value="">All customers</option>
-                                @foreach ($customerGroups as $group)
-                                    <option value="{{ $group->id }}" {{ old('customer_group_id', $rate?->customer_group_id) == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
-                                @endforeach
-                            </x-admin.select>
-                        </x-admin.field>
-                    </div>
-
-                    <div class="flex items-center gap-6">
-                        <x-admin.field name="sort_order" label="Sort Order">
-                            <x-admin.input type="number" name="sort_order" :value="$rate?->sort_order ?? 0" class="w-24" />
-                        </x-admin.field>
-                        <x-admin.toggle name="is_active" label="Active" :checked="$rate?->is_active ?? true" class="pt-5" />
-                    </div>
-
-                    <x-admin.form-actions>
-                        <x-admin.button variant="secondary" :href="route('admin.shipping-settings.flat-rate')">Cancel</x-admin.button>
-                        <x-admin.button type="submit">{{ $rate ? 'Update' : 'Create' }}</x-admin.button>
-                    </x-admin.form-actions>
-                </form>
-            </x-admin.card>
+<x-admin3.settings-shell :title="$rate ? 'Edit flat rate' : 'Add flat rate'" active="shipping">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.shipping-settings.index') }}">Shipping</a>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.shipping-settings.flat-rate') }}">Flat Rate</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $rate?->name ?? 'New' }}</span>
+            </div>
+            <h1 class="v3-head__title">{{ $rate ? ($rate->name ?: 'Edit flat rate') : 'Add flat rate' }}</h1>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+
+    <x-admin3.form :action="$rate ? route('admin.flat-rates.update', $rate) : route('admin.flat-rates.store')"
+                   :method="$rate ? 'PUT' : 'POST'" class="v3-settle">
+        <x-admin3.panel title="Method">
+            <div class="v3-narrow">
+                <x-admin3.field name="name" label="Name" hint="Appears at checkout exactly as typed." required>
+                    <input type="text" name="name" required class="v3-control" placeholder="e.g. Standard Flat Rate, Store Pickup"
+                           value="{{ old('name', $rate?->name) }}">
+                </x-admin3.field>
+                <div class="v3-gap">
+                    <x-admin3.field name="cost" label="Cost (₱)" hint="0 makes it free, for pickup or promos." required>
+                        <input type="number" name="cost" step="0.01" min="0" required class="v3-control v3-mono v3-w-rate"
+                               value="{{ old('cost', $rate?->cost ?? '0.00') }}">
+                    </x-admin3.field>
+                </div>
+                <div class="v3-grid v3-grid--2 v3-gap">
+                    <x-admin3.field name="geo_zone_id" label="Geo zone">
+                        <select name="geo_zone_id" class="v3-control">
+                            <option value="">All zones</option>
+                            @foreach ($geoZones as $zone)
+                                <option value="{{ $zone->id }}" @selected(old('geo_zone_id', $rate?->geo_zone_id) == $zone->id)>{{ $zone->name }}</option>
+                            @endforeach
+                        </select>
+                    </x-admin3.field>
+                    <x-admin3.field name="customer_group_id" label="Customer group">
+                        <select name="customer_group_id" class="v3-control">
+                            <option value="">All customers</option>
+                            @foreach ($customerGroups as $group)
+                                <option value="{{ $group->id }}" @selected(old('customer_group_id', $rate?->customer_group_id) == $group->id)>{{ $group->name }}</option>
+                            @endforeach
+                        </select>
+                    </x-admin3.field>
+                </div>
+                <div class="v3-gap v3-actrow">
+                    <x-admin3.field name="sort_order" label="Sort order">
+                        <input type="number" name="sort_order" class="v3-control v3-mono v3-w-sort" value="{{ old('sort_order', $rate?->sort_order ?? 0) }}">
+                    </x-admin3.field>
+                    <label class="v3-toggle">
+                        <input type="hidden" name="is_active" value="0">
+                        <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $rate?->is_active ?? true))>
+                        <span class="v3-toggle__track" aria-hidden="true"></span>
+                        Active
+                    </label>
+                </div>
+            </div>
+        </x-admin3.panel>
+    </x-admin3.form>
+</x-admin3.settings-shell>
