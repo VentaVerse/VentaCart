@@ -77,9 +77,9 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             <header class="v3-top">
                 <button type="button" class="v3-top__burger" @click="nav = true"
                         aria-label="Open navigation" :aria-expanded="nav ? 'true' : 'false'">
-                    <x-admin3.icon name="menu" style="width:19px;height:19px" />
+                    <x-admin3.icon name="menu" class="v3-ico" />
                 </button>
-                <span class="v3-top__who" style="margin-left:auto">
+                <span class="v3-top__who">
                     <span class="v3-top__ava" aria-hidden="true">{{ $v3Initials }}</span>
                     {{ $v3UserName }}
                 </span>

@@ -1,5 +1,5 @@
 /* ============================================================
-   Venta Admin v3 — foundation primitives
+   Venta Admin v3 , foundation primitives
    ============================================================
    Everything at one class. A rule that must win over a primitive
    wins on document order, never specificity. Split this file per
@@ -178,6 +178,10 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
     padding: 6px 0;
 }
 .v3-row + .v3-row { border-top: 1px solid var(--v3-line); }
+@media (max-width: 719px) {
+    .v3-row { flex-direction: column; align-items: stretch; padding: 12px 0; }
+    .v3-row__x { align-self: flex-end; }
+}
 .v3-row__x {
     width: 30px; height: 30px;
     display: grid; place-items: center;
@@ -228,32 +232,49 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-toast__x:hover { color: var(--v3-ink); }
 .v3-toast__x svg { width: 13px; height: 13px; }
 
-/* --- Settings directory (the area landing) -------------------- */
+/* --- Settings directory (the area landing) --------------------
+   Rows inside one sheet per group, not a card grid: the left nav
+   already lists the taxonomy, so the landing's job is the line of
+   description and the search, at reading density. */
 
-.v3-dir { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-.v3-dir__card {
-    display: flex;
-    gap: 13px;
-    padding: 16px;
+.v3-dir {
     background: var(--v3-surface);
     border: 1px solid var(--v3-line);
     border-radius: var(--v3-r-lg);
     box-shadow: var(--v3-lift);
-    text-decoration: none;
-    transition: border-color var(--v3-fast), transform var(--v3-fast);
+    overflow: hidden;
 }
-.v3-dir__card:hover { border-color: var(--v3-act-fill); transform: translateY(-1px); }
+.v3-dir__card {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 11px 16px;
+    text-decoration: none;
+    transition: background var(--v3-fast);
+}
+.v3-dir__card + .v3-dir__card { border-top: 1px solid var(--v3-line); }
+.v3-dir__card:hover { background: var(--v3-hover); }
 .v3-dir__ico {
-    width: 36px; height: 36px;
+    width: 32px; height: 32px;
     display: grid; place-items: center;
     background: var(--v3-act-wash);
     color: var(--v3-act);
     border-radius: var(--v3-r-md);
     flex-shrink: 0;
 }
-.v3-dir__ico svg { width: 18px; height: 18px; }
+.v3-dir__ico svg { width: 17px; height: 17px; }
 .v3-dir__name { font-size: 13.5px; font-weight: 620; }
-.v3-dir__line { font-size: 12.5px; color: var(--v3-ink-3); margin-top: 2px; }
+.v3-dir__line { font-size: 12.5px; color: var(--v3-ink-3); margin-top: 1px; }
+.v3-dir__go { margin-left: auto; color: var(--v3-ink-3); flex-shrink: 0; }
+.v3-dir__go svg { width: 15px; height: 15px; }
+
+/* Structural spacers, so a view never writes a style attribute. */
+.v3-span2 { grid-column: span 2; }
+@media (max-width: 719px) { .v3-span2 { grid-column: auto; } }
+.v3-gap { margin-top: 16px; }
+.v3-gap-lg { margin-top: 26px; }
+.v3-gap-sm { margin-bottom: 10px; }
+.v3-narrow { max-width: 380px; }
 
 /* The page's one authored entrance: the settings directory and any
    panel column settle in, staggered once, on arrival. */

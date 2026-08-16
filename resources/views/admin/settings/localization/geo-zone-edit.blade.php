@@ -15,11 +15,11 @@
          of work; splitting them across two saves is how this page lost
          merchants' edits in v2. --}}
     <x-admin3.form :action="route('admin.localization.update-geo-zone', $geoZone)" method="PUT" class="v3-settle-host">
-      <div x-data="v3GeoZone(@js($entries))" class="v3-settle">
+      <div x-data="v3GeoZone(@js(old('entries') !== null ? collect(old('entries'))->values() : $entries))" class="v3-settle">
 
         <x-admin3.panel title="Zone">
             <div class="v3-grid v3-grid--3">
-                <div style="grid-column: span 2">
+                <div class="v3-span2">
                     <x-admin3.field name="name" label="Name" required>
                         <input type="text" name="name" required class="v3-control" value="{{ old('name', $geoZone->name) }}">
                     </x-admin3.field>
@@ -28,12 +28,12 @@
                     <input type="number" name="sort_order" min="0" class="v3-control" value="{{ old('sort_order', $geoZone->sort_order) }}">
                 </x-admin3.field>
             </div>
-            <div style="margin-top: 16px">
+            <div class="v3-gap">
                 <x-admin3.field name="description" label="Description">
                     <input type="text" name="description" class="v3-control" value="{{ old('description', $geoZone->description) }}">
                 </x-admin3.field>
             </div>
-            <div style="margin-top: 16px">
+            <div class="v3-gap">
                 <label class="v3-toggle">
                     <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $geoZone->is_active))>

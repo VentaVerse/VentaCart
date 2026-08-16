@@ -23,7 +23,7 @@ return [
             ['key' => 'payments', 'line' => 'Methods, bank accounts, and restrictions.', 'label' => 'Payments', 'icon' => 'payments', 'route' => 'admin.payment-settings.index', 'section' => null],
             ['key' => 'shipping', 'line' => 'Rates, methods, and free-shipping rules.', 'label' => 'Shipping', 'icon' => 'shipping', 'route' => 'admin.shipping-settings.index', 'section' => null],
             ['key' => 'order-statuses', 'line' => 'Status flow and stock actions.', 'label' => 'Orders', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null],
-            ['key' => 'couriers', 'line' => 'Courier list and tracking links.', 'label' => 'Couriers & Tracking', 'icon' => 'fulfillment', 'route' => 'admin.shipping-couriers.index', 'section' => null],
+            ['key' => 'couriers', 'line' => 'Courier list and tracking links.', 'label' => 'Couriers & Tracking', 'icon' => 'package', 'route' => 'admin.shipping-couriers.index', 'section' => null],
         ],
     ],
     [
@@ -39,7 +39,7 @@ return [
         'items' => [
             ['key' => 'users', 'line' => 'Admin accounts.', 'label' => 'Users', 'icon' => 'customers', 'route' => 'admin.users.index', 'section' => null],
             ['key' => 'permissions', 'line' => 'Role-based access.', 'label' => 'Permissions', 'icon' => 'shield', 'route' => 'admin.permissions.index', 'section' => null],
-            ['key' => 'security', 'line' => 'Admin URL and login protection.', 'label' => 'Security', 'icon' => 'shield', 'route' => 'admin.settings.section', 'section' => 'security'],
+            ['key' => 'security', 'line' => 'Admin URL and login protection.', 'label' => 'Security', 'icon' => 'lock', 'route' => 'admin.settings.section', 'section' => 'security'],
             ['key' => 'api', 'line' => 'ERP token and sync logs.', 'label' => 'API & Sync', 'icon' => 'api', 'route' => 'admin.settings.section', 'section' => 'api'],
             ['key' => 'automations', 'line' => 'Scheduled jobs and run-now.', 'label' => 'Automations', 'icon' => 'clock', 'route' => 'admin.settings.section', 'section' => 'automations'],
             ['key' => 'modules', 'line' => 'Installed feature modules.', 'label' => 'Modules', 'icon' => 'modules', 'route' => 'admin.modules.index', 'section' => null],

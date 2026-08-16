@@ -7,9 +7,9 @@
     @if ($spoof) @method($method) @endif
 
     <div class="v3-savebar" :class="(dirty || saving) && 'is-on'" :inert="!(dirty || saving)" inert>
-        <span class="v3-savebar__word">
+        <span class="v3-savebar__word" role="status">
             <span class="v3-savebar__dot" aria-hidden="true"></span>
-            <span x-text="saving ? 'Saving…' : 'Unsaved changes'">Unsaved changes</span>
+            <span x-text="!(dirty || saving) ? '' : (saving ? 'Saving…' : 'Unsaved changes')">Unsaved changes</span>
         </span>
         <span class="v3-savebar__acts">
             <button type="button" class="v3-btn v3-btn--ghost" @click="discard()" :disabled="saving">Discard</button>

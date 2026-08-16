@@ -1,5 +1,10 @@
 # Venta admin design system
 
+> **Superseded for migrated pages.** The v3 rebuild (branch
+> `venta-v3`) replaces this system area by area; pages on a v3 shell
+> answer to `DESIGN3.md`. This file remains the record for every page
+> still rendering the v2 shell.
+
 The written system of record for `/admin`. Its absence is why three
 foundations grew that shared no vocabulary, so read it before adding a screen
 and update it when you add a primitive.

@@ -28,7 +28,7 @@
     <div class="v3-settings">
         <header class="v3-settings__top">
             <a href="{{ route('admin.dashboard') }}" class="v3-settings__back">
-                <x-admin3.icon name="back" style="width:16px;height:16px" />
+                <x-admin3.icon name="back" class="v3-ico-sm" />
                 Back to admin
             </a>
             <span class="v3-settings__name">Settings</span>

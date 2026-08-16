@@ -1,5 +1,5 @@
 /* ============================================================
-   Venta Admin v3 — the two shells
+   Venta Admin v3 , the two shells
    ============================================================
    Work shell: azure slab of work objects, hairline topbar, canvas.
    Settings shell: the whole screen becomes Settings; its own left
@@ -112,6 +112,8 @@
     z-index: 30;
 }
 .v3-top__burger { display: none; }
+.v3-ico { width: 19px; height: 19px; }
+.v3-ico-sm { width: 16px; height: 16px; }
 .v3-top__search {
     flex: 1;
     max-width: 480px;

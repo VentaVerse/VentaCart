@@ -177,8 +177,8 @@ class LocalizationController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
             'entries' => ['sometimes', 'array'],
-            'entries.*.country_id' => ['nullable', 'integer'],
-            'entries.*.zone_id' => ['nullable', 'integer'],
+            'entries.*.country_id' => ['nullable', 'integer', 'exists:countries,id'],
+            'entries.*.zone_id' => ['nullable', 'integer', 'exists:zones,id'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active');

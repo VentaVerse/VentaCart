@@ -31,6 +31,9 @@
         'trash' => 'M5 7h14M9.5 7V4.5h5V7m-8 0 .8 13h9.4L17.5 7M10 11v5.5m4-5.5v5.5',
         'check' => 'm5 12.5 4.5 4.5L19 7.5',
         'warning' => 'M12 4 2.5 20h19L12 4Zm0 6v4.5m0 3v.5',
+        'chevron' => 'm9 6 6 6-6 6',
+        'lock' => 'M6.5 11V8a5.5 5.5 0 0 1 11 0v3M5 11h14v9.5H5zM12 15v2.5',
+        'package' => 'M12 3 4 7v10l8 4 8-4V7l-8-4ZM4 7l8 4m0 0 8-4m-8 4v10M8 5l8 4',
     ];
 @endphp
 <svg {{ $attributes }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"

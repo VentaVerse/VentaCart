@@ -14,7 +14,7 @@ return [
     ],
     'modules' => [
         ['key' => 'seo', 'label' => 'SEO', 'icon' => 'seo', 'route' => 'admin.extensions.seo.dashboard'],
-        ['key' => 'fulfillment', 'label' => 'Fulfillment', 'icon' => 'fulfillment', 'route' => 'admin.fulfillment.index'],
+        ['key' => 'fulfillment', 'label' => 'Fulfillment', 'icon' => 'package', 'route' => 'admin.fulfillment.index'],
         ['key' => 'abandoned-carts', 'label' => 'Abandoned Carts', 'icon' => 'cart', 'route' => 'admin.abandoned-carts.index'],
     ],
 ];
