@@ -798,18 +798,11 @@ class ReskinWaveTest extends TestCase
         $this->get(route('admin.localization.edit-geo-zone', $geoZone))
             ->assertOk()->assertSee('class="v3"', false);
 
-        $routes = [
+        // Migrated to the v3 settings shell.
+        $v3Routes = [
             route('admin.localization.index'),
             route('admin.localization.index', ['tab' => 'zones', 'country' => $country->id]),
             route('admin.localization.index', ['tab' => 'geo-zones']),
-        ];
-
-        foreach ($routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v-admin', false);
-        }
-
-        // Migrated to the v3 settings shell.
-        $v3Routes = [
             route('admin.users.index'),
             route('admin.users.create'),
             route('admin.users.edit', $editableUser),

@@ -1,339 +1,255 @@
-<x-admin.settings-shell title="Localization">
-        <div x-data="localizationPage()">
-            <x-admin.tabs default="{{ $tab }}" param="tab" :names="['countries', 'zones', 'geo-zones']">
-                <x-slot:nav>
-                    <x-admin.tabs.tab name="countries">Countries</x-admin.tabs.tab>
-                    <x-admin.tabs.tab name="zones">Zones</x-admin.tabs.tab>
-                    <x-admin.tabs.tab name="geo-zones">Geo Zones</x-admin.tabs.tab>
-                </x-slot:nav>
+<x-admin3.settings-shell title="Localization" active="localization">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Localization</h1>
+            <p class="v3-head__standing">The countries and zones the store ships to, and the geo zones that scope rates and rules.</p>
+        </div>
+    </div>
 
-                {{-- ==================== COUNTRIES ==================== --}}
-                <x-admin.tabs.panel name="countries">
-                    <x-admin.card>
-                        <div class="v-toolbar">
-                            <div class="v-toolbar__row">
-                                <span class="text-[13px] text-v-secondary">
-                                    <span class="v-num" x-text="enabledCount">{{ $countries->where('is_active', true)->count() }}</span>
-                                    of <span class="v-num">{{ $countries->count() }}</span> countries enabled
-                                </span>
-                                <div class="v-toolbar__actions">
-                                    <input type="search" x-model="countrySearch" placeholder="Search countries&hellip;" aria-label="Search countries"
-                                        class="v-control h-[var(--control-h)] w-64 rounded-v-md border bg-v-surface px-2.5 text-[13px] text-v-text placeholder:text-v-muted">
-                                </div>
-                            </div>
-                        </div>
-
-                        <x-admin.table>
-                            <x-slot:head>
-                                <x-admin.table.th>Country</x-admin.table.th>
-                                <x-admin.table.th>ISO2</x-admin.table.th>
-                                <x-admin.table.th>ISO3</x-admin.table.th>
-                                <x-admin.table.th>Phone</x-admin.table.th>
-                                <x-admin.table.th align="right">Sort</x-admin.table.th>
-                                <x-admin.table.th>Zones</x-admin.table.th>
-                                <x-admin.table.th align="right">Enabled</x-admin.table.th>
-                                <x-admin.table.th align="right">Actions</x-admin.table.th>
-                            </x-slot:head>
-                            @foreach ($countries as $country)
-                                <tr class="v-row group"
-                                    x-show="!countrySearch || '{{ strtolower(addslashes($country->name)) }}'.includes(countrySearch.toLowerCase()) || '{{ $country->iso2 }}'.toLowerCase().includes(countrySearch.toLowerCase())"
-                                    x-data="{ editing: false, active: {{ $country->is_active ? 'true' : 'false' }}, toggling: false }">
-
-                                    {{-- View mode --}}
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-[13px] text-v-text">{{ $country->name }}</td>
-                                    </template>
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-xs text-v-secondary v-num">{{ $country->iso2 }}</td>
-                                    </template>
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-xs text-v-secondary v-num">{{ $country->iso3 }}</td>
-                                    </template>
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-xs text-v-secondary">{{ $country->phone_code ? '+' . $country->phone_code : '-' }}</td>
-                                    </template>
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-xs text-v-muted text-right v-num">{{ $country->sort_order }}</td>
-                                    </template>
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-[13px] text-v-secondary">{{ $country->zones_count }}</td>
-                                    </template>
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-right">
-                                            <x-admin.switch :checked="null" label="{{ $country->name }} enabled"
-                                                @click="toggleCountry({{ $country->id }}, $data)"
-                                                x-bind:disabled="toggling" x-bind:aria-checked="active" />
-                                        </td>
-                                    </template>
-                                    <template x-if="!editing">
-                                        <td class="px-4 py-2.5 text-right">
-                                            <div class="v-rowactions v-rowactions--end">
-                                                <x-admin.button type="button" size="sm" variant="ghost" @click="editing = true">Edit</x-admin.button>
-                                            </div>
-                                        </td>
-                                    </template>
-
-                                    {{-- Edit mode --}}
-                                    <template x-if="editing">
-                                        <td colspan="8" class="px-4 py-2.5">
-                                            <form method="POST" action="{{ route('admin.localization.update-country', $country) }}" data-v-form class="flex items-center gap-2">
-                                                @csrf @method('PUT')
-                                                <input type="text" name="name" value="{{ $country->name }}" required placeholder="Country name"
-                                                    class="v-control h-[var(--control-h-sm)] flex-1 px-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
-                                                <input type="text" name="iso2" value="{{ $country->iso2 }}" required maxlength="2" placeholder="US"
-                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center uppercase bg-v-surface text-v-text border rounded-v-md">
-                                                <input type="text" name="iso3" value="{{ $country->iso3 }}" required maxlength="3" placeholder="USA"
-                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center uppercase bg-v-surface text-v-text border rounded-v-md">
-                                                <div class="relative">
-                                                    <span class="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-v-muted">+</span>
-                                                    <input type="text" name="phone_code" value="{{ $country->phone_code }}" placeholder="1"
-                                                        class="v-control h-[var(--control-h-sm)] w-20 pl-5 pr-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
-                                                </div>
-                                                <input type="number" name="sort_order" value="{{ $country->sort_order }}" title="Sort order"
-                                                    class="v-control h-[var(--control-h-sm)] w-16 px-2 text-[13px] text-center bg-v-surface text-v-text border rounded-v-md">
-                                                <x-admin.button type="submit" size="sm">Save</x-admin.button>
-                                                <x-admin.button type="button" variant="secondary" size="sm" @click="editing = false">Cancel</x-admin.button>
-                                            </form>
-                                        </td>
-                                    </template>
-                                </tr>
-                            @endforeach
-                        </x-admin.table>
-                    </x-admin.card>
-                </x-admin.tabs.panel>
-
-                {{-- ==================== ZONES ==================== --}}
-                <x-admin.tabs.panel name="zones">
-                    <div class="space-y-5">
-                        <x-admin.card>
-                            <div class="flex items-center justify-between">
-                                <form method="GET" class="flex items-center gap-3">
-                                    <input type="hidden" name="tab" value="zones">
-                                    <select name="country" aria-label="Country whose zones are listed" onchange="this.form.submit()"
-                                        class="v-control h-[var(--control-h)] px-2.5 text-[13px] bg-v-surface text-v-text border rounded-v-md">
-                                        @foreach ($countryList as $code => $name)
-                                            <option value="{{ $code }}" {{ $selectedCountry === $code ? 'selected' : '' }}>{{ $name }} ({{ $code }})</option>
-                                        @endforeach
-                                    </select>
-                                </form>
-                                <span class="text-[13px] text-v-secondary">{{ $zones->count() }} zones</span>
-                            </div>
-                        </x-admin.card>
-
-                        <x-admin.card>
-                            <x-admin.table>
-                                <x-slot:head>
-                                    <x-admin.table.th>Zone Name</x-admin.table.th>
-                                    <x-admin.table.th>Code</x-admin.table.th>
-                                    <x-admin.table.th align="right">Enabled</x-admin.table.th>
-                                    <x-admin.table.th align="right">Actions</x-admin.table.th>
-                                </x-slot:head>
-                                @forelse ($zones as $zone)
-                                    <tr class="v-row group" x-data="{ editing: false, active: {{ $zone->is_active ? 'true' : 'false' }}, toggling: false }">
-                                        {{-- View mode --}}
-                                        <template x-if="!editing">
-                                            <td class="px-4 py-2.5 text-[13px] text-v-text">{{ $zone->name }}</td>
-                                        </template>
-                                        <template x-if="!editing">
-                                            <td class="px-4 py-2.5 text-xs text-v-secondary v-num">{{ $zone->code ?? '-' }}</td>
-                                        </template>
-                                        <template x-if="!editing">
-                                            <td class="px-4 py-2.5 text-right">
-                                                <x-admin.switch :checked="null" label="{{ $zone->name }} enabled"
-                                                    @click="toggleZone({{ $zone->id }}, $data)"
-                                                    x-bind:disabled="toggling" x-bind:aria-checked="active" />
-                                            </td>
-                                        </template>
-                                        <template x-if="!editing">
-                                            <td class="px-4 py-2.5 text-right text-[13px]">
-                                                <div class="v-rowactions v-rowactions--end">
-                                                    <x-admin.button type="button" size="sm" variant="ghost" @click="editing = true">Edit</x-admin.button>
-                                                    <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-zone-{{ $zone->id }}')">Delete</x-admin.button>
-                                                </div>
-                                            </td>
-                                        </template>
-
-                                        {{-- Edit mode --}}
-                                        <template x-if="editing">
-                                            <td colspan="4" class="px-4 py-2.5">
-                                                <form method="POST" action="{{ route('admin.localization.update-zone', $zone) }}" data-v-form class="flex items-center gap-2">
-                                                    @csrf @method('PUT')
-                                                    <input type="text" name="name" value="{{ $zone->name }}" required
-                                                        class="v-control h-[var(--control-h-sm)] flex-1 px-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
-                                                    <input type="text" name="code" value="{{ $zone->code }}" placeholder="Code"
-                                                        class="v-control h-[var(--control-h-sm)] w-20 px-2 text-[13px] bg-v-surface text-v-text border rounded-v-md">
-                                                    <input type="hidden" name="is_active" :value="active ? '1' : '0'">
-                                                    <x-admin.button type="submit" size="sm">Save</x-admin.button>
-                                                    <x-admin.button type="button" variant="secondary" size="sm" @click="editing = false">Cancel</x-admin.button>
-                                                </form>
-                                            </td>
-                                        </template>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4">
-                                            <x-admin.empty-state title="No zones for this country" />
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </x-admin.table>
-                        </x-admin.card>
-
-                        <x-admin.card title="Add Zone">
-                            <form method="POST" action="{{ route('admin.localization.store-zone') }}" data-v-form class="flex items-end gap-3">
-                                @csrf
-                                <input type="hidden" name="country_id" value="{{ $selectedCountry }}">
-                                <div class="flex-1">
-                                    <x-admin.field name="name" label="Name" required>
-                                        <x-admin.input name="name" required placeholder="Zone name" />
-                                    </x-admin.field>
-                                </div>
-                                <div class="w-28">
-                                    <x-admin.field name="code" label="Code">
-                                        <x-admin.input name="code" placeholder="e.g. NY" />
-                                    </x-admin.field>
-                                </div>
-                                <x-admin.button type="submit">Add</x-admin.button>
-                            </form>
-                        </x-admin.card>
-                    </div>
-                </x-admin.tabs.panel>
-
-                {{-- ==================== GEO ZONES ==================== --}}
-                <x-admin.tabs.panel name="geo-zones">
-                    <div class="space-y-5">
-                        <x-admin.card>
-                            <x-admin.table>
-                                <x-slot:head>
-                                    <x-admin.table.th>Name</x-admin.table.th>
-                                    <x-admin.table.th>Description</x-admin.table.th>
-                                    <x-admin.table.th>Entries</x-admin.table.th>
-                                    <x-admin.table.th>Order</x-admin.table.th>
-                                    <x-admin.table.th align="right">Enabled</x-admin.table.th>
-                                    <x-admin.table.th align="right">Actions</x-admin.table.th>
-                                </x-slot:head>
-                                @forelse ($geoZones as $gz)
-                                    <tr class="v-row group" x-data="{ active: {{ $gz->is_active ? 'true' : 'false' }}, toggling: false }">
-                                        <td class="px-4 py-2.5 text-[13px] font-medium text-v-text">{{ $gz->name }}</td>
-                                        <td class="px-4 py-2.5 text-xs text-v-secondary">{{ $gz->description ?? '-' }}</td>
-                                        <td class="px-4 py-2.5 text-[13px] text-v-secondary">{{ $gz->entries_count }}</td>
-                                        <td class="px-4 py-2.5 text-[13px] text-v-secondary v-num">{{ $gz->sort_order }}</td>
-                                        <td class="px-4 py-2.5 text-right">
-                                            <x-admin.switch :checked="null" label="{{ $gz->name }} enabled"
-                                                @click="toggleGeoZone({{ $gz->id }}, $data)"
-                                                x-bind:disabled="toggling" x-bind:aria-checked="active" />
-                                        </td>
-                                        <td class="px-4 py-2.5 text-right text-[13px]">
-                                            <div class="v-rowactions v-rowactions--end">
-                                                <x-admin.button size="sm" variant="ghost" :href="route('admin.localization.edit-geo-zone', $gz)">Edit</x-admin.button>
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-geo-zone-{{ $gz->id }}')">Delete</x-admin.button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6">
-                                            <x-admin.empty-state title="No geo zones yet" />
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </x-admin.table>
-                        </x-admin.card>
-
-                        <x-admin.card title="Add Geo Zone">
-                            <form method="POST" action="{{ route('admin.localization.store-geo-zone') }}" data-v-form class="flex items-end gap-3">
-                                @csrf
-                                <div class="flex-1">
-                                    <x-admin.field name="name" label="Name" required>
-                                        <x-admin.input name="name" required placeholder="e.g. Domestic" />
-                                    </x-admin.field>
-                                </div>
-                                <div class="flex-1">
-                                    <x-admin.field name="description" label="Description">
-                                        <x-admin.input name="description" placeholder="Optional description" />
-                                    </x-admin.field>
-                                </div>
-                                <div class="w-24">
-                                    <x-admin.field name="sort_order" label="Order">
-                                        <x-admin.input name="sort_order" type="number" value="0" min="0" />
-                                    </x-admin.field>
-                                </div>
-                                <x-admin.button type="submit">Add</x-admin.button>
-                            </form>
-                        </x-admin.card>
-                    </div>
-                </x-admin.tabs.panel>
-            </x-admin.tabs>
+    <div x-data="{ tab: @js($tab),
+            pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
+        <div class="v3-tabs" role="tablist">
+            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'countries' ? 'true' : 'false'" @click="pick('countries')">Countries</button>
+            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'zones' ? 'true' : 'false'" @click="pick('zones')">Zones</button>
+            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'geo-zones' ? 'true' : 'false'" @click="pick('geo-zones')">Geo zones</button>
         </div>
 
-        @foreach ($zones as $zone)
-            <x-admin.confirm-dialog name="delete-zone-{{ $zone->id }}" title="Delete “{{ $zone->name }}”?"
-                message="This cannot be undone." confirm="Delete" :action="route('admin.localization.destroy-zone', $zone)" method="DELETE" />
-        @endforeach
+        {{-- 250 rows: rows stay plain HTML and one shared editor panel
+             serves the whole table. Per-row x-if edit templates at this
+             scale stall Alpine's boot (thousands of template clones). --}}
+        <div x-show="tab === 'countries'" class="v3-settle"
+             x-data="{ q: '', editing: false, edit: { url: '', name: '', iso2: '', iso3: '', phone: '', sort: 0 }, enabled: {{ $countries->where('is_active', true)->count() }},
+                 async flip(url, row) {
+                     if (row.busy) return; row.busy = true;
+                     const r = await v3Post(url);
+                     if (r.ok) { row.active = !row.active; this.enabled += row.active ? 1 : -1; }
+                     row.busy = false;
+                 } }">
+            <x-admin3.panel x-show="editing" x-cloak title="Edit country">
+                <form method="POST" :action="edit.url">
+                    @csrf @method('PUT')
+                    <div class="v3-rowedit__line">
+                        <input type="text" name="name" x-model="edit.name" required aria-label="Country name" class="v3-control">
+                        <input type="text" name="iso2" x-model="edit.iso2" required maxlength="2" placeholder="US" aria-label="ISO2" class="v3-control v3-mono v3-w-sym">
+                        <input type="text" name="iso3" x-model="edit.iso3" required maxlength="3" placeholder="USA" aria-label="ISO3" class="v3-control v3-mono v3-w-sym">
+                        <input type="text" name="phone_code" x-model="edit.phone" placeholder="+1" aria-label="Phone code" class="v3-control v3-mono v3-w-sym">
+                        <input type="number" name="sort_order" x-model="edit.sort" aria-label="Sort order" class="v3-control v3-mono v3-w-sort">
+                        <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Save</button>
+                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="editing = false">Cancel</button>
+                    </div>
+                </form>
+            </x-admin3.panel>
 
-        @foreach ($geoZones as $gz)
-            <x-admin.confirm-dialog name="delete-geo-zone-{{ $gz->id }}" title="Delete “{{ $gz->name }}”?"
-                message="Shipping rates linked to it will lose their zone reference. This cannot be undone."
-                confirm="Delete" :action="route('admin.localization.destroy-geo-zone', $gz)" method="DELETE" />
-        @endforeach
+            <x-admin3.panel title="Countries" flush>
+                <x-slot:acts>
+                    <span class="v3-cell-quiet"><span class="v3-mono" x-text="enabled"></span> of {{ $countries->count() }} enabled</span>
+                    <input type="search" x-model="q" placeholder="Search countries…" aria-label="Search countries" class="v3-control v3-w-search">
+                </x-slot:acts>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr>
+                                <th>Country</th><th>ISO2</th><th>ISO3</th><th>Phone</th><th>Sort</th><th>Zones</th><th>Enabled</th>
+                                <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($countries as $country)
+                                @php
+                                    $countryEdit = [
+                                        'url' => route('admin.localization.update-country', $country),
+                                        'name' => $country->name,
+                                        'iso2' => $country->iso2,
+                                        'iso3' => $country->iso3,
+                                        'phone' => $country->phone_code,
+                                        'sort' => $country->sort_order,
+                                    ];
+                                @endphp
+                                <tr x-data="{ active: @js((bool) $country->is_active), busy: false }"
+                                    :class="{ 'v3-row-dim': !active }"
+                                    x-show="!q || @js(mb_strtolower($country->name)).includes(q.toLowerCase()) || @js(strtolower($country->iso2)).includes(q.toLowerCase())">
+                                    <td>{{ $country->name }}</td>
+                                    <td class="v3-mono">{{ $country->iso2 }}</td>
+                                    <td class="v3-mono">{{ $country->iso3 }}</td>
+                                    <td class="v3-mono">{{ $country->phone_code ? '+' . $country->phone_code : '-' }}</td>
+                                    <td class="v3-mono">{{ $country->sort_order }}</td>
+                                    <td>{{ $country->zones_count }}</td>
+                                    <td>
+                                        <button type="button" class="v3-toggle v3-toggle--btn" role="switch"
+                                                :aria-checked="active ? 'true' : 'false'" :disabled="busy"
+                                                aria-label="{{ $country->name }} enabled"
+                                                @click="flip(@js(route('admin.localization.toggle-country', $country)), $data)">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
+                                        </button>
+                                    </td>
+                                    <td class="v3-cell-act">
+                                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm"
+                                                @click="edit = @js($countryEdit); editing = true; window.scrollTo({top: 0, behavior: 'smooth'})">Edit</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin3.panel>
+        </div>
 
-        @push('scripts')
-        <script>
-        function localizationPage() {
-            return {
-                countrySearch: '',
-                enabledCount: {{ $countries->where('is_active', true)->count() }},
+        <div x-show="tab === 'zones'" x-cloak class="v3-settle" x-data="{ editing: false, edit: { url: '', name: '', code: '', active: true } }">
+            <x-admin3.panel x-show="editing" x-cloak title="Edit zone">
+                <form method="POST" :action="edit.url">
+                    @csrf @method('PUT')
+                    <div class="v3-rowedit__line">
+                        <input type="text" name="name" x-model="edit.name" required aria-label="Zone name" class="v3-control">
+                        <input type="text" name="code" x-model="edit.code" placeholder="Code" aria-label="Zone code" class="v3-control v3-mono v3-w-name">
+                        <input type="hidden" name="is_active" :value="edit.active ? '1' : '0'">
+                        <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Save</button>
+                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="editing = false">Cancel</button>
+                    </div>
+                </form>
+            </x-admin3.panel>
 
-                async toggleCountry(id, row) {
-                    row.toggling = true;
-                    try {
-                        const res = await fetch(`{{ route('admin.localization.toggle-country', ['country' => '__ID__']) }}`.replace('__ID__', id), {
-                            method: 'POST',
-                            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                        });
-                        const data = await res.json();
-                        row.active = data.is_active;
-                        this.enabledCount += data.is_active ? 1 : -1;
-                        this.$store.toasts.push(data.message, 'success');
-                    } catch (e) {
-                        this.$store.toasts.push('Failed to toggle.', 'danger');
-                    }
-                    row.toggling = false;
-                },
+            <x-admin3.panel :title="'Zones (' . $zones->count() . ')'" flush>
+                <x-slot:acts>
+                    <form method="GET">
+                        <input type="hidden" name="tab" value="zones">
+                        <select name="country" aria-label="Country whose zones are listed" onchange="this.form.submit()" class="v3-control">
+                            @foreach ($countryList as $code => $name)
+                                <option value="{{ $code }}" @selected($selectedCountry === $code)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                </x-slot:acts>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr>
+                                <th>Zone</th><th>Code</th><th>Enabled</th>
+                                <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($zones as $zone)
+                                @php
+                                    $zoneEdit = [
+                                        'url' => route('admin.localization.update-zone', $zone),
+                                        'name' => $zone->name,
+                                        'code' => $zone->code,
+                                        'active' => (bool) $zone->is_active,
+                                    ];
+                                @endphp
+                                <tr x-data="{ active: @js((bool) $zone->is_active), busy: false }" :class="{ 'v3-row-dim': !active }">
+                                    <td>{{ $zone->name }}</td>
+                                    <td class="v3-mono">{{ $zone->code ?? '-' }}</td>
+                                    <td>
+                                        <button type="button" class="v3-toggle v3-toggle--btn" role="switch"
+                                                :aria-checked="active ? 'true' : 'false'" :disabled="busy"
+                                                aria-label="{{ $zone->name }} enabled"
+                                                @click="busy = true; v3Post(@js(route('admin.localization.toggle-zone', $zone))).then(r => { if (r.ok) active = !active; busy = false; })">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
+                                        </button>
+                                    </td>
+                                    <td class="v3-cell-act">
+                                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm"
+                                                @click="edit = @js($zoneEdit); editing = true; window.scrollTo({top: 0, behavior: 'smooth'})">Edit</button>
+                                        <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-zone-{{ $zone->id }}')">Delete</button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="v3-empty"><p class="v3-empty__title">No zones for this country</p></div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin3.panel>
 
-                async toggleZone(id, row) {
-                    row.toggling = true;
-                    try {
-                        const res = await fetch(`{{ route('admin.localization.toggle-zone', ['zone' => '__ID__']) }}`.replace('__ID__', id), {
-                            method: 'POST',
-                            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                        });
-                        const data = await res.json();
-                        row.active = data.is_active;
-                        this.$store.toasts.push(data.message, 'success');
-                    } catch (e) {
-                        this.$store.toasts.push('Failed to toggle.', 'danger');
-                    }
-                    row.toggling = false;
-                },
+            <x-admin3.panel title="Add zone">
+                <form method="POST" action="{{ route('admin.localization.store-zone') }}" class="v3-addrow v3-addrow--3">
+                    @csrf
+                    <input type="hidden" name="country_id" value="{{ $selectedCountry }}">
+                    <x-admin3.field name="name" label="Name" required>
+                        <input type="text" name="name" required placeholder="Zone name" class="v3-control">
+                    </x-admin3.field>
+                    <x-admin3.field name="code" label="Code">
+                        <input type="text" name="code" placeholder="e.g. NY" class="v3-control v3-mono">
+                    </x-admin3.field>
+                    <button type="submit" class="v3-btn v3-btn--primary">Add zone</button>
+                </form>
+            </x-admin3.panel>
+        </div>
 
-                async toggleGeoZone(id, row) {
-                    row.toggling = true;
-                    try {
-                        const res = await fetch(`{{ route('admin.localization.toggle-geo-zone', ['geoZone' => '__ID__']) }}`.replace('__ID__', id), {
-                            method: 'POST',
-                            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                        });
-                        const data = await res.json();
-                        row.active = data.is_active;
-                        this.$store.toasts.push(data.message, 'success');
-                    } catch (e) {
-                        this.$store.toasts.push('Failed to toggle.', 'danger');
-                    }
-                    row.toggling = false;
-                },
-            };
-        }
-        </script>
-        @endpush
-</x-admin.settings-shell>
+        <div x-show="tab === 'geo-zones'" x-cloak class="v3-settle">
+            <x-admin3.panel title="Geo zones" flush>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th><th>Description</th><th>Entries</th><th>Sort</th><th>Enabled</th>
+                                <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($geoZones as $gz)
+                                <tr x-data="{ active: @js((bool) $gz->is_active), busy: false }" :class="{ 'v3-row-dim': !active }">
+                                    <td>{{ $gz->name }}</td>
+                                    <td class="v3-cell-quiet">{{ $gz->description ?? '-' }}</td>
+                                    <td>{{ $gz->entries_count }}</td>
+                                    <td class="v3-mono">{{ $gz->sort_order }}</td>
+                                    <td>
+                                        <button type="button" class="v3-toggle v3-toggle--btn" role="switch"
+                                                :aria-checked="active ? 'true' : 'false'" :disabled="busy"
+                                                aria-label="{{ $gz->name }} enabled"
+                                                @click="busy = true; v3Post(@js(route('admin.localization.toggle-geo-zone', $gz))).then(r => { if (r.ok) active = !active; busy = false; })">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
+                                        </button>
+                                    </td>
+                                    <td class="v3-cell-act">
+                                        <a href="{{ route('admin.localization.edit-geo-zone', $gz) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                        <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-geo-zone-{{ $gz->id }}')">Delete</button>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6">
+                                        <div class="v3-empty">
+                                            <p class="v3-empty__title">No geo zones yet</p>
+                                            <p class="v3-empty__line">Shipping rates and payment rules scope themselves to geo zones.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin3.panel>
+
+            <x-admin3.panel title="Add geo zone">
+                <form method="POST" action="{{ route('admin.localization.store-geo-zone') }}" class="v3-addrow v3-addrow--3">
+                    @csrf
+                    <x-admin3.field name="name" label="Name" required>
+                        <input type="text" name="name" required placeholder="e.g. Domestic" class="v3-control">
+                    </x-admin3.field>
+                    <x-admin3.field name="description" label="Description">
+                        <input type="text" name="description" placeholder="Optional description" class="v3-control">
+                    </x-admin3.field>
+                    <button type="submit" class="v3-btn v3-btn--primary">Add geo zone</button>
+                </form>
+            </x-admin3.panel>
+        </div>
+    </div>
+
+    @foreach ($zones as $zone)
+        <x-admin3.confirm name="delete-zone-{{ $zone->id }}" title="Delete {{ $zone->name }}?"
+            message="Addresses already using it keep their text; new addresses lose the option. This cannot be undone."
+            confirm="Delete" :action="route('admin.localization.destroy-zone', $zone)" method="DELETE" />
+    @endforeach
+
+    @foreach ($geoZones as $gz)
+        <x-admin3.confirm name="delete-geo-zone-{{ $gz->id }}" title="Delete {{ $gz->name }}?"
+            message="Shipping rates linked to it lose their zone reference. This cannot be undone."
+            confirm="Delete" :action="route('admin.localization.destroy-geo-zone', $gz)" method="DELETE" />
+    @endforeach
+</x-admin3.settings-shell>
