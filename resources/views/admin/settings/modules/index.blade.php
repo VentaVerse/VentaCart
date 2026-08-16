@@ -22,8 +22,8 @@
                             <span class="v3-dir__body">
                                 <span class="v3-dir__name">{{ $ext['title'] }}
                                     @if ($ext['version'])<span class="v3-mono v3-cell-quiet"> v{{ $ext['version'] }}</span>@endif
+                                    @if (!empty($ext['description']))<x-admin3.help :text="$ext['description']" />@endif
                                 </span>
-                                <span class="v3-dir__line v3-block">{{ $ext['description'] }}</span>
                             </span>
                             <span class="v3-dir__state">
                                 <span class="v3-badge {{ ($ext['state_tone'] ?? '') === 'success' ? 'v3-badge--good' : (($ext['state_tone'] ?? '') === 'warning' ? 'v3-badge--warn' : 'v3-badge--quiet') }}">{{ $ext['state_label'] }}</span>
@@ -77,8 +77,8 @@
                         <span class="v3-dir__body">
                             <span class="v3-dir__name">{{ $module['name'] }}
                                 @if (!empty($module['stats']))<span class="v3-mono v3-cell-quiet"> {{ $module['stats'] }}</span>@endif
+                                @if (!empty($module['description']))<x-admin3.help :text="$module['description']" />@endif
                             </span>
-                            <span class="v3-dir__line v3-block">{{ $module['description'] }}</span>
                         </span>
                         <span class="v3-dir__state">
                             <span class="v3-badge {{ ($module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')) === 'success' ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $module['status_label'] }}</span>
