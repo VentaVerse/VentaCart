@@ -1578,9 +1578,14 @@ class SpxFulfillment implements CourierFulfillmentInterface
             'deliver_phone'          => $phone,
             'deliver_detail_address' => $address,
         ];
-        // deliver_instruction is optional (api.md §1.4: N) — omit entirely
-        // rather than sending a JSON null SPX never asked for. No delivery
-        // instruction is collected from the booking form today.
+        // deliver_instruction is optional (api.md §1.4: N, "receiver's
+        // remark, max length 256") — omit entirely rather than sending a
+        // JSON null SPX never asked for. It carries the buyer's checkout
+        // note when one exists.
+        $instruction = trim((string) $order->comment);
+        if ($instruction !== '') {
+            $info['deliver_instruction'] = mb_substr($instruction, 0, 256);
+        }
 
         return ['ok' => true, 'info' => $info];
     }

@@ -658,7 +658,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface
 
     private function deliveryAddress(Order $order): array
     {
-        return [
+        $address = [
             'name'          => trim($order->shipping_first_name . ' ' . $order->shipping_last_name) ?: 'Customer',
             'mobile_number' => $order->shipping_phone ?: ($order->phone ?: ''),
             'line_1'        => $order->shipping_address_1 ?: '-',
@@ -668,6 +668,18 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'postal_code'   => $order->shipping_postcode ?: '-',
             'country'       => 'PH',
         ];
+
+        // The buyer's checkout note, surfaced on the QuadX dashboard as the
+        // address block's "Other locations and details" field (verified on
+        // staging 2026-08-16: delivery_address.remarks is accepted, persisted
+        // and returned by GET /orders; notes/instructions/landmark are
+        // silently dropped). Omitted entirely when there is no note.
+        $remarks = trim((string) $order->comment);
+        if ($remarks !== '') {
+            $address['remarks'] = mb_substr($remarks, 0, 500);
+        }
+
+        return $address;
     }
 
     /**
