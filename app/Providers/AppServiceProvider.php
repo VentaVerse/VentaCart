@@ -137,7 +137,8 @@ class AppServiceProvider extends ServiceProvider
     private function configureMailFromDatabase(): void
     {
         try {
-            $mail = Setting::where('group', 'mail')->pluck('value', 'key');
+            $mail = Setting::where('group', 'mail')->pluck('value', 'key')
+                ->filter(fn ($v) => $v !== null && $v !== '');
         } catch (\Throwable) {
             return; // Table may not exist during migrations
         }
@@ -146,10 +147,11 @@ class AppServiceProvider extends ServiceProvider
 
         $driver = $mail->get('driver', 'smtp');
 
-        if ($driver === 'smtp') {
+        // Without a host the transport cannot be built; keep the .env mailer
+        if ($driver === 'smtp' && $mail->get('host')) {
             config([
                 'mail.default' => 'smtp',
-                'mail.mailers.smtp.host' => $mail->get('host', '127.0.0.1'),
+                'mail.mailers.smtp.host' => $mail->get('host'),
                 'mail.mailers.smtp.port' => (int) $mail->get('port', 587),
                 'mail.mailers.smtp.username' => $mail->get('username'),
                 'mail.mailers.smtp.password' => $mail->get('password'),

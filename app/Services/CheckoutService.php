@@ -365,8 +365,18 @@ class CheckoutService
             ['total' => $order->total]
         );
 
-        self::sendOrderConfirmationEmail($order);
-        self::sendAdminOrderNotification($order);
+        // A mail failure must never abort a confirmed order
+        try {
+            self::sendOrderConfirmationEmail($order);
+        } catch (\Throwable $e) {
+            Log::error("Order #{$order->id}: confirmation email failed", ['error' => $e->getMessage()]);
+        }
+
+        try {
+            self::sendAdminOrderNotification($order);
+        } catch (\Throwable $e) {
+            Log::error("Order #{$order->id}: admin notification failed", ['error' => $e->getMessage()]);
+        }
     }
 
     public static function sendOrderConfirmationEmail(Order $order): void
@@ -399,7 +409,7 @@ class CheckoutService
         if (!$sent) {
             try {
                 Mail::to($order->email)->send(new \App\Mail\OrderConfirmationMail($order));
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 Log::warning('Order confirmation email failed: ' . $e->getMessage());
             }
         }
