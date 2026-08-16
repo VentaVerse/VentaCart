@@ -87,7 +87,9 @@
                         </select>
                     </label>
 
-                    {{ $slot }}
+                    <div class="v3-settings__measure">
+                        {{ $slot }}
+                    </div>
                 </main>
             </div>
         </div>
