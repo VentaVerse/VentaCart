@@ -9,6 +9,12 @@ $publicPath = getcwd();
 
 $uri = urldecode(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '');
 
+if (str_contains($uri, "\0")) {
+    http_response_code(400);
+
+    return true;
+}
+
 if ($uri !== '/' && file_exists($publicPath.$uri)) {
     // Vite-hashed build assets are immutable by construction; storage
     // files and fonts change rarely in dev. Returning false would serve
@@ -16,13 +22,23 @@ if ($uri !== '/' && file_exists($publicPath.$uri)) {
     $cache = null;
     if (str_starts_with($uri, '/build/assets/')) {
         $cache = 'public, max-age=31536000, immutable';
-    } elseif (str_starts_with($uri, '/storage/') || str_starts_with($uri, '/fonts/') || str_starts_with($uri, '/vendor/')) {
+    } elseif (str_starts_with($uri, '/storage/') || str_starts_with($uri, '/vendor/')) {
         $cache = 'public, max-age=3600';
     }
 
     if ($cache !== null) {
+        // public/storage is a symlink, so a realpath()ed file under it
+        // resolves OUTSIDE public/; both real roots are legitimate.
+        $roots = array_filter([realpath($publicPath), realpath($publicPath.'/storage')]);
         $file = realpath($publicPath.$uri);
-        if ($file !== false && str_starts_with($file, realpath($publicPath).DIRECTORY_SEPARATOR)) {
+        $contained = false;
+        foreach ($roots as $root) {
+            if ($file !== false && str_starts_with($file, $root.DIRECTORY_SEPARATOR)) {
+                $contained = true;
+                break;
+            }
+        }
+        if ($contained && is_file($file)) {
             $types = [
                 'css' => 'text/css', 'js' => 'text/javascript', 'mjs' => 'text/javascript',
                 'woff2' => 'font/woff2', 'woff' => 'font/woff',

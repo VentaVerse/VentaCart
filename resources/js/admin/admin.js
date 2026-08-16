@@ -11,28 +11,18 @@ import './day-sheet-plot.js';
 // so it must only run where it means something: the work<->settings
 // crossing (the rail morph). Same-side navigations skip it and stay
 // instant; a routine click must never wait out an animation.
+// The boundary is /<admin-prefix>/settings, matched as a path
+// segment: substring checks would trip on routes that merely
+// contain the word (e.g. a module's own /settings subpage).
+const vInSettings = (p) => /^\/[^/]+\/settings(\/|$)/.test(p);
 addEventListener('pageswap', (e) => {
     if (!e.viewTransition) return;
-    const here = location.pathname.includes('/settings');
-    const there = (e.activation?.entry?.url ?? '').includes('/settings');
+    const here = vInSettings(location.pathname);
+    const to = e.activation?.entry?.url;
+    const there = to ? vInSettings(new URL(to, location.origin).pathname) : here;
     if (here === there) e.viewTransition.skipTransition();
 });
 
-// Returning from Settings without a view transition (hard entry, or
-// a browser without the feature): the slab plays its own expansion
-// entrance (.v-arrive keyframes in layout/shell.css). When the rail
-// morph ran, it owns the crossing and this stays out of the way.
-(() => {
-    const arrive = () => {
-        if (!document.referrer.includes('/settings')) return;
-        document.documentElement.classList.add('v-arrive');
-    };
-    if ('onpagereveal' in window) {
-        addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });
-    } else {
-        arrive();
-    }
-})();
 
 // Shared with the storefront helper of the same name (resources/themes/*/layouts/store.blade.php)
 // and the legacy layouts/admin.blade.php: turns a stored relative path into a

@@ -28,7 +28,7 @@ class ShippingCourierController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'tracking_url' => ['nullable', 'string', 'max:500'],
+            'tracking_url' => ['nullable', 'string', 'max:500', 'starts_with:https://,http://'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
         ]);
@@ -45,9 +45,11 @@ class ShippingCourierController extends Controller
 
     public function update(Request $request, ShippingCourier $shippingCourier)
     {
+        abort_unless($shippingCourier->store_id === $this->storeId, 404);
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'tracking_url' => ['nullable', 'string', 'max:500'],
+            'tracking_url' => ['nullable', 'string', 'max:500', 'starts_with:https://,http://'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
         ]);
@@ -63,6 +65,8 @@ class ShippingCourierController extends Controller
 
     public function destroy(ShippingCourier $shippingCourier)
     {
+        abort_unless($shippingCourier->store_id === $this->storeId, 404);
+
         $hasOrders = \App\Models\Order::where('shipping_courier_id', $shippingCourier->id)->exists();
         if ($hasOrders) {
             return redirect()->route('admin.shipping-couriers.index')

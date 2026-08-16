@@ -12,30 +12,18 @@ window.storageUrl = window.storageUrl || function (path) {
 // so it must only run where it means something: the work<->settings
 // crossing (the rail morph). Same-side navigations skip it and stay
 // instant; a routine click must never wait out an animation.
+// The boundary is /<admin-prefix>/settings, matched as a path
+// segment: substring checks would trip on routes that merely
+// contain the word (e.g. a module's own /settings subpage).
+const v3InSettings = (p) => /^\/[^/]+\/settings(\/|$)/.test(p);
 addEventListener('pageswap', (e) => {
     if (!e.viewTransition) return;
-    const here = location.pathname.includes('/settings');
-    const there = (e.activation?.entry?.url ?? '').includes('/settings');
+    const here = v3InSettings(location.pathname);
+    const to = e.activation?.entry?.url;
+    const there = to ? v3InSettings(new URL(to, location.origin).pathname) : here;
     if (here === there) e.viewTransition.skipTransition();
 });
 
-// Nav arrival. When a cross-document view transition ran, the rail
-// morph owns the crossing and this stays out of the way. When none
-// ran (hard entry, or a browser without the feature), the nav plays
-// its own entrance instead: .v3-arrive keyframes in shell.css.
-// A settings-to-settings referrer means the nav was already on
-// screen, so nothing replays.
-(() => {
-    const arrive = () => {
-        if (document.referrer.includes('/settings')) return;
-        document.documentElement.classList.add('v3-arrive');
-    };
-    if ('onpagereveal' in window) {
-        addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });
-    } else {
-        arrive();
-    }
-})();
 
 document.addEventListener('alpine:init', () => {
     Alpine.store('toasts', {

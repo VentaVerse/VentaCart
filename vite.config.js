@@ -53,6 +53,10 @@ export default defineConfig({
                 'resources/js/admin/admin.js',
                 'resources/css/admin3/admin3.css',
                 'resources/js/admin3/admin3.js',
+                // Contractual manifest keys: the shells preload these via
+                // Vite::asset(), which throws on a manifest miss.
+                'resources/fonts/Archivo-latin.woff2',
+                'resources/fonts/JetBrainsMono.woff2',
                 ...getThemeEntries(),
                 ...getExtensionEntries(),
             ],

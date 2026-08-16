@@ -28,6 +28,23 @@
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/Archivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/JetBrainsMono.woff2') }}" as="font" type="font/woff2" crossorigin>
     @vite(['resources/css/admin3/admin3.css', 'resources/js/admin3/admin3.js'])
+    {{-- Arrival entrance decision, pre-paint: when no view transition
+         runs this navigation (hard entry, or a browser without the
+         feature), the nav plays its own entrance. Inline so it beats
+         first render; a deferred module can land after paint and jump. --}}
+    <script>
+        (() => {
+            let fromSettings = false;
+            try {
+                const r = document.referrer ? new URL(document.referrer) : null;
+                fromSettings = !!r && r.origin === location.origin
+                    && /^\/[^/]+\/settings(\/|$)/.test(r.pathname);
+            } catch (e) { /* unparsable referrer: treat as external */ }
+            const arrive = () => { if (!fromSettings) document.documentElement.classList.add('v3-arrive'); };
+            if ('onpagereveal' in window) addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });
+            else arrive();
+        })();
+    </script>
     @stack('head')
 </head>
 <body class="v3">

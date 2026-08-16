@@ -52,7 +52,7 @@ class AdminNav
             ->all();
     }
 
-    
+
     /**
      * The registry entry for $key IF it is currently reachable for this
      * user, otherwise null.
