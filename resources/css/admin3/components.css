@@ -694,3 +694,9 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
         transform: translateY(3px);
     }
 }
+/* Inside a scrolling table wrapper the clip eats anything above the
+   header, so the bubble opens downward over the rows instead. */
+.v3-tablewrap .v3-help__tip {
+    bottom: auto;
+    top: calc(100% + 7px);
+}
