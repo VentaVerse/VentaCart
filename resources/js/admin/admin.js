@@ -7,6 +7,22 @@
 // and not for reactivity.
 import './day-sheet-plot.js';
 
+// Returning from Settings without a view transition (hard entry, or
+// a browser without the feature): the slab plays its own expansion
+// entrance (.v-arrive keyframes in layout/shell.css). When the rail
+// morph ran, it owns the crossing and this stays out of the way.
+(() => {
+    const arrive = () => {
+        if (!document.referrer.includes('/settings')) return;
+        document.documentElement.classList.add('v-arrive');
+    };
+    if ('onpagereveal' in window) {
+        addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });
+    } else {
+        arrive();
+    }
+})();
+
 // Shared with the storefront helper of the same name (resources/themes/*/layouts/store.blade.php)
 // and the legacy layouts/admin.blade.php: turns a stored relative path into a
 // public /storage/... URL. Needed by any v-admin page that embeds the image

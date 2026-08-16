@@ -8,6 +8,24 @@ window.storageUrl = window.storageUrl || function (path) {
     return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
 };
 
+// Nav arrival. When a cross-document view transition ran, the rail
+// morph owns the crossing and this stays out of the way. When none
+// ran (hard entry, or a browser without the feature), the nav plays
+// its own entrance instead: .v3-arrive keyframes in shell.css.
+// A settings-to-settings referrer means the nav was already on
+// screen, so nothing replays.
+(() => {
+    const arrive = () => {
+        if (document.referrer.includes('/settings')) return;
+        document.documentElement.classList.add('v3-arrive');
+    };
+    if ('onpagereveal' in window) {
+        addEventListener('pagereveal', (e) => { if (!e.viewTransition) arrive(); });
+    } else {
+        arrive();
+    }
+})();
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('toasts', {
         items: [],

@@ -290,6 +290,7 @@
    The settings nav takes the full rail beside it. */
 
 .v3-irail {
+    z-index: 2; /* paints above the settings nav during its arrival slide */
     background: var(--v3-slab);
     display: flex;
     flex-direction: column;
@@ -344,4 +345,27 @@
 
 @media (max-width: 1023px) {
     .v3-irail { display: none; }
+}
+
+
+/* --- Arrival without a view transition -------------------------
+   Hard entries (refresh, bookmark, first load) and browsers without
+   cross-document view transitions never see the rail morph, so the
+   destination plays the same directional story alone: the rail leads
+   in from the left edge and the settings menu follows out of its
+   shadow. A navigation that ran the morph skips this (admin3.js). */
+@media (prefers-reduced-motion: no-preference) {
+    .v3-arrive .v3-irail {
+        animation: v3-arrive-rail .4s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .v3-arrive .v3-snav {
+        animation: v3-arrive-snav .5s cubic-bezier(0.16, 1, 0.3, 1) .08s both;
+    }
+    @keyframes v3-arrive-rail {
+        from { transform: translateX(-56px); }
+    }
+    @keyframes v3-arrive-snav {
+        from { transform: translateX(-56px); opacity: 0; }
+        60% { opacity: 1; }
+    }
 }

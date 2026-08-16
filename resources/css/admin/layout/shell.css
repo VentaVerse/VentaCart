@@ -515,3 +515,15 @@
         animation-duration: 1ms !important;
     }
 }
+
+
+/* Returning from Settings without a view transition: the slab leads
+   back in from the left, the reverse of the settings arrival. */
+@media (prefers-reduced-motion: no-preference) {
+    .v-arrive .v-slab {
+        animation: v-arrive-slab .45s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes v-arrive-slab {
+        from { transform: translateX(-160px); }
+    }
+}

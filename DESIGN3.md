@@ -119,8 +119,15 @@ forms alike (owner-directed 2026-08-16).
    path per name. Adjacent nav items never share a glyph.
 4. Browser surfaces are themed: selection, caret, scrollbars, one
    focus grammar (`--v3-focus` ring at 3:1+).
-5. One authored entrance per page (`.v3-settle`), nothing else moves
-   on arrival. Reduced motion collapses both motion tokens.
+5. Content arrives settled: no per-page entrance animation
+   (`.v3-settle` is a plain wrapper; its fade was retired 2026-08-16
+   after it read as "the content animates, the nav does not"). The
+   NAV owns arrival motion: the rail morph on view-transition
+   crossings, and the `.v3-arrive` slide-in entrance when no
+   transition ran (hard entry, refresh, bookmark, or a browser
+   without cross-document view transitions, e.g. Firefox); a
+   settings-to-settings referrer replays nothing. Reduced motion
+   collapses all of it.
 6. No em dashes anywhere, comments included.
 7. Both themes, 390 to 1440, every page; the v2 gates (compiled-view
    lint, build, suite) still apply.
@@ -147,9 +154,6 @@ forms alike (owner-directed 2026-08-16).
 - Destructive in-page actions (mark removal) run in place through
   `v3Post` behind a two-step arm-confirm button (4s disarm), so
   typed edits elsewhere on the page survive them.
-- The settle entrance never animates the save bar
-  (`.v3-settle > .v3-savebar { animation: none }`): the fill-mode
-  would pin `transform: none` and hold the bar on screen.
 
 ## Migrated so far
 
