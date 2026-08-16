@@ -201,7 +201,24 @@ class SettingController extends Controller
                 if (empty($override['host'])) {
                     return $this->testMailResult($request, false, 'SMTP host is required before a test can run.');
                 }
-                $storedPassword = Setting::where('group', 'mail')->where('key', 'password')->value('value');
+
+                // The stored password rides ONLY when the typed transport is
+                // the saved one. A blank password with a changed host, port,
+                // or username would hand the stored credential to whatever
+                // server the host field names, which is an exfiltration
+                // primitive, not a convenience.
+                $stored = Setting::where('group', 'mail')
+                    ->whereIn('key', ['host', 'port', 'username', 'password'])
+                    ->pluck('value', 'key');
+                $sameTransport = ($override['host'] ?? '') === ($stored['host'] ?? '')
+                    && (string) ($override['port'] ?? '') === (string) ($stored['port'] ?? '')
+                    && ($override['username'] ?? '') === ($stored['username'] ?? '');
+                $storedPassword = $sameTransport ? ($stored['password'] ?? null) : null;
+
+                if (($override['password'] ?? '') === '' && !$sameTransport && !empty($stored['password'])) {
+                    return $this->testMailResult($request, false, 'The server details changed. Type the password to test the new transport.');
+                }
+
                 config([
                     'mail.default' => 'smtp',
                     'mail.mailers.smtp.host' => $override['host'],

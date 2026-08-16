@@ -46,10 +46,12 @@ class StoreIdentityController extends Controller
 
         // v3 doctrine: the General page saves identity AND its plain
         // setting groups in the same submit (groups[general][...]).
-        // None of these keys are encrypted.
+        // Allowlisted to the one group this page owns: anything else
+        // must go through SettingController::updateGroups and its
+        // encryption/secret pipeline, never around it.
         if (is_array($request->input('groups'))) {
             foreach ($request->input('groups') as $group => $data) {
-                if (!is_array($data)) {
+                if ($group !== 'general' || !is_array($data)) {
                     continue;
                 }
                 foreach ($data as $key => $value) {

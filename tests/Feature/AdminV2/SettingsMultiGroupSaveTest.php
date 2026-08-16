@@ -64,4 +64,37 @@ class SettingsMultiGroupSaveTest extends TestCase
             'override' => ['driver' => 'smtp', 'host' => ''],
         ])->assertOk()->assertJson(['ok' => false]);
     }
+
+    public function test_stored_password_never_rides_to_a_changed_transport(): void
+    {
+        $this->actingAs(User::factory()->create());
+        Setting::updateOrCreate(['group' => 'mail', 'key' => 'host'], ['value' => 'smtp.real.test']);
+        Setting::updateOrCreate(['group' => 'mail', 'key' => 'port'], ['value' => '587']);
+        Setting::updateOrCreate(['group' => 'mail', 'key' => 'username'], ['value' => 'merchant']);
+        Setting::updateOrCreate(['group' => 'mail', 'key' => 'password'], ['value' => 'the-secret']);
+
+        // Changed host + blank password: refused before any connection,
+        // so the secret cannot be exfiltrated to an attacker-named server.
+        $this->postJson(route('admin.settings.test-mail'), [
+            'to' => 'probe@example.test',
+            'override' => ['driver' => 'smtp', 'host' => 'smtp.evil.test', 'port' => '587', 'username' => 'merchant', 'password' => ''],
+        ])->assertOk()->assertJson(['ok' => false])
+          ->assertJsonPath('message', 'The server details changed. Type the password to test the new transport.');
+    }
+
+    public function test_identity_endpoint_only_writes_the_general_group(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.settings.identity.update'), [
+            'site_name' => 'Probe Store',
+            'groups' => [
+                'general' => ['timezone' => 'Asia/Manila'],
+                'security' => ['admin_prefix' => 'smuggled'],
+            ],
+        ])->assertRedirect();
+
+        $this->assertSame('Asia/Manila', Setting::where('group', 'general')->where('key', 'timezone')->value('value'));
+        $this->assertNull(Setting::where('group', 'security')->where('key', 'admin_prefix')->value('value'));
+    }
 }
