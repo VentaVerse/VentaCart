@@ -1268,6 +1268,72 @@
  50% { opacity: 0.5; }
  }
 
+ .checkout-currency-note {
+  color: var(--color-text-muted);
+  @apply text-xs mt-2 text-right;
+ }
+
+ .checkout-summary-actions {
+  border-top: 1px solid var(--color-border);
+  @apply mt-5 pt-5;
+ }
+
+ .checkout-sticky-total {
+  display: none;
+ }
+
+ .checkout-actions-row {
+  @apply flex flex-col-reverse gap-3;
+ }
+
+ .checkout-actions-row .account-btn-secondary {
+  @apply text-center;
+ }
+
+ .checkout-action-main {
+  @apply w-full text-center;
+ }
+
+ @media (max-width: 1023px) {
+  .checkout-page {
+   margin-bottom: 6rem;
+  }
+
+  .checkout-summary-actions {
+   position: fixed;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   z-index: 30;
+   margin-top: 0;
+   background: var(--color-card-bg);
+   border-top: 1px solid var(--color-border);
+   padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+   box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.12);
+  }
+
+  .checkout-sticky-total {
+   font-family: var(--font-heading);
+   color: var(--color-text-heading);
+   letter-spacing: 0.12em;
+   @apply flex items-center justify-between text-sm mb-2;
+  }
+
+  .checkout-actions-row {
+   flex-direction: row;
+   align-items: center;
+  }
+
+  .checkout-actions-row .account-btn-secondary {
+   flex: 0 0 auto;
+  }
+
+  .checkout-action-main {
+   flex: 1;
+   width: auto;
+  }
+ }
+
  .cart-empty-state {
  @apply text-center py-20;
  }

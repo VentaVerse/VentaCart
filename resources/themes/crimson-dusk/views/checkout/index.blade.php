@@ -21,7 +21,7 @@
 @endphp
 
 <x-store-layout title="Checkout">
-    <div class="container-store py-10"
+    <div class="container-store checkout-page py-10"
          x-data="checkoutWizard(
             {{ $addressesJson }},
             {{ $defaultAddressId ?? 'null' }},
@@ -398,16 +398,6 @@
                         </div>
                     </div>
 
-                    {{-- Continue Button --}}
-                    <div class="flex items-center justify-end gap-3" x-show="!showNewAddressForm">
-                        <a href="{{ route('cart.index') }}" class="account-btn-secondary">Cancel</a>
-                        <button @click="goToStep(2)"
-                                class="btn-checkout"
-                                :disabled="!selectedAddressId"
-                                :class="{ 'opacity-50 cursor-not-allowed': !selectedAddressId }">
-                            CONTINUE TO PAYMENT
-                        </button>
-                    </div>
                 </div>
 
                 {{-- ========================
@@ -444,22 +434,6 @@
                         <textarea x-model="comment" class="account-input w-full h-24 resize-none" placeholder="Special instructions or notes about your order..."></textarea>
                     </div>
 
-                    {{-- Place Order --}}
-                    @if ($activeCurrency && !$activeCurrency->is_default)
-                        <p class="text-xs text-[var(--color-text-muted)] text-right mb-3">
-                            Prices shown in {{ $activeCurrency->code }}. Your order is charged in {{ $defaultCurrency->code }}.
-                        </p>
-                    @endif
-                    <div class="flex items-center justify-end gap-3">
-                        <button @click="goToStep(1)" class="account-btn-secondary">Back</button>
-                        <button @click="submitOrder()"
-                                class="btn-checkout"
-                                :disabled="!selectedPayment || !selectedShipping || placing"
-                                :class="{ 'opacity-50 cursor-not-allowed': !selectedPayment || !selectedShipping || placing }">
-                            <span x-show="!placing">PLACE ORDER</span>
-                            <span x-show="placing">PROCESSING...</span>
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -601,6 +575,39 @@
                     <div class="flex justify-between">
                         <span class="text-[#E8E8E8]" class="font-heading-wide">TOTAL</span>
                         <span class="text-xl text-[#E8E8E8]"class="font-heading"><span x-text="money(total)"></span></span>
+                    </div>
+
+                    @if ($activeCurrency && !$activeCurrency->is_default)
+                        <p class="checkout-currency-note">
+                            Prices shown in {{ $activeCurrency->code }}. Your order is charged in {{ $defaultCurrency->code }}.
+                        </p>
+                    @endif
+
+                    {{-- Step Actions --}}
+                    <div class="checkout-summary-actions" x-show="step === 2 || !showNewAddressForm">
+                        <div class="checkout-sticky-total" aria-hidden="true">
+                            <span>TOTAL</span>
+                            <span x-text="money(total)"></span>
+                        </div>
+                        <div class="checkout-actions-row" x-show="step === 1">
+                            <a href="{{ route('cart.index') }}" class="account-btn-secondary">Cancel</a>
+                            <button @click="goToStep(2)"
+                                    class="btn-checkout checkout-action-main"
+                                    :disabled="!selectedAddressId"
+                                    :class="{ 'opacity-50 cursor-not-allowed': !selectedAddressId }">
+                                CONTINUE TO PAYMENT
+                            </button>
+                        </div>
+                        <div class="checkout-actions-row" x-show="step === 2">
+                            <button @click="goToStep(1)" class="account-btn-secondary">Back</button>
+                            <button @click="submitOrder()"
+                                    class="btn-checkout checkout-action-main"
+                                    :disabled="!selectedPayment || !selectedShipping || placing"
+                                    :class="{ 'opacity-50 cursor-not-allowed': !selectedPayment || !selectedShipping || placing }">
+                                <span x-show="!placing">PLACE ORDER</span>
+                                <span x-show="placing">PROCESSING...</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
