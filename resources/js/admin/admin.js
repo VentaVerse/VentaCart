@@ -7,6 +7,17 @@
 // and not for reactivity.
 import './day-sheet-plot.js';
 
+// A cross-document view transition freezes input until it finishes,
+// so it must only run where it means something: the work<->settings
+// crossing (the rail morph). Same-side navigations skip it and stay
+// instant; a routine click must never wait out an animation.
+addEventListener('pageswap', (e) => {
+    if (!e.viewTransition) return;
+    const here = location.pathname.includes('/settings');
+    const there = (e.activation?.entry?.url ?? '').includes('/settings');
+    if (here === there) e.viewTransition.skipTransition();
+});
+
 // Returning from Settings without a view transition (hard entry, or
 // a browser without the feature): the slab plays its own expansion
 // entrance (.v-arrive keyframes in layout/shell.css). When the rail

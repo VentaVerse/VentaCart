@@ -8,6 +8,17 @@ window.storageUrl = window.storageUrl || function (path) {
     return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
 };
 
+// A cross-document view transition freezes input until it finishes,
+// so it must only run where it means something: the work<->settings
+// crossing (the rail morph). Same-side navigations skip it and stay
+// instant; a routine click must never wait out an animation.
+addEventListener('pageswap', (e) => {
+    if (!e.viewTransition) return;
+    const here = location.pathname.includes('/settings');
+    const there = (e.activation?.entry?.url ?? '').includes('/settings');
+    if (here === there) e.viewTransition.skipTransition();
+});
+
 // Nav arrival. When a cross-document view transition ran, the rail
 // morph owns the crossing and this stays out of the way. When none
 // ran (hard entry, or a browser without the feature), the nav plays
