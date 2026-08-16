@@ -18,13 +18,9 @@
              serves the whole table. Per-row x-if edit templates at this
              scale stall Alpine's boot (thousands of template clones). --}}
         <div x-show="tab === 'countries'" class="v3-settle"
-             x-data="{ q: '', editing: false, edit: { url: '', name: '', iso2: '', iso3: '', phone: '', sort: 0 }, enabled: {{ $countries->where('is_active', true)->count() }},
-                 async flip(url, row) {
-                     if (row.busy) return; row.busy = true;
-                     const r = await v3Post(url);
-                     if (r.ok) { row.active = !row.active; this.enabled += row.active ? 1 : -1; }
-                     row.busy = false;
-                 } }">
+             x-data="{ q: '', editing: false, edit: { url: '', name: '', iso2: '', iso3: '', phone: '', sort: 0 },
+                 enabled: {{ $countries->where('is_active', true)->count() }},
+                 recount() { this.enabled = document.querySelectorAll('input[name^=\'rows\'][name$=\'[is_active]\'][type=checkbox]:checked').length; } }">
             <x-admin3.panel x-show="editing" x-cloak title="Edit country">
                 <form method="POST" :action="edit.url">
                     @csrf @method('PUT')
@@ -40,6 +36,7 @@
                 </form>
             </x-admin3.panel>
 
+            <x-admin3.form :action="route('admin.localization.update-all-countries')" method="PUT">
             <x-admin3.panel title="Countries" flush>
                 <x-slot:acts>
                     <span class="v3-cell-quiet"><span class="v3-mono" x-text="enabled"></span> of {{ $countries->count() }} enabled</span>
@@ -75,12 +72,13 @@
                                     <td class="v3-mono">{{ $country->sort_order }}</td>
                                     <td>{{ $country->zones_count }}</td>
                                     <td>
-                                        <button type="button" class="v3-toggle v3-toggle--btn" role="switch"
-                                                :aria-checked="active ? 'true' : 'false'" :disabled="busy"
-                                                aria-label="{{ $country->name }} enabled"
-                                                @click="flip(@js(route('admin.localization.toggle-country', $country)), $data)">
+                                        <label class="v3-toggle">
+                                            <input type="hidden" name="rows[{{ $country->id }}][is_active]" value="0">
+                                            <input type="checkbox" name="rows[{{ $country->id }}][is_active]" value="1"
+                                                   x-model="active" @change="recount()"
+                                                   aria-label="{{ $country->name }} enabled">
                                             <span class="v3-toggle__track" aria-hidden="true"></span>
-                                        </button>
+                                        </label>
                                     </td>
                                     <td class="v3-cell-act">
                                         <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm"
@@ -92,6 +90,7 @@
                     </table>
                 </div>
             </x-admin3.panel>
+            </x-admin3.form>
         </div>
 
         <div x-show="tab === 'zones'" x-cloak class="v3-settle" x-data="{ editing: false, edit: { url: '', name: '', code: '', active: true } }">
@@ -108,16 +107,17 @@
                 </form>
             </x-admin3.panel>
 
+            <x-admin3.form :action="route('admin.localization.update-all-zones')" method="PUT">
+            <input type="hidden" name="country" value="{{ $selectedCountry }}">
             <x-admin3.panel :title="'Zones (' . $zones->count() . ')'" flush>
                 <x-slot:acts>
-                    <form method="GET">
-                        <input type="hidden" name="tab" value="zones">
-                        <select name="country" aria-label="Country whose zones are listed" onchange="this.form.submit()" class="v3-control">
-                            @foreach ($countryList as $code => $name)
-                                <option value="{{ $code }}" @selected($selectedCountry === $code)>{{ $name }}</option>
-                            @endforeach
-                        </select>
-                    </form>
+                    <select aria-label="Country whose zones are listed"
+                            onchange="window.location.href = '{{ route('admin.localization.index') }}?tab=zones&country=' + this.value"
+                            class="v3-control">
+                        @foreach ($countryList as $code => $name)
+                            <option value="{{ $code }}" @selected($selectedCountry === $code)>{{ $name }}</option>
+                        @endforeach
+                    </select>
                 </x-slot:acts>
                 <div class="v3-tablewrap">
                     <table class="v3-table">
@@ -141,12 +141,12 @@
                                     <td>{{ $zone->name }}</td>
                                     <td class="v3-mono">{{ $zone->code ?? '-' }}</td>
                                     <td>
-                                        <button type="button" class="v3-toggle v3-toggle--btn" role="switch"
-                                                :aria-checked="active ? 'true' : 'false'" :disabled="busy"
-                                                aria-label="{{ $zone->name }} enabled"
-                                                @click="busy = true; v3Post(@js(route('admin.localization.toggle-zone', $zone))).then(r => { if (r.ok) active = !active; busy = false; })">
+                                        <label class="v3-toggle">
+                                            <input type="hidden" name="rows[{{ $zone->id }}][is_active]" value="0">
+                                            <input type="checkbox" name="rows[{{ $zone->id }}][is_active]" value="1"
+                                                   x-model="active" aria-label="{{ $zone->name }} enabled">
                                             <span class="v3-toggle__track" aria-hidden="true"></span>
-                                        </button>
+                                        </label>
                                     </td>
                                     <td class="v3-cell-act">
                                         <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm"
@@ -165,6 +165,7 @@
                     </table>
                 </div>
             </x-admin3.panel>
+            </x-admin3.form>
 
             <x-admin3.panel title="Add zone">
                 <form method="POST" action="{{ route('admin.localization.store-zone') }}" class="v3-addrow v3-addrow--3">
@@ -182,6 +183,7 @@
         </div>
 
         <div x-show="tab === 'geo-zones'" x-cloak class="v3-settle">
+            <x-admin3.form :action="route('admin.localization.update-all-geo-zones')" method="PUT">
             <x-admin3.panel title="Geo zones" flush>
                 <div class="v3-tablewrap">
                     <table class="v3-table">
@@ -199,12 +201,12 @@
                                     <td>{{ $gz->entries_count }}</td>
                                     <td class="v3-mono">{{ $gz->sort_order }}</td>
                                     <td>
-                                        <button type="button" class="v3-toggle v3-toggle--btn" role="switch"
-                                                :aria-checked="active ? 'true' : 'false'" :disabled="busy"
-                                                aria-label="{{ $gz->name }} enabled"
-                                                @click="busy = true; v3Post(@js(route('admin.localization.toggle-geo-zone', $gz))).then(r => { if (r.ok) active = !active; busy = false; })">
+                                        <label class="v3-toggle">
+                                            <input type="hidden" name="rows[{{ $gz->id }}][is_active]" value="0">
+                                            <input type="checkbox" name="rows[{{ $gz->id }}][is_active]" value="1"
+                                                   x-model="active" aria-label="{{ $gz->name }} enabled">
                                             <span class="v3-toggle__track" aria-hidden="true"></span>
-                                        </button>
+                                        </label>
                                     </td>
                                     <td class="v3-cell-act">
                                         <a href="{{ route('admin.localization.edit-geo-zone', $gz) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
@@ -225,6 +227,7 @@
                     </table>
                 </div>
             </x-admin3.panel>
+            </x-admin3.form>
 
             <x-admin3.panel title="Add geo zone">
                 <form method="POST" action="{{ route('admin.localization.store-geo-zone') }}" class="v3-addrow v3-addrow--3">

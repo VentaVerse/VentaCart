@@ -80,6 +80,24 @@ class EmailTemplateController extends Controller
             ->with('success', 'Email template updated successfully.');
     }
 
+    /** One save for every template's active flag (the toggle law). */
+    public function updateAll(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.is_active' => ['boolean'],
+        ]);
+
+        $templates = EmailTemplate::whereIn('id', array_keys($validated['rows']))->get()->keyBy('id');
+        foreach ($validated['rows'] as $id => $row) {
+            $templates->get((int) $id)?->update([
+                'is_active' => filter_var($row['is_active'] ?? false, FILTER_VALIDATE_BOOL),
+            ]);
+        }
+
+        return redirect()->route('admin.email-templates.index')->with('success', 'Templates saved.');
+    }
+
     public function toggleActive(EmailTemplate $emailTemplate)
     {
         $emailTemplate->update(['is_active' => !$emailTemplate->is_active]);

@@ -40,16 +40,6 @@
 @endphp
 
 <x-admin3.panel title="Availability rule">
-    <x-slot:acts>
-        @if ($restriction)
-            <input type="hidden" form="restriction-toggle-form" name="toggle_active" value="1">
-            <button type="submit" form="restriction-toggle-form" class="v3-toggle v3-toggle--btn" role="switch"
-                    aria-checked="{{ $restriction->is_active ? 'true' : 'false' }}"
-                    aria-label="Availability rule active">
-                <span class="v3-toggle__track" aria-hidden="true"></span>
-            </button>
-        @endif
-    </x-slot:acts>
     @if ($restriction && count($sentences) > 0)
         <ul class="v3-rulelist">
             @foreach ($sentences as $sentence)
@@ -61,11 +51,6 @@
     @endif
 </x-admin3.panel>
 
-@if ($restriction)
-    <form id="restriction-toggle-form" method="POST" action="{{ route('admin.payment-restrictions.toggle', $restriction) }}" hidden>
-        @csrf
-    </form>
-@endif
 
 {{-- The rule is a record with its own CRUD; it saves in place like
      every other record editor rather than through the page save bar. --}}

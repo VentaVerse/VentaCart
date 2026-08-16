@@ -14,7 +14,6 @@
     <div class="v3-settle"
          x-data="automationsTab({
              updateUrlTemplate: @js(route('admin.automations.update', ['automation' => '__ID__'])),
-             toggleUrlTemplate: @js(route('admin.automations.toggle', ['automation' => '__ID__'])),
              runUrlTemplate: @js(route('admin.automations.runNow', ['automation' => '__ID__'])),
          })">
         {{-- None of the schedules below fire at all unless this line is in
@@ -34,6 +33,7 @@
             </div>
         </div>
 
+        <x-admin3.form :action="route('admin.automations.update-all')" method="PUT">
         <x-admin3.panel title="Automations" flush class="v3-gap">
             <div class="v3-tablewrap">
                 <table class="v3-table">
@@ -71,12 +71,12 @@
                                     <code class="v3-mono v3-cell-quiet">{{ $automation->cron_expression }}</code>
                                 </td>
                                 <td>
-                                    <button type="button" class="v3-toggle v3-toggle--btn" role="switch"
-                                            :aria-checked="enabled ? 'true' : 'false'"
-                                            aria-label="{{ $automation->name }} enabled"
-                                            @click="toggle({{ $automation->id }}, $event)">
+                                    <label class="v3-toggle">
+                                        <input type="hidden" name="rows[{{ $automation->id }}][enabled]" value="0">
+                                        <input type="checkbox" name="rows[{{ $automation->id }}][enabled]" value="1"
+                                               x-model="enabled" aria-label="{{ $automation->name }} enabled">
                                         <span class="v3-toggle__track" aria-hidden="true"></span>
-                                    </button>
+                                    </label>
                                 </td>
                                 <td>
                                     @if ($automation->last_run_status === 'success')
@@ -112,6 +112,7 @@
                 </table>
             </div>
         </x-admin3.panel>
+        </x-admin3.form>
 
         {{-- Schedule editor. Hand-rolled on the v3 modal primitives because
              its body reads automationsTab's own editor state. --}}
@@ -227,7 +228,6 @@
         window.automationsTab = function (config) {
             return {
                 updateUrlTemplate: config.updateUrlTemplate,
-                toggleUrlTemplate: config.toggleUrlTemplate,
                 runUrlTemplate: config.runUrlTemplate,
 
                 pendingRun: null,
@@ -249,15 +249,6 @@
 
                 toast(text, ok = true) {
                     window.Alpine.store('toasts').push(text, ok ? 'good' : 'bad');
-                },
-
-                // Optimistic flip; the row's Alpine scope owns `enabled`.
-                async toggle(id, evt) {
-                    const scope = Alpine.$data(evt.currentTarget.closest('[x-data]'));
-                    const prev = scope.enabled;
-                    scope.enabled = !prev;
-                    const r = await window.v3Post(this.urlFor(this.toggleUrlTemplate, id));
-                    if (!r.ok) scope.enabled = prev;
                 },
 
                 // The row's scope (which owns `running`) is captured at click

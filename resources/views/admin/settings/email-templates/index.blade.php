@@ -6,7 +6,7 @@
         </div>
     </div>
 
-    <div class="v3-settle">
+    <x-admin3.form :action="route('admin.email-templates.update-all')" method="PUT" class="v3-settle">
         <x-admin3.panel title="Templates" flush>
             <div class="v3-tablewrap">
                 <table class="v3-table">
@@ -32,14 +32,12 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <form method="POST" action="{{ route('admin.email-templates.toggle', $template) }}">
-                                        @csrf
-                                        <button type="submit" class="v3-toggle v3-toggle--btn" role="switch"
-                                                aria-checked="{{ $template->is_active ? 'true' : 'false' }}"
-                                                aria-label="{{ $template->name }} active">
-                                            <span class="v3-toggle__track" aria-hidden="true"></span>
-                                        </button>
-                                    </form>
+                                    <label class="v3-toggle">
+                                        <input type="hidden" name="rows[{{ $template->id }}][is_active]" value="0">
+                                        <input type="checkbox" name="rows[{{ $template->id }}][is_active]" value="1"
+                                               @checked($template->is_active) aria-label="{{ $template->name }} active">
+                                        <span class="v3-toggle__track" aria-hidden="true"></span>
+                                    </label>
                                 </td>
                                 <td class="v3-cell-act">
                                     <a href="{{ route('admin.email-templates.edit', $template) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
@@ -59,5 +57,5 @@
                 </table>
             </div>
         </x-admin3.panel>
-    </div>
+    </x-admin3.form>
 </x-admin3.settings-shell>

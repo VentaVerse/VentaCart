@@ -42,6 +42,24 @@ class AutomationController extends Controller
         ]);
     }
 
+    /** One save for every automation's enabled flag (the toggle law). */
+    public function updateAll(\Illuminate\Http\Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.enabled' => ['boolean'],
+        ]);
+
+        $automations = Automation::whereIn('id', array_keys($validated['rows']))->get()->keyBy('id');
+        foreach ($validated['rows'] as $id => $row) {
+            $automations->get((int) $id)?->update([
+                'enabled' => filter_var($row['enabled'] ?? false, FILTER_VALIDATE_BOOL),
+            ]);
+        }
+
+        return redirect()->route('admin.settings.section', 'automations')->with('success', 'Automations saved.');
+    }
+
     public function toggle(Automation $automation): JsonResponse
     {
         $automation->update(['enabled' => !$automation->enabled]);

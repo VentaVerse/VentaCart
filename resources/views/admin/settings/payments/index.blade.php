@@ -6,7 +6,9 @@
         </div>
     </div>
 
-    <div class="v3-settle">
+    <x-admin3.form :action="route('admin.settings.update')" class="v3-settle">
+        <input type="hidden" name="group" value="payment">
+        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
         <div class="v3-dir">
             @foreach ($cards as $card)
                 @php $availabilityUrl = route('admin.payment-settings.show', [$card['family'], 'tab' => 'availability']); @endphp
@@ -25,17 +27,12 @@
                         </a>
                     </span>
                     <span class="v3-dir__state">
-                        <form method="POST" action="{{ route('admin.settings.update') }}">
-                            @csrf
-                            <input type="hidden" name="group" value="payment">
-                            <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
-                            <input type="hidden" name="settings[{{ $card['family'] }}_enabled]" value="{{ $card['enabled'] ? 0 : 1 }}">
-                            <button type="submit" class="v3-toggle v3-toggle--btn" role="switch"
-                                    aria-checked="{{ $card['enabled'] ? 'true' : 'false' }}"
-                                    aria-label="{{ $card['name'] }} enabled">
-                                <span class="v3-toggle__track" aria-hidden="true"></span>
-                            </button>
-                        </form>
+                        <label class="v3-toggle">
+                            <input type="hidden" name="settings[{{ $card['family'] }}_enabled]" value="0">
+                            <input type="checkbox" name="settings[{{ $card['family'] }}_enabled]" value="1"
+                                   @checked($card['enabled']) aria-label="{{ $card['name'] }} enabled">
+                            <span class="v3-toggle__track" aria-hidden="true"></span>
+                        </label>
                     </span>
                     <span class="v3-actrow">
                         <a href="{{ $availabilityUrl }}" class="v3-btn v3-btn--ghost v3-btn--sm">Availability</a>
@@ -44,5 +41,5 @@
                 </div>
             @endforeach
         </div>
-    </div>
+    </x-admin3.form>
 </x-admin3.settings-shell>

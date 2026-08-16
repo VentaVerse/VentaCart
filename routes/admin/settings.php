@@ -57,6 +57,7 @@ Route::prefix('settings')->group(function () {
     // than the section's own GET (settings/automations, handled by the
     // settings/{section} catch-all below) so the two don't collide.
     Route::get('/automations/index', [AutomationController::class, 'index'])->name('automations.index');
+    Route::put('/automations', [AutomationController::class, 'updateAll'])->name('automations.update-all');
     Route::patch('/automations/{automation}', [AutomationController::class, 'update'])->name('automations.update');
     Route::post('/automations/{automation}/toggle', [AutomationController::class, 'toggle'])->name('automations.toggle');
     Route::post('/automations/{automation}/run', [AutomationController::class, 'runNow'])->name('automations.runNow');
@@ -82,6 +83,7 @@ Route::prefix('settings')->group(function () {
     // Email Templates
     Route::get('/email-templates', [EmailTemplateController::class, 'index'])->name('email-templates.index');
     Route::get('/email-templates/{emailTemplate}/edit', [EmailTemplateController::class, 'edit'])->name('email-templates.edit');
+    Route::put('/email-templates', [EmailTemplateController::class, 'updateAll'])->name('email-templates.update-all');
     Route::put('/email-templates/{emailTemplate}', [EmailTemplateController::class, 'update'])->name('email-templates.update');
     Route::post('/email-templates/{emailTemplate}/toggle', [EmailTemplateController::class, 'toggleActive'])->name('email-templates.toggle');
     Route::post('/email-templates/{emailTemplate}/test', [EmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
@@ -95,6 +97,9 @@ Route::prefix('settings')->group(function () {
 
     // Localization
     Route::get('/localization', [LocalizationController::class, 'index'])->name('localization.index');
+    Route::put('/localization/countries', [LocalizationController::class, 'updateAllCountries'])->name('localization.update-all-countries');
+    Route::put('/localization/zones-bulk', [LocalizationController::class, 'updateAllZones'])->name('localization.update-all-zones');
+    Route::put('/localization/geo-zones-bulk', [LocalizationController::class, 'updateAllGeoZones'])->name('localization.update-all-geo-zones');
     Route::post('/localization/countries/{country}/toggle', [LocalizationController::class, 'toggleCountry'])->name('localization.toggle-country');
     Route::put('/localization/countries/{country}', [LocalizationController::class, 'updateCountry'])->name('localization.update-country');
     Route::post('/localization/zones/{zone}/toggle', [LocalizationController::class, 'toggleZone'])->name('localization.toggle-zone');

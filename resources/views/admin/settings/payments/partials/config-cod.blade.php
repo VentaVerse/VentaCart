@@ -1,4 +1,4 @@
-<x-admin3.form :action="route('admin.settings.update')">
+<x-admin3.form :action="route('admin.settings.update')" id="pay-cod-form">
     <input type="hidden" name="group" value="payment">
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'cod') }}">
 
@@ -6,14 +6,12 @@
         {{-- The enable toggle is its own submission; forms cannot nest,
              so its inputs reference the hidden sibling form by id. --}}
         <x-slot:acts>
-            <input type="hidden" form="cod-enable-form" name="group" value="payment">
-            <input type="hidden" form="cod-enable-form" name="_redirect" value="{{ route('admin.payment-settings.show', 'cod') }}">
-            <input type="hidden" form="cod-enable-form" name="settings[cod_enabled]" value="{{ ($settings['payment']['cod_enabled'] ?? '0') === '1' ? 0 : 1 }}">
-            <button type="submit" form="cod-enable-form" class="v3-toggle v3-toggle--btn" role="switch"
-                    aria-checked="{{ ($settings['payment']['cod_enabled'] ?? '0') === '1' ? 'true' : 'false' }}"
-                    aria-label="Cash on Delivery enabled">
+            <label class="v3-toggle">
+                <input type="hidden" name="settings[cod_enabled]" value="0" form="pay-cod-form">
+                <input type="checkbox" name="settings[cod_enabled]" value="1" form="pay-cod-form"
+                       @checked(($settings['payment']['cod_enabled'] ?? '0') === '1') aria-label="Enabled">
                 <span class="v3-toggle__track" aria-hidden="true"></span>
-            </button>
+            </label>
         </x-slot:acts>
         <div class="v3-narrow">
             <x-admin3.field name="settings.cod_display_name" label="Checkout label" hint="Shown at checkout. Blank uses the default.">
@@ -40,6 +38,3 @@
     </x-admin3.panel>
 </x-admin3.form>
 
-<form id="cod-enable-form" method="POST" action="{{ route('admin.settings.update') }}" hidden>
-    @csrf
-</form>

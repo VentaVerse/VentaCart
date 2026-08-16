@@ -31,6 +31,52 @@ class LocalizationController extends Controller
 
     // --- Countries ---
 
+    /** One save for every country's enabled flag (the toggle law). */
+    public function updateAllCountries(Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.is_active' => ['boolean'],
+        ]);
+        $countries = Country::whereIn('id', array_keys($validated['rows']))->get()->keyBy('id');
+        foreach ($validated['rows'] as $id => $row) {
+            $countries->get((int) $id)?->update(['is_active' => filter_var($row['is_active'] ?? false, FILTER_VALIDATE_BOOL)]);
+        }
+
+        return redirect()->route('admin.localization.index', ['tab' => 'countries'])->with('success', 'Countries saved.');
+    }
+
+    /** Same, for one country's zones. */
+    public function updateAllZones(Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.is_active' => ['boolean'],
+            'country' => ['required', 'integer'],
+        ]);
+        $zones = Zone::whereIn('id', array_keys($validated['rows']))->get()->keyBy('id');
+        foreach ($validated['rows'] as $id => $row) {
+            $zones->get((int) $id)?->update(['is_active' => filter_var($row['is_active'] ?? false, FILTER_VALIDATE_BOOL)]);
+        }
+
+        return redirect()->route('admin.localization.index', ['tab' => 'zones', 'country' => $validated['country']])->with('success', 'Zones saved.');
+    }
+
+    /** Same, for geo zones. */
+    public function updateAllGeoZones(Request $request)
+    {
+        $validated = $request->validate([
+            'rows' => ['required', 'array'],
+            'rows.*.is_active' => ['boolean'],
+        ]);
+        $geoZones = GeoZone::whereIn('id', array_keys($validated['rows']))->get()->keyBy('id');
+        foreach ($validated['rows'] as $id => $row) {
+            $geoZones->get((int) $id)?->update(['is_active' => filter_var($row['is_active'] ?? false, FILTER_VALIDATE_BOOL)]);
+        }
+
+        return redirect()->route('admin.localization.index', ['tab' => 'geo-zones'])->with('success', 'Geo zones saved.');
+    }
+
     public function toggleCountry(Country $country)
     {
         $country->update(['is_active' => !$country->is_active]);

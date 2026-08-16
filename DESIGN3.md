@@ -193,14 +193,19 @@ forms alike (owner-directed 2026-08-16).
 
 ## Save-scope law (owner ruling, 2026-08-16)
 
-A page whose rows are ALWAYS-EDITABLE inputs is one save scope and
-must carry the doctrine form and save bar (order statuses and
-currencies were converted the day this shipped: their per-row Save
-buttons read as the old process). Directory pages whose rows are
-read-only until an explicit Edit (couriers, localization, users,
-email templates, payments, modules) save per record and correctly
-have no bar. The test: if typing into the page is possible without
-pressing Edit first, the bar owns it.
+ONE saving process everywhere (owner ruling, same day, superseding
+the earlier directory exception): every STATE control on a page,
+toggles included, rides that page's doctrine form and save bar.
+Nothing auto-saves. Payments and shipping directories, the payment
+method pages' header toggles, email templates, automations, and
+localization's three tabs all converted; bulk row endpoints
+(update-all) carry tables, and the shared settings.update endpoint
+carries grouped keys. Only true one-shot ACTIONS stay instant:
+Run now, Delete, Set default, Regenerate, test sends; each is a
+verb with its own confirm or toast, never a switch. Record editors
+opened by an explicit Edit still save per record (their Save is an
+action on that record). The test: a switch or checkbox NEVER talks
+to the server by itself.
 
 ## Migrated so far
 

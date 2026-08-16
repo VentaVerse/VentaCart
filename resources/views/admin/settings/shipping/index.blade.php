@@ -7,7 +7,10 @@
     </div>
 
     <div class="v3-settle">
-        <div class="v3-dir">
+        <x-admin3.form :action="route('admin.settings.update')">
+            <input type="hidden" name="group" value="shipping">
+            <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
+            <div class="v3-dir">
             @foreach ($chain as $i => $provider)
                 <div class="v3-dir__card v3-dir__card--static">
                     <span class="v3-dir__ico v3-mono">{{ $i + 1 }}</span>
@@ -17,17 +20,12 @@
                     </span>
                     <span class="v3-dir__state">
                         @if ($provider['settingKey'])
-                            <form method="POST" action="{{ route('admin.settings.update') }}">
-                                @csrf
-                                <input type="hidden" name="group" value="shipping">
-                                <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
-                                <input type="hidden" name="settings[{{ $provider['settingKey'] }}]" value="{{ $provider['active'] ? 0 : 1 }}">
-                                <button type="submit" class="v3-toggle v3-toggle--btn" role="switch"
-                                        aria-checked="{{ $provider['active'] ? 'true' : 'false' }}"
-                                        aria-label="{{ $provider['label'] }} enabled">
-                                    <span class="v3-toggle__track" aria-hidden="true"></span>
-                                </button>
-                            </form>
+                            <label class="v3-toggle">
+                                <input type="hidden" name="settings[{{ $provider['settingKey'] }}]" value="0">
+                                <input type="checkbox" name="settings[{{ $provider['settingKey'] }}]" value="1"
+                                       @checked($provider['active']) aria-label="{{ $provider['label'] }} enabled">
+                                <span class="v3-toggle__track" aria-hidden="true"></span>
+                            </label>
                         @else
                             <span class="v3-badge {{ $provider['active'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $provider['active'] ? 'Active' : 'No active rules' }}</span>
                         @endif
@@ -37,7 +35,8 @@
                     </span>
                 </div>
             @endforeach
-        </div>
+            </div>
+        </x-admin3.form>
 
         <div class="v3-gap-lg">
             <x-admin3.panel title="Rate tester" note="Runs the whole chain for an address and cart, exactly as checkout would.">

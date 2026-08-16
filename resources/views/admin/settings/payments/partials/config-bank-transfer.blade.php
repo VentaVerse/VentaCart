@@ -1,17 +1,15 @@
-<x-admin3.form :action="route('admin.settings.update')">
+<x-admin3.form :action="route('admin.settings.update')" id="pay-bt-form">
     <input type="hidden" name="group" value="payment">
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'bank_transfer') }}">
 
     <x-admin3.panel title="Bank Transfer">
         <x-slot:acts>
-            <input type="hidden" form="bt-enable-form" name="group" value="payment">
-            <input type="hidden" form="bt-enable-form" name="_redirect" value="{{ route('admin.payment-settings.show', 'bank_transfer') }}">
-            <input type="hidden" form="bt-enable-form" name="settings[bank_transfer_enabled]" value="{{ ($settings['payment']['bank_transfer_enabled'] ?? '0') === '1' ? 0 : 1 }}">
-            <button type="submit" form="bt-enable-form" class="v3-toggle v3-toggle--btn" role="switch"
-                    aria-checked="{{ ($settings['payment']['bank_transfer_enabled'] ?? '0') === '1' ? 'true' : 'false' }}"
-                    aria-label="Bank Transfer enabled">
+            <label class="v3-toggle">
+                <input type="hidden" name="settings[bank_transfer_enabled]" value="0" form="pay-bt-form">
+                <input type="checkbox" name="settings[bank_transfer_enabled]" value="1" form="pay-bt-form"
+                       @checked(($settings['payment']['bank_transfer_enabled'] ?? '0') === '1') aria-label="Enabled">
                 <span class="v3-toggle__track" aria-hidden="true"></span>
-            </button>
+            </label>
         </x-slot:acts>
         <div class="v3-narrow">
             <x-admin3.field name="settings.bank_transfer_display_name" label="Checkout label"
@@ -33,9 +31,6 @@
     </x-admin3.panel>
 </x-admin3.form>
 
-<form id="bt-enable-form" method="POST" action="{{ route('admin.settings.update') }}" hidden>
-    @csrf
-</form>
 
 <x-admin3.panel title="Bank accounts" flush>
     <div class="v3-tablewrap">

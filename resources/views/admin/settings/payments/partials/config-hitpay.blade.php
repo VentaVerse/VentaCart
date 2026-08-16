@@ -8,20 +8,18 @@
         return $tail !== '' ? "The current {$noun} ends in {$tail}. Blank keeps it." : "A {$noun} is saved. Blank keeps it.";
     };
 @endphp
-<x-admin3.form :action="route('admin.settings.update')">
+<x-admin3.form :action="route('admin.settings.update')" id="pay-hitpay-form">
     <input type="hidden" name="group" value="payment">
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'hitpay') }}">
 
     <x-admin3.panel title="HitPay">
         <x-slot:acts>
-            <input type="hidden" form="hitpay-enable-form" name="group" value="payment">
-            <input type="hidden" form="hitpay-enable-form" name="_redirect" value="{{ route('admin.payment-settings.show', 'hitpay') }}">
-            <input type="hidden" form="hitpay-enable-form" name="settings[hitpay_enabled]" value="{{ ($settings['payment']['hitpay_enabled'] ?? '0') === '1' ? 0 : 1 }}">
-            <button type="submit" form="hitpay-enable-form" class="v3-toggle v3-toggle--btn" role="switch"
-                    aria-checked="{{ ($settings['payment']['hitpay_enabled'] ?? '0') === '1' ? 'true' : 'false' }}"
-                    aria-label="HitPay enabled">
+            <label class="v3-toggle">
+                <input type="hidden" name="settings[hitpay_enabled]" value="0" form="pay-hitpay-form">
+                <input type="checkbox" name="settings[hitpay_enabled]" value="1" form="pay-hitpay-form"
+                       @checked(($settings['payment']['hitpay_enabled'] ?? '0') === '1') aria-label="Enabled">
                 <span class="v3-toggle__track" aria-hidden="true"></span>
-            </button>
+            </label>
         </x-slot:acts>
 
         <div class="v3-narrow" x-data="{ mode: @js($mode) }">
@@ -79,6 +77,3 @@
     </x-admin3.panel>
 </x-admin3.form>
 
-<form id="hitpay-enable-form" method="POST" action="{{ route('admin.settings.update') }}" hidden>
-    @csrf
-</form>
