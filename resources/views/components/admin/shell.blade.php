@@ -8,7 +8,7 @@
     $vLogo = \App\Support\StoreIdentity::logoUrl();
     $vFavicon = \App\Support\StoreIdentity::faviconUrl();
 
-    $vNavGroups = \App\Support\AdminNav::groups(Auth::user());
+    $vNavGroups = \App\Support\AdminNav::sidebarGroups(Auth::user());
     $vActive = \App\Support\AdminNav::activeItemKey(request()->path());
 
     // One group is open at a time, and the value lives on the <nav> rather
@@ -144,7 +144,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                     <div class="v-collapse__inner">
                                         @foreach ($group['items'] as $item)
                                             @php $vOn = $vActive && $vActive['group'] === $group['label'] && $vActive['item'] === $item['key']; @endphp
-                                            <a href="{{ route($item['route']) }}" class="v-nav__child {{ $vOn ? 'is-on' : '' }}"
+                                            <a href="{{ $item['url'] ?? route($item['route']) }}" class="v-nav__child {{ $vOn ? 'is-on' : '' }}"
                                                @if ($vOn) aria-current="page" @endif>
                                                 <span class="v-nav__label">{{ $item['label'] }}</span>
                                                 @if (($vBadge = ($navBadges ?? [])[$item['route']] ?? 0) > 0)
