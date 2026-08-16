@@ -137,8 +137,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                 {{-- The open group is rendered open. Alpine then agrees rather
                                      than announces, so its boot mutates no class and the collapse
                                      transition has nothing to replay on arrival. --}}
+                                {{-- Object syntax, not `expr && 'is-open'`: Alpine's string
+                                     syntax never removes a class the server printed, so the
+                                     boot-open group stayed visually open (with inert links)
+                                     after another group was opened. --}}
                                 <div class="v-collapse {{ $vOpenGroup === $vKey ? 'is-open' : '' }}" id="v-nav-{{ $vKey }}"
-                                     :class="group === '{{ $vKey }}' && 'is-open'"
+                                     :class="{ 'is-open': group === '{{ $vKey }}' }"
                                      @if ($vOpenGroup !== $vKey) inert @endif
                                      :inert="group !== '{{ $vKey }}'">
                                     <div class="v-collapse__inner">
