@@ -861,8 +861,6 @@ class ReskinWaveTest extends TestCase
 
         $routes = [
             route('admin.theme.index'),
-            route('admin.stock-notifications.index'),
-            route('admin.stock-notifications.index', ['tab' => 'template']),
             route('admin.api-sync-logs.index'),
         ];
 
@@ -870,9 +868,16 @@ class ReskinWaveTest extends TestCase
             $this->get($url)->assertOk()->assertSee('v-admin', false);
         }
 
-        // Couriers migrated to the v3 settings shell.
-        $this->get(route('admin.shipping-couriers.index'))
-            ->assertOk()->assertSee('class="v3"', false);
+        // Couriers and Stock Alerts migrated to the v3 settings shell.
+        $v3Routes = [
+            route('admin.shipping-couriers.index'),
+            route('admin.stock-notifications.index'),
+            route('admin.stock-notifications.index', ['tab' => 'template']),
+        ];
+
+        foreach ($v3Routes as $url) {
+            $this->get($url)->assertOk()->assertSee('class="v3"', false);
+        }
 
         // Banners is an optional extension — only assert its routes when the
         // BannerServiceProvider has actually registered them (Route::has guard,

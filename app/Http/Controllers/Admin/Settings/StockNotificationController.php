@@ -111,6 +111,9 @@ class StockNotificationController extends Controller
     {
         $template = StockNotificationTemplate::where('store_id', 1)->first();
         if (!$template) {
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => 'No email template found. Save one first.']);
+            }
             return back()->with('error', 'No email template found. Save one first.');
         }
 
@@ -127,9 +130,18 @@ class StockNotificationController extends Controller
             Mail::to(auth()->user()->email)->send(
                 new StockNotificationMail($notification, $template)
             );
-            return back()->with('success', 'Test email sent to ' . auth()->user()->email)->with('tab', 'template');
+            $ok = true;
+            $message = 'Test email sent to ' . auth()->user()->email . '.';
         } catch (\Throwable $e) {
-            return back()->with('error', 'Failed to send: ' . $e->getMessage())->with('tab', 'template');
+            $ok = false;
+            $message = 'Failed to send: ' . $e->getMessage();
         }
+
+        // v3 pages test in place and never navigate.
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => $ok, 'message' => $message]);
+        }
+
+        return back()->with($ok ? 'success' : 'error', $message)->with('tab', 'template');
     }
 }

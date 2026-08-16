@@ -152,5 +152,9 @@ forms alike (owner-directed 2026-08-16).
 - Users (index + form), Permissions: CRUD table, doctrine form, and
   the role matrix under one save.
 
+- Stock Alerts: stat figures, tab bar (?tab= preserved), bulk
+  select with a live-count confirm, and the alert template under
+  the doctrine with TinyMCE wired in.
+
 Still on the v2 shell inside Settings: automations, localization
-index, theme, payments, shipping, stock alerts, modules.
+index, theme, payments, shipping, modules.
