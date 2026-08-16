@@ -83,23 +83,36 @@ forms alike (owner-directed 2026-08-16).
   saw before entering Settings. The full rendition still reads
   `admin3-nav.php` pending the first work-area migration. Full mode
   expects the work shell's Alpine `nav` drawer boolean in scope.
-- Crossing into Settings animates (Easypanel choreography, decoded
-  from its shadcn/ui sidebar). The v2 shell opts into cross-document
-  view transitions and its sidebar shares the `v3-nav` name with the
-  icon rail. The mechanics, learned the hard way: the group box
-  genuinely animates 216px to 56px on a 500ms ease-in-out clock, but
-  snapshots do NOT track it by default, so a paired morph can read
-  as two crossfading stills (the original bug: motion on content,
-  none on the nav). The recipe that reads as one object: snapshots
-  at natural size pinned top-left (`object-fit: none`), pair
-  `overflow: clip` so the retreating edge EATS the labels, NO
-  crossfade (`animation: none`), nav group `z-index: 2` above the
-  settings menu so the edge is what reveals it, menu slides in from
-  behind the rail (`:only-child` so it plays only on entry, never
-  between settings pages), rail icons land at 55-85% of the clock
-  so they never cover label first-letters early. Reverse choreography
-  lives in the v2 CSS (the arriving document drives). Desktop only.
-  In the main menu Settings is a flat door item, not a dropdown;
+- Motion architecture (settled after four owner rounds): EVERY
+  navigation runs a cross-document view transition whose default job
+  is HOLDING FRAMES, because without one the browser paints a blank
+  white frame between two MPA page loads (the flicker in every
+  Laravel project the owner ever saw). Defaults: 120ms root
+  crossfade, named pairs snap at 0s, brass context-highlight slides
+  200ms. theme-boot paints html itself canvas-colored (light and
+  dark) so even a cold load cannot flash white. NEVER skipTransition
+  as a performance fix: that throws away frame-holding and brings
+  the white gap back.
+- Only the work<->settings crossing earns the morph. The ARRIVING
+  page tags it: pagereveal compares navigation.activation.from
+  (correct on back/forward, where referrer goes stale) against
+  window.__vSettingsRoot (declared by the shells from
+  route('admin.settings.index'), so any admin prefix works), and
+  adds the 'crossing' view-transition type. All long choreography is
+  gated on html:active-view-transition-type(crossing); browsers
+  without types degrade to the fast crossfade, never to a slow
+  everywhere-morph.
+- The morph itself is the Easypanel read, decoded from its shadcn/ui
+  sidebar: a SOLID slab panel (image-pair background tracks the
+  animating box) narrows 216px to 56px over 500ms ease-in-out while
+  the labels FADE OUT in 150ms (never clipped by the moving edge),
+  the icons persist, and the settings menu slides rightward out of
+  the panel's shadow (`:only-child`, entry only). Reverse lives in
+  the v2 stylesheet: rail fades out 150ms, panel widens, labels fade
+  in at the end. Input is frozen during a transition's longest
+  animation, so the 500ms freeze exists ONLY at the crossing; routine
+  navigation holds ~120-200ms. Desktop only. In the main menu
+  Settings is a flat door item, not a dropdown;
   `AdminNav::sidebarGroups()` (the old dropdown expansion) is gone.
 - `x-admin3.context-nav`: any second menu column beside the rail
   (settings today, a module's sections tomorrow). Caller passes

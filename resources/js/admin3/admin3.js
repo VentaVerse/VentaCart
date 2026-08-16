@@ -8,27 +8,33 @@ window.storageUrl = window.storageUrl || function (path) {
     return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
 };
 
-// A cross-document view transition freezes input until it finishes,
-// so it must only run where it means something: the work<->settings
-// crossing (the rail morph). Same-side navigations skip it and stay
-// instant; a routine click must never wait out an animation.
-// The boundary is /<admin-prefix>/settings, matched as a path
-// segment: substring checks would trip on routes that merely
-// contain the word (e.g. a module's own /settings subpage).
+// Every navigation runs a near-instant view transition whose real job
+// is HOLDING FRAMES: without one, the browser paints a blank white
+// frame between two full page loads (the flicker every MPA carries).
+// Only the work<->settings crossing earns the full nav morph; the
+// arriving page tags it with the 'crossing' type and the long
+// choreography in CSS is gated on that type.
+// The settings boundary comes from the router (window.__vSettingsRoot,
+// declared by the shells); the regex is only a fallback.
 const v3InSettings = (p) => {
     const root = window.__vSettingsRoot;
     if (root) return p === root || p.startsWith(root + '/');
     return /^\/[^/]+\/settings(\/|$)/.test(p);
 };
-addEventListener('pageswap', (e) => {
-    if (!e.viewTransition) return;
-    const here = v3InSettings(location.pathname);
-    const to = e.activation?.entry?.url;
-    const there = to ? v3InSettings(new URL(to, location.origin).pathname) : here;
-    if (here === there) e.viewTransition.skipTransition();
+addEventListener('pagereveal', (e) => {
+    if (!e.viewTransition?.types?.add) return;
+    // navigation.activation names the real previous entry (correct for
+    // back/forward, where document.referrer goes stale).
+    const prev = window.navigation?.activation?.from?.url ?? document.referrer ?? '';
+    let cameFromSettings = false;
+    try {
+        const u = new URL(prev, location.origin);
+        cameFromSettings = u.origin === location.origin && v3InSettings(u.pathname);
+    } catch (err) { return; }
+    if (prev && cameFromSettings !== v3InSettings(location.pathname)) {
+        e.viewTransition.types.add('crossing');
+    }
 });
-
-
 document.addEventListener('alpine:init', () => {
     Alpine.store('toasts', {
         items: [],

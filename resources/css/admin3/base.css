@@ -78,63 +78,69 @@ body.v3 {
 .v3-snav__item[aria-current="page"] { view-transition-name: v3-context-active; }
 .v3-settings__top { view-transition-name: v3-band; }
 
-/* The rail morph: one width change on one clock (500ms ease-in-out).
-   The group box genuinely narrows; both snapshots sit at natural
-   size pinned top-left and the shrinking box CLIPS them, so labels
-   are cut away progressively and the azure block reads as one
-   object condensing leftward, never two stills crossfading. The
-   old snapshot holds nearly the whole clock (its labels are what
-   the clip is eating); the icons underneath fade up beneath it. */
-::view-transition-group(v3-nav) {
+/* Every navigation runs a transition; its default job is holding
+   frames (no white gap between page loads), not choreography. A
+   routine swap is a 120ms crossfade, and the named pairs snap. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: .12s;
+}
+::view-transition-group(root) {
+    animation-duration: .12s; /* the longest animation is the input hold */
+}
+::view-transition-group(v3-nav),
+::view-transition-group(v3-context),
+::view-transition-group(v3-band) {
+    animation-duration: 0s;
+}
+
+/* Between settings pages the brass highlight still slides. */
+::view-transition-group(v3-context-active) {
+    animation-duration: .2s;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* The crossing (tagged by the arriving page in admin3.js) earns the
+   Easypanel morph: a SOLID slab-colored panel narrows 500ms
+   ease-in-out while the labels FADE (150ms, they never get cut by
+   the moving edge) and the icons persist; the settings menu slides
+   rightward out of the panel's shadow. The panel's solidity comes
+   from the image-pair background tracking the animating box. */
+html:active-view-transition-type(crossing)::view-transition-group(v3-nav) {
     animation-duration: .5s;
     animation-timing-function: ease-in-out;
-    z-index: 2; /* the nav covers the settings menu; its retreating edge is the reveal */
+    z-index: 2;
 }
-::view-transition-image-pair(v3-nav) {
+html:active-view-transition-type(crossing)::view-transition-image-pair(v3-nav) {
     overflow: clip;
+    background: var(--v3-slab);
 }
-::view-transition-old(v3-nav),
-::view-transition-new(v3-nav) {
+html:active-view-transition-type(crossing)::view-transition-old(v3-nav),
+html:active-view-transition-type(crossing)::view-transition-new(v3-nav) {
     height: 100%;
     width: auto;
     object-fit: none;
     object-position: top left;
-    animation: none; /* no crossfade: the clip is the whole story */
 }
-/* The rail's icons land near the end of the shrink; earlier they
-   would sit over the slab's labels and eat their first letters. */
-::view-transition-new(v3-nav) {
-    animation: v3-nav-in .5s ease-in-out both;
+html:active-view-transition-type(crossing)::view-transition-old(v3-nav) {
+    animation: v3-nav-labels-out .15s ease-out both;
 }
-@keyframes v3-nav-in {
-    0%, 55% { opacity: 0; }
-    85%, 100% { opacity: 1; }
+html:active-view-transition-type(crossing)::view-transition-new(v3-nav) {
+    animation: v3-nav-icons-in .2s ease-out .12s both;
 }
-
-/* The settings menu is revealed from behind the shrinking nav:
-   it slides rightward out of the rail's shadow into its column.
-   :only-child = entering Settings (no old snapshot to pair with);
-   between settings pages the menu pairs with itself and holds. */
-::view-transition-new(v3-context):only-child {
+@keyframes v3-nav-labels-out {
+    to { opacity: 0; }
+}
+@keyframes v3-nav-icons-in {
+    from { opacity: 0; }
+}
+html:active-view-transition-type(crossing)::view-transition-new(v3-context):only-child {
     animation: v3-context-in .5s ease-in-out both;
 }
 @keyframes v3-context-in {
     from { transform: translateX(-56px); opacity: 0; }
     40%  { opacity: 1; }
     to   { transform: translateX(0); }
-}
-
-/* The brass highlight slides between sections. */
-::view-transition-group(v3-context-active) {
-    animation-duration: .3s;
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Everything else is a quick crossfade; a routine navigation must
-   never feel like choreography. */
-::view-transition-old(root),
-::view-transition-new(root) {
-    animation-duration: .18s;
 }
 
 @media (prefers-reduced-motion: reduce) {

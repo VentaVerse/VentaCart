@@ -7,6 +7,13 @@
      The storage key and the global are Venta's own (vTheme), deliberately
      unlike the ERP's (xenon-theme), so the two products can never collide
      on a shared origin. --}}
+{{-- The html element carries the canvas color so no navigation gap or
+     cold load can ever paint white: whatever frame the browser shows
+     before first render is already the page's own paper. --}}
+<style>
+    html { background-color: #EDF1F7; }
+    html[data-theme="dark"] { background-color: #0B1017; }
+</style>
 <script>
     (function () {
         var KEY = 'vTheme';

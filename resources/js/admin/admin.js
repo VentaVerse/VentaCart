@@ -7,27 +7,33 @@
 // and not for reactivity.
 import './day-sheet-plot.js';
 
-// A cross-document view transition freezes input until it finishes,
-// so it must only run where it means something: the work<->settings
-// crossing (the rail morph). Same-side navigations skip it and stay
-// instant; a routine click must never wait out an animation.
-// The boundary is /<admin-prefix>/settings, matched as a path
-// segment: substring checks would trip on routes that merely
-// contain the word (e.g. a module's own /settings subpage).
+// Every navigation runs a near-instant view transition whose real job
+// is HOLDING FRAMES: without one, the browser paints a blank white
+// frame between two full page loads (the flicker every MPA carries).
+// Only the work<->settings crossing earns the full nav morph; the
+// arriving page tags it with the 'crossing' type and the long
+// choreography in CSS is gated on that type.
+// The settings boundary comes from the router (window.__vSettingsRoot,
+// declared by the shells); the regex is only a fallback.
 const vInSettings = (p) => {
     const root = window.__vSettingsRoot;
     if (root) return p === root || p.startsWith(root + '/');
     return /^\/[^/]+\/settings(\/|$)/.test(p);
 };
-addEventListener('pageswap', (e) => {
-    if (!e.viewTransition) return;
-    const here = vInSettings(location.pathname);
-    const to = e.activation?.entry?.url;
-    const there = to ? vInSettings(new URL(to, location.origin).pathname) : here;
-    if (here === there) e.viewTransition.skipTransition();
+addEventListener('pagereveal', (e) => {
+    if (!e.viewTransition?.types?.add) return;
+    // navigation.activation names the real previous entry (correct for
+    // back/forward, where document.referrer goes stale).
+    const prev = window.navigation?.activation?.from?.url ?? document.referrer ?? '';
+    let cameFromSettings = false;
+    try {
+        const u = new URL(prev, location.origin);
+        cameFromSettings = u.origin === location.origin && vInSettings(u.pathname);
+    } catch (err) { return; }
+    if (prev && cameFromSettings !== vInSettings(location.pathname)) {
+        e.viewTransition.types.add('crossing');
+    }
 });
-
-
 // Shared with the storefront helper of the same name (resources/themes/*/layouts/store.blade.php)
 // and the legacy layouts/admin.blade.php: turns a stored relative path into a
 // public /storage/... URL. Needed by any v-admin page that embeds the image
