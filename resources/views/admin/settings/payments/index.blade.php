@@ -1,41 +1,48 @@
-<x-admin.settings-shell title="Payments">
-    <div class="v-slates">
-        @foreach ($cards as $card)
-            @php
-                $icon = match ($card['family']) {
-                    'bank_transfer' => 'coupons',
-                    'hitpay' => 'monitor',
-                    'cod' => 'cart',
-                    default => 'settings',
-                };
-                $availabilityUrl = route('admin.payment-settings.show', [$card['family'], 'tab' => 'availability']);
-            @endphp
-            <x-admin.slate :title="$card['name']" :icon="$icon" :note="$card['description']">
-                <x-slot:state>
-                    <form method="POST" action="{{ route('admin.settings.update') }}">
-                        @csrf
-                        <input type="hidden" name="group" value="payment">
-                        <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
-                        <x-admin.toggle name="settings[{{ $card['family'] }}_enabled]" :checked="$card['enabled']"
-                            aria-label="{{ $card['name'] }} enabled"
-                            x-on:change="$el.closest('form').submit()" />
-                    </form>
-                </x-slot:state>
-
-                <a href="{{ $availabilityUrl }}" class="v-slate__link">
-                    @if ($card['restricted'])
-                        <x-admin.badge tone="warning">Restricted</x-admin.badge>
-                        <span class="truncate text-xs text-v-muted" title="{{ $card['restriction_summary'] }}">{{ $card['restriction_summary'] }}</span>
-                    @else
-                        <x-admin.badge tone="success">Available everywhere</x-admin.badge>
-                    @endif
-                </a>
-
-                <x-slot:actions>
-                    <x-admin.button variant="ghost" size="sm" :href="$availabilityUrl">Availability rules</x-admin.button>
-                    <x-admin.button variant="ghost" size="sm" :href="route('admin.payment-settings.show', $card['family'])">Manage</x-admin.button>
-                </x-slot:actions>
-            </x-admin.slate>
-        @endforeach
+<x-admin3.settings-shell title="Payments" active="payments">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Payments</h1>
+            <p class="v3-head__standing">How buyers pay, and where each method is allowed to appear.</p>
+        </div>
     </div>
-</x-admin.settings-shell>
+
+    <div class="v3-settle">
+        <div class="v3-dir">
+            @foreach ($cards as $card)
+                @php $availabilityUrl = route('admin.payment-settings.show', [$card['family'], 'tab' => 'availability']); @endphp
+                <div class="v3-dir__card v3-dir__card--static">
+                    <span class="v3-dir__ico"><x-admin3.icon :name="$card['family'] === 'cod' ? 'cart' : 'payments'" /></span>
+                    <span class="v3-dir__body">
+                        <span class="v3-dir__name">{{ $card['name'] }}</span>
+                        <span class="v3-dir__line v3-block">{{ $card['description'] }}</span>
+                        <a href="{{ $availabilityUrl }}" class="v3-dir__line v3-block v3-dir__sub">
+                            @if ($card['restricted'])
+                                <span class="v3-badge v3-badge--warn">Restricted</span>
+                                <span title="{{ $card['restriction_summary'] }}">{{ Str::limit($card['restriction_summary'], 80) }}</span>
+                            @else
+                                <span class="v3-badge v3-badge--good">Available everywhere</span>
+                            @endif
+                        </a>
+                    </span>
+                    <span class="v3-dir__state">
+                        <form method="POST" action="{{ route('admin.settings.update') }}">
+                            @csrf
+                            <input type="hidden" name="group" value="payment">
+                            <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.index') }}">
+                            <input type="hidden" name="settings[{{ $card['family'] }}_enabled]" value="{{ $card['enabled'] ? 0 : 1 }}">
+                            <button type="submit" class="v3-toggle v3-toggle--btn" role="switch"
+                                    aria-checked="{{ $card['enabled'] ? 'true' : 'false' }}"
+                                    aria-label="{{ $card['name'] }} enabled">
+                                <span class="v3-toggle__track" aria-hidden="true"></span>
+                            </button>
+                        </form>
+                    </span>
+                    <span class="v3-actrow">
+                        <a href="{{ $availabilityUrl }}" class="v3-btn v3-btn--ghost v3-btn--sm">Availability</a>
+                        <a href="{{ route('admin.payment-settings.show', $card['family']) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Manage</a>
+                    </span>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</x-admin3.settings-shell>

@@ -99,11 +99,13 @@ class PartialsDesignSystemTest extends TestCase
         // with its own selectedKeys state. The shared partial preserves
         // non-numeric ids verbatim, so the copy was removable; pin that it
         // stays removed and that the submitted field name is unchanged.
+        // v3: the shared widget is now x-admin3.picklist; the submitted
+        // field name is unchanged and no hand-copied state exists.
         $source = file_get_contents($this->partials()['availability']);
 
-        $this->assertStringContainsString("'name' => 'shipping_method_keys'", $source);
+        $this->assertStringContainsString('name="shipping_method_keys"', $source);
         $this->assertStringNotContainsString('selectedKeys', $source);
-        // 5 include conditions + shipping methods + 5 exclude conditions.
-        $this->assertSame(11, substr_count($source, "@include('admin.partials.dual-listbox'"));
+        // 6 include conditions + 5 exclude conditions.
+        $this->assertSame(11, substr_count($source, '<x-admin3.picklist'));
     }
 }

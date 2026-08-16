@@ -669,8 +669,11 @@ class ReskinWaveTest extends TestCase
             route('admin.coupons.index', ['search' => 'SUMMER', 'type' => 'percent', 'status' => 'active']),
             route('admin.coupons.create'),
             route('admin.coupons.edit', $coupon),
-            route('admin.bank-accounts.edit', $bankAccount),
         ];
+
+        // Bank account editor migrated to the v3 settings shell.
+        $this->get(route('admin.bank-accounts.edit', $bankAccount))
+            ->assertOk()->assertSee('class="v3"', false);
 
         // The shipping child forms migrated to the v3 settings shell.
         $v3Routes = [
@@ -1105,12 +1108,13 @@ class ReskinWaveTest extends TestCase
         // availability tab so restrictions are reachable from the hub.
         $availabilityUrl = route('admin.payment-settings.show', ['bank_transfer', 'tab' => 'availability']);
 
+        // Payments migrated to the v3 settings shell; the availability tab
+        // stays reachable from the landing.
         $this->get(route('admin.payment-settings.index'))
             ->assertOk()
-            ->assertSee('v-admin', false)
-            ->assertSee('All Settings')
+            ->assertSee('class="v3"', false)
             ->assertSee($availabilityUrl, false)
-            ->assertSee('Availability rules');
+            ->assertSee('Availability');
     }
 
     public function test_automations_section_renders_without_raw_palette_classes(): void

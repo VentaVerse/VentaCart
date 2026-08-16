@@ -66,6 +66,9 @@ document.addEventListener('alpine:init', () => {
             const pairs = [];
             for (const [k, v] of data.entries()) {
                 if (typeof v === 'string') pairs.push(k + '=' + v);
+                // An untouched file input contributes an empty File, so
+                // name+size stays stable until the user actually picks one.
+                else pairs.push(k + '=file:' + v.name + ':' + v.size);
             }
             return pairs.join('&');
         },

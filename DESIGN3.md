@@ -167,5 +167,19 @@ forms alike (owner-directed 2026-08-16).
   the colors-and-fonts revert both confirm first; drag reorder toasts
   its verdict.
 
+- Shipping: numbered provider chain, rate tester posting via v3Post,
+  pickup address card; DHL, flat rate, free shipping (+ rules with
+  picklist conditions), and weight-based (bulk one-save with
+  expandable drag cards) each carry their own doctrine form.
+
+- Payments: directory rows with enable toggles and restriction
+  summaries; per-method pages tab Configuration / Availability.
+  Enable toggles submit through hidden sibling forms (the
+  form="" attribute idiom) so they never nest inside the doctrine
+  form. The availability rule is a record-scoped editor whose
+  summary resolves ids to names; bank accounts are row records
+  with a v3 edit page. HitPay credential hints show only the
+  last-4 tail, with neutral wording when decryption fails.
+
 Still on the v2 shell inside Settings: automations, localization
-index, payments, shipping.
+index.

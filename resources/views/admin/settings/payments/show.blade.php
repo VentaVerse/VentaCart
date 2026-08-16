@@ -1,16 +1,28 @@
-<x-admin.settings-shell :title="$name">
-    <x-admin.tabs default="config" param="tab" :names="['config', 'availability']">
-        <x-slot:nav>
-            <x-admin.tabs.tab name="config">Configuration</x-admin.tabs.tab>
-            <x-admin.tabs.tab name="availability">Availability</x-admin.tabs.tab>
-        </x-slot:nav>
+<x-admin3.settings-shell :title="$name" active="payments">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.payment-settings.index') }}">Payments</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $name }}</span>
+            </div>
+            <h1 class="v3-head__title">{{ $name }}</h1>
+        </div>
+    </div>
 
-        <x-admin.tabs.panel name="config">
+    <div x-data="{ tab: @js(request('tab', 'config')),
+            pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
+        <div class="v3-tabs" role="tablist">
+            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'config' ? 'true' : 'false'" @click="pick('config')">Configuration</button>
+            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'availability' ? 'true' : 'false'" @click="pick('availability')">Availability</button>
+        </div>
+
+        <div x-show="tab === 'config'">
             @include('admin.settings.payments.partials.config-' . str_replace('_', '-', $method))
-        </x-admin.tabs.panel>
+        </div>
 
-        <x-admin.tabs.panel name="availability">
+        <div x-show="tab === 'availability'" x-cloak>
             @include('admin.settings.payments.partials.availability')
-        </x-admin.tabs.panel>
-    </x-admin.tabs>
-</x-admin.settings-shell>
+        </div>
+    </div>
+</x-admin3.settings-shell>
