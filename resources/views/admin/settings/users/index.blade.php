@@ -1,81 +1,78 @@
-<x-admin.settings-shell title="Users">
-        <x-slot:actions>
-            <x-admin.button variant="primary" href="{{ route('admin.users.create') }}">
-                <x-admin.icon name="plus" class="w-4 h-4" /> Add User
-            </x-admin.button>
-        </x-slot:actions>
+<x-admin3.settings-shell title="Users" active="users">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Users</h1>
+            <p class="v3-head__standing">Who can sign into this admin, and as what.</p>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.users.create') }}" class="v3-btn v3-btn--primary">
+                <x-admin3.icon name="plus" /> Add user
+            </a>
+        </div>
+    </div>
 
-        <x-admin.table>
-            <x-slot:head>
-                <x-admin.table.th>Name</x-admin.table.th>
-                <x-admin.table.th>Username</x-admin.table.th>
-                <x-admin.table.th>Email</x-admin.table.th>
-                <x-admin.table.th>Role</x-admin.table.th>
-                <x-admin.table.th>Status</x-admin.table.th>
-                <x-admin.table.th>Created</x-admin.table.th>
-                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-            </x-slot:head>
-            @forelse ($users as $user)
-                <x-admin.table.row href="{{ route('admin.users.edit', $user) }}">
-                    <x-admin.table.cell>
-                        <div class="flex items-center gap-3">
-                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-v-accent-weak text-xs font-bold text-v-accent">
-                                {{ strtoupper(substr($user->name, 0, 1)) }}
-                            </div>
-                            <span class="text-[13px] font-medium text-v-text">{{ $user->name }}</span>
-                        </div>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <span class="text-[13px] text-v-secondary">{{ $user->username }}</span>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <span class="text-[13px] text-v-secondary">{{ $user->email }}</span>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        @if ($user->role)
-                            @php
-                                $tone = match ($user->role->slug) {
-                                    'super-admin' => 'danger',
-                                    'store-manager' => 'info',
-                                    default => 'neutral',
-                                };
-                            @endphp
-                            <x-admin.badge :tone="$tone">{{ $user->role->name }}</x-admin.badge>
-                        @else
-                            <span class="text-xs text-v-muted">No role</span>
-                        @endif
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <x-admin.badge :tone="$user->is_active ? 'success' : 'neutral'">
-                            {{ $user->is_active ? 'Active' : 'Inactive' }}
-                        </x-admin.badge>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <span class="text-[13px] text-v-secondary">{{ $user->created_at->format('M j, Y') }}</span>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell class="v-col-act">
-                        <div class="v-rowactions v-rowactions--end">
-                            <x-admin.button size="sm" variant="ghost" :href="route('admin.users.edit', $user)">Edit</x-admin.button>
-                            @if ($user->id !== auth()->id())
-                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" type="button"
-                                    @click="$dispatch('open-modal', 'delete-user-{{ $user->id }}')">Delete</x-admin.button>
-                            @endif
-                        </div>
-                    </x-admin.table.cell>
-                </x-admin.table.row>
-            @empty
-                <tr>
-                    <td colspan="7">
-                        <x-admin.empty-state title="No users found" />
-                    </td>
-                </tr>
-            @endforelse
-        </x-admin.table>
+    <div class="v3-settle">
+        <x-admin3.panel title="Admin accounts" flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($users as $user)
+                            <tr>
+                                <td>
+                                    <span class="v3-ava" aria-hidden="true">{{ strtoupper(substr($user->name, 0, 1)) }}</span>
+                                    <a href="{{ route('admin.users.edit', $user) }}" class="v3-cell-link">{{ $user->name }}</a>
+                                </td>
+                                <td class="v3-mono v3-cell-quiet">{{ $user->username }}</td>
+                                <td class="v3-cell-quiet">{{ $user->email }}</td>
+                                <td>
+                                    @if ($user->role)
+                                        <span class="v3-badge {{ $user->role->slug === 'super-admin' ? 'v3-badge--bad' : 'v3-badge--quiet' }}">{{ $user->role->name }}</span>
+                                    @else
+                                        <span class="v3-badge v3-badge--quiet">No role</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <span class="v3-badge {{ $user->is_active ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $user->is_active ? 'Active' : 'Inactive' }}</span>
+                                </td>
+                                <td class="v3-cell-quiet">{{ $user->created_at->format('M j, Y') }}</td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.users.edit', $user) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    @if ($user->id !== auth()->id())
+                                        <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-user-{{ $user->id }}')">Delete</button>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No users found</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
 
         @foreach ($users as $user)
             @if ($user->id !== auth()->id())
-                <x-admin.confirm-dialog name="delete-user-{{ $user->id }}" title="Delete {{ $user->name }}?"
-                    message="This cannot be undone." confirm="Delete" :action="route('admin.users.destroy', $user)" method="DELETE" />
+                <x-admin3.confirm name="delete-user-{{ $user->id }}" title="Delete {{ $user->name }}?"
+                    message="This cannot be undone. Their sessions end and their sign-in stops working immediately."
+                    confirm="Delete" :action="route('admin.users.destroy', $user)" method="DELETE" />
             @endif
         @endforeach
-</x-admin.settings-shell>
+    </div>
+</x-admin3.settings-shell>

@@ -142,6 +142,15 @@ forms alike (owner-directed 2026-08-16).
 - Security (`sections/security`): admin path + Turnstile in one save,
   the secret key masked.
 
-Still on the v2 shell inside Settings: currencies, api, automations,
-localization index, theme, payments, shipping, order statuses,
-couriers, email templates, stock alerts, users, permissions, modules.
+- Currencies, API & Sync (sections): row-record saves through the
+  id'd-form idiom, reveal-safe token notice, confirm dialogs.
+- Orders (statuses), Couriers & Tracking: editable row tables with
+  per-record saves and add panels.
+- Email Templates (index + editor): submit-toggle in the list;
+  TinyMCE wired into the dirty doctrine (editor edits summon the
+  save bar); test send in place via v3Post; copyable placeholders.
+- Users (index + form), Permissions: CRUD table, doctrine form, and
+  the role matrix under one save.
+
+Still on the v2 shell inside Settings: automations, localization
+index, theme, payments, shipping, stock alerts, modules.

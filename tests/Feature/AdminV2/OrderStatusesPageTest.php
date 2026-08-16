@@ -53,9 +53,10 @@ class OrderStatusesPageTest extends TestCase
         OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'deducts_stock' => true, 'sort_order' => 2]);
         OrderStatus::create(['store_id' => 1, 'name' => 'Refunded', 'deducts_stock' => false, 'sort_order' => 11]);
 
+        // Migrated to the v3 settings shell.
         $this->get(route('admin.order-statuses.index'))
             ->assertOk()
-            ->assertSee('v-admin', false)
+            ->assertSee('class="v3"', false)
             ->assertSee('Processing')->assertSee('Refunded')
             ->assertSee('Deducts stock')
             ->assertSee('name="deducts_stock" value="1"', false)

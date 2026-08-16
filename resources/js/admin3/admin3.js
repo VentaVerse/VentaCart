@@ -127,6 +127,32 @@ document.addEventListener('alpine:init', () => {
     }; });
 });
 
+// One copy mechanism. navigator.clipboard exists only in secure
+// contexts and this admin is browsed over plain http on a LAN as often
+// as https, so the fallback path is the normal path. Returns a boolean;
+// callers flip their "Copied" label only on true.
+window.v3Copy = async function (text) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        if (!ok) throw new Error('execCommand failed');
+        return true;
+    } catch (e) {
+        window.Alpine?.store('toasts')?.push('Could not copy. Select the text and copy it manually.', 'bad');
+        return false;
+    }
+};
+
 // One mechanism for every in-page action button (test sends, generate
 // buttons): POST as JSON, never navigate, toast the server's own verdict.
 // Returns { ok, message } so a caller can react beyond the toast.

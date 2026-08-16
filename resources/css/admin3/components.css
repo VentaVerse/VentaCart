@@ -279,16 +279,17 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 /* The page's one authored entrance: the settings directory and any
    panel column settle in, staggered once, on arrival. */
 @media (prefers-reduced-motion: no-preference) {
-    .v3-settle > * { animation: v3-settle .45s cubic-bezier(.2, .7, .3, 1) both; }
-    /* The settle's fill-mode would pin transform:none on the save bar
-       and hold it on screen; the bar owns its own transform. */
-    .v3-settle > .v3-savebar { animation: none; }
-    .v3-settle > *:nth-child(2) { animation-delay: .05s; }
-    .v3-settle > *:nth-child(3) { animation-delay: .1s; }
-    .v3-settle > *:nth-child(4) { animation-delay: .15s; }
+    /* Opacity only, deliberately: a retained transform animation makes
+       the element a containing block in Chrome, which repositions any
+       fixed descendant (the save bar) against it instead of the
+       viewport. The lift is not worth that trap. */
+    .v3-settle > * { animation: v3-settle .5s ease-out both; }
+    .v3-settle > *:nth-child(2) { animation-delay: .06s; }
+    .v3-settle > *:nth-child(3) { animation-delay: .12s; }
+    .v3-settle > *:nth-child(4) { animation-delay: .18s; }
     @keyframes v3-settle {
-        from { opacity: 0; transform: translateY(7px); }
-        to { opacity: 1; transform: none; }
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
 }
 
@@ -347,3 +348,171 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 
 .v3-adorn { display: flex; align-items: center; gap: 6px; }
 .v3-adorn__fix { color: var(--v3-ink-3); font-family: var(--v3-font-mono); font-size: 13px; }
+
+/* --- Table ----------------------------------------------------
+   Tables never clip; they scroll inside their own wrap. A raw th
+   gets the label treatment. Row-edit forms use the id'd-form +
+   form="" idiom because a form cannot legally wrap a tr. */
+
+.v3-tablewrap { overflow-x: auto; }
+.v3-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.v3-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 560;
+    color: var(--v3-ink-3);
+    border-bottom: 1px solid var(--v3-line-2);
+    white-space: nowrap;
+}
+.v3-table td { padding: 8px 12px; border-bottom: 1px solid var(--v3-line); vertical-align: middle; }
+.v3-table tr:last-child td { border-bottom: 0; }
+.v3-table tbody tr:hover { background: var(--v3-hover); }
+.v3-table .v3-control { min-height: 32px; }
+.v3-cell-act { text-align: right; white-space: nowrap; }
+.v3-cell-act .v3-btn { vertical-align: middle; }
+.v3-row-dim { opacity: .6; }
+
+/* --- Modal ---------------------------------------------------- */
+
+.v3-overlay {
+    position: fixed; inset: 0; z-index: 80;
+    display: grid; place-items: center;
+    padding: 20px;
+    background: rgba(10, 16, 24, .55);
+}
+.v3-modal {
+    width: min(440px, 100%);
+    background: var(--v3-surface);
+    border-radius: var(--v3-r-lg);
+    box-shadow: var(--v3-lift-2);
+    padding: 20px;
+}
+.v3-modal__title { font-size: 15px; font-weight: 650; }
+.v3-modal__body { margin-top: 8px; font-size: 13.5px; color: var(--v3-ink-2); }
+.v3-modal__acts { margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px; }
+.v3-btn--danger-fill { background: var(--v3-bad); color: #fff; }
+.v3-btn--danger-fill:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* --- Notice (something needs the merchant's attention now) ----- */
+
+.v3-notice {
+    border: 1px solid var(--v3-warn);
+    background: var(--v3-warn-wash);
+    border-radius: var(--v3-r-md);
+    padding: 13px 15px;
+}
+.v3-notice__title { font-size: 13.5px; font-weight: 630; }
+.v3-notice__text { font-size: 12.5px; color: var(--v3-ink-2); margin-top: 2px; }
+.v3-noticerow { display: flex; gap: 8px; margin-top: 10px; }
+.v3-noticerow .v3-control { flex: 1; }
+
+/* --- Small width and case helpers ----------------------------- */
+
+.v3-w-sym { max-width: 72px; text-align: center; }
+.v3-w-rate { max-width: 140px; }
+.v3-upper { text-transform: uppercase; }
+
+/* --- Add row (a create form laid out inline) ------------------ */
+
+.v3-addrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 14px; align-items: end; }
+.v3-addrow .v3-field { margin: 0; }
+@media (max-width: 719px) {
+    .v3-addrow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .v3-addrow > .v3-btn { grid-column: span 2; }
+}
+
+/* --- Checkbox -------------------------------------------------- */
+
+.v3-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.v3-check input {
+    width: 16px; height: 16px;
+    accent-color: var(--v3-act-fill);
+    cursor: pointer;
+}
+
+/* --- Row-edit and add-row extensions --------------------------- */
+
+.v3-cell-name { min-width: 15rem; }
+.v3-namerow { display: flex; align-items: center; gap: 8px; }
+.v3-w-sort { max-width: 84px; }
+.v3-w-name { max-width: 200px; }
+.v3-cell-url { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--v3-ink-2); }
+.v3-rowedit { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.v3-rowedit__line { display: flex; align-items: center; gap: 10px; }
+.v3-rowedit__line .v3-control:not(.v3-w-name):not(.v3-w-sort) { flex: 1; }
+.v3-addrow--3 { grid-template-columns: minmax(0, 1.2fr) minmax(0, .5fr) auto; }
+.v3-addrow__opts { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-height: var(--v3-control-h); }
+@media (max-width: 719px) {
+    .v3-addrow--3 { grid-template-columns: minmax(0, 1fr); }
+    .v3-addrow--3 > .v3-btn, .v3-addrow__opts { grid-column: auto; }
+}
+
+/* --- Submit toggle (a toggle that IS its form's submit) -------- */
+
+.v3-toggle--btn { border: 0; background: none; padding: 0; cursor: pointer; }
+.v3-toggle--btn[aria-checked="true"] .v3-toggle__track { background: var(--v3-act-fill); }
+.v3-toggle--btn[aria-checked="true"] .v3-toggle__track::after { transform: translateX(16px); }
+
+/* --- Table tier (a group band inside a table) ------------------ */
+
+.v3-table .v3-tier td {
+    background: var(--v3-sunken);
+    font-size: 12px;
+    font-weight: 630;
+    letter-spacing: .04em;
+    color: var(--v3-ink-2);
+    padding: 6px 12px;
+}
+.v3-cell-link { color: inherit; text-decoration: none; font-weight: 590; }
+.v3-cell-link:hover { color: var(--v3-act); }
+.v3-ava {
+    width: 30px; height: 30px;
+    display: inline-grid; place-items: center;
+    border-radius: 999px;
+    background: var(--v3-act-wash);
+    color: var(--v3-act);
+    font-size: 12px; font-weight: 650;
+    vertical-align: middle;
+    margin-right: 9px;
+}
+.v3-cell-quiet { color: var(--v3-ink-2); }
+.v3-cell-pad { padding-left: 28px; }
+
+/* --- Split (main column + side rail) --------------------------- */
+
+.v3-split { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+@media (max-width: 1023px) { .v3-split { grid-template-columns: minmax(0, 1fr); } }
+
+/* --- Facts (label and value pairs) ----------------------------- */
+
+.v3-facts { display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; margin: 0; font-size: 13px; }
+.v3-facts dt { color: var(--v3-ink-3); font-size: 12px; }
+.v3-facts dd { margin: 0; }
+
+/* --- Copy chip (a placeholder the merchant copies) ------------- */
+
+.v3-chip {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 11px;
+    background: var(--v3-sunken);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-sm);
+    font-family: var(--v3-font-mono);
+    font-size: 12px;
+    color: var(--v3-act);
+    transition: background var(--v3-fast);
+}
+.v3-chip:hover { background: var(--v3-hover); }
+.v3-chip + .v3-chip { margin-top: 6px; }
+
+.v3-actrow { display: inline-flex; align-items: center; gap: 10px; }

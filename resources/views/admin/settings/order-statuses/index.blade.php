@@ -1,141 +1,120 @@
-<x-admin.settings-shell title="Order Statuses">
-        <div class="space-y-5">
-            <x-admin.card title="Statuses">
-                {{--
-                    A <form> cannot legally wrap table rows/cells (invalid HTML: form is not a
-                    permitted child of <tr>). Each row's edit form is instead declared as an
-                    empty, id'd <form> and every input/select/checkbox/button inside the row
-                    references it via the HTML5 form="" attribute — keeps the table structure
-                    valid (and column widths governed by one single table) while each row still
-                    submits independently. Pattern matches sections/currencies.blade.php.
-                --}}
-                @foreach ($statuses as $status)
-                    <form id="status-update-{{ $status->id }}" method="POST" action="{{ route('admin.order-statuses.update', $status) }}" data-v-form class="hidden">
-                        @csrf @method('PUT')
-                    </form>
-                @endforeach
-
-                <x-admin.table>
-                    <x-slot:head>
-                        <x-admin.table.th>Status</x-admin.table.th>
-                        {{-- The only genuinely non-obvious consequence of this
-                             control, and the reason it earns a tooltip under the
-                             owner's UI copy rule: clearing it on a status does
-                             not merely stop deducting, it hands the units back
-                             the moment an order reaches that status. --}}
-                        <x-admin.table.th title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">Deducts stock</x-admin.table.th>
-                        {{-- The non-obvious consequence, and the only reason
-                             this column earns a tooltip: the flag has a hard
-                             floor under it. An order that never reached a
-                             status at all is a ghost of an abandoned checkout
-                             and is never revenue, whatever is ticked here. --}}
-                        <x-admin.table.th title="Orders with no status never count, whatever this is set to.">Counts as revenue</x-admin.table.th>
-                        <x-admin.table.th>Sort</x-admin.table.th>
-                        <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                    </x-slot:head>
-                    @foreach ($statuses as $status)
-                        @php $editForm = 'status-update-'.$status->id; @endphp
-                        <x-admin.table.row>
-                            <x-admin.table.cell>
-                                {{-- The floor is what keeps the default status's
-                                     field editable at 390: the badge beside it
-                                     used to take the cell down to 80px and the
-                                     input with it, to 18px. The table already
-                                     scrolls inside its own wrapper, so a wider
-                                     column costs nothing. --}}
-                                <div class="flex min-w-[13rem] items-center gap-2">
-                                    <input type="text" form="{{ $editForm }}" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
-                                        aria-label="Status name"
-                                        class="v-control h-[var(--control-h-sm)] w-full rounded-v-md border bg-v-surface px-2 text-[13px] text-v-text">
-                                    @if ($status->is_default)
-                                        <x-admin.badge tone="success">Default</x-admin.badge>
-                                    @endif
-                                </div>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell>
-                                {{-- One checkbox IS the whole control. A status
-                                     either deducts or it does not (owner ruling,
-                                     2026-08-08); the old three-way select, the
-                                     badge that repeated its value beside it and
-                                     the legend card that explained that badge
-                                     are all gone. The hidden 0 makes an
-                                     unchecked box post, so clearing it saves.
-                                     Column header carries the one consequence
-                                     worth stating. --}}
-                                <label class="v-check v-check--bare">
-                                    <input type="hidden" form="{{ $editForm }}" name="deducts_stock" value="0">
-                                    <input type="checkbox" form="{{ $editForm }}" name="deducts_stock" value="1" @checked(old('deducts_stock', $status->deducts_stock))
-                                        aria-label="{{ $status->name }} deducts stock"
-                                        class="w-4 h-4 rounded-v-sm text-v-accent focus:ring-v-accent bg-v-surface">
-                                </label>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell>
-                                {{-- Same control idiom as Deducts stock beside
-                                     it, deliberately: one checkbox, a hidden 0
-                                     so clearing it saves, and the consequence
-                                     stated once in the column header. The two
-                                     start out agreeing (the flag is derived
-                                     from stock on migrate) and part company
-                                     whenever the merchant says so. --}}
-                                <label class="v-check v-check--bare">
-                                    <input type="hidden" form="{{ $editForm }}" name="counts_as_revenue" value="0">
-                                    <input type="checkbox" form="{{ $editForm }}" name="counts_as_revenue" value="1" @checked(old('counts_as_revenue', $status->counts_as_revenue))
-                                        aria-label="{{ $status->name }} counts as revenue"
-                                        class="w-4 h-4 rounded-v-sm text-v-accent focus:ring-v-accent bg-v-surface">
-                                </label>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
-                                    aria-label="{{ $status->name }} sort order"
-                                    class="v-control h-[var(--control-h-sm)] w-20 rounded-v-md border bg-v-surface px-2 text-[13px] text-v-text">
-                            </x-admin.table.cell>
-                            <x-admin.table.cell class="v-col-act">
-                                <div class="v-rowactions v-rowactions--end">
-                                    <label class="v-check">
-                                        <input type="hidden" form="{{ $editForm }}" name="is_default" value="0">
-                                        <input type="checkbox" form="{{ $editForm }}" name="is_default" value="1" @checked(old('is_default', $status->is_default))
-                                            class="w-4 h-4 rounded-v-sm text-v-accent focus:ring-v-accent bg-v-surface">
-                                        <span>Default</span>
-                                    </label>
-                                    <x-admin.button variant="secondary" size="sm" type="submit" form="{{ $editForm }}">Save</x-admin.button>
-                                    @unless ($status->is_default)
-                                        <x-admin.button variant="ghost" size="sm" type="button" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-status-{{ $status->id }}')">Delete</x-admin.button>
-                                    @endunless
-                                </div>
-                            </x-admin.table.cell>
-                        </x-admin.table.row>
-                    @endforeach
-                </x-admin.table>
-            </x-admin.card>
-
-            @foreach ($statuses as $status)
-                @unless ($status->is_default)
-                    <x-admin.confirm-dialog name="delete-status-{{ $status->id }}" title="Delete “{{ $status->name }}”?"
-                        message="Orders using this status keep their history; the status becomes unavailable for new changes."
-                        confirm="Delete" :action="route('admin.order-statuses.destroy', $status)" method="DELETE" />
-                @endunless
-            @endforeach
-
-            <x-admin.card title="Add status">
-                <form method="POST" action="{{ route('admin.order-statuses.store') }}" data-v-form class="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end">
-                    @csrf
-                    <x-admin.field name="name" label="Name" required>
-                        <x-admin.input name="name" required placeholder="Quality Check" />
-                    </x-admin.field>
-                    <x-admin.field name="sort_order" label="Sort">
-                        <x-admin.input name="sort_order" type="number" min="0" value="0" />
-                    </x-admin.field>
-                    <div class="flex flex-wrap items-center gap-4">
-                        <input type="hidden" name="deducts_stock" value="0">
-                        <x-admin.checkbox name="deducts_stock" label="Deducts stock"
-                            title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned." />
-                        <input type="hidden" name="counts_as_revenue" value="0">
-                        <x-admin.checkbox name="counts_as_revenue" label="Counts as revenue"
-                            title="Orders with no status never count, whatever this is set to." />
-                        <x-admin.checkbox name="is_default" label="Default" />
-                        <x-admin.button variant="primary" type="submit">Add</x-admin.button>
-                    </div>
-                </form>
-            </x-admin.card>
+<x-admin3.settings-shell title="Orders" active="order-statuses">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Orders</h1>
+            <p class="v3-head__standing">The status flow, and what each status does to stock and revenue.</p>
         </div>
-</x-admin.settings-shell>
+    </div>
+
+    <div class="v3-settle">
+        {{-- Per-row forms via the id'd-form + form="" idiom: a status is a
+             record, so each row saves itself. --}}
+        @foreach ($statuses as $status)
+            <form id="status-update-{{ $status->id }}" method="POST" action="{{ route('admin.order-statuses.update', $status) }}" hidden>
+                @csrf @method('PUT')
+            </form>
+        @endforeach
+
+        <x-admin3.panel title="Statuses" flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            {{-- The one non-obvious consequence each flag carries,
+                                 stated once in its header. --}}
+                            <th title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">Deducts stock</th>
+                            <th title="Orders with no status never count, whatever this is set to.">Counts as revenue</th>
+                            <th>Sort</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($statuses as $status)
+                            @php $editForm = 'status-update-'.$status->id; @endphp
+                            <tr>
+                                <td class="v3-cell-name">
+                                    <span class="v3-namerow">
+                                        <input type="text" form="{{ $editForm }}" name="name" value="{{ old('name', $status->name) }}" required maxlength="255"
+                                               aria-label="Status name" class="v3-control">
+                                        @if ($status->is_default)
+                                            <span class="v3-badge v3-badge--good">Default</span>
+                                        @endif
+                                    </span>
+                                </td>
+                                <td>
+                                    <label class="v3-check">
+                                        <input type="hidden" form="{{ $editForm }}" name="deducts_stock" value="0">
+                                        <input type="checkbox" form="{{ $editForm }}" name="deducts_stock" value="1" @checked(old('deducts_stock', $status->deducts_stock))
+                                               aria-label="{{ $status->name }} deducts stock">
+                                    </label>
+                                </td>
+                                <td>
+                                    <label class="v3-check">
+                                        <input type="hidden" form="{{ $editForm }}" name="counts_as_revenue" value="0">
+                                        <input type="checkbox" form="{{ $editForm }}" name="counts_as_revenue" value="1" @checked(old('counts_as_revenue', $status->counts_as_revenue))
+                                               aria-label="{{ $status->name }} counts as revenue">
+                                    </label>
+                                </td>
+                                <td>
+                                    <input type="number" form="{{ $editForm }}" name="sort_order" value="{{ old('sort_order', $status->sort_order) }}" min="0"
+                                           aria-label="{{ $status->name }} sort order" class="v3-control v3-mono v3-w-sort">
+                                </td>
+                                <td class="v3-cell-act">
+                                    <span class="v3-actrow">
+                                        <label class="v3-check">
+                                            <input type="hidden" form="{{ $editForm }}" name="is_default" value="0">
+                                            <input type="checkbox" form="{{ $editForm }}" name="is_default" value="1" @checked(old('is_default', $status->is_default))>
+                                            Default
+                                        </label>
+                                        <button type="submit" form="{{ $editForm }}" class="v3-btn v3-btn--secondary v3-btn--sm">Save</button>
+                                        @unless ($status->is_default)
+                                            <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-status-{{ $status->id }}')">Delete</button>
+                                        @endunless
+                                    </span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+
+        @foreach ($statuses as $status)
+            @unless ($status->is_default)
+                <x-admin3.confirm name="delete-status-{{ $status->id }}" title="Delete {{ $status->name }}?"
+                    message="Orders using this status keep their history; the status becomes unavailable for new changes."
+                    confirm="Delete" :action="route('admin.order-statuses.destroy', $status)" method="DELETE" />
+            @endunless
+        @endforeach
+
+        <x-admin3.panel title="Add status">
+            <form method="POST" action="{{ route('admin.order-statuses.store') }}" class="v3-addrow v3-addrow--3">
+                @csrf
+                <x-admin3.field name="name" label="Name" required>
+                    <input type="text" name="name" required placeholder="Quality Check" class="v3-control">
+                </x-admin3.field>
+                <x-admin3.field name="sort_order" label="Sort">
+                    <input type="number" name="sort_order" min="0" value="0" class="v3-control v3-mono">
+                </x-admin3.field>
+                <div class="v3-addrow__opts">
+                    <label class="v3-check" title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">
+                        <input type="hidden" name="deducts_stock" value="0">
+                        <input type="checkbox" name="deducts_stock" value="1">
+                        Deducts stock
+                    </label>
+                    <label class="v3-check" title="Orders with no status never count, whatever this is set to.">
+                        <input type="hidden" name="counts_as_revenue" value="0">
+                        <input type="checkbox" name="counts_as_revenue" value="1">
+                        Counts as revenue
+                    </label>
+                    <label class="v3-check">
+                        <input type="checkbox" name="is_default" value="1">
+                        Default
+                    </label>
+                    <button type="submit" class="v3-btn v3-btn--primary">Add status</button>
+                </div>
+            </form>
+        </x-admin3.panel>
+    </div>
+</x-admin3.settings-shell>

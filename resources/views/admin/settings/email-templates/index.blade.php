@@ -1,43 +1,63 @@
-<x-admin.settings-shell title="Email Templates">
-        <x-admin.table>
-            <x-slot:head>
-                <x-admin.table.th>Name</x-admin.table.th>
-                <x-admin.table.th>Slug</x-admin.table.th>
-                <x-admin.table.th>Type</x-admin.table.th>
-                <x-admin.table.th align="right">Status</x-admin.table.th>
-                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-            </x-slot:head>
-            @forelse ($templates as $template)
-                <x-admin.table.row href="{{ route('admin.email-templates.edit', $template) }}">
-                    <x-admin.table.cell>
-                        <span class="text-[13px] font-medium text-v-text">{{ $template->name }}</span>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell mono>
-                        <span class="text-xs text-v-muted">{{ $template->slug }}</span>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <x-admin.badge :tone="$template->type === 'customer' ? 'info' : 'neutral'">
-                            {{ $template->type === 'customer' ? 'Customer' : 'Admin' }}
-                        </x-admin.badge>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell align="right">
-                        <form method="POST" action="{{ route('admin.email-templates.toggle', $template) }}" data-v-form class="inline">
-                            @csrf
-                            <x-admin.switch type="submit" :checked="$template->is_active" label="{{ $template->name }} active" />
-                        </form>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell class="v-col-act">
-                        <div class="v-rowactions v-rowactions--end">
-                            <x-admin.button size="sm" variant="ghost" :href="route('admin.email-templates.edit', $template)">Edit</x-admin.button>
-                        </div>
-                    </x-admin.table.cell>
-                </x-admin.table.row>
-            @empty
-                <tr>
-                    <td colspan="5">
-                        <x-admin.empty-state title="No email templates found" description="Run the seeder to create the default set." />
-                    </td>
-                </tr>
-            @endforelse
-        </x-admin.table>
-</x-admin.settings-shell>
+<x-admin3.settings-shell title="Email Templates" active="email-templates">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Email Templates</h1>
+            <p class="v3-head__standing">The content of every email the store sends. A switched-off template falls back to the built-in wording.</p>
+        </div>
+    </div>
+
+    <div class="v3-settle">
+        <x-admin3.panel title="Templates" flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Slug</th>
+                            <th>Type</th>
+                            <th>Active</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($templates as $template)
+                            <tr>
+                                <td>
+                                    <a href="{{ route('admin.email-templates.edit', $template) }}" class="v3-cell-link">{{ $template->name }}</a>
+                                </td>
+                                <td class="v3-mono v3-cell-quiet">{{ $template->slug }}</td>
+                                <td>
+                                    <span class="v3-badge {{ $template->type === 'customer' ? 'v3-badge--good' : 'v3-badge--quiet' }}">
+                                        {{ $template->type === 'customer' ? 'Customer' : 'Admin' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ route('admin.email-templates.toggle', $template) }}">
+                                        @csrf
+                                        <button type="submit" class="v3-toggle v3-toggle--btn" role="switch"
+                                                aria-checked="{{ $template->is_active ? 'true' : 'false' }}"
+                                                aria-label="{{ $template->name }} active">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.email-templates.edit', $template) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No email templates found</p>
+                                        <p class="v3-empty__line">Run the seeder to create the default set.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+    </div>
+</x-admin3.settings-shell>

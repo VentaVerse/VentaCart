@@ -94,10 +94,19 @@ class EmailTemplateController extends Controller
         $user = Auth::user();
         $result = TemplateMailService::send($emailTemplate->slug, $user->email, self::testData());
 
-        if ($result) {
-            return back()->with('success', "Test email sent to {$user->email}.");
+        $message = $result
+            ? "Test email sent to {$user->email}."
+            : 'Failed to send the test email. Check the logs for details.';
+
+        // v3 pages test in place and never navigate.
+        if (request()->wantsJson()) {
+            return response()->json(['ok' => $result, 'message' => $message]);
         }
 
-        return back()->with('error', 'Failed to send test email. Check the logs for details.');
+        if ($result) {
+            return back()->with('success', $message);
+        }
+
+        return back()->with('error', $message);
     }
 }

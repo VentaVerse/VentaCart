@@ -791,6 +791,14 @@ class ReskinWaveTest extends TestCase
             route('admin.localization.index'),
             route('admin.localization.index', ['tab' => 'zones', 'country' => $country->id]),
             route('admin.localization.index', ['tab' => 'geo-zones']),
+        ];
+
+        foreach ($routes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        }
+
+        // Migrated to the v3 settings shell.
+        $v3Routes = [
             route('admin.users.index'),
             route('admin.users.create'),
             route('admin.users.edit', $editableUser),
@@ -799,8 +807,8 @@ class ReskinWaveTest extends TestCase
             route('admin.email-templates.edit', $template),
         ];
 
-        foreach ($routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v-admin', false);
+        foreach ($v3Routes as $url) {
+            $this->get($url)->assertOk()->assertSee('class="v3"', false);
         }
     }
 
@@ -855,13 +863,16 @@ class ReskinWaveTest extends TestCase
             route('admin.theme.index'),
             route('admin.stock-notifications.index'),
             route('admin.stock-notifications.index', ['tab' => 'template']),
-            route('admin.shipping-couriers.index'),
             route('admin.api-sync-logs.index'),
         ];
 
         foreach ($routes as $url) {
             $this->get($url)->assertOk()->assertSee('v-admin', false);
         }
+
+        // Couriers migrated to the v3 settings shell.
+        $this->get(route('admin.shipping-couriers.index'))
+            ->assertOk()->assertSee('class="v3"', false);
 
         // Banners is an optional extension — only assert its routes when the
         // BannerServiceProvider has actually registered them (Route::has guard,
@@ -1074,11 +1085,12 @@ class ReskinWaveTest extends TestCase
         // Users index is a representative "external" Settings-hub destination
         // (not a registry section) — it must now carry the same persistent
         // sub-sidebar + "All Settings" back link as the 7 registry sections.
+        // Users migrated to the v3 settings shell: the persistent settings
+        // nav is now the v3 context nav, which still lists sibling sections.
         $this->get(route('admin.users.index'))
             ->assertOk()
-            ->assertSee('v-admin', false)
-            ->assertSee('All Settings')
-            ->assertSee('Payments'); // sidebar lists sibling sections too
+            ->assertSee('class="v3"', false)
+            ->assertSee('Payments'); // context nav lists sibling sections
 
         // Payments discoverability: the landing page's availability chip and
         // "Availability rules" ghost button must both point at the method's
@@ -1185,13 +1197,13 @@ class ReskinWaveTest extends TestCase
 
         // general/mail/checkout/security migrated to the v3 settings shell;
         // they render its marker instead of the v2 workspace column.
-        foreach (['general', 'mail', 'checkout', 'security'] as $section) {
+        foreach (['general', 'mail', 'checkout', 'security', 'currencies', 'api'] as $section) {
             $this->get(route('admin.settings.section', $section))
                 ->assertOk()
                 ->assertSee('v3-settings__main', false);
         }
 
-        foreach (['currencies', 'api', 'automations'] as $section) {
+        foreach (['automations'] as $section) {
             $this->get(route('admin.settings.section', $section))
                 ->assertOk()
                 ->assertSee('v-workspace__main', false)

@@ -1,41 +1,46 @@
-<x-admin.settings-shell title="Role Permissions">
-        <x-admin.card>
-            <form method="POST" action="{{ route('admin.permissions.update') }}" data-v-form>
-                @csrf
+<x-admin3.settings-shell title="Permissions" active="permissions">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Permissions</h1>
+            <p class="v3-head__standing">What each role may touch. One save commits the whole matrix.</p>
+        </div>
+    </div>
 
-                <x-admin.table ruled>
-                    <x-slot:head>
-                        <x-admin.table.th>Permission</x-admin.table.th>
-                        @foreach ($roles as $role)
-                            <x-admin.table.th align="right">{{ $role->name }}</x-admin.table.th>
-                        @endforeach
-                    </x-slot:head>
-                    @foreach ($groups as $group => $perms)
-                        <tr class="v-tier">
-                            <td colspan="{{ $roles->count() + 1 }}">
-                                <div class="v-tier__row">
-                                    <div class="v-tier__left"><span class="v-tier__label">{{ ucfirst($group) }}</span></div>
-                                </div>
-                            </td>
+    <x-admin3.form :action="route('admin.permissions.update')" class="v3-settle">
+        <x-admin3.panel title="Role matrix" flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Permission</th>
+                            @foreach ($roles as $role)
+                                <th>{{ $role->name }}</th>
+                            @endforeach
                         </tr>
-                        @foreach ($perms as $permission)
-                            <x-admin.table.row>
-                                <x-admin.table.cell class="pl-8 text-v-text">{{ $permission->name }}</x-admin.table.cell>
-                                @foreach ($roles as $role)
-                                    <x-admin.table.cell align="right">
-                                        <x-admin.checkbox :name="'permissions[' . $role->id . '][]'" :value="$permission->id"
-                                            :aria-label="$permission->name . ' for ' . $role->name"
-                                            :checked="$role->permissions->contains($permission->id)" />
-                                    </x-admin.table.cell>
-                                @endforeach
-                            </x-admin.table.row>
+                    </thead>
+                    <tbody>
+                        @foreach ($groups as $group => $perms)
+                            <tr class="v3-tier">
+                                <td colspan="{{ $roles->count() + 1 }}">{{ ucfirst($group) }}</td>
+                            </tr>
+                            @foreach ($perms as $permission)
+                                <tr>
+                                    <td class="v3-cell-pad">{{ $permission->name }}</td>
+                                    @foreach ($roles as $role)
+                                        <td>
+                                            <label class="v3-check">
+                                                <input type="checkbox" name="permissions[{{ $role->id }}][]" value="{{ $permission->id }}"
+                                                       aria-label="{{ $permission->name }} for {{ $role->name }}"
+                                                       @checked($role->permissions->contains($permission->id))>
+                                            </label>
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @endforeach
                         @endforeach
-                    @endforeach
-                </x-admin.table>
-
-                <x-admin.form-actions>
-                    <x-admin.button type="submit">Save Permissions</x-admin.button>
-                </x-admin.form-actions>
-            </form>
-        </x-admin.card>
-</x-admin.settings-shell>
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+    </x-admin3.form>
+</x-admin3.settings-shell>
