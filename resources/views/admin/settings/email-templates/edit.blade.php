@@ -17,7 +17,7 @@
                         </div>
 
                         <x-admin.form-actions>
-                            <x-admin.button type="submit">Save Template</x-admin.button>
+                            <x-admin.button type="submit">Save template</x-admin.button>
                         </x-admin.form-actions>
                     </form>
                 </x-admin.card>

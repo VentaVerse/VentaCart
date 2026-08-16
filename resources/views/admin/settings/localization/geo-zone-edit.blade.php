@@ -17,10 +17,10 @@
                     <x-admin.field name="description" label="Description">
                         <x-admin.input name="description" :value="$geoZone->description" />
                     </x-admin.field>
-                    <div class="flex items-center gap-3">
-                        <x-admin.toggle name="is_active" label="Enabled" :checked="$geoZone->is_active" />
-                        <x-admin.button type="submit" class="ml-auto">Update</x-admin.button>
-                    </div>
+                    <x-admin.toggle name="is_active" label="Enabled" :checked="$geoZone->is_active" />
+                    <x-admin.form-actions>
+                        <x-admin.button variant="primary" type="submit">Save zone</x-admin.button>
+                    </x-admin.form-actions>
                 </form>
             </x-admin.card>
 
@@ -28,7 +28,7 @@
             <x-admin.card title="Zone Entries">
                 <x-slot:headerActions>
                     <x-admin.button type="button" size="sm" @click="addEntry()">
-                        <x-admin.icon name="plus" class="w-3.5 h-3.5" /> Add Entry
+                        <x-admin.icon name="plus" class="w-3.5 h-3.5" /> Add entry
                     </x-admin.button>
                 </x-slot:headerActions>
 
@@ -85,7 +85,11 @@
                         <x-admin.empty-state title="No entries yet" description="An entry is one country, optionally narrowed to one of its zones." />
                     </div>
 
-                    <x-admin.button type="submit" x-show="entries.length > 0">Save Entries</x-admin.button>
+                    {{-- Always visible: removing the LAST entry must still be
+                         saveable, and a hidden save bar made that impossible. --}}
+                    <x-admin.form-actions>
+                        <x-admin.button variant="primary" type="submit">Save entries</x-admin.button>
+                    </x-admin.form-actions>
                 </form>
             </x-admin.card>
         </div>

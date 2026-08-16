@@ -167,7 +167,7 @@
                             </div>
                         </div>
                         <x-admin.form-actions class="-mx-6">
-                            <x-admin.button type="submit">Save Template</x-admin.button>
+                            <x-admin.button type="submit">Save template</x-admin.button>
                         </x-admin.form-actions>
                     </form>
                 </x-admin.card>

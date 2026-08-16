@@ -119,7 +119,7 @@
 
                             <div class="mt-6 flex items-center justify-between">
                                 <x-admin.button type="button" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'revert-colors')">Revert to default</x-admin.button>
-                                <x-admin.button type="submit">Save Colors</x-admin.button>
+                                <x-admin.button type="submit">Save colors</x-admin.button>
                             </div>
                         </form>
 
@@ -220,7 +220,7 @@
                                 </div>
 
                                 <div class="mt-6 flex justify-end">
-                                    <x-admin.button type="submit">Save Fonts</x-admin.button>
+                                    <x-admin.button type="submit">Save fonts</x-admin.button>
                                 </div>
                             </form>
                         </div>
@@ -261,7 +261,7 @@
                                 </div>
                             </div>
                             <div class="mt-6 flex justify-end">
-                                <x-admin.button type="submit">Save Header</x-admin.button>
+                                <x-admin.button type="submit">Save header</x-admin.button>
                             </div>
                         </form>
                     </x-admin.card>
@@ -324,7 +324,7 @@
                                     </x-admin.field>
                                 </div>
                                 <x-admin.checkbox name="new_tab" label="Open in new tab" />
-                                <x-admin.button type="submit">Add Item</x-admin.button>
+                                <x-admin.button type="submit">Add item</x-admin.button>
                             </form>
                         </div>
                     </x-admin.card>
@@ -368,7 +368,7 @@
                                             @include('admin.settings.theme.section-config', ['section' => $section])
 
                                             <div class="flex justify-end">
-                                                <x-admin.button size="sm" type="submit">Update Section</x-admin.button>
+                                                <x-admin.button size="sm" type="submit">Save section</x-admin.button>
                                             </div>
                                         </form>
                                     </div>
@@ -434,7 +434,7 @@
                                 </x-admin.field>
                             </div>
                             <div class="mt-6 flex justify-end">
-                                <x-admin.button type="submit">Save Product Page</x-admin.button>
+                                <x-admin.button type="submit">Save product page</x-admin.button>
                             </div>
                         </form>
                     </x-admin.card>
@@ -495,7 +495,7 @@
                             </div>
 
                             <div class="mt-6 flex justify-end">
-                                <x-admin.button type="submit">Save Category</x-admin.button>
+                                <x-admin.button type="submit">Save category</x-admin.button>
                             </div>
                         </form>
                     </x-admin.card>
@@ -516,7 +516,7 @@
                                 </x-admin.field>
                             </div>
                             <div class="mt-6 flex justify-end">
-                                <x-admin.button type="submit">Save Badges</x-admin.button>
+                                <x-admin.button type="submit">Save badges</x-admin.button>
                             </div>
                         </form>
                     </x-admin.card>
@@ -630,7 +630,7 @@
                             </div>
 
                             <div class="mt-6 flex justify-end">
-                                <x-admin.button type="submit">Save Footer</x-admin.button>
+                                <x-admin.button type="submit">Save footer</x-admin.button>
                             </div>
                         </form>
 
@@ -692,7 +692,7 @@
                                 </x-admin.field>
                             </div>
                             <div class="mt-6 flex justify-end">
-                                <x-admin.button type="submit">Save Blog Settings</x-admin.button>
+                                <x-admin.button type="submit">Save blog settings</x-admin.button>
                             </div>
                         </form>
                     </x-admin.card>
@@ -726,7 +726,7 @@
                                     @endforeach
                                 </div>
                                 <div class="mt-6 flex justify-end">
-                                    <x-admin.button type="submit">Save Theme Settings</x-admin.button>
+                                    <x-admin.button type="submit">Save theme settings</x-admin.button>
                                 </div>
                             </form>
                         @else
