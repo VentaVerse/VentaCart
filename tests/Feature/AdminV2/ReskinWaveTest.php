@@ -1151,10 +1151,14 @@ class ReskinWaveTest extends TestCase
         $seoWorkspaceNavMarker = 'aria-label="SEO workspace"';
         $acWorkspaceNavMarker = 'aria-label="Abandoned carts workspace"';
 
+        // Engine settings now lives IN the SEO space (the v3 dual menu):
+        // its space nav is the rail + SEO context nav, which never hands
+        // out a foreign workspace's main nav, so the original bug (every
+        // link out re-entering another workspace) cannot recur.
         $this->get(route('admin.extensions.seo.settings'))
             ->assertOk()
-            ->assertDontSee($seoWorkspaceNavMarker, false)
-            ->assertSee('SEO workspace'); // the one explicit crossing link back
+            ->assertSee('class="v3"', false)
+            ->assertSee('aria-label="SEO"', false);
 
         foreach ([
             route('admin.abandoned-carts.settings'),
@@ -1174,7 +1178,7 @@ class ReskinWaveTest extends TestCase
             ->assertOk()
             ->assertSee($acWorkspaceNavMarker, false);
 
-        // The SEO workspace nav's single crossing item, renamed for clarity.
+        // The SEO space nav carries its Engine settings item.
         $this->get(route('admin.extensions.seo.dashboard'))
             ->assertOk()
             ->assertSee('Engine settings');

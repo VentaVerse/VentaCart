@@ -74,6 +74,23 @@ ultrawide splits evenly and is the normal cost of a bounded measure,
 never a reason to stretch or hug. One measure everywhere, tables and
 forms alike (owner-directed 2026-08-16).
 
+## Spaces (the dual menu, generalized)
+
+`x-admin3.space-shell` is THE dual-menu shell: condensed rail +
+the space's own context nav + centered measure + the seat crossing
+(multi-root aware via its `roots` prop, since a space's pages can
+span URL prefixes, e.g. SEO's /marketing/seo and
+/extensions/seo/settings). Settings and SEO wear it through thin
+wrappers (`settings-shell`, `seo-shell`) that only resolve their
+registries (`admin3-settings-nav`, `admin3-seo-nav`). The v2 shell's
+return seat recognizes every space root. The SEO space (first
+module space, 2026-08-16) holds all nine SEO pages including Engine
+settings, dissolving the old foreign-workspace-nav dilemma: a space
+nav never hands out another workspace's menu. Trap to remember:
+Blade directives (@js) never compile inside COMPONENT-TAG
+attributes; use {{ }} interpolation there (this bug shipped and was
+caught in verification).
+
 ## Nav components
 
 - `x-admin3.rail`: THE main nav, both renditions of it. Full azure

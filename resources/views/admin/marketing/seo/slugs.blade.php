@@ -1,8 +1,18 @@
 @php
     $slugTypes = ['products' => 'Products', 'categories' => 'Categories', 'brands' => 'Brands', 'blog' => 'Blog', 'pages' => 'Pages'];
 @endphp
-<x-admin.seo-shell title="SEO Slugs" heading="Slugs">
-    <div class="space-y-5" x-data="{
+<x-admin3.seo-shell title="Slugs" active="slugs">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Slugs
+                <x-admin3.help text="Changing a slug changes a live URL: existing links and bookmarks break unless you add a redirect for the old path." /></h1>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.extensions.seo.redirects.index') }}" class="v3-btn v3-btn--ghost">Manage redirects</a>
+        </div>
+    </div>
+
+    <div class="v3-settle" x-data="{
         editing: null,
         newSlug: '',
         saving: false,
@@ -21,14 +31,15 @@
             this.saving = true;
             this.error = null;
             try {
-                const res = await fetch('{{ route('admin.extensions.seo.update-slug') }}', {
+                const res = await fetch(@js(route('admin.extensions.seo.update-slug')), {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },
                     body: JSON.stringify({ entity_type: entityType, entity_id: entityId, slug: this.newSlug })
                 });
                 const data = await res.json();
                 if (data.ok) {
                     document.getElementById('slug-display-' + entityId).textContent = this.newSlug;
+                    Alpine.store('toasts').push('Slug updated.', 'good');
                     this.editing = null;
                 } else {
                     this.error = data.error || 'Failed to update slug.';
@@ -39,81 +50,77 @@
             this.saving = false;
         }
     }">
-        {{-- The one consequence a slug field cannot state in its own
-             name: the URL it is part of is already in somebody's
-             bookmarks and in Google's index. --}}
-        <x-admin.empty-state variant="notice" title="Changing a slug changes a live URL"
-            description="Existing links and bookmarks break unless you add a redirect for the old path.">
-            <a href="{{ route('admin.extensions.seo.redirects.index') }}" class="v-notice__btn">Manage redirects</a>
-        </x-admin.empty-state>
-
-        <x-admin.segment label="Content type">
-            @foreach ($slugTypes as $key => $label)
-                <x-admin.segment.item :href="route('admin.extensions.seo.slugs', ['type' => $key])" :active="$filter === $key">{{ $label }}</x-admin.segment.item>
-            @endforeach
-            <x-slot:aside>
-                <form method="GET" action="{{ route('admin.extensions.seo.slugs') }}" class="flex items-center gap-2">
+        <x-admin3.panel :title="($slugTypes[$filter] ?? 'Products') . ' slugs'" flush>
+            <x-slot:acts>
+                <div class="v3-tabs v3-tabs--sub" role="tablist" aria-label="Content type">
+                    @foreach ($slugTypes as $key => $label)
+                        <a href="{{ route('admin.extensions.seo.slugs', ['type' => $key]) }}"
+                           class="v3-tab" role="tab" aria-selected="{{ $filter === $key ? 'true' : 'false' }}">{{ $label }}</a>
+                    @endforeach
+                </div>
+                <form method="GET" action="{{ route('admin.extensions.seo.slugs') }}" class="v3-namerow">
                     <input type="hidden" name="type" value="{{ $filter }}">
-                    <x-admin.input type="search" name="search" :value="$search" placeholder="Search by name&hellip;" class="w-48" aria-label="Search by name" />
-                    <x-admin.button type="submit" variant="secondary" size="sm">Search</x-admin.button>
+                    <input type="search" name="search" value="{{ $search }}" placeholder="Search by name…" aria-label="Search by name" class="v3-control v3-w-search">
                 </form>
-            </x-slot:aside>
-        </x-admin.segment>
+            </x-slot:acts>
 
-        <x-admin.table>
-            <x-slot:head>
-                <x-admin.table.th>Name</x-admin.table.th>
-                <x-admin.table.th>Slug</x-admin.table.th>
-                <x-admin.table.th>URL preview</x-admin.table.th>
-                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-            </x-slot:head>
-            @forelse ($entities as $entity)
-                <x-admin.table.row>
-                    <x-admin.table.cell class="font-medium text-v-text">{{ $entity->display_name }}</x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <div x-show="editing !== {{ $entity->id }}">
-                            <code id="slug-display-{{ $entity->id }}" class="v-num rounded-v-sm bg-v-sunken px-2 py-0.5 text-[13px] text-v-secondary">{{ $entity->slug ?: '(none)' }}</code>
-                        </div>
-                        <div x-show="editing === {{ $entity->id }}" x-cloak class="flex items-center gap-2">
-                            <input type="text" x-model="newSlug" x-ref="slug_{{ $entity->id }}" aria-label="Slug"
-                                @keydown.enter="save('{{ $entityType }}', {{ $entity->id }})"
-                                @keydown.escape="cancel()"
-                                class="v-control h-[var(--control-h-sm)] w-64 rounded-v-md border bg-v-surface px-2.5 font-mono text-[13px] text-v-text"
-                                pattern="[a-z0-9][a-z0-9-]*">
-                            <x-admin.button type="button" variant="primary" size="sm" @click="save('{{ $entityType }}', {{ $entity->id }})" x-bind:disabled="saving">Save</x-admin.button>
-                            <x-admin.button type="button" variant="ghost" size="sm" @click="cancel()">Cancel</x-admin.button>
-                        </div>
-                        <p x-show="editing === {{ $entity->id }} && error" x-cloak class="v-field__error mt-1" x-text="error"></p>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell class="v-num text-xs text-v-muted">
-                        @php
-                            $prefix = match($entityType) {
-                                'product' => '/product/',
-                                'category' => '/category/',
-                                'brand' => '/brand/',
-                                'blog_post' => '/blog/',
-                                'page' => '/',
-                                default => '/',
-                            };
-                        @endphp
-                        {{ $prefix }}<span id="slug-preview-{{ $entity->id }}">{{ $entity->slug }}</span>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell class="v-col-act">
-                        <div class="v-rowactions v-rowactions--end" x-show="editing !== {{ $entity->id }}">
-                            <x-admin.button type="button" size="sm" variant="ghost" @click="edit({{ $entity->id }}, '{{ $entity->slug }}')">Edit</x-admin.button>
-                        </div>
-                    </x-admin.table.cell>
-                </x-admin.table.row>
-            @empty
-                <tr>
-                    <td colspan="4">
-                        <x-admin.empty-state title="No entities found" />
-                    </td>
-                </tr>
-            @endforelse
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th><th>Slug</th><th>URL preview</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($entities as $entity)
+                            <tr>
+                                <td>{{ $entity->display_name }}</td>
+                                <td>
+                                    <div x-show="editing !== {{ $entity->id }}">
+                                        <code id="slug-display-{{ $entity->id }}" class="v3-mono">{{ $entity->slug ?: '(none)' }}</code>
+                                    </div>
+                                    <div x-show="editing === {{ $entity->id }}" x-cloak class="v3-namerow">
+                                        <input type="text" x-model="newSlug" x-ref="slug_{{ $entity->id }}" aria-label="Slug"
+                                               @keydown.enter="save('{{ $entityType }}', {{ $entity->id }})"
+                                               @keydown.escape="cancel()"
+                                               class="v3-control v3-mono" pattern="[a-z0-9][a-z0-9-]*">
+                                        <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="save('{{ $entityType }}', {{ $entity->id }})" :disabled="saving">Save</button>
+                                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="cancel()">Cancel</button>
+                                    </div>
+                                    <p x-show="editing === {{ $entity->id }} && error" x-cloak class="v3-field__error" x-text="error"></p>
+                                </td>
+                                <td class="v3-mono v3-cell-quiet">
+                                    @php
+                                        $prefix = match($entityType) {
+                                            'product' => '/product/',
+                                            'category' => '/category/',
+                                            'brand' => '/brand/',
+                                            'blog_post' => '/blog/',
+                                            'page' => '/',
+                                            default => '/',
+                                        };
+                                    @endphp
+                                    {{ $prefix }}<span id="slug-preview-{{ $entity->id }}">{{ $entity->slug }}</span>
+                                </td>
+                                <td class="v3-cell-act">
+                                    <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" x-show="editing !== {{ $entity->id }}"
+                                            @click="edit({{ $entity->id }}, '{{ $entity->slug }}')">Edit</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4">
+                                    <div class="v3-empty"><p class="v3-empty__title">No entities found</p></div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
             @if ($entities->hasPages())
-                <x-slot:footer>{{ $entities->links() }}</x-slot:footer>
+                <div class="v3-pager">{{ $entities->links() }}</div>
             @endif
-        </x-admin.table>
+        </x-admin3.panel>
     </div>
-</x-admin.seo-shell>
+</x-admin3.seo-shell>

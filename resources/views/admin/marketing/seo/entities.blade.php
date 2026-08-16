@@ -2,10 +2,16 @@
     $entityTypeLabels2 = ['products' => 'Products', 'categories' => 'Categories', 'brands' => 'Brands', 'blog' => 'Blog', 'pages' => 'Pages'];
     $vHeading = $entityTypeLabels2[$type] ?? ucfirst($type);
 @endphp
-<x-admin.seo-shell :title="'SEO ' . $vHeading" :heading="$vHeading">
-    <div class="space-y-5">
+<x-admin3.seo-shell :title="$vHeading" :active="$type">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">{{ $vHeading }}</h1>
+        </div>
+    </div>
+
+    <div class="v3-settle">
         @if ($type === 'pages')
-            <x-admin.card title="Homepage" x-data="{
+            <x-admin3.panel title="Homepage" x-data="{
                 loading: false,
                 suggestion: null,
                 error: null,
@@ -14,7 +20,7 @@
                     try {
                         const res = await fetch('{{ route('admin.extensions.seo.optimize') }}', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },
                             body: JSON.stringify({ entity_type: 'homepage', entity_id: 0 })
                         });
                         const data = await res.json();
@@ -24,9 +30,9 @@
                 },
                 async apply() {
                     if (!this.suggestion) return;
-                    const res = await fetch('{{ route('admin.extensions.seo.save-settings') }}', {
+                    await fetch('{{ route('admin.extensions.seo.save-settings') }}', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },
                         body: JSON.stringify({
                             default_meta_title: this.suggestion.suggested_meta_title,
                             default_meta_description: this.suggestion.suggested_meta_description,
@@ -37,69 +43,50 @@
                     window.location.reload();
                 }
             }">
-                <x-slot name="headerActions">
-                    <x-admin.button type="button" variant="primary" size="sm" @click="optimize()" x-bind:disabled="loading">
-                        <span x-show="!loading">Optimize with AI</span>
-                        <span x-show="loading" x-cloak>Optimizing&hellip;</span>
-                    </x-admin.button>
-                </x-slot>
+                <x-slot:acts>
+                    <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="optimize()" :disabled="loading"
+                            x-text="loading ? 'Optimizing…' : 'Optimize with AI'">Optimize with AI</button>
+                </x-slot:acts>
 
-                <dl class="v-facts v-facts--flush">
-                    <dt class="v-label">Meta title</dt>
-                    <dd class="text-[13px] text-v-text">{{ $homepageMeta['default_meta_title'] ?? '(not set)' }}</dd>
-                    <dt class="v-label">Meta description</dt>
-                    <dd class="text-[13px] text-v-text">{{ Str::limit($homepageMeta['default_meta_description'] ?? '(not set)', 60) }}</dd>
+                <dl class="v3-facts">
+                    <dt>Meta title</dt>
+                    <dd>{{ $homepageMeta['default_meta_title'] ?? '(not set)' }}</dd>
+                    <dt>Meta description</dt>
+                    <dd>{{ Str::limit($homepageMeta['default_meta_description'] ?? '(not set)', 60) }}</dd>
                 </dl>
 
-                <p x-show="error" x-cloak class="v-field__error mt-3" x-text="error"></p>
+                <p x-show="error" x-cloak class="v3-field__error" x-text="error"></p>
 
-                <div x-show="suggestion" x-cloak class="mt-4 rounded-v-lg bg-v-accent-weak p-4">
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <div>
-                            <p class="v-label mb-1">Current meta title</p>
-                            <p class="v-sheet p-2 text-[13px] text-v-text" x-text="suggestion?.current_meta_title || '(empty)'"></p>
+                <div x-show="suggestion" x-cloak class="v3-gap">
+                    <div class="v3-diff">
+                        <div class="v3-diff__cols">
+                            <div>
+                                <div class="v3-cell-quiet">Current meta title</div>
+                                <div class="v3-diff__from" x-text="suggestion?.current_meta_title || '(empty)'"></div>
+                            </div>
+                            <div>
+                                <div class="v3-cell-quiet">Suggested meta title</div>
+                                <div class="v3-diff__to" x-text="suggestion?.suggested_meta_title || '(no change)'"></div>
+                            </div>
+                            <div>
+                                <div class="v3-cell-quiet">Current meta description</div>
+                                <div class="v3-diff__from" x-text="suggestion?.current_meta_description || '(empty)'"></div>
+                            </div>
+                            <div>
+                                <div class="v3-cell-quiet">Suggested meta description</div>
+                                <div class="v3-diff__to" x-text="suggestion?.suggested_meta_description || '(no change)'"></div>
+                            </div>
                         </div>
-                        <div>
-                            <p class="v-label mb-1 text-v-accent">Suggested meta title</p>
-                            <p class="v-sheet p-2 text-[13px] text-v-text" x-text="suggestion?.suggested_meta_title || '(no change)'"></p>
+                        <div class="v3-gap-sm v3-actrow">
+                            <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="apply()">Accept and apply</button>
+                            <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="suggestion = null">Dismiss</button>
                         </div>
-                        <div>
-                            <p class="v-label mb-1">Current meta description</p>
-                            <p class="v-sheet p-2 text-[13px] text-v-text" x-text="suggestion?.current_meta_description || '(empty)'"></p>
-                        </div>
-                        <div>
-                            <p class="v-label mb-1 text-v-accent">Suggested meta description</p>
-                            <p class="v-sheet p-2 text-[13px] text-v-text" x-text="suggestion?.suggested_meta_description || '(no change)'"></p>
-                        </div>
-                    </div>
-                    <div class="mt-3 flex gap-2">
-                        <x-admin.button type="button" variant="primary" size="sm" @click="apply()">Accept and apply</x-admin.button>
-                        <x-admin.button type="button" variant="ghost" size="sm" @click="suggestion = null">Dismiss</x-admin.button>
                     </div>
                 </div>
-            </x-admin.card>
+            </x-admin3.panel>
         @endif
 
-        <x-admin.filters :action="route('admin.extensions.seo.entities', ['type' => $type])">
-            <x-admin.field name="search" label="Search" class="v-field--grow">
-                <x-admin.input type="search" name="search" :value="$search" placeholder="Search by name&hellip;" />
-            </x-admin.field>
-            <x-admin.field name="seo_status" label="SEO status" class="w-44">
-                <x-admin.select name="seo_status">
-                    <option value="">All</option>
-                    <option value="complete" {{ $status === 'complete' ? 'selected' : '' }}>Complete</option>
-                    <option value="partial" {{ $status === 'partial' ? 'selected' : '' }}>Partial</option>
-                    <option value="missing" {{ $status === 'missing' ? 'selected' : '' }}>Missing</option>
-                    <option value="pending" {{ $status === 'pending' ? 'selected' : '' }}>Pending review</option>
-                </x-admin.select>
-            </x-admin.field>
-            <x-admin.button type="submit" variant="secondary">Filter</x-admin.button>
-            @if ($search || $status)
-                <a href="{{ route('admin.extensions.seo.entities', ['type' => $type]) }}" class="v-filters__reset">Clear</a>
-            @endif
-        </x-admin.filters>
-
-        <x-admin.panel flush x-data="{
+        <x-admin3.panel flush x-data="{
             selected: [],
             expanded: null,
             optimizing: null,
@@ -108,18 +95,14 @@
             entityIds: {{ json_encode($entities->pluck('id')->toArray()) }},
             pendingSuggestions: {{ json_encode($pendingSuggestions->mapWithKeys(fn($s, $k) => [$k => ['id' => $s->id, 'suggested_meta_title' => $s->suggested_meta_title, 'suggested_meta_description' => $s->suggested_meta_description, 'suggested_og_title' => $s->suggested_og_title, 'suggested_og_description' => $s->suggested_og_description, 'current_meta_title' => $s->current_meta_title, 'current_meta_description' => $s->current_meta_description, 'current_og_title' => $s->current_og_title, 'current_og_description' => $s->current_og_description]])) }},
             toggleAll() {
-                if (this.selectAll) {
-                    this.selected = [...this.entityIds];
-                } else {
-                    this.selected = [];
-                }
+                this.selected = this.selectAll ? [...this.entityIds] : [];
             },
             async optimize(entityType, entityId) {
                 this.optimizing = entityId;
                 try {
                     const res = await fetch('{{ route('admin.extensions.seo.optimize') }}', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },
                         body: JSON.stringify({ entity_type: entityType, entity_id: entityId })
                     });
                     const data = await res.json();
@@ -130,15 +113,15 @@
                         this.expanded = entityId;
                         const badge = document.getElementById('status-badge-' + entityId);
                         if (badge) {
-                            badge.className = 'v-badge v-badge--warning';
+                            badge.className = 'v3-badge v3-badge--warn';
                             badge.textContent = 'Pending review';
                         }
                     } else {
-                        window.Alpine.store('toasts').push(data.error || 'Could not generate a suggestion.', 'danger');
+                        window.Alpine.store('toasts').push(data.error || 'Could not generate a suggestion.', 'bad');
                     }
                 } catch (e) {
                     this.optimizing = null;
-                    window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'danger');
+                    window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'bad');
                 }
             },
             async acceptSuggestion(suggestionId, entityId) {
@@ -146,7 +129,7 @@
                     const url = '{{ route('admin.extensions.seo.accept', ['suggestion' => 'SUGGESTION_ID']) }}'.replace('SUGGESTION_ID', suggestionId);
                     const res = await fetch(url, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' }
                     });
                     const data = await res.json();
                     if (data.ok) {
@@ -156,7 +139,7 @@
                         this.suggestion = null;
                         const badge = document.getElementById('status-badge-' + entityId);
                         if (badge) {
-                            badge.className = 'v-badge v-badge--success';
+                            badge.className = 'v3-badge v3-badge--good';
                             badge.textContent = 'Complete';
                         }
                         const metaCell = document.getElementById('meta-title-' + entityId);
@@ -167,7 +150,7 @@
                         }
                     }
                 } catch (e) {
-                    window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'danger');
+                    window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'bad');
                 }
             },
             async rejectSuggestion(suggestionId, entityId) {
@@ -175,7 +158,7 @@
                     const url = '{{ route('admin.extensions.seo.reject', ['suggestion' => 'SUGGESTION_ID']) }}'.replace('SUGGESTION_ID', suggestionId);
                     const res = await fetch(url, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' }
                     });
                     const data = await res.json();
                     if (data.ok) {
@@ -184,14 +167,28 @@
                         this.suggestion = null;
                     }
                 } catch (e) {
-                    window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'danger');
+                    window.Alpine.store('toasts').push('Network error. Nothing was changed, try again.', 'bad');
                 }
             }
         }">
-            {{-- The bar a selection puts above the list. --}}
-            <div x-show="selected.length > 0" x-cloak class="v-panel__body pb-0">
-                <div class="v-flash">
-                <span class="v-flash__text" x-text="selected.length + ' selected'"></span>
+            <x-slot:acts>
+                <form method="GET" action="{{ route('admin.extensions.seo.entities', ['type' => $type]) }}" class="v3-namerow">
+                    <input type="search" name="search" value="{{ $search }}" placeholder="Search by name…" aria-label="Search by name" class="v3-control v3-w-search">
+                    <select name="seo_status" aria-label="SEO status" class="v3-control" onchange="this.form.submit()">
+                        <option value="">All statuses</option>
+                        <option value="complete" @selected($status === 'complete')>Complete</option>
+                        <option value="partial" @selected($status === 'partial')>Partial</option>
+                        <option value="missing" @selected($status === 'missing')>Missing</option>
+                        <option value="pending" @selected($status === 'pending')>Pending review</option>
+                    </select>
+                    @if ($search || $status)
+                        <a href="{{ route('admin.extensions.seo.entities', ['type' => $type]) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Clear</a>
+                    @endif
+                </form>
+            </x-slot:acts>
+
+            <div class="v3-bulkbar" x-show="selected.length > 0" x-cloak>
+                <span><strong x-text="selected.length"></strong> selected</span>
                 <form method="POST" action="{{ route('admin.extensions.seo.bulk-accept') }}" @submit.prevent="
                     const form = $el;
                     selected.forEach(id => {
@@ -206,141 +203,136 @@
                     form.submit();
                 ">
                     @csrf
-                    <x-admin.button type="submit" variant="primary" size="sm">Accept all pending</x-admin.button>
+                    <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Accept all pending</button>
                 </form>
-                </div>
             </div>
 
-            <x-admin.table bare roomy>
-                <x-slot:head>
-                    <x-admin.table.th class="w-10">
-                        <input type="checkbox" x-model="selectAll" @change="toggleAll()" aria-label="Select every row"
-                            class="rounded-v-sm border bg-v-surface text-v-accent focus:ring-v-accent">
-                    </x-admin.table.th>
-                    <x-admin.table.th class="w-14">Image</x-admin.table.th>
-                    <x-admin.table.th>Name</x-admin.table.th>
-                    <x-admin.table.th class="w-28">SEO status</x-admin.table.th>
-                    <x-admin.table.th>Meta title</x-admin.table.th>
-                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                </x-slot:head>
-                @forelse ($entities as $entity)
-                    @php
-                        $entityName = $entityType === 'blog_post' || $entityType === 'page' ? $entity->title : $entity->name;
-                        $entityImage = $entityType === 'blog_post' ? $entity->featured_image : $entity->image;
-                        $hasPending = $pendingSuggestions->has($entity->id);
-                        $hasMeta = !empty($entity->meta_title) && !empty($entity->meta_description);
-                        $hasPartial = !empty($entity->meta_title) || !empty($entity->meta_description);
-                        if ($hasPending) {
-                            $badgeTone = 'warning';
-                            $badgeLabel = 'Pending review';
-                        } elseif ($hasMeta) {
-                            $badgeTone = 'success';
-                            $badgeLabel = 'Complete';
-                        } elseif ($hasPartial) {
-                            $badgeTone = 'warning';
-                            $badgeLabel = 'Partial';
-                        } else {
-                            $badgeTone = 'danger';
-                            $badgeLabel = 'Missing';
-                        }
-                    @endphp
-                    <x-admin.table.row class="cursor-pointer" @click="expanded = expanded === {{ $entity->id }} ? null : {{ $entity->id }}; suggestion = pendingSuggestions[{{ $entity->id }}] || null;">
-                        <x-admin.table.cell @click.stop>
-                            <input type="checkbox" value="{{ $entity->id }}" x-model.number="selected"
-                                aria-label="Select {{ Str::limit($entityName, 50) }}"
-                                class="rounded-v-sm border bg-v-surface text-v-accent focus:ring-v-accent">
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            @if ($entityImage)
-                                <img src="{{ storage_url($entityImage) }}" alt="" class="h-10 w-10 rounded-v-md border border-v-border object-cover">
-                            @else
-                                <span class="flex h-10 w-10 items-center justify-center rounded-v-md border border-v-border bg-v-sunken">
-                                    <x-admin.icon name="media" class="h-5 w-5 text-v-muted" />
-                                </span>
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            <a href="{{ route($editRoute, $entity) }}" class="v-quietlink" @click.stop>{{ Str::limit($entityName, 50) }}</a>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            <x-admin.badge id="status-badge-{{ $entity->id }}" :tone="$badgeTone">{{ $badgeLabel }}</x-admin.badge>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell class="text-xs text-v-secondary" id="meta-title-{{ $entity->id }}">
-                            {{ $entity->meta_title ? Str::limit($entity->meta_title, 40) : '-' }}
-                        </x-admin.table.cell>
-                        <x-admin.table.cell class="v-col-act" @click.stop>
-                            <div class="v-rowactions v-rowactions--end">
-                                <x-admin.button type="button" variant="secondary" size="sm"
-                                    @click="optimize('{{ $entityType }}', {{ $entity->id }})"
-                                    x-bind:disabled="optimizing === {{ $entity->id }}">
-                                    <span x-text="optimizing === {{ $entity->id }} ? 'Optimizing…' : 'Optimize'"></span>
-                                </x-admin.button>
-                            </div>
-                        </x-admin.table.cell>
-                    </x-admin.table.row>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <label class="v3-check">
+                                    <input type="checkbox" x-model="selectAll" @change="toggleAll()" aria-label="Select every row">
+                                </label>
+                            </th>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>SEO status</th>
+                            <th>Meta title</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($entities as $entity)
+                            @php
+                                $entityName = $entityType === 'blog_post' || $entityType === 'page' ? $entity->title : $entity->name;
+                                $entityImage = $entityType === 'blog_post' ? $entity->featured_image : $entity->image;
+                                $hasPending = $pendingSuggestions->has($entity->id);
+                                $hasMeta = !empty($entity->meta_title) && !empty($entity->meta_description);
+                                $hasPartial = !empty($entity->meta_title) || !empty($entity->meta_description);
+                                if ($hasPending) { $badgeClass = 'v3-badge--warn'; $badgeLabel = 'Pending review'; }
+                                elseif ($hasMeta) { $badgeClass = 'v3-badge--good'; $badgeLabel = 'Complete'; }
+                                elseif ($hasPartial) { $badgeClass = 'v3-badge--warn'; $badgeLabel = 'Partial'; }
+                                else { $badgeClass = 'v3-badge--bad'; $badgeLabel = 'Missing'; }
+                            @endphp
+                            <tr class="v3-row-click" @click="expanded = expanded === {{ $entity->id }} ? null : {{ $entity->id }}; suggestion = pendingSuggestions[{{ $entity->id }}] || null;">
+                                <td @click.stop>
+                                    <label class="v3-check">
+                                        <input type="checkbox" value="{{ $entity->id }}" x-model.number="selected"
+                                               aria-label="Select {{ Str::limit($entityName, 50) }}">
+                                    </label>
+                                </td>
+                                <td>
+                                    @if ($entityImage)
+                                        <img src="{{ storage_url($entityImage) }}" alt="" class="v3-thumb">
+                                    @else
+                                        <span class="v3-thumb v3-thumb--blank"><x-admin3.icon name="modules" /></span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <a href="{{ route($editRoute, $entity) }}" @click.stop>{{ Str::limit($entityName, 50) }}</a>
+                                </td>
+                                <td>
+                                    <span id="status-badge-{{ $entity->id }}" class="v3-badge {{ $badgeClass }}">{{ $badgeLabel }}</span>
+                                </td>
+                                <td class="v3-cell-quiet" id="meta-title-{{ $entity->id }}">
+                                    {{ $entity->meta_title ? Str::limit($entity->meta_title, 40) : '-' }}
+                                </td>
+                                <td class="v3-cell-act" @click.stop>
+                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                                            @click="optimize('{{ $entityType }}', {{ $entity->id }})"
+                                            :disabled="optimizing === {{ $entity->id }}"
+                                            x-text="optimizing === {{ $entity->id }} ? 'Optimizing…' : 'Optimize'">Optimize</button>
+                                </td>
+                            </tr>
 
-                    {{-- What the row opens onto: the record's meta as it
-                         stands, or the suggestion beside it. --}}
-                    <tr x-show="expanded === {{ $entity->id }}" x-cloak>
-                        <td colspan="6" class="border-y border-v-border bg-v-sunken px-6 py-4">
-                            <div class="mb-3 flex items-center justify-between gap-3">
-                                <h3 class="v-subhead" x-text="suggestion ? 'Suggested' : 'Current'"></h3>
-                                <div class="flex items-center gap-2">
-                                    <template x-if="suggestion">
-                                        <span class="flex items-center gap-2">
-                                            <x-admin.button type="button" variant="primary" size="sm" @click="acceptSuggestion(suggestion.id, {{ $entity->id }})">Accept</x-admin.button>
-                                            <x-admin.button type="button" variant="danger" size="sm" @click="rejectSuggestion(suggestion.id, {{ $entity->id }})">Reject</x-admin.button>
+                            <tr x-show="expanded === {{ $entity->id }}" x-cloak>
+                                <td colspan="6" class="v3-cell-open">
+                                    <div class="v3-namerow v3-gap-sm">
+                                        <strong x-text="suggestion ? 'Suggested' : 'Current'"></strong>
+                                        <span class="v3-actrow">
+                                            <template x-if="suggestion">
+                                                <span class="v3-actrow">
+                                                    <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="acceptSuggestion(suggestion.id, {{ $entity->id }})">Accept</button>
+                                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="rejectSuggestion(suggestion.id, {{ $entity->id }})">Reject</button>
+                                                </span>
+                                            </template>
+                                            <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="expanded = null">Close</button>
                                         </span>
+                                    </div>
+
+                                    <template x-if="suggestion">
+                                        <div>
+                                            @foreach (['meta_title' => 'Meta title', 'meta_description' => 'Meta description', 'og_title' => 'OG title', 'og_description' => 'OG description'] as $field => $label)
+                                                <div class="v3-diff">
+                                                    <div class="v3-label">{{ $label }}</div>
+                                                    <div class="v3-diff__cols">
+                                                        <div>
+                                                            <div class="v3-cell-quiet">Current</div>
+                                                            <div class="v3-diff__from" x-text="suggestion.current_{{ $field }} || '(empty)'"></div>
+                                                        </div>
+                                                        <div>
+                                                            <div class="v3-cell-quiet">Suggested</div>
+                                                            <div class="v3-diff__to" x-text="suggestion.suggested_{{ $field }} || '(no change)'"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     </template>
-                                    <x-admin.button type="button" variant="ghost" size="sm" @click="expanded = null" aria-label="Close">
-                                        <x-admin.icon name="x" class="h-3.5 w-3.5" />
-                                    </x-admin.button>
-                                </div>
-                            </div>
 
-                            <template x-if="suggestion">
-                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    @foreach (['meta_title' => 'Meta title', 'meta_description' => 'Meta description', 'og_title' => 'OG title', 'og_description' => 'OG description'] as $field => $label)
+                                    <template x-if="!suggestion">
                                         <div>
-                                            <p class="v-label mb-1">Current {{ strtolower($label) }}</p>
-                                            <p class="v-sheet min-h-[2.5rem] px-3 py-2 text-[13px] text-v-text" x-text="suggestion.current_{{ $field }} || '(empty)'"></p>
+                                            @foreach (['meta_title' => 'Meta title', 'meta_description' => 'Meta description', 'og_title' => 'OG title', 'og_description' => 'OG description'] as $field => $label)
+                                                <div class="v3-well">
+                                                    <div class="v3-label">{{ $label }}</div>
+                                                    <div>{{ $entity->getAttribute($field) ?: '(empty)' }}</div>
+                                                </div>
+                                            @endforeach
                                         </div>
-                                        <div>
-                                            <p class="v-label mb-1 text-v-accent">Suggested {{ strtolower($label) }}</p>
-                                            <p class="min-h-[2.5rem] rounded-v-lg border border-v-accent bg-v-accent-weak px-3 py-2 text-[13px] text-v-text" x-text="suggestion.suggested_{{ $field }} || '(no change)'"></p>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </template>
-
-                            <template x-if="!suggestion">
-                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                    @foreach (['meta_title' => 'Meta title', 'meta_description' => 'Meta description', 'og_title' => 'OG title', 'og_description' => 'OG description'] as $field => $label)
-                                        <div>
-                                            <p class="v-label mb-1">{{ $label }}</p>
-                                            <p class="v-sheet min-h-[2.5rem] px-3 py-2 text-[13px] text-v-text">{{ $entity->getAttribute($field) ?: '(empty)' }}</p>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </template>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6">
-                            <x-admin.empty-state title="No {{ $type }} found"
-                                :description="($search || $status) ? 'Try adjusting your filters.' : 'There are no active ' . $type . ' to optimize.'">
-                                @if ($search || $status)
-                                    <x-admin.button variant="secondary" :href="route('admin.extensions.seo.entities', ['type' => $type])">Clear all filters</x-admin.button>
-                                @endif
-                            </x-admin.empty-state>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($entities->hasPages())
-                    <x-slot:footer>{{ $entities->withQueryString()->links() }}</x-slot:footer>
-                @endif
-            </x-admin.table>
-        </x-admin.panel>
+                                    </template>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No {{ $type }} found</p>
+                                        <p class="v3-empty__line">{{ ($search || $status) ? 'Try adjusting your filters.' : 'There are no active ' . $type . ' to optimize.' }}</p>
+                                        @if ($search || $status)
+                                            <a href="{{ route('admin.extensions.seo.entities', ['type' => $type]) }}" class="v3-btn v3-btn--secondary v3-btn--sm">Clear all filters</a>
+                                        @endif
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if ($entities->hasPages())
+                <div class="v3-pager">{{ $entities->withQueryString()->links() }}</div>
+            @endif
+        </x-admin3.panel>
     </div>
-</x-admin.seo-shell>
+</x-admin3.seo-shell>

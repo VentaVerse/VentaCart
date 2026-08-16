@@ -1,89 +1,66 @@
-<x-admin.seo-shell title="SEO Search Console" heading="Search Console">
-    @if (! $gscConfigured)
-        <x-admin.panel flush>
-            <x-admin.empty-state title="Google Search Console is not configured yet"
-                description="Upload credentials and set your site URL to see real query performance here.">
-                <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.settings')">Go to settings</x-admin.button>
-            </x-admin.empty-state>
-        </x-admin.panel>
-    @else
-        <div class="space-y-5">
-            <x-admin.toolbar>
-                <span class="text-xs text-v-muted">
+<x-admin3.seo-shell title="Search Console" active="search-console">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Search Console
+                <x-admin3.help text="Google's numbers, fetched from Search Console. The data lags by two to three days, so the most recent days are always incomplete." /></h1>
+            @if ($gscConfigured)
+                <p class="v3-head__standing">
                     @if ($fetchedAt)
                         Fetched {{ $fetchedAt->diffForHumans() }} ({{ $fetchedAt->format('M d, Y g:i A') }})
                     @else
                         Not fetched yet
                     @endif
-                </span>
-                <div class="v-toolbar__actions">
-                    {{-- The one thing these numbers cannot say for
-                         themselves: they are Google's, and Google is
-                         two to three days behind. --}}
-                    <x-admin.hint label="How current this is">Search Console data lags by two to three days, so the most recent days are always incomplete.</x-admin.hint>
-                    <x-admin.button variant="secondary" size="sm" :href="route('admin.extensions.seo.search-console', ['refresh' => 1])">Refresh</x-admin.button>
-                </div>
-            </x-admin.toolbar>
-
-            <x-admin.panel title="Top queries, last 28 days" flush>
-                @if (count($queries) > 0)
-                    <x-admin.table bare>
-                        <x-slot:head>
-                            <x-admin.table.th>Query</x-admin.table.th>
-                            <x-admin.table.th align="right">Clicks</x-admin.table.th>
-                            <x-admin.table.th align="right">Impressions</x-admin.table.th>
-                            <x-admin.table.th align="right">CTR</x-admin.table.th>
-                            <x-admin.table.th align="right">Avg position</x-admin.table.th>
-                        </x-slot:head>
-                        @foreach ($queries as $row)
-                            @php
-                                $ctrVal = $row['ctr'] * 100;
-                                $ctrTone = $ctrVal < 2 ? 'text-v-danger' : ($ctrVal <= 5 ? 'text-v-warning' : 'text-v-accent');
-                                $posTone = $row['position'] < 10 ? 'text-v-accent' : ($row['position'] <= 20 ? 'text-v-warning' : 'text-v-danger');
-                            @endphp
-                            <x-admin.table.row>
-                                <x-admin.table.cell class="text-v-text">{{ $row['query'] }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono>{{ number_format($row['clicks']) }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono>{{ number_format($row['impressions']) }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono class="font-medium {{ $ctrTone }}">{{ number_format($ctrVal, 1) }}%</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono class="font-medium {{ $posTone }}">{{ number_format($row['position'], 1) }}</x-admin.table.cell>
-                            </x-admin.table.row>
-                        @endforeach
-                    </x-admin.table>
-                @else
-                    <x-admin.empty-state title="No query data available" />
-                @endif
-            </x-admin.panel>
-
-            <x-admin.panel title="Top pages, last 28 days" flush>
-                @if (count($pages) > 0)
-                    <x-admin.table bare>
-                        <x-slot:head>
-                            <x-admin.table.th>Page URL</x-admin.table.th>
-                            <x-admin.table.th align="right">Clicks</x-admin.table.th>
-                            <x-admin.table.th align="right">Impressions</x-admin.table.th>
-                            <x-admin.table.th align="right">CTR</x-admin.table.th>
-                            <x-admin.table.th align="right">Avg position</x-admin.table.th>
-                        </x-slot:head>
-                        @foreach ($pages as $row)
-                            @php
-                                $ctrVal = $row['ctr'] * 100;
-                                $ctrTone = $ctrVal < 2 ? 'text-v-danger' : ($ctrVal <= 5 ? 'text-v-warning' : 'text-v-accent');
-                                $posTone = $row['position'] < 10 ? 'text-v-accent' : ($row['position'] <= 20 ? 'text-v-warning' : 'text-v-danger');
-                            @endphp
-                            <x-admin.table.row>
-                                <x-admin.table.cell class="max-w-xs truncate text-v-text" title="{{ $row['page'] }}">{{ Str::limit($row['page'], 60) }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono>{{ number_format($row['clicks']) }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono>{{ number_format($row['impressions']) }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono class="font-medium {{ $ctrTone }}">{{ number_format($ctrVal, 1) }}%</x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono class="font-medium {{ $posTone }}">{{ number_format($row['position'], 1) }}</x-admin.table.cell>
-                            </x-admin.table.row>
-                        @endforeach
-                    </x-admin.table>
-                @else
-                    <x-admin.empty-state title="No page data available" />
-                @endif
-            </x-admin.panel>
+                </p>
+            @endif
         </div>
-    @endif
-</x-admin.seo-shell>
+        @if ($gscConfigured)
+            <div class="v3-head__actions">
+                <a href="{{ route('admin.extensions.seo.search-console', ['refresh' => 1]) }}" class="v3-btn v3-btn--secondary">Refresh</a>
+            </div>
+        @endif
+    </div>
+
+    <div class="v3-settle">
+        @if (! $gscConfigured)
+            <x-admin3.panel>
+                <div class="v3-empty">
+                    <p class="v3-empty__title">Google Search Console is not configured yet</p>
+                    <p class="v3-empty__line">Upload credentials and set your site URL to see real query performance here.</p>
+                    <a href="{{ route('admin.extensions.seo.settings') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Go to settings</a>
+                </div>
+            </x-admin3.panel>
+        @else
+            @foreach ([['Top queries, last 28 days', $queries, 'query', 'Query'], ['Top pages, last 28 days', $pages, 'page', 'Page URL']] as [$panelTitle, $rows, $field, $colLabel])
+                <x-admin3.panel :title="$panelTitle" flush>
+                    @if (count($rows) > 0)
+                        <div class="v3-tablewrap">
+                            <table class="v3-table">
+                                <thead>
+                                    <tr><th>{{ $colLabel }}</th><th>Clicks</th><th>Impressions</th><th>CTR</th><th>Avg position</th></tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($rows as $row)
+                                        @php
+                                            $ctrVal = $row['ctr'] * 100;
+                                            $ctrTone = $ctrVal < 2 ? 'v3-badge--bad' : ($ctrVal <= 5 ? 'v3-badge--warn' : 'v3-badge--good');
+                                            $posTone = $row['position'] < 10 ? 'v3-badge--good' : ($row['position'] <= 20 ? 'v3-badge--warn' : 'v3-badge--bad');
+                                        @endphp
+                                        <tr>
+                                            <td class="v3-cell-url" title="{{ $row[$field] }}">{{ Str::limit($row[$field], 60) }}</td>
+                                            <td class="v3-mono">{{ number_format($row['clicks']) }}</td>
+                                            <td class="v3-mono">{{ number_format($row['impressions']) }}</td>
+                                            <td class="v3-mono {{ $ctrTone }}">{{ number_format($ctrVal, 1) }}%</td>
+                                            <td class="v3-mono {{ $posTone }}">{{ number_format($row['position'], 1) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="v3-empty"><p class="v3-empty__title">No data available</p></div>
+                    @endif
+                </x-admin3.panel>
+            @endforeach
+        @endif
+    </div>
+</x-admin3.seo-shell>

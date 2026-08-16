@@ -46,17 +46,21 @@
          (correct on back/forward); referrer is the fallback. --}}
     <script>
         (() => {
-            const root = window.__vSettingsRoot = @js(parse_url(route('admin.settings.index'), PHP_URL_PATH));
-            let fromSettings = false;
+            // Returning from ANY dual-menu space seats the slab.
+            const roots = window.__vSpaceRoots = @js(array_values(array_filter([
+                parse_url(route('admin.settings.index'), PHP_URL_PATH),
+                \Illuminate\Support\Facades\Route::has('admin.extensions.seo.dashboard') ? parse_url(route('admin.extensions.seo.dashboard'), PHP_URL_PATH) : null,
+            ])));
+            let fromSpace = false;
             try {
                 const prev = window.navigation?.activation?.from?.url ?? document.referrer ?? '';
                 if (prev) {
                     const u = new URL(prev, location.origin);
-                    fromSettings = u.origin === location.origin
-                        && (u.pathname === root || u.pathname.startsWith(root + '/'));
+                    fromSpace = u.origin === location.origin
+                        && roots.some(r => u.pathname === r || u.pathname.startsWith(r + '/'));
                 }
             } catch (e) { /* unparsable: treat as external */ }
-            if (fromSettings) document.documentElement.classList.add('v-cross');
+            if (fromSpace) document.documentElement.classList.add('v-cross');
         })();
     </script>
     @stack('head')
