@@ -6,19 +6,19 @@
         </div>
     </div>
 
-    <x-admin3.panel title="Active theme" :note="$installedThemes[$activeTheme]['description'] ?? ''">
+    <x-admin3.panel title="Active look" :note="$installedPresets[$activePreset]['description'] ?? ''">
         <x-slot:acts>
             <form method="POST" action="{{ route('admin.theme.switch') }}" id="v3-theme-switch" class="v3-actrow">
                 @csrf
-                <select name="theme" aria-label="Storefront theme" class="v3-control v3-w-name">
-                    @foreach ($installedThemes as $slug => $meta)
-                        <option value="{{ $slug }}" @selected($slug === $activeTheme)>{{ $meta['name'] }}</option>
+                <select name="preset" aria-label="Storefront look" class="v3-control v3-w-name">
+                    @foreach ($installedPresets as $slug => $meta)
+                        <option value="{{ $slug }}" @selected($slug === $activePreset)>{{ $meta['name'] ?? $slug }}</option>
                     @endforeach
                 </select>
                 <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="$dispatch('v3-confirm', 'switch-theme')">Switch</button>
             </form>
         </x-slot:acts>
-        <p class="v3-cell-quiet">{{ $installedThemes[$activeTheme]['name'] ?? $activeTheme }} is live on the storefront now.</p>
+        <p class="v3-cell-quiet">{{ $installedPresets[$activePreset]['name'] ?? 'No preset' }} is live on the storefront now.</p>
     </x-admin3.panel>
 
     {{-- The switch restyles the live storefront the moment it lands. --}}
@@ -26,11 +26,11 @@
         <template x-if="open">
             <div class="v3-overlay" @click.self="open = false">
                 <div class="v3-modal" role="dialog" aria-modal="true" aria-labelledby="v3c-switch">
-                    <h2 class="v3-modal__title" id="v3c-switch">Switch the storefront theme?</h2>
-                    <p class="v3-modal__body">Shoppers see the new theme immediately. Colors and fonts saved for it are restored; the current theme's are kept for switching back.</p>
+                    <h2 class="v3-modal__title" id="v3c-switch">Switch the storefront look?</h2>
+                    <p class="v3-modal__body">Shoppers see the new look immediately. Colors, fonts, and options saved for it are restored; the current look's are kept for switching back.</p>
                     <div class="v3-modal__acts">
                         <button type="button" class="v3-btn v3-btn--ghost" @click="open = false">Cancel</button>
-                        <button type="submit" form="v3-theme-switch" class="v3-btn v3-btn--primary">Switch theme</button>
+                        <button type="submit" form="v3-theme-switch" class="v3-btn v3-btn--primary">Switch look</button>
                     </div>
                 </div>
             </div>

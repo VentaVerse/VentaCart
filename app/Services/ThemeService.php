@@ -90,7 +90,7 @@ class ThemeService
 
     public function getActiveTheme(): string
     {
-        return $this->get('identity.active_theme', 'stage-ready');
+        return $this->get('identity.active_theme', 'venta');
     }
 
     public function getThemePath(?string $theme = null): string
@@ -118,6 +118,140 @@ class ThemeService
         }
 
         return $themes;
+    }
+
+    /**
+     * Presets installed with the active theme: each is a JSON overlay
+     * (colors, fonts, options) over the theme.json base contract.
+     */
+    public function getInstalledPresets(?string $theme = null): array
+    {
+        $dir = $this->getThemePath($theme) . '/presets';
+        if (!is_dir($dir)) {
+            return [];
+        }
+
+        $presets = [];
+        foreach (glob($dir . '/*.json') as $path) {
+            $meta = json_decode((string) file_get_contents($path), true);
+            if (!is_array($meta)) {
+                continue;
+            }
+            $slug = basename($path, '.json');
+            $meta['slug'] = $slug;
+            $presets[$slug] = $meta;
+        }
+        ksort($presets);
+
+        return $presets;
+    }
+
+    public function getActivePreset(): ?string
+    {
+        return $this->get('identity.active_preset');
+    }
+
+    /**
+     * Make a preset the live look. The outgoing preset's colors, fonts,
+     * and options are snapshotted under its own slug (so switching back
+     * restores edits); the incoming one is theme.json defaults, overlaid
+     * with the preset file, overlaid with its saved snapshot.
+     */
+    public function applyPreset(string $slug): void
+    {
+        $presets = $this->getInstalledPresets();
+        if (!isset($presets[$slug])) {
+            throw new \InvalidArgumentException("Unknown preset [{$slug}].");
+        }
+
+        $theme = $this->getActiveTheme();
+        $themeJson = json_decode((string) file_get_contents($this->getThemePath($theme) . '/theme.json'), true) ?: [];
+        $old = $this->getActivePreset();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($slug, $presets, $themeJson, $theme, $old) {
+            // Snapshot the outgoing look under its own slug
+            if ($old !== null && $old !== $slug) {
+                foreach (['colors', 'fonts', 'vars'] as $group) {
+                    $live = Setting::where('group', $group)->pluck('value', 'key')->all();
+                    foreach ($live as $key => $value) {
+                        Setting::updateOrCreate(
+                            ['group' => "{$group}__{$old}", 'key' => $key],
+                            ['value' => $value]
+                        );
+                    }
+                }
+                $liveOptions = Setting::where('group', 'theme_settings')
+                    ->where('key', 'like', "{$theme}_%")
+                    ->pluck('value', 'key')->all();
+                foreach ($liveOptions as $key => $value) {
+                    Setting::updateOrCreate(
+                        ['group' => "theme_settings__{$old}", 'key' => $key],
+                        ['value' => $value]
+                    );
+                }
+            }
+
+            $preset = $presets[$slug];
+
+            // Colors: base contract, preset overlay, then saved edits
+            $colors = array_merge(
+                $themeJson['colors'] ?? [],
+                $preset['colors'] ?? [],
+                Setting::where('group', "colors__{$slug}")->pluck('value', 'key')->all()
+            );
+            Setting::where('group', 'colors')->delete();
+            foreach ($colors as $key => $value) {
+                Setting::create(['group' => 'colors', 'key' => $key, 'value' => $value]);
+            }
+
+            // Fonts: same layering
+            $fonts = array_merge(
+                $themeJson['fonts'] ?? [],
+                $preset['fonts'] ?? [],
+                Setting::where('group', "fonts__{$slug}")->pluck('value', 'key')->all()
+            );
+            Setting::where('group', 'fonts')->delete();
+            foreach ($fonts as $key => $value) {
+                Setting::create(['group' => 'fonts', 'key' => $key, 'value' => $value]);
+            }
+
+            // Vars: non-color tokens (tracking, dims), same layering
+            $vars = array_merge(
+                $themeJson['vars'] ?? [],
+                $preset['vars'] ?? [],
+                Setting::where('group', "vars__{$slug}")->pluck('value', 'key')->all()
+            );
+            Setting::where('group', 'vars')->delete();
+            foreach ($vars as $key => $value) {
+                Setting::create(['group' => 'vars', 'key' => $key, 'value' => $value]);
+            }
+
+            // Options: schema defaults, preset overlay, then saved edits
+            $options = [];
+            foreach (($themeJson['settings'] ?? []) as $key => $schema) {
+                $options[$key] = $schema['default'] ?? null;
+            }
+            $options = array_merge($options, $preset['options'] ?? []);
+            $saved = Setting::where('group', "theme_settings__{$slug}")->pluck('value', 'key')->all();
+            foreach ($options as $key => $value) {
+                $storageKey = "{$theme}_{$key}";
+                $value = $saved[$storageKey] ?? $value;
+                if (is_bool($value)) {
+                    $value = $value ? '1' : '0';
+                }
+                Setting::updateOrCreate(
+                    ['group' => 'theme_settings', 'key' => $storageKey],
+                    ['value' => $value]
+                );
+            }
+
+            Setting::updateOrCreate(
+                ['group' => 'identity', 'key' => 'active_preset'],
+                ['value' => $slug]
+            );
+        });
+
+        $this->clearCache();
     }
 
     public function getThemeSettingsSchema(?string $theme = null): array

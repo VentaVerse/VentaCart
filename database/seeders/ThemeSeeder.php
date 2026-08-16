@@ -14,7 +14,7 @@ class ThemeSeeder extends Seeder
     public function run(): void
     {
         // Load colors and fonts from active theme's theme.json
-        $activeTheme = Setting::where('group', 'theme')->where('key', 'active')->value('value') ?? 'stage-ready';
+        $activeTheme = Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?? 'venta';
         $themePath = resource_path("themes/{$activeTheme}/theme.json");
         $themeJson = file_exists($themePath) ? json_decode(file_get_contents($themePath), true) : [];
 
@@ -42,11 +42,15 @@ class ThemeSeeder extends Seeder
                 'site_name' => 'Venta',
                 'logo' => null,
                 'favicon' => null,
+                'active_theme' => $activeTheme,
+                'active_preset' => 'clean-light',
             ],
             'colors' => $themeColors,
             'fonts' => [
-                'heading' => 'Oswald',
-                'body' => 'Roboto Slab',
+                'heading' => $themeJson['fonts']['heading'] ?? 'Inter',
+                'body' => $themeJson['fonts']['body'] ?? 'Inter',
+                'heading_stack' => $themeJson['fonts']['heading_stack'] ?? 'sans-serif',
+                'body_stack' => $themeJson['fonts']['body_stack'] ?? 'sans-serif',
             ],
             'header' => [
                 'announcement_enabled' => '0',

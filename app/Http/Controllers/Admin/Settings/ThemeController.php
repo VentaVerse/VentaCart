@@ -32,6 +32,8 @@ class ThemeController extends Controller
 
         $installedThemes = $theme->getInstalledThemes();
         $activeTheme = $theme->getActiveTheme();
+        $installedPresets = $theme->getInstalledPresets();
+        $activePreset = $theme->getActivePreset();
         $themeSettingsSchema = $theme->getThemeSettingsSchema();
 
         $themeSettingValues = [];
@@ -41,7 +43,8 @@ class ThemeController extends Controller
 
         return view('admin.settings.theme.index', compact(
             'settings', 'sections', 'navItems', 'footerColumns', 'currencies', 'categories',
-            'installedThemes', 'activeTheme', 'themeSettingsSchema', 'themeSettingValues'
+            'installedThemes', 'activeTheme', 'installedPresets', 'activePreset',
+            'themeSettingsSchema', 'themeSettingValues'
         ));
     }
 
@@ -97,74 +100,23 @@ class ThemeController extends Controller
         return back()->with('success', ucfirst($group) . ' settings updated.')->with('tab', $group);
     }
 
-    public function switchTheme(Request $request)
+    public function switchTheme(Request $request, ThemeService $theme)
     {
-        $request->validate(['theme' => 'required|string']);
+        $request->validate(['preset' => 'required|string']);
 
-        $newTheme = $request->input('theme');
-        $themePath = resource_path("themes/{$newTheme}/theme.json");
-
-        if (!file_exists($themePath)) {
-            return back()->with('error', 'Theme not found.');
+        $slug = $request->input('preset');
+        $presets = $theme->getInstalledPresets();
+        if (!isset($presets[$slug])) {
+            return back()->with('error', 'Preset not found.');
         }
 
-        $themeService = app(ThemeService::class);
-        $oldTheme = $themeService->getActiveTheme();
+        $theme->applyPreset($slug);
 
-        // Save current colors under the old theme's key
-        $currentColors = Setting::where('group', 'colors')->pluck('value', 'key')->all();
-        if (!empty($currentColors)) {
-            foreach ($currentColors as $key => $value) {
-                Setting::updateOrCreate(
-                    ['group' => "colors__{$oldTheme}", 'key' => $key],
-                    ['value' => $value]
-                );
-            }
-        }
-        $currentFonts = Setting::where('group', 'fonts')->pluck('value', 'key')->all();
-        foreach ($currentFonts as $fKey => $fVal) {
-            Setting::updateOrCreate(
-                ['group' => "fonts__{$oldTheme}", 'key' => $fKey],
-                ['value' => $fVal]
-            );
-        }
-
-        // Load saved colors for the new theme, or fall back to theme.json defaults
-        $themeJson = json_decode(file_get_contents($themePath), true);
-        $savedColors = Setting::where('group', "colors__{$newTheme}")->pluck('value', 'key')->all();
-
-        // Merge: theme.json provides all defaults, saved colors override what exists
-        $jsonColors = $themeJson['colors'] ?? [];
-        $colors = array_merge($jsonColors, $savedColors);
-        $fontsUrl = $themeJson['fonts']['url'] ?? null;
-
-        // Clear all existing colors and write the full set
-        Setting::where('group', 'colors')->delete();
-        foreach ($colors as $key => $value) {
-            Setting::create(['group' => 'colors', 'key' => $key, 'value' => $value]);
-        }
-
-        // Restore fonts: saved per-theme fonts, or parse from theme.json
-        $savedFonts = Setting::where('group', "fonts__{$newTheme}")->pluck('value', 'key')->all();
-        if (!empty($savedFonts)) {
-            foreach ($savedFonts as $fKey => $fVal) {
-                Setting::updateOrCreate(['group' => 'fonts', 'key' => $fKey], ['value' => $fVal]);
-            }
-        } else {
-            if ($fontsUrl) {
-                Setting::updateOrCreate(['group' => 'fonts', 'key' => 'google_fonts_url'], ['value' => $fontsUrl]);
-            }
-        }
-
-        $themeService->set('identity', 'active_theme', $newTheme);
-        $themeService->clearCache();
-
-        return back()->with('success', 'Theme switched to ' . ($themeJson['name'] ?? $newTheme) . '.');
+        return back()->with('success', 'Storefront look switched to ' . ($presets[$slug]['name'] ?? $slug) . '.');
     }
 
-    public function revertThemeColors()
+    public function revertThemeColors(ThemeService $themeService)
     {
-        $themeService = app(ThemeService::class);
         $activeTheme = $themeService->getActiveTheme();
         $themePath = resource_path("themes/{$activeTheme}/theme.json");
 
@@ -173,32 +125,34 @@ class ThemeController extends Controller
         }
 
         $themeJson = json_decode(file_get_contents($themePath), true);
+        $preset = $themeService->getInstalledPresets()[$themeService->getActivePreset()] ?? [];
 
-        if (!empty($themeJson['colors'])) {
-            // Clear and rewrite — removes orphan keys from old color systems
+        // The preset's factory look: theme.json base with the preset overlaid
+        $colors = array_merge($themeJson['colors'] ?? [], $preset['colors'] ?? []);
+        $fonts = array_merge($themeJson['fonts'] ?? [], $preset['fonts'] ?? []);
+        $presetSlug = $preset['slug'] ?? null;
+
+        if (!empty($colors)) {
+            // Clear and rewrite, removing orphan keys from old color systems
             Setting::where('group', 'colors')->delete();
-            Setting::where('group', "colors__{$activeTheme}")->delete();
-
-            foreach ($themeJson['colors'] as $key => $value) {
+            foreach ($colors as $key => $value) {
                 Setting::create(['group' => 'colors', 'key' => $key, 'value' => $value]);
-                Setting::create(['group' => "colors__{$activeTheme}", 'key' => $key, 'value' => $value]);
             }
         }
 
-        if (!empty($themeJson['fonts']['url'])) {
-            Setting::updateOrCreate(
-                ['group' => 'fonts', 'key' => 'google_fonts_url'],
-                ['value' => $themeJson['fonts']['url']]
-            );
-            Setting::updateOrCreate(
-                ['group' => "fonts__{$activeTheme}", 'key' => 'google_fonts_url'],
-                ['value' => $themeJson['fonts']['url']]
-            );
+        Setting::where('group', 'fonts')->delete();
+        foreach ($fonts as $key => $value) {
+            Setting::create(['group' => 'fonts', 'key' => $key, 'value' => $value]);
+        }
+
+        if ($presetSlug) {
+            Setting::where('group', "colors__{$presetSlug}")->delete();
+            Setting::where('group', "fonts__{$presetSlug}")->delete();
         }
 
         $themeService->clearCache();
 
-        return back()->with('success', 'Colors reverted to theme defaults.');
+        return back()->with('success', 'Colors and fonts reverted to the preset defaults.');
     }
 
     public function updateThemeSettings(Request $request)
