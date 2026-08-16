@@ -86,10 +86,16 @@ method spoof, and the save bar; a page cannot opt out.
 - Test buttons test the values as typed: `testMail` accepts an
   `override` block applied to this request's mailer only, with a 10s
   transport cap so a dead host answers fast.
-- `x-admin3.secret`: a stored key rendered masked and read-only at
-  rest, revealed by View, replaced by Edit; blank on submit means
-  keep (the controller skips null password values). Secrets are
-  never echoed into value attributes.
+- `x-admin3.secret` (logic in `Alpine.data('v3Secret')`): a stored
+  key rendered as twelve bullets plus its last-4 tail (passwords:
+  bullets only), read-only at rest. View fetches the plaintext on
+  demand through the hard-allowlisted `settings.reveal-secret`
+  endpoint; nothing decrypted ever rides in a rendered page. Edit
+  replaces; blank on submit means keep. Cancel re-checks the form on
+  the next tick so a clean form never shows the save bar.
+- Destructive in-page actions (mark removal) run in place through
+  `v3Post` behind a two-step arm-confirm button (4s disarm), so
+  typed edits elsewhere on the page survive them.
 - The settle entrance never animates the save bar
   (`.v3-settle > .v3-savebar { animation: none }`): the fill-mode
   would pin `transform: none` and hold the bar on screen.
