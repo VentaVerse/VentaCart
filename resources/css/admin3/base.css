@@ -78,22 +78,50 @@ body.v3 {
 .v3-snav__item[aria-current="page"] { view-transition-name: v3-context-active; }
 .v3-settings__top { view-transition-name: v3-band; }
 
-/* The rail morph: one width change on one clock (500ms ease-in-out),
-   snapshots clipped so the azure block reads as one object changing
-   width, not two fading. The old snapshot leaves early so labels
-   vanish at the start of the shrink instead of being squeezed. */
+/* The rail morph: one width change on one clock (500ms ease-in-out).
+   The group box genuinely narrows; both snapshots sit at natural
+   size pinned top-left and the shrinking box CLIPS them, so labels
+   are cut away progressively and the azure block reads as one
+   object condensing leftward, never two stills crossfading. The
+   old snapshot holds nearly the whole clock (its labels are what
+   the clip is eating); the icons underneath fade up beneath it. */
 ::view-transition-group(v3-nav) {
     animation-duration: .5s;
     animation-timing-function: ease-in-out;
+    z-index: 2; /* the nav covers the settings menu; its retreating edge is the reveal */
+}
+::view-transition-image-pair(v3-nav) {
+    overflow: clip;
 }
 ::view-transition-old(v3-nav),
 ::view-transition-new(v3-nav) {
     height: 100%;
-    object-fit: cover;
-    overflow: clip;
+    width: auto;
+    object-fit: none;
+    object-position: top left;
+    animation: none; /* no crossfade: the clip is the whole story */
 }
-::view-transition-old(v3-nav) {
-    animation-duration: .2s;
+/* The rail's icons land near the end of the shrink; earlier they
+   would sit over the slab's labels and eat their first letters. */
+::view-transition-new(v3-nav) {
+    animation: v3-nav-in .5s ease-in-out both;
+}
+@keyframes v3-nav-in {
+    0%, 55% { opacity: 0; }
+    85%, 100% { opacity: 1; }
+}
+
+/* The settings menu is revealed from behind the shrinking nav:
+   it slides rightward out of the rail's shadow into its column.
+   :only-child = entering Settings (no old snapshot to pair with);
+   between settings pages the menu pairs with itself and holds. */
+::view-transition-new(v3-context):only-child {
+    animation: v3-context-in .5s ease-in-out both;
+}
+@keyframes v3-context-in {
+    from { transform: translateX(-56px); opacity: 0; }
+    40%  { opacity: 1; }
+    to   { transform: translateX(0); }
 }
 
 /* The brass highlight slides between sections. */

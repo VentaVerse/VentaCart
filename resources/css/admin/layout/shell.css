@@ -471,20 +471,36 @@
 }
 
 /* Timing for the return trip (the new document's rules drive the
-   animation): same clock as admin3's, one width change, labels
-   gone early. */
+   animation): same clock as admin3's. The group box widens from
+   the 56px rail back to the full slab; snapshots sit at natural
+   size pinned top-left so the growing box UNCOVERS the labels,
+   one object swelling rightward. */
 ::view-transition-group(v3-nav) {
     animation-duration: .5s;
     animation-timing-function: ease-in-out;
+    z-index: 2; /* the widening nav covers the departing settings menu */
+}
+::view-transition-image-pair(v3-nav) {
+    overflow: clip;
 }
 ::view-transition-old(v3-nav),
 ::view-transition-new(v3-nav) {
     height: 100%;
-    object-fit: cover;
-    overflow: clip;
+    width: auto;
+    object-fit: none;
+    object-position: top left;
+    animation: none; /* no crossfade: the growing box uncovers the labels */
 }
-::view-transition-old(v3-nav) {
-    animation-duration: .2s;
+
+/* The settings menu tucks back leftward behind the widening nav.
+   :only-child = leaving Settings (nothing on the work page pairs
+   with it). */
+::view-transition-old(v3-context):only-child {
+    animation: v2-context-out .4s ease-in-out both;
+}
+@keyframes v2-context-out {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateX(-56px); opacity: 0; }
 }
 ::view-transition-old(root),
 ::view-transition-new(root) {

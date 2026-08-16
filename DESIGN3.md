@@ -83,16 +83,24 @@ forms alike (owner-directed 2026-08-16).
   saw before entering Settings. The full rendition still reads
   `admin3-nav.php` pending the first work-area migration. Full mode
   expects the work shell's Alpine `nav` drawer boolean in scope.
-- Crossing into Settings animates: the v2 shell opts into
-  cross-document view transitions and its sidebar shares the
-  `v3-nav` name with the icon rail, so the wide slab morphs into
-  the 56px strip (and back) on one 500ms ease-in-out clock, old
-  snapshot gone in 200ms so labels vanish at the start of the
-  shrink (Easypanel choreography, decoded from its shadcn/ui
-  sidebar: 300px wrapper widening to rail+secondary, labels fading
-  early, desktop only). In the main menu Settings is a flat door
-  item, not a dropdown; `AdminNav::sidebarGroups()` (the old
-  dropdown expansion) is gone.
+- Crossing into Settings animates (Easypanel choreography, decoded
+  from its shadcn/ui sidebar). The v2 shell opts into cross-document
+  view transitions and its sidebar shares the `v3-nav` name with the
+  icon rail. The mechanics, learned the hard way: the group box
+  genuinely animates 216px to 56px on a 500ms ease-in-out clock, but
+  snapshots do NOT track it by default, so a paired morph can read
+  as two crossfading stills (the original bug: motion on content,
+  none on the nav). The recipe that reads as one object: snapshots
+  at natural size pinned top-left (`object-fit: none`), pair
+  `overflow: clip` so the retreating edge EATS the labels, NO
+  crossfade (`animation: none`), nav group `z-index: 2` above the
+  settings menu so the edge is what reveals it, menu slides in from
+  behind the rail (`:only-child` so it plays only on entry, never
+  between settings pages), rail icons land at 55-85% of the clock
+  so they never cover label first-letters early. Reverse choreography
+  lives in the v2 CSS (the arriving document drives). Desktop only.
+  In the main menu Settings is a flat door item, not a dropdown;
+  `AdminNav::sidebarGroups()` (the old dropdown expansion) is gone.
 - `x-admin3.context-nav`: any second menu column beside the rail
   (settings today, a module's sections tomorrow). Caller passes
   resolved groups with urls; the component lists them and knows
