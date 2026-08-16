@@ -11,15 +11,15 @@
      cold load can ever paint white: whatever frame the browser shows
      before first render is already the page's own paper. --}}
 <style>
-    html { background-color: #EDF1F7; }
-    html[data-theme="dark"] { background-color: #0B1017; }
+    html { background-color: rgb(237 241 247); }
+    html[data-theme="dark"] { background-color: rgb(11 16 23); }
     /* Desktop: the background is the app's own silhouette (azure nav
        band on paper), so a between-pages frame looks like the app's
        frame, never a white flash. Shells with a different band width
        override --boot-band in their own head. */
     @media (min-width: 1024px) {
-        html { background: linear-gradient(to right, #1E4368 0 var(--boot-band, 216px), #EDF1F7 var(--boot-band, 216px)); }
-        html[data-theme="dark"] { background: linear-gradient(to right, #10273C 0 var(--boot-band, 216px), #0B1017 var(--boot-band, 216px)); }
+        html { background: linear-gradient(to right, rgb(30 67 104) 0 var(--boot-band, 216px), rgb(237 241 247) var(--boot-band, 216px)); }
+        html[data-theme="dark"] { background: linear-gradient(to right, rgb(16 39 60) 0 var(--boot-band, 216px), rgb(11 16 23) var(--boot-band, 216px)); }
     }
 </style>
 <script>
