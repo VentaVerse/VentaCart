@@ -1,45 +1,39 @@
-<x-admin.shell title="Settings">
-    <x-admin.page title="Settings">
-        <x-slot:actions>
-            <div x-data class="relative">
-                <x-admin.icon name="search" class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-v-muted" />
-                <input type="search" placeholder="Search settings&hellip;" x-ref="q" aria-label="Search settings"
-                       @input="$dispatch('settings-search', $event.target.value)"
-                       class="v-control h-[var(--control-h)] w-56 rounded-v-md border bg-v-surface pl-8 pr-3 text-[13px] text-v-text placeholder:text-v-muted">
-            </div>
-        </x-slot:actions>
-
-        @php
-            // Built here rather than inline in the attributes below. A Blade
-            // directive inside an attribute passed to a COMPONENT is never
-            // compiled: it reaches the browser as its own literal source text,
-            // which Alpine then tries to evaluate. That is what put a
-            // SyntaxError on this page and left the search filtering nothing.
-            // The slate below therefore builds its expression in PHP and binds
-            // it, which is the one spelling a component attribute survives.
-            $vHaystack = fn (array $i) => strtolower($i['label'] . ' ' . $i['description'] . ' ' . implode(' ', $i['keywords']));
-            $vAll = collect($groups)->flatMap(fn ($g) => array_map($vHaystack, $g['items']))->values();
-        @endphp
-        <div x-data="{ q: '' }" x-on:settings-search.window="q = $event.detail.toLowerCase()" class="space-y-8">
-            @foreach ($groups as $group)
-                @php
-                    $vGroupHay = collect($group['items'])->map($vHaystack)->values();
-                @endphp
-                <section x-show="!q || @js($vGroupHay).some(h => h.includes(q))">
-                    <h2 class="mb-3 v-label">{{ $group['label'] }}</h2>
-                    <div class="v-slates">
-                        @foreach ($group['items'] as $item)
-                            <x-admin.slate :title="$item['label']" :icon="$item['icon']" :note="$item['description']"
-                                :href="\App\Support\SettingsNav::url($item)"
-                                :x-show="'!q || ' . json_encode($vHaystack($item)) . '.includes(q)'" />
-                        @endforeach
-                    </div>
-                </section>
-            @endforeach
-
-            <div x-show="q && !@js($vAll).some(h => h.includes(q))" x-cloak>
-                <x-admin.empty-state title="Nothing matches" description="No setting matches that search. Try a different word: cards also match hidden synonyms like &ldquo;smtp&rdquo; or &ldquo;gcash&rdquo;." />
-            </div>
+<x-admin3.settings-shell title="Settings">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Settings</h1>
+            <p class="v3-head__standing">Everything that configures {{ \App\Support\StoreIdentity::name() }}, grouped by what it governs.</p>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+
+    <div class="v3-settle" x-data="{ q: '' }">
+        <x-admin3.field name="q" label="Find a setting">
+            <input type="search" class="v3-control" x-model="q" placeholder="Search settings…" style="max-width: 380px">
+        </x-admin3.field>
+
+        @foreach (collect(config('admin3-settings-nav')) as $group)
+            @php
+                $items = array_values(array_filter($group['items'], fn ($i) => \Illuminate\Support\Facades\Route::has($i['route'])));
+                if ($items === []) continue;
+            @endphp
+            <div style="margin-top: 26px">
+                <div class="v3-label" style="margin-bottom: 10px">{{ $group['label'] }}</div>
+                <div class="v3-dir">
+                    @foreach ($items as $item)
+                        @php
+                            $url = $item['section'] !== null ? route($item['route'], $item['section']) : route($item['route']);
+                            $hay = strtolower($item['label'] . ' ' . $item['line']);
+                        @endphp
+                        <a href="{{ $url }}" class="v3-dir__card" x-show="!q || @js($hay).includes(q.toLowerCase())">
+                            <span class="v3-dir__ico"><x-admin3.icon :name="$item['icon']" /></span>
+                            <span>
+                                <span class="v3-dir__name">{{ $item['label'] }}</span>
+                                <span class="v3-dir__line" style="display:block">{{ $item['line'] }}</span>
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endforeach
+    </div>
+</x-admin3.settings-shell>

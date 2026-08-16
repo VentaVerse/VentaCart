@@ -51,6 +51,8 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/css/admin/admin.css',
                 'resources/js/admin/admin.js',
+                'resources/css/admin3/admin3.css',
+                'resources/js/admin3/admin3.js',
                 ...getThemeEntries(),
                 ...getExtensionEntries(),
             ],

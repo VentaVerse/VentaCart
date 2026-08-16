@@ -1,0 +1,95 @@
+// Venta Admin v3 runtime. Self-contained: boots its own Alpine so a v3
+// page never depends on the v2 bundles while the areas migrate.
+import Alpine from 'alpinejs';
+
+// Shared with v2 pages that still need it during migration.
+window.storageUrl = window.storageUrl || function (path) {
+    if (!path) return '';
+    return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
+};
+
+document.addEventListener('alpine:init', () => {
+    Alpine.store('toasts', {
+        items: [],
+        push(message, tone = 'good') {
+            const id = ++this._id;
+            this.items.push({ id, message, tone });
+            setTimeout(() => this.dismiss(id), 6000);
+        },
+        dismiss(id) {
+            this.items = this.items.filter(t => t.id !== id);
+        },
+        _id: 0,
+    });
+
+    // ------------------------------------------------------------------
+    // The save doctrine. One page is one save scope: a v3Form snapshots
+    // its fields on load, flips dirty on any input/change (or an explicit
+    // touch() from dynamic editors), shows the save bar, and guards
+    // navigation while dirty. Discard reloads: the server's truth is the
+    // only clean state worth restoring.
+    // ------------------------------------------------------------------
+    // formEl lives in a closure, not on the component: methods invoked
+    // through a child scope chain (an inner editor calling touch()) run
+    // with the CHILD's $el, and FormData(childDiv) throws.
+    Alpine.data('v3Form', () => { let formEl = null; return {
+        dirty: false,
+        saving: false,
+        baseline: '',
+
+        init() {
+            formEl = this.$el;
+            this.$nextTick(() => { this.baseline = this.snapshot(); });
+
+            formEl.addEventListener('input', () => this.check());
+            formEl.addEventListener('change', () => this.check());
+
+            formEl.addEventListener('submit', () => {
+                this.saving = true;
+                this.dirty = false; // submitting IS the save; do not block the unload
+            });
+
+            this._unload = (e) => {
+                if (!this.dirty) return;
+                e.preventDefault();
+                e.returnValue = '';
+            };
+            window.addEventListener('beforeunload', this._unload);
+        },
+
+        destroy() {
+            window.removeEventListener('beforeunload', this._unload);
+        },
+
+        snapshot() {
+            const data = new FormData(formEl);
+            const pairs = [];
+            for (const [k, v] of data.entries()) {
+                if (typeof v === 'string') pairs.push(k + '=' + v);
+            }
+            return pairs.join('&');
+        },
+
+        check() {
+            this.dirty = this.snapshot() !== this.baseline;
+        },
+
+        // Dynamic editors (rows added or removed outside input events)
+        // call this to mark work the snapshot diff will also confirm.
+        touch() {
+            this.$nextTick(() => this.check());
+            this.dirty = true;
+        },
+
+        discard() {
+            this.dirty = false;
+            window.location.reload();
+        },
+    }; });
+});
+
+window.Alpine = window.Alpine || Alpine;
+if (!window.__v3AlpineStarted) {
+    window.__v3AlpineStarted = true;
+    Alpine.start();
+}

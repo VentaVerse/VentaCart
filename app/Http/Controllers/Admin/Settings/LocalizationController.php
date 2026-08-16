@@ -8,6 +8,7 @@ use App\Models\GeoZone;
 use App\Models\GeoZoneEntry;
 use App\Models\Zone;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class LocalizationController extends Controller
 {
@@ -161,6 +162,13 @@ class LocalizationController extends Controller
         return view('admin.settings.localization.geo-zone-edit', compact('geoZone', 'countries', 'entries'));
     }
 
+    /**
+     * One save commits the whole page (v3 doctrine): the zone's own
+     * fields and, when the payload carries them, its entries, in one
+     * transaction. The flash reports what was actually persisted;
+     * rows with no country are dropped and said out loud, never
+     * counted as saved.
+     */
     public function updateGeoZone(Request $request, GeoZone $geoZone)
     {
         $validated = $request->validate([
@@ -168,13 +176,48 @@ class LocalizationController extends Controller
             'description' => ['nullable', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['boolean'],
+            'entries' => ['sometimes', 'array'],
+            'entries.*.country_id' => ['nullable', 'integer'],
+            'entries.*.zone_id' => ['nullable', 'integer'],
         ]);
 
         $validated['is_active'] = $request->boolean('is_active');
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
-        $geoZone->update($validated);
 
-        return back()->with('success', 'Geo zone updated.');
+        $saved = 0;
+        $dropped = 0;
+
+        DB::transaction(function () use ($request, $geoZone, $validated, &$saved, &$dropped) {
+            $geoZone->update(collect($validated)->except('entries')->all());
+
+            if (!$request->has('entries')) {
+                return;
+            }
+
+            $geoZone->entries()->delete();
+            foreach ($request->input('entries', []) as $entry) {
+                if (empty($entry['country_id'])) {
+                    $dropped++;
+                    continue;
+                }
+                GeoZoneEntry::create([
+                    'geo_zone_id' => $geoZone->id,
+                    'country_id' => (int) $entry['country_id'],
+                    'zone_id' => $entry['zone_id'] ?: null,
+                ]);
+                $saved++;
+            }
+        });
+
+        $message = 'Zone saved.';
+        if ($request->has('entries')) {
+            $message = "Zone saved with {$saved} " . ($saved === 1 ? 'entry' : 'entries') . '.';
+            if ($dropped > 0) {
+                $message .= " {$dropped} " . ($dropped === 1 ? 'row' : 'rows') . ' without a country were not saved.';
+            }
+        }
+
+        return back()->with('success', $message);
     }
 
     public function syncGeoZoneEntries(Request $request, GeoZone $geoZone)

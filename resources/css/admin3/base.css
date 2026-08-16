@@ -1,0 +1,53 @@
+/* ============================================================
+   Venta Admin v3 — ground and browser surfaces
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body.v3 {
+    margin: 0;
+    background: var(--v3-canvas);
+    color: var(--v3-ink);
+    font-family: var(--v3-font);
+    font-size: 13.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Element resets at :where() zero weight, so a primitive of the same
+   class specificity always outranks them on document order. */
+.v3 :where(h1, h2, h3, p) { margin: 0; }
+.v3 :where(a) { color: inherit; }
+.v3 :where(button) { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.v3 :where(img, svg) { display: block; max-width: 100%; }
+.v3 [hidden], .v3 [x-cloak] { display: none !important; }
+
+/* The parts we did not draw still carry the design. */
+.v3 ::selection { background: var(--v3-act-fill); color: var(--v3-act-ink); }
+.v3 input, .v3 select, .v3 textarea { caret-color: var(--v3-act-fill); }
+.v3 * { scrollbar-width: thin; scrollbar-color: var(--v3-line-2) transparent; }
+.v3 *::-webkit-scrollbar { width: 10px; height: 10px; }
+.v3 *::-webkit-scrollbar-thumb { background: var(--v3-line-2); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
+
+/* One focus grammar everywhere. */
+.v3 :focus { outline: none; }
+.v3 :focus-visible {
+    outline: 2px solid var(--v3-focus);
+    outline-offset: 2px;
+    border-radius: var(--v3-r-sm);
+}
+
+/* Helpers the whole layer shares */
+.v3-mono { font-family: var(--v3-font-mono); font-size: .92em; }
+.v3-sr {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.v3-label {
+    font-size: 12px;
+    font-weight: 560;
+    color: var(--v3-ink-3);
+    letter-spacing: .004em;
+}

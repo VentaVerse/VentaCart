@@ -16,8 +16,11 @@ class SettingsHubTest extends TestCase
 
         $this->get(route('admin.settings.index'))
             ->assertOk()
-            ->assertSeeInOrder(['Store', 'Sales channels', 'Operations', 'Access & system'])
-            ->assertSee('Payments')->assertSee('Automations')->assertSee('SEO Engine');
+            // v3 settings area grouping: general is general, a module's
+            // settings live with the module (SEO settings moved to the SEO
+            // module space, so the hub no longer lists it).
+            ->assertSeeInOrder(['Store', 'Commerce', 'Communication', 'System'])
+            ->assertSee('Payments')->assertSee('Automations')->assertSee('Notifications');
     }
 
     public function test_legacy_tab_param_redirects_to_section(): void

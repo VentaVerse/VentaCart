@@ -1,0 +1,269 @@
+/* ============================================================
+   Venta Admin v3 — foundation primitives
+   ============================================================
+   Everything at one class. A rule that must win over a primitive
+   wins on document order, never specificity. Split this file per
+   family once the area migrations grow it past its welcome.
+   ============================================================ */
+
+/* --- Sheet and panel ---------------------------------------- */
+
+.v3-panel {
+    background: var(--v3-surface);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-lg);
+    box-shadow: var(--v3-lift);
+}
+.v3-panel + .v3-panel { margin-top: 18px; }
+.v3-panel__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px var(--v3-pad) 0;
+}
+.v3-panel__title { font-size: 14px; font-weight: 640; }
+.v3-panel__note { font-size: 12.5px; color: var(--v3-ink-3); margin-top: 2px; }
+.v3-panel__acts { margin-left: auto; display: flex; gap: 8px; }
+.v3-panel__body { padding: 14px var(--v3-pad) var(--v3-pad); }
+.v3-panel__body--flush { padding: 12px 0 0; }
+
+/* --- Buttons -------------------------------------------------- */
+
+.v3-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: var(--v3-control-h);
+    padding: 0 16px;
+    border-radius: var(--v3-r-md);
+    font-size: 13.5px;
+    font-weight: 590;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background var(--v3-fast), border-color var(--v3-fast), color var(--v3-fast);
+    white-space: nowrap;
+}
+.v3-btn svg { width: 16px; height: 16px; }
+.v3-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.v3-btn--primary { background: var(--v3-act-fill); color: var(--v3-act-ink); box-shadow: var(--v3-lift); }
+.v3-btn--primary:hover:not(:disabled) { background: var(--v3-act-fill-2); }
+
+.v3-btn--secondary { background: var(--v3-surface); border-color: var(--v3-edge); color: var(--v3-ink); }
+.v3-btn--secondary:hover:not(:disabled) { background: var(--v3-hover); }
+
+.v3-btn--ghost { color: var(--v3-ink-2); }
+.v3-btn--ghost:hover:not(:disabled) { background: var(--v3-hover); color: var(--v3-ink); }
+
+.v3-btn--danger { color: var(--v3-bad); }
+.v3-btn--danger:hover:not(:disabled) { background: var(--v3-bad-wash); }
+
+.v3-btn--sm { min-height: 30px; padding: 0 11px; font-size: 12.5px; border-radius: var(--v3-r-sm); }
+
+/* --- Form ----------------------------------------------------- */
+
+.v3-field { display: block; }
+.v3-field + .v3-field { margin-top: 16px; }
+.v3-grid { display: grid; gap: 16px; }
+.v3-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.v3-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 719px) {
+    .v3-grid--2, .v3-grid--3 { grid-template-columns: minmax(0, 1fr); }
+}
+
+.v3-field__label {
+    display: flex; align-items: baseline; gap: 6px;
+    font-size: 12.5px; font-weight: 580;
+    color: var(--v3-ink-2);
+    margin-bottom: 6px;
+}
+.v3-req { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: var(--v3-warn); }
+.v3-field__hint { font-size: 12.5px; color: var(--v3-ink-3); margin-top: 5px; }
+.v3-field__error { font-size: 12.5px; color: var(--v3-bad); margin-top: 5px; }
+
+.v3-control {
+    width: 100%;
+    min-height: var(--v3-control-h);
+    padding: 0 12px;
+    background: var(--v3-surface);
+    border: 1px solid var(--v3-edge);
+    border-radius: var(--v3-r-md);
+    color: var(--v3-ink);
+    font: inherit;
+    transition: border-color var(--v3-fast);
+}
+.v3-control:hover { border-color: var(--v3-ink-3); }
+.v3-control::placeholder { color: var(--v3-ink-3); }
+textarea.v3-control { padding: 9px 12px; min-height: 88px; resize: vertical; }
+select.v3-control { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--v3-ink-3) 50%), linear-gradient(135deg, var(--v3-ink-3) 50%, transparent 50%); background-position: calc(100% - 17px) 55%, calc(100% - 12px) 55%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+
+/* --- Toggle --------------------------------------------------- */
+
+.v3-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; min-height: 24px; font-size: 13.5px; }
+.v3-toggle input { position: absolute; opacity: 0; width: 24px; height: 24px; margin: 0; cursor: pointer; }
+.v3-toggle__track {
+    width: 38px; height: 22px;
+    border-radius: 999px;
+    background: var(--v3-line-2);
+    position: relative;
+    transition: background var(--v3-fast);
+    flex-shrink: 0;
+}
+.v3-toggle__track::after {
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    border-radius: 999px;
+    background: var(--v3-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    transition: transform var(--v3-fast);
+}
+.v3-toggle input:checked ~ .v3-toggle__track { background: var(--v3-act-fill); }
+.v3-toggle input:checked ~ .v3-toggle__track::after { transform: translateX(16px); }
+.v3-toggle input:focus-visible ~ .v3-toggle__track { outline: 2px solid var(--v3-focus); outline-offset: 2px; }
+
+/* --- The save bar --------------------------------------------
+   The doctrine made visible. Hidden until the page goes dirty,
+   then pinned to the top edge over everything, naming the state
+   plainly. One per page, because one page is one save scope. */
+
+.v3-savebar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 52px;
+    padding: 0 var(--v3-gutter);
+    padding-top: env(safe-area-inset-top);
+    background: var(--v3-slab);
+    color: var(--v3-slab-on);
+    box-shadow: var(--v3-lift-2);
+    transform: translateY(-100%);
+    transition: transform var(--v3-base);
+}
+.v3-savebar.is-on { transform: translateY(0); }
+.v3-savebar__word { font-size: 13.5px; font-weight: 590; display: flex; align-items: center; gap: 9px; }
+.v3-savebar__dot { width: 8px; height: 8px; border-radius: 999px; background: var(--v3-act-fill); }
+.v3-savebar__acts { margin-left: auto; display: flex; gap: 10px; }
+.v3-savebar .v3-btn--ghost { color: var(--v3-slab-ink); }
+.v3-savebar .v3-btn--ghost:hover { background: var(--v3-slab-2); color: var(--v3-slab-on); }
+
+/* --- Badge ---------------------------------------------------- */
+
+.v3-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 590;
+}
+.v3-badge::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.v3-badge--good { color: var(--v3-good); }
+.v3-badge--warn { color: var(--v3-warn); }
+.v3-badge--bad { color: var(--v3-bad); }
+.v3-badge--quiet { color: var(--v3-ink-3); }
+
+/* --- Rows (a list of editable things) ------------------------- */
+
+.v3-rows { display: flex; flex-direction: column; }
+.v3-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: var(--v3-row-h);
+    padding: 6px 0;
+}
+.v3-row + .v3-row { border-top: 1px solid var(--v3-line); }
+.v3-row__x {
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border-radius: var(--v3-r-sm);
+    color: var(--v3-ink-3);
+    flex-shrink: 0;
+}
+.v3-row__x:hover { background: var(--v3-bad-wash); color: var(--v3-bad); }
+.v3-row__x svg { width: 15px; height: 15px; }
+
+/* --- Empty state ---------------------------------------------- */
+
+.v3-empty {
+    padding: 30px 20px;
+    text-align: center;
+    border: 1px dashed var(--v3-line-2);
+    border-radius: var(--v3-r-md);
+}
+.v3-empty__title { font-size: 13.5px; font-weight: 620; }
+.v3-empty__line { font-size: 12.5px; color: var(--v3-ink-3); margin-top: 3px; }
+
+/* --- Toasts --------------------------------------------------- */
+
+.v3-toasts {
+    position: fixed;
+    top: 14px; right: 14px;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(320px, calc(100vw - 28px));
+}
+.v3-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 13px;
+    background: var(--v3-surface);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md);
+    box-shadow: var(--v3-lift-2);
+    font-size: 13px;
+}
+.v3-toast__mark { width: 8px; height: 8px; border-radius: 2px; margin-top: 5px; flex-shrink: 0; }
+.v3-toast--good .v3-toast__mark { background: var(--v3-good); }
+.v3-toast--bad .v3-toast__mark { background: var(--v3-bad); }
+.v3-toast__x { margin-left: auto; color: var(--v3-ink-3); flex-shrink: 0; min-width: 24px; min-height: 24px; display: grid; place-items: center; }
+.v3-toast__x:hover { color: var(--v3-ink); }
+.v3-toast__x svg { width: 13px; height: 13px; }
+
+/* --- Settings directory (the area landing) -------------------- */
+
+.v3-dir { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+.v3-dir__card {
+    display: flex;
+    gap: 13px;
+    padding: 16px;
+    background: var(--v3-surface);
+    border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-lg);
+    box-shadow: var(--v3-lift);
+    text-decoration: none;
+    transition: border-color var(--v3-fast), transform var(--v3-fast);
+}
+.v3-dir__card:hover { border-color: var(--v3-act-fill); transform: translateY(-1px); }
+.v3-dir__ico {
+    width: 36px; height: 36px;
+    display: grid; place-items: center;
+    background: var(--v3-act-wash);
+    color: var(--v3-act);
+    border-radius: var(--v3-r-md);
+    flex-shrink: 0;
+}
+.v3-dir__ico svg { width: 18px; height: 18px; }
+.v3-dir__name { font-size: 13.5px; font-weight: 620; }
+.v3-dir__line { font-size: 12.5px; color: var(--v3-ink-3); margin-top: 2px; }
+
+/* The page's one authored entrance: the settings directory and any
+   panel column settle in, staggered once, on arrival. */
+@media (prefers-reduced-motion: no-preference) {
+    .v3-settle > * { animation: v3-settle .45s cubic-bezier(.2, .7, .3, 1) both; }
+    .v3-settle > *:nth-child(2) { animation-delay: .05s; }
+    .v3-settle > *:nth-child(3) { animation-delay: .1s; }
+    .v3-settle > *:nth-child(4) { animation-delay: .15s; }
+    @keyframes v3-settle {
+        from { opacity: 0; transform: translateY(7px); }
+        to { opacity: 1; transform: none; }
+    }
+}

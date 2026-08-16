@@ -782,11 +782,15 @@ class ReskinWaveTest extends TestCase
             'is_active' => true,
         ]);
 
+        // Geo zone edit migrated to the v3 shell (first v3 exemplar);
+        // it renders under the v3 marker, asserted separately below.
+        $this->get(route('admin.localization.edit-geo-zone', $geoZone))
+            ->assertOk()->assertSee('class="v3"', false);
+
         $routes = [
             route('admin.localization.index'),
             route('admin.localization.index', ['tab' => 'zones', 'country' => $country->id]),
             route('admin.localization.index', ['tab' => 'geo-zones']),
-            route('admin.localization.edit-geo-zone', $geoZone),
             route('admin.users.index'),
             route('admin.users.create'),
             route('admin.users.edit', $editableUser),
