@@ -39,30 +39,10 @@
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/Archivo-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ \Illuminate\Support\Facades\Vite::asset('resources/fonts/JetBrainsMono.woff2') }}" as="font" type="font/woff2" crossorigin>
     @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
-    {{-- The crossing decision, pre-paint: when the previous page was on
-         the other side of the Settings boundary (or this is a hard
-         entry), the nav plays its live-DOM Easypanel move (shell css,
-         .v-cross). navigation.activation names the real previous entry
-         (correct on back/forward); referrer is the fallback. --}}
-    <script>
-        (() => {
-            // Returning from ANY dual-menu space seats the slab.
-            const roots = window.__vSpaceRoots = @js(array_values(array_filter([
-                parse_url(route('admin.settings.index'), PHP_URL_PATH),
-                \Illuminate\Support\Facades\Route::has('admin.extensions.seo.dashboard') ? parse_url(route('admin.extensions.seo.dashboard'), PHP_URL_PATH) : null,
-            ])));
-            let fromSpace = false;
-            try {
-                const prev = window.navigation?.activation?.from?.url ?? document.referrer ?? '';
-                if (prev) {
-                    const u = new URL(prev, location.origin);
-                    fromSpace = u.origin === location.origin
-                        && roots.some(r => u.pathname === r || u.pathname.startsWith(r + '/'));
-                }
-            } catch (e) { /* unparsable: treat as external */ }
-            if (fromSpace) document.documentElement.classList.add('v-cross');
-        })();
-    </script>
+    {{-- The crossing move retired with the separate space chrome (owner
+         ruling 2026-08-17, one admin, one chrome): every page including
+         Settings and SEO now renders this same shell, so there is no
+         boundary left to animate across. --}}
     @stack('head')
 </head>
 <body class="v-admin min-h-screen" x-data="vShell()" x-on:keydown.escape.window="closeNav()">

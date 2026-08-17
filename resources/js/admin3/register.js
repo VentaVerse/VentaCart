@@ -1,9 +1,7 @@
-// Venta Admin v3, shared Alpine registrations. One module, two hosts:
-// the standalone v3 runtime (admin3.js, Settings and module spaces) and
-// the classic admin bundle (admin/admin.js) whose shell now chromes the
-// migrated work pages (owner ruling 2026-08-17: one admin, one chrome).
-// Registering on whichever Alpine the page booted keeps v3Form working
-// under either roof without ever starting a second Alpine.
+// Venta Admin v3, shared Alpine registrations and window helpers.
+// One chrome for the whole admin (owner ruling 2026-08-17): the classic
+// bundle (admin/admin.js) is the one host, registering these on the one
+// Alpine that app.js boots. No page loads a second Alpine.
 export function registerV3(Alpine) {
     // ------------------------------------------------------------------
     // The save doctrine. One page is one save scope: a v3Form snapshots
@@ -115,11 +113,73 @@ export function registerV3(Alpine) {
                 });
                 const body = await res.json();
                 if (body.ok) { this.shown = body.value; }
-                else { Alpine.store('toasts').push(body.message || 'Could not reveal the key.', 'bad'); }
+                else { Alpine.store('toasts').push(body.message || 'Could not reveal the key.', 'danger'); }
             } catch (e) {
-                Alpine.store('toasts').push('Could not reach the server.', 'bad');
+                Alpine.store('toasts').push('Could not reach the server.', 'danger');
             }
             this.busy = false;
         },
     }; });
 }
+
+// The v3 window helpers ride along with the registrations: their last
+// standalone host (admin3.js) is gone, so the classic bundle is where
+// every page gets them. Tones use the classic toast vocabulary.
+window.storageUrl = window.storageUrl || function (path) {
+    if (!path) return '';
+    return '/storage/' + path.split('/').map(encodeURIComponent).join('/');
+};
+
+// One copy mechanism. navigator.clipboard exists only in secure
+// contexts and this admin is browsed over plain http on a LAN as often
+// as https, so the fallback path is the normal path. Returns a boolean;
+// callers flip their "Copied" label only on true.
+window.v3Copy = async function (text) {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        if (!ok) throw new Error('execCommand failed');
+        return true;
+    } catch (e) {
+        window.Alpine?.store('toasts')?.push('Could not copy. Select the text and copy it manually.', 'danger');
+        return false;
+    }
+};
+
+// One mechanism for every in-page action button (test sends, generate
+// buttons): POST as JSON, never navigate, toast the server's own verdict.
+// Returns { ok, message } so a caller can react beyond the toast.
+window.v3Post = async function (url, data = {}) {
+    let result;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content || '',
+            },
+            body: JSON.stringify(data),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.status === 422 && body.errors) {
+            result = { ok: false, message: Object.values(body.errors).flat()[0] || 'Validation failed.' };
+        } else {
+            result = { ok: body.ok ?? res.ok, message: body.message || (res.ok ? 'Done.' : 'The request failed.') };
+        }
+    } catch (e) {
+        result = { ok: false, message: 'Could not reach the server. Check the connection and retry.' };
+    }
+    window.Alpine?.store('toasts')?.push(result.message, result.ok ? 'success' : 'danger');
+    return result;
+};

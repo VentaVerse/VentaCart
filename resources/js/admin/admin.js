@@ -245,6 +245,8 @@ document.addEventListener('alpine:init', () => {
         items: [],
         counter: 0,
         push(message, tone = 'success') {
+            // The migrated v3 pages speak good/bad; one store, one map.
+            tone = { good: 'success', bad: 'danger' }[tone] ?? tone;
             const id = ++this.counter;
             this.items.push({ id, message, tone });
             setTimeout(() => this.dismiss(id), 4500);

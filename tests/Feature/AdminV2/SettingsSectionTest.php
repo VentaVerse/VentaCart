@@ -42,10 +42,13 @@ class SettingsSectionTest extends TestCase
 
         // Migrated to the v3 settings shell: one form, one save, its own
         // full-screen nav.
+        // One-chrome repin: the space's own "Back to admin" band is gone;
+        // the classic shell's sidebar is the way back, and the settings
+        // menu rides beside it (the context nav marks the page).
         $this->get(route('admin.settings.section', 'mail'))
             ->assertOk()
-            ->assertSee('class="v3"', false)
-            ->assertSee('Back to admin')
+            ->assertSee('v3-embed', false)
+            ->assertSee('v3-settings__main', false)
             ->assertSee('Mail server');
     }
 

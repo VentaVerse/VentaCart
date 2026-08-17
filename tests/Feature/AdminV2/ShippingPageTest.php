@@ -31,7 +31,7 @@ class ShippingPageTest extends TestCase
         $this->actingAs(User::factory()->create());
 
         $this->get(route('admin.shipping-settings.index'))
-            ->assertOk()->assertSee('class="v3"', false)
+            ->assertOk()->assertSee('v3-embed', false)
             ->assertSeeInOrder(['Free Shipping', 'Weight Based', 'Flat Rate', 'DHL'])
             ->assertDontSee('settings[pickup_city]', false)
             ->assertDontSee('settings[pickup_contact_name]', false);
@@ -147,7 +147,7 @@ class ShippingPageTest extends TestCase
 
         $response = $this->get(route('admin.shipping-settings.free-shipping'));
 
-        $response->assertOk()->assertSee('class="v3"', false)->assertSee('Big orders');
+        $response->assertOk()->assertSee('v3-embed', false)->assertSee('Big orders');
     }
 
     public function test_weight_based_page_renders_in_new_shell_with_bulk_update_field_names(): void
@@ -162,7 +162,7 @@ class ShippingPageTest extends TestCase
 
         $response = $this->get(route('admin.shipping-settings.weight-based'));
 
-        $response->assertOk()->assertSee('class="v3"', false);
+        $response->assertOk()->assertSee('v3-embed', false);
         $response->assertSee('methods[' . $method->id . '][name]', false);
         $response->assertSee('methods[' . $method->id . '][admin_name]', false);
         $response->assertSee('methods[' . $method->id . '][is_active]', false);
@@ -185,7 +185,7 @@ class ShippingPageTest extends TestCase
 
         $response = $this->get(route('admin.shipping-settings.flat-rate'));
 
-        $response->assertOk()->assertSee('class="v3"', false)
+        $response->assertOk()->assertSee('v3-embed', false)
             ->assertSee('Standard')->assertSee('Metro Manila')->assertSee('Resellers');
     }
 
@@ -201,7 +201,7 @@ class ShippingPageTest extends TestCase
 
         $response = $this->get(route('admin.shipping-settings.dhl'));
 
-        $response->assertOk()->assertSee('class="v3"', false);
+        $response->assertOk()->assertSee('v3-embed', false);
         $response->assertDontSee($plain);
         $response->assertSee($expectedMask);
     }

@@ -42,20 +42,15 @@ stated in `tokens.css` with AA-checked stops.
   pending) through the shell's existing badge lookup, adopted from
   the v3 nav evaluation as its one surviving benefit; the
   slab-to-strip structure itself was declined for work areas.
-- `x-admin3.settings-shell`: inside Settings the work nav condenses,
-  never disappears: a 56px azure icon rail on the far left showing
-  the SAME parents as the main menu in the same order (Dashboard,
-  Sales, Catalog, Customers, Content, Marketing; Settings active at
-  its foot), derived from `config/admin-nav.php` so the two can
-  never drift. A parent has no page of its own: its icon jumps to
-  the group's first destination and the tooltip names the parent.
-  Beside it, the grouped settings nav (248px) from
-  `config/admin3-settings-nav.php` (Store, Commerce, Communication,
-  System). Below 1024px the rail
-  hides, the top band grows a back arrow, and the nav becomes a
-  select picker. General is general; a module's settings live with
-  the module. (Owner-directed revision of the original full-screen
-  Shopify takeover, 2026-08-16.)
+- `x-admin3.settings-shell` / `x-admin3.seo-shell` (via
+  `space-shell`): conformed to the one chrome (owner ruling
+  2026-08-17). A space keeps what makes it a space, its grouped
+  context nav (248px, from `admin3-settings-nav` / `admin3-seo-nav`),
+  as a second column beside the classic sidebar, inside the classic
+  shell. The icon strip, the separate top band, and the seat-crossing
+  animation are gone with the separate document that needed them.
+  Below 1024px the context nav becomes the select picker. General is
+  general; a module's settings live with the module.
 
 ## The save doctrine (the reason v3 exists)
 
@@ -89,26 +84,18 @@ ultrawide splits evenly and is the normal cost of a bounded measure,
 never a reason to stretch or hug. One measure everywhere, tables and
 forms alike (owner-directed 2026-08-16).
 
-## Spaces (the dual menu, generalized)
+## Spaces (the context nav, kept; the chrome, unified)
 
-`x-admin3.space-shell` is THE dual-menu shell: condensed rail +
-the space's own context nav + centered measure + the seat crossing
-(multi-root aware via its `roots` prop, since a space's pages can
-span URL prefixes, e.g. SEO's /marketing/seo and
-/extensions/seo/settings). Settings and SEO wear it through thin
-wrappers (`settings-shell`, `seo-shell`) that only resolve their
-registries (`admin3-settings-nav`, `admin3-seo-nav`). The v2 shell's
-return seat recognizes every space root. The rail law: the
-condensed rail IS the main menu, condensed: all seven parents in
-main-menu order (Settings seventh, an ordinary icon, not pinned to
-a foot; the pinned-foot gear read as "Settings was hidden" to the
-owner) in every space unconditionally, with only the highlight
-changing. A space never subtracts icons, including its own parent
-(SEO keeps Marketing visible and lit; Marketing has other children
-like Coupons). The store's browser favicon rides every shell. The SEO space (first
-module space, 2026-08-16) holds all nine SEO pages including Engine
-settings, dissolving the old foreign-workspace-nav dilemma: a space
-nav never hands out another workspace's menu. Trap to remember:
+`x-admin3.space-shell` no longer owns a document. It renders the
+classic shell with the space's grouped context nav as a second
+column beside the main sidebar; Settings and SEO wear it through
+thin wrappers (`settings-shell`, `seo-shell`) that only resolve
+their registries (`admin3-settings-nav`, `admin3-seo-nav`). The
+condensed icon rail, the space top band, and the seat-crossing
+animation retired with the separate chrome (owner ruling
+2026-08-17: one admin, one chrome; the crossing had nothing left to
+cross). A space never subtracts from the main sidebar; its parent
+stays visible and lit (SEO under Marketing). Trap to remember:
 Blade directives (@js) never compile inside COMPONENT-TAG
 attributes; use {{ }} interpolation there (this bug shipped and was
 caught in verification).

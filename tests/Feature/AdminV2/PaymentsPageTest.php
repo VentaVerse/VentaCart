@@ -17,7 +17,7 @@ class PaymentsPageTest extends TestCase
 
         $this->get(route('admin.payment-settings.index'))
             ->assertOk()
-            ->assertSee('class="v3"', false)
+            ->assertSee('v3-embed', false)
             ->assertSee('Bank Transfer')->assertSee('Cash on Delivery')->assertSee('HitPay')
             ->assertSee('Manage');
     }

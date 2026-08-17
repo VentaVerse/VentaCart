@@ -16,7 +16,7 @@ class SeoPagesTest extends TestCase
 
         // Migrated to the v3 space shell (the dual menu): rail + SEO nav.
         $this->get(route('admin.extensions.seo.dashboard'))
-            ->assertOk()->assertSee('class="v3"', false)
+            ->assertOk()->assertSee('v3-embed', false)
             ->assertSeeInOrder(['Work', 'Content', 'Traffic', 'Setup'])
             ->assertSee('Automation');
     }
@@ -49,7 +49,7 @@ class SeoPagesTest extends TestCase
             route('admin.extensions.seo.entities', 'products'),
         ];
         foreach ($routes as $url) {
-            $this->get($url)->assertOk()->assertSee('class="v3"', false);
+            $this->get($url)->assertOk()->assertSee('v3-embed', false);
         }
     }
 }

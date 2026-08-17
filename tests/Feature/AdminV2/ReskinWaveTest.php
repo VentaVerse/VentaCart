@@ -673,7 +673,7 @@ class ReskinWaveTest extends TestCase
 
         // Bank account editor migrated to the v3 settings shell.
         $this->get(route('admin.bank-accounts.edit', $bankAccount))
-            ->assertOk()->assertSee('class="v3"', false);
+            ->assertOk()->assertSee('v3-embed', false);
 
         // The shipping child forms migrated to the v3 settings shell.
         $v3Routes = [
@@ -687,7 +687,7 @@ class ReskinWaveTest extends TestCase
         ];
 
         foreach ($v3Routes as $url) {
-            $this->get($url)->assertOk()->assertSee('class="v3"', false);
+            $this->get($url)->assertOk()->assertSee('v3-embed', false);
         }
 
         foreach ($routes as $url) {
@@ -796,7 +796,7 @@ class ReskinWaveTest extends TestCase
         // Geo zone edit migrated to the v3 shell (first v3 exemplar);
         // it renders under the v3 marker, asserted separately below.
         $this->get(route('admin.localization.edit-geo-zone', $geoZone))
-            ->assertOk()->assertSee('class="v3"', false);
+            ->assertOk()->assertSee('v3-embed', false);
 
         // Migrated to the v3 settings shell.
         $v3Routes = [
@@ -812,7 +812,7 @@ class ReskinWaveTest extends TestCase
         ];
 
         foreach ($v3Routes as $url) {
-            $this->get($url)->assertOk()->assertSee('class="v3"', false);
+            $this->get($url)->assertOk()->assertSee('v3-embed', false);
         }
     }
 
@@ -875,7 +875,7 @@ class ReskinWaveTest extends TestCase
         ];
 
         foreach ($v3Routes as $url) {
-            $this->get($url)->assertOk()->assertSee('class="v3"', false);
+            $this->get($url)->assertOk()->assertSee('v3-embed', false);
         }
 
         // Banners is an optional extension — only assert its routes when the
@@ -1093,7 +1093,7 @@ class ReskinWaveTest extends TestCase
         // nav is now the v3 context nav, which still lists sibling sections.
         $this->get(route('admin.users.index'))
             ->assertOk()
-            ->assertSee('class="v3"', false)
+            ->assertSee('v3-embed', false)
             ->assertSee('Payments'); // context nav lists sibling sections
 
         // Payments discoverability: the landing page's availability chip and
@@ -1105,7 +1105,7 @@ class ReskinWaveTest extends TestCase
         // stays reachable from the landing.
         $this->get(route('admin.payment-settings.index'))
             ->assertOk()
-            ->assertSee('class="v3"', false)
+            ->assertSee('v3-embed', false)
             ->assertSee($availabilityUrl, false)
             ->assertSee('Availability');
     }
@@ -1128,7 +1128,7 @@ class ReskinWaveTest extends TestCase
 
         $this->get(route('admin.settings.section', 'automations'))
             ->assertOk()
-            ->assertSee('class="v3"', false)
+            ->assertSee('v3-embed', false)
             ->assertSee('Currency Exchange Rates')
             ->assertDontSee('bg-gray-50', false)
             ->assertDontSee('bg-indigo-600', false)
@@ -1157,7 +1157,7 @@ class ReskinWaveTest extends TestCase
         // link out re-entering another workspace) cannot recur.
         $this->get(route('admin.extensions.seo.settings'))
             ->assertOk()
-            ->assertSee('class="v3"', false)
+            ->assertSee('v3-embed', false)
             ->assertSee('aria-label="SEO"', false);
 
         foreach ([

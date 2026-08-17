@@ -56,7 +56,7 @@ class OrderStatusesPageTest extends TestCase
         // Migrated to the v3 settings shell.
         $this->get(route('admin.order-statuses.index'))
             ->assertOk()
-            ->assertSee('class="v3"', false)
+            ->assertSee('v3-embed', false)
             ->assertSee('Processing')->assertSee('Refunded')
             ->assertSee('Deducts stock')
             ->assertSee('name="deducts_stock" value="1"', false)
