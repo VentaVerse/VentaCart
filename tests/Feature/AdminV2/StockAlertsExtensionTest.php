@@ -66,7 +66,9 @@ class StockAlertsExtensionTest extends TestCase
 
     public function test_core_feature_shim_is_gone(): void
     {
-        $this->assertArrayNotHasKey('stock-alerts', \App\Support\CoreFeatures::FEATURES);
+        // The whole CoreFeatures shim retired when its last tenant
+        // (SEO) converted; the class itself is gone.
+        $this->assertFalse(class_exists(\App\Support\CoreFeatures::class));
     }
 
     public function test_waitlist_dedupe_survives_the_move(): void

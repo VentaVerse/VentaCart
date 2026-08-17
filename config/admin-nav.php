@@ -72,7 +72,6 @@ return [
         'segment' => 'marketing',
         'items' => [
             ['key' => 'coupons', 'label' => 'Coupons', 'route' => 'admin.coupons.index', 'icon' => 'coupons', 'permission' => null, 'keywords' => ['discount', 'promo', 'voucher']],
-            ['key' => 'seo', 'label' => 'SEO', 'route' => 'admin.extensions.seo.dashboard', 'icon' => 'seo', 'permission' => null, 'keywords' => ['search', 'meta', 'suggestions'], 'enabled_setting' => ['group' => 'features', 'key' => 'seo_enabled']],
         ],
     ],
     [

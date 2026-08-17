@@ -45,6 +45,6 @@ class Category extends Model
 
     public function seoSuggestions(): MorphMany
     {
-        return $this->morphMany(SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
+        return $this->morphMany(\Extensions\Seo\Models\SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
     }
 }

@@ -33,7 +33,7 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Review;
 use App\Models\Role;
-use App\Models\SeoSuggestion;
+use Extensions\Seo\Models\SeoSuggestion;
 use App\Models\ShippingCourier;
 use App\Models\Store;
 use App\Models\Tag;
@@ -973,6 +973,8 @@ class ReskinWaveTest extends TestCase
 
     public function test_dashboard_renders_in_new_shell(): void
     {
+        app(\App\Services\ExtensionManager::class)->install('seo');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);

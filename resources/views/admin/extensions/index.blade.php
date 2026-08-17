@@ -47,19 +47,6 @@
                             </span>
                         @endif
                         @include('admin.extensions.partials.lifecycle-actions')
-                    @else
-                        <span class="v3-actrow">
-                            {{-- The master switch. Off hides the feature's nav
-                                 entry and pauses its scheduled jobs; its own
-                                 settings stay reachable through Configure. --}}
-                            <form method="POST" action="{{ route($module['enabled'] ? 'admin.extensions.feature-disable' : 'admin.extensions.feature-enable', $module['key']) }}">
-                                @csrf
-                                <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">{{ $module['enabled'] ? 'Disable' : 'Enable' }}</button>
-                            </form>
-                            @if ($module['configure'])
-                                <a href="{{ $module['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
-                            @endif
-                        </span>
                     @endif
                 </div>
             @endforeach

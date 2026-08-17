@@ -66,7 +66,9 @@ class AbandonedCartsExtensionTest extends TestCase
 
     public function test_core_feature_shim_is_gone(): void
     {
-        $this->assertArrayNotHasKey('abandoned-carts', \App\Support\CoreFeatures::FEATURES);
+        // The whole CoreFeatures shim retired when its last tenant
+        // (SEO) converted; the class itself is gone.
+        $this->assertFalse(class_exists(\App\Support\CoreFeatures::class));
     }
 
     public function test_template_routes_refuse_foreign_email_templates(): void

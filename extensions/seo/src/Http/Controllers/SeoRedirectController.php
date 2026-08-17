@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Marketing\Seo;
+namespace Extensions\Seo\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Redirect;
+use Extensions\Seo\Models\Redirect;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -31,7 +31,7 @@ class SeoRedirectController extends Controller
             'destination_path' => $request->query('destination_path', ''),
         ];
 
-        return view('admin.marketing.seo.redirects', compact('redirects', 'search', 'prefill'));
+        return view('seo::redirects', compact('redirects', 'search', 'prefill'));
     }
 
     public function store(Request $request)

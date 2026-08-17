@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace Extensions\Seo\Services;
 
 use App\Models\Setting;
 use Google\Client as GoogleClient;

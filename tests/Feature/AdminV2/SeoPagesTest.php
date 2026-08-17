@@ -10,6 +10,16 @@ class SeoPagesTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // SEO is an extension now (wave 1's close); its pages and models
+        // exist only while installed and enabled.
+        app(\App\Services\ExtensionManager::class)->install('seo');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+    }
+
     public function test_dashboard_renders_new_shell_with_grouped_nav_and_cron_card(): void
     {
         $this->actingAs(User::factory()->create());
@@ -24,7 +34,7 @@ class SeoPagesTest extends TestCase
     public function test_review_queue_shows_diff_and_bulk_bar(): void
     {
         $this->actingAs(User::factory()->create());
-        \App\Models\SeoSuggestion::create([
+        \Extensions\Seo\Models\SeoSuggestion::create([
             'entity_type' => 'product', 'entity_id' => 1,
             'current_meta_title' => 'Old Title', 'suggested_meta_title' => 'New Better Title',
             'status' => 'pending', 'generated_at' => now(),

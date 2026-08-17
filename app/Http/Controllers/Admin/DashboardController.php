@@ -10,7 +10,6 @@ use App\Models\CustomerActivity;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Review;
-use App\Models\SeoSuggestion;
 use App\Models\Setting;
 use App\Support\AdminNav;
 use App\Support\Inventory;
@@ -739,13 +738,16 @@ class DashboardController extends Controller
                 'detail' => $reviewDetail,
                 'url'    => route('admin.reviews.index'),
             ],
-            [
+        ];
+
+        if (Route::has('admin.extensions.seo.review')) {
+            $lines[] = [
                 'label'  => 'SEO suggestions pending',
-                'count'  => SeoSuggestion::pending()->count(),
+                'count'  => \Extensions\Seo\Models\SeoSuggestion::pending()->count(),
                 'detail' => null,
                 'url'    => route('admin.extensions.seo.review'),
-            ],
-        ];
+            ];
+        }
 
         if (Route::has('admin.abandoned-carts.index')) {
             $lines[] = [

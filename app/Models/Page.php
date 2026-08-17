@@ -14,7 +14,7 @@ class Page extends Model
 
     public function seoSuggestions(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
-        return $this->morphMany(SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
+        return $this->morphMany(\Extensions\Seo\Models\SeoSuggestion::class, 'entity', 'entity_type', 'entity_id');
     }
 
     protected function casts(): array

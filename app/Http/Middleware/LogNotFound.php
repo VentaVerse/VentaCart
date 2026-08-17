@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\NotFoundLog;
+use Extensions\Seo\Models\NotFoundLog;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -27,7 +27,9 @@ class LogNotFound
             return $response;
         }
 
-        if (! Schema::hasTable('not_found_logs')) {
+        // 404 logging lives in the seo extension; without it (or before
+        // its table exists) nothing is recorded.
+        if (! class_exists(NotFoundLog::class) || ! Schema::hasTable('not_found_logs')) {
             return $response;
         }
 

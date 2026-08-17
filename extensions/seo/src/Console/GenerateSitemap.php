@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Extensions\Seo\Console;
 
 use App\Models\BlogPost;
 use App\Models\Brand;

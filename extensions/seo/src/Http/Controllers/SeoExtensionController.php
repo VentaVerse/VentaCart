@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Marketing\Seo;
+namespace Extensions\Seo\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Automation;
 use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
-use App\Models\NotFoundLog;
+use Extensions\Seo\Models\NotFoundLog;
 use App\Models\Page;
 use App\Models\Product;
-use App\Models\Redirect;
-use App\Models\SeoSuggestion;
+use Extensions\Seo\Models\Redirect;
+use Extensions\Seo\Models\SeoSuggestion;
 use App\Models\Setting;
-use App\Services\GoogleSearchConsoleService;
-use App\Services\SeoGeneratorService;
+use Extensions\Seo\Services\GoogleSearchConsoleService;
+use Extensions\Seo\Services\SeoGeneratorService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 
@@ -61,7 +61,7 @@ class SeoExtensionController extends Controller
             'last_hit_at', [now()->startOfMonth(), now()->endOfMonth()]
         )->count();
 
-        return view('admin.marketing.seo.dashboard', compact(
+        return view('seo::dashboard', compact(
             'healthScores', 'pendingCount', 'recentSuggestions', 'topQueries',
             'seoAutomation', 'redirectsLive', 'notFoundThisMonth'
         ));
@@ -134,7 +134,7 @@ class SeoExtensionController extends Controller
                 ->toArray();
         }
 
-        return view('admin.marketing.seo.entities', compact(
+        return view('seo::entities', compact(
             'entities', 'type', 'pendingSuggestions', 'editRoute', 'entityType', 'search', 'status', 'homepageMeta'
         ));
     }
@@ -410,7 +410,7 @@ class SeoExtensionController extends Controller
         $pages = $cached['pages'] ?? [];
         $fetchedAt = isset($cached['fetched_at']) ? \Carbon\Carbon::parse($cached['fetched_at']) : null;
 
-        return view('admin.marketing.seo.search-console', compact(
+        return view('seo::search-console', compact(
             'gscConfigured', 'queries', 'pages', 'fetchedAt'
         ));
     }
@@ -440,7 +440,7 @@ class SeoExtensionController extends Controller
 
         $entityType = $config['entityType'];
 
-        return view('admin.marketing.seo.slugs', compact('entities', 'filter', 'search', 'entityType'));
+        return view('seo::slugs', compact('entities', 'filter', 'search', 'entityType'));
     }
 
     /**
@@ -507,7 +507,7 @@ class SeoExtensionController extends Controller
 
         $seoAutomation = Automation::where('key', 'seo_generate')->first();
 
-        return view('admin.marketing.seo.review', compact('suggestions', 'counts', 'totalPending', 'filter', 'seoAutomation'));
+        return view('seo::review', compact('suggestions', 'counts', 'totalPending', 'filter', 'seoAutomation'));
     }
 
     /**
@@ -517,7 +517,7 @@ class SeoExtensionController extends Controller
     {
         $seoSettings = Setting::where('group', 'seo')->pluck('value', 'key');
 
-        return view('admin.marketing.seo.strategy', compact('seoSettings'));
+        return view('seo::strategy', compact('seoSettings'));
     }
 
     /**
@@ -565,7 +565,7 @@ class SeoExtensionController extends Controller
             }
         }
 
-        return view('admin.extensions.seo.settings', compact(
+        return view('seo::settings', compact(
             'seoSettings', 'gscCredentialsExist', 'maskedApiKey'
         ));
     }

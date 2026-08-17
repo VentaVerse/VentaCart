@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Marketing\Seo;
+namespace Extensions\Seo\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\NotFoundLog;
+use Extensions\Seo\Models\NotFoundLog;
 use Illuminate\Http\Request;
 
 class SeoNotFoundController extends Controller
@@ -24,7 +24,7 @@ class SeoNotFoundController extends Controller
         $totalLogged = NotFoundLog::count();
         $totalHits = (int) NotFoundLog::sum('hits');
 
-        return view('admin.marketing.seo.not-found', compact('logs', 'search', 'sort', 'totalLogged', 'totalHits'));
+        return view('seo::not-found', compact('logs', 'search', 'sort', 'totalLogged', 'totalHits'));
     }
 
     public function destroy(NotFoundLog $log)

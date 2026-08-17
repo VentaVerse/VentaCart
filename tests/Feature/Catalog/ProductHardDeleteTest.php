@@ -11,7 +11,7 @@ use App\Models\ProductImage;
 use App\Models\ProductSpecial;
 use App\Models\ProductVariant;
 use App\Models\Review;
-use App\Models\SeoSuggestion;
+use Extensions\Seo\Models\SeoSuggestion;
 use App\Models\Setting;
 use Extensions\StockAlerts\Models\StockNotification;
 use App\Models\Store;
@@ -46,6 +46,7 @@ class ProductHardDeleteTest extends TestCase
         parent::setUp();
 
         app(\App\Services\ExtensionManager::class)->install('stock-alerts');
+        app(\App\Services\ExtensionManager::class)->install('seo');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         Store::create(['id' => 1, 'name' => 'Test Store', 'code' => 'test']);

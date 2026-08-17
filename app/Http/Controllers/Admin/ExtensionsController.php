@@ -3,10 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Automation;
-use App\Models\SeoSuggestion;
 use App\Services\ExtensionManager;
-use App\Support\CoreFeatures;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -64,42 +61,10 @@ class ExtensionsController extends Controller
 
     private function cards(): \Illuminate\Support\Collection
     {
-        $automations = Automation::whereIn('key', ['seo_generate'])->get()->keyBy('key');
-
-        $seoAutoEnabled = (bool) ($automations['seo_generate']->enabled ?? false);
-
-        // The master switches (CoreFeatures). A feature switched OFF hides
-        // its nav entry and no-ops its scheduled commands; the sub-states
-        // above describe what it is doing while ON.
-        $masters = CoreFeatures::all();
-
-        // Core features: built-in, always-present functionality — never
-        // uninstallable, so no lifecycle buttons. Kept as a hardcoded list
-        // (no extension.json — they're not extensions) per the brief.
-        $coreFeatures = [
-            [
-                'kind' => 'core',
-                'category' => 'Modules',
-                'key' => 'seo',
-                'name' => 'SEO',
-                'title' => 'SEO',
-                'description' => 'AI meta suggestions, redirects, and Search Console.',
-                'icon' => 'seo',
-                'enabled' => $masters['seo'],
-                'status_label' => ! $masters['seo'] ? 'Disabled' : ($seoAutoEnabled ? 'Auto-generating' : 'Manual only'),
-                'stats' => SeoSuggestion::where('status', 'pending')->count() . ' pending suggestions',
-                'configure' => route('admin.extensions.seo.settings'),
-            ],
-        ];
-
-        // One list (owner ruling 2026-08-17): anything shipped in the repo
-        // is a core feature of the platform; the filesystem distinction
-        // (extensions/ with lifecycle vs app/ with a master switch) shows
-        // only in which actions a row offers, never as separate sections.
+        // One list: every packaged feature is an extension now (the last
+        // CoreFeatures tenant, SEO, converted in wave 1's close).
         return $this->manager->discovered()
             ->map(fn (array $manifest) => \App\Support\ExtensionCard::for($manifest, $this->manager))
-            ->values()
-            ->concat($coreFeatures)
             ->sortBy(fn (array $m) => $m['title'])
             ->values();
     }
@@ -122,34 +87,6 @@ class ExtensionsController extends Controller
     public function uninstall(string $name): RedirectResponse
     {
         return $this->runLifecycle($name, 'uninstall', 'uninstalled');
-    }
-
-    public function featureEnable(string $feature): RedirectResponse
-    {
-        return $this->setFeature($feature, true);
-    }
-
-    public function featureDisable(string $feature): RedirectResponse
-    {
-        return $this->setFeature($feature, false);
-    }
-
-    /**
-     * The master switch for a built-in feature. {$feature} validates
-     * against CoreFeatures::FEATURES (a fixed code-side list, same
-     * posture as runLifecycle's discovered() check) so nothing outside
-     * it ever reaches a write.
-     */
-    private function setFeature(string $feature, bool $on): RedirectResponse
-    {
-        abort_unless(array_key_exists($feature, CoreFeatures::FEATURES), 404);
-
-        CoreFeatures::set($feature, $on);
-
-        $name = ['seo' => 'SEO'][$feature];
-
-        return redirect()->route('admin.extensions.index')
-            ->with('success', $name . ' ' . ($on ? 'enabled.' : 'disabled. Its nav entry is hidden and its scheduled jobs are paused.'));
     }
 
     /**

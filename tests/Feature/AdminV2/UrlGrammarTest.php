@@ -665,8 +665,9 @@ class UrlGrammarTest extends TestCase
             }
         }
 
-        // Dynamic route names the SEO workspace resolves at render time.
-        $controller = app(\App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController::class);
+        // Dynamic route names the SEO workspace resolves at render time
+        // (the controller lives in the seo extension, booted above).
+        $controller = app(\Extensions\Seo\Http\Controllers\SeoExtensionController::class);
         $method = new \ReflectionMethod($controller, 'entityConfigs');
         $method->setAccessible(true);
 

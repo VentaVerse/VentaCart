@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Extensions\Seo\Console;
 
 use App\Models\Setting;
-use App\Services\SeoGeneratorService;
+use Extensions\Seo\Services\SeoGeneratorService;
 use Illuminate\Console\Command;
 
 class GenerateSeoSuggestions extends Command
@@ -13,12 +13,6 @@ class GenerateSeoSuggestions extends Command
 
     public function handle(): int
     {
-        if (! \App\Support\CoreFeatures::enabled('seo')) {
-            $this->info('Feature disabled in Modules; nothing to do.');
-
-            return self::SUCCESS;
-        }
-
         $service = new SeoGeneratorService();
 
         if (!$service->isConfigured()) {

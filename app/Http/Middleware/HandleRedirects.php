@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Redirect;
+use Extensions\Seo\Models\Redirect;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -21,9 +21,9 @@ class HandleRedirects
 {
     public function handle(Request $request, Closure $next)
     {
-        // Short-circuit before the redirects table exists (fresh install
-        // hasn't migrated yet). Cheap check — Schema::hasTable is cached.
-        if (! Schema::hasTable('redirects')) {
+        // Redirect management lives in the seo extension; without it (or
+        // before its table exists) this is a straight pass-through.
+        if (! class_exists(Redirect::class) || ! Schema::hasTable('redirects')) {
             return $next($request);
         }
 

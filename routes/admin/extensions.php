@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\ExtensionsController;
-use App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController;
 use App\Http\Controllers\Admin\Settings\ShippingSettingController;
 use App\Http\Controllers\Admin\Settings\ShippingTestController;
 use App\Http\Controllers\Admin\Settings\PaymentMethodPageController;
@@ -22,8 +21,6 @@ Route::prefix('extensions')->group(function () {
     // The Modules category (literal, so it must never collide with an
     // extension mount: 'modules' is a reserved extension name).
     Route::get('/modules', [ExtensionsController::class, 'modules'])->name('extensions.modules');
-    Route::post('/features/{feature}/enable', [ExtensionsController::class, 'featureEnable'])->name('extensions.feature-enable');
-    Route::post('/features/{feature}/disable', [ExtensionsController::class, 'featureDisable'])->name('extensions.feature-disable');
     Route::post('/{name}/install', [ExtensionsController::class, 'install'])->name('extensions.install');
     Route::post('/{name}/enable', [ExtensionsController::class, 'enable'])->name('extensions.enable');
     Route::post('/{name}/disable', [ExtensionsController::class, 'disable'])->name('extensions.disable');
@@ -32,17 +29,7 @@ Route::prefix('extensions')->group(function () {
     // Abandoned Carts moved to the abandoned-carts extension
     // (extensions/abandoned-carts/routes/web.php).
 
-    // SEO engine config (Claude API key, generation rules, GSC credentials).
-    // Same mount-convention-only treatment as abandoned-carts above. SEO
-    // *workspace* (daily work) lives at marketing/seo — see marketing.php.
-    // Route names keep the 'extensions.seo.' prefix (frozen).
-    Route::prefix('seo')->name('extensions.seo.')->group(function () {
-        Route::get('/settings', [SeoExtensionController::class, 'settings'])->name('settings');
-        Route::post('/settings', [SeoExtensionController::class, 'saveSettings'])->name('save-settings');
-        Route::post('/settings/upload-gsc', [SeoExtensionController::class, 'uploadGsc'])->name('upload-gsc');
-        Route::post('/settings/test-claude', [SeoExtensionController::class, 'testClaude'])->name('test-claude');
-        Route::post('/settings/test-gsc', [SeoExtensionController::class, 'testGsc'])->name('test-gsc');
-    });
+    // SEO moved to the seo extension (extensions/seo/routes/web.php).
 
     // Payments — the payment-methods category page and everything it
     // owns (bank accounts, restrictions, per-method pages). Route names

@@ -142,7 +142,7 @@ class Product extends Model
 
     public function seoSuggestions(): HasMany
     {
-        return $this->hasMany(SeoSuggestion::class);
+        return $this->hasMany(\Extensions\Seo\Models\SeoSuggestion::class);
     }
 
     public function orderProducts(): HasMany

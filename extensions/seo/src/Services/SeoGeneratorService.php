@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Services;
+namespace Extensions\Seo\Services;
 
 use App\Models\Brand;
 use App\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
-use App\Models\SeoReport;
-use App\Models\SeoSuggestion;
+use Extensions\Seo\Models\SeoReport;
+use Extensions\Seo\Models\SeoSuggestion;
 use App\Models\Setting;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;

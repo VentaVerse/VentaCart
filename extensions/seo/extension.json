@@ -1,0 +1,21 @@
+{
+    "name": "seo",
+    "title": "SEO",
+    "version": "1.0.0",
+    "description": "AI meta suggestions, redirects, 404 log, Search Console, slugs, sitemap.",
+    "provider": "Extensions\\Seo\\SeoServiceProvider",
+    "icon": "seo",
+    "type": "feature",
+    "configure_route": "admin.extensions.seo.settings",
+    "admin_nav": [
+        {
+            "group": "Marketing",
+            "after": "coupons",
+            "key": "seo",
+            "label": "SEO",
+            "route": "admin.extensions.seo.dashboard",
+            "icon": "seo",
+            "keywords": ["search", "meta", "suggestions", "redirects", "sitemap"]
+        }
+    ]
+}

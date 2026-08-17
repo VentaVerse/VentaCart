@@ -58,7 +58,7 @@ To convert from app/:
 |---|---|---|
 | stock-alerts | DONE (first conversion): waitlist + notified admin, storefront subscribe, stock:notify, stock:check-low | 1 |
 | abandoned-carts | DONE (second conversion): ops pages in Sales via manifest admin_nav, config (settings/rules/templates) under Extensions, cart:notify, template seeder, full v3 rebuild | 1 |
-| seo | 9-page space, AI suggestions + cron, redirects, 404s, Search Console, slugs, sitemap (+ /sitemap.xml route) | 1 |
+| seo | DONE (wave 1 closes): full 9-page space, both crons, redirects + 404 middleware guarded in core, adopt-on-install; CoreFeatures shim deleted with it | 1 |
 | payment-bank-transfer | DONE: method factory, accounts model/CRUD/QR, webhook-free, adopt-on-install | 2 |
 | payment-cod | DONE: method + config view | 2 |
 | payment-hitpay | DONE: method, webhook route + controller, masked-key composer | 2 |
