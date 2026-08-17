@@ -65,7 +65,7 @@ To convert from app/:
 | shipping-flat-rate | flat rates | 2 |
 | shipping-weight-based | weight matrix methods | 2 |
 | shipping-free | free shipping + rules | 2 |
-| shipping-dph / shipping-dhl | DPH explorer + DHL rates | 2 |
+| shipping-dhl | DHL rates | 2 |
 | reviews | moderation, storefront reviews, review:send, ERP review endpoint | 3 |
 | blog | posts + categories, storefront blog | 3 |
 | erp-sync | Erp* API endpoints, sync logs, token | 3 |

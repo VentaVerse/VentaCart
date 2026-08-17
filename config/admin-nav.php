@@ -87,7 +87,7 @@ return [
             // join as their pages re-home (wave 0 pieces 2b/2c).
             ['key' => 'all', 'label' => 'All Extensions', 'route' => 'admin.extensions.index', 'icon' => 'modules', 'permission' => null, 'keywords' => ['extensions', 'plugins', 'modules', 'install']],
             ['key' => 'payments', 'label' => 'Payments', 'route' => 'admin.payment-settings.index', 'icon' => 'payments', 'permission' => null, 'keywords' => ['bank transfer', 'cod', 'hitpay', 'gateway', 'restrictions']],
-            ['key' => 'shipping', 'label' => 'Shipping', 'route' => 'admin.shipping-settings.index', 'icon' => 'shipping', 'permission' => null, 'keywords' => ['rates', 'flat rate', 'weight', 'free shipping', 'dhl', 'dph', 'couriers']],
+            ['key' => 'shipping', 'label' => 'Shipping', 'route' => 'admin.shipping-settings.index', 'icon' => 'shipping', 'permission' => null, 'keywords' => ['rates', 'flat rate', 'weight', 'free shipping', 'dhl', 'couriers']],
         ],
     ],
     [
