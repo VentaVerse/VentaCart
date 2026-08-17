@@ -157,7 +157,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         // Exactly one cancel-order opener on the page (one row, one button).
         $this->assertSame(
             1,
-            substr_count($response->getContent(), "\$dispatch('open-modal', 'cancel-order-{$order->id}')")
+            substr_count($response->getContent(), "\$dispatch('v3-confirm', 'cancel-order-{$order->id}')")
         );
     }
 

@@ -87,9 +87,7 @@
             </div>
         </x-admin3.panel>
 
-        @if ($orders->hasPages())
-            <div class="v3-pager">{{ $orders->links() }}</div>
-        @endif
+        <x-admin3.pager :paginator="$orders" />
 
         @foreach ($orders as $order)
             <x-admin3.confirm name="delete-order-{{ $order->id }}" title="Delete order #{{ $order->id }}?"

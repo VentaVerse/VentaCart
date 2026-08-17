@@ -147,7 +147,7 @@
             </div>
 
             @if ($suggestions->hasPages())
-                <div class="v3-pager">{{ $suggestions->links() }}</div>
+                <x-admin3.pager :paginator="$suggestions" />
             @endif
         @endif
     </div>

@@ -1,46 +1,65 @@
-<x-admin.shell title="Returns">
+<x-admin3.shell title="Returns" active="fulfillment">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
     {{-- Task W4: a MONITORING surface only: what's coming back, what
          failed. Booking, cancelling, and the drawer stay on the main
          queue; the full customer-initiated RMA process (refunds,
-         restock) is a distinct product feature, tracked separately.
+         restock) is a distinct product feature, tracked separately. --}}
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <span>Sales</span>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.fulfillment.index') }}">Fulfillment</a>
+                <span aria-hidden="true">/</span>
+                <span>Returns</span>
+            </div>
+            <h1 class="v3-head__title">Returns</h1>
+            <p class="v3-head__standing">On their way back, or stuck in a failed courier state</p>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.fulfillment.index') }}" class="v3-btn v3-btn--secondary">All shipments</a>
+        </div>
+    </div>
 
-         The paragraph that used to sit under the head told the operator
-         where to go rather than what they were looking at. The scope of
-         the list is a reading, so it is the head's standing line; the
-         way out is the "All shipments" action beside the title. --}}
-    <x-admin.page title="Returns" standing="On their way back, or stuck in a failed courier state">
-        <x-slot:actions>
-            <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.index') }}">All shipments</x-admin.button>
-        </x-slot:actions>
+    @php
+        // Same cached-label source the queue uses (Refresh from {courier}
+        // on the settings page) — never a live call.
+        $statusLabelsByProvider = [];
+        $humanizeStatus = function (string $status, ?string $provider) use (&$statusLabelsByProvider) {
+            if ($provider === null) {
+                return ucwords(str_replace('_', ' ', $status));
+            }
+            if (!array_key_exists($provider, $statusLabelsByProvider)) {
+                $raw = \App\Models\Setting::where('group', 'courier')->where('key', $provider . '_status_labels')->value('value');
+                $decoded = $raw ? (json_decode($raw, true) ?: []) : [];
+                $statusLabelsByProvider[$provider] = is_array($decoded) ? $decoded : [];
+            }
+            return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
+        };
 
-        @php
-            // Same cached-label source the queue uses (Refresh from {courier}
-            // on the settings page) — never a live call.
-            $statusLabelsByProvider = [];
-            $humanizeStatus = function (string $status, ?string $provider) use (&$statusLabelsByProvider) {
-                if ($provider === null) {
-                    return ucwords(str_replace('_', ' ', $status));
-                }
-                if (!array_key_exists($provider, $statusLabelsByProvider)) {
-                    $raw = \App\Models\Setting::where('group', 'courier')->where('key', $provider . '_status_labels')->value('value');
-                    $decoded = $raw ? (json_decode($raw, true) ?: []) : [];
-                    $statusLabelsByProvider[$provider] = is_array($decoded) ? $decoded : [];
-                }
-                return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
-            };
-        @endphp
+        // The queue's shared tone words mapped onto the v3 badge vocabulary.
+        $badgeTone = fn (string $tone) => [
+            'neutral' => 'quiet', 'success' => 'good', 'warning' => 'warn',
+            'danger' => 'bad', 'info' => 'info',
+        ][$tone] ?? 'quiet';
+    @endphp
 
-        <x-admin.table ruled roomy>
-            <x-slot:head>
-                <th>Order</th>
-                <th class="v-col-courier">Courier</th>
-                <th class="v-col-status">Status</th>
-                <th>Last event</th>
-                <th>Created</th>
-            </x-slot:head>
+    <div class="v3-settle">
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th class="v3-w-courier">Courier</th>
+                            <th class="v3-w-status">Status</th>
+                            <th>Last event</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
                     @forelse ($orders as $order)
                         @php
                             $orderCourier = $order->courier_provider ? \Extensions\CourierFulfillment\CourierManager::get($order->courier_provider) : null;
@@ -69,44 +88,47 @@
                         @endphp
                         <tr>
                             <td>
-                                <a class="v-ref" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
+                                <a class="v3-rowlink v3-mono" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
                             </td>
-                            <td class="v-col-courier">
-                                <span class="v-lead">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
+                            <td class="v3-w-courier">
+                                <span class="v3-lead">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
                                 @if ($order->courier_tracking_number)
-                                    <span class="v-sub">{{ $order->courier_tracking_number }}</span>
+                                    <span class="v3-cell-quiet v3-mono v3-block">{{ $order->courier_tracking_number }}</span>
                                 @endif
                             </td>
-                            <td class="v-col-status">
-                                <div class="v-cellstack">
-                                    <x-admin.badge :tone="$spineTone">{{ $spineLabel }}</x-admin.badge>
+                            <td class="v3-w-status">
+                                <div class="v3-cellstack">
+                                    <span class="v3-badge v3-badge--{{ $badgeTone($spineTone) }}">{{ $spineLabel }}</span>
                                     @if ($order->courier_status)
-                                        <span class="v-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
+                                        <span class="v3-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
                                     @endif
                                 </div>
                             </td>
                             <td>
                                 @if ($lastEvent)
-                                    <span class="block text-[13px] text-v-text">{{ $humanizeStatus((string) $lastEvent['status'], $order->courier_provider) }}</span>
-                                    <span class="block text-xs text-v-muted">{{ \Carbon\Carbon::createFromTimestamp($lastEvent['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia') }}</span>
+                                    {{ $humanizeStatus((string) $lastEvent['status'], $order->courier_provider) }}
+                                    <span class="v3-cell-quiet v3-block">{{ \Carbon\Carbon::createFromTimestamp($lastEvent['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia') }}</span>
                                 @else
-                                    <span class="v-none">-</span>
+                                    <span class="v3-cell-quiet">-</span>
                                 @endif
                             </td>
-                            <td>
-                                <span class="text-[13px] text-v-secondary">{{ optional($order->created_at)->format('M d, Y g:ia') }}</span>
-                            </td>
+                            <td class="v3-cell-quiet">{{ optional($order->created_at)->format('M d, Y g:ia') }}</td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="5">
-                                <x-admin.empty-state icon="fulfillment" title="Nothing coming back"
-                                    description="No orders are currently returning to you or stuck in a failed courier state." />
+                                <div class="v3-empty">
+                                    <p class="v3-empty__title">Nothing coming back</p>
+                                    <p class="v3-empty__line">No orders are currently returning to you or stuck in a failed courier state.</p>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
-        </x-admin.table>
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
 
-        <x-admin.pager :paginator="$orders" />
-    </x-admin.page>
-</x-admin.shell>
+        <x-admin3.pager :paginator="$orders" />
+    </div>
+</x-admin3.shell>

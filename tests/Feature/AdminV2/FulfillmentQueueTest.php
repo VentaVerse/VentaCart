@@ -571,7 +571,7 @@ class FulfillmentQueueTest extends TestCase
             // handler, and still nothing that says whether the courier is
             // configured (a prior draft added `data-courier-configured="true"`
             // here, which this exact-tag assertion caught).
-            ->assertSee('<button type="button" class="v-choice__card" data-courier-card="quadx" data-courier-state="serviceable" x-show="verdict(\'quadx\') === \'serviceable\'" @click="chooseCourier(\'quadx\')">', false);
+            ->assertSee('<button type="button" class="v3-choicecard" data-courier-card="quadx" data-courier-state="serviceable" x-show="verdict(\'quadx\') === \'serviceable\'" @click="chooseCourier(\'quadx\')">', false);
     }
 
     /**
@@ -1270,10 +1270,15 @@ class FulfillmentQueueTest extends TestCase
         // pass then added x-dialog/tabindex between x-transition and class on
         // the same element, so the pattern tolerates attributes in between
         // rather than pinning their absence.
+        // v3 repin: the wrap-inside-nowrap fix now lives at the shared
+        // component level — .v3-modal carries `white-space: normal` in
+        // admin3/components.css, so every confirm rendered inside the
+        // nowrap action cell self-heals. The markup assertion pins the
+        // card class the rule binds to.
         $this->assertMatchesRegularExpression(
-            '/<div x-show="open" x-transition[^>]*\s+class="v-modal relative w-full max-w-sm bg-v-surface border border-v-border rounded-v-lg whitespace-normal"/',
+            '/<div class="v3-modal" role="dialog"/',
             $content,
-            'Expected the modal card to carry whitespace-normal so slot content wraps inside nowrap ancestors (e.g. the fulfillment queue\'s .cf-col-act cell).'
+            'Expected the confirm dialog to render the shared .v3-modal card (whose CSS carries white-space: normal).'
         );
     }
 

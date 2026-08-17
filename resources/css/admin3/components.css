@@ -520,6 +520,7 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 
 .v3-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--v3-line-2); margin-bottom: 18px; }
 .v3-tab {
+    text-decoration: none;
     padding: 9px 14px;
     font-size: 13.5px;
     font-weight: 560;
@@ -1197,3 +1198,139 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-sumbox { margin-left: auto; width: min(300px, 100%); }
 
 .v3-sumbox .v3-facts dd { text-align: right; }
+
+/* --- Work queue: counted tabs, tier bands, drawer, choices ----- */
+
+.v3-tab__count { margin-left: 7px; font-family: var(--v3-font-mono); font-size: 11px; color: var(--v3-ink-3); }
+.v3-tab[aria-selected="true"] .v3-tab__count { color: var(--v3-act); }
+.v3-tabs__aside {
+    margin-left: auto; align-self: center;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12.5px; font-weight: 590; color: var(--v3-ink-2); text-decoration: none;
+}
+.v3-tabs__aside:hover { color: var(--v3-ink); }
+.v3-tabs__aside svg { width: 12px; height: 12px; }
+
+.v3-notice--good { border-color: var(--v3-good); background: var(--v3-good-wash); }
+.v3-notice__act { font-weight: 620; color: var(--v3-ink); }
+
+.v3-tally { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+.v3-tally__label { color: var(--v3-ink-3); font-size: 12px; }
+.v3-tally__item { display: inline-flex; align-items: baseline; gap: 6px; }
+.v3-tally__count { font-family: var(--v3-font-mono); font-weight: 640; }
+
+/* The two-tier queue table: a band of order facts above its item rows */
+.v3-tierrow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.v3-tierrow__side { display: inline-flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.v3-tierrow .v3-tierlabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--v3-ink-3); }
+.v3-cellstack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.v3-cellstack__note { font-size: 12px; color: var(--v3-ink-3); }
+.v3-cellstack__error { font-size: 12px; color: var(--v3-bad); }
+.v3-lead { display: block; font-weight: 590; }
+.v3-actstack { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 122px; }
+.v3-actstack .v3-btn { justify-content: center; }
+
+/* Key/value reading rows (drawer summaries) */
+.v3-kv { display: flex; justify-content: space-between; gap: 14px; font-size: 13px; }
+.v3-kv > :first-child { color: var(--v3-ink-3); flex-shrink: 0; }
+.v3-kv > :last-child { font-weight: 560; text-align: right; overflow-wrap: anywhere; }
+.v3-kvs { display: flex; flex-direction: column; gap: 8px; }
+
+/* Detail drawer: the queue's viewing surface */
+.v3-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 85;
+    width: min(420px, 100%);
+    background: var(--v3-surface);
+    border-left: 1px solid var(--v3-line);
+    box-shadow: var(--v3-lift-2);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+}
+.v3-drawer__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--v3-line-2); }
+.v3-drawer__title { font-size: 14px; font-weight: 640; }
+.v3-drawer__when { font-size: 12px; color: var(--v3-ink-3); margin-top: 2px; }
+.v3-drawer__x { border: 0; background: none; color: var(--v3-ink-3); cursor: pointer; padding: 2px; }
+.v3-drawer__x:hover { color: var(--v3-ink); }
+.v3-drawer__sec { padding: 14px 18px; border-bottom: 1px solid var(--v3-line-2); }
+.v3-drawer__sec:last-child { border-bottom: 0; }
+.v3-drawer__grow { flex: 1; }
+
+/* Shipment stepper: the happy path, with terminal states as badges */
+.v3-steps { display: flex; align-items: flex-start; }
+.v3-steps__stop { display: flex; flex-direction: column; align-items: center; flex: none; width: 52px; }
+.v3-steps__dot {
+    width: 30px; height: 30px; border-radius: 999px;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 640;
+    background: var(--v3-sunken); color: var(--v3-ink-3);
+    border: 1px solid var(--v3-line);
+}
+.v3-steps__dot.is-on { background: var(--v3-act-fill); color: var(--v3-act-ink); border-color: transparent; }
+.v3-steps__dot.is-bad { background: var(--v3-bad); color: #fff; border-color: transparent; }
+.v3-steps__name { margin-top: 5px; font-size: 10.5px; color: var(--v3-ink-3); text-align: center; }
+.v3-steps__link { flex: 1; height: 1px; background: var(--v3-line); margin-top: 15px; }
+.v3-steps__link.is-on { background: var(--v3-act-fill); }
+
+/* Feed of dated events inside the drawer */
+.v3-eventlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.v3-eventlist li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; }
+.v3-eventlist li > :last-child { font-size: 12px; color: var(--v3-ink-3); white-space: nowrap; }
+
+/* Choice cards: one large option per way a parcel can leave */
+.v3-choicegrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); }
+.v3-choicecard {
+    display: block; width: 100%; text-align: left;
+    border: 1px solid var(--v3-line); border-radius: var(--v3-r-md);
+    background: var(--v3-surface); color: var(--v3-ink);
+    padding: 13px 14px; font: inherit;
+}
+button.v3-choicecard { cursor: pointer; transition: border-color var(--v3-fast), background var(--v3-fast); }
+button.v3-choicecard:hover { border-color: var(--v3-act); background: var(--v3-hover); }
+.v3-choicecard--off { background: var(--v3-sunken); color: var(--v3-ink-2); }
+.v3-choicecard--caution { background: var(--v3-sunken); }
+.v3-choicecard__mark {
+    display: block; width: 100%; height: 44px;
+    border-radius: var(--v3-r-sm);
+    background-size: contain; background-position: center; background-repeat: no-repeat;
+    background-origin: content-box; padding: 6px;
+    border: 1px solid var(--v3-line-2);
+    margin-bottom: 10px;
+}
+.v3-choicecard__mark--drawn { display: grid; place-items: center; color: var(--v3-ink-3); background: var(--v3-sunken); }
+.v3-choicecard__mark--drawn svg { width: 20px; height: 20px; }
+.v3-choicecard__name { display: block; font-size: 13.5px; font-weight: 620; }
+.v3-choicecard__tags { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.v3-choicecard__tag {
+    font-size: 10.5px; font-weight: 640; text-transform: uppercase; letter-spacing: .04em;
+    padding: 1px 6px; border-radius: var(--v3-r-sm);
+    background: var(--v3-sunken); border: 1px solid var(--v3-line); color: var(--v3-ink-2);
+}
+.v3-choicecard__fee { display: block; margin-top: 6px; font-size: 12.5px; font-family: var(--v3-font-mono); color: var(--v3-ink-2); }
+.v3-choicecard__msg { display: block; margin-top: 6px; font-size: 12px; color: var(--v3-ink-3); }
+.v3-choicecard__msg a { color: var(--v3-act); }
+.v3-choicewait { display: flex; align-items: center; gap: 10px; padding: 14px 2px; font-size: 13px; color: var(--v3-ink-2); }
+.v3-choicenote { margin: 0 0 10px; font-size: 13px; color: var(--v3-warn); }
+
+/* Quiet fact chip: how the parcel was arranged, not a system state */
+.v3-factchip {
+    display: inline-block; margin-block: 2px; padding: 1px 6px;
+    border-radius: var(--v3-r-sm);
+    background: var(--v3-sunken); border: 1px solid var(--v3-line);
+    font-size: 10px; font-weight: 640; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--v3-ink-3);
+}
+
+.v3-drawerwrap { position: fixed; inset: 0; z-index: 84; }
+.v3-drawerwrap__scrim { position: absolute; inset: 0; background: rgba(10, 16, 24, .45); }
+.v3-actstack form { display: contents; }
+.v3-actstack form .v3-btn { width: 100%; }
+.v3-actrow__grow { flex: 1; }
+
+/* The stepped pager as a standalone block (component x-admin3.pager) */
+nav.v3-pager {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 0; border-top: 0;
+}
+.v3-pager__steps { display: flex; gap: 8px; }
+.v3-pager [aria-disabled="true"] { opacity: .55; pointer-events: none; }
+.v3-modal { white-space: normal; }

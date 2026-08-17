@@ -88,7 +88,7 @@
                     </table>
                 </div>
                 @if ($waitlist->hasPages())
-                    <div class="v3-pager">{{ $waitlist->links() }}</div>
+                    <x-admin3.pager :paginator="$waitlist" />
                 @endif
             </x-admin3.panel>
 
@@ -172,7 +172,7 @@
                     </table>
                 </div>
                 @if ($notified->hasPages())
-                    <div class="v3-pager">{{ $notified->links() }}</div>
+                    <x-admin3.pager :paginator="$notified" />
                 @endif
             </x-admin3.panel>
         </div>

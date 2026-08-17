@@ -1,22 +1,41 @@
-<x-admin.shell title="Fulfillment">
+<x-admin3.shell title="Fulfillment" active="fulfillment">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
-    <x-admin.page title="Fulfillment">
-        <x-slot:actions>
-            <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings') }}">Courier settings</x-admin.button>
-        </x-slot:actions>
+
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <span>Sales</span>
+                <span aria-hidden="true">/</span>
+                <span>Fulfillment</span>
+            </div>
+            <h1 class="v3-head__title">Fulfillment</h1>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.fulfillment.settings') }}" class="v3-btn v3-btn--secondary">Courier settings</a>
+            @unless ($paused)
+                <form method="POST" action="{{ route('admin.fulfillment.poll') }}">
+                    @csrf
+                    <button type="submit" class="v3-btn v3-btn--primary">Refresh from couriers</button>
+                </form>
+            @endunless
+        </div>
+    </div>
 
     @if ($paused)
         {{-- Explicitly paused (courier.fulfillment_enabled = '0') — an explanatory
              page, never a redirect. Bookings triggered by the ERP endpoint are a
              separate code path and keep working regardless of this toggle. --}}
-        <x-admin.empty-state icon="fulfillment" title="Fulfillment is paused"
-            description="The manual booking queue is turned off, so Fulfillment is hidden from the Sales menu and this page lists nothing. Orders booked automatically through the ERP integration (if configured) are unaffected. Switch it back on in Courier Settings.">
-            @if ($canConfigureCouriers)
-                <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings') }}">Go to Courier Settings</x-admin.button>
-            @endif
-        </x-admin.empty-state>
+        <x-admin3.panel>
+            <div class="v3-empty">
+                <p class="v3-empty__title">Fulfillment is paused</p>
+                <p class="v3-empty__line">The manual booking queue is turned off, so Fulfillment is hidden from the Sales menu and this page lists nothing. Orders booked automatically through the ERP integration (if configured) are unaffected. Switch it back on in Courier Settings.</p>
+                @if ($canConfigureCouriers)
+                    <a href="{{ route('admin.fulfillment.settings') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Go to Courier Settings</a>
+                @endif
+            </div>
+        </x-admin3.panel>
     @else
 
     @php
@@ -68,6 +87,14 @@
             }
             return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
         };
+
+        // The queue's shared tone words (Support\PhaseTone) mapped onto the
+        // v3 badge vocabulary. One map, used by the rows here and mirrored
+        // in the drawer's Alpine toneClasses below.
+        $badgeTone = fn (string $tone) => [
+            'neutral' => 'quiet', 'success' => 'good', 'warning' => 'warn',
+            'danger' => 'bad', 'info' => 'info',
+        ][$tone] ?? 'quiet';
 
         // The eight top-level tabs, in the owner's ruled order (2026-08-09).
         // Each is a GROUP that core order statuses are placed into
@@ -147,9 +174,9 @@
                  "Open AWB" anchor as the fallback that always works. The
                  async 'creating' path never sets this flash key, so this
                  banner never renders for a still-pending booking. --}}
-            <div class="v-flash" x-init="window.open(@js(session('label_url')), '_blank')">
-                <span class="v-flash__text">Booked. The AWB should have opened in a new tab.</span>
-                <a href="{{ session('label_url') }}" target="_blank" rel="noopener" class="v-flash__btn">Open AWB</a>
+            <div class="v3-notice v3-notice--good v3-between v3-gap-sm" x-init="window.open(@js(session('label_url')), '_blank')">
+                <span class="v3-notice__text">Booked. The AWB should have opened in a new tab.</span>
+                <a href="{{ session('label_url') }}" target="_blank" rel="noopener" class="v3-btn v3-btn--secondary v3-btn--sm">Open AWB</a>
             </div>
         @endif
 
@@ -157,110 +184,97 @@
             {{-- The queue cannot book anything without a courier, so the
                  shared blocking-setup state says so and carries its own way
                  out. --}}
-            <x-admin.empty-state variant="notice" title="No courier is enabled yet" class="mb-4">
-                <a href="{{ route('admin.fulfillment.settings') }}" class="v-notice__btn">Configure a courier</a>
-            </x-admin.empty-state>
+            <div class="v3-notice v3-between v3-gap-sm">
+                <span class="v3-notice__title">No courier is enabled yet</span>
+                <a href="{{ route('admin.fulfillment.settings') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure a courier</a>
+            </div>
         @endif
 
-        {{-- Command bar: talk to the couriers. One control, on one 32px
-             baseline, sharing the filter row's starting edge. It is a bare
-             row rather than a sheet: a full-width raised panel holding a
-             single button reads as a section whose contents failed to
-             load. --}}
-        <x-admin.toolbar>
-            <form method="POST" action="{{ route('admin.fulfillment.poll') }}" data-v-form class="v-toolbar__actions">
-                @csrf
-                <x-admin.button type="submit" variant="primary">Refresh from couriers</x-admin.button>
-            </form>
-        </x-admin.toolbar>
-
-        {{-- Segment bar: the eight tabs above, each with a mono count.
-             Returns is a sibling page on the far side, not a ninth tab. To
-             Ship's link always lands on its DEFAULT sub-tab (To Pack), the
-             active sub-tab's own bar (below) is what lets the operator move
-             to To Handover from there. --}}
-        <x-admin.segment label="Fulfillment phase">
+        {{-- The eight tabs, each with a mono count. Returns is a sibling
+             page on the far side, not a ninth tab. To Ship's link always
+             lands on its DEFAULT sub-tab (To Pack); the sub bar below is
+             what lets the operator move to To Handover from there. --}}
+        <div class="v3-tabs v3-tabs--wrap" role="tablist" aria-label="Fulfillment phase">
             @foreach ($phaseTabs as $key => $label)
-                <x-admin.segment.item
-                    :href="route('admin.fulfillment.index', array_filter(['filter' => $key, 'sub' => $key === 'to_ship' ? 'to_pack' : null, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== ''))"
-                    :active="$filter === $key"
-                    :count="number_format($phaseCounts[$key] ?? 0)"
-                    :count-key="$key">{{ $label }}</x-admin.segment.item>
+                <a class="v3-tab" role="tab" aria-selected="{{ $filter === $key ? 'true' : 'false' }}"
+                   href="{{ route('admin.fulfillment.index', array_filter(['filter' => $key, 'sub' => $key === 'to_ship' ? 'to_pack' : null, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}">
+                    {{ $label }}<span class="v3-tab__count" data-count-for="{{ $key }}">{{ number_format($phaseCounts[$key] ?? 0) }}</span>
+                </a>
             @endforeach
             @if (Route::has('admin.fulfillment.returns'))
-                <x-slot:aside>
-                    <a class="v-segbar__aside" href="{{ route('admin.fulfillment.returns') }}">
-                        Returns
-                        <x-admin.icon name="chevron-right" class="w-3 h-3" />
-                    </a>
-                </x-slot:aside>
+                <a class="v3-tabs__aside" href="{{ route('admin.fulfillment.returns') }}">
+                    Returns
+                    <x-admin3.icon name="chevron" />
+                </a>
             @endif
-        </x-admin.segment>
+        </div>
 
-        {{-- Sub-segment bar: To Ship's own To Pack / To Handover split —
-             ERP x-segment--sub pattern (same segment anatomy, no
-             trough/background, slightly smaller) so it reads as nested
+        {{-- Sub bar: To Ship's own To Pack / To Handover split, nested
              under the tab above it, never a second bar of equal weight.
              Renders ONLY under To Ship; $sub is ignored (and this bar never
              renders) on every other tab. --}}
         @if ($filter === 'to_ship')
-            <x-admin.segment sub label="To Ship stage">
+            <div class="v3-tabs v3-tabs--sub" role="tablist" aria-label="To Ship stage">
                 @foreach ($subTabs as $key => $label)
-                    <x-admin.segment.item
-                        :href="route('admin.fulfillment.index', array_filter(['filter' => 'to_ship', 'sub' => $key, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== ''))"
-                        :active="$sub === $key"
-                        :count="number_format($phaseCounts[$key] ?? 0)"
-                        :count-key="$key">{{ $label }}</x-admin.segment.item>
-                @endforeach
-            </x-admin.segment>
-        @endif
-
-        {{-- Courier tally — the handover step is where the operator counts
-             parcels per courier before each pickup arrives. Moved (Task 3)
-             from the old top-level To Handover tab to its new home: To
-             Ship's To Handover sub-tab, and only there. --}}
-        @if ($filter === 'to_ship' && $sub === 'to_handover' && !empty($handoverByCourier))
-            <div class="v-tally">
-                <span class="v-tally__label">Parcels waiting for handover</span>
-                @foreach ($handoverByCourier as $courierName => $count)
-                    <span class="v-tally__item">
-                        <span class="v-tally__count">{{ number_format($count) }}</span>
-                        {{ $courierName }}
-                    </span>
+                    <a class="v3-tab" role="tab" aria-selected="{{ $sub === $key ? 'true' : 'false' }}"
+                       href="{{ route('admin.fulfillment.index', array_filter(['filter' => 'to_ship', 'sub' => $key, 'q' => request('q'), 'per_page' => request('per_page')], fn ($v) => $v !== null && $v !== '')) }}">
+                        {{ $label }}<span class="v3-tab__count" data-count-for="{{ $key }}">{{ number_format($phaseCounts[$key] ?? 0) }}</span>
+                    </a>
                 @endforeach
             </div>
         @endif
 
-        {{-- Filter row: search + page size, one job each. --}}
-        <x-admin.filters :action="route('admin.fulfillment.index')">
-            <input type="hidden" name="filter" value="{{ $filter }}">
-            @if ($filter === 'to_ship')
-                <input type="hidden" name="sub" value="{{ $sub }}">
+        <div class="v3-settle {{ $filter === 'to_ship' ? 'v3-gap' : '' }}">
+            {{-- Courier tally — the handover step is where the operator counts
+                 parcels per courier before each pickup arrives. Lives on To
+                 Ship's To Handover sub-tab, and only there. --}}
+            @if ($filter === 'to_ship' && $sub === 'to_handover' && !empty($handoverByCourier))
+                <div class="v3-tally">
+                    <span class="v3-tally__label">Parcels waiting for handover</span>
+                    @foreach ($handoverByCourier as $courierName => $count)
+                        <span class="v3-tally__item">
+                            <span class="v3-tally__count">{{ number_format($count) }}</span>
+                            {{ $courierName }}
+                        </span>
+                    @endforeach
+                </div>
             @endif
-            <x-admin.input type="search" name="q" :value="request('q')" placeholder="Order #, tracking, customer&hellip;" aria-label="Search orders" class="v-filters__search" />
-            <x-admin.select name="per_page" aria-label="Orders per page" class="v-filters__select" @change="$event.target.form.submit()">
-                @foreach ([10, 25, 50] as $n)
-                    <option value="{{ $n }}" @selected($perPage === $n)>{{ $n }} per page</option>
-                @endforeach
-            </x-admin.select>
-            <x-admin.button type="submit" variant="secondary">Search</x-admin.button>
-            @if (request('q'))
-                <a class="v-filters__reset" href="{{ route('admin.fulfillment.index', array_filter(['filter' => $filter, 'sub' => $filter === 'to_ship' ? $sub : null, 'per_page' => $perPage], fn ($v) => $v !== null && $v !== '')) }}">Reset</a>
-            @endif
-        </x-admin.filters>
 
-        {{-- Two-tier table: a band of order-level facts above one row per
-             item; total / courier / status / actions rowspanned beside them.
-             Verification density, because a packer looks at the picture. --}}
-        <x-admin.table tiered roomy>
-            <x-slot:head>
-                <th>Products</th>
-                <th class="v-col-qty">Qty</th>
-                <th class="v-col-amount">Total</th>
-                <th class="v-col-courier">Courier</th>
-                <th class="v-col-status">Status</th>
-                <th class="v-col-act"><span class="v-sr">Actions</span></th>
-            </x-slot:head>
+            <form method="GET" action="{{ route('admin.fulfillment.index') }}" class="v3-filterbar">
+                <input type="hidden" name="filter" value="{{ $filter }}">
+                @if ($filter === 'to_ship')
+                    <input type="hidden" name="sub" value="{{ $sub }}">
+                @endif
+                <input type="search" name="q" value="{{ request('q') }}" placeholder="Order #, tracking, customer…"
+                       aria-label="Search orders" class="v3-control v3-filterbar__grow">
+                <select name="per_page" aria-label="Orders per page" class="v3-control v3-w-name" onchange="this.form.submit()">
+                    @foreach ([10, 25, 50] as $n)
+                        <option value="{{ $n }}" @selected($perPage === $n)>{{ $n }} per page</option>
+                    @endforeach
+                </select>
+                <button type="submit" class="v3-btn v3-btn--secondary">Search</button>
+                @if (request('q'))
+                    <a class="v3-link" href="{{ route('admin.fulfillment.index', array_filter(['filter' => $filter, 'sub' => $filter === 'to_ship' ? $sub : null, 'per_page' => $perPage], fn ($v) => $v !== null && $v !== '')) }}">Reset</a>
+                @endif
+            </form>
+
+            {{-- Two-tier table: a band of order-level facts above one row per
+                 item; total / courier / status / actions rowspanned beside them.
+                 Verification density, because a packer looks at the picture. --}}
+            <x-admin3.panel flush>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr>
+                                <th class="v3-w-product">Products</th>
+                                <th class="v3-cell-num">Qty</th>
+                                <th class="v3-cell-num">Total</th>
+                                <th class="v3-w-courier">Courier</th>
+                                <th class="v3-w-status">Status</th>
+                                <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
                     @forelse ($orders as $order)
                         @php
                             $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
@@ -574,56 +588,67 @@
                             $displayItems = $items->isNotEmpty() ? $items->all() : [null];
                             $lineCount = count($displayItems);
                         @endphp
-                        <tr class="v-tier">
+                        <tr class="v3-tier">
                             <td colspan="6">
-                                <div class="v-tier__row">
-                                    <div class="v-tier__left">
-                                        <span class="v-tier__label">Customer</span>
-                                        <span class="v-tier__value">{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</span>
-                                        <span class="v-tier__label">Order</span>
-                                        <a class="v-ref" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
-                                        <span class="v-tier__muted">({{ $order->products_count ?? 0 }} {{ ($order->products_count ?? 0) === 1 ? 'item' : 'items' }})</span>
-                                    </div>
-                                    <div class="v-tier__right">
-                                        <span class="v-tier__label">Created</span>
-                                        <span class="v-tier__value v-tier__value--mono">{{ optional($order->created_at)->format('M d, Y g:ia') }}</span>
-                                    </div>
+                                <div class="v3-tierrow">
+                                    <span class="v3-tierrow__side">
+                                        <span class="v3-tierlabel">Customer</span>
+                                        <span>{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</span>
+                                        <span class="v3-tierlabel">Order</span>
+                                        <a class="v3-rowlink v3-mono" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
+                                        <span class="v3-cell-quiet">({{ $order->products_count ?? 0 }} {{ ($order->products_count ?? 0) === 1 ? 'item' : 'items' }})</span>
+                                    </span>
+                                    <span class="v3-tierrow__side">
+                                        <span class="v3-tierlabel">Created</span>
+                                        <span class="v3-mono">{{ optional($order->created_at)->format('M d, Y g:ia') }}</span>
+                                    </span>
                                 </div>
                             </td>
                         </tr>
                         @foreach ($displayItems as $idx => $item)
-                            <tr class="v-subrow {{ $idx === $lineCount - 1 ? 'v-subrow--last' : '' }}">
+                            <tr>
                                 <td>
                                     @if ($item)
                                         @php($itemImage = $item->image ?? $item->product?->image)
-                                        <x-admin.item
-                                            :name="$item->name ?: 'Unnamed product'"
-                                            :image="$itemImage ? storage_url($itemImage) : null"
-                                            :sku="trim((string) $item->sku) !== '' ? $item->sku : null"
-                                            :variant="trim((string) $item->variant_label) !== '' ? $item->variant_label : null" />
+                                        <span class="v3-namerow">
+                                            @if ($itemImage)
+                                                <img src="{{ storage_url($itemImage) }}" alt="" class="v3-thumb">
+                                            @else
+                                                <span class="v3-thumb v3-thumb--blank"><x-admin3.icon name="products" /></span>
+                                            @endif
+                                            <span>
+                                                {{ $item->name ?: 'Unnamed product' }}
+                                                @if (trim((string) $item->sku) !== '' || trim((string) $item->variant_label) !== '')
+                                                    <span class="v3-cell-quiet v3-block">
+                                                        @if (trim((string) $item->sku) !== ''){{ $item->sku }}@endif
+                                                        @if (trim((string) $item->variant_label) !== '') &middot; {{ $item->variant_label }}@endif
+                                                    </span>
+                                                @endif
+                                            </span>
+                                        </span>
                                     @else
-                                        <span class="v-none">No items recorded</span>
+                                        <span class="v3-cell-quiet">No items recorded</span>
                                     @endif
                                 </td>
-                                <td class="v-col-qty">
+                                <td class="v3-cell-num v3-mono">
                                     @if ($item)
-                                        <span class="v-qty">&times;{{ max(1, (int) $item->quantity) }}</span>
+                                        &times;{{ max(1, (int) $item->quantity) }}
                                     @else
-                                        <span class="v-none">-</span>
+                                        <span class="v3-cell-quiet">-</span>
                                     @endif
                                 </td>
                                 @if ($idx === 0)
-                                    <td class="v-col-amount" rowspan="{{ $lineCount }}">
-                                        <span class="v-amount">&#8369;{{ number_format($order->total, 2) }}</span>
-                                        <span class="v-amount__sub">{{ $isCod ? 'COD' : ucwords(str_replace('_', ' ', (string) $order->payment_method)) }}</span>
+                                    <td class="v3-cell-num" rowspan="{{ $lineCount }}">
+                                        <span class="v3-mono">&#8369;{{ number_format($order->total, 2) }}</span>
+                                        <span class="v3-cell-quiet v3-block">{{ $isCod ? 'COD' : ucwords(str_replace('_', ' ', (string) $order->payment_method)) }}</span>
                                     </td>
-                                    <td class="v-col-courier" rowspan="{{ $lineCount }}">
+                                    <td class="v3-w-courier" rowspan="{{ $lineCount }}">
                                         @if ($order->courier_tracking_number)
-                                            <span class="v-lead">{{ $orderCourier?->getName() ?? strtoupper((string) $order->courier_provider) }}</span>
+                                            <span class="v3-lead">{{ $orderCourier?->getName() ?? strtoupper((string) $order->courier_provider) }}</span>
                                             @if ($trackingUrl)
-                                                <a class="v-sub" href="{{ $trackingUrl }}" target="_blank" rel="noopener">{{ $order->courier_tracking_number }}</a>
+                                                <a class="v3-link v3-mono" href="{{ $trackingUrl }}" target="_blank" rel="noopener">{{ $order->courier_tracking_number }}</a>
                                             @else
-                                                <span class="v-sub">{{ $order->courier_tracking_number }}</span>
+                                                <span class="v3-cell-quiet v3-mono">{{ $order->courier_tracking_number }}</span>
                                             @endif
                                         @elseif ($manuallyShipped)
                                             {{-- A parcel we arranged ourselves. The courier
@@ -632,42 +657,42 @@
                                                  for a waybill that was never printed. The
                                                  tracking number is optional here, so the cell
                                                  stops after the name when there isn't one. --}}
-                                            <span class="v-lead">{{ $manualCourierName }}</span>
-                                            <span class="v-manual">Manual</span>
+                                            <span class="v3-lead">{{ $manualCourierName }}</span>
+                                            <span class="v3-factchip">Manual</span>
                                             @if ($order->tracking_number)
                                                 @if ($manualTrackingUrl)
-                                                    <a class="v-sub" href="{{ $manualTrackingUrl }}" target="_blank" rel="noopener">{{ $order->tracking_number }}</a>
+                                                    <a class="v3-link v3-mono v3-block" href="{{ $manualTrackingUrl }}" target="_blank" rel="noopener">{{ $order->tracking_number }}</a>
                                                 @else
-                                                    <span class="v-sub">{{ $order->tracking_number }}</span>
+                                                    <span class="v3-cell-quiet v3-mono v3-block">{{ $order->tracking_number }}</span>
                                                 @endif
                                             @endif
                                         @else
-                                            <span class="v-none">-</span>
+                                            <span class="v3-cell-quiet">-</span>
                                         @endif
                                     </td>
-                                    <td class="v-col-status" rowspan="{{ $lineCount }}">
-                                        <div class="v-cellstack">
+                                    <td class="v3-w-status" rowspan="{{ $lineCount }}">
+                                        <div class="v3-cellstack">
                                             @if ($hasCourierData)
                                                 {{-- A booked row reports its SHIPMENT's spine
                                                      phase, in that phase's shared tone. --}}
-                                                <x-admin.badge :tone="$spineTone">{{ $spineLabel }}</x-admin.badge>
+                                                <span class="v3-badge v3-badge--{{ $badgeTone($spineTone) }}">{{ $spineLabel }}</span>
                                             @else
                                                 {{-- No courier ever touched this order, so there
                                                      is no courier state to report: its core order
                                                      status is the honest answer (and the only
                                                      thing that decided which tab it is in). --}}
-                                                <x-admin.badge tone="neutral">{{ $order->status?->name ?? 'Missing' }}</x-admin.badge>
+                                                <span class="v3-badge v3-badge--quiet">{{ $order->status?->name ?? 'Missing' }}</span>
                                             @endif
                                             @if ($order->courier_status)
-                                                <span class="v-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
+                                                <span class="v3-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
                                             @endif
                                             @if ($creationError)
-                                                <span class="v-cellstack__error" title="{{ $creationError }}">{{ \Illuminate\Support\Str::limit($creationError, 90) }}</span>
+                                                <span class="v3-cellstack__error" title="{{ $creationError }}">{{ \Illuminate\Support\Str::limit($creationError, 90) }}</span>
                                             @endif
                                         </div>
                                     </td>
-                                    <td class="v-col-act" rowspan="{{ $lineCount }}">
-                                        <div class="v-rowactions">
+                                    <td class="v3-cell-act" rowspan="{{ $lineCount }}">
+                                        <div class="v3-actstack">
                                             {{-- The action table. Read the $rowBucket block in this
                                                  row's @php above for the table itself and for what
                                                  each gate subtracts: the ORDER actions (Book, Cancel
@@ -677,13 +702,11 @@
                                                  nothing else. --}}
                                             @if ($canBook)
                                                 {{-- Component-tag attributes only compile {{ }} echoes, not
-                                                     @-directives — @js() here would render as literal text.
-                                                     Js::from() is what @js() expands to; the {{ }} form is the
-                                                     one that compiles on a component tag. --}}
-                                                <x-admin.button type="button" size="sm" variant="primary" @click="openBooking({{ \Illuminate\Support\Js::from($rowData) }})">Book</x-admin.button>
+                                                     @-directives — Js::from() is what @js() expands to. --}}
+                                                <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="openBooking({{ \Illuminate\Support\Js::from($rowData) }})">Book</button>
                                             @endif
                                             @if ($offersWaybill)
-                                                <x-admin.button size="sm" variant="secondary" href="{{ route('admin.fulfillment.label', $order) }}" target="_blank" rel="noopener">Print waybill</x-admin.button>
+                                                <a href="{{ route('admin.fulfillment.label', $order) }}" class="v3-btn v3-btn--secondary v3-btn--sm" target="_blank" rel="noopener">Print waybill</a>
                                             @endif
                                             @if ($offersDrawer)
                                                 {{-- One opener, three honest labels: a booking still
@@ -691,35 +714,35 @@
                                                      its error, anything with a tracking number opens
                                                      on its timeline. --}}
                                                 @if ($creating)
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</x-admin.button>
+                                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Creating&hellip;</button>
                                                 @elseif ($creationFailed && !$order->courier_tracking_number)
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</x-admin.button>
+                                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Details</button>
                                                 @else
-                                                    <x-admin.button type="button" size="sm" variant="secondary" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</x-admin.button>
+                                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openDrawer({{ \Illuminate\Support\Js::from($rowData) }})">Tracking</button>
                                                 @endif
                                             @endif
                                             @if ($offersCancelBooking)
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'cancel-fulfillment-{{ $order->id }}')">Cancel booking</x-admin.button>
+                                                <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'cancel-fulfillment-{{ $order->id }}')">Cancel booking</button>
                                             @endif
                                             @if ($offersCancelOrder)
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'cancel-order-{{ $order->id }}')">Cancel order</x-admin.button>
+                                                <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'cancel-order-{{ $order->id }}')">Cancel order</button>
                                             @endif
                                             @if ($offersClearManual)
-                                                <x-admin.button type="button" size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'clear-manual-{{ $order->id }}')">Clear shipment</x-admin.button>
+                                                <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'clear-manual-{{ $order->id }}')">Clear shipment</button>
                                             @endif
                                         </div>
                                         @if ($offersCancelOrder)
-                                            <x-admin.confirm-dialog name="cancel-order-{{ $order->id }}" title="Cancel order #{{ $order->id }}?"
+                                            <x-admin3.confirm name="cancel-order-{{ $order->id }}" title="Cancel order #{{ $order->id }}?"
                                                 message="This sets the order status to your configured cancel status (returning any reserved stock) and moves it to the Cancelled tab. No courier is contacted."
                                                 confirm="Cancel order" :action="route('admin.fulfillment.cancel-order', $order)" method="POST" />
                                         @endif
                                         @if ($offersCancelBooking)
-                                            <x-admin.confirm-dialog name="cancel-fulfillment-{{ $order->id }}" title="Cancel booking for order #{{ $order->id }}?"
+                                            <x-admin3.confirm name="cancel-fulfillment-{{ $order->id }}" title="Cancel booking for order #{{ $order->id }}?"
                                                 message="This cancels the courier booking. The order returns to To Pack for rebooking."
                                                 confirm="Cancel booking" :action="route('admin.fulfillment.cancel', $order)" method="POST" />
                                         @endif
                                         @if ($offersClearManual)
-                                            <x-admin.confirm-dialog name="clear-manual-{{ $order->id }}" title="Clear the recorded shipment for order #{{ $order->id }}?"
+                                            <x-admin3.confirm name="clear-manual-{{ $order->id }}" title="Clear the recorded shipment for order #{{ $order->id }}?"
                                                 message="This forgets the courier, tracking number and tracking link, and returns the order to To Pack. No courier is contacted."
                                                 confirm="Clear shipment" :action="route('admin.fulfillment.clear-manual', $order)" method="POST" />
                                         @endif
@@ -730,71 +753,61 @@
                     @empty
                         <tr>
                             <td colspan="6">
-                                <x-admin.empty-state icon="fulfillment" title="No orders in this view." />
+                                <div class="v3-empty">
+                                    <p class="v3-empty__title">No orders in this view</p>
+                                </div>
                             </td>
                         </tr>
                     @endforelse
-        </x-admin.table>
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin3.panel>
 
-        {{-- Pager: "1 to N of M" mono left, Prev/Next right. --}}
-        <x-admin.pager :paginator="$orders" />
+            <x-admin3.pager :paginator="$orders" />
+        </div>
 
         {{-- Detail drawer — the VIEWING surface (stepper, timeline, tracking,
              cancel). Booking happens in the modal below, never here. --}}
-        <div x-show="drawerOpen" x-cloak class="fixed inset-0 z-50" @keydown.escape.window="closeDrawer()">
-            <div class="absolute inset-0 bg-black/40" x-show="drawerOpen" x-transition.opacity @click="closeDrawer()"></div>
+        <div x-show="drawerOpen" x-cloak class="v3-drawerwrap" @keydown.escape.window="closeDrawer()">
+            <div class="v3-drawerwrap__scrim" x-show="drawerOpen" x-transition.opacity @click="closeDrawer()"></div>
 
-            {{-- Hand-rolled rather than x-admin.modal because it reads the
-                 queue's own `active` order out of the parent Alpine scope,
-                 which a component's slot cannot see. The dialog contract is
-                 the shared one all the same: x-dialog moves focus in, holds
-                 it, and hands it back to the row button that opened it. --}}
-            <div class="v-modal absolute inset-y-0 right-0 w-full max-w-md bg-v-surface border-l border-v-border flex flex-col"
-                 x-dialog="drawerOpen" tabindex="-1"
+            <div class="v3-drawer" x-show="drawerOpen" x-transition.opacity tabindex="-1"
                  role="dialog" aria-modal="true" :aria-label="'Order #' + (active ? active.id : '') + ' fulfillment'"
-                 x-show="drawerOpen"
-                 x-transition:enter="transition ease-out duration-200"
-                 x-transition:enter-start="translate-x-full"
-                 x-transition:enter-end="translate-x-0"
-                 x-transition:leave="transition ease-in duration-150"
-                 x-transition:leave-start="translate-x-0"
-                 x-transition:leave-end="translate-x-full"
                  @click.stop>
                 <template x-if="active">
-                    <div class="flex flex-col h-full">
-                        {{-- Header --}}
-                        <div class="px-5 py-4 border-b border-v-border flex items-start justify-between">
+                    <div class="v3-drawer__grow">
+                        <div class="v3-drawer__head">
                             <div>
-                                <h3 class="text-sm font-semibold text-v-text">Order <span x-text="'#' + active.id"></span></h3>
-                                <p class="text-xs text-v-muted mt-0.5" x-text="active.date"></p>
+                                <h3 class="v3-drawer__title">Order <span x-text="'#' + active.id"></span></h3>
+                                <p class="v3-drawer__when" x-text="active.date"></p>
                             </div>
-                            <button type="button" @click="closeDrawer()" class="text-v-muted hover:text-v-text text-xl leading-none"
-                                    aria-label="Close" data-v-dialog-initial><span aria-hidden="true">&times;</span></button>
+                            <button type="button" class="v3-drawer__x" @click="closeDrawer()" aria-label="Close">
+                                <x-admin3.icon name="x" />
+                            </button>
                         </div>
 
                         {{-- Big stepper (happy path) + terminal phase badge.
                              failed / cancelled / returning are terminal BADGE
                              states on this stepper, not steps of their own. --}}
-                        <div class="px-5 py-4 border-b border-v-border">
-                            <div class="flex items-center">
+                        <div class="v3-drawer__sec">
+                            <div class="v3-steps">
                                 @foreach (['Pending', 'Booked', 'Shipped', 'Delivered'] as $i => $label)
-                                    <div class="flex flex-col items-center flex-none w-12">
-                                        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
-                                             :class="{{ $i }} <= active.phaseStep ? (active.phaseFailed && {{ $i }} === active.phaseStep ? 'bg-v-danger text-v-danger-text' : 'bg-v-accent text-v-accent-text') : 'bg-v-strong text-v-muted'">
+                                    <div class="v3-steps__stop">
+                                        <div class="v3-steps__dot"
+                                             :class="{{ $i }} <= active.phaseStep ? (active.phaseFailed && {{ $i }} === active.phaseStep ? 'is-bad' : 'is-on') : ''">
                                             {{ $i + 1 }}
                                         </div>
-                                        <span class="mt-1 text-[10px] text-v-muted text-center">{{ $label }}</span>
+                                        <span class="v3-steps__name">{{ $label }}</span>
                                     </div>
                                     @if ($i < 3)
-                                        <div class="flex-1 h-px mb-4" :class="{{ $i }} < active.phaseStep ? 'bg-v-accent' : 'bg-v-border'"></div>
+                                        <div class="v3-steps__link" :class="{{ $i }} < active.phaseStep && 'is-on'"></div>
                                     @endif
                                 @endforeach
                             </div>
                             <template x-if="['failed', 'cancelled', 'returning'].includes(active.phase)">
-                                <div class="mt-3">
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
-                                          :class="toneClasses[active.phaseTone] || toneClasses.neutral"
-                                          x-text="active.phaseLabel"></span>
+                                <div class="v3-gap">
+                                    <span :class="toneClasses[active.phaseTone] || toneClasses.neutral" x-text="active.phaseLabel"></span>
                                 </div>
                             </template>
                         </div>
@@ -803,13 +816,13 @@
                              activelyBooked, so a CANCELLED booking's timeline
                              stays viewable (review fix, W2). --}}
                         <template x-if="active.trackingNumber && active.timeline && active.timeline.length">
-                            <div class="px-5 py-4 border-b border-v-border">
-                                <h4 class="v-label mb-2">Tracking history</h4>
-                                <ul class="space-y-1.5">
+                            <div class="v3-drawer__sec">
+                                <span class="v3-field__label">Tracking history</span>
+                                <ul class="v3-eventlist">
                                     <template x-for="(event, idx) in active.timeline" :key="idx">
-                                        <li class="flex items-baseline justify-between gap-3 text-sm">
-                                            <span class="text-v-text" x-text="event.label"></span>
-                                            <span class="text-xs text-v-muted whitespace-nowrap" x-text="event.at"></span>
+                                        <li>
+                                            <span x-text="event.label"></span>
+                                            <span x-text="event.at"></span>
                                         </li>
                                     </template>
                                 </ul>
@@ -817,47 +830,28 @@
                         </template>
 
                         {{-- Summary --}}
-                        <div class="px-5 py-4 border-b border-v-border space-y-2 text-sm">
-                            <div class="flex justify-between gap-4">
-                                <span class="text-v-muted shrink-0">Customer</span>
-                                <span class="font-medium text-v-text text-right" x-text="active.customerName"></span>
+                        <div class="v3-drawer__sec">
+                            <div class="v3-kvs">
+                                <div class="v3-kv"><span>Customer</span><span x-text="active.customerName"></span></div>
+                                <div class="v3-kv"><span>Order status</span><span x-text="active.statusName"></span></div>
+                                <div class="v3-kv"><span>Items</span><span x-text="active.itemsCount + ' item(s)'"></span></div>
+                                <div class="v3-kv"><span>Ship to</span><span x-text="active.address"></span></div>
+                                <template x-if="active.storeNote">
+                                    <div class="v3-kv"><span>Message to Store</span><span x-text="active.storeNote"></span></div>
+                                </template>
+                                <template x-if="active.courierNote">
+                                    <div class="v3-kv"><span>Message to Courier</span><span x-text="active.courierNote"></span></div>
+                                </template>
+                                {{-- Only on a booked parcel: it is a fact about the
+                                     shipment, recorded when the booking was made. --}}
+                                <template x-if="active.shipsFrom">
+                                    <div class="v3-kv"><span>Ships from</span><span x-text="active.shipsFrom"></span></div>
+                                </template>
                             </div>
-                            <div class="flex justify-between gap-4">
-                                <span class="text-v-muted shrink-0">Order status</span>
-                                <span class="font-medium text-v-text text-right" x-text="active.statusName"></span>
-                            </div>
-                            <div class="flex justify-between gap-4">
-                                <span class="text-v-muted shrink-0">Items</span>
-                                <span class="font-medium text-v-text text-right" x-text="active.itemsCount + ' item(s)'"></span>
-                            </div>
-                            <div class="flex justify-between gap-4">
-                                <span class="text-v-muted shrink-0">Ship to</span>
-                                <span class="font-medium text-v-text text-right" x-text="active.address"></span>
-                            </div>
-                            <template x-if="active.storeNote">
-                                <div class="flex justify-between gap-4">
-                                    <span class="text-v-muted shrink-0">Message to Store</span>
-                                    <span class="font-medium text-v-text text-right" x-text="active.storeNote"></span>
-                                </div>
-                            </template>
-                            <template x-if="active.courierNote">
-                                <div class="flex justify-between gap-4">
-                                    <span class="text-v-muted shrink-0">Message to Courier</span>
-                                    <span class="font-medium text-v-text text-right" x-text="active.courierNote"></span>
-                                </div>
-                            </template>
-                            {{-- Only on a booked parcel: it is a fact about the
-                                 shipment, recorded when the booking was made. --}}
-                            <template x-if="active.shipsFrom">
-                                <div class="flex justify-between gap-4">
-                                    <span class="text-v-muted shrink-0">Ships from</span>
-                                    <span class="font-medium text-v-text text-right" x-text="active.shipsFrom"></span>
-                                </div>
-                            </template>
                         </div>
 
                         {{-- Tracking body / booking hand-off --}}
-                        <div class="px-5 py-4 flex-1 overflow-y-auto">
+                        <div class="v3-drawer__sec">
                             {{-- Task T4: honest "Creating…" state — an async
                                  courier's booking is mid-flight (no tracking
                                  number yet, courier_status='creating'). Never
@@ -867,13 +861,13 @@
                                  guard) — this is a status message, not an
                                  action. --}}
                             <template x-if="active.creating">
-                                <div class="rounded-v-md bg-v-sunken border border-v-border px-4 py-3 text-sm text-v-text">
-                                    <span class="font-medium">Creating shipment with <span x-text="active.provider"></span>&hellip;</span>
+                                <div class="v3-well">
+                                    <span>Creating shipment with <strong x-text="active.provider"></strong>&hellip;</span>
                                 </div>
                             </template>
                             @if (!empty($courierOptions) || !empty($manualCouriers))
                                 <template x-if="!active.activelyBooked && !active.creating">
-                                    <div class="space-y-3">
+                                    <div class="v3-settle">
                                         {{-- Final-review fix (Finding 2): the async create's permanent
                                              failure reason (courier_meta.creation_error) - surfaced here,
                                              with the Book button right below it when this order can in
@@ -887,89 +881,77 @@
                                              Pack simply gets no Book button and no caption for it, same
                                              as the row it was opened from. --}}
                                         <template x-if="active.creationFailed">
-                                            <div class="rounded-v-md border border-v-danger bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] px-3 py-2 text-xs text-v-danger">
-                                                <span class="font-semibold">Booking failed:</span>
-                                                <span x-text="active.creationError || 'the courier could not create this shipment.'"></span>
+                                            <div class="v3-notice v3-notice--bad">
+                                                <span class="v3-notice__title">Booking failed:</span>
+                                                <span class="v3-notice__text" x-text="active.creationError || 'the courier could not create this shipment.'"></span>
                                             </div>
                                         </template>
                                         <template x-if="active.rebookable && active.canBook">
-                                            <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 text-xs text-v-muted">
-                                                Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
+                                            <div class="v3-well">
+                                                Previous booking <span class="v3-mono" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
                                             </div>
                                         </template>
                                         <template x-if="active.canBook">
-                                            <x-admin.button type="button" variant="primary" class="w-full" @click="closeDrawer(); openBooking(active)">Book shipment</x-admin.button>
+                                            <div class="v3-actstack">
+                                                <button type="button" class="v3-btn v3-btn--primary" @click="closeDrawer(); openBooking(active)">Book shipment</button>
+                                            </div>
                                         </template>
                                     </div>
                                 </template>
                             @else
                                 <template x-if="!active.activelyBooked">
-                                    <div class="rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-sm text-v-warning">
-                                        No courier is enabled yet.
-                                        <a href="{{ route('admin.fulfillment.settings') }}" class="font-semibold underline">Configure a courier <x-admin.icon name="arrow-right" class="inline w-3.5 h-3.5 align-[-2px]" /></a>
+                                    <div class="v3-notice">
+                                        <span class="v3-notice__text">No courier is enabled yet.
+                                            <a href="{{ route('admin.fulfillment.settings') }}" class="v3-notice__act">Configure a courier</a>
+                                        </span>
                                     </div>
                                 </template>
                             @endif
 
                             <template x-if="active.activelyBooked">
-                                <div class="space-y-4">
-                                    <div class="rounded-v-md bg-v-sunken border border-v-border px-4 py-3 space-y-2">
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-v-muted">Tracking #</span>
+                                <div class="v3-settle">
+                                    <div class="v3-well">
+                                        <div class="v3-kvs">
+                                            <div class="v3-kv">
+                                                <span>Tracking #</span>
+                                                <template x-if="active.trackingUrl">
+                                                    <a :href="active.trackingUrl" target="_blank" rel="noopener" class="v3-link v3-mono" x-text="active.trackingNumber"></a>
+                                                </template>
+                                                <template x-if="!active.trackingUrl">
+                                                    <span class="v3-mono" x-text="active.trackingNumber"></span>
+                                                </template>
+                                            </div>
+                                            <div class="v3-kv"><span>Courier</span><span x-text="active.provider"></span></div>
+                                            <div class="v3-kv"><span>Status</span><span x-text="active.courierStatus || '-'"></span></div>
+                                            <template x-if="active.estimatedDelivery">
+                                                <div class="v3-kv"><span>Est. delivery</span><span x-text="active.estimatedDelivery"></span></div>
+                                            </template>
+                                            {{-- Task T4: two DISTINCTLY labeled figures, shown only
+                                                 when present — an ESTIMATED fee (quoted at booking time)
+                                                 is never confused with the ACTUAL fee (SPX's post-booking
+                                                 batch_get_asf, refreshed on every poll). --}}
+                                            <template x-if="active.estimatedFee">
+                                                <div class="v3-kv"><span>Estimated shipping fee</span><span class="v3-mono" x-text="active.estimatedFee"></span></div>
+                                            </template>
+                                            <template x-if="active.actualFee">
+                                                <div class="v3-kv"><span>Actual shipping fee</span><span class="v3-mono" x-text="active.actualFee"></span></div>
+                                            </template>
                                             <template x-if="active.trackingUrl">
-                                                <a :href="active.trackingUrl" target="_blank" rel="noopener" class="v-num font-medium text-v-accent hover:underline" x-text="active.trackingNumber"></a>
-                                            </template>
-                                            <template x-if="!active.trackingUrl">
-                                                <span class="v-num font-medium text-v-text" x-text="active.trackingNumber"></span>
+                                                <div class="v3-kv"><span></span><a :href="active.trackingUrl" target="_blank" rel="noopener" class="v3-link">Track shipment</a></div>
                                             </template>
                                         </div>
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-v-muted">Courier</span>
-                                            <span class="font-medium text-v-text" x-text="active.provider"></span>
-                                        </div>
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-v-muted">Status</span>
-                                            <span class="font-medium text-v-text" x-text="active.courierStatus || '-'"></span>
-                                        </div>
-                                        <template x-if="active.estimatedDelivery">
-                                            <div class="flex justify-between text-sm">
-                                                <span class="text-v-muted">Est. delivery</span>
-                                                <span class="font-medium text-v-text" x-text="active.estimatedDelivery"></span>
-                                            </div>
-                                        </template>
-                                        {{-- Task T4: two DISTINCTLY labeled figures, shown only
-                                             when present — an ESTIMATED fee (quoted at booking time)
-                                             is never confused with the ACTUAL fee (SPX's post-booking
-                                             batch_get_asf, refreshed on every poll). --}}
-                                        <template x-if="active.estimatedFee">
-                                            <div class="flex justify-between text-sm">
-                                                <span class="text-v-muted">Estimated shipping fee</span>
-                                                <span class="font-medium text-v-text" x-text="active.estimatedFee"></span>
-                                            </div>
-                                        </template>
-                                        <template x-if="active.actualFee">
-                                            <div class="flex justify-between text-sm">
-                                                <span class="text-v-muted">Actual shipping fee</span>
-                                                <span class="font-medium text-v-text" x-text="active.actualFee"></span>
-                                            </div>
-                                        </template>
-                                        <template x-if="active.trackingUrl">
-                                            <div class="pt-1">
-                                                <a :href="active.trackingUrl" target="_blank" rel="noopener" class="text-v-accent hover:underline text-sm">Track shipment <x-admin.icon name="arrow-right" class="inline w-3.5 h-3.5 align-[-2px]" /></a>
-                                            </div>
-                                        </template>
                                     </div>
 
-                                    <div class="flex flex-col gap-2">
+                                    <div class="v3-actstack">
                                         <template x-if="active.canPrintWaybill">
-                                            <a :href="labelUrl" target="_blank" rel="noopener" class="text-center px-4 py-2 border border-v-border text-v-text text-sm font-semibold rounded-v-md hover:bg-v-hover">Print AWB</a>
+                                            <a :href="labelUrl" target="_blank" rel="noopener" class="v3-btn v3-btn--secondary">Print AWB</a>
                                         </template>
-                                        <form :action="trackAction" method="POST" data-v-form>
+                                        <form :action="trackAction" method="POST">
                                             @csrf
-                                            <x-admin.button type="submit" variant="secondary" class="w-full">Refresh status</x-admin.button>
+                                            <button type="submit" class="v3-btn v3-btn--secondary">Refresh status</button>
                                         </form>
                                         <template x-if="active.canCancelBooking">
-                                            <x-admin.button type="button" variant="danger" class="w-full" @click="$dispatch('open-modal', 'cancel-fulfillment-' + active.id)">Cancel booking</x-admin.button>
+                                            <button type="button" class="v3-btn v3-btn--danger" @click="$dispatch('v3-confirm', 'cancel-fulfillment-' + active.id)">Cancel booking</button>
                                         </template>
                                     </div>
                                 </div>
@@ -994,32 +976,27 @@
              at all still ships parcels, and recording one is the whole point
              of the third choice. --}}
         @if (!empty($courierOptions) || !empty($manualCouriers))
-            <div x-show="bookOpen" x-cloak class="fixed inset-0 z-[90] flex items-center justify-center p-4" @keydown.escape.window="closeBooking()">
-                <div class="absolute inset-0 bg-black/50" @click="closeBooking()"></div>
-                {{-- Hand-rolled for the same reason as the drawer above: it
-                     needs `active`, `step` and the courier form state from the
-                     queue's own scope. x-dialog gives it the same focus
-                     contract every x-admin.modal has. --}}
+            <div x-show="bookOpen" x-cloak class="v3-overlay" @click.self="closeBooking()" @keydown.escape.window="closeBooking()">
                 {{-- Two widths, one sheet: the courier step lays its options
                      out as columns and needs the room for up to four of them,
                      while the chosen courier's form is a column of fields and
                      reads worse stretched. Both widths are named in the
                      module's own stylesheet (never a class assembled in
                      Alpine), and the sheet animates between them. --}}
-                <div x-show="bookOpen" x-transition
-                     class="v-modal v-bookmodal relative w-full bg-v-surface border border-v-border rounded-v-lg max-h-full overflow-y-auto"
-                     :class="step === 1 ? 'v-bookmodal--couriers' : ''"
-                     x-dialog="bookOpen" tabindex="-1"
+                <div x-show="bookOpen" x-transition.opacity
+                     class="v3-modal v3-bookmodal"
+                     :class="step === 1 ? 'v3-bookmodal--couriers' : ''"
+                     tabindex="-1"
                      role="dialog" aria-modal="true" :aria-label="'Book order #' + (active ? active.id : '')">
                     <template x-if="active">
                         <div>
-                            <header class="flex items-center justify-between px-5 pt-4">
-                                <h2 class="text-[15px] font-semibold text-v-text">Book order <span class="v-num" x-text="'#' + active.id"></span></h2>
-                                <button type="button" class="text-v-muted hover:text-v-text" @click="closeBooking()" aria-label="Close">
-                                    <x-admin.icon name="x" class="w-4 h-4" />
+                            <header class="v3-between">
+                                <h2 class="v3-modal__title">Book order <span class="v3-mono" x-text="'#' + active.id"></span></h2>
+                                <button type="button" class="v3-drawer__x" @click="closeBooking()" aria-label="Close">
+                                    <x-admin3.icon name="x" />
                                 </button>
                             </header>
-                            <div class="px-5 py-4">
+                            <div class="v3-gap">
                                 {{-- Step 1: one large choice card per FLAGGED courier
                                      (CourierManager::flagged() — flag ON, regardless of
                                      credential completeness). Rendered server-side so the
@@ -1031,25 +1008,19 @@
                                      visible with configuration gate"): a courier whose
                                      ENABLED FLAG is on but isn't fully configured yet
                                      (missing credentials — $opt['configured'] is false) still
-                                     gets a card here instead of silently vanishing (the bug
-                                     that confused the owner — CourierManager::enabled()'s
-                                     AND-credentials gate made a courier they'd switched on
-                                     disappear with no explanation). That card is a plain
-                                     <div>, never a <button @click="chooseCourier(...)">, so
-                                     it structurally CANNOT advance to step 2 — there is no
-                                     click handler to wire up, not merely a disabled one. --}}
+                                     gets a card here instead of silently vanishing. That card
+                                     is a plain <div>, never a <button @click>, so it
+                                     structurally CANNOT advance to step 2. --}}
                                 <div x-show="step === 1">
-                                    <p class="text-[13px] text-v-secondary mb-3">How will this order ship?</p>
+                                    <p class="v3-panel__note v3-gap-sm">How will this order ship?</p>
 
                                     {{-- The wait is a real network call to every
                                          configured courier, so it is named rather than
                                          spun at: who is being asked, and about where.
                                          The cards are drawn only once every courier has
-                                         answered (owner ruling, 2026-08-12). A card
-                                         that rearranges itself under the operator's hand
-                                         is worse than a pause they can read. --}}
-                                    <div x-show="checking" class="v-choice__wait">
-                                        <span class="v-choice__waitmark" aria-hidden="true"></span>
+                                         answered (owner ruling, 2026-08-12). --}}
+                                    <div x-show="checking" class="v3-choicewait">
+                                        <x-admin3.icon name="spinner" class="v3-spin" />
                                         <span x-text="waitLine"></span>
                                     </div>
 
@@ -1058,9 +1029,10 @@
                                              the refused cards still readable below it with
                                              their own reasons, and the manual card
                                              selectable exactly as it always is. --}}
-                                        <p class="v-choice__note" x-show="allRefused" x-text="refusedLine"></p>
-                                    <x-admin.choice cols>
+                                        <p class="v3-choicenote" x-show="allRefused" x-text="refusedLine"></p>
+                                        <div class="v3-choicegrid">
                                         @foreach ($courierOptions as $key => $opt)
+                                            @php($optMark = $markFor($key))
                                             @if ($opt['configured'])
                                                 {{-- Three cards, one per verdict, exactly
                                                      one of them shown. Written out rather
@@ -1070,78 +1042,78 @@
                                                      (it is a <div> with no handler) and the
                                                      unreachable one genuinely can (a real
                                                      <button> wired to chooseCourier). --}}
-                                                <x-admin.choice.card
-                                                    :name="$opt['name']"
-                                                    :mode="!empty($opt['mode']) && $opt['mode'] !== 'production' ? ucfirst($opt['mode']) : null"
-                                                    :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'brands'"
-                                                    data-courier-card="{{ $key }}"
-                                                    data-courier-state="serviceable"
-                                                    x-show="verdict('{{ $key }}') === 'serviceable'"
-                                                    @click="chooseCourier('{{ $key }}')">
-                                                    {{-- The cheapest parcel this courier
-                                                         quoted for this address. A from-price,
-                                                         because which parcel goes in the box is
-                                                         still step 2's question. --}}
-                                                    <x-slot:fee><span x-text="fromPrice('{{ $key }}')"></span></x-slot:fee>
-                                                </x-admin.choice.card>
+                                                <button type="button" class="v3-choicecard" data-courier-card="{{ $key }}" data-courier-state="serviceable" x-show="verdict('{{ $key }}') === 'serviceable'" @click="chooseCourier('{{ $key }}')">
+                                                    @if ($optMark)
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--{{ $optMark }}" aria-hidden="true"></span>
+                                                    @else
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--drawn" aria-hidden="true"><x-admin3.icon name="package" /></span>
+                                                    @endif
+                                                    <span class="v3-choicecard__name">{{ $opt['name'] }}</span>
+                                                    @if (!empty($opt['mode']) && $opt['mode'] !== 'production')
+                                                        <span class="v3-choicecard__tags"><span class="v3-choicecard__tag">{{ ucfirst($opt['mode']) }}</span></span>
+                                                    @endif
+                                                    {{-- The cheapest parcel this courier quoted for
+                                                         this address. A from-price, because which
+                                                         parcel goes in the box is still step 2's
+                                                         question. --}}
+                                                    <span class="v3-choicecard__fee" x-text="fromPrice('{{ $key }}')"></span>
+                                                </button>
 
                                                 {{-- Could not check. A timeout, a dead DNS
                                                      record, a failure on the courier's own
                                                      side, or a complaint about the parcel we
                                                      guessed is NOT a refusal of the address,
                                                      so this card stays clickable and says only
-                                                     what is true: we could not ask.
-                                                     Collapsing this into "not serviceable"
-                                                     would make the modal lie during an
-                                                     outage. --}}
-                                                <x-admin.choice.card
-                                                    :name="$opt['name']"
-                                                    state="Could not check"
-                                                    :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'brands'"
-                                                    data-courier-card="{{ $key }}"
-                                                    data-courier-state="unknown"
-                                                    x-show="verdict('{{ $key }}') === 'unknown'"
-                                                    @click="chooseCourier('{{ $key }}')">
-                                                    <span x-show="sentenceFor('{{ $key }}')" x-text="sentenceFor('{{ $key }}')"></span>
-                                                    <template x-if="!sentenceFor('{{ $key }}') && reason('{{ $key }}')">
-                                                        <span>{{ $opt['name'] }} said:<span class="v-choice__said" x-text="reason('{{ $key }}')"></span></span>
-                                                    </template>
-                                                </x-admin.choice.card>
+                                                     what is true: we could not ask. --}}
+                                                <button type="button" class="v3-choicecard v3-choicecard--caution" data-courier-card="{{ $key }}" data-courier-state="unknown" x-show="verdict('{{ $key }}') === 'unknown'" @click="chooseCourier('{{ $key }}')">
+                                                    @if ($optMark)
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--{{ $optMark }}" aria-hidden="true"></span>
+                                                    @else
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--drawn" aria-hidden="true"><x-admin3.icon name="package" /></span>
+                                                    @endif
+                                                    <span class="v3-choicecard__name">{{ $opt['name'] }}</span>
+                                                    <span class="v3-choicecard__tags"><span class="v3-choicecard__tag">Could not check</span></span>
+                                                    <span class="v3-choicecard__msg">
+                                                        <span x-show="sentenceFor('{{ $key }}')" x-text="sentenceFor('{{ $key }}')"></span>
+                                                        <template x-if="!sentenceFor('{{ $key }}') && reason('{{ $key }}')">
+                                                            <span>{{ $opt['name'] }} said: <span x-text="reason('{{ $key }}')"></span></span>
+                                                        </template>
+                                                    </span>
+                                                </button>
 
                                                 {{-- Not serviceable. One sentence, ours,
-                                                     naming what was actually refused: the
-                                                     destination, the pickup origin, COD at
-                                                     this address, or the postcode. The
+                                                     naming what was actually refused. The
                                                      courier's own words appear ONLY when we
-                                                     did not recognise what it said (owner
-                                                     ruling, 2026-08-12: printing both was
-                                                     redundant, since ours names the place and
-                                                     reads the same across couriers). --}}
-                                                <x-admin.choice.card
-                                                    :name="$opt['name']"
-                                                    :available="false"
-                                                    state="Not serviceable"
-                                                    :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'brands'"
-                                                    data-courier-card="{{ $key }}"
-                                                    data-courier-state="not_serviceable"
+                                                     did not recognise what it said. --}}
+                                                <div class="v3-choicecard v3-choicecard--off"
+                                                    data-courier-card="{{ $key }}" data-courier-state="not_serviceable"
                                                     x-show="verdict('{{ $key }}') === 'not_serviceable'">
-                                                    <span x-show="sentenceFor('{{ $key }}')" x-text="sentenceFor('{{ $key }}')"></span>
-                                                    <template x-if="!sentenceFor('{{ $key }}') && reason('{{ $key }}')">
-                                                        <div>{{ $opt['name'] }} said:<span class="v-choice__said" x-text="reason('{{ $key }}')"></span></div>
-                                                    </template>
-                                                </x-admin.choice.card>
+                                                    @if ($optMark)
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--{{ $optMark }}" aria-hidden="true"></span>
+                                                    @else
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--drawn" aria-hidden="true"><x-admin3.icon name="package" /></span>
+                                                    @endif
+                                                    <span class="v3-choicecard__name">{{ $opt['name'] }}</span>
+                                                    <span class="v3-choicecard__tags"><span class="v3-choicecard__tag">Not serviceable</span></span>
+                                                    <span class="v3-choicecard__msg">
+                                                        <span x-show="sentenceFor('{{ $key }}')" x-text="sentenceFor('{{ $key }}')"></span>
+                                                        <template x-if="!sentenceFor('{{ $key }}') && reason('{{ $key }}')">
+                                                            <span>{{ $opt['name'] }} said: <span x-text="reason('{{ $key }}')"></span></span>
+                                                        </template>
+                                                    </span>
+                                                </div>
                                             @else
-                                                <x-admin.choice.card
-                                                    :name="$opt['name']"
-                                                    :available="false"
-                                                    state="Not configured"
-                                                    :mark="$markFor($key)"
-                                                    :icon="$markFor($key) ? null : 'brands'"
-                                                    data-courier-card="{{ $key }}"
-                                                    data-courier-configured="false">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}" class="v-choice__offlink">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.</x-admin.choice.card>
+                                                <div class="v3-choicecard v3-choicecard--off"
+                                                    data-courier-card="{{ $key }}" data-courier-configured="false">
+                                                    @if ($optMark)
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--{{ $optMark }}" aria-hidden="true"></span>
+                                                    @else
+                                                        <span class="v3-choicecard__mark v3-choicecard__mark--drawn" aria-hidden="true"><x-admin3.icon name="package" /></span>
+                                                    @endif
+                                                    <span class="v3-choicecard__name">{{ $opt['name'] }}</span>
+                                                    <span class="v3-choicecard__tags"><span class="v3-choicecard__tag">Not configured</span></span>
+                                                    <span class="v3-choicecard__msg">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.</span>
+                                                </div>
                                             @endif
                                         @endforeach
                                         {{-- The third way a parcel leaves, on the same
@@ -1155,14 +1127,14 @@
                                         @if (!empty($manualCouriers))
                                             {{-- A drawn mark rather than a logo, because there
                                                  is no one courier behind this card to carry
-                                                 one. The person is the mark: every option in
-                                                 this row is a parcel, and what separates this
-                                                 one is that somebody arranges it by hand
-                                                 instead of an API doing it. --}}
-                                            <x-admin.choice.card name="Another courier" mode="Manual" icon="fulfillment"
-                                                data-courier-card="__manual" @click="chooseManual()" />
+                                                 one. --}}
+                                            <button type="button" class="v3-choicecard" data-courier-card="__manual" @click="chooseManual()">
+                                                <span class="v3-choicecard__mark v3-choicecard__mark--drawn" aria-hidden="true"><x-admin3.icon name="fulfillment" /></span>
+                                                <span class="v3-choicecard__name">Another courier</span>
+                                                <span class="v3-choicecard__tags"><span class="v3-choicecard__tag">Manual</span></span>
+                                            </button>
                                         @endif
-                                    </x-admin.choice>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1175,25 +1147,23 @@
                                          and x-model="parcel" (so the SPX-only section below can
                                          react to the custom-dims sentinel) are the ONLY two
                                          additions to this form's own markup — both inert for
-                                         submission (the browser still posts by name= regardless of
-                                         x-model/x-ref), so QuadX's POST body is unchanged. Every
-                                         field name, value vocabulary, and the action URL stay
-                                         byte-identical to the pre-T4 form. --}}
-                                    <form :action="bookAction" method="POST" data-v-form class="space-y-4" x-ref="bookForm">
+                                         submission. Every field name, value vocabulary, and the
+                                         action URL stay byte-identical to the pre-T4 form. --}}
+                                    <form :action="bookAction" method="POST" class="v3-settle" x-ref="bookForm">
                                         @csrf
                                         <input type="hidden" name="courier" :value="courier">
-                                        <p class="text-[13px] text-v-secondary">Shipping with <span class="font-semibold text-v-text" x-text="current.name"></span></p>
+                                        <p class="v3-panel__note">Shipping with <strong x-text="current.name"></strong></p>
                                         <template x-if="active.rebookable">
-                                            <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 text-xs text-v-muted">
-                                                Previous booking <span class="v-num" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
+                                            <div class="v3-well">
+                                                Previous booking <span class="v3-mono" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
                                             </div>
                                         </template>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            <x-admin.field name="service" label="Service" required>
-                                                <x-admin.select name="service">
+                                        <div class="v3-grid v3-grid--2">
+                                            <x-admin3.field name="service" label="Service" required>
+                                                <select name="service" class="v3-control">
                                                     <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
-                                                </x-admin.select>
-                                            </x-admin.field>
+                                                </select>
+                                            </x-admin3.field>
                                             {{-- Each parcel carries the exact fee this
                                                  courier quoted for it, from the same
                                                  answer step 1's from-price came from,
@@ -1201,25 +1171,25 @@
                                                  price. A parcel the courier did not
                                                  price keeps its plain label: no figure
                                                  is better than an invented one. --}}
-                                            <x-admin.field name="parcel" label="Parcel" required>
-                                                <x-admin.select name="parcel" x-model="parcel">
+                                            <x-admin3.field name="parcel" label="Parcel" required>
+                                                <select name="parcel" x-model="parcel" class="v3-control">
                                                     <template x-for="o in current.parcels" :key="o.value"><option :value="o.value" x-text="parcelLabel(o)"></option></template>
-                                                </x-admin.select>
-                                            </x-admin.field>
+                                                </select>
+                                            </x-admin3.field>
                                         </div>
-                                        {{-- A literal ≈ rather than the HTML entity: this
-                                             is a PROP, so Blade escapes it and the entity
-                                             printed itself on screen. --}}
-                                        <x-admin.toggle name="insure" label="Insure shipment (≈1% fee, declared at order total)" />
-                                        <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2">
-                                            <div class="text-xs font-medium text-v-muted mb-0.5">Buyer pays for goods</div>
-                                            <div class="text-sm text-v-text" x-text="active.buyerPaymentLabel"></div>
+                                        <label class="v3-toggle">
+                                            <input type="checkbox" name="insure" value="1">
+                                            <span class="v3-toggle__track" aria-hidden="true"></span>
+                                            <span>Insure shipment (≈1% fee, declared at order total)</span>
+                                        </label>
+                                        <div class="v3-well">
+                                            <div class="v3-kv"><span>Buyer pays for goods</span><span x-text="active.buyerPaymentLabel"></span></div>
                                         </div>
-                                        <x-admin.field name="shipping_payment" label="You pay shipping" required>
-                                            <x-admin.select name="shipping_payment">
+                                        <x-admin3.field name="shipping_payment" label="You pay shipping" required>
+                                            <select name="shipping_payment" class="v3-control">
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
-                                            </x-admin.select>
-                                        </x-admin.field>
+                                            </select>
+                                        </x-admin3.field>
 
                                         {{-- Origin choice, courier-agnostic. Rendered ONLY when the
                                              store keeps more than one pickup address: with one there
@@ -1229,76 +1199,72 @@
                                              property of the store, known at render time, not of the
                                              courier chosen in step 1. --}}
                                         @if (count($pickupAddresses ?? []) > 1)
-                                            <x-admin.field name="pickup_address_id" label="Ships from" required>
-                                                <x-admin.select name="pickup_address_id">
+                                            <x-admin3.field name="pickup_address_id" label="Ships from" required>
+                                                <select name="pickup_address_id" class="v3-control">
                                                     @foreach ($pickupAddresses as $pickup)
                                                         <option value="{{ $pickup['id'] }}" @selected($pickup['isDefault'])>{{ $pickup['label'] }} - {{ $pickup['summary'] }}</option>
                                                     @endforeach
-                                                </x-admin.select>
-                                            </x-admin.field>
+                                                </select>
+                                            </x-admin3.field>
                                         @endif
 
                                         {{-- Task T4: SPX-only step-2 additions — rendered at all
-                                             only when SPX is actually an enabled courier (never
-                                             dead markup for a store that's never touched SPX). Uses
-                                             x-if (a real template, not x-show/CSS display:none) —
-                                             load-bearing, not cosmetic: an x-show'd block STAYS in
-                                             the DOM and its inputs STILL POST even while hidden,
-                                             which would (a) corrupt QuadX's POST body with spurious
-                                             pickup_slot/length_cm etc. fields the moment SPX is ALSO
-                                             enabled, and (b) 422 every non-custom SPX booking (the
-                                             hidden, empty length_cm/width_cm/height_cm/weight_kg
-                                             inputs would still submit '' against a `numeric` rule).
-                                             x-if removes the fields from the DOM (and therefore the
-                                             form) entirely whenever this courier isn't the chosen
-                                             one — the ONLY safe way to make fields conditional on a
-                                             shared <form>. --}}
+                                             only when SPX is actually an enabled courier. Uses
+                                             x-if (a real template, not x-show) — load-bearing:
+                                             an x-show'd block STAYS in the DOM and its inputs
+                                             STILL POST even while hidden, which would (a) corrupt
+                                             QuadX's POST body the moment SPX is ALSO enabled, and
+                                             (b) 422 every non-custom SPX booking (hidden empty
+                                             dims would submit '' against a numeric rule). x-if
+                                             removes the fields from the DOM entirely whenever
+                                             this courier isn't the chosen one — the ONLY safe way
+                                             to make fields conditional on a shared <form>. --}}
                                         @if (isset($courierOptions['spx']))
                                         <template x-if="courier === 'spx'">
-                                        <div class="space-y-4">
+                                        <div class="v3-settle">
                                             <template x-if="parcel === 'custom'">
-                                                <div class="grid grid-cols-2 gap-3">
-                                                    <x-admin.field name="length_cm" label="Length (cm)">
-                                                        <x-admin.input name="length_cm" type="number" step="0.1" min="0.1" />
-                                                    </x-admin.field>
-                                                    <x-admin.field name="width_cm" label="Width (cm)">
-                                                        <x-admin.input name="width_cm" type="number" step="0.1" min="0.1" />
-                                                    </x-admin.field>
-                                                    <x-admin.field name="height_cm" label="Height (cm)">
-                                                        <x-admin.input name="height_cm" type="number" step="0.1" min="0.1" />
-                                                    </x-admin.field>
-                                                    <x-admin.field name="weight_kg" label="Weight (kg)">
-                                                        <x-admin.input name="weight_kg" type="number" step="0.01" min="0.01" />
-                                                    </x-admin.field>
+                                                <div class="v3-grid v3-grid--2">
+                                                    <x-admin3.field name="length_cm" label="Length (cm)">
+                                                        <input name="length_cm" type="number" step="0.1" min="0.1" class="v3-control">
+                                                    </x-admin3.field>
+                                                    <x-admin3.field name="width_cm" label="Width (cm)">
+                                                        <input name="width_cm" type="number" step="0.1" min="0.1" class="v3-control">
+                                                    </x-admin3.field>
+                                                    <x-admin3.field name="height_cm" label="Height (cm)">
+                                                        <input name="height_cm" type="number" step="0.1" min="0.1" class="v3-control">
+                                                    </x-admin3.field>
+                                                    <x-admin3.field name="weight_kg" label="Weight (kg)">
+                                                        <input name="weight_kg" type="number" step="0.01" min="0.01" class="v3-control">
+                                                    </x-admin3.field>
                                                 </div>
                                             </template>
 
-                                            <x-admin.field name="pickup_slot" label="Pickup date (optional)" help="Drop-off is the default. SPX decides which dates are available for pickup.">
-                                                <x-admin.select name="pickup_slot">
+                                            <x-admin3.field name="pickup_slot" label="Pickup date (optional)" hint="Drop-off is the default. SPX decides which dates are available for pickup.">
+                                                <select name="pickup_slot" class="v3-control">
                                                     <option value="">Drop off myself</option>
                                                     <template x-for="o in spxPickupSlots" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
-                                                </x-admin.select>
-                                            </x-admin.field>
-                                            <p x-show="spxPickupSlotsLoading" x-cloak class="text-xs text-v-muted">Loading pickup dates&hellip;</p>
+                                                </select>
+                                            </x-admin3.field>
+                                            <p x-show="spxPickupSlotsLoading" x-cloak class="v3-subnote v3-cell-quiet">Loading pickup dates&hellip;</p>
 
-                                            <div class="rounded-v-md bg-v-sunken border border-v-border px-3 py-2 flex items-center justify-between gap-3">
+                                            <div class="v3-well v3-between">
                                                 <div>
-                                                    <div class="text-xs font-medium text-v-muted">Estimated shipping fee</div>
-                                                    <div class="text-sm font-semibold text-v-text" x-show="spxEstimate" x-text="spxEstimate ? spxEstimate.label : ''"></div>
-                                                    <div class="text-xs text-v-danger" x-show="spxEstimateError" x-text="spxEstimateError"></div>
-                                                    <div class="text-xs text-v-muted" x-show="!spxEstimate && !spxEstimateError">Not checked yet.</div>
+                                                    <div class="v3-field__label">Estimated shipping fee</div>
+                                                    <div class="v3-mono" x-show="spxEstimate" x-text="spxEstimate ? spxEstimate.label : ''"></div>
+                                                    <div class="v3-subnote v3-tone-bad" x-show="spxEstimateError" x-text="spxEstimateError"></div>
+                                                    <div class="v3-subnote v3-cell-quiet" x-show="!spxEstimate && !spxEstimateError">Not checked yet.</div>
                                                 </div>
-                                                <x-admin.button type="button" size="sm" variant="secondary" @click="getSpxEstimate()" x-bind:disabled="spxEstimateLoading">
+                                                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="getSpxEstimate()" :disabled="spxEstimateLoading">
                                                     <span x-show="!spxEstimateLoading">Get estimate</span><span x-show="spxEstimateLoading" x-cloak>Checking&hellip;</span>
-                                                </x-admin.button>
+                                                </button>
                                             </div>
                                         </div>
                                         </template>
                                         @endif
 
-                                        <div class="flex gap-2 pt-1">
-                                            <x-admin.button type="button" variant="ghost" @click="backToCouriers()">Back</x-admin.button>
-                                            <x-admin.button type="submit" variant="primary" class="flex-1" x-bind:disabled="!courier">Book shipment</x-admin.button>
+                                        <div class="v3-actrow">
+                                            <button type="button" class="v3-btn v3-btn--ghost" @click="backToCouriers()">Back</button>
+                                            <button type="submit" class="v3-btn v3-btn--primary v3-actrow__grow" :disabled="!courier">Book shipment</button>
                                         </div>
                                     </form>
                                 </div>
@@ -1318,21 +1284,21 @@
                                      card on step 1. --}}
                                 @if (!empty($manualCouriers))
                                     <div x-show="step === 2 && manual">
-                                        <form :action="manualAction" method="POST" data-v-form class="space-y-4">
+                                        <form :action="manualAction" method="POST" class="v3-settle">
                                             @csrf
-                                            <p class="text-[13px] text-v-secondary">Recording a shipment for order <span class="v-num" x-text="'#' + active.id"></span></p>
+                                            <p class="v3-panel__note">Recording a shipment for order <span class="v3-mono" x-text="'#' + active.id"></span></p>
 
-                                            <x-admin.field name="shipping_courier_id" label="Courier" required>
-                                                <x-admin.select name="shipping_courier_id" required>
+                                            <x-admin3.field name="shipping_courier_id" label="Courier" required>
+                                                <select name="shipping_courier_id" required class="v3-control">
                                                     @foreach ($manualCouriers as $manualCourier)
                                                         <option value="{{ $manualCourier['id'] }}">{{ $manualCourier['name'] }}</option>
                                                     @endforeach
-                                                </x-admin.select>
-                                            </x-admin.field>
+                                                </select>
+                                            </x-admin3.field>
 
-                                            <x-admin.field name="tracking_number" label="Tracking number">
-                                                <x-admin.input name="tracking_number" autocomplete="off" maxlength="190" />
-                                            </x-admin.field>
+                                            <x-admin3.field name="tracking_number" label="Tracking number">
+                                                <input name="tracking_number" autocomplete="off" maxlength="190" class="v3-control">
+                                            </x-admin3.field>
 
                                             {{-- Nothing is sent to a carrier here, so the
                                                  operator says plainly what state the order
@@ -1340,27 +1306,27 @@
                                                  offers, pre-selected to the one this module
                                                  would have applied on its own. --}}
                                             @if (!empty($orderStatuses) && count($orderStatuses) > 0)
-                                                <x-admin.field name="order_status_id" label="Order status" required>
-                                                    <x-admin.select name="order_status_id" required>
+                                                <x-admin3.field name="order_status_id" label="Order status" required>
+                                                    <select name="order_status_id" required class="v3-control">
                                                         @foreach ($orderStatuses as $orderStatus)
                                                             <option value="{{ $orderStatus->id }}" @selected($orderStatus->id === $manualDefaultStatusId)>{{ $orderStatus->name }}</option>
                                                         @endforeach
-                                                    </x-admin.select>
-                                                </x-admin.field>
+                                                    </select>
+                                                </x-admin3.field>
                                             @endif
 
-                                            <x-admin.field name="note" label="Note">
-                                                <x-admin.textarea name="note" rows="2" maxlength="500" />
-                                            </x-admin.field>
+                                            <x-admin3.field name="note" label="Note">
+                                                <textarea name="note" rows="2" maxlength="500" class="v3-control"></textarea>
+                                            </x-admin3.field>
 
-                                            {{-- The hint carries the one consequence the
+                                            {{-- The tip carries the one consequence the
                                                  controls cannot name themselves: no courier is
                                                  contacted, and the order still moves on exactly
                                                  as a booked one would. --}}
-                                            <div class="flex items-center gap-2 pt-1">
-                                                <x-admin.button type="button" variant="ghost" @click="backToCouriers()">Back</x-admin.button>
-                                                <x-admin.button type="submit" variant="primary" class="flex-1">Record shipment</x-admin.button>
-                                                <x-admin.hint label="What recording a shipment does" class="v-hint--end">Venta contacts no courier and prints no waybill. The order moves to the status chosen above and advances by status from there.</x-admin.hint>
+                                            <div class="v3-actrow">
+                                                <button type="button" class="v3-btn v3-btn--ghost" @click="backToCouriers()">Back</button>
+                                                <button type="submit" class="v3-btn v3-btn--primary v3-actrow__grow">Record shipment</button>
+                                                <x-admin3.help text="Venta contacts no courier and prints no waybill. The order moves to the status chosen above and advances by status from there." />
                                             </div>
                                         </form>
                                     </div>
@@ -1412,14 +1378,14 @@
                 // says why.
                 checkedCouriers: @js($checkedCourierNames),
                 options: @js($courierOptions),
-                // Same tone -> class map x-admin.badge renders server-side,
-                // for the drawer's Alpine-driven terminal phase badge.
+                // Same tone -> badge map the rows render server-side, for
+                // the drawer's Alpine-driven terminal phase badge.
                 toneClasses: {
-                    neutral: 'bg-v-sunken text-v-secondary',
-                    success: 'bg-v-accent-weak text-v-accent',
-                    warning: 'bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] text-v-warning',
-                    danger: 'bg-[color-mix(in_srgb,var(--danger)_12%,transparent)] text-v-danger',
-                    info: 'bg-[color-mix(in_srgb,var(--info)_12%,transparent)] text-v-info',
+                    neutral: 'v3-badge v3-badge--quiet',
+                    success: 'v3-badge v3-badge--good',
+                    warning: 'v3-badge v3-badge--warn',
+                    danger: 'v3-badge v3-badge--bad',
+                    info: 'v3-badge v3-badge--info',
                 },
                 urlBase: '{{ url(config('admin.prefix', 'admin') . '/sales/fulfillment') }}',
                 get current() { return this.options[this.courier] ?? {name:'',services:[],parcels:[],payments:[]}; },
@@ -1649,5 +1615,4 @@
     </script>
     @endpush
     @endif
-    </x-admin.page>
-</x-admin.shell>
+</x-admin3.shell>

@@ -282,9 +282,8 @@ Secrets on v3 courier pages are never rendered, even masked: the field
 shows a password box whose help mark names the identifying tail; blank
 keeps the stored value (persist() already skips empty encrypted keys).
 
-Still v2, each waiting for its own wave: the fulfillment queue and
-returns (verb surfaces, Orders-area wave), the reviews pages (Sales
-area), and the abandoned-carts pages (their module's wave).
+Still v2, each waiting for its own wave: the reviews pages (Sales
+area) and the abandoned-carts pages (their module's wave).
 
 ## Migrated so far
 
@@ -369,6 +368,26 @@ area), and the abandoned-carts pages (their module's wave).
   order loads clean. Naming: `.v3-facts` is the generic label/value
   dl; the flush totals strip under a products table is `.v3-ledger`
   (one class, one shape — the earlier double definition broke both).
+
+- Fulfillment queue + returns: the flagship work surface. Counted
+  tab bar as v3-tabs anchors (data-count-for hooks preserved for the
+  tab-set tests), the To Ship sub-bar, the handover tally, the
+  two-tier table (v3-tier band + item rows + rowspanned fact cells),
+  the detail drawer (v3-drawer: stepper, event list, kv summaries),
+  and the booking modal (v3-choicecard verdict cards with courier
+  marks, the courier form, the manual record form). All actions are
+  verbs — no doctrine form on the page. Confirm dialogs moved to
+  x-admin3.confirm ($dispatch('v3-confirm', name)). The module's
+  fulfillment.css retokened to v3 vars; only widths, marks, and the
+  pickup-page floors stay page-specific.
+
+New shared piece: x-admin3.pager — the stepped "N to M of T" pager
+(range left, Previous/Next right, hrefs echoed exactly once). Every
+v3 index page now uses it; a bare {{ links() }} renders the stock
+Tailwind view whose classes are dead in the admin3 shell. And
+.v3-modal carries white-space: normal, so a confirm rendered inside
+a nowrap table action cell wraps its message (the queue's regression
+test pins this at the component level now).
 
 Every page inside Settings now renders on the v3 shell. Outside
 Settings, reviews, api-sync-logs, and profile edit still carry the

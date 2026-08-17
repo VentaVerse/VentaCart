@@ -1,140 +1,59 @@
 /* Courier Fulfillment: what only the queue has.
    -------------------------------------------------------------------
-   This file used to carry the queue's entire vocabulary in its own
-   `cf-` / `co-` namespace. All of it is now in the admin's shared
-   layer under `v-`: the command toolbar and its filters, the segment
-   bar and its second tier, the tally, the flash and the setup notice,
-   the two-tier table with its bands and its cell idioms, the line
-   item with its thumbnail, the selectable courier cards, and the
-   stepped pager.
+   The queue's vocabulary lives in the admin's shared v3 layer: the
+   counted tab bar, the two-tier table, the drawer, the stepper, the
+   choice cards. This file carries only what is page-specific: two
+   column widths, the booking sheet's two widths, whose logo is whose,
+   and two pickup-page measurements. */
 
-   The extension consuming the admin's UI components is correct and
-   deliberate: core carries no columns on this module's behalf, and
-   this module invents no design system of its own.
-
-   What is left is two column widths. They are page-specific because
-   "courier" and "status" are this module's vocabulary, and 170px is
-   the width those two particular fields need, not a measurement the
-   design system has any opinion about. */
-
-.v-col-courier { width: 170px; }
-.v-col-status  { width: 170px; }
+.v3-w-courier { width: 170px; }
+.v3-w-status  { width: 170px; }
 
 /* The booking sheet holds two different shapes and needs two widths.
-   The courier step lays its options out as columns, up to four wide
-   (three couriers plus the manual choice, with room for the fourth
-   this store is waiting on), and 54rem is what four cards need before
-   the shared grid drops them to two. The chosen courier's form is a
-   column of fields and reads worse stretched, so it keeps the sheet's
-   original 28rem.
-
-   Page-specific for the same reason the two widths above are: this is
-   a measurement of what THIS modal holds, not an opinion the design
-   system has about dialogs. */
-.v-bookmodal {
+   The courier step lays its options out as columns (up to four wide);
+   the chosen courier's form is a column of fields and reads worse
+   stretched. */
+.v3-bookmodal {
+    width: 100%;
     max-width: 28rem;
-    transition: max-width var(--motion-base);
+    transition: max-width var(--v3-base, .2s);
 }
+.v3-bookmodal--couriers { max-width: 54rem; }
 
-.v-bookmodal--couriers { max-width: 54rem; }
-
-/* The couriers' own marks.
-   -------------------------------------------------------------------
-   The tile, its size, its radius, where it sits on a card and how it
-   greys out are all the shared layer's (.v-choice__mark). What is
-   page-specific is only WHICH artwork a courier carries, for the same
-   reason the two column widths above are: "QuadX" and "SPX" are this
-   module's vocabulary, and the design system holds no opinion about
-   whose logo is whose.
-
-   Referenced by url() from this stylesheet so Vite fingerprints both
-   images and emits them beside it, exactly as the self-hosted fonts
-   are. Nothing is copied into public/ by hand, and no <img> needs a
-   Vite input of its own.
-
-   Both plates state their own ground and do not flip with the theme,
-   for the same reason the filled accent stops do not: a mark brings
-   the field it was drawn on. */
-
-/* Both files are trimmed to their own ink and state their ground here
-   instead of carrying it as pixels. Both arrived as a wordmark adrift
-   in a 512 square (GoGo's lettering was 30% of its canvas height), so
-   `contain` was fitting mostly empty artwork and the mark came out a
-   third of the size the plate could carry. Trimmed, each one fills the
-   width of whatever plate it is given, and the two read as a pair
-   because they now share an aspect (2.56 and 2.48) rather than sharing
-   a canvas that hid it.
-
-   SPX's orange is genuinely the brand and was baked into its tile, so
-   the plate states that same orange and the tile still reads edge to
-   edge. GoGo's lower line is near-black on transparency, so it keeps
-   the white page it was drawn for or it vanishes in the dark theme. */
-.v-choice__mark--spx {
+/* The couriers' own marks. Referenced by url() from this stylesheet
+   so Vite fingerprints both images and emits them beside it. Both
+   plates state their own ground and do not flip with the theme: a
+   mark brings the field it was drawn on. */
+.v3-choicecard__mark--spx {
     background-color: #EE4D2D;
     background-image: url('../images/spx.png');
 }
-
-.v-choice__mark--quadx {
+.v3-choicecard__mark--quadx {
     background-color: #FFFFFF;
     background-image: url('../images/gogo.png');
 }
 
-/* The marker on a parcel leaving by a courier we do not integrate with.
-   It sits under the courier's name in the same cell an integrated
-   shipment uses, and its whole job is to stop an operator hunting for
-   a waybill that was never printed.
-
-   Deliberately not x-admin.badge: a badge in this table means a STATE
-   the system is reporting, and this is a fact about how the parcel was
-   arranged, which never changes. So it is quiet - muted text on the
-   sheet's own well, no colour of its own - and it is page-specific for
-   the same reason the two widths above are: "manual" is this module's
-   word, not a distinction the design system holds an opinion about.
-
-   Muted on the sunken well clears AA at 11px in both themes (light
-   5.5:1, dark 6.0:1). */
-.v-manual {
-    display: inline-block;
-    margin-block: 2px;
-    padding: 1px 6px;
-    border-radius: var(--radius-sm);
-    background: var(--surface-sunken);
-    border: 1px solid var(--border);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-}
-
-/* Pickup addresses.
-   -------------------------------------------------------------------
-   Two column floors and one inert control, all page-specific for the
-   same reason the two widths above are: they are measurements of this
-   page's own content, not opinions the design system holds.
-
-   The floors keep the table SCROLLING rather than crushing at 390.
-   Without them a full PH address (five levels, comma separated) wraps
-   mid-word into a 60px column while the row's actions fall off the
-   edge. The table wrap already scrolls; these just stop the cells
-   from collapsing before it does. */
-
+/* Pickup addresses: two column floors that keep the table scrolling
+   rather than crushing at 390, and one inert control. */
 .v-col-pickup  { min-width: 22rem; }
 .v-col-contact { min-width: 10rem; white-space: nowrap; }
 
 /* The country field's answer is fixed (every courier this module books
    with collects in one country), so the box states it rather than
-   inviting a change. It keeps the control's geometry so the field
-   still lines up with its neighbours, and drops the control's edge and
-   sheet so it never reads as somewhere to type. */
+   inviting a change. */
 .v-fixedvalue {
     display: flex;
     align-items: center;
-    min-height: var(--control-h);
+    min-height: var(--v3-control-h);
     padding-inline: 0.625rem;
-    border-radius: var(--radius-md);
-    background: var(--surface-sunken);
-    color: var(--text-secondary);
+    border-radius: var(--v3-r-md);
+    background: var(--v3-sunken);
+    color: var(--v3-ink-2);
     font-size: 13px;
     cursor: default;
 }
+
+.v3-bookmodal { max-height: calc(100vh - 40px); overflow-y: auto; }
+
+/* Column floor: the product cell scrolls rather than crushing at 390 */
+.v3-w-product { min-width: 16rem; }

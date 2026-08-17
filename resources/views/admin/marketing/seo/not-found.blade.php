@@ -72,7 +72,7 @@
                 </table>
             </div>
             @if ($logs->hasPages())
-                <div class="v3-pager">{{ $logs->links() }}</div>
+                <x-admin3.pager :paginator="$logs" />
             @endif
         </x-admin3.panel>
 

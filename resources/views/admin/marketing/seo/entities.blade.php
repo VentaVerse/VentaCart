@@ -331,7 +331,7 @@
                 </table>
             </div>
             @if ($entities->hasPages())
-                <div class="v3-pager">{{ $entities->withQueryString()->links() }}</div>
+                <x-admin3.pager :paginator="$entities->withQueryString()" />
             @endif
         </x-admin3.panel>
     </div>

@@ -119,7 +119,7 @@
                 </table>
             </div>
             @if ($entities->hasPages())
-                <div class="v3-pager">{{ $entities->links() }}</div>
+                <x-admin3.pager :paginator="$entities" />
             @endif
         </x-admin3.panel>
     </div>

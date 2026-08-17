@@ -1304,7 +1304,7 @@ class ReskinWaveTest extends TestCase
         // Default filter (to_pack) renders the shell and shows only the unbooked order.
         $this->get($base)
             ->assertOk()
-            ->assertSee('v-admin', false)
+            ->assertSee('v3-shell', false)
             ->assertSee('#' . $toPack->id)
             ->assertDontSee('#' . $inTransit->id)
             ->assertDontSee('#' . $delivered->id);

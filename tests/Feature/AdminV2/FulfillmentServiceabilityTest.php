@@ -509,7 +509,7 @@ class FulfillmentServiceabilityTest extends TestCase
         $response = $this->get($this->queueUrl())->assertOk();
 
         // Columns, not rows.
-        $response->assertSee('v-choice v-choice--cols', false);
+        $response->assertSee('v3-choicegrid', false);
 
         // One card per state, each gated on the verdict for that courier.
         $response->assertSee('data-courier-state="serviceable"', false)
@@ -522,7 +522,7 @@ class FulfillmentServiceabilityTest extends TestCase
 
         // The state is a WORD every time, carried by the same element that
         // is styled: grey alone never says which state a card is in.
-        $response->assertSee('v-choice__state', false);
+        $response->assertSee('v3-choicecard__tag', false);
 
         // The refusal genuinely cannot advance (no handler at all), and the
         // manual choice is still last and on the same footing.
@@ -546,7 +546,7 @@ class FulfillmentServiceabilityTest extends TestCase
         // a <div>: a network timeout is not a refusal, so the operator can
         // still go and ask the courier by booking.
         $response->assertSee(
-            '<button type="button" class="v-choice__card v-choice__card--caution" data-courier-card="quadx" data-courier-state="unknown" x-show="verdict(\'quadx\') === \'unknown\'" @click="chooseCourier(\'quadx\')">',
+            '<button type="button" class="v3-choicecard v3-choicecard--caution" data-courier-card="quadx" data-courier-state="unknown" x-show="verdict(\'quadx\') === \'unknown\'" @click="chooseCourier(\'quadx\')">',
             false
         );
     }
@@ -566,7 +566,7 @@ class FulfillmentServiceabilityTest extends TestCase
         // Not a bare spinner: who is being asked, and about where.
         // (Both payloads below are Js::from output, so the quotes around
         // each value are hex-escaped on the wire.)
-        $response->assertSee('v-choice__wait', false)
+        $response->assertSee('v3-choicewait', false)
             ->assertSee('waitLine', false)
             ->assertSee('checkedCouriers', false)
             ->assertSee('QuadX', false)

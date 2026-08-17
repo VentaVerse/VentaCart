@@ -105,7 +105,7 @@
                         </table>
                     </div>
                     @if ($redirects->hasPages())
-                        <div class="v3-pager">{{ $redirects->links() }}</div>
+                        <x-admin3.pager :paginator="$redirects" />
                     @endif
                 </x-admin3.panel>
 
