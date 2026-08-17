@@ -504,7 +504,7 @@ class UrlGrammarTest extends TestCase
         $response->assertOk();
         // v3 repin: the settings space IS Settings, so its trail starts at
         // Modules like every other v3 settings page.
-        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Courier Fulfillment']);
+        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Fulfillment']);
     }
 
     /**
@@ -521,7 +521,7 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/extensions/courier-fulfillment/quadx');
 
         $response->assertOk();
-        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Courier Fulfillment', 'QuadX']);
+        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Fulfillment', 'QuadX']);
     }
 
     /**

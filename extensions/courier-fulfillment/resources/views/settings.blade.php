@@ -8,9 +8,9 @@
             <div class="v3-head__trail">
                 <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
-                <span>Courier Fulfillment</span>
+                <span>Fulfillment</span>
             </div>
-            <h1 class="v3-head__title">Courier Fulfillment</h1>
+            <h1 class="v3-head__title">Fulfillment</h1>
         </div>
     </div>
 

@@ -179,7 +179,7 @@ class ExtensionLifecycleTest extends TestCase
 
         $this->assertNotNull($manifest);
         $this->assertSame('courier-fulfillment', $manifest['name']);
-        $this->assertSame('Courier Fulfillment', $manifest['title']);
+        $this->assertSame('Fulfillment', $manifest['title']);
         $this->assertSame('1.0.0', $manifest['version']);
         $this->assertSame('Extensions\\CourierFulfillment\\CourierFulfillmentServiceProvider', $manifest['provider']);
         $this->assertSame('fulfillment', $manifest['icon']);
@@ -287,8 +287,11 @@ class ExtensionLifecycleTest extends TestCase
         // to the queue route too, on every admin page including this one —
         // a page-wide assertDontSee() would false-positive on that.
         $html = $response->getContent();
-        $titlePos = strpos($html, 'Courier Fulfillment');
-        $this->assertNotFalse($titlePos, 'Courier Fulfillment card title not found on the Modules page.');
+        // Scope past the sidebar: 'Fulfillment' now names the module, so
+        // its first occurrence is the Sales nav entry, not the card.
+        $mainPos = strpos($html, '<main');
+        $titlePos = strpos($html, 'Fulfillment', $mainPos ?: 0);
+        $this->assertNotFalse($titlePos, 'Fulfillment card title not found on the Extensions page.');
         $card = substr($html, $titlePos, 1500);
 
         $this->assertStringContainsString(route('admin.fulfillment.settings'), $card);

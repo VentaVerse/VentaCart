@@ -1112,7 +1112,7 @@
                                                     @endif
                                                     <span class="v3-choicecard__name">{{ $opt['name'] }}</span>
                                                     <span class="v3-choicecard__tags"><span class="v3-choicecard__tag">Not configured</span></span>
-                                                    <span class="v3-choicecard__msg">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}">Settings &rarr; Courier Fulfillment &rarr; {{ $opt['name'] }}</a>.</span>
+                                                    <span class="v3-choicecard__msg">@if (!empty($opt['configIssues']))Missing {{ implode(' / ', $opt['configIssues']) }}. @endif Configure in <a href="{{ $opt['settingsUrl'] }}">Extensions &rarr; Fulfillment &rarr; {{ $opt['name'] }}</a>.</span>
                                                 </div>
                                             @endif
                                         @endforeach

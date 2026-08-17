@@ -15,7 +15,10 @@ class ShippingTestController extends Controller
             'country_id' => ['required', 'integer', 'exists:countries,id'],
             'province' => ['nullable', 'string', 'max:100'],
             'city' => ['nullable', 'string', 'max:100'],
+            'district' => ['nullable', 'string', 'max:100'],
+            'barangay' => ['nullable', 'string', 'max:100'],
             'postcode' => ['nullable', 'string', 'max:20'],
+            'customer_group_id' => ['nullable', 'integer', 'exists:customer_groups,id'],
             'weight' => ['required', 'numeric', 'min:0.01', 'max:1000'],
             'subtotal' => ['required', 'numeric', 'min:0'],
             'quantity' => ['nullable', 'integer', 'min:1', 'max:999'],
@@ -29,14 +32,20 @@ class ShippingTestController extends Controller
             'quantity' => $data['quantity'] ?? 1,
         ];
 
+        // The same address shape the storefront's estimate sends
+        // (CartController::estimateShipping), plus the tester's explicit
+        // customer group standing in for the logged-in customer's.
         $address = [
             'country_id' => $data['country_id'],
             'province' => $data['province'] ?? '',
             'city' => $data['city'] ?? '',
+            'barangay' => $data['barangay'] ?? '',
             'postcode' => $data['postcode'] ?? '',
         ];
 
-        $results = $quotes->getQuotes($address, collect([$item]), (float) $data['subtotal']);
+        $results = $quotes->getQuotes($address, collect([$item]), (float) $data['subtotal'], [
+            'customer_group_id' => $data['customer_group_id'] ?? null,
+        ]);
 
         $freeMatched = collect($results)->contains(fn ($q) => ($q['service_type'] ?? null) === 'free_shipping');
 

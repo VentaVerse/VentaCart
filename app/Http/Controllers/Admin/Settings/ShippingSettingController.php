@@ -99,24 +99,28 @@ class ShippingSettingController extends Controller
         // shipping cannot check out.
         $noMethodEnabled = collect($chain)->every(fn (array $m) => ! $m['active']);
 
-        // The couriers section (owner ruling: couriers are part of
-        // Shipping). Guarded read of the fulfillment extension's registry;
-        // absent or disabled extension simply renders no section.
-        $couriers = [];
+        // The couriers section presents the EXTENSION, never its internals
+        // (owner ruling: Fulfillment is the module; QuadX, SPX, and LBC are
+        // separated one level down, inside its own settings hub). Guarded:
+        // absent or disabled extension renders no section.
+        $fulfillment = null;
         if (class_exists(\Extensions\CourierFulfillment\CourierManager::class)
-            && \Illuminate\Support\Facades\Route::has('admin.fulfillment.settings.courier')) {
-            foreach (\Extensions\CourierFulfillment\CourierManager::all() as $courier) {
-                $couriers[] = [
-                    'key' => $courier->getKey(),
-                    'name' => $courier->getName(),
-                    'flagged' => \Extensions\CourierFulfillment\CourierManager::isFlagged($courier->getKey()),
-                    'url' => route('admin.fulfillment.settings.courier', $courier->getKey()),
-                ];
-            }
+            && \Illuminate\Support\Facades\Route::has('admin.fulfillment.settings')) {
+            $enabledCouriers = count(\Extensions\CourierFulfillment\CourierManager::flagged());
+            $fulfillment = [
+                'name' => 'Fulfillment',
+                'summary' => $enabledCouriers . ' ' . \Illuminate\Support\Str::plural('courier', $enabledCouriers) . ' enabled',
+                'active' => $enabledCouriers > 0,
+                'url' => route('admin.fulfillment.settings'),
+            ];
         }
 
+        $customerGroups = \App\Models\CustomerGroup::orderBy('name')->get(['id', 'name']);
+        $addressProviders = app(\App\Services\AddressProviderRegistry::class)->toFrontendManifest();
+
         return view('admin.settings.shipping.index', compact(
-            'settings', 'chain', 'countries', 'defaultCountryId', 'noMethodEnabled', 'couriers'
+            'settings', 'chain', 'countries', 'defaultCountryId', 'noMethodEnabled', 'fulfillment',
+            'customerGroups', 'addressProviders'
         ));
     }
 

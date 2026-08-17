@@ -8,7 +8,7 @@
             <div class="v3-head__trail">
                 <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.fulfillment.settings') }}">Courier Fulfillment</a>
+                <a href="{{ route('admin.fulfillment.settings') }}">Fulfillment</a>
                 <span aria-hidden="true">/</span>
                 <span>Pickup addresses</span>
             </div>
