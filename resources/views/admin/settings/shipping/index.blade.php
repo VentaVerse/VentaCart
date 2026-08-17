@@ -111,18 +111,5 @@
                 @endif
             </x-admin3.panel>
         </div>
-
-        @if (Route::has('admin.fulfillment.pickup-addresses.index'))
-            <x-admin3.panel title="Pickup addresses" note="DHL rate quotes and courier bookings are both measured from the default pickup address.">
-                <x-slot:acts>
-                    <a href="{{ route('admin.fulfillment.pickup-addresses.index') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure</a>
-                </x-slot:acts>
-                @if ($pickupOrigin)
-                    <p class="v3-cell-quiet">{{ $pickupOrigin }}</p>
-                @else
-                    <span class="v3-badge v3-badge--warn">No default pickup address</span>
-                @endif
-            </x-admin3.panel>
-        @endif
     </div>
 </x-admin3.settings-shell>

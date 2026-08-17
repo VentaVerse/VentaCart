@@ -37,13 +37,24 @@ class ShippingPageTest extends TestCase
             ->assertDontSee('settings[pickup_contact_name]', false);
     }
 
-    public function test_the_page_links_to_the_module_owned_pickup_addresses_when_it_is_installed(): void
+    /**
+     * Owner ruling (2026-08-17): pickup addresses belong to the fulfillment
+     * module, and core Shipping is the manual shipping process. The page
+     * shows no pickup panel even with the module installed; the module's own
+     * hub carries the link instead.
+     */
+    public function test_the_page_does_not_couple_to_the_module_owned_pickup_addresses(): void
     {
         $this->actingAs(User::factory()->create());
         app(\App\Services\ExtensionManager::class)->install('courier-fulfillment');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $this->get(route('admin.shipping-settings.index'))
+            ->assertOk()
+            ->assertDontSee('Pickup addresses')
+            ->assertDontSee(route('admin.fulfillment.pickup-addresses.index'), false);
+
+        $this->get(route('admin.fulfillment.settings'))
             ->assertOk()
             ->assertSee('Pickup addresses')
             ->assertSee(route('admin.fulfillment.pickup-addresses.index'), false);
