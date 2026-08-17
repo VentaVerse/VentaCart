@@ -1,55 +1,61 @@
-<x-admin.shell title="Banners">
-    <x-admin.page title="Banners">
-        <x-slot:actions>
-            <x-admin.button variant="primary" href="{{ route('admin.banners.create') }}">
-                <x-admin.icon name="plus" class="w-4 h-4" /> New Group
-            </x-admin.button>
-        </x-slot:actions>
+<x-admin3.shell title="Banners">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.modules.index') }}">Modules</a>
+                <span aria-hidden="true">/</span>
+                <span>Banners</span>
+            </div>
+            <h1 class="v3-head__title">Banners</h1>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.banners.create') }}" class="v3-btn v3-btn--primary">New group</a>
+        </div>
+    </div>
 
-        <x-admin.table>
-            <x-slot:head>
-                <x-admin.table.th>Group</x-admin.table.th>
-                <x-admin.table.th align="right">Slides</x-admin.table.th>
-                <x-admin.table.th>Rotation</x-admin.table.th>
-                <x-admin.table.th>Status</x-admin.table.th>
-                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-            </x-slot:head>
-            @forelse ($groups as $group)
-                <x-admin.table.row href="{{ route('admin.banners.slides', $group) }}">
-                    <x-admin.table.cell>
-                        <div class="min-w-0">
-                            <div class="truncate text-[13px] font-medium text-v-text">{{ $group->name }}</div>
-                            <div class="v-mono text-xs text-v-muted">{{ $group->slug }}</div>
-                        </div>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell align="right" mono>{{ $group->slides_count }}</x-admin.table.cell>
-                    <x-admin.table.cell>{{ $group->autoplay ? 'Every ' . $group->speed . 'ms' : 'Manual' }}</x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <x-admin.badge :tone="$group->is_active ? 'success' : 'neutral'">{{ $group->is_active ? 'Active' : 'Draft' }}</x-admin.badge>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell class="v-col-act">
-                        <div class="v-rowactions v-rowactions--end">
-                            <x-admin.button size="sm" variant="ghost" :href="route('admin.banners.slides', $group)">Slides</x-admin.button>
-                            <x-admin.button size="sm" variant="ghost" :href="route('admin.banners.edit', $group)">Settings</x-admin.button>
-                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-group-{{ $group->id }}')">Delete</x-admin.button>
-                        </div>
-                    </x-admin.table.cell>
-                </x-admin.table.row>
-            @empty
-                <tr>
-                    <td colspan="5">
-                        <x-admin.empty-state icon="media" title="No banner groups yet" description="A group is one carousel placement, and its slides live inside it.">
-                            <x-admin.button variant="primary" :href="route('admin.banners.create')">Create your first group</x-admin.button>
-                        </x-admin.empty-state>
-                    </td>
-                </tr>
-            @endforelse
-        </x-admin.table>
+    <div class="v3-settle">
+        <x-admin3.panel title="Groups" flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr><th>Group</th><th class="v3-cell-num">Slides</th><th>Rotation</th><th>Status</th><th class="v3-cell-act"><span class="v3-sr">Actions</span></th></tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($groups as $group)
+                            <tr>
+                                <td>
+                                    <a href="{{ route('admin.banners.slides', $group) }}" class="v3-rowlink">{{ $group->name }}</a>
+                                    <span class="v3-cell-quiet v3-block v3-mono">{{ $group->slug }}</span>
+                                </td>
+                                <td class="v3-cell-num v3-mono">{{ $group->slides_count }}</td>
+                                <td>{{ $group->autoplay ? 'Every ' . $group->speed . 'ms' : 'Manual' }}</td>
+                                <td><span class="v3-badge {{ $group->is_active ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $group->is_active ? 'Active' : 'Draft' }}</span></td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.banners.slides', $group) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Slides</a>
+                                    <a href="{{ route('admin.banners.edit', $group) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Settings</a>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-group-{{ $group->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No banner groups yet</p>
+                                        <p class="v3-empty__line">A group is one carousel placement, and its slides live inside it.</p>
+                                        <a href="{{ route('admin.banners.create') }}" class="v3-btn v3-btn--primary v3-btn--sm">Create your first group</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
 
         @foreach ($groups as $group)
-            <x-admin.confirm-dialog name="delete-group-{{ $group->id }}" title="Delete {{ $group->name }}?"
+            <x-admin3.confirm name="delete-group-{{ $group->id }}" title="Delete {{ $group->name }}?"
                 message="Delete this group and all its slides?" confirm="Delete"
                 :action="route('admin.banners.destroy', $group)" method="DELETE" />
         @endforeach
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>

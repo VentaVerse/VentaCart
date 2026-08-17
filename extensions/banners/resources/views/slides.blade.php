@@ -1,79 +1,81 @@
-<x-admin.shell :title="$group->name">
-    <x-admin.page :title="$group->name"
-        :standing="$group->slug . ' · ' . ($group->autoplay ? 'Rotates every ' . $group->speed . 'ms' : 'Manual rotation')">
-        <x-slot:actions>
-            <x-admin.button variant="secondary" href="{{ route('admin.banners.edit', $group) }}">Group settings</x-admin.button>
-            <x-admin.button variant="primary" href="{{ route('admin.banners.slides.create', $group) }}">
-                <x-admin.icon name="plus" class="w-4 h-4" /> New Slide
-            </x-admin.button>
-        </x-slot:actions>
+<x-admin3.shell :title="$group->name">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.banners.index') }}">Banner groups</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $group->name }}</span>
+            </div>
+            <h1 class="v3-head__title">{{ $group->name }}</h1>
+            <p class="v3-head__standing">{{ $group->slug }} · {{ $group->autoplay ? 'Rotates every ' . $group->speed . 'ms' : 'Manual rotation' }}</p>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.banners.edit', $group) }}" class="v3-btn v3-btn--secondary">Group settings</a>
+            <a href="{{ route('admin.banners.slides.create', $group) }}" class="v3-btn v3-btn--primary">New slide</a>
+        </div>
+    </div>
 
-        <x-admin.table roomy>
-            <x-slot:head>
-                <x-admin.table.th>Slide</x-admin.table.th>
-                <x-admin.table.th>Showing</x-admin.table.th>
-                <x-admin.table.th>Status</x-admin.table.th>
-                <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-            </x-slot:head>
-            @forelse ($banners as $banner)
-                <x-admin.table.row href="{{ route('admin.banners.slides.edit', [$group, $banner]) }}">
-                    <x-admin.table.cell>
-                        <div class="flex items-center gap-3">
-                            {{-- The slide's own background colour is a record's data,
-                                 so it is bound rather than named in a stylesheet;
-                                 an SVG rect carries it as a presentation attribute. --}}
-                            <span class="relative block h-14 w-28 shrink-0 overflow-hidden rounded-v-md border border-v-border">
-                                <svg class="absolute inset-0 h-full w-full" aria-hidden="true" focusable="false">
-                                    <rect width="100%" height="100%" fill="{{ $banner->bg_color }}"></rect>
-                                </svg>
-                                @if ($banner->bg_image)
-                                    <img src="{{ $banner->bg_image_url }}" alt="" class="relative h-full w-full object-cover">
-                                @endif
-                            </span>
-                            <div class="min-w-0">
-                                <div class="truncate text-[13px] font-medium text-v-text">{{ $banner->name ?: 'Untitled' }}</div>
-                                {{-- A slide's own height is optional: null means it takes the
-                                     group's, so it is printed only when the slide overrides. --}}
-                                <div class="text-xs text-v-muted">{{ count($banner->layers ?? []) }} {{ Str::plural('layer', count($banner->layers ?? [])) }}@if ($banner->height) &middot; {{ $banner->height }}px @endif</div>
-                            </div>
-                        </div>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        @if ($banner->starts_at || $banner->ends_at)
-                            {{ $banner->starts_at?->format('M d') ?? 'Now' }} to {{ $banner->ends_at?->format('M d') ?? 'no end' }}
-                        @else
-                            Always
-                        @endif
-                    </x-admin.table.cell>
-                    <x-admin.table.cell>
-                        <x-admin.badge :tone="$banner->is_active ? 'success' : 'neutral'">{{ $banner->is_active ? 'Active' : 'Draft' }}</x-admin.badge>
-                    </x-admin.table.cell>
-                    <x-admin.table.cell class="v-col-act">
-                        <div class="v-rowactions v-rowactions--end">
-                            <x-admin.button size="sm" variant="ghost" :href="route('admin.banners.slides.edit', [$group, $banner])">Edit</x-admin.button>
-                            <form method="POST" action="{{ route('admin.banners.slides.duplicate', [$group, $banner]) }}" data-v-form class="inline">
-                                @csrf
-                                <x-admin.button size="sm" variant="ghost" type="submit">Copy</x-admin.button>
-                            </form>
-                            <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-slide-{{ $banner->id }}')">Delete</x-admin.button>
-                        </div>
-                    </x-admin.table.cell>
-                </x-admin.table.row>
-            @empty
-                <tr>
-                    <td colspan="4">
-                        <x-admin.empty-state icon="media" title="No slides yet" description="A slide is one frame of this carousel.">
-                            <x-admin.button variant="primary" :href="route('admin.banners.slides.create', $group)">Add the first slide</x-admin.button>
-                        </x-admin.empty-state>
-                    </td>
-                </tr>
-            @endforelse
-        </x-admin.table>
+    <div class="v3-settle">
+        <x-admin3.panel title="Slides" flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr><th>Slide</th><th>Showing</th><th>Status</th><th class="v3-cell-act"><span class="v3-sr">Actions</span></th></tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($banners as $banner)
+                            <tr>
+                                <td>
+                                    <span class="v3-namerow">
+                                        {{-- The slide's own background colour is a record's data,
+                                             so an SVG rect carries it as a presentation attribute. --}}
+                                        <span class="v3-slidepeek">
+                                            <svg viewBox="0 0 28 14" aria-hidden="true" focusable="false"><rect width="28" height="14" fill="{{ $banner->bg_color }}"/></svg>
+                                            @if ($banner->bg_image)
+                                                <img src="{{ $banner->bg_image_url }}" alt="">
+                                            @endif
+                                        </span>
+                                        <span>
+                                            <a href="{{ route('admin.banners.slides.edit', [$group, $banner]) }}" class="v3-rowlink">{{ $banner->name ?: 'Untitled' }}</a>
+                                            <span class="v3-cell-quiet v3-block">{{ count($banner->layers ?? []) }} {{ Str::plural('layer', count($banner->layers ?? [])) }}@if ($banner->height) &middot; {{ $banner->height }}px @endif</span>
+                                        </span>
+                                    </span>
+                                </td>
+                                <td>
+                                    @if ($banner->starts_at || $banner->ends_at)
+                                        {{ $banner->starts_at?->format('M d') ?? 'Now' }} to {{ $banner->ends_at?->format('M d') ?? 'no end' }}
+                                    @else
+                                        Always
+                                    @endif
+                                </td>
+                                <td><span class="v3-badge {{ $banner->is_active ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $banner->is_active ? 'Active' : 'Draft' }}</span></td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.banners.slides.edit', [$group, $banner]) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="submit" form="copy-slide-{{ $banner->id }}" class="v3-btn v3-btn--ghost v3-btn--sm">Copy</button>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-slide-{{ $banner->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="4">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No slides yet</p>
+                                        <p class="v3-empty__line">A slide is one frame of this carousel.</p>
+                                        <a href="{{ route('admin.banners.slides.create', $group) }}" class="v3-btn v3-btn--primary v3-btn--sm">Add the first slide</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
 
         @foreach ($banners as $banner)
-            <x-admin.confirm-dialog name="delete-slide-{{ $banner->id }}" title="Delete slide"
+            <form id="copy-slide-{{ $banner->id }}" method="POST" action="{{ route('admin.banners.slides.duplicate', [$group, $banner]) }}" hidden>@csrf</form>
+            <x-admin3.confirm name="delete-slide-{{ $banner->id }}" title="Delete slide"
                 message="Delete this slide?" confirm="Delete"
                 :action="route('admin.banners.slides.destroy', [$group, $banner])" method="DELETE" />
         @endforeach
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>

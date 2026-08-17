@@ -469,7 +469,9 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/settings/modules/banners');
 
         $response->assertOk();
-        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Banners']);
+        // v3 repin: the settings space IS Settings, so the trail starts
+        // at Modules like every other v3 settings page.
+        $this->assertBreadcrumbTrail($response->getContent(), ['Modules', 'Banners']);
     }
 
     /** Task 2: the Fulfillment sidebar item (admin-nav) supplies the queue's crumb. */
