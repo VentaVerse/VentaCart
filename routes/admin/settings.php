@@ -165,6 +165,7 @@ Route::prefix('settings')->group(function () {
 
         // Bank Accounts (bank-transfer method's account list) — literal
         // sub-paths, must be registered before the {method} wildcard below.
+        Route::get('/bank-accounts/create', [BankAccountController::class, 'create'])->name('bank-accounts.create');
         Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
         Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
         Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');

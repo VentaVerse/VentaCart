@@ -487,11 +487,13 @@ class FulfillmentLbcSettingsTest extends TestCase
             'value' => Crypt::encryptString('abcdefgh1234'),
         ]);
 
-        // Masked display, same shape the rest of this module uses: all but
-        // the last four characters replaced.
+        // v3 repin: the stored key is never rendered, not even masked; the
+        // field's help mark names the identifying tail and the keep-on-blank
+        // contract instead.
         $this->get($this->settingsUrl('/lbc'))
             ->assertOk()
-            ->assertSee(str_repeat('*', 8) . '1234');
+            ->assertSee('Current value ends in 1234', false)
+            ->assertDontSee('abcdefgh1234');
 
         // The secret control posts nothing while resting, which must keep
         // the stored value rather than blank it.

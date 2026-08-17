@@ -499,7 +499,9 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment');
 
         $response->assertOk();
-        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Courier Fulfillment']);
+        // v3 repin: the settings space IS Settings, so its trail starts at
+        // Modules like every other v3 settings page.
+        $this->assertBreadcrumbTrail($response->getContent(), ['Modules', 'Courier Fulfillment']);
     }
 
     /**
@@ -516,7 +518,7 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/quadx');
 
         $response->assertOk();
-        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Courier Fulfillment', 'QuadX']);
+        $this->assertBreadcrumbTrail($response->getContent(), ['Modules', 'Courier Fulfillment', 'QuadX']);
     }
 
     /**
@@ -586,10 +588,12 @@ class UrlGrammarTest extends TestCase
     /** Asserts each label appears, in order, inside the rendered breadcrumb <nav>. */
     private function assertBreadcrumbTrail(string $html, array $expectedLabels): void
     {
-        $found = preg_match('/<nav[^>]*class="[^"]*v-day__trail[^"]*"[^>]*>(.*?)<\/nav>/s', $html, $matches);
+        // Two trail generations: the v2 shell's <nav class="v-day__trail">
+        // and the v3 head's <div class="v3-head__trail"> both count.
+        $found = preg_match('/<(nav|div)[^>]*class="[^"]*(?:v-day__trail|v3-head__trail)[^"]*"[^>]*>(.*?)<\/\1>/s', $html, $matches);
         $this->assertSame(1, $found, 'Breadcrumb <nav> not found in response HTML.');
 
-        $trailText = trim(preg_replace('/\s+/', ' ', strip_tags($matches[1])));
+        $trailText = trim(preg_replace('/\s+/', ' ', strip_tags($matches[2])));
 
         $lastPos = -1;
         foreach ($expectedLabels as $label) {

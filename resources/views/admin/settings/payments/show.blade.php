@@ -17,11 +17,11 @@
             <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'availability' ? 'true' : 'false'" @click="pick('availability')">Availability</button>
         </div>
 
-        <div x-show="tab === 'config'">
+        <div x-show="tab === 'config'" class="v3-settle">
             @include('admin.settings.payments.partials.config-' . str_replace('_', '-', $method))
         </div>
 
-        <div x-show="tab === 'availability'" x-cloak>
+        <div x-show="tab === 'availability'" x-cloak class="v3-settle">
             @include('admin.settings.payments.partials.availability')
         </div>
     </div>

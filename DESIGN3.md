@@ -239,6 +239,54 @@ opened by an explicit Edit still save per record (their Save is an
 action on that record). The test: a switch or checkbox NEVER talks
 to the server by itself.
 
+## Savebar standardization sweep (owner directive, 2026-08-17)
+
+Every form whose fields are typeable without pressing Edit first wears
+x-admin3.form, no exceptions and no inline Save buttons. Swept in this
+round: the payment availability rule (was a plain form with Save rule),
+and the theme page's per-section, footer bulk, and theme-options forms.
+Still legitimately OUTSIDE the bar: Add-row create forms (verbs), the
+automations schedule modal, slug/redirect/localization editors gated
+behind an Edit press, and module Install/Enable verbs. v2 pages
+(abandoned carts) convert when their area migrates.
+
+Multiple doctrine forms per page each carry their own fixed savebar;
+only a dirty form's bar shows, and editing two at once overlaps them,
+which is accepted (payments index set the precedent).
+
+Mechanics added: `.v3-passthru` (display: contents) on the confirm
+component's root so hidden confirm wrappers never eat a settle-owl slot;
+tab content wrappers on tabbed pages carry `.v3-settle` themselves
+(payments show was missing it, cards sat too close). Record creation
+gets dedicated pages: bank accounts now have create + edit pages, and
+the populate-above Add panel is gone.
+
+## Extension sweep (owner directive, 2026-08-17, second round)
+
+The courier-fulfillment admin surfaces now wear v3: the module hub,
+status placement, per-courier pages (schema-field partial rewritten in
+v3 vocabulary), and pickup addresses (index + form). The banners GROUP
+form is v3 and is the first consumer of the full-rail x-admin3.shell.
+Pickup addresses were also DECOUPLED from core Shipping (owner: core
+shipping is the manual process; the module hub owns the link), and
+ShippingPageTest now guards the decoupling.
+
+New doctrine mechanic: v3Form.rebaseline() — an async widget that
+hydrates field values after load (the pickup address cascade restoring
+saved dropdowns) calls it when hydration settles, so restored state is
+clean state, not a phantom edit. Dynamic editors that mutate hidden
+serialized inputs (the SPX pouch-preset rows) call touch() on add and
+remove, because Alpine :value bindings fire no input events.
+
+Secrets on v3 courier pages are never rendered, even masked: the field
+shows a password box whose help mark names the identifying tail; blank
+keeps the stored value (persist() already skips empty encrypted keys).
+
+Still v2, each waiting for its own wave: the fulfillment queue and
+returns (verb surfaces, Orders-area wave), the banners slide editor,
+slides list, and groups index (CMS editor wave, Phase 3), and the
+abandoned-carts pages (their module's wave).
+
 ## Migrated so far
 
 - Settings landing (`admin/settings/hub.blade.php`): grouped

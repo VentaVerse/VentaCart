@@ -9,6 +9,11 @@ use Illuminate\Support\Facades\Storage;
 
 class BankAccountController extends Controller
 {
+    public function create()
+    {
+        return view('admin.settings.payments.create-bank-account');
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -32,7 +37,7 @@ class BankAccountController extends Controller
 
         BankAccount::create($validated);
 
-        return redirect()->route('admin.payment-settings.show', 'bank_transfer')
+        return redirect()->route('admin.payment-settings.show', ['method' => 'bank_transfer', 'tab' => 'config'])
             ->with('success', 'Bank account added.');
     }
 

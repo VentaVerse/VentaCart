@@ -77,6 +77,14 @@ document.addEventListener('alpine:init', () => {
             this.dirty = this.snapshot() !== this.baseline;
         },
 
+        // Async widgets that hydrate field values AFTER load (a cascade
+        // restoring saved dropdowns) call this when hydration completes,
+        // so the restored state is the clean state, not a phantom edit.
+        rebaseline() {
+            this.baseline = this.snapshot();
+            this.dirty = false;
+        },
+
         // Dynamic editors (rows added or removed outside input events)
         // call this to mark work the snapshot diff will also confirm.
         touch() {

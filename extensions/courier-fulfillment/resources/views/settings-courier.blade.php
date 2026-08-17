@@ -3,76 +3,69 @@
     settings/modules/courier-fulfillment/{courier} — rendered entirely from
     CourierFulfillmentInterface::settingsSchema() plus the courier's actions
     (Test Connection, Refresh statuses) and its status-mapping table, so a
-    new courier gets this page for free. The page title is the courier's
-    name, which the path-derived breadcrumb picks up as the trailing crumb:
-    Settings › Modules › Courier Fulfillment › {Name}.
+    new courier gets this page for free.
 --}}
-<x-admin.settings-shell :title="$courier->getName()" active="fulfillment">
+<x-admin3.settings-shell :title="$courier->getName()" active="modules">
 
-    <div class="space-y-6">
-        <x-admin.card :title="$courier->getName()">
-            {{-- Standalone form for "Refresh from {courier}" — HTML forms cannot
-                 nest, so this lives outside the main form below; its button uses
-                 form="…". --}}
-            <form id="refresh-statuses-form" method="POST" action="{{ route('admin.fulfillment.settings.refresh-statuses', $courier->getKey()) }}" class="hidden">
-                @csrf
-            </form>
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.modules.index') }}">Modules</a>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.fulfillment.settings') }}">Courier Fulfillment</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $courier->getName() }}</span>
+            </div>
+            <h1 class="v3-head__title">{{ $courier->getName() }}</h1>
+        </div>
+    </div>
 
-            {{-- Same no-nesting rule for the SPX "Create shipper account"
-                 action: its form lives out here, its button (inside the main
-                 form's card below) targets it via form="…". Nesting it where
-                 the button renders made the browser close the main form
-                 early, orphaning every field after it (Alpine's mode scope
-                 included). --}}
-            @if ($courier->getKey() === 'spx' && empty($settings['spx_user_id']))
-                <form id="create-account-form" method="POST" action="{{ route('admin.fulfillment.settings.create-account', $courier->getKey()) }}" data-v-form class="hidden">
-                    @csrf
-                </form>
-            @endif
+    {{-- Standalone forms for the page's verbs — HTML forms cannot nest, so
+         these live outside the doctrine form; their buttons use form="…". --}}
+    <form id="refresh-statuses-form" method="POST" action="{{ route('admin.fulfillment.settings.refresh-statuses', $courier->getKey()) }}" hidden>
+        @csrf
+    </form>
+    @if ($courier->getKey() === 'spx' && empty($settings['spx_user_id']))
+        <form id="create-account-form" method="POST" action="{{ route('admin.fulfillment.settings.create-account', $courier->getKey()) }}" hidden>
+            @csrf
+        </form>
+    @endif
 
-            <form method="POST" action="{{ route('admin.fulfillment.settings.courier.update', $courier->getKey()) }}" data-v-form class="space-y-5"
-                @if ($modeFieldKey) x-data="{ mode: '{{ $initialMode }}' }" @endif>
-                @csrf
+    <x-admin3.form :action="route('admin.fulfillment.settings.courier.update', $courier->getKey())" class="v3-settle">
+        {{-- The mode scope nests inside the doctrine form (the form tag
+             already carries v3Form's own x-data). --}}
+        <div @if ($modeFieldKey) x-data="{ mode: '{{ $initialMode }}' }" @endif>
+            <x-admin3.panel :title="$courier->getName()">
 
-                {{-- Task T4: SPX-specific page sections. Per W3's own note
-                     ("T4's SPX-specific page sections... will extend
-                     settings-courier.blade.php via per-courier action
-                     slots"), the lighter mechanism was chosen over a
-                     schema-declared slot type: a plain key check, since
-                     exactly one courier needs either of these today and a
-                     new abstraction for a single caller would be
-                     speculative. --}}
                 @if ($courier->getKey() === 'spx')
                     {{-- UAT-mode note: SPX's UAT environment only accepts
-                         orders addressed to the recipients whitelisted in
-                         the harvested onboarding guide. That PDF lives in
-                         this repo's docs (not a public/servable path), so
-                         this links nowhere — it names the file so whoever
-                         is configuring UAT knows exactly where to look. --}}
-                    <div x-show="mode === 'uat'" x-cloak class="rounded-v-md border border-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)] px-4 py-3 text-[13px] text-v-warning">
-                        <p class="font-semibold">UAT mode: whitelisted test orders only</p>
-                        <p class="mt-1">SPX's UAT environment only accepts bookings for the recipient details listed in <code class="font-mono">docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf</code> in this codebase's repo. A real customer address will fail with an unrelated-looking SPX error. Switch to Production mode once SPX has approved this integration.</p>
+                         orders addressed to the recipients whitelisted in the
+                         harvested onboarding guide. That PDF lives in this
+                         repo's docs (not a public/servable path), so this
+                         links nowhere — it names the file so whoever is
+                         configuring UAT knows exactly where to look. --}}
+                    <div x-show="mode === 'uat'" x-cloak class="v3-notice v3-gap-sm">
+                        <p class="v3-notice__title">UAT mode: whitelisted test orders only</p>
+                        <p class="v3-notice__text">SPX's UAT environment only accepts bookings for the recipient details listed in <code class="v3-mono">docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf</code> in this codebase's repo. A real customer address will fail with an unrelated-looking SPX error. Switch to Production mode once SPX has approved this integration.</p>
                     </div>
 
-                    {{-- Create shipper account: only meaningful before a
-                         User ID exists — once one is on file, this
-                         disappears and the User ID / User Secret fields
-                         below are the way to change it. --}}
+                    {{-- Create shipper account: only meaningful before a User
+                         ID exists — once one is on file, this disappears and
+                         the User ID / User Secret fields below are the way to
+                         change it. --}}
                     @if (empty($settings['spx_user_id']))
-                        <x-admin.empty-state variant="notice" title="No SPX shipper account yet">
-                            <span class="flex items-center gap-2">
-                                <x-admin.button type="submit" form="create-account-form" variant="secondary" size="sm">Create shipper account</x-admin.button>
-                                <x-admin.hint label="About creating a shipper account" class="v-hint--end">Creates a User ID and User Secret through SPX using this store's pickup contact number, and saves both here.</x-admin.hint>
-                            </span>
-                        </x-admin.empty-state>
+                        <div class="v3-actrow v3-gap-sm">
+                            <span class="v3-badge v3-badge--warn">No SPX shipper account yet</span>
+                            <button type="submit" form="create-account-form" class="v3-btn v3-btn--secondary v3-btn--sm">Create shipper account</button>
+                            <x-admin3.help text="Creates a User ID and User Secret through SPX using this store's pickup contact number, and saves both here." />
+                        </div>
                     @endif
                 @endif
 
                 @foreach ($topFields as $field)
-                    {{-- Task T4: spx_pouch_presets gets a structured editor
-                         (below) instead of the generic raw-JSON text field —
-                         same setting key, same stored JSON format, so
-                         courierAllowedKeys()/persist() need no change. --}}
+                    {{-- spx_pouch_presets gets a structured editor (below)
+                         instead of the generic raw-JSON text field — same
+                         setting key, same stored JSON format. --}}
                     @continue($field['key'] === 'spx_pouch_presets')
                     @include('courier-fulfillment::partials.schema-field', [
                         'field' => $field,
@@ -92,65 +85,43 @@
                             ? array_values($pouchDecoded)
                             : \Extensions\CourierFulfillment\Couriers\Spx\SpxFulfillment::DEFAULT_POUCH_PRESETS;
                     @endphp
-                    {{-- Task T4: structured pouch-preset editor (replaces
-                         T1's raw-JSON text field). Rows live in local Alpine
-                         state, seeded from the stored value; the ONLY thing
-                         that reaches the server is the hidden input below,
-                         JSON-serialized client-side into the SAME
-                         settings[spx_pouch_presets] field name/format the
-                         old text field posted — no controller/allowlist
-                         change needed, no data-shape change. --}}
-                    <div x-data="{ presets: {{ \Illuminate\Support\Js::from($pouchPresets) }} }">
-                        <x-admin.field name="pouch_presets_editor" label="Pouch presets" :help="$pouchField['help'] ?? null">
-                            <div class="space-y-2">
-                                <template x-for="(p, idx) in presets" :key="idx">
-                                    <div class="grid grid-cols-2 gap-2 items-end sm:grid-cols-12">
-                                        <div class="col-span-2 sm:col-span-4">
-                                            <span class="block text-[11px] text-v-muted mb-0.5">Label</span>
-                                            <input type="text" x-model="p.label" :aria-label="'Preset ' + (idx + 1) + ' label'" placeholder="e.g. Medium"
-                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        </div>
-                                        <div class="col-span-1 sm:col-span-2">
-                                            <span class="block text-[11px] text-v-muted mb-0.5">Length (cm)</span>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.length_cm" :aria-label="'Preset ' + (idx + 1) + ' length (cm)'"
-                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        </div>
-                                        <div class="col-span-1 sm:col-span-2">
-                                            <span class="block text-[11px] text-v-muted mb-0.5">Width (cm)</span>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.width_cm" :aria-label="'Preset ' + (idx + 1) + ' width (cm)'"
-                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        </div>
-                                        <div class="col-span-1 sm:col-span-2">
-                                            <span class="block text-[11px] text-v-muted mb-0.5">Height (cm)</span>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.height_cm" :aria-label="'Preset ' + (idx + 1) + ' height (cm)'"
-                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        </div>
-                                        <div class="col-span-1 sm:col-span-1">
-                                            <span class="block text-[11px] text-v-muted mb-0.5">Max kg</span>
-                                            <input type="number" step="0.1" min="0.1" x-model.number="p.max_weight_kg" :aria-label="'Preset ' + (idx + 1) + ' max kg'"
-                                                class="v-control w-full h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                        </div>
-                                        <div class="col-span-2 flex justify-end sm:col-span-1 sm:block">
-                                            <x-admin.button type="button" variant="ghost" size="sm"
-                                                class="v-rowactions__danger sm:w-full"
-                                                @click="presets.splice(idx, 1)" ::disabled="presets.length <= 1"
-                                                ::aria-label="'Remove preset ' + (idx + 1)" title="Remove preset">
-                                                <x-admin.icon name="trash" class="w-4 h-4" />
-                                            </x-admin.button>
-                                        </div>
-                                    </div>
-                                </template>
-                                <x-admin.button type="button" variant="secondary" size="sm"
-                                    @click="presets.push({label:'', length_cm:null, width_cm:null, height_cm:null, max_weight_kg:null})">+ Add preset</x-admin.button>
+                    {{-- Structured pouch-preset editor. Rows live in local
+                         Alpine state, seeded from the stored value; the ONLY
+                         thing that reaches the server is the hidden input
+                         below, JSON-serialized client-side into the SAME
+                         settings[spx_pouch_presets] field name/format the old
+                         text field posted. Row add/remove calls the doctrine
+                         form's touch() so structural edits raise the save bar
+                         even before any keystroke. --}}
+                    <div class="v3-gap" x-data="{ presets: {{ \Illuminate\Support\Js::from($pouchPresets) }} }">
+                        <div class="v3-label v3-gap-sm">
+                            Pouch presets
+                            @if (!empty($pouchField['help']))<x-admin3.help :text="$pouchField['help']" />@endif
+                        </div>
+                        <template x-for="(p, idx) in presets" :key="idx">
+                            <div class="v3-grid v3-grid--pouch v3-gap-sm">
+                                <input type="text" x-model="p.label" :aria-label="'Preset ' + (idx + 1) + ' label'" placeholder="e.g. Medium" class="v3-control">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.length_cm" :aria-label="'Preset ' + (idx + 1) + ' length (cm)'" placeholder="L cm" class="v3-control v3-mono">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.width_cm" :aria-label="'Preset ' + (idx + 1) + ' width (cm)'" placeholder="W cm" class="v3-control v3-mono">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.height_cm" :aria-label="'Preset ' + (idx + 1) + ' height (cm)'" placeholder="H cm" class="v3-control v3-mono">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.max_weight_kg" :aria-label="'Preset ' + (idx + 1) + ' max kg'" placeholder="Max kg" class="v3-control v3-mono">
+                                <button type="button" class="v3-row__x" @click="presets.splice(idx, 1); $nextTick(() => touch())"
+                                    :disabled="presets.length <= 1" :aria-label="'Remove preset ' + (idx + 1)">
+                                    <x-admin3.icon name="trash" />
+                                </button>
                             </div>
-                        </x-admin.field>
+                        </template>
+                        <div class="v3-gap-sm">
+                            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                                @click="presets.push({label:'', length_cm:null, width_cm:null, height_cm:null, max_weight_kg:null}); $nextTick(() => touch())">Add preset</button>
+                        </div>
                         <input type="hidden" name="settings[spx_pouch_presets]" :value="JSON.stringify(presets)">
                     </div>
                 @endif
 
                 @foreach ($modeGroups as $modeValue => $fields)
-                    <div x-show="mode === '{{ $modeValue }}'" x-cloak class="space-y-4 border-l-2 border-v-border pl-4">
-                        <p class="v-label text-v-secondary">{{ ucfirst($modeValue) }} credentials</p>
+                    <div x-show="mode === '{{ $modeValue }}'" x-cloak class="v3-gap v3-modegroup">
+                        <div class="v3-label v3-gap-sm">{{ ucfirst($modeValue) }} credentials</div>
                         @foreach ($fields as $field)
                             @include('courier-fulfillment::partials.schema-field', [
                                 'field' => $field,
@@ -165,83 +136,76 @@
 
                 {{-- Test Connection hits the live provider API with the saved
                      credentials, via CourierFulfillmentInterface::testConnection(). --}}
-                <div x-data="{ testing:false, result:null }" class="mt-2">
-                    <x-admin.button type="button" variant="secondary" size="sm"
-                        x-on:click="testing=true; result=null;
-                            fetch('{{ route('admin.fulfillment.test-connection', $courier->getKey()) }}', {method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}})
-                            .then(r=>r.json()).then(d=>result=d).finally(()=>testing=false)">
-                        <span x-show="!testing">Test Connection</span><span x-show="testing" x-cloak>Testing&hellip;</span>
-                    </x-admin.button>
-                    <span x-show="result" x-cloak x-text="result?.message" :class="result?.ok ? 'text-v-accent' : 'text-v-danger'" class="ml-2 text-[13px]"></span>
+                <div x-data="{ testing: false, result: null }" class="v3-gap">
+                    <span class="v3-actrow">
+                        <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                            @click="testing = true; result = null;
+                                fetch('{{ route('admin.fulfillment.test-connection', $courier->getKey()) }}', {method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}})
+                                .then(r => r.json()).then(d => result = d).finally(() => testing = false)">
+                            <span x-show="!testing">Test Connection</span><span x-show="testing" x-cloak>Testing&hellip;</span>
+                        </button>
+                        <span x-show="result" x-cloak x-text="result?.message"
+                              :class="result?.ok ? 'v3-badge v3-badge--good' : 'v3-badge v3-badge--bad'"></span>
+                    </span>
                 </div>
+            </x-admin3.panel>
 
-                {{-- Order status mapping — courier status -> Venta order status.
-                     Statuses come from $courier->mappableStatuses(); saved keys are
-                     "{key}_status_map" (StatusMapper::currentMap($key)), still through
-                     this same form and this courier's own allowlist.
-
-                     A courier that exposes no mappable vocabulary (LBC, whose
-                     tracking client does not exist yet) gets no section at
-                     all rather than a table of column headings over nothing,
-                     and no "Refresh from" button for a list it cannot
-                     fetch. --}}
-                @if (!empty($courierStatuses))
-                <div class="mt-8 pt-6 border-t border-v-border">
-                    <div class="flex items-center justify-between mb-1">
-                        <span class="flex items-center gap-2">
-                            <h3 class="v-subhead">Order status mapping</h3>
-                            <x-admin.hint label="About order status mapping">A row left blank still tracks on the fulfillment page, it just never moves the order's own status.</x-admin.hint>
-                        </span>
-                        <x-admin.button type="submit" form="refresh-statuses-form" variant="secondary" size="sm">Refresh from {{ $courier->getName() }}</x-admin.button>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-[13px]">
-                            <thead>
-                                <tr class="v-label">
-                                    <th class="text-left py-1">{{ $courier->getName() }} status</th>
-                                    <th class="text-left py-1">Venta order status</th>
-                                    <th class="text-left py-1">Notify customer</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($courierStatuses as $statusKey => $label)
-                                    <tr class="border-t border-v-border">
-                                        <td class="py-2 text-v-text">
-                                            {{ $label }}
-                                            @if ($label !== $statusKey)
-                                                <span class="block text-[11px] text-v-muted">{{ $statusKey }}</span>
-                                            @endif
-                                        </td>
-                                        <td class="py-2">
-                                            <x-admin.select name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][order_status_id]" class="max-w-xs" aria-label="Order status for {{ $label }}">
-                                                <option value="">(none)</option>
-                                                @foreach ($orderStatuses as $id => $name)
-                                                    <option value="{{ $id }}" {{ (string) ($statusMap[$statusKey]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
-                                                @endforeach
-                                            </x-admin.select>
-                                        </td>
-                                        <td class="py-2">
-                                            <input type="hidden" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="0">
-                                            <label class="v-check v-check--bare">
-                                                <input type="checkbox" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="1"
-                                                    aria-label="Notify the customer on {{ $label }}"
-                                                    {{ !empty($statusMap[$statusKey]['notify']) ? 'checked' : '' }}
-                                                    class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
-                                            </label>
-                                        </td>
+            {{-- Order status mapping: courier status -> Venta order status.
+                 A courier that exposes no mappable vocabulary (LBC) gets no
+                 section at all rather than a table of column headings over
+                 nothing, and no "Refresh from" button for a list it cannot
+                 fetch. --}}
+            @if (!empty($courierStatuses))
+                <div class="v3-gap">
+                    <x-admin3.panel title="Order status mapping" flush
+                        note="A row left blank still tracks on the fulfillment page, it just never moves the order's own status.">
+                        <x-slot:acts>
+                            <button type="submit" form="refresh-statuses-form" class="v3-btn v3-btn--secondary v3-btn--sm">Refresh from {{ $courier->getName() }}</button>
+                        </x-slot:acts>
+                        <div class="v3-tablewrap">
+                            <table class="v3-table">
+                                <thead>
+                                    <tr>
+                                        <th>{{ $courier->getName() }} status</th>
+                                        <th>Venta order status</th>
+                                        <th>Notify customer</th>
                                     </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody>
+                                    @foreach ($courierStatuses as $statusKey => $label)
+                                        <tr>
+                                            <td>
+                                                {{ $label }}
+                                                @if ($label !== $statusKey)
+                                                    <span class="v3-cell-quiet v3-block v3-mono">{{ $statusKey }}</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <select name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][order_status_id]"
+                                                        class="v3-control v3-w-name" aria-label="Order status for {{ $label }}">
+                                                    <option value="">(none)</option>
+                                                    @foreach ($orderStatuses as $id => $name)
+                                                        <option value="{{ $id }}" {{ (string) ($statusMap[$statusKey]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="hidden" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="0">
+                                                <label class="v3-check">
+                                                    <input type="checkbox" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="1"
+                                                        aria-label="Notify the customer on {{ $label }}"
+                                                        {{ !empty($statusMap[$statusKey]['notify']) ? 'checked' : '' }}>
+                                                </label>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </x-admin3.panel>
                 </div>
-                @endif
+            @endif
+        </div>
+    </x-admin3.form>
 
-                <x-admin.form-actions>
-                    <x-admin.button type="submit">Save</x-admin.button>
-                </x-admin.form-actions>
-            </form>
-        </x-admin.card>
-    </div>
-
-</x-admin.settings-shell>
+</x-admin3.settings-shell>

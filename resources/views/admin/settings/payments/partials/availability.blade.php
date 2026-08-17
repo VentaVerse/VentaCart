@@ -52,17 +52,14 @@
 </x-admin3.panel>
 
 
-{{-- The rule is a record with its own CRUD; it saves in place like
-     every other record editor rather than through the page save bar. --}}
+{{-- The rule's fields are typeable straight away, so the save bar
+     owns this form like every other settings surface. --}}
+<x-admin3.form :action="$restriction ? route('admin.payment-restrictions.update', $restriction) : route('admin.payment-restrictions.store')"
+               :method="$restriction ? 'PUT' : 'POST'" id="pay-availability-form">
+    @unless ($restriction)
+        <input type="hidden" name="payment_method" value="{{ $method }}">
+    @endunless
 <x-admin3.panel :title="$restriction ? 'Edit availability rule' : 'Add availability rule'">
-    <form method="POST"
-          action="{{ $restriction ? route('admin.payment-restrictions.update', $restriction) : route('admin.payment-restrictions.store') }}">
-        @csrf
-        @if ($restriction)
-            @method('PUT')
-        @else
-            <input type="hidden" name="payment_method" value="{{ $method }}">
-        @endif
 
         <div class="v3-label v3-gap-sm">Order limits</div>
         <div class="v3-grid v3-grid--3">
@@ -145,10 +142,9 @@
             @if ($restriction)
                 <button type="button" class="v3-btn v3-btn--danger" @click="$dispatch('v3-confirm', 'delete-restriction-{{ $method }}')">Delete rule</button>
             @endif
-            <button type="submit" class="v3-btn v3-btn--primary">{{ $restriction ? 'Save rule' : 'Create rule' }}</button>
         </div>
-    </form>
 </x-admin3.panel>
+</x-admin3.form>
 
 @if ($restriction)
     <x-admin3.confirm name="delete-restriction-{{ $method }}" title="Delete the availability rule?"

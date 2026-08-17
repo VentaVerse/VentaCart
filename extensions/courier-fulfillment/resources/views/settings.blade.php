@@ -1,9 +1,20 @@
-<x-admin.settings-shell title="Courier Settings" active="fulfillment">
+<x-admin3.settings-shell title="Courier Settings" active="modules">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
 
-    <div class="space-y-6">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.modules.index') }}">Modules</a>
+                <span aria-hidden="true">/</span>
+                <span>Courier Fulfillment</span>
+            </div>
+            <h1 class="v3-head__title">Courier Fulfillment</h1>
+        </div>
+    </div>
+
+    <div class="v3-settle">
 
         {{-- Setup notice (owner ruling, 2026-08-09). The module places no
              status on its own, so a fresh install has nowhere to move a booked
@@ -13,179 +24,172 @@
              the page that fixes it, and disappears the moment any status is
              placed under To Handover. --}}
         @if (empty($handoverStatuses))
-            <x-admin.empty-state variant="notice" role="status"
-                title="No order status is placed under To Handover, so booking is refused">
-                <a class="v-notice__btn" href="{{ route('admin.fulfillment.settings.placement') }}">Status placement</a>
-            </x-admin.empty-state>
+            <x-admin3.panel title="Booking is refused" role="status">
+                <x-slot:acts>
+                    <a href="{{ route('admin.fulfillment.settings.placement') }}" class="v3-btn v3-btn--primary v3-btn--sm">Status placement</a>
+                </x-slot:acts>
+                <span class="v3-badge v3-badge--warn">No order status is placed under To Handover</span>
+            </x-admin3.panel>
         @endif
 
         {{-- Status placement lives on its own page: every order status, the
              queue tab it belongs to, and the live order count behind each. --}}
-        <x-admin.card title="Status placement">
-            <x-slot:headerActions>
-                <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.settings.placement') }}">Configure</x-admin.button>
-            </x-slot:headerActions>
-            <div class="flex flex-wrap items-center gap-2">
-                <x-admin.badge :tone="$unplacedStatusCount > 0 ? 'warning' : 'success'">
-                    {{ $placedStatusCount }} placed
-                </x-admin.badge>
+        <x-admin3.panel title="Status placement">
+            <x-slot:acts>
+                <a href="{{ route('admin.fulfillment.settings.placement') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure</a>
+            </x-slot:acts>
+            <div class="v3-actrow">
+                <span class="v3-badge {{ $unplacedStatusCount > 0 ? 'v3-badge--warn' : 'v3-badge--good' }}">{{ $placedStatusCount }} placed</span>
                 @if ($unplacedStatusCount > 0)
-                    <span class="text-xs text-v-warning">{{ $unplacedStatusCount }} not placed, All tab only</span>
+                    <span class="v3-cell-quiet">{{ $unplacedStatusCount }} not placed, All tab only</span>
                 @endif
             </div>
-        </x-admin.card>
+        </x-admin3.panel>
 
         {{-- Where parcels leave from. Module-owned data (not a courier's own
              schema), so it sits beside status placement rather than on any
              one courier's page. --}}
-        <x-admin.card title="Pickup addresses">
-            <x-slot:headerActions>
-                <x-admin.button variant="secondary" size="sm" href="{{ route('admin.fulfillment.pickup-addresses.index') }}">Configure</x-admin.button>
-            </x-slot:headerActions>
-            <div class="flex flex-wrap items-center gap-2">
+        <x-admin3.panel title="Pickup addresses">
+            <x-slot:acts>
+                <a href="{{ route('admin.fulfillment.pickup-addresses.index') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure</a>
+            </x-slot:acts>
+            <div class="v3-actrow">
                 @if ($defaultPickupAddress)
-                    <x-admin.badge tone="success">Default</x-admin.badge>
-                    <span class="text-xs text-v-secondary">{{ $defaultPickupAddress }}</span>
+                    <span class="v3-badge v3-badge--good">Default</span>
+                    <span class="v3-cell-quiet">{{ $defaultPickupAddress }}</span>
                 @else
-                    <x-admin.badge tone="warning">None, so booking is refused</x-admin.badge>
+                    <span class="v3-badge v3-badge--warn">None, so booking is refused</span>
                 @endif
             </div>
-        </x-admin.card>
+        </x-admin3.panel>
 
-        {{-- Module-level card: not owned by any one courier's schema. --}}
-        <x-admin.card title="Fulfillment">
-            <form method="POST" action="{{ route('admin.fulfillment.settings.update') }}" data-v-form class="space-y-6">
-                @csrf
-
-                <x-admin.field name="settings[fulfillment_enabled]"
-                    help="Turning this off hides Fulfillment from the Sales menu and pauses the queue. Bookings triggered by the ERP API keep working, and the extension stays installed.">
-                    <x-admin.toggle name="settings[fulfillment_enabled]" :checked="($settings['fulfillment_enabled'] ?? '1') !== '0'" label="Fulfillment queue active, shown in the Sales menu" />
-                </x-admin.field>
+        {{-- Module-level settings: not owned by any one courier's schema. --}}
+        <x-admin3.form :action="route('admin.fulfillment.settings.update')" id="fulfillment-settings-form">
+            <x-admin3.panel title="Fulfillment">
+                <label class="v3-toggle">
+                    <input type="hidden" name="settings[fulfillment_enabled]" value="0">
+                    <input type="checkbox" name="settings[fulfillment_enabled]" value="1" @checked(($settings['fulfillment_enabled'] ?? '1') !== '0')>
+                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    Fulfillment queue active, shown in the Sales menu
+                    <x-admin3.help text="Turning this off hides Fulfillment from the Sales menu and pauses the queue. Bookings triggered by the ERP API keep working, and the extension stays installed." />
+                </label>
 
                 {{-- fulfillment-tabs-v3 Task 4: the core status a queue
-                     "Cancel order" action sets — applied through the same
+                     "Cancel order" action sets, applied through the same
                      history + stock path the order page uses. --}}
-                <x-admin.field name="settings[cancel_order_status_id]" label="Cancel order status"
-                    help="Applied by a Cancel order action in the queue. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
-                    <x-admin.select name="settings[cancel_order_status_id]">
-                        {{-- Fix-round minor: an unset value keeps this
-                             placeholder selected so saving the hub never
-                             silently persists a status the admin did not
-                             choose. --}}
-                        <option value="" @selected($cancelOrderStatusId === null)>Use default (Canceled)</option>
-                        @foreach ($orderStatuses as $id => $name)
-                            <option value="{{ $id }}" @selected((string) $id === (string) $cancelOrderStatusId)>{{ $name }}</option>
-                        @endforeach
-                    </x-admin.select>
-                </x-admin.field>
+                <div class="v3-gap">
+                    <x-admin3.field name="settings.cancel_order_status_id" label="Cancel order status"
+                        hint="Applied by a Cancel order action in the queue. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
+                        <select name="settings[cancel_order_status_id]" class="v3-control">
+                            <option value="" @selected($cancelOrderStatusId === null)>Use default (Canceled)</option>
+                            @foreach ($orderStatuses as $id => $name)
+                                <option value="{{ $id }}" @selected((string) $id === (string) $cancelOrderStatusId)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </x-admin3.field>
+                </div>
 
                 {{-- fulfillment-placement Task 3: the two statuses that carry
-                     an order across the To Pack / To Handover line. Booking is
-                     the store's own action, so nothing but this move can take
-                     a booked order out of To Pack. --}}
-                <x-admin.field name="settings[booked_order_status_id]" label="Booked order status"
-                    help="Applied when a booking succeeds, moving the order from To Pack to To Handover. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
-                    <x-admin.select name="settings[booked_order_status_id]">
-                        <option value="" @selected($bookedOrderStatusId === null)>
-                            {{ $bookedDefaultName ? 'Use default (' . $bookedDefaultName . ')' : 'No status is placed under To Handover' }}
-                        </option>
-                        @foreach ($handoverStatuses as $id => $name)
-                            <option value="{{ $id }}" @selected((string) $id === (string) $bookedOrderStatusId)>{{ $name }}</option>
-                        @endforeach
-                    </x-admin.select>
-                </x-admin.field>
+                     an order across the To Pack / To Handover line. --}}
+                <div class="v3-gap">
+                    <x-admin3.field name="settings.booked_order_status_id" label="Booked order status"
+                        hint="Applied when a booking succeeds, moving the order from To Pack to To Handover. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
+                        <select name="settings[booked_order_status_id]" class="v3-control">
+                            <option value="" @selected($bookedOrderStatusId === null)>
+                                {{ $bookedDefaultName ? 'Use default (' . $bookedDefaultName . ')' : 'No status is placed under To Handover' }}
+                            </option>
+                            @foreach ($handoverStatuses as $id => $name)
+                                <option value="{{ $id }}" @selected((string) $id === (string) $bookedOrderStatusId)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </x-admin3.field>
+                </div>
 
-                <x-admin.field name="settings[unbooked_order_status_id]" label="Unbooked order status"
-                    help="The fallback applied when a courier booking is cancelled. The status the order held before it was booked wins whenever it is still placed under To Pack.">
-                    <x-admin.select name="settings[unbooked_order_status_id]">
-                        <option value="" @selected($unbookedOrderStatusId === null)>
-                            {{ $unbookedDefaultName ? 'Use default (' . $unbookedDefaultName . ')' : 'No status is placed under To Pack' }}
-                        </option>
-                        @foreach ($packStatuses as $id => $name)
-                            <option value="{{ $id }}" @selected((string) $id === (string) $unbookedOrderStatusId)>{{ $name }}</option>
-                        @endforeach
-                    </x-admin.select>
-                </x-admin.field>
+                <div class="v3-gap">
+                    <x-admin3.field name="settings.unbooked_order_status_id" label="Unbooked order status"
+                        hint="The fallback applied when a courier booking is cancelled. The status the order held before it was booked wins whenever it is still placed under To Pack.">
+                        <select name="settings[unbooked_order_status_id]" class="v3-control">
+                            <option value="" @selected($unbookedOrderStatusId === null)>
+                                {{ $unbookedDefaultName ? 'Use default (' . $unbookedDefaultName . ')' : 'No status is placed under To Pack' }}
+                            </option>
+                            @foreach ($packStatuses as $id => $name)
+                                <option value="{{ $id }}" @selected((string) $id === (string) $unbookedOrderStatusId)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                    </x-admin3.field>
+                </div>
 
-                <div>
-                    <div class="flex items-center gap-2 mb-3">
-                        <h3 class="v-subhead">COD payment methods</h3>
-                        <x-admin.hint label="About COD payment methods">An order paid with a checked method is booked as COD, so the rider collects the order total. Everything else books as prepaid.</x-admin.hint>
+                <div class="v3-gap">
+                    <div class="v3-label v3-gap-sm">
+                        COD payment methods
+                        <x-admin3.help text="An order paid with a checked method is booked as COD, so the rider collects the order total. Everything else books as prepaid." />
                     </div>
                     <input type="hidden" name="settings[cod_payment_methods][]" value="__none__">
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
+                    <div class="v3-grid v3-grid--3">
                         @foreach ($paymentMethodOptions as $slug => $method)
-                            <label class="v-check">
+                            <label class="v3-check">
                                 <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $slug }}"
-                                    {{ in_array($slug, $codMethods, true) ? 'checked' : '' }}
-                                    class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
-                                <span class="text-xs text-v-secondary">{{ $method['label'] }}</span>
+                                    {{ in_array($slug, $codMethods, true) ? 'checked' : '' }}>
+                                {{ $method['label'] }}
                                 @if ($method['legacy'])
-                                    <x-admin.badge tone="neutral">legacy</x-admin.badge>
+                                    <span class="v3-badge v3-badge--quiet">legacy</span>
                                 @endif
                             </label>
                         @endforeach
                     </div>
                 </div>
-
-                <x-admin.form-actions>
-                    <x-admin.button type="submit">Save</x-admin.button>
-                </x-admin.form-actions>
-            </form>
-        </x-admin.card>
+            </x-admin3.panel>
+        </x-admin3.form>
 
         {{-- Webhook URLs: module-level plumbing (the tokens are
              server-generated, never editable), one per registered courier. --}}
-        <x-admin.card title="Webhook URLs">
-            <x-slot name="headerActions">
-                <x-admin.hint label="About these URLs" class="v-hint--end">Each URL is unique to this store. A courier given the wrong one cannot push its status updates.</x-admin.hint>
-            </x-slot>
-            <div class="space-y-4">
-                {{-- A courier with no push API of its own (LBC) has no URL to
-                     be given, so it gets no row here rather than a box
-                     holding an address nobody will ever post to. --}}
-                @foreach (array_filter($courierCards, fn ($c) => filled($c['webhookUrl'])) as $key => $card)
-                    <div x-data="{ copied: false }">
-                        <p class="text-[13px] font-semibold text-v-text mb-1.5">{{ $card['courier']->getName() }}</p>
-                        <div class="flex items-center gap-2">
-                            <input type="text" readonly value="{{ $card['webhookUrl'] }}" x-ref="hook" aria-label="{{ $card['courier']->getName() }} webhook URL"
-                                class="v-control flex-1 h-[var(--control-h)] rounded-v-md border border-v-border bg-v-sunken px-3 text-xs font-mono text-v-secondary">
-                            <x-admin.button type="button" variant="secondary" size="sm"
-                                x-on:click="window.vCopy($refs.hook.value).then((ok) => { if (!ok) return; copied = true; setTimeout(() => copied = false, 1500); })">
-                                <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied &check;</span>
-                            </x-admin.button>
-                        </div>
+        <x-admin3.panel title="Webhook URLs"
+            note="Each URL is unique to this store. A courier given the wrong one cannot push its status updates.">
+            {{-- A courier with no push API of its own (LBC) has no URL to be
+                 given, so it gets no row here rather than a box holding an
+                 address nobody will ever post to. --}}
+            @foreach (array_filter($courierCards, fn ($c) => filled($c['webhookUrl'])) as $key => $card)
+                <div class="{{ $loop->first ? '' : 'v3-gap' }}"
+                     x-data="{ copied: false, async copy() {
+                         if (!await window.v3Copy($refs.hook.value)) return;
+                         this.copied = true;
+                         setTimeout(() => this.copied = false, 1500);
+                     } }">
+                    <div class="v3-label v3-gap-sm">{{ $card['courier']->getName() }}</div>
+                    <div class="v3-actrow">
+                        <input type="text" readonly value="{{ $card['webhookUrl'] }}" x-ref="hook"
+                               aria-label="{{ $card['courier']->getName() }} webhook URL" class="v3-control v3-mono">
+                        <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="copy()">
+                            <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied &check;</span>
+                        </button>
                     </div>
-                @endforeach
-            </div>
-        </x-admin.card>
+                </div>
+            @endforeach
+        </x-admin3.panel>
 
-        {{-- One card per registered courier — name, enabled state, mode chip,
-             credential-completeness hint — linking to that courier's own
+        {{-- One panel per registered courier: name, enabled state, mode chip,
+             credential-completeness hint, linking to that courier's own
              settings page (schema fields, actions, status mapping all live
              there now). All derived from CourierFulfillmentInterface, so a
-             new courier gets its card and page for free. --}}
+             new courier gets its panel and page for free. --}}
         @foreach ($courierCards as $key => $card)
-            <x-admin.card :title="$card['courier']->getName()">
-                <x-slot:headerActions>
-                    <x-admin.button variant="secondary" size="sm" href="{{ $card['url'] }}">Configure</x-admin.button>
-                </x-slot:headerActions>
-                <div class="flex flex-wrap items-center gap-2">
-                    <x-admin.badge :tone="$card['enabled'] ? 'success' : 'neutral'">
+            <x-admin3.panel :title="$card['courier']->getName()">
+                <x-slot:acts>
+                    <a href="{{ $card['url'] }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure</a>
+                </x-slot:acts>
+                <div class="v3-actrow">
+                    <span class="v3-badge {{ $card['enabled'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">
                         {{ $card['enabled'] ? 'Enabled' : 'Disabled' }}
-                    </x-admin.badge>
+                    </span>
                     @if ($card['modeLabel'])
-                        <x-admin.badge tone="warning">{{ $card['modeLabel'] }}</x-admin.badge>
+                        <span class="v3-badge v3-badge--warn">{{ $card['modeLabel'] }}</span>
                     @endif
                     @if ($card['credentialHint'])
-                        <span class="text-xs {{ str_contains($card['credentialHint'], 'missing') ? 'text-v-warning' : 'text-v-muted' }}">
-                            {{ $card['credentialHint'] }}
-                        </span>
+                        <span class="v3-cell-quiet">{{ $card['credentialHint'] }}</span>
                     @endif
                 </div>
-            </x-admin.card>
+            </x-admin3.panel>
         @endforeach
 
     </div>
-
-</x-admin.settings-shell>
+</x-admin3.settings-shell>

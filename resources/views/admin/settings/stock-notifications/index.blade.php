@@ -21,7 +21,7 @@
         </div>
 
         {{-- ==================== WAITLIST ==================== --}}
-        <div x-show="tab === 'waitlist'" x-data="{ selected: [] }">
+        <div x-show="tab === 'waitlist'" class="v3-settle" x-data="{ selected: [] }">
             <x-admin3.panel title="Waitlist" flush>
                 <x-slot:acts>
                     <form method="GET" class="v3-actrow">
@@ -178,7 +178,7 @@
         </div>
 
         {{-- ==================== EMAIL TEMPLATE ==================== --}}
-        <div x-show="tab === 'template'" x-cloak>
+        <div x-show="tab === 'template'" x-cloak class="v3-settle">
             <x-admin3.form :action="route('admin.stock-notifications.update-template')" id="v3-stock-template-form">
                 <x-admin3.panel title="Email template">
                     <x-admin3.field name="subject" label="Subject" required>

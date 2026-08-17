@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Status Placement" active="fulfillment">
+<x-admin3.settings-shell title="Status Placement" active="modules">
     @php
         // The select's own vocabulary, built once: the empty value is a real
         // choice (not placed), and its LABEL carries the one consequence that
@@ -8,81 +8,92 @@
         $options = ['' => 'Not placed (All tab only)'] + $placementNames;
     @endphp
 
-    <form method="POST" action="{{ route('admin.fulfillment.settings.placement.update') }}" data-v-form class="space-y-6">
-        @csrf
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.modules.index') }}">Modules</a>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.fulfillment.settings') }}">Courier Fulfillment</a>
+                <span aria-hidden="true">/</span>
+                <span>Status placement</span>
+            </div>
+            <h1 class="v3-head__title">Status placement</h1>
+        </div>
+    </div>
+
+    <x-admin3.form :action="route('admin.fulfillment.settings.placement.update')" class="v3-settle">
 
         @if ($unplaced->isNotEmpty())
-            <x-admin.card title="Not placed">
+            <x-admin3.panel title="Not placed" flush>
                 @if ($unplaced->contains(fn ($row) => $row['suggestion'] !== null))
-                    <x-slot:headerActions>
-                        {{-- Bare x-data: Alpine only binds handlers inside a
-                             component scope, and this button needs no state of
-                             its own. Fills the empty selects from each row's
-                             suggested placement without saving anything. --}}
-                        <x-admin.button type="button" variant="secondary" size="sm" x-data
-                            x-on:click="$el.closest('form').querySelectorAll('select[data-suggested]').forEach(s => { if (!s.value) s.value = s.dataset.suggested })">
+                    <x-slot:acts>
+                        {{-- Fills the empty selects from each row's suggested
+                             placement without saving anything. --}}
+                        <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                            @click="$el.closest('form').querySelectorAll('select[data-suggested]').forEach(s => { if (!s.value) { s.value = s.dataset.suggested; s.dispatchEvent(new Event('change', { bubbles: true })); } })">
                             Suggest placements
-                        </x-admin.button>
-                    </x-slot:headerActions>
+                        </button>
+                    </x-slot:acts>
                 @endif
 
-                <x-admin.table>
-                    <x-slot:head>
-                        <x-admin.table.th>Order status</x-admin.table.th>
-                        <x-admin.table.th>Placement</x-admin.table.th>
-                        <x-admin.table.th align="right">Orders</x-admin.table.th>
-                    </x-slot:head>
-                    @foreach ($unplaced as $row)
-                        <x-admin.table.row>
-                            <x-admin.table.cell>{{ $row['name'] }}</x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <select name="placements[{{ $row['id'] }}]"
-                                    @if ($row['suggestion']) data-suggested="{{ $row['suggestion'] }}" @endif
-                                    aria-label="Placement for {{ $row['name'] }}"
-                                    class="v-control w-full max-w-xs h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                    @foreach ($options as $value => $label)
-                                        <option value="{{ $value }}" @selected($value === '')>{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell align="right" mono>{{ number_format($row['orders']) }}</x-admin.table.cell>
-                        </x-admin.table.row>
-                    @endforeach
-                </x-admin.table>
-            </x-admin.card>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr><th>Order status</th><th>Placement</th><th class="v3-cell-num">Orders</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($unplaced as $row)
+                                <tr>
+                                    <td>{{ $row['name'] }}</td>
+                                    <td>
+                                        <select name="placements[{{ $row['id'] }}]"
+                                            @if ($row['suggestion']) data-suggested="{{ $row['suggestion'] }}" @endif
+                                            aria-label="Placement for {{ $row['name'] }}"
+                                            class="v3-control v3-w-name">
+                                            @foreach ($options as $value => $label)
+                                                <option value="{{ $value }}" @selected($value === '')>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td class="v3-cell-num v3-mono">{{ number_format($row['orders']) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin3.panel>
         @endif
 
-        <x-admin.card title="Placed">
+        <x-admin3.panel title="Placed" flush>
             @if ($placed->isEmpty())
-                <p class="text-[13px] text-v-secondary">No order status is placed yet.</p>
+                <div class="v3-empty"><p class="v3-empty__title">No order status is placed yet</p></div>
             @else
-                <x-admin.table>
-                    <x-slot:head>
-                        <x-admin.table.th>Order status</x-admin.table.th>
-                        <x-admin.table.th>Placement</x-admin.table.th>
-                        <x-admin.table.th align="right">Orders</x-admin.table.th>
-                    </x-slot:head>
-                    @foreach ($placed as $row)
-                        <x-admin.table.row>
-                            <x-admin.table.cell>{{ $row['name'] }}</x-admin.table.cell>
-                            <x-admin.table.cell>
-                                <select name="placements[{{ $row['id'] }}]"
-                                    aria-label="Placement for {{ $row['name'] }}"
-                                    class="v-control w-full max-w-xs h-[var(--control-h-sm)] px-2 text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">
-                                    @foreach ($options as $value => $label)
-                                        <option value="{{ $value }}" @selected($value === $row['placement'])>{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </x-admin.table.cell>
-                            <x-admin.table.cell align="right" mono>{{ number_format($row['orders']) }}</x-admin.table.cell>
-                        </x-admin.table.row>
-                    @endforeach
-                </x-admin.table>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr><th>Order status</th><th>Placement</th><th class="v3-cell-num">Orders</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($placed as $row)
+                                <tr>
+                                    <td>{{ $row['name'] }}</td>
+                                    <td>
+                                        <select name="placements[{{ $row['id'] }}]"
+                                            aria-label="Placement for {{ $row['name'] }}"
+                                            class="v3-control v3-w-name">
+                                            @foreach ($options as $value => $label)
+                                                <option value="{{ $value }}" @selected($value === $row['placement'])>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td class="v3-cell-num v3-mono">{{ number_format($row['orders']) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             @endif
-        </x-admin.card>
+        </x-admin3.panel>
 
-        <x-admin.form-actions>
-            <x-admin.button type="submit">Save</x-admin.button>
-        </x-admin.form-actions>
-    </form>
-</x-admin.settings-shell>
+    </x-admin3.form>
+</x-admin3.settings-shell>

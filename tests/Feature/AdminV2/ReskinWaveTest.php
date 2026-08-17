@@ -1335,9 +1335,9 @@ class ReskinWaveTest extends TestCase
             ->assertSee('name="filter" value="all"', false);
 
         // Courier settings route (mounted separately under Settings > Modules)
-        // also renders in the new shell.
+        // renders in the v3 settings space since the savebar sweep.
         $this->get('/' . config('admin.prefix', 'admin') . '/settings/modules/courier-fulfillment')
             ->assertOk()
-            ->assertSee('v-admin', false);
+            ->assertSee('v3-settings-root', false);
     }
 }

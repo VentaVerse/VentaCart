@@ -436,8 +436,7 @@
                                     </span>
                                 </div>
                                 <div x-show="expanded" x-cloak class="v3-dragcard__body">
-                                    <form method="POST" action="{{ route('admin.theme.sections.update', $section) }}">
-                                        @csrf @method('PUT')
+                                    <x-admin3.form :action="route('admin.theme.sections.update', $section)" method="PUT">
                                         <div class="v3-grid v3-grid--2">
                                             <x-admin3.field name="title" label="Title" required>
                                                 <input type="text" name="title" value="{{ $section->title }}" class="v3-control">
@@ -454,10 +453,7 @@
                                         <div class="v3-gap">
                                             @include('admin.settings.theme.section-config', ['section' => $section])
                                         </div>
-                                        <div class="v3-gap">
-                                            <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Save section</button>
-                                        </div>
-                                    </form>
+                                    </x-admin3.form>
                                 </div>
                             </div>
                         @endforeach
@@ -495,8 +491,7 @@
         {{-- ========== FOOTER (records, bulk) ========== --}}
         <div x-show="tab === 'footer'" x-cloak>
             <x-admin3.panel title="Footer columns" note="One save commits every column below.">
-                <form method="POST" action="{{ route('admin.theme.footer.bulk-update') }}" enctype="multipart/form-data">
-                    @csrf
+                <x-admin3.form :action="route('admin.theme.footer.bulk-update')" enctype="multipart/form-data">
                     <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.footer.reorder')))">
                         <div data-sortable>
                             @foreach ($footerColumns as $col)
@@ -585,10 +580,7 @@
                             @endforeach
                         </div>
                     </div>
-                    <div class="v3-gap">
-                        <button type="submit" class="v3-btn v3-btn--primary">Save footer</button>
-                    </div>
-                </form>
+                </x-admin3.form>
 
                 <div class="v3-gap-lg">
                     <div class="v3-label v3-gap-sm">Add footer column</div>
@@ -623,8 +615,7 @@
         <div x-show="tab === 'theme-settings'" x-cloak>
             <x-admin3.panel title="Theme options" note="Settings this theme's own manifest declares.">
                 @if (count($themeSettingsSchema) > 0)
-                    <form method="POST" action="{{ route('admin.theme.update-theme-settings') }}">
-                        @csrf
+                    <x-admin3.form :action="route('admin.theme.update-theme-settings')">
                         <div class="v3-narrow">
                             @foreach ($themeSettingsSchema as $key => $schema)
                                 <div class="{{ $loop->first ? '' : 'v3-gap' }}">
@@ -653,10 +644,7 @@
                                 </div>
                             @endforeach
                         </div>
-                        <div class="v3-gap">
-                            <button type="submit" class="v3-btn v3-btn--primary">Save theme options</button>
-                        </div>
-                    </form>
+                    </x-admin3.form>
                 @else
                     <div class="v3-empty">
                         <p class="v3-empty__title">This theme has no configurable options</p>

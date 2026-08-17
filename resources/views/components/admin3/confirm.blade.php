@@ -2,7 +2,7 @@
 {{-- A blocking confirm for a destructive or high-stakes action. Opened by
      $dispatch('v3-confirm', '{{ $name }}'). Escape and the overlay close it;
      focus lands on Cancel so Enter never destroys by default. --}}
-<div x-data="{ open: false }"
+<div class="v3-passthru" x-data="{ open: false }"
      x-on:v3-confirm.window="if ($event.detail === @js($name)) { open = true; $nextTick(() => $refs.cancel.focus()); }"
      x-on:keydown.escape.window="open = false">
     <template x-if="open">

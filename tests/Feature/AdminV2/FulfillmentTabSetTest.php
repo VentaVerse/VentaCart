@@ -337,7 +337,8 @@ class FulfillmentTabSetTest extends TestCase
 
         $this->get($this->settingsUrl())
             ->assertOk()
-            ->assertSee('No order status is placed under To Handover, so booking is refused')
+            ->assertSee('Booking is refused')
+            ->assertSee('No order status is placed under To Handover')
             // The notice points at the module's OWN placement page, not at
             // core's Order Statuses page (owner ruling, 2026-08-09).
             ->assertSee(route('admin.fulfillment.settings.placement'), false);
