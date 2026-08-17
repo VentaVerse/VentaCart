@@ -5,7 +5,7 @@
     (Test Connection, Refresh statuses) and its status-mapping table, so a
     new courier gets this page for free.
 --}}
-<x-admin3.settings-shell :title="$courier->getName()" active="modules">
+<x-admin3.shell :title="$courier->getName()" active="modules">
 
     <div class="v3-head">
         <div class="v3-head__body">

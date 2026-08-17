@@ -1,4 +1,4 @@
-<x-admin.settings-shell title="Rules">
+<x-admin.shell title="Rules">
         <x-slot:actions>
             <x-admin.button href="{{ route('admin.abandoned-carts.rules.create') }}">Create Rule</x-admin.button>
         </x-slot:actions>
@@ -42,4 +42,4 @@
                     @endforelse
                 </x-admin.table>
         </div>
-</x-admin.settings-shell>
+</x-admin.shell>
