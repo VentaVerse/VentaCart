@@ -21,10 +21,10 @@
 <body class="v3" x-data="{ nav: false }" x-on:keydown.escape.window="nav = false">
 <!--
 VENTA ADMIN V3 DIRECTION CONTRACT
-THESIS: The merchant's working surface where committing work is the designed moment; it refuses the multi-save page and the grouped mega-sidebar.
+THESIS: The merchant's working surface where committing work is the designed moment; it refuses the multi-save page. The nav is the admin's classic grouped sidebar (owner ruling 2026-08-17), on the v3 skin.
 OWN-WORLD: Azure slab of seven work objects, brass as the only action color, tinted paper under white sheets, Archivo with rationed JetBrains Mono; Settings is its own full screen; a slab-colored save bar descends the instant a page goes dirty.
 STORY: The operator always knows where they are, what is unsaved, and that a toast never lies.
-FIRST VIEWPORT: Slab left with store name and lean nav, hairline topbar, one page title, sheets on tinted ground; the save bar hidden until work exists.
+FIRST VIEWPORT: Slab left with store name and the grouped nav, hairline topbar, one page title, sheets on tinted ground; the save bar hidden until work exists.
 FORM: ERP-cousin material, brief-pinned; Shopify topology locked by the owner.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and the v3 design record.
 -->

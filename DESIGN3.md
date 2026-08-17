@@ -20,13 +20,18 @@ stated in `tokens.css` with AA-checked stops.
 ## The two shells
 
 - `x-admin3.shell`: the work surface. Azure slab left (232px) with
-  the store's own name, a lean object nav (Home, Orders, Products,
-  Customers, Content, Marketing), a Modules group (SEO, Fulfillment,
-  Abandoned Carts), and Settings pinned at the slab's foot. Hairline
-  topbar. Below 1024px the slab is a drawer behind a scrim.
-  Registry: `config/admin3-nav.php`; items drop when their route is
-  not registered. NOT yet mounted by any page; first consumer is the
-  next migrated area.
+  the store's own name and the admin's ONE nav: the same AdminNav
+  registry the classic sidebar renders, as collapsible groups
+  (Dashboard; Sales; Catalog; Customers; Content; Marketing;
+  Settings), with the same collapse mechanics and URL-derived active
+  state. Owner ruling 2026-08-17: the earlier lean object nav
+  confused real work (no direct jump from an order to payment and
+  shipping settings), so the rail now mirrors the classic structure;
+  one registry, two skins, zero drift. View store takes the rail
+  foot. Hairline topbar. Below 1024px the slab is a drawer behind a
+  scrim. The shell's `active` prop is consulted only by the
+  condensed settings rail; the full rail derives the current item
+  from the request path.
 - `x-admin3.settings-shell`: inside Settings the work nav condenses,
   never disappears: a 56px azure icon rail on the far left showing
   the SAME parents as the main menu in the same order (Dashboard,
