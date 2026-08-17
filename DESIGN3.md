@@ -310,14 +310,18 @@ area) and the abandoned-carts pages (their module's wave).
   select with a live-count confirm, and the alert template under
   the doctrine with TinyMCE wired in.
 
-- Modules: extensions and core features as directory rows carrying
-  state badges, action forms, and uninstall confirms. Core features
-  (Stock Alerts, SEO, Abandoned Carts) carry a master switch
-  (App\Support\CoreFeatures, settings group `features`, opt-out
-  defaults like fulfillment's): off hides the feature's nav entry
-  (admin-nav `enabled_setting`) and no-ops its scheduled commands;
-  Configure stays reachable so a disabled feature can be turned back
-  on from either side.
+- Modules: ONE list (owner ruling 2026-08-17: anything shipped in
+  the repo is a core feature; no Extensions/Core split, and no
+  Uninstall button, because you do not uninstall your own platform).
+  Rows sort alphabetically; the filesystem difference shows only in
+  a row's actions: extensions/ modules offer Install/Update (their
+  migrations) + Enable/Disable via ExtensionManager, app/ features
+  offer the master switch (App\Support\CoreFeatures, settings group
+  `features`, opt-out defaults like fulfillment's): off hides the
+  nav entry (admin-nav `enabled_setting`) and no-ops the scheduled
+  commands, while Configure stays reachable. The uninstall lifecycle
+  survives in ExtensionManager (and its routes) for third-party
+  extensions that arrive from outside the repo.
 
 - Theme: the critique's worst multi-save offender rebuilt as ONE
   doctrine form spanning seven settings tabs (colors, fonts, header,

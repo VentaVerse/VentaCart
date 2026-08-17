@@ -63,8 +63,10 @@ class ModuleController extends Controller
         // (no extension.json — they're not extensions) per the brief.
         $coreFeatures = [
             [
+                'kind' => 'core',
                 'key' => 'stock-alerts',
                 'name' => 'Stock Alerts',
+                'title' => 'Stock Alerts',
                 'description' => 'Back-in-stock customer emails and low-stock admin warnings.',
                 'icon' => 'warning',
                 'enabled' => $masters['stock-alerts'],
@@ -76,8 +78,10 @@ class ModuleController extends Controller
                 'configure' => route('admin.stock-notifications.index'),
             ],
             [
+                'kind' => 'core',
                 'key' => 'seo',
                 'name' => 'SEO',
+                'title' => 'SEO',
                 'description' => 'AI meta suggestions, redirects, and Search Console.',
                 'icon' => 'seo',
                 'enabled' => $masters['seo'],
@@ -86,8 +90,10 @@ class ModuleController extends Controller
                 'configure' => route('admin.extensions.seo.settings'),
             ],
             [
+                'kind' => 'core',
                 'key' => 'abandoned-carts',
                 'name' => 'Abandoned Carts',
+                'title' => 'Abandoned Carts',
                 'description' => 'Cart recovery email rules and tracking.',
                 'icon' => 'cart',
                 'enabled' => $masters['abandoned-carts'],
@@ -98,13 +104,19 @@ class ModuleController extends Controller
             ],
         ];
 
-        $extensions = $this->manager->discovered()
+        // One list (owner ruling 2026-08-17): anything shipped in the repo
+        // is a core feature of the platform; the filesystem distinction
+        // (extensions/ with lifecycle vs app/ with a master switch) shows
+        // only in which actions a row offers, never as separate sections.
+        $modules = $this->manager->discovered()
             ->map(fn (array $manifest) => $this->extensionCard($manifest))
+            ->values()
+            ->concat($coreFeatures)
+            ->sortBy(fn (array $m) => $m['title'])
             ->values();
 
         return view('admin.settings.modules.index', [
-            'coreFeatures' => $coreFeatures,
-            'extensions' => $extensions,
+            'modules' => $modules,
         ]);
     }
 
@@ -227,6 +239,7 @@ class ModuleController extends Controller
         ][$state];
 
         return [
+            'kind' => 'extension',
             'name' => $name,
             'title' => $manifest['title'] ?? $name,
             'description' => $manifest['description'] ?? '',
