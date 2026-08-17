@@ -13,13 +13,13 @@
         </div>
     </div>
 
-    {{-- One list (owner ruling 2026-08-17): a module shipped in the repo is
-         a core feature, whether it lives in extensions/ (filesystem
-         lifecycle: install runs its migrations) or in app/ (a master
-         switch). The difference shows only in a row's own actions; there
-         is no Uninstall here, because you do not uninstall your own
-         platform. The uninstall lifecycle survives in ExtensionManager for
-         the day third-party extensions arrive from outside the repo. --}}
+    {{-- One list (owner ruling 2026-08-17), one standard button set per
+         row (owner ruling 2026-08-18): not installed shows Install and
+         nothing else; installed shows Uninstall, Enable/Disable, and
+         Configure. Configure is a dead button while disabled because the
+         extension's pages only exist while it is enabled. Uninstall rolls
+         back the extension's migrations, so its confirm says the data
+         goes with it. --}}
     <div class="v3-settle">
         <div class="v3-dir">
             @foreach ($modules as $module)
@@ -40,19 +40,13 @@
                             <span class="v3-badge {{ ($module['state_tone'] ?? '') === 'success' ? 'v3-badge--good' : (($module['state_tone'] ?? '') === 'warning' ? 'v3-badge--warn' : (($module['state_tone'] ?? '') === 'danger' ? 'v3-badge--bad' : 'v3-badge--quiet')) }}">{{ $module['state_label'] }}</span>
                         </span>
                         <span class="v3-actrow">
-                            @if ($module['configure'])
-                                <a href="{{ $module['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
-                            @endif
-                            @if (in_array('install', $module['actions'], true))
-                                <form method="POST" action="{{ route('admin.extensions.install', $module['name']) }}">
-                                    @csrf
-                                    <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">{{ $module['state'] === 'needs_migration' ? 'Update' : 'Install' }}</button>
-                                </form>
+                            @if (in_array('uninstall', $module['actions'], true))
+                                <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'uninstall-{{ $module['name'] }}')">Uninstall</button>
                             @endif
                             @if (in_array('enable', $module['actions'], true))
                                 <form method="POST" action="{{ route('admin.extensions.enable', $module['name']) }}">
                                     @csrf
-                                    <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Enable</button>
+                                    <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">Enable</button>
                                 </form>
                             @endif
                             @if (in_array('disable', $module['actions'], true))
@@ -61,7 +55,24 @@
                                     <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">Disable</button>
                                 </form>
                             @endif
+                            @if (in_array('install', $module['actions'], true))
+                                <form method="POST" action="{{ route('admin.extensions.install', $module['name']) }}">
+                                    @csrf
+                                    <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">{{ $module['state'] === 'needs_migration' ? 'Update' : 'Install' }}</button>
+                                </form>
+                            @endif
+                            @if ($module['configure'])
+                                <a href="{{ $module['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
+                            @elseif ($module['state'] === 'disabled')
+                                <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" disabled>Configure</button>
+                            @endif
                         </span>
+                        @if (in_array('uninstall', $module['actions'], true))
+                            <x-admin3.confirm name="uninstall-{{ $module['name'] }}" title="Uninstall {{ $module['title'] }}?"
+                                message="Uninstalling removes its tables and everything in them. Its files stay, so it can be installed again, but the data does not come back."
+                                confirm="Uninstall"
+                                :action="route('admin.extensions.uninstall', $module['name'])" method="POST" />
+                        @endif
                     @else
                         <span class="v3-dir__state">
                             <span class="v3-badge {{ ($module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')) === 'success' ? 'v3-badge--good' : (($module['tone'] ?? '') === 'warning' ? 'v3-badge--warn' : 'v3-badge--quiet') }}">{{ $module['status_label'] }}</span>
