@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\AdminV2;
 
-use App\Models\AbandonedCartNotification;
-use App\Models\AbandonedCartRule;
+use Extensions\AbandonedCarts\Models\AbandonedCartNotification;
+use Extensions\AbandonedCarts\Models\AbandonedCartRule;
 use App\Models\ApiSyncLog;
 use App\Models\Automation;
 use App\Models\BankAccount;
@@ -229,6 +229,8 @@ class ReskinWaveTest extends TestCase
     public function test_carts_and_reviews_pages_render_in_new_shell(): void
     {
         $this->actingAs(User::factory()->create());
+        app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail']);
 
@@ -345,6 +347,8 @@ class ReskinWaveTest extends TestCase
     public function test_abandoned_cart_settings_round_trip_updates_settings_table(): void
     {
         $this->actingAs(User::factory()->create());
+        app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $this->post(route('admin.abandoned-carts.settings.update'), [
             'enabled' => '1',
@@ -1149,6 +1153,8 @@ class ReskinWaveTest extends TestCase
     public function test_settings_context_seo_and_abandoned_cart_pages_do_not_leak_workspace_nav(): void
     {
         $this->actingAs(User::factory()->create());
+        app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $seoWorkspaceNavMarker = 'aria-label="SEO workspace"';
         $acWorkspaceNavMarker = 'aria-label="Abandoned carts workspace"';

@@ -1,7 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace Extensions\AbandonedCarts\Models;
 
+use App\Models\Cart;
+use App\Models\Customer;
+use App\Models\EmailTemplate;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

@@ -370,7 +370,9 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-table .v3-control { min-height: 32px; }
 .v3-cell-act { text-align: right; white-space: nowrap; }
 .v3-cell-act .v3-btn { vertical-align: middle; }
+.v3-cell-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .v3-row-dim { opacity: .6; }
+.v3-badgebtn { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
 
 /* --- Modal ---------------------------------------------------- */
 

@@ -72,13 +72,10 @@ class CoreFeatureTogglesTest extends TestCase
         $labels = fn () => collect(AdminNav::groups($user))->flatMap(fn ($g) => collect($g['items'])->pluck('label'));
 
         $this->assertContains('SEO', $labels()->all());
-        $this->assertContains('Abandoned Carts', $labels()->all());
 
         Setting::create(['group' => 'features', 'key' => 'seo_enabled', 'value' => '0', 'type' => 'text']);
-        Setting::create(['group' => 'features', 'key' => 'abandoned_carts_enabled', 'value' => '0', 'type' => 'text']);
 
         $this->assertNotContains('SEO', $labels()->all());
-        $this->assertNotContains('Abandoned Carts', $labels()->all());
     }
 
     public function test_disabled_feature_commands_no_op(): void

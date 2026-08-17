@@ -720,6 +720,9 @@ class DaySheetTest extends TestCase
     {
         $this->actingAs($this->admin());
         $this->tradedBefore();
+        // "Carts recoverable" appears only while the abandoned-carts
+        // extension is installed (wave 1 conversion).
+        app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
 
         $this->get(route('admin.dashboard'))
             ->assertOk()

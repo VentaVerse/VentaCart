@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Sales;
+namespace Extensions\AbandonedCarts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\AbandonedCartNotification;
-use App\Models\AbandonedCartRule;
+use Extensions\AbandonedCarts\Models\AbandonedCartNotification;
+use Extensions\AbandonedCarts\Models\AbandonedCartRule;
 use App\Models\Cart;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
@@ -57,14 +57,14 @@ class AbandonedCartController extends Controller
             ->get()
             ->sum(fn ($cart) => $cart->total);
 
-        return view('admin.sales.abandoned-carts.index', compact('carts', 'totalAbandoned', 'totalValue'));
+        return view('abandoned-carts::index', compact('carts', 'totalAbandoned', 'totalValue'));
     }
 
     public function show(Cart $cart)
     {
         $cart->load(['customer', 'items.product']);
 
-        return view('admin.sales.abandoned-carts.show', compact('cart'));
+        return view('abandoned-carts::show', compact('cart'));
     }
 
     public function destroy(Cart $cart)
@@ -107,14 +107,14 @@ class AbandonedCartController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.extensions.abandoned-carts.templates', compact('templates'));
+        return view('abandoned-carts::templates', compact('templates'));
     }
 
     public function createTemplate()
     {
         $placeholders = self::ABANDONED_CART_PLACEHOLDERS;
 
-        return view('admin.extensions.abandoned-carts.template-form', [
+        return view('abandoned-carts::template-form', [
             'emailTemplate' => null,
             'placeholders' => $placeholders,
         ]);
@@ -139,15 +139,29 @@ class AbandonedCartController extends Controller
             ->with('success', 'Template created.');
     }
 
+    /**
+     * The wildcard binds any EmailTemplate row; this space only owns the
+     * abandoned_cart_ family. Everything else 404s here so a core
+     * transactional template can never be edited, toggled, or deleted
+     * through this extension's routes.
+     */
+    private function assertOwnsTemplate(EmailTemplate $emailTemplate): void
+    {
+        abort_unless(str_starts_with($emailTemplate->slug, 'abandoned_cart_'), 404);
+    }
+
     public function editTemplate(EmailTemplate $emailTemplate)
     {
+        $this->assertOwnsTemplate($emailTemplate);
         $placeholders = self::ABANDONED_CART_PLACEHOLDERS;
 
-        return view('admin.extensions.abandoned-carts.template-form', compact('emailTemplate', 'placeholders'));
+        return view('abandoned-carts::template-form', compact('emailTemplate', 'placeholders'));
     }
 
     public function updateTemplate(Request $request, EmailTemplate $emailTemplate)
     {
+        $this->assertOwnsTemplate($emailTemplate);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'subject' => 'required|string|max:500',
@@ -162,6 +176,8 @@ class AbandonedCartController extends Controller
 
     public function destroyTemplate(EmailTemplate $emailTemplate)
     {
+        $this->assertOwnsTemplate($emailTemplate);
+
         $inUse = AbandonedCartRule::where('email_template_id', $emailTemplate->id)->exists();
 
         if ($inUse) {
@@ -176,6 +192,8 @@ class AbandonedCartController extends Controller
 
     public function toggleTemplate(EmailTemplate $emailTemplate)
     {
+        $this->assertOwnsTemplate($emailTemplate);
+
         $emailTemplate->update(['is_active' => !$emailTemplate->is_active]);
 
         return back()->with('success', 'Template ' . ($emailTemplate->is_active ? 'enabled' : 'disabled') . '.');
@@ -183,6 +201,8 @@ class AbandonedCartController extends Controller
 
     public function testTemplate(EmailTemplate $emailTemplate)
     {
+        $this->assertOwnsTemplate($emailTemplate);
+
         $adminEmail = Auth::user()->email;
         $success = TemplateMailService::send($emailTemplate->slug, $adminEmail, self::testData());
 
@@ -200,7 +220,7 @@ class AbandonedCartController extends Controller
             ->orderByDesc('priority')
             ->get();
 
-        return view('admin.extensions.abandoned-carts.rules', compact('rules'));
+        return view('abandoned-carts::rules', compact('rules'));
     }
 
     public function createRule()
@@ -211,7 +231,7 @@ class AbandonedCartController extends Controller
             ->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
-        return view('admin.extensions.abandoned-carts.rule-form', [
+        return view('abandoned-carts::rule-form', [
             'rule' => null,
             'templates' => $templates,
             'customerGroups' => $customerGroups,
@@ -245,7 +265,7 @@ class AbandonedCartController extends Controller
             ->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
-        return view('admin.extensions.abandoned-carts.rule-form', compact('rule', 'templates', 'customerGroups'));
+        return view('abandoned-carts::rule-form', compact('rule', 'templates', 'customerGroups'));
     }
 
     public function updateRule(Request $request, AbandonedCartRule $rule)
@@ -290,7 +310,7 @@ class AbandonedCartController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.sales.abandoned-carts.notifications', compact('notifications', 'templates'));
+        return view('abandoned-carts::notifications', compact('notifications', 'templates'));
     }
 
     // --- Recovered Carts ---
@@ -334,7 +354,7 @@ class AbandonedCartController extends Controller
             }
         }
 
-        return view('admin.sales.abandoned-carts.recovered', compact('recoveredCarts'));
+        return view('abandoned-carts::recovered', compact('recoveredCarts'));
     }
 
     // --- Settings ---
@@ -348,7 +368,7 @@ class AbandonedCartController extends Controller
         $enabled = ($settings->get('enabled') ?? '0') === '1';
         $skipOutOfStock = ($settings->get('skip_out_of_stock') ?? '1') === '1';
 
-        return view('admin.extensions.abandoned-carts.settings', compact('enabled', 'skipOutOfStock'));
+        return view('abandoned-carts::settings', compact('enabled', 'skipOutOfStock'));
     }
 
     public function updateSettings(Request $request)

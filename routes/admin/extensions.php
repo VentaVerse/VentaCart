@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\ExtensionsController;
 use App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController;
-use App\Http\Controllers\Admin\Sales\AbandonedCartController;
 use App\Http\Controllers\Admin\Settings\BankAccountController;
 use App\Http\Controllers\Admin\Settings\FlatRateController;
 use App\Http\Controllers\Admin\Settings\FreeShippingRuleController;
@@ -31,30 +30,8 @@ Route::prefix('extensions')->group(function () {
     Route::post('/{name}/disable', [ExtensionsController::class, 'disable'])->name('extensions.disable');
     Route::post('/{name}/uninstall', [ExtensionsController::class, 'uninstall'])->name('extensions.uninstall');
 
-    // Abandoned Carts — configuration (rules, templates, settings). This is
-    // a core feature (not an uninstallable extension), so it adopts the
-    // extensions/{name} URL *convention* only, without a manifest.
-    // Operational pages live at sales/abandoned-carts — see sales.php.
-    Route::prefix('abandoned-carts')->group(function () {
-        Route::get('/rules', [AbandonedCartController::class, 'rules'])->name('abandoned-carts.rules');
-        Route::get('/rules/create', [AbandonedCartController::class, 'createRule'])->name('abandoned-carts.rules.create');
-        Route::post('/rules', [AbandonedCartController::class, 'storeRule'])->name('abandoned-carts.rules.store');
-        Route::get('/rules/{rule}/edit', [AbandonedCartController::class, 'editRule'])->name('abandoned-carts.rules.edit');
-        Route::put('/rules/{rule}', [AbandonedCartController::class, 'updateRule'])->name('abandoned-carts.rules.update');
-        Route::delete('/rules/{rule}', [AbandonedCartController::class, 'destroyRule'])->name('abandoned-carts.rules.destroy');
-
-        Route::get('/templates', [AbandonedCartController::class, 'templates'])->name('abandoned-carts.templates');
-        Route::get('/templates/create', [AbandonedCartController::class, 'createTemplate'])->name('abandoned-carts.templates.create');
-        Route::post('/templates', [AbandonedCartController::class, 'storeTemplate'])->name('abandoned-carts.templates.store');
-        Route::get('/templates/{emailTemplate}/edit', [AbandonedCartController::class, 'editTemplate'])->name('abandoned-carts.templates.edit');
-        Route::put('/templates/{emailTemplate}', [AbandonedCartController::class, 'updateTemplate'])->name('abandoned-carts.templates.update');
-        Route::post('/templates/{emailTemplate}/toggle', [AbandonedCartController::class, 'toggleTemplate'])->name('abandoned-carts.templates.toggle');
-        Route::post('/templates/{emailTemplate}/test', [AbandonedCartController::class, 'testTemplate'])->name('abandoned-carts.templates.test');
-        Route::delete('/templates/{emailTemplate}', [AbandonedCartController::class, 'destroyTemplate'])->name('abandoned-carts.templates.destroy');
-
-        Route::get('/settings', [AbandonedCartController::class, 'settings'])->name('abandoned-carts.settings');
-        Route::post('/settings', [AbandonedCartController::class, 'updateSettings'])->name('abandoned-carts.settings.update');
-    });
+    // Abandoned Carts moved to the abandoned-carts extension
+    // (extensions/abandoned-carts/routes/web.php).
 
     // SEO engine config (Claude API key, generation rules, GSC credentials).
     // Same mount-convention-only treatment as abandoned-carts above. SEO

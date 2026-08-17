@@ -1,7 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace Extensions\AbandonedCarts\Models;
 
+use App\Models\CustomerGroup;
+use App\Models\EmailTemplate;
+use App\Models\Store;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;

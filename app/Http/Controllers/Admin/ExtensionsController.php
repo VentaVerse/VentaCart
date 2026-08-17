@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Automation;
-use App\Models\Cart;
 use App\Models\SeoSuggestion;
-use App\Models\Setting;
 use App\Services\ExtensionManager;
 use App\Support\CoreFeatures;
 use Illuminate\Http\RedirectResponse;
@@ -42,11 +40,8 @@ class ExtensionsController extends Controller
     public function index()
     {
         $automations = Automation::whereIn('key', ['seo_generate'])->get()->keyBy('key');
-        $flags = Setting::whereIn('group', ['abandoned_cart'])->get()
-            ->groupBy('group')->map(fn ($rows) => $rows->pluck('value', 'key'));
 
         $seoAutoEnabled = (bool) ($automations['seo_generate']->enabled ?? false);
-        $abandonedCartEnabled = ($flags['abandoned_cart']['enabled'] ?? '0') === '1';
 
         // The master switches (CoreFeatures). A feature switched OFF hides
         // its nav entry and no-ops its scheduled commands; the sub-states
@@ -68,19 +63,6 @@ class ExtensionsController extends Controller
                 'status_label' => ! $masters['seo'] ? 'Disabled' : ($seoAutoEnabled ? 'Auto-generating' : 'Manual only'),
                 'stats' => SeoSuggestion::where('status', 'pending')->count() . ' pending suggestions',
                 'configure' => route('admin.extensions.seo.settings'),
-            ],
-            [
-                'kind' => 'core',
-                'key' => 'abandoned-carts',
-                'name' => 'Abandoned Carts',
-                'title' => 'Abandoned Carts',
-                'description' => 'Cart recovery email rules and tracking.',
-                'icon' => 'cart',
-                'enabled' => $masters['abandoned-carts'],
-                'status_label' => ! $masters['abandoned-carts'] ? 'Disabled'
-                    : ($abandonedCartEnabled ? 'Recovery emails on' : 'Recovery emails off'),
-                'stats' => Cart::whereHas('items')->where('updated_at', '<', now()->subHour())->count() . ' tracked carts',
-                'configure' => route('admin.abandoned-carts.settings'),
             ],
         ];
 
@@ -142,7 +124,7 @@ class ExtensionsController extends Controller
 
         CoreFeatures::set($feature, $on);
 
-        $name = ['seo' => 'SEO', 'abandoned-carts' => 'Abandoned Carts'][$feature];
+        $name = ['seo' => 'SEO'][$feature];
 
         return redirect()->route('admin.extensions.index')
             ->with('success', $name . ' ' . ($on ? 'enabled.' : 'disabled. Its nav entry is hidden and its scheduled jobs are paused.'));

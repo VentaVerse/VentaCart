@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\Sales\AbandonedCartController;
 use App\Http\Controllers\Admin\Sales\OrderController;
 use App\Http\Controllers\Admin\Sales\ReviewController as AdminReviewController;
 use Illuminate\Support\Facades\Route;
@@ -17,15 +16,8 @@ Route::prefix('sales')->group(function () {
     Route::post('/orders/{order}/tracking', [OrderController::class, 'updateTracking'])->name('orders.update-tracking');
     Route::resource('orders', OrderController::class);
 
-    // Abandoned Carts — operational only (list, show, notifications,
-    // recovered). Configuration (rules, templates, settings) lives at
-    // settings/modules/abandoned-carts — see settings.php.
-    Route::get('/abandoned-carts', [AbandonedCartController::class, 'index'])->name('abandoned-carts.index');
-    Route::get('/abandoned-carts/notifications', [AbandonedCartController::class, 'notifications'])->name('abandoned-carts.notifications');
-    Route::get('/abandoned-carts/recovered', [AbandonedCartController::class, 'recovered'])->name('abandoned-carts.recovered');
-    Route::get('/abandoned-carts/{cart}', [AbandonedCartController::class, 'show'])->name('abandoned-carts.show');
-    Route::delete('/abandoned-carts/{cart}', [AbandonedCartController::class, 'destroy'])->name('abandoned-carts.destroy');
-    Route::post('/abandoned-carts/mass-delete', [AbandonedCartController::class, 'massDelete'])->name('abandoned-carts.mass-delete');
+    // Abandoned Carts moved to the abandoned-carts extension
+    // (extensions/abandoned-carts/routes/web.php).
 
     // Reviews
     Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');

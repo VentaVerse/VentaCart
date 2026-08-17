@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Extensions\AbandonedCarts\Database\Seeders;
 
 use App\Models\EmailTemplate;
 use Illuminate\Database\Seeder;
@@ -17,7 +17,7 @@ class AbandonedCartTemplateSeeder extends Seeder
                 'subject' => 'You left something behind, {customer_name}!',
                 'type' => 'customer',
                 'body' => '<p>Hi {customer_name},</p>
-<p>Looks like you left some items in your cart. No worries — they\'re still waiting for you!</p>
+<p>Looks like you left some items in your cart. No worries, they\'re still waiting for you!</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0; border-collapse: collapse;">
 <tr>
 <td style="padding: 12px 16px; background-color: #222222; border-radius: 6px;">
@@ -39,11 +39,11 @@ class AbandonedCartTemplateSeeder extends Seeder
             [
                 'store_id' => 1,
                 'slug' => 'abandoned_cart_final',
-                'name' => 'Abandoned Cart — Last Chance',
+                'name' => 'Abandoned Cart Last Chance',
                 'subject' => '{customer_name}, your cart is still waiting',
                 'type' => 'customer',
                 'body' => '<p>Hi {customer_name},</p>
-<p>Just a heads up — these items are still in your cart and may sell out soon:</p>
+<p>Just a heads up, these items are still in your cart and may sell out soon:</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0; border-collapse: collapse;">
 <tr>
 <td style="padding: 12px 16px; background-color: #222222; border-radius: 6px;">

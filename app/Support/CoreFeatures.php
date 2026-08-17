@@ -15,17 +15,15 @@ use App\Models\Setting;
  * fulfillment's courier.fulfillment_enabled precedent, so a fresh install
  * ships with everything on and no seeded rows.
  *
- * Distinct from a feature's own operational toggles: Abandoned Carts'
- * abandoned_cart.enabled (send recovery emails or not) stays a setting
- * INSIDE the feature; this switch is whether the feature exists for this
- * store at all.
+ * Distinct from a feature's own operational toggles (a feature's "send
+ * emails or not" stays a setting INSIDE the feature); this switch is
+ * whether the feature exists for this store at all.
  */
 class CoreFeatures
 {
     /** @var array<string, array{0: string, 1: string}> feature key => [settings group, settings key] */
     public const FEATURES = [
         'seo' => ['features', 'seo_enabled'],
-        'abandoned-carts' => ['features', 'abandoned_carts_enabled'],
     ];
 
     /** @var array<string, bool>|null per-request memo */

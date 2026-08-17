@@ -243,8 +243,7 @@ round: the payment availability rule (was a plain form with Save rule),
 and the theme page's per-section, footer bulk, and theme-options forms.
 Still legitimately OUTSIDE the bar: Add-row create forms (verbs), the
 automations schedule modal, slug/redirect/localization editors gated
-behind an Edit press, and module Install/Enable verbs. v2 pages
-(abandoned carts) convert when their area migrates.
+behind an Edit press, and module Install/Enable verbs.
 
 Multiple doctrine forms per page each carry their own fixed savebar;
 only a dirty form's bar shows, and editing two at once overlaps them,
@@ -278,8 +277,7 @@ Secrets on v3 courier pages are never rendered, even masked: the field
 shows a password box whose help mark names the identifying tail; blank
 keeps the stored value (persist() already skips empty encrypted keys).
 
-Still v2, each waiting for its own wave: the reviews pages (Sales
-area) and the abandoned-carts pages (their module's wave).
+Still v2, waiting for its own wave: the reviews pages (Sales area).
 
 ## Migrated so far
 
@@ -309,6 +307,13 @@ area) and the abandoned-carts pages (their module's wave).
 - Stock Alerts: stat figures, tab bar (?tab= preserved), bulk
   select with a live-count confirm, and the alert template under
   the doctrine with TinyMCE wired in.
+
+- Abandoned Carts (extension, all nine views): ops worklist in Sales
+  (stats, filterbar, pager, confirm dialogs) with the tab trio and one
+  labeled Settings crossing; config trio (settings, rules, templates)
+  behind Extensions with its own tab bar and Carts-workspace crossing;
+  the settings toggles, rule form, and template form (TinyMCE) all
+  under the doctrine savebar.
 
 - Extensions (wave 0, complete): a top-level area beside Settings,
   never inside it. The sidebar's Extensions group (between Marketing

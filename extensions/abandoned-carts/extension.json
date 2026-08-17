@@ -1,0 +1,24 @@
+{
+    "name": "abandoned-carts",
+    "title": "Abandoned Carts",
+    "version": "1.0.0",
+    "description": "Cart recovery: rules, email templates, and the notify cron.",
+    "provider": "Extensions\\AbandonedCarts\\AbandonedCartsServiceProvider",
+    "icon": "cart",
+    "type": "feature",
+    "configure_route": "admin.abandoned-carts.settings",
+    "admin_nav": [
+        {
+            "group": "Sales",
+            "after": "orders",
+            "key": "abandoned-carts",
+            "label": "Abandoned Carts",
+            "route": "admin.abandoned-carts.index",
+            "icon": "cart",
+            "keywords": [
+                "recovery",
+                "cart email"
+            ]
+        }
+    ]
+}

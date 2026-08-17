@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Throwable;
 
 /**
@@ -309,7 +310,7 @@ class DashboardController extends Controller
                     : number_format($handover) . ' awaiting handover',
                 'url' => $fulfillment['lines'][0]['url'],
             ];
-        } else {
+        } elseif (Route::has('admin.abandoned-carts.index')) {
             $stats[] = [
                 'key' => 'carts',
                 'accent' => 'amber',
@@ -731,7 +732,7 @@ class DashboardController extends Controller
             $cartDetail = $idleAt ? 'Newest went idle ' . Carbon::parse($idleAt)->diffForHumans() : null;
         }
 
-        return [
+        $lines = [
             [
                 'label'  => 'Reviews awaiting approval',
                 'count'  => $pendingReviews,
@@ -744,13 +745,18 @@ class DashboardController extends Controller
                 'detail' => null,
                 'url'    => route('admin.extensions.seo.review'),
             ],
-            [
+        ];
+
+        if (Route::has('admin.abandoned-carts.index')) {
+            $lines[] = [
                 'label'  => 'Carts recoverable',
                 'count'  => $cartsRecoverable,
                 'detail' => $cartDetail,
                 'url'    => route('admin.abandoned-carts.index'),
-            ],
-        ];
+            ];
+        }
+
+        return $lines;
     }
 
     /**

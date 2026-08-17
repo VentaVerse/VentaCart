@@ -57,7 +57,7 @@ To convert from app/:
 | Extension | Contents today | Wave |
 |---|---|---|
 | stock-alerts | DONE (first conversion): waitlist + notified admin, storefront subscribe, stock:notify, stock:check-low | 1 |
-| abandoned-carts | carts list, notify rules, cart:notify | 1 |
+| abandoned-carts | DONE (second conversion): ops pages in Sales via manifest admin_nav, config (settings/rules/templates) under Extensions, cart:notify, template seeder, full v3 rebuild | 1 |
 | seo | 9-page space, AI suggestions + cron, redirects, 404s, Search Console, slugs, sitemap (+ /sitemap.xml route) | 1 |
 | payment-bank-transfer | bank accounts + QR config, checkout method | 2 |
 | payment-cod | COD method | 2 |
@@ -75,7 +75,8 @@ To convert from app/:
 1. **Self-registration.** An extension contributes its own admin nav
    items, settings cards, and schedules from its manifest or service
    provider; core config registries stop hardcoding extension entries
-   (today fulfillment + abandoned-carts sit in config/admin-nav.php).
+   (done: fulfillment and abandoned-carts both self-register via their
+   manifests' admin_nav; config/admin-nav.php carries no extension rows).
    Registry merge is runtime, guarded, and cached; disabled extension =
    entries gone. This closes the last decoupling gap.
 2. **Typed provider contracts.** PaymentManager and ShippingQuoteService

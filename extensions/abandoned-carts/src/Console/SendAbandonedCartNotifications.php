@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Extensions\AbandonedCarts\Console;
 
-use App\Models\AbandonedCartNotification;
-use App\Models\AbandonedCartRule;
+use Extensions\AbandonedCarts\Models\AbandonedCartNotification;
+use Extensions\AbandonedCarts\Models\AbandonedCartRule;
 use App\Models\Cart;
 use App\Models\OrderProduct;
 use App\Models\Setting;
@@ -17,12 +17,6 @@ class SendAbandonedCartNotifications extends Command
 
     public function handle(): int
     {
-        if (! \App\Support\CoreFeatures::enabled('abandoned-carts')) {
-            $this->info('Feature disabled in Modules; nothing to do.');
-
-            return self::SUCCESS;
-        }
-
         $enabled = Setting::where('group', 'abandoned_cart')
             ->where('key', 'enabled')
             ->value('value') === '1';
@@ -101,7 +95,7 @@ class SendAbandonedCartNotifications extends Command
                 continue;
             }
 
-            // Check if recovered — customer ordered any of the same products after cart was last updated
+            // Check if recovered: customer ordered any of the same products after cart was last updated
             $cartProductIds = $cart->items->pluck('product_id')->unique()->toArray();
             $recovered = OrderProduct::whereHas('order', function ($q) use ($customer, $cart) {
                 $q->where('customer_id', $customer->id)

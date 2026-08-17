@@ -224,6 +224,7 @@ class UrlGrammarTest extends TestCase
     public function test_old_abandoned_carts_settings_redirects_to_settings_modules(): void
     {
         $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('abandoned-carts');
 
         $response = $this->get('/'.$this->prefix().'/abandoned-carts/settings');
 
@@ -235,6 +236,7 @@ class UrlGrammarTest extends TestCase
     public function test_old_abandoned_carts_index_still_resolves_operationally(): void
     {
         $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('abandoned-carts');
 
         $response = $this->get('/'.$this->prefix().'/abandoned-carts');
 
@@ -553,6 +555,7 @@ class UrlGrammarTest extends TestCase
     public function test_breadcrumb_trail_on_settings_modules_subpage(): void
     {
         $this->actingAs(User::factory()->create());
+        app(ExtensionManager::class)->install('abandoned-carts');
 
         $response = $this->get('/'.$this->prefix().'/extensions/abandoned-carts/rules');
 
