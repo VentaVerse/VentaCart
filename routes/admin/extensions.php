@@ -54,6 +54,15 @@ Route::prefix('extensions')->group(function () {
     Route::prefix('payments')->group(function () {
         Route::get('/', [PaymentSettingController::class, 'index'])->name('payment-settings.index');
 
+        // The standard row switch. {family} is constrained to the known
+        // families so these wildcards can never swallow a literal sibling.
+        Route::post('/{family}/enable', [PaymentSettingController::class, 'enable'])
+            ->whereIn('family', array_keys(\App\Support\PaymentFamilies::LIST))
+            ->name('payment-settings.enable');
+        Route::post('/{family}/disable', [PaymentSettingController::class, 'disable'])
+            ->whereIn('family', array_keys(\App\Support\PaymentFamilies::LIST))
+            ->name('payment-settings.disable');
+
         // Bank Accounts (bank-transfer method's account list) — literal
         // sub-paths, must be registered before the {method} wildcard below.
         Route::get('/bank-accounts/create', [BankAccountController::class, 'create'])->name('bank-accounts.create');
@@ -88,6 +97,14 @@ Route::prefix('extensions')->group(function () {
     Route::prefix('shipping')->group(function () {
         Route::get('/', [ShippingSettingController::class, 'index'])->name('shipping-settings.index');
         Route::post('/test', ShippingTestController::class)->name('shipping-settings.test');
+
+        // The standard row switch, constrained to providers that have one.
+        Route::post('/{provider}/enable', [ShippingSettingController::class, 'enable'])
+            ->whereIn('provider', ['weight-based', 'flat-rate', 'dhl'])
+            ->name('shipping-settings.enable');
+        Route::post('/{provider}/disable', [ShippingSettingController::class, 'disable'])
+            ->whereIn('provider', ['weight-based', 'flat-rate', 'dhl'])
+            ->name('shipping-settings.disable');
 
         // Per-provider configuration pages (each provider in the
         // ShippingQuoteService chain gets its own page; the index above is

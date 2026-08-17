@@ -1103,17 +1103,16 @@ class ReskinWaveTest extends TestCase
             ->assertSee('v3-embed', false)
             ->assertSee('Payments'); // context nav lists sibling sections
 
-        // Payments discoverability: the landing page's availability chip and
-        // "Availability rules" ghost button must both point at the method's
-        // availability tab so restrictions are reachable from the hub.
-        $availabilityUrl = route('admin.payment-settings.show', ['bank_transfer', 'tab' => 'availability']);
-
-        // Payments migrated to the v3 settings shell; the availability tab
-        // stays reachable from the landing.
+        // Standard rows (owner ruling 2026-08-18): the landing carries only
+        // Enable/Disable + Configure; availability (restrictions) lives in
+        // the method page's own Availability tab, reached through Configure.
         $this->get(route('admin.payment-settings.index'))
             ->assertOk()
             ->assertSee('v3-embed', false)
-            ->assertSee($availabilityUrl, false)
+            ->assertSee(route('admin.payment-settings.show', 'bank_transfer'), false);
+
+        $this->get(route('admin.payment-settings.show', 'bank_transfer'))
+            ->assertOk()
             ->assertSee('Availability');
     }
 

@@ -126,15 +126,34 @@ class ShippingPageTest extends TestCase
         $response->assertDontSee('settings[free_shipping_enabled]', false);
     }
 
-    public function test_provider_enable_toggle_forms_post_to_settings_update(): void
+    /**
+     * The standard row (owner ruling 2026-08-18): each switchable provider
+     * posts to its own enable/disable endpoint — no batched toggles. Free
+     * Shipping has no switch (rule-driven), so no endpoint renders for it.
+     */
+    public function test_provider_rows_carry_the_standard_switch(): void
     {
         $this->actingAs(User::factory()->create());
 
+        $page = $this->get(route('admin.shipping-settings.index'))->assertOk();
+        $page->assertSee(route('admin.shipping-settings.enable', 'weight-based'), false);
+        $page->assertSee(route('admin.shipping-settings.enable', 'flat-rate'), false);
+        $page->assertSee(route('admin.shipping-settings.enable', 'dhl'), false);
+        $page->assertDontSee('v3-toggle', false);
+
+        $this->post(route('admin.shipping-settings.enable', 'flat-rate'))
+            ->assertRedirect(route('admin.shipping-settings.index'));
+
+        $this->assertDatabaseHas('settings', ['group' => 'shipping', 'key' => 'flat_rate_enabled', 'value' => '1']);
+
         $this->get(route('admin.shipping-settings.index'))
-            ->assertOk()
-            ->assertSee('settings[weight_based_enabled]', false)
-            ->assertSee('settings[flat_rate_enabled]', false)
-            ->assertSee('settings[dhl_enabled]', false);
+            ->assertSee(route('admin.shipping-settings.disable', 'flat-rate'), false);
+
+        $this->post(route('admin.shipping-settings.disable', 'flat-rate'));
+        $this->assertDatabaseHas('settings', ['group' => 'shipping', 'key' => 'flat_rate_enabled', 'value' => '0']);
+
+        $refused = $this->post('/'.config('admin.prefix', 'admin').'/extensions/shipping/free-shipping/enable');
+        $this->assertGreaterThanOrEqual(400, $refused->status());
     }
 
     // ==================== Per-provider pages ====================

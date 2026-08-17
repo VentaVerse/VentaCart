@@ -19,19 +19,38 @@ class PaymentsPageTest extends TestCase
             ->assertOk()
             ->assertSee('v3-embed', false)
             ->assertSee('Bank Transfer')->assertSee('Cash on Delivery')->assertSee('HitPay')
-            ->assertSee('Manage');
+            ->assertSee('Configure');
     }
 
-    public function test_restricted_method_shows_availability_chip(): void
+    /**
+     * The standard row (owner ruling 2026-08-18): Enable/Disable posts to
+     * the per-method switch, Configure links the method page. No toggles,
+     * no Manage, no availability chip — restrictions live in the method
+     * page's Availability tab.
+     */
+    public function test_rows_carry_the_standard_button_set(): void
     {
         $this->actingAs(User::factory()->create());
-        PaymentMethodRestriction::create([
-            'payment_method' => 'cod',
-            'min_total' => 500,
-            'is_active' => true,
-        ]);
 
-        $this->get(route('admin.payment-settings.index'))->assertSee('Restricted');
+        $page = $this->get(route('admin.payment-settings.index'))->assertOk();
+        $page->assertSee(route('admin.payment-settings.enable', 'cod'), false);
+        $page->assertDontSee('v3-toggle', false);
+        $page->assertDontSee('Manage');
+        $page->assertDontSee('Restricted');
+
+        $this->post(route('admin.payment-settings.enable', 'cod'))
+            ->assertRedirect(route('admin.payment-settings.index'));
+
+        $this->assertDatabaseHas('settings', ['group' => 'payment', 'key' => 'cod_enabled', 'value' => '1']);
+
+        $this->get(route('admin.payment-settings.index'))
+            ->assertSee(route('admin.payment-settings.disable', 'cod'), false);
+
+        $this->post(route('admin.payment-settings.disable', 'cod'));
+        $this->assertDatabaseHas('settings', ['group' => 'payment', 'key' => 'cod_enabled', 'value' => '0']);
+
+        $refused = $this->post('/'.config('admin.prefix', 'admin').'/extensions/payments/nope/enable');
+        $this->assertGreaterThanOrEqual(400, $refused->status());
     }
 
     public function test_detail_page_renders_config_tab_per_method(): void

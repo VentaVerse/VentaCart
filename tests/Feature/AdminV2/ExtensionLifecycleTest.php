@@ -490,7 +490,9 @@ class ExtensionLifecycleTest extends TestCase
             ->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee('Demo Extension')
-            ->assertSee('Enabled');
+            // No state badge (owner ruling 2026-08-18): the rendered
+            // Disable endpoint is what says "enabled".
+            ->assertSee(route('admin.extensions.disable', 'demo'), false);
     }
 
     public function test_http_disable_flips_state_and_ui_reflects_it(): void
@@ -513,7 +515,8 @@ class ExtensionLifecycleTest extends TestCase
             ->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee('Demo Extension')
-            ->assertSee('Disabled');
+            // No state badge: the rendered Enable endpoint says "disabled".
+            ->assertSee(route('admin.extensions.enable', 'demo'), false);
 
         // Documents a known, already-accepted constraint rather than
         // ignoring it (see ExtensionManager::disable()'s own docblock): the
@@ -567,7 +570,9 @@ class ExtensionLifecycleTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.extensions.index'))
             ->assertOk()
-            ->assertSee('Not installed');
+            // No state badge: the rendered Install endpoint says
+            // "not installed".
+            ->assertSee(route('admin.extensions.install', 'demo'), false);
     }
 
     public function test_lifecycle_actions_404_for_unknown_extension_name_not_a_db_lookup(): void

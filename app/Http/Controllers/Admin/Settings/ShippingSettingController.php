@@ -20,6 +20,18 @@ class ShippingSettingController extends Controller
         'dhl_password',
     ];
 
+    /**
+     * Chain providers with a real on/off switch, by their URL id (free
+     * shipping is rule-driven and deliberately absent). The standard row
+     * switch (owner ruling 2026-08-18: one button grammar on every
+     * listing — no anonymous toggles) validates against this map.
+     */
+    private const TOGGLABLE = [
+        'weight-based' => ['weight_based_enabled', 'Weight Based'],
+        'flat-rate' => ['flat_rate_enabled', 'Flat Rate'],
+        'dhl' => ['dhl_enabled', 'DHL'],
+    ];
+
     // Legacy '?tab=<slug>' deep links into the old single-page layout — each
     // now has its own dedicated provider page (see routes/admin/settings.php).
     private const TAB_REDIRECTS = [
@@ -122,6 +134,33 @@ class ShippingSettingController extends Controller
             'settings', 'chain', 'countries', 'defaultCountryId', 'noMethodEnabled', 'fulfillment',
             'customerGroups', 'addressProviders'
         ));
+    }
+
+    public function enable(string $provider)
+    {
+        return $this->setEnabled($provider, true);
+    }
+
+    public function disable(string $provider)
+    {
+        return $this->setEnabled($provider, false);
+    }
+
+    private function setEnabled(string $provider, bool $on)
+    {
+        abort_unless(array_key_exists($provider, self::TOGGLABLE), 404);
+
+        [$key, $label] = self::TOGGLABLE[$provider];
+
+        Setting::updateOrCreate(
+            ['group' => 'shipping', 'key' => $key],
+            ['value' => $on ? '1' : '0', 'type' => 'text'],
+        );
+
+        app(\App\Services\ThemeService::class)->clearCache();
+
+        return redirect()->route('admin.shipping-settings.index')
+            ->with('success', $label . ($on ? ' enabled.' : ' disabled.'));
     }
 
     public function freeShipping()

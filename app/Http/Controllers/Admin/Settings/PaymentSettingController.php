@@ -39,4 +39,37 @@ class PaymentSettingController extends Controller
 
         return view('admin.settings.payments.index', compact('cards', 'noMethodEnabled'));
     }
+
+    public function enable(string $family)
+    {
+        return $this->setEnabled($family, true);
+    }
+
+    public function disable(string $family)
+    {
+        return $this->setEnabled($family, false);
+    }
+
+    /**
+     * The standard row switch (owner ruling 2026-08-18: one button
+     * grammar on every listing — no anonymous toggles). {family}
+     * validates against PaymentFamilies::LIST so nothing else reaches
+     * a write.
+     */
+    private function setEnabled(string $family, bool $on)
+    {
+        abort_unless(array_key_exists($family, PaymentFamilies::LIST), 404);
+
+        Setting::updateOrCreate(
+            ['group' => 'payment', 'key' => "{$family}_enabled"],
+            ['value' => $on ? '1' : '0', 'type' => 'text'],
+        );
+
+        app(\App\Services\ThemeService::class)->clearCache();
+
+        $name = PaymentFamilies::LIST[$family]['default_name'];
+
+        return redirect()->route('admin.payment-settings.index')
+            ->with('success', $name . ($on ? ' enabled.' : ' disabled.'));
+    }
 }

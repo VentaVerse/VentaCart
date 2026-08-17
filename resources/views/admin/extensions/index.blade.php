@@ -36,9 +36,16 @@
                         <span class="v3-dir__cat">{{ $module['category'] }}</span>
                     @endif
                     @if ($module['kind'] === 'extension')
-                        <span class="v3-dir__state">
-                            <span class="v3-badge {{ ($module['state_tone'] ?? '') === 'success' ? 'v3-badge--good' : (($module['state_tone'] ?? '') === 'warning' ? 'v3-badge--warn' : (($module['state_tone'] ?? '') === 'danger' ? 'v3-badge--bad' : 'v3-badge--quiet')) }}">{{ $module['state_label'] }}</span>
-                        </span>
+                        {{-- No state badge: the buttons say the state
+                             (owner ruling 2026-08-18 — Install means not
+                             installed, Disable means enabled). The one
+                             exception is a broken state no button can
+                             express. --}}
+                        @if ($module['state'] === 'missing_files')
+                            <span class="v3-dir__state">
+                                <span class="v3-badge v3-badge--bad">{{ $module['state_label'] }}</span>
+                            </span>
+                        @endif
                         <span class="v3-actrow">
                             @if (in_array('uninstall', $module['actions'], true))
                                 <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'uninstall-{{ $module['name'] }}')">Uninstall</button>
@@ -74,13 +81,7 @@
                                 :action="route('admin.extensions.uninstall', $module['name'])" method="POST" />
                         @endif
                     @else
-                        <span class="v3-dir__state">
-                            <span class="v3-badge {{ ($module['tone'] ?? ($module['enabled'] ? 'success' : 'neutral')) === 'success' ? 'v3-badge--good' : (($module['tone'] ?? '') === 'warning' ? 'v3-badge--warn' : 'v3-badge--quiet') }}">{{ $module['status_label'] }}</span>
-                        </span>
                         <span class="v3-actrow">
-                            @if ($module['configure'])
-                                <a href="{{ $module['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
-                            @endif
                             {{-- The master switch. Off hides the feature's nav
                                  entry and pauses its scheduled jobs; its own
                                  settings stay reachable through Configure. --}}
@@ -88,6 +89,9 @@
                                 @csrf
                                 <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">{{ $module['enabled'] ? 'Disable' : 'Enable' }}</button>
                             </form>
+                            @if ($module['configure'])
+                                <a href="{{ $module['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
+                            @endif
                         </span>
                     @endif
                 </div>

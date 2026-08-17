@@ -14,10 +14,12 @@
             </div>
         @endif
 
-        <x-admin3.form :action="route('admin.settings.update')">
-            <input type="hidden" name="group" value="shipping">
-            <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
-            <div class="v3-dir">
+        {{-- The standard row (owner ruling 2026-08-18): Enable/Disable and
+             Configure, no anonymous toggles. Free Shipping has no switch
+             (its "on" state is any active rule), so its row says that
+             instead. These methods gain Install/Uninstall when wave 2
+             turns them into extensions. --}}
+        <div class="v3-dir">
             @foreach ($chain as $i => $provider)
                 <div class="v3-dir__card v3-dir__card--static">
                     <span class="v3-dir__ico v3-mono">{{ $i + 1 }}</span>
@@ -25,43 +27,35 @@
                         <span class="v3-dir__name">{{ $provider['label'] }}</span>
                         <span class="v3-dir__line v3-block">{{ $provider['description'] }} {{ $provider['summary'] ? '· ' . $provider['summary'] : '' }}</span>
                     </span>
-                    <span class="v3-dir__state">
-                        @if ($provider['settingKey'])
-                            <label class="v3-toggle">
-                                <input type="hidden" name="settings[{{ $provider['settingKey'] }}]" value="0">
-                                <input type="checkbox" name="settings[{{ $provider['settingKey'] }}]" value="1"
-                                       @checked($provider['active']) aria-label="{{ $provider['label'] }} enabled">
-                                <span class="v3-toggle__track" aria-hidden="true"></span>
-                            </label>
-                        @else
-                            <span class="v3-badge {{ $provider['active'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $provider['active'] ? 'Active' : 'No active rules' }}</span>
-                        @endif
-                    </span>
                     <span class="v3-actrow">
+                        @if ($provider['settingKey'])
+                            <form method="POST" action="{{ route($provider['active'] ? 'admin.shipping-settings.disable' : 'admin.shipping-settings.enable', $provider['id']) }}">
+                                @csrf
+                                <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">{{ $provider['active'] ? 'Disable' : 'Enable' }}</button>
+                            </form>
+                        @endif
                         <a href="{{ $provider['route'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
                     </span>
                 </div>
             @endforeach
-                @if ($fulfillment)
-                    {{-- The couriers, joined with the rest as their one
-                         extension (owner ruling): Fulfillment is the module;
-                         QuadX, SPX, and LBC separate inside its settings. --}}
-                    <div class="v3-dir__card v3-dir__card--static">
-                        <span class="v3-dir__ico"><x-admin3.icon name="package" /></span>
-                        <span class="v3-dir__body">
-                            <span class="v3-dir__name">{{ $fulfillment['name'] }}</span>
-                            <span class="v3-dir__line v3-block">Couriers the fulfillment queue books with. {{ $fulfillment['summary'] }}</span>
-                        </span>
-                        <span class="v3-dir__state">
-                            <span class="v3-badge {{ $fulfillment['active'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $fulfillment['active'] ? 'Enabled' : 'Off' }}</span>
-                        </span>
-                        <span class="v3-actrow">
-                            <a href="{{ $fulfillment['url'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
-                        </span>
-                    </div>
-                @endif
-            </div>
-        </x-admin3.form>
+            @if ($fulfillment)
+                {{-- The couriers, joined with the rest as their one
+                     extension (owner ruling): Fulfillment is the module;
+                     QuadX, SPX, and LBC separate inside its settings. Its
+                     lifecycle buttons live on the Extensions directory;
+                     here it is one chain row like the rest. --}}
+                <div class="v3-dir__card v3-dir__card--static">
+                    <span class="v3-dir__ico"><x-admin3.icon name="package" /></span>
+                    <span class="v3-dir__body">
+                        <span class="v3-dir__name">{{ $fulfillment['name'] }}</span>
+                        <span class="v3-dir__line v3-block">Couriers the fulfillment queue books with. {{ $fulfillment['summary'] }}</span>
+                    </span>
+                    <span class="v3-actrow">
+                        <a href="{{ $fulfillment['url'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
+                    </span>
+                </div>
+            @endif
+        </div>
 
         <div class="v3-gap-lg">
             <x-admin3.panel title="Rate tester" note="Runs the whole chain for an address and cart, exactly as checkout would.">
