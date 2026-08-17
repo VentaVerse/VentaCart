@@ -221,6 +221,34 @@ class ExtensionManager
     /**
      * State of a named extension: not_installed|enabled|disabled|missing_files|needs_migration.
      */
+    /**
+     * Admin-nav entries contributed by ENABLED extensions' manifests
+     * (extension.json "admin_nav"). This is how an extension appears in
+     * the sidebar without touching a core file: the entry lives in its
+     * own folder, the registry merges it at runtime (AdminNav::registry()),
+     * and disabling the extension removes it because this reads only
+     * enabled state. Fail-open to []: nav assembly must never be the
+     * thing that takes the admin down.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function navContributions(): array
+    {
+        try {
+            return $this->discovered()
+                ->filter(fn (array $m) => is_array($m['admin_nav'] ?? null)
+                    && $this->state($m['name']) === 'enabled')
+                ->flatMap(fn (array $m) => array_values(array_filter(
+                    $m['admin_nav'],
+                    fn ($entry) => is_array($entry),
+                )))
+                ->values()
+                ->all();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
     public function state(string $name): string
     {
         $manifest = $this->discovered()->get($name);

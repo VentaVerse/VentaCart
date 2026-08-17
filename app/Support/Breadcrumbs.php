@@ -79,7 +79,7 @@ class Breadcrumbs
     {
         $root = $segments[0];
 
-        foreach (config('admin-nav') as $group) {
+        foreach (AdminNav::registry() as $group) {
             // The ungrouped group (Dashboard) is a single root-level page,
             // not a section with entities beneath it — no breadcrumb.
             if ($group['label'] === null || ($group['segment'] ?? null) !== $root) {

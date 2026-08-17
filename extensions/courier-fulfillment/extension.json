@@ -6,5 +6,28 @@
     "provider": "Extensions\\CourierFulfillment\\CourierFulfillmentServiceProvider",
     "icon": "fulfillment",
     "type": "courier",
-    "configure_route": "admin.fulfillment.settings"
+    "configure_route": "admin.fulfillment.settings",
+    "admin_nav": [
+        {
+            "group": "Sales",
+            "after": "orders",
+            "key": "fulfillment",
+            "label": "Fulfillment",
+            "route": "admin.fulfillment.index",
+            "icon": "fulfillment",
+            "keywords": [
+                "booking",
+                "waybill",
+                "awb",
+                "tracking",
+                "quadx",
+                "spx",
+                "courier"
+            ],
+            "enabled_setting": {
+                "group": "courier",
+                "key": "fulfillment_enabled"
+            }
+        }
+    ]
 }

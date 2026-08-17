@@ -10,6 +10,60 @@ use Illuminate\Support\Facades\Route;
 class AdminNav
 {
     /**
+     * The one nav registry: config/admin-nav.php (core's own entries)
+     * merged with the entries ENABLED extensions declare in their own
+     * manifests (ExtensionManager::navContributions()). An extension
+     * entry names its 'group' (an EXISTING group label; extensions never
+     * create groups, the menu-discipline rule) and optionally 'after'
+     * (the item key to sit behind). Core wins key collisions; entries
+     * for unknown groups are dropped. Deliberately NOT memoized: the
+     * manager's own caches make this cheap, and a memo would go stale
+     * across test cases and lifecycle flips.
+     */
+    public static function registry(): array
+    {
+        $registry = config('admin-nav');
+
+        try {
+            $contributions = app(\App\Services\ExtensionManager::class)->navContributions();
+        } catch (\Throwable) {
+            $contributions = [];
+        }
+
+        foreach ($contributions as $entry) {
+            $groupLabel = $entry['group'] ?? null;
+            $after = $entry['after'] ?? null;
+            unset($entry['group'], $entry['after']);
+
+            if (! isset($entry['key'], $entry['label'], $entry['route'])) {
+                continue;
+            }
+
+            $entry += ['icon' => 'modules', 'permission' => null, 'keywords' => []];
+
+            foreach ($registry as $gi => $group) {
+                if (($group['label'] ?? null) !== $groupLabel) {
+                    continue;
+                }
+
+                $keys = array_column($group['items'], 'key');
+
+                if (in_array($entry['key'], $keys, true)) {
+                    continue 2; // core wins; no duplicate keys
+                }
+
+                $pos = $after !== null ? array_search($after, $keys, true) : false;
+                $pos = $pos === false ? count($group['items']) : $pos + 1;
+                array_splice($registry[$gi]['items'], $pos, 0, [$entry]);
+
+                continue 2;
+            }
+        }
+
+        return $registry;
+    }
+
+    /**
      * Groups with items the given user may see. Null user = no filtering.
      *
      * Also drops any item whose named route isn't currently registered.
@@ -31,7 +85,7 @@ class AdminNav
      */
     public static function groups(?User $user = null): array
     {
-        $registry = config('admin-nav');
+        $registry = static::registry();
         $settings = static::settingValues($registry);
 
         return collect($registry)
@@ -167,7 +221,7 @@ class AdminNav
             return null;
         }
 
-        foreach (config('admin-nav') as $group) {
+        foreach (static::registry() as $group) {
             foreach ($group['items'] as $item) {
                 if (($item['key'] ?? null) === $active['item']) {
                     return $item + ['group' => $group['label']];
@@ -199,7 +253,7 @@ class AdminNav
         $root = $segments[0];
 
         if ($root === 'settings') {
-            foreach (config('admin-nav') as $group) {
+            foreach (static::registry() as $group) {
                 foreach ($group['items'] as $item) {
                     if ($item['route'] === 'admin.settings.index') {
                         // Settings is one door in the main nav; finer-grained
@@ -215,7 +269,7 @@ class AdminNav
             return null;
         }
 
-        foreach (config('admin-nav') as $group) {
+        foreach (static::registry() as $group) {
             if ($group['label'] === null) {
                 foreach ($group['items'] as $item) {
                     if (($item['key'] ?? null) === $root) {
