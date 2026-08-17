@@ -171,3 +171,45 @@ owner pick from the round-two artifact. Admin login note: username `dev`.
 - All draft-* presets and their dev snapshot groups removed. Owner confirmed
   understanding: colors/fonts/sizes stay editor-editable per preset; layout
   arrangements are fixed templates chosen via Theme options.
+
+## Phase 3 (2026-08-17): editor rebuilt, live preview parked
+
+Live preview parked by the owner (kanban #119). Shipped instead:
+
+- Visual layout pickers: schema type "layout" renders radio tiles with
+  SVG arrangement diagrams (x-admin3.layout-pick); the five layout
+  options use it. Unknown option values fall back to a text tile.
+- Preset manager on the Theme page: Looks table (palette chips as
+  SVG swatches, Live badge, Apply/Export/Delete), Save-the-live-look
+  form, JSON import with validation (unknown families dropped, slug
+  alphabet closed, active preset undeletable). x-admin3.confirm now
+  forwards slot fields into its form (the Apply confirm posts preset).
+- Record tabs: nav items, homepage sections, and footer columns all
+  have dedicated edit pages (doctrine forms); section/footer creation
+  redirects straight into the new record's edit page; tabs are plain
+  drag lists now. Footer's bulk editor UI retired (endpoint kept).
+- Banners extension fully v3: groups index, slides list, group form,
+  and the 732-line slide editor (canvas preserved; drag/resize/layer
+  mutations dispatch change events so the savebar sees state-only
+  edits; the media browser generalized to serve bg images and layers,
+  with upload, killing the v2 single_image_picker dependency and its
+  polling hack). Eight icons added to the v3 set.
+- Editor gaps closed for preset authoring: fonts list carries every
+  bundled-preset face, letter-spacing (vars) editable on the Fonts
+  tab, status/brand-tile tokens editable on the Colors tab.
+- Doctrine addition: child widgets signal the form with DOM events
+  (change / v3-rebaseline) rather than proxy-chain method lookups.
+
+## Phase 4 (2026-08-17): Handbill authored through the editor
+
+Concept roll (key 527c72e6) assigned "daylight gig flyer" from the
+music-store world; exploitation one-sheet survived as competitive
+alternate (its scale courage and ink-block footer were taken as
+raises), teletext declined on the light-brief pin. The preset:
+paper white + ink, Anton display (prices ride the heading face at
+poster scale), Libre Franklin body, one Tube-Screamer green pull for
+every action, sale red only where money moves, ink-block footer,
+search-under header + centered footer layouts. Authored end to end
+through the editor's own endpoints (settings save, options save,
+save-as-preset) as the editor's acceptance test, saved as preset
+`handbill`, live look restored to clean-light after capture.
