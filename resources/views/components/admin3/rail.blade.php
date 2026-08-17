@@ -34,12 +34,15 @@
              title attributes: the browser's tooltip is slow and plain). --}}
         <a href="{{ route('admin.dashboard') }}" class="v3-irail__mark"
            aria-label="{{ $railStore }} dashboard">{{ mb_substr($railStore, 0, 1) }}<span class="v3-irail__tip">{{ $railStore }}</span></a>
+        {{-- The word rides under the icon (owner ruling 2026-08-17: an
+             icon alone is a memory quiz; "If I want catalog, I want to
+             see the word Catalog"). The strip stays the compact
+             compromise the settings column forces, but it speaks. --}}
         @foreach ($railParents as $item)
             <a href="{{ route($item['route']) }}" class="v3-irail__item"
-               aria-label="{{ $item['label'] }}"
                @if ($active === $item['key']) aria-current="page" @endif>
                 <x-admin3.icon :name="$item['icon']" />
-                <span class="v3-irail__tip">{{ $item['label'] }}</span>
+                <span class="v3-irail__word">{{ $item['label'] }}</span>
             </a>
         @endforeach
     </nav>

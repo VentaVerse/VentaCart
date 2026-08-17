@@ -23,6 +23,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // The sidebar's work-waiting counts (Fulfillment to ship, Reviews
+        // pending). Bound here so the shell never learns which entries
+        // are special; it just looks its items up (see NavBadges).
+        View::composer('components.admin.shell', function ($view) {
+            $view->with('navBadges', \App\Support\NavBadges::counts());
+        });
+
         \Illuminate\Database\Eloquent\Relations\Relation::enforceMorphMap([
             'product' => \App\Models\Product::class,
             'category' => \App\Models\Category::class,

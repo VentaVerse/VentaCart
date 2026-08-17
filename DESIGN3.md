@@ -34,7 +34,14 @@ stated in `tokens.css` with AA-checked stops.
   bundles (`registerV3()`), so the save doctrine runs on whichever
   Alpine the page booted and no page ever loads two. The v3 dark
   tokens flip with the classic theme switch. `x-admin3.rail` keeps
-  only its condensed icon strip, used by the space shells.
+  only its condensed icon strip, used by the space shells, and that
+  strip now carries a small word under each icon (owner ruling: an
+  icon alone is a memory quiz; words for the level you navigate by,
+  always). The classic sidebar carries work-waiting counts
+  (App\Support\NavBadges, cached 60s: Fulfillment to-ship, Reviews
+  pending) through the shell's existing badge lookup, adopted from
+  the v3 nav evaluation as its one surviving benefit; the
+  slab-to-strip structure itself was declined for work areas.
 - `x-admin3.settings-shell`: inside Settings the work nav condenses,
   never disappears: a 56px azure icon rail on the far left showing
   the SAME parents as the main menu in the same order (Dashboard,
