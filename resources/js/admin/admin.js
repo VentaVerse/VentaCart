@@ -124,7 +124,14 @@ function vFocusable(root) {
         .filter((el) => el.tabIndex >= 0 && !el.closest('[inert]') && vIsVisible(el));
 }
 
+import { registerV3 } from '../admin3/register';
+
 document.addEventListener('alpine:init', () => {
+    // The migrated v3 pages now render inside this classic shell (owner
+    // ruling 2026-08-17: one admin, one chrome), so their save-doctrine
+    // components register on the same Alpine this bundle boots.
+    registerV3(window.Alpine);
+
     window.Alpine.directive('dialog', (el, { expression }, { effect, evaluateLater, cleanup }) => {
         const readOpen = evaluateLater(expression || 'true');
         let active = false;

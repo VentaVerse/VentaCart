@@ -89,7 +89,7 @@ class ReskinWaveTest extends TestCase
         ];
 
         foreach ($routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v3-shell', false);
+            $this->get($url)->assertOk()->assertSee('v-admin', false);
         }
     }
 
@@ -1304,7 +1304,7 @@ class ReskinWaveTest extends TestCase
         // Default filter (to_pack) renders the shell and shows only the unbooked order.
         $this->get($base)
             ->assertOk()
-            ->assertSee('v3-shell', false)
+            ->assertSee('v-admin', false)
             ->assertSee('#' . $toPack->id)
             ->assertDontSee('#' . $inTransit->id)
             ->assertDontSee('#' . $delivered->id);

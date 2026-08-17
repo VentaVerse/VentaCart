@@ -60,3 +60,17 @@ body.v3 {
     color: var(--v3-ink-3);
     letter-spacing: .004em;
 }
+
+/* Embedded ground: the migrated v3 bodies render inside the classic
+   shell's main (one admin, one chrome). The wrapper carries what
+   body.v3 carries on the standalone space shells, except the ground
+   color: the classic canvas already sits behind the content, and a
+   second painted rectangle would seam against it. */
+.v3-embed {
+    color: var(--v3-ink);
+    font-family: var(--v3-font);
+    font-size: 13.5px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+}

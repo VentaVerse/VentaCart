@@ -19,19 +19,22 @@ stated in `tokens.css` with AA-checked stops.
 
 ## The two shells
 
-- `x-admin3.shell`: the work surface. Azure slab left (232px) with
-  the store's own name and the admin's ONE nav: the same AdminNav
-  registry the classic sidebar renders, as collapsible groups
-  (Dashboard; Sales; Catalog; Customers; Content; Marketing;
-  Settings), with the same collapse mechanics and URL-derived active
-  state. Owner ruling 2026-08-17: the earlier lean object nav
-  confused real work (no direct jump from an order to payment and
-  shipping settings), so the rail now mirrors the classic structure;
-  one registry, two skins, zero drift. View store takes the rail
-  foot. Hairline topbar. Below 1024px the slab is a drawer behind a
-  scrim. The shell's `active` prop is consulted only by the
-  condensed settings rail; the full rail derives the current item
-  from the request path.
+- `x-admin3.shell`: no longer chrome of its own. Owner ruling
+  2026-08-17, sharpened twice in one day: first the lean object nav
+  was rejected for the classic grouped structure, then the deeper
+  verdict landed, that TWO chrome templates for one admin (different
+  slab widths, a topbar without the palette search, the account not
+  clickable, no theme switch) is "redundant, unnecessary, useless
+  and WRONG". The component is now a thin wrapper that renders the
+  classic `x-admin.shell` (one slab template, one topbar with
+  palette, theme switch and account, one toast layer, one command
+  palette) around a `.v3 .v3-embed` ground div carrying the v3
+  stylesheet. The v3 Alpine pieces (v3Form, v3Secret) live in
+  `resources/js/admin3/register.js` and are registered by BOTH
+  bundles (`registerV3()`), so the save doctrine runs on whichever
+  Alpine the page booted and no page ever loads two. The v3 dark
+  tokens flip with the classic theme switch. `x-admin3.rail` keeps
+  only its condensed icon strip, used by the space shells.
 - `x-admin3.settings-shell`: inside Settings the work nav condenses,
   never disappears: a 56px azure icon rail on the far left showing
   the SAME parents as the main menu in the same order (Dashboard,
