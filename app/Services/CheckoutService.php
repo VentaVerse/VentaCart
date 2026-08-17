@@ -80,6 +80,7 @@ class CheckoutService
         string $shippingMethodKey,
         Cart $cart,
         ?string $comment = null,
+        ?string $courierComment = null,
         ?string $shippingMethodName = null,
         ?float $shippingCostOverride = null
     ): array {
@@ -266,6 +267,7 @@ class CheckoutService
                 'coupon_code' => $couponCode,
                 'coupon_discount' => $couponDiscount,
                 'comment' => $comment,
+                'courier_comment' => $courierComment,
             ];
 
             if ($billingAddress) {
@@ -489,11 +491,23 @@ class CheckoutService
             ? nl2br(e($order->comment))
             : '<span style="color: #666;">-</span>';
 
-        return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;">'
+        $html = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;">'
             . '<tr><td style="padding: 16px 20px;">'
             . '<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">' . e($heading) . '</p>'
             . '<p style="margin: 0; font-size: 13px; color: #e8e8e8; line-height: 1.5;">' . $noteText . '</p>'
             . '</td></tr></table>';
+
+        // The courier message rides the same {comment} placeholder so no
+        // email template changes, and only appears when one was written.
+        if ($order->courier_comment) {
+            $html .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 12px 0; background-color: #222222; border-radius: 6px;">'
+                . '<tr><td style="padding: 16px 20px;">'
+                . '<p style="margin: 0 0 6px 0; font-size: 11px; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 1px;">Courier Note</p>'
+                . '<p style="margin: 0; font-size: 13px; color: #e8e8e8; line-height: 1.5;">' . nl2br(e($order->courier_comment)) . '</p>'
+                . '</td></tr></table>';
+        }
+
+        return $html;
     }
 
     private static function buildOrderItemsHtml(Order $order, string $currency): string

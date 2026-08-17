@@ -669,12 +669,13 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'country'       => 'PH',
         ];
 
-        // The buyer's checkout note, surfaced on the QuadX dashboard as the
+        // The buyer's message to the courier (core's courier_comment),
+        // surfaced on the QuadX dashboard as the
         // address block's "Other locations and details" field (verified on
         // staging 2026-08-16: delivery_address.remarks is accepted, persisted
         // and returned by GET /orders; notes/instructions/landmark are
         // silently dropped). Omitted entirely when there is no note.
-        $remarks = trim((string) $order->comment);
+        $remarks = trim((string) $order->courier_comment);
         if ($remarks !== '') {
             $address['remarks'] = mb_substr($remarks, 0, 500);
         }

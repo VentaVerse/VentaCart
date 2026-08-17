@@ -125,6 +125,7 @@ class ErpOrderController extends Controller
             'shipping_method' => $order->shipping_method,
             'tracking_number' => $order->tracking_number,
             'comment' => $order->comment,
+            'courier_comment' => $order->courier_comment,
             'history' => $order->histories->map(function ($h) {
                 return [
                     'id' => $h->id,

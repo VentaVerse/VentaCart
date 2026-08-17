@@ -149,6 +149,7 @@ class CheckoutController extends Controller
             'billing_postcode' => ['nullable', 'string', 'max:20'],
             'billing_country_id' => ['required_if:different_billing,1', 'nullable', 'integer', 'exists:countries,id'],
             'comment' => ['nullable', 'string', 'max:2000'],
+            'courier_comment' => ['nullable', 'string', 'max:2000'],
             'shipping_method_name' => ['nullable', 'string', 'max:255'],
             'shipping_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
@@ -181,6 +182,7 @@ class CheckoutController extends Controller
                 shippingMethodKey: $validated['shipping_method'],
                 cart: $cart,
                 comment: $validated['comment'] ?? null,
+                courierComment: $validated['courier_comment'] ?? null,
                 shippingMethodName: $validated['shipping_method_name'] ?? null,
                 shippingCostOverride: isset($validated['shipping_cost']) ? (float) $validated['shipping_cost'] : null,
             );

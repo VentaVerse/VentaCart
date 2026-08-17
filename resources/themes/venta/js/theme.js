@@ -753,6 +753,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     placing: false,
     showConfirmModal: false,
     comment: '',
+    courierComment: '',
     stockWarning: '',
     couponCode: '',
     couponDiscount: 0,

@@ -428,11 +428,29 @@
                         </template>
                     </div>
 
-                    {{-- Order Notes --}}
-                    <div class="mb-8">
-                        <label class="account-label">Order Notes <span class="text-[var(--color-text)]">(optional)</span></label>
-                        <textarea x-model="comment" class="account-input w-full h-24 resize-none" placeholder="Special instructions or notes about your order..."></textarea>
-                    </div>
+                    {{-- Order messages: two purpose-named fields, each behind
+                         its own core setting. `comment` is the message to the
+                         store; `courier_comment` is the message the fulfillment
+                         side hands to the courier at booking. --}}
+                    @php
+                        $vCheckout = app(\App\Services\ThemeService::class);
+                        $vMsgStoreOn = ($vCheckout->get('checkout.comment_store_enabled', '1')) === '1';
+                        $vMsgCourierOn = ($vCheckout->get('checkout.comment_courier_enabled', '0')) === '1';
+                        $vMsgStoreLabel = trim((string) $vCheckout->get('checkout.comment_store_label', '')) ?: 'Message to Store';
+                        $vMsgCourierLabel = trim((string) $vCheckout->get('checkout.comment_courier_label', '')) ?: 'Message to Courier';
+                    @endphp
+                    @if ($vMsgStoreOn)
+                        <div class="mb-6">
+                            <label class="account-label" for="checkout-msg-store">{{ $vMsgStoreLabel }} <span class="text-[var(--color-text)]">(optional)</span></label>
+                            <textarea id="checkout-msg-store" x-model="comment" class="account-input w-full h-24 resize-none" placeholder="Notes for the shop packing your order"></textarea>
+                        </div>
+                    @endif
+                    @if ($vMsgCourierOn)
+                        <div class="mb-8">
+                            <label class="account-label" for="checkout-msg-courier">{{ $vMsgCourierLabel }} <span class="text-[var(--color-text)]">(optional)</span></label>
+                            <textarea id="checkout-msg-courier" x-model="courierComment" class="account-input w-full h-24 resize-none" placeholder="Notes for the rider delivering your parcel"></textarea>
+                        </div>
+                    @endif
 
                 </div>
             </div>
@@ -622,6 +640,7 @@
             <input type="hidden" name="shipping_method_name" :value="selectedShippingMethod ? selectedShippingMethod.name : ''">
             <input type="hidden" name="shipping_cost" :value="selectedShippingMethod ? selectedShippingMethod.cost : ''">
             <input type="hidden" name="comment" :value="comment">
+            <input type="hidden" name="courier_comment" :value="courierComment">
             <input type="hidden" name="different_billing" :value="differentBilling ? '1' : '0'">
             <input type="hidden" name="billing_first_name" :value="billing.first_name">
             <input type="hidden" name="billing_last_name" :value="billing.last_name">
@@ -699,11 +718,17 @@
                     <div class="text-sm" x-text="selectedPaymentMethod.name || 'Not selected'"></div>
                 </div>
 
-                {{-- Order Notes --}}
+                {{-- Order messages --}}
                 <template x-if="comment && comment.trim()">
                     <div class="checkout-modal-section">
-                        <h4 class="checkout-modal-label">Order Notes</h4>
+                        <h4 class="checkout-modal-label">{{ $vMsgStoreLabel ?? 'Message to Store' }}</h4>
                         <div class="text-sm opacity-70" x-text="comment"></div>
+                    </div>
+                </template>
+                <template x-if="courierComment && courierComment.trim()">
+                    <div class="checkout-modal-section">
+                        <h4 class="checkout-modal-label">{{ $vMsgCourierLabel ?? 'Message to Courier' }}</h4>
+                        <div class="text-sm opacity-70" x-text="courierComment"></div>
                     </div>
                 </template>
 

@@ -183,8 +183,14 @@
                     </x-admin.table>
                     @if ($order->comment)
                         <div class="mt-4">
-                            <p class="v-label">Customer Note</p>
+                            <p class="v-label">Message to Store</p>
                             <p class="mt-1 text-[13px] text-v-secondary">{{ $order->comment }}</p>
+                        </div>
+                    @endif
+                    @if ($order->courier_comment)
+                        <div class="mt-4">
+                            <p class="v-label">Message to Courier</p>
+                            <p class="mt-1 text-[13px] text-v-secondary">{{ $order->courier_comment }}</p>
                         </div>
                     @endif
                 </x-admin.card>

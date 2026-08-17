@@ -22,7 +22,7 @@ class Order extends Model
         'billing_first_name', 'billing_last_name', 'billing_address_1',
         'billing_city', 'billing_district', 'billing_barangay',
         'billing_state', 'billing_postcode', 'billing_country_id', 'billing_phone', 'billing_country_name',
-        'comment', 'stock_adjusted',
+        'comment', 'courier_comment', 'stock_adjusted',
         'coupon_code', 'coupon_discount',
     ];
 

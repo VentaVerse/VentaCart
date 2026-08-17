@@ -213,7 +213,8 @@ class SpxFulfillmentTest extends TestCase
                 && $o['deliver_info']['deliver_name'] === 'Jane Doe'
                 // "+639171234567" stripped of non-digits -> 12 digits starting with 63 -> passes through as-is.
                 && $o['deliver_info']['deliver_phone'] === '639171234567'
-                // deliver_instruction is optional and nothing collects one yet -> omitted entirely, never a JSON null.
+                // deliver_instruction carries the buyer's message to the courier;
+                // this order has none -> omitted entirely, never a JSON null.
                 && !array_key_exists('deliver_instruction', $o['deliver_info'])
                 // fulfillment_info: sender_pay -> payment_role 1; not COD -> cod_collection 0; no pickup slot -> drop-off.
                 && $o['fulfillment_info']['payment_role'] === 1
@@ -1435,5 +1436,74 @@ class SpxFulfillmentTest extends TestCase
         foreach ($this->courier()->mappableStatuses() as $code) {
             $this->assertArrayHasKey($code, $labels, "Missing label for status code {$code}");
         }
+    }
+
+    public function test_create_shipment_sends_the_courier_message_as_deliver_instruction(): void
+    {
+        $this->configureAccountCredentials();
+        $this->configurePickupOrigin();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 207982800897461]]),
+            '*get_order_create_result*' => Http::response($this->doneCreateResultResponse('SPEPH000000000002')),
+        ]);
+
+        // The store message must never leak to the courier: only
+        // courier_comment rides deliver_instruction.
+        $order = $this->makeOrder([
+            'comment' => 'Please pack carefully',
+            'courier_comment' => 'Deliver between Aug 20 and Aug 22',
+        ]);
+        OrderProduct::create([
+            'order_id' => $order->id, 'name' => 'Guitar Strap', 'price' => 500, 'quantity' => 1, 'total' => 500,
+        ]);
+
+        $result = $this->courier()->createShipment($order->fresh(), [
+            'service' => 'standard',
+            'parcel' => 'medium',
+            'shipping_payment' => 'sender_pay',
+        ]);
+        $this->assertTrue($result['success']);
+
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), 'batch_create_order')) {
+                return false;
+            }
+            $o = $request->data()['orders'][0];
+
+            return $o['deliver_info']['deliver_instruction'] === 'Deliver between Aug 20 and Aug 22';
+        });
+    }
+
+    public function test_create_shipment_omits_deliver_instruction_when_only_a_store_message_exists(): void
+    {
+        $this->configureAccountCredentials();
+        $this->configurePickupOrigin();
+
+        Http::fake([
+            '*batch_create_order*' => Http::response(['ret_code' => 0, 'message' => 'success.', 'data' => ['batch_no' => 207982800897461]]),
+            '*get_order_create_result*' => Http::response($this->doneCreateResultResponse('SPEPH000000000003')),
+        ]);
+
+        $order = $this->makeOrder(['comment' => 'Please pack carefully']);
+        OrderProduct::create([
+            'order_id' => $order->id, 'name' => 'Guitar Strap', 'price' => 500, 'quantity' => 1, 'total' => 500,
+        ]);
+
+        $result = $this->courier()->createShipment($order->fresh(), [
+            'service' => 'standard',
+            'parcel' => 'medium',
+            'shipping_payment' => 'sender_pay',
+        ]);
+        $this->assertTrue($result['success']);
+
+        Http::assertSent(function ($request) {
+            if (!str_contains($request->url(), 'batch_create_order')) {
+                return false;
+            }
+            $o = $request->data()['orders'][0];
+
+            return !array_key_exists('deliver_instruction', $o['deliver_info']);
+        });
     }
 }

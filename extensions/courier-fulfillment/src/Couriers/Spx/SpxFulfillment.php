@@ -1580,9 +1580,9 @@ class SpxFulfillment implements CourierFulfillmentInterface
         ];
         // deliver_instruction is optional (api.md §1.4: N, "receiver's
         // remark, max length 256") — omit entirely rather than sending a
-        // JSON null SPX never asked for. It carries the buyer's checkout
-        // note when one exists.
-        $instruction = trim((string) $order->comment);
+        // JSON null SPX never asked for. It carries the buyer's message to
+        // the courier when one exists (core's courier_comment column).
+        $instruction = trim((string) $order->courier_comment);
         if ($instruction !== '') {
             $info['deliver_instruction'] = mb_substr($instruction, 0, 256);
         }

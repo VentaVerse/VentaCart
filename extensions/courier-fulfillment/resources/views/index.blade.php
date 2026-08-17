@@ -523,6 +523,12 @@
                                 // ten-second fix once somebody says so.
                                 'postcode' => $order->shipping_postcode,
                                 'statusName' => $order->status?->name ?? 'Missing',
+                                // The two checkout messages: the store note is
+                                // packing context, the courier note is what the
+                                // booking hands the rider (see the couriers'
+                                // payload builders reading courier_comment).
+                                'storeNote' => $order->comment,
+                                'courierNote' => $order->courier_comment,
                                 'itemsCount' => $order->products_count ?? 0,
                                 'activelyBooked' => $activelyBooked,
                                 'rebookable' => $rebookable,
@@ -828,6 +834,18 @@
                                 <span class="text-v-muted shrink-0">Ship to</span>
                                 <span class="font-medium text-v-text text-right" x-text="active.address"></span>
                             </div>
+                            <template x-if="active.storeNote">
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-v-muted shrink-0">Message to Store</span>
+                                    <span class="font-medium text-v-text text-right" x-text="active.storeNote"></span>
+                                </div>
+                            </template>
+                            <template x-if="active.courierNote">
+                                <div class="flex justify-between gap-4">
+                                    <span class="text-v-muted shrink-0">Message to Courier</span>
+                                    <span class="font-medium text-v-text text-right" x-text="active.courierNote"></span>
+                                </div>
+                            </template>
                             {{-- Only on a booked parcel: it is a fact about the
                                  shipment, recorded when the booking was made. --}}
                             <template x-if="active.shipsFrom">

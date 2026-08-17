@@ -49,6 +49,26 @@ class SettingsSectionTest extends TestCase
             ->assertSee('Mail server');
     }
 
+    /**
+     * Owner feature (2026-08-17): two purpose-named checkout messages, each
+     * with its own toggle and admin-editable label, configured on the
+     * Checkout tab. Core owns the fields; fulfillment reads courier_comment.
+     */
+    public function test_checkout_section_offers_the_two_order_message_settings(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get(route('admin.settings.section', 'checkout'))
+            ->assertOk()
+            ->assertSee('Order messages')
+            ->assertSee('Message to Store')
+            ->assertSee('Message to Courier')
+            ->assertSee('name="groups[checkout][comment_store_enabled]"', false)
+            ->assertSee('name="groups[checkout][comment_store_label]"', false)
+            ->assertSee('name="groups[checkout][comment_courier_enabled]"', false)
+            ->assertSee('name="groups[checkout][comment_courier_label]"', false);
+    }
+
     public function test_every_section_renders(): void
     {
         $this->actingAs(User::factory()->create());

@@ -757,6 +757,45 @@ class FulfillmentTest extends TestCase
     // Booking round-trip: payload shape + idempotency + rebook-after-cancel.
     // ------------------------------------------------------------------
 
+    public function test_booking_sends_the_courier_message_as_quadx_remarks_and_never_the_store_message(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $this->installExtension();
+        $this->enableQuadxStaging();
+
+        Http::fake([
+            'api.staging.quadx.xyz/v2/orders' => Http::response([
+                'id' => 556,
+                'tracking_number' => 'QX-MSG-001',
+                'status' => 'for_pickup',
+                'reference_id' => '1',
+            ], 200),
+        ]);
+
+        $order = $this->makeBookableOrder([
+            'comment' => 'Please pack carefully',
+            'courier_comment' => 'Deliver between Aug 20 and Aug 22',
+        ]);
+
+        $this->post($this->bookUrl($order), [
+            'courier' => 'quadx',
+            'service' => 'next_day',
+            'parcel' => 'box',
+            'shipping_payment' => 'net_off',
+        ])->assertRedirect();
+
+        Http::assertSent(function ($request) {
+            if ($request->url() !== 'https://api.staging.quadx.xyz/v2/orders') {
+                return false;
+            }
+            $body = $request->data();
+
+            // Only the buyer's message to the courier rides the remarks
+            // field; the message to the store stays in the store.
+            return ($body['delivery_address']['remarks'] ?? null) === 'Deliver between Aug 20 and Aug 22';
+        });
+    }
+
     public function test_booking_sends_the_expected_quadx_payload_and_stores_the_tracking_number(): void
     {
         $this->actingAs(User::factory()->create());

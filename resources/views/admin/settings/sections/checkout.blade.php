@@ -31,6 +31,48 @@
             </div>
         </x-admin3.panel>
 
+        {{-- Two purpose-named checkout messages. The message to the store
+             is the classic order comment; the message to the courier is what
+             fulfillment hands the rider at booking. Labels follow the
+             settings-as-fallback pattern: blank uses the default. --}}
+        <x-admin3.panel title="Order messages">
+            <label class="v3-toggle">
+                <input type="hidden" name="groups[checkout][comment_store_enabled]" value="0">
+                <input type="checkbox" name="groups[checkout][comment_store_enabled]" value="1"
+                       @checked(($settings['checkout']['comment_store_enabled'] ?? '1') === '1')>
+                <span class="v3-toggle__track" aria-hidden="true"></span>
+                Message to Store
+                <x-admin3.help text="A note for whoever packs the order (please pack carefully). Stored on the order and shown in admin and order emails." />
+            </label>
+            <div class="v3-gap-sm">
+                <x-admin3.field name="groups.checkout.comment_store_label" label="Field label"
+                    hint="What the shopper sees above the box. Blank uses the default.">
+                    <input type="text" name="groups[checkout][comment_store_label]" class="v3-control v3-w-name"
+                           placeholder="Message to Store"
+                           value="{{ $settings['checkout']['comment_store_label'] ?? '' }}">
+                </x-admin3.field>
+            </div>
+
+            <div class="v3-gap">
+                <label class="v3-toggle">
+                    <input type="hidden" name="groups[checkout][comment_courier_enabled]" value="0">
+                    <input type="checkbox" name="groups[checkout][comment_courier_enabled]" value="1"
+                           @checked(($settings['checkout']['comment_courier_enabled'] ?? '0') === '1')>
+                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    Message to Courier
+                    <x-admin3.help text="A note for the rider (deliver on these dates). Stored on the order; a fulfillment module passes it to the courier when booking." />
+                </label>
+            </div>
+            <div class="v3-gap-sm">
+                <x-admin3.field name="groups.checkout.comment_courier_label" label="Field label"
+                    hint="What the shopper sees above the box. Blank uses the default.">
+                    <input type="text" name="groups[checkout][comment_courier_label]" class="v3-control v3-w-name"
+                           placeholder="Message to Courier"
+                           value="{{ $settings['checkout']['comment_courier_label'] ?? '' }}">
+                </x-admin3.field>
+            </div>
+        </x-admin3.panel>
+
         <x-admin3.panel title="Low-stock alerts">
             <label class="v3-toggle">
                 <input type="hidden" name="groups[stock][low_stock_alert_enabled]" value="0">
