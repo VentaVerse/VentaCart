@@ -1024,3 +1024,176 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-panel + form:not([hidden]) {
     margin-top: 18px;
 }
+
+/* Filter bar: the list's controls in one row above the sheet */
+.v3-filterbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.v3-filterbar__grow {
+    flex: 1;
+    min-width: 220px;
+}
+
+/* Working-state badge: in motion, neither done nor wrong */
+.v3-badge--info {
+    background: var(--v3-act-wash);
+    color: var(--v3-act);
+}
+
+/* Order overview: the few facts that matter, in one row */
+.v3-factrow {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.v3-bigmoney {
+    font-size: 24px;
+    font-weight: 650;
+    color: var(--v3-ink);
+}
+
+/* The totals ledger under a products table. Not .v3-facts: that name
+   is the generic label/value dl and must keep its grid definition. */
+.v3-ledger {
+    display: flex;
+    justify-content: flex-end;
+    padding: 14px 18px;
+    border-top: 1px solid var(--v3-line);
+}
+
+.v3-ledger dl {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 6px 32px;
+    margin: 0;
+    min-width: 260px;
+}
+
+.v3-ledger dt {
+    color: var(--v3-mut, var(--v3-ink));
+    font-size: 13px;
+}
+
+.v3-ledger dd {
+    margin: 0;
+    text-align: right;
+    font-size: 13px;
+}
+
+.v3-facts__sum {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--v3-ink);
+    border-top: 1px solid var(--v3-line);
+    padding-top: 6px;
+}
+
+.v3-ledger__notes {
+    padding: 14px 18px;
+    border-top: 1px solid var(--v3-line);
+}
+
+/* The order's timeline: newest first, quiet chrome */
+.v3-feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.v3-feed__entry {
+    padding: 12px 18px;
+}
+
+.v3-feed__entry + .v3-feed__entry {
+    border-top: 1px solid var(--v3-line);
+}
+
+.v3-feed__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.v3-feed__x {
+    margin-left: auto;
+}
+
+.v3-feed__note {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--v3-ink);
+}
+
+.v3-feed__when {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--v3-mut, var(--v3-ink));
+}
+
+/* --- Order form: segments, pickers, line items ----------------- */
+
+.v3-notice--bad { border-color: var(--v3-bad); background: var(--v3-bad-wash); }
+.v3-notice__list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.v3-notice__list li + li { margin-top: 4px; }
+
+/* Segmented switch: one choice, both options always visible */
+.v3-seg { display: inline-flex; border: 1px solid var(--v3-line); border-radius: var(--v3-r-sm); overflow: hidden; }
+.v3-seg__opt {
+    border: 0; background: var(--v3-surface); color: var(--v3-ink-2);
+    font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; cursor: pointer;
+    transition: background var(--v3-fast), color var(--v3-fast);
+}
+.v3-seg__opt + .v3-seg__opt { border-left: 1px solid var(--v3-line); }
+.v3-seg__opt:hover { background: var(--v3-hover); }
+.v3-seg__opt.is-on { background: var(--v3-act-fill); color: var(--v3-act-ink); }
+
+/* Searchable picker: a control with a floating result menu */
+.v3-combo { position: relative; }
+.v3-combo__menu {
+    position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; right: 0;
+    max-height: 260px; overflow-y: auto;
+    background: var(--v3-surface); border: 1px solid var(--v3-line);
+    border-radius: var(--v3-r-md); box-shadow: var(--v3-lift);
+}
+.v3-combo__opt {
+    display: block; width: 100%; text-align: left; border: 0; background: none;
+    padding: 8px 12px; font: inherit; font-size: 13px; color: var(--v3-ink); cursor: pointer;
+}
+.v3-combo__opt:hover { background: var(--v3-hover); }
+.v3-combo__opt + .v3-combo__opt { border-top: 1px solid var(--v3-line-2); }
+.v3-combo__main { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.v3-combo__meta { margin-top: 2px; font-size: 12px; color: var(--v3-ink-3); display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* The chosen-record band above a picker's fields */
+.v3-pickband {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--v3-act-wash); border-radius: var(--v3-r-md); padding: 8px 12px; font-size: 13px;
+}
+.v3-pickband--good { background: var(--v3-good-wash); }
+.v3-pickband__who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.v3-pickband__who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.v3-control--sm { height: 30px; padding: 0 8px; font-size: 12.5px; }
+.v3-control--bad { border-color: var(--v3-bad); }
+.v3-adorn > .v3-control { flex: 1; min-width: 0; }
+
+.v3-subnote { margin-top: 4px; font-size: 12px; }
+.v3-strike { text-decoration: line-through; }
+.v3-tone-bad { color: var(--v3-bad); }
+.v3-tone-warn { color: var(--v3-warn); }
+.v3-tone-act { color: var(--v3-act); }
+.v3-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+.v3-loadline { display: flex; align-items: center; gap: 8px; min-height: var(--v3-control-h); font-size: 13px; color: var(--v3-ink-3); }
+.v3-spin { animation: v3-spin .9s linear infinite; }
+@keyframes v3-spin { to { transform: rotate(360deg); } }
+
+/* Totals block pinned to the panel's right edge */
+.v3-sumbox { margin-left: auto; width: min(300px, 100%); }
+
+.v3-sumbox .v3-facts dd { text-align: right; }

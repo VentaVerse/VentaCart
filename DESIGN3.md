@@ -283,9 +283,8 @@ shows a password box whose help mark names the identifying tail; blank
 keeps the stored value (persist() already skips empty encrypted keys).
 
 Still v2, each waiting for its own wave: the fulfillment queue and
-returns (verb surfaces, Orders-area wave), the banners slide editor,
-slides list, and groups index (CMS editor wave, Phase 3), and the
-abandoned-carts pages (their module's wave).
+returns (verb surfaces, Orders-area wave), the reviews pages (Sales
+area), and the abandoned-carts pages (their module's wave).
 
 ## Migrated so far
 
@@ -353,6 +352,24 @@ abandoned-carts pages (their module's wave).
   fits form-action confirms; JS-callback confirms hand-roll the
   same v3-overlay/v3-modal structure.
 
+- Banners: groups index, slides list (bg colour as an SVG rect
+  presentation attribute), and the slide editor as a doctrine form
+  around an inner-div Alpine canvas; layer JSON and image picks
+  signal dirty through bubbled change events.
+
+- Orders: index with a GET filter bar and tone-mapped status badges;
+  order view as v3-editcols (facts, addresses, products + ledger,
+  tracking left; the Update-order verb form and the history feed
+  right); order create/edit as ONE doctrine form spanning Details /
+  Products tabs. The customer and product pickers are v3-combo
+  menus, Existing/New customer is a v3-seg switch, and line items
+  are editable rows in a v3-table with a v3-facts totals box. The
+  async hydration chain (address cascades, then method fetches)
+  awaits fully and then dispatches v3-rebaseline, so a restored
+  order loads clean. Naming: `.v3-facts` is the generic label/value
+  dl; the flush totals strip under a products table is `.v3-ledger`
+  (one class, one shape — the earlier double definition broke both).
+
 Every page inside Settings now renders on the v3 shell. Outside
-Settings, api-sync-logs and profile edit still carry the v2 shell
-until their areas migrate.
+Settings, reviews, api-sync-logs, and profile edit still carry the
+v2 shell until their areas migrate.

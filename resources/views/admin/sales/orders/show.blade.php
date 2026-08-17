@@ -1,302 +1,262 @@
 @php
     $currency = $defaultCurrency->symbol ?? '₱';
     $statusTones = [
-        'Pending' => 'warning', 'Unpaid' => 'warning', 'Processing' => 'info',
+        'Pending' => 'warn', 'Unpaid' => 'warn', 'Processing' => 'info',
         'Payment Received' => 'info', 'Shipped' => 'info', 'Order Being Shipped' => 'info',
-        'Delivered' => 'success', 'Complete' => 'success',
-        'Canceled' => 'danger', 'Failed' => 'danger',
-        'Refunded' => 'neutral', 'Expired' => 'neutral',
+        'Delivered' => 'good', 'Complete' => 'good',
+        'Canceled' => 'bad', 'Failed' => 'bad',
+        'Refunded' => 'quiet', 'Expired' => 'quiet',
     ];
-    $statusTone = $statusTones[$order->order_status_name] ?? 'neutral';
+    $statusTone = $statusTones[$order->order_status_name] ?? 'quiet';
     $shippingCourierLabel = $order->courier_label;
 @endphp
 
-<x-admin.shell title="Order #{{ $order->id }}">
-    <x-admin.page title="Order #{{ $order->id }}" standing="{{ $order->full_name }}">
-        <x-slot:actions>
-            <x-admin.button variant="secondary" href="{{ route('admin.orders.edit', $order) }}">Edit</x-admin.button>
-            <x-admin.button variant="ghost" href="{{ route('admin.orders.index') }}">Back to Orders</x-admin.button>
-        </x-slot:actions>
-
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-            {{-- LEFT COLUMN --}}
-            <div class="space-y-6 lg:col-span-2">
-
-                {{-- 1. ORDER OVERVIEW --}}
-                <x-admin.card>
-                    <div class="flex flex-wrap items-center justify-between gap-4">
-                        <div class="flex items-center gap-3">
-                            <x-admin.badge :tone="$statusTone">{{ $order->order_status_name ?? 'No Status' }}</x-admin.badge>
-                            <x-admin.money :mark="$currency" :amount="number_format($order->total, 2)" class="text-2xl font-semibold text-v-text" />
-                        </div>
-                    </div>
-                    <div class="mt-4 flex flex-wrap gap-x-8 gap-y-3 border-t border-v-border pt-4 text-[13px]">
-                        <div>
-                            <p class="v-label">Placed</p>
-                            <p class="mt-0.5 text-v-secondary">{{ $order->created_at->format('M d, Y · g:i A') }}</p>
-                        </div>
-                        <div>
-                            <p class="v-label">Payment Method</p>
-                            <p class="mt-0.5 text-v-secondary">{{ $order->payment_method_label }}</p>
-                        </div>
-                        <div>
-                            <p class="v-label">Shipping</p>
-                            <p class="mt-0.5 text-v-secondary">Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</p>
-                        </div>
-                        @if ($order->payment_reference)
-                            <div>
-                                <p class="v-label">Payment Reference</p>
-                                <p class="mt-0.5"><span class="v-sub">{{ $order->payment_reference }}</span></p>
-                            </div>
-                        @endif
-                    </div>
-                </x-admin.card>
-
-                {{-- 2. CUSTOMER --}}
-                <x-admin.card title="Customer">
-                    <x-slot:headerActions>
-                        @if ($order->customer)
-                            <x-admin.button size="sm" variant="secondary" :href="route('admin.customers.edit', $order->customer)">View Profile <x-admin.icon name="arrow-right" class="w-3.5 h-3.5" /></x-admin.button>
-                        @endif
-                    </x-slot:headerActions>
-                    <div class="flex items-center gap-3">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-v-accent-weak text-sm font-bold text-v-accent">
-                            {{ strtoupper(substr($order->first_name, 0, 1) . substr($order->last_name, 0, 1)) }}
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <p class="text-[13px] font-semibold text-v-text">{{ $order->first_name }} {{ $order->last_name }}</p>
-                                @if ($order->customer_group_name)
-                                    <x-admin.badge tone="neutral">{{ $order->customer_group_name }}</x-admin.badge>
-                                @endif
-                            </div>
-                            <a href="mailto:{{ $order->email }}" class="text-[13px] text-v-accent hover:opacity-80">{{ $order->email }}</a>
-                        </div>
-                    </div>
-                </x-admin.card>
-
-                {{-- 3. ADDRESSES --}}
-                <x-admin.card title="Addresses">
-                    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        {{-- Shipping --}}
-                        <div>
-                            <h4 class="mb-3 v-label">Ship To</h4>
-                            <div class="space-y-0.5 text-[13px]">
-                                <p class="font-medium text-v-text">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
-                                <p class="text-v-secondary">{{ $order->shipping_address_1 }}</p>
-                                @if ($order->shipping_barangay) <p class="text-v-secondary">{{ $order->shipping_barangay }}</p> @endif
-                                @if ($order->shipping_district) <p class="text-v-secondary">{{ $order->shipping_district }}</p> @endif
-                                <p class="text-v-secondary">{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif {{ $order->shipping_postcode }}</p>
-                                @if ($order->shipping_country_name ?? $order->shippingCountry?->name) <p class="text-xs text-v-muted">{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p> @endif
-                                @if ($order->shipping_phone || $order->phone)
-                                    <p class="mt-1.5 text-v-muted">{{ $order->shipping_phone ?: $order->phone }}</p>
-                                @endif
-                            </div>
-                        </div>
-
-                        {{-- Billing --}}
-                        <div>
-                            <h4 class="mb-3 v-label">Bill To</h4>
-                            @if ($order->billing_first_name)
-                                <div class="space-y-0.5 text-[13px]">
-                                    <p class="font-medium text-v-text">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
-                                    <p class="text-v-secondary">{{ $order->billing_address_1 }}</p>
-                                    @if ($order->billing_barangay) <p class="text-v-secondary">{{ $order->billing_barangay }}</p> @endif
-                                    @if ($order->billing_district) <p class="text-v-secondary">{{ $order->billing_district }}</p> @endif
-                                    <p class="text-v-secondary">{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif {{ $order->billing_postcode }}</p>
-                                    @if ($order->billing_country_name ?? $order->billingCountry?->name) <p class="text-xs text-v-muted">{{ $order->billing_country_name ?? $order->billingCountry?->name }}</p> @endif
-                                    @if ($order->billing_phone)
-                                        <p class="mt-1.5 text-v-muted">{{ $order->billing_phone }}</p>
-                                    @endif
-                                </div>
-                            @else
-                                <p class="text-[13px] italic text-v-muted">Same as shipping</p>
-                            @endif
-                        </div>
-                    </div>
-                </x-admin.card>
-
-                {{-- 4. PRODUCTS --}}
-                <x-admin.card title="Products">
-                    <x-admin.table>
-                        <x-slot:head>
-                            <x-admin.table.th>Item</x-admin.table.th>
-                            <x-admin.table.th align="right">Price</x-admin.table.th>
-                            <x-admin.table.th align="right">Qty</x-admin.table.th>
-                            <x-admin.table.th align="right">Total</x-admin.table.th>
-                        </x-slot:head>
-                        @foreach ($order->products as $item)
-                            <x-admin.table.row>
-                                <x-admin.table.cell>
-                                    <div class="flex items-center gap-3">
-                                        @if ($item->image)
-                                            <img src="{{ storage_url($item->image) }}" alt="{{ $item->name }}" class="h-10 w-10 shrink-0 rounded-v-md border border-v-border object-cover">
-                                        @else
-                                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-v-md border border-v-border bg-v-sunken">
-                                                <x-admin.icon name="products" class="h-5 w-5 text-v-muted" />
-                                            </div>
-                                        @endif
-                                        <div class="v-item__body">
-                                            <p class="v-item__name">{{ $item->name }}</p>
-                                            <div class="v-item__meta">
-                                                @if ($item->variant_label)
-                                                    <span class="v-item__var">{{ $item->variant_label }}</span>
-                                                @endif
-                                                @if ($item->sku)
-                                                    <span class="v-item__sku">{{ $item->sku }}</span>
-                                                @endif
-                                                @if ($item->is_custom)
-                                                    <x-admin.badge tone="warning">Custom</x-admin.badge>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </x-admin.table.cell>
-                                <x-admin.table.cell align="right"><x-admin.money :mark="$currency" :amount="number_format($item->price, 2)" /></x-admin.table.cell>
-                                <x-admin.table.cell align="right" mono>{{ $item->quantity }}</x-admin.table.cell>
-                                <x-admin.table.cell align="right"><x-admin.money :mark="$currency" :amount="number_format($item->price * $item->quantity, 2)" /></x-admin.table.cell>
-                            </x-admin.table.row>
-                        @endforeach
-                        <x-slot:footer>
-                            <div class="flex justify-end">
-                                <dl class="v-facts v-facts--flush w-full sm:max-w-md">
-                                    <dt class="v-label">Subtotal</dt>
-                                    <dd><x-admin.money :mark="$currency" :amount="number_format($order->subtotal, 2)" /></dd>
-                                    <dt class="v-label">Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</dt>
-                                    <dd>
-                                        @if ($order->shipping_cost > 0)
-                                            <x-admin.money :mark="$currency" :amount="number_format($order->shipping_cost, 2)" />
-                                        @else
-                                            Free
-                                        @endif
-                                    </dd>
-                                    @if ($order->coupon_code)
-                                        <dt class="v-label">Coupon ({{ $order->coupon_code }})</dt>
-                                        <dd><x-admin.money mark="-{{ $currency }}" :amount="number_format($order->coupon_discount, 2)" /></dd>
-                                    @endif
-                                    <dt class="v-label v-facts__sum">Total</dt>
-                                    <dd class="v-facts__sum"><x-admin.money :mark="$currency" :amount="number_format($order->total, 2)" /></dd>
-                                </dl>
-                            </div>
-                        </x-slot:footer>
-                    </x-admin.table>
-                    @if ($order->comment)
-                        <div class="mt-4">
-                            <p class="v-label">Message to Store</p>
-                            <p class="mt-1 text-[13px] text-v-secondary">{{ $order->comment }}</p>
-                        </div>
-                    @endif
-                    @if ($order->courier_comment)
-                        <div class="mt-4">
-                            <p class="v-label">Message to Courier</p>
-                            <p class="mt-1 text-[13px] text-v-secondary">{{ $order->courier_comment }}</p>
-                        </div>
-                    @endif
-                </x-admin.card>
-
-                {{-- 5. SHIPPING & TRACKING --}}
-                <x-admin.panel title="Shipping and Tracking" id="order-tracking" flush>
-                    @if ($order->tracking_number)
-                        {{-- The courier over its own tracking number: the same
-                             stacked cell the fulfillment queue prints, so a
-                             shipment reads the same on both screens. --}}
-                        <div class="v-panel__body">
-                            @if ($order->shipping_courier_name)
-                                <span class="v-lead">{{ $order->shipping_courier_name }}</span>
-                            @endif
-                            @if ($order->tracking_link)
-                                <a href="{{ $order->tracking_link }}" target="_blank" class="v-sub">{{ $order->tracking_number }}</a>
-                            @else
-                                <span class="v-sub">{{ $order->tracking_number }}</span>
-                            @endif
-                        </div>
-                    @else
-                        <p class="v-panel__blank">No tracking yet.</p>
-                    @endif
-                </x-admin.panel>
+<x-admin3.shell title="Order #{{ $order->id }}" active="sales">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.orders.index') }}">Orders</a>
+                <span aria-hidden="true">/</span>
+                <span>#{{ $order->id }}</span>
             </div>
+            <h1 class="v3-head__title">Order #{{ $order->id }}
+                <span class="v3-badge v3-badge--{{ $statusTone }}">{{ $order->order_status_name ?? 'No Status' }}</span>
+            </h1>
+            <p class="v3-head__standing">{{ $order->full_name }} · {{ $order->created_at->format('M d, Y g:i A') }}</p>
+        </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.orders.edit', $order) }}" class="v3-btn v3-btn--secondary">Edit</a>
+        </div>
+    </div>
 
-            {{-- RIGHT COLUMN --}}
-            <div class="space-y-6">
+    <div class="v3-editcols">
+        {{-- LEFT: the order itself --}}
+        <div class="v3-settle">
 
-                {{-- UPDATE STATUS --}}
-                <x-admin.card title="Update Order">
-                    <form method="POST" action="{{ route('admin.orders.history.store', $order) }}" data-v-form class="-mt-2 space-y-3">
-                        @csrf
-                        <x-admin.field name="order_status_id" label="Status" required>
-                            <x-admin.select name="order_status_id" required>
-                                @foreach ($statuses as $status)
-                                    <option value="{{ $status->id }}" @selected($order->order_status_id == $status->id)>{{ $status->name }}</option>
-                                @endforeach
-                            </x-admin.select>
-                        </x-admin.field>
-                        <x-admin.field name="shipping_courier_id" label="Courier">
-                            <x-admin.select name="shipping_courier_id">
-                                <option value="">Select courier...</option>
+            <x-admin3.panel title="Order">
+                <div class="v3-factrow">
+                    <div>
+                        <div class="v3-label">Total</div>
+                        <div class="v3-bigmoney v3-mono">{{ $currency }}{{ number_format($order->total, 2) }}</div>
+                    </div>
+                    <div>
+                        <div class="v3-label">Payment</div>
+                        <div>{{ $order->payment_method_label }}</div>
+                        @if ($order->payment_reference)
+                            <div class="v3-cell-quiet v3-mono">{{ $order->payment_reference }}</div>
+                        @endif
+                    </div>
+                    <div>
+                        <div class="v3-label">Shipping</div>
+                        <div>Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</div>
+                    </div>
+                </div>
+            </x-admin3.panel>
+
+            <x-admin3.panel title="Customer">
+                <x-slot:acts>
+                    @if ($order->customer)
+                        <a href="{{ route('admin.customers.edit', $order->customer) }}" class="v3-btn v3-btn--secondary v3-btn--sm">View profile</a>
+                    @endif
+                </x-slot:acts>
+                <div class="v3-namerow">
+                    <strong>{{ $order->first_name }} {{ $order->last_name }}</strong>
+                    @if ($order->customer_group_name)
+                        <span class="v3-badge v3-badge--quiet">{{ $order->customer_group_name }}</span>
+                    @endif
+                </div>
+                <a href="mailto:{{ $order->email }}" class="v3-link">{{ $order->email }}</a>
+            </x-admin3.panel>
+
+            <x-admin3.panel title="Addresses">
+                <div class="v3-grid v3-grid--2">
+                    <div>
+                        <div class="v3-label v3-gap-sm">Ship to</div>
+                        <p><strong>{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</strong></p>
+                        <p class="v3-cell-quiet">{{ $order->shipping_address_1 }}</p>
+                        @if ($order->shipping_barangay)<p class="v3-cell-quiet">{{ $order->shipping_barangay }}</p>@endif
+                        @if ($order->shipping_district)<p class="v3-cell-quiet">{{ $order->shipping_district }}</p>@endif
+                        <p class="v3-cell-quiet">{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif {{ $order->shipping_postcode }}</p>
+                        @if ($order->shipping_country_name ?? $order->shippingCountry?->name)<p class="v3-cell-quiet">{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p>@endif
+                        @if ($order->shipping_phone || $order->phone)
+                            <p class="v3-mono v3-gap-sm">{{ $order->shipping_phone ?: $order->phone }}</p>
+                        @endif
+                    </div>
+                    <div>
+                        <div class="v3-label v3-gap-sm">Bill to</div>
+                        @if ($order->billing_first_name)
+                            <p><strong>{{ $order->billing_first_name }} {{ $order->billing_last_name }}</strong></p>
+                            <p class="v3-cell-quiet">{{ $order->billing_address_1 }}</p>
+                            @if ($order->billing_barangay)<p class="v3-cell-quiet">{{ $order->billing_barangay }}</p>@endif
+                            @if ($order->billing_district)<p class="v3-cell-quiet">{{ $order->billing_district }}</p>@endif
+                            <p class="v3-cell-quiet">{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif {{ $order->billing_postcode }}</p>
+                            @if ($order->billing_country_name ?? $order->billingCountry?->name)<p class="v3-cell-quiet">{{ $order->billing_country_name ?? $order->billingCountry?->name }}</p>@endif
+                            @if ($order->billing_phone)
+                                <p class="v3-mono v3-gap-sm">{{ $order->billing_phone }}</p>
+                            @endif
+                        @else
+                            <p class="v3-cell-quiet">Same as shipping</p>
+                        @endif
+                    </div>
+                </div>
+            </x-admin3.panel>
+
+            <x-admin3.panel title="Products" flush>
+                <div class="v3-tablewrap">
+                    <table class="v3-table">
+                        <thead>
+                            <tr><th>Item</th><th class="v3-cell-num">Price</th><th class="v3-cell-num">Qty</th><th class="v3-cell-num">Total</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($order->products as $item)
+                                <tr>
+                                    <td>
+                                        <span class="v3-namerow">
+                                            @if ($item->image)
+                                                <img src="{{ storage_url($item->image) }}" alt="" class="v3-thumb">
+                                            @endif
+                                            <span>
+                                                {{ $item->name }}
+                                                <span class="v3-cell-quiet v3-block">
+                                                    @if ($item->variant_label){{ $item->variant_label }}@endif
+                                                    @if ($item->sku) · {{ $item->sku }}@endif
+                                                </span>
+                                                @if ($item->is_custom)
+                                                    <span class="v3-badge v3-badge--warn">Custom</span>
+                                                @endif
+                                            </span>
+                                        </span>
+                                    </td>
+                                    <td class="v3-cell-num v3-mono">{{ $currency }}{{ number_format($item->price, 2) }}</td>
+                                    <td class="v3-cell-num v3-mono">{{ $item->quantity }}</td>
+                                    <td class="v3-cell-num v3-mono">{{ $currency }}{{ number_format($item->price * $item->quantity, 2) }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                <div class="v3-ledger">
+                    <dl>
+                        <dt>Subtotal</dt>
+                        <dd class="v3-mono">{{ $currency }}{{ number_format($order->subtotal, 2) }}</dd>
+                        <dt>Shipping @if ($shippingCourierLabel)({{ $shippingCourierLabel }})@endif</dt>
+                        <dd class="v3-mono">@if ($order->shipping_cost > 0){{ $currency }}{{ number_format($order->shipping_cost, 2) }}@else Free @endif</dd>
+                        @if ($order->coupon_code)
+                            <dt>Coupon ({{ $order->coupon_code }})</dt>
+                            <dd class="v3-mono">-{{ $currency }}{{ number_format($order->coupon_discount, 2) }}</dd>
+                        @endif
+                        <dt class="v3-facts__sum">Total</dt>
+                        <dd class="v3-facts__sum v3-mono">{{ $currency }}{{ number_format($order->total, 2) }}</dd>
+                    </dl>
+                </div>
+                @if ($order->comment || $order->courier_comment)
+                    <div class="v3-ledger__notes">
+                        @if ($order->comment)
+                            <div class="v3-label">Message to Store</div>
+                            <p class="v3-cell-quiet">{{ $order->comment }}</p>
+                        @endif
+                        @if ($order->courier_comment)
+                            <div class="v3-label {{ $order->comment ? 'v3-gap-sm' : '' }}">Message to Courier</div>
+                            <p class="v3-cell-quiet">{{ $order->courier_comment }}</p>
+                        @endif
+                    </div>
+                @endif
+            </x-admin3.panel>
+
+            <x-admin3.panel title="Shipping and Tracking">
+                @if ($order->tracking_number)
+                    <div class="v3-namerow">
+                        @if ($order->shipping_courier_name)
+                            <strong>{{ $order->shipping_courier_name }}</strong>
+                        @endif
+                        @if ($order->tracking_link)
+                            <a href="{{ $order->tracking_link }}" target="_blank" rel="noopener" class="v3-link v3-mono">{{ $order->tracking_number }}</a>
+                        @else
+                            <span class="v3-mono">{{ $order->tracking_number }}</span>
+                        @endif
+                    </div>
+                @else
+                    <p class="v3-cell-quiet">No tracking yet.</p>
+                @endif
+            </x-admin3.panel>
+        </div>
+
+        {{-- RIGHT: the working column --}}
+        <div class="v3-settle">
+            {{-- Every submit here CREATES a history entry, so the button is
+                 the verb and the save bar stays out of it. --}}
+            <x-admin3.panel title="Update order">
+                <form method="POST" action="{{ route('admin.orders.history.store', $order) }}">
+                    @csrf
+                    <x-admin3.field name="order_status_id" label="Status" required>
+                        <select name="order_status_id" required class="v3-control">
+                            @foreach ($statuses as $status)
+                                <option value="{{ $status->id }}" @selected($order->order_status_id == $status->id)>{{ $status->name }}</option>
+                            @endforeach
+                        </select>
+                    </x-admin3.field>
+                    <div class="v3-gap-sm">
+                        <x-admin3.field name="shipping_courier_id" label="Courier">
+                            <select name="shipping_courier_id" class="v3-control">
+                                <option value="">Select courier…</option>
                                 @foreach ($couriers as $courier)
                                     <option value="{{ $courier->id }}" @selected($order->shipping_courier_id == $courier->id)>{{ $courier->name }}</option>
                                 @endforeach
-                            </x-admin.select>
-                        </x-admin.field>
-                        <x-admin.field name="tracking_number" label="Tracking Number">
-                            <x-admin.input type="text" name="tracking_number" :value="$order->tracking_number" placeholder="Enter tracking number" />
-                        </x-admin.field>
-                        <x-admin.field name="comment" label="Comment">
-                            <x-admin.input type="text" name="comment" placeholder="Add a comment..." />
-                        </x-admin.field>
-                        <div class="flex items-center justify-between pt-1">
-                            <x-admin.checkbox name="notify_customer" label="Notify Customer" />
-                            <x-admin.button type="submit" size="sm">Update</x-admin.button>
-                        </div>
-                    </form>
-                </x-admin.card>
+                            </select>
+                        </x-admin3.field>
+                    </div>
+                    <div class="v3-gap-sm">
+                        <x-admin3.field name="tracking_number" label="Tracking number">
+                            <input type="text" name="tracking_number" value="{{ $order->tracking_number }}" class="v3-control v3-mono">
+                        </x-admin3.field>
+                    </div>
+                    <div class="v3-gap-sm">
+                        <x-admin3.field name="comment" label="Comment">
+                            <input type="text" name="comment" class="v3-control">
+                        </x-admin3.field>
+                    </div>
+                    <div class="v3-gap v3-actrow">
+                        <label class="v3-check">
+                            <input type="checkbox" name="notify_customer" value="1">
+                            Notify customer
+                        </label>
+                        <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Update</button>
+                    </div>
+                </form>
+            </x-admin3.panel>
 
-                {{-- ORDER HISTORY --}}
-                <x-admin.panel title="History" id="order-history" flush>
-                    @if ($order->histories->count() > 0)
-                        {{-- The feed, not a bespoke timeline. A dotted rail with
-                             a ring per entry was drawing a second structure over
-                             a list that already had one. --}}
-                        <ul class="v-feed">
-                            @foreach ($order->histories->sortByDesc('created_at') as $history)
-                                {{-- Built in PHP, not in the attribute: a Blade
-                                     directive inside a component attribute is
-                                     literal text, but the interpolation beside
-                                     it still runs, so an @if there evaluates
-                                     both branches. --}}
-                                @php
-                                    $when = $history->created_at->format('M d, Y g:i A')
-                                        . ($history->created_by_name ? ' by ' . $history->created_by_name : '');
-                                @endphp
-                                <x-admin.feed.entry icon="orders" tone="v-feed__ic--plain" :when="$when">
-                                    <x-admin.badge :tone="$loop->first ? 'success' : 'neutral'">{{ $history->order_status_name ?? '-' }}</x-admin.badge>
+            <x-admin3.panel title="History" flush>
+                @if ($order->histories->count() > 0)
+                    <ul class="v3-feed">
+                        @foreach ($order->histories->sortByDesc('created_at') as $history)
+                            <li class="v3-feed__entry">
+                                <div class="v3-feed__row">
+                                    <span class="v3-badge {{ $loop->first ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $history->order_status_name ?? '-' }}</span>
                                     @if ($history->notify_customer)
-                                        <x-admin.badge tone="info" :dot="false">Notified</x-admin.badge>
+                                        <span class="v3-badge v3-badge--info">Notified</span>
                                     @endif
-                                    @if ($history->comment)
-                                        <x-slot:note>{{ strip_tags($history->comment) }}</x-slot:note>
-                                    @endif
-                                    <x-slot:action>
-                                        <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" aria-label="Delete history entry"
-                                            @click="$dispatch('open-modal', 'delete-history-{{ $history->id }}')">
-                                            <x-admin.icon name="trash" class="w-3.5 h-3.5" />
-                                        </x-admin.button>
-                                    </x-slot:action>
-                                </x-admin.feed.entry>
-                            @endforeach
-                        </ul>
-                    @else
-                        <p class="v-panel__blank">No history yet.</p>
-                    @endif
-                </x-admin.panel>
-            </div>
+                                    <button type="button" class="v3-row__x v3-feed__x" aria-label="Delete history entry"
+                                            @click="$dispatch('v3-confirm', 'delete-history-{{ $history->id }}')">
+                                        <x-admin3.icon name="trash" />
+                                    </button>
+                                </div>
+                                @if ($history->comment)
+                                    <p class="v3-feed__note">{{ strip_tags($history->comment) }}</p>
+                                @endif
+                                <p class="v3-feed__when">{{ $history->created_at->format('M d, Y g:i A') }}{{ $history->created_by_name ? ' by ' . $history->created_by_name : '' }}</p>
+                            </li>
+                        @endforeach
+                    </ul>
+                @else
+                    <div class="v3-empty"><p class="v3-empty__title">No history yet</p></div>
+                @endif
+            </x-admin3.panel>
         </div>
+    </div>
 
-        @foreach ($order->histories as $history)
-            <x-admin.confirm-dialog name="delete-history-{{ $history->id }}" title="Delete this history entry?"
-                message="This removes the status-change record from the order's timeline. This cannot be undone."
-                confirm="Delete" :action="route('admin.orders.history.destroy', [$order, $history->id])" method="DELETE" />
-        @endforeach
-    </x-admin.page>
-</x-admin.shell>
+    @foreach ($order->histories as $history)
+        <x-admin3.confirm name="delete-history-{{ $history->id }}" title="Delete this history entry?"
+            message="This removes the status-change record from the order's timeline. This cannot be undone."
+            confirm="Delete" :action="route('admin.orders.history.destroy', [$order, $history->id])" method="DELETE" />
+    @endforeach
+</x-admin3.shell>

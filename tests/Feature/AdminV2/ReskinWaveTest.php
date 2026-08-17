@@ -89,7 +89,7 @@ class ReskinWaveTest extends TestCase
         ];
 
         foreach ($routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v-admin', false);
+            $this->get($url)->assertOk()->assertSee('v3-shell', false);
         }
     }
 
