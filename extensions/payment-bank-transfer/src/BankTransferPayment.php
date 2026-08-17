@@ -1,8 +1,12 @@
 <?php
 
-namespace App\Services\PaymentMethods;
+namespace Extensions\PaymentBankTransfer;
 
-use App\Models\BankAccount;
+use App\Services\PaymentMethods\PaymentMethodInterface;
+use App\Services\PaymentMethods\PaymentResult;
+use Extensions\PaymentBankTransfer\Models\BankAccount;
+
+
 use App\Models\Order;
 use App\Services\ThemeService;
 
@@ -73,7 +77,10 @@ class BankTransferPayment implements PaymentMethodInterface
 
     public function isEnabled(): bool
     {
-        return (bool) \App\Models\Setting::where('group', 'payment')->where('key', 'bank_transfer_enabled')->value('value');
+        // Registration is the switch: this family only exists while its
+        // extension is enabled. Per-account instances still answer to
+        // their own row's is_active (see instances()).
+        return true;
     }
 
     public function processPayment(Order $order): PaymentResult
@@ -85,17 +92,13 @@ class BankTransferPayment implements PaymentMethodInterface
      * The Bank Accounts CRUD is a method FACTORY: one first-class payment
      * method per active account. No accounts => no bank methods (the old
      * generic fallback is gone — a method with no account details was a
-     * phantom). Family enable (bank_transfer_enabled) gates the whole factory.
+     * phantom). The extension switch gates the whole factory (no factory
+     * without registration).
      *
      * @return BankTransferPayment[]
      */
     public static function instances(): array
     {
-        $family = new self();
-        if (!$family->isEnabled()) {
-            return [];
-        }
-
         return BankAccount::active()
             ->orderBy('sort_order')->orderBy('bank_name')
             ->get()

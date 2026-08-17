@@ -71,7 +71,7 @@ class ExtensionCard
     {
         $route = $manifest['configure_route'] ?? "admin.{$name}.index";
 
-        return Route::has($route) ? route($route) : null;
+        return Route::has($route) ? route($route, $manifest['configure_params'] ?? []) : null;
     }
 
     private static function actionsForState(string $state): array

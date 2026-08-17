@@ -457,7 +457,7 @@ class CheckoutService
         if (str_starts_with($order->payment_method, 'bank_transfer')) {
             $bankAcct = null;
             if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
-                $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
+                $bankAcct = class_exists(\Extensions\PaymentBankTransfer\Models\BankAccount::class) ? \Extensions\PaymentBankTransfer\Models\BankAccount::find((int) $m[1]) : null;
             }
             if ($bankAcct) {
                 $html .= '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top: 12px; border-top: 1px solid #333;">'

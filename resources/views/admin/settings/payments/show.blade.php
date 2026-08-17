@@ -18,7 +18,7 @@
         </div>
 
         <div x-show="tab === 'config'" class="v3-settle">
-            @include('admin.settings.payments.partials.config-' . str_replace('_', '-', $method))
+            @include($configView)
         </div>
 
         <div x-show="tab === 'availability'" x-cloak class="v3-settle">

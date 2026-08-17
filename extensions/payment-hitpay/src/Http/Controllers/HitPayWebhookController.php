@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Storefront;
+namespace Extensions\PaymentHitpay\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Mail\OrderConfirmationMail;
@@ -8,7 +8,7 @@ use App\Models\Order;
 use App\Models\OrderHistory;
 use App\Models\OrderStatus;
 use App\Models\Setting;
-use App\Services\PaymentMethods\HitPayPayment;
+use Extensions\PaymentHitpay\HitPayPayment;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;

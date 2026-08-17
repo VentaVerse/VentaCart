@@ -3,14 +3,6 @@
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'bank_transfer') }}">
 
     <x-admin3.panel title="Bank Transfer">
-        <x-slot:acts>
-            <label class="v3-toggle">
-                <input type="hidden" name="settings[bank_transfer_enabled]" value="0" form="pay-bt-form">
-                <input type="checkbox" name="settings[bank_transfer_enabled]" value="1" form="pay-bt-form"
-                       @checked(($settings['payment']['bank_transfer_enabled'] ?? '0') === '1') aria-label="Enabled">
-                <span class="v3-toggle__track" aria-hidden="true"></span>
-            </label>
-        </x-slot:acts>
         <div class="v3-narrow">
             <x-admin3.field name="settings.bank_transfer_display_name" label="Checkout label"
                 hint="The bank name (e.g. BDO) is appended automatically per account. Blank uses the default.">

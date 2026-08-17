@@ -6,7 +6,7 @@ use Extensions\AbandonedCarts\Models\AbandonedCartNotification;
 use Extensions\AbandonedCarts\Models\AbandonedCartRule;
 use App\Models\ApiSyncLog;
 use App\Models\Automation;
-use App\Models\BankAccount;
+use Extensions\PaymentBankTransfer\Models\BankAccount;
 use App\Models\BlogCategory;
 use App\Models\BlogPost;
 use App\Models\Brand;
@@ -624,7 +624,7 @@ class ReskinWaveTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $manager = app(\App\Services\ExtensionManager::class);
-        foreach (['shipping-flat-rate', 'shipping-weight-based', 'shipping-free'] as $name) {
+        foreach (['shipping-flat-rate', 'shipping-weight-based', 'shipping-free', 'payment-bank-transfer', 'payment-hitpay', 'payment-cod'] as $name) {
             $manager->install($name);
         }
         $manager->bootEnabled();

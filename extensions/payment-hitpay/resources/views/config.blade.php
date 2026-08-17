@@ -13,14 +13,6 @@
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'hitpay') }}">
 
     <x-admin3.panel title="HitPay">
-        <x-slot:acts>
-            <label class="v3-toggle">
-                <input type="hidden" name="settings[hitpay_enabled]" value="0" form="pay-hitpay-form">
-                <input type="checkbox" name="settings[hitpay_enabled]" value="1" form="pay-hitpay-form"
-                       @checked(($settings['payment']['hitpay_enabled'] ?? '0') === '1') aria-label="Enabled">
-                <span class="v3-toggle__track" aria-hidden="true"></span>
-            </label>
-        </x-slot:acts>
 
         <div class="v3-narrow" x-data="{ mode: @js($mode) }">
             <x-admin3.field name="settings.hitpay_display_name" label="Checkout label" hint="Shown at checkout. Blank uses the default.">

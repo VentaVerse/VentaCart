@@ -1,0 +1,12 @@
+{
+    "name": "payment-hitpay",
+    "title": "HitPay (Card / GCash / GrabPay / Maya)",
+    "version": "1.0.0",
+    "description": "Online payment gateway (credit card, e-wallets)",
+    "provider": "Extensions\\PaymentHitpay\\PaymentHitpayServiceProvider",
+    "icon": "payments",
+    "type": "payment",
+    "family": "hitpay",
+    "configure_route": "admin.payment-settings.show",
+    "configure_params": {"method": "hitpay"}
+}

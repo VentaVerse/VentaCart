@@ -1,0 +1,12 @@
+{
+    "name": "payment-bank-transfer",
+    "title": "Bank Transfer",
+    "version": "1.0.0",
+    "description": "Multi-account bank transfer with QR codes",
+    "provider": "Extensions\\PaymentBankTransfer\\PaymentBankTransferServiceProvider",
+    "icon": "payments",
+    "type": "payment",
+    "family": "bank_transfer",
+    "configure_route": "admin.payment-settings.show",
+    "configure_params": {"method": "bank_transfer"}
+}

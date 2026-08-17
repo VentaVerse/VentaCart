@@ -5,14 +5,6 @@
     <x-admin3.panel title="Cash on Delivery">
         {{-- The enable toggle is its own submission; forms cannot nest,
              so its inputs reference the hidden sibling form by id. --}}
-        <x-slot:acts>
-            <label class="v3-toggle">
-                <input type="hidden" name="settings[cod_enabled]" value="0" form="pay-cod-form">
-                <input type="checkbox" name="settings[cod_enabled]" value="1" form="pay-cod-form"
-                       @checked(($settings['payment']['cod_enabled'] ?? '0') === '1') aria-label="Enabled">
-                <span class="v3-toggle__track" aria-hidden="true"></span>
-            </label>
-        </x-slot:acts>
         <div class="v3-narrow">
             <x-admin3.field name="settings.cod_display_name" label="Checkout label" hint="Shown at checkout. Blank uses the default.">
                 <input type="text" name="settings[cod_display_name]" class="v3-control" placeholder="{{ $defaultName }}"

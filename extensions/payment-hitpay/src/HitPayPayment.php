@@ -1,6 +1,9 @@
 <?php
 
-namespace App\Services\PaymentMethods;
+namespace Extensions\PaymentHitpay;
+
+use App\Services\PaymentMethods\PaymentMethodInterface;
+use App\Services\PaymentMethods\PaymentResult;
 
 use App\Models\Order;
 use App\Models\Setting;
@@ -41,7 +44,9 @@ class HitPayPayment implements PaymentMethodInterface
 
     public function isEnabled(): bool
     {
-        return (bool) $this->getSetting('hitpay_enabled');
+        // Registration is the switch: this method only exists while its
+        // extension is enabled.
+        return true;
     }
 
     public function processPayment(Order $order): PaymentResult

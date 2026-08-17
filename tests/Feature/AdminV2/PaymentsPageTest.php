@@ -11,6 +11,19 @@ class PaymentsPageTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Wave 2: the three payment methods are extensions; their pages
+        // exist only while installed and enabled.
+        $manager = app(\App\Services\ExtensionManager::class);
+        foreach (['payment-bank-transfer', 'payment-hitpay', 'payment-cod'] as $name) {
+            $manager->install($name);
+        }
+        $manager->bootEnabled();
+    }
+
     public function test_landing_renders_method_cards_in_new_shell(): void
     {
         $this->actingAs(User::factory()->create());
@@ -23,34 +36,31 @@ class PaymentsPageTest extends TestCase
     }
 
     /**
-     * The standard row (owner ruling 2026-08-18): Enable/Disable posts to
-     * the per-method switch, Configure links the method page. No toggles,
-     * no Manage, no availability chip — restrictions live in the method
-     * page's Availability tab.
+     * The standard row (owner rulings 2026-08-18): every method is an
+     * extension row wearing the lifecycle button set. No toggles, no
+     * Manage, no availability chip — restrictions live in the method
+     * page's Availability tab, reached through Configure.
      */
     public function test_rows_carry_the_standard_button_set(): void
     {
         $this->actingAs(User::factory()->create());
 
         $page = $this->get(route('admin.payment-settings.index'))->assertOk();
-        $page->assertSee(route('admin.payment-settings.enable', 'cod'), false);
+        foreach (['payment-bank-transfer', 'payment-hitpay', 'payment-cod'] as $name) {
+            $page->assertSee(route('admin.extensions.disable', $name), false);
+            $page->assertSee(route('admin.extensions.uninstall', $name), false);
+        }
         $page->assertDontSee('v3-toggle', false);
         $page->assertDontSee('Manage');
         $page->assertDontSee('Restricted');
 
-        $this->post(route('admin.payment-settings.enable', 'cod'))
-            ->assertRedirect(route('admin.payment-settings.index'));
+        $this->post(route('admin.extensions.disable', 'payment-cod'))
+            ->assertRedirect(route('admin.extensions.index'));
 
-        $this->assertDatabaseHas('settings', ['group' => 'payment', 'key' => 'cod_enabled', 'value' => '1']);
+        $this->assertDatabaseHas('extensions', ['name' => 'payment-cod', 'enabled' => false]);
 
         $this->get(route('admin.payment-settings.index'))
-            ->assertSee(route('admin.payment-settings.disable', 'cod'), false);
-
-        $this->post(route('admin.payment-settings.disable', 'cod'));
-        $this->assertDatabaseHas('settings', ['group' => 'payment', 'key' => 'cod_enabled', 'value' => '0']);
-
-        $refused = $this->post('/'.config('admin.prefix', 'admin').'/extensions/payments/nope/enable');
-        $this->assertGreaterThanOrEqual(400, $refused->status());
+            ->assertSee(route('admin.extensions.enable', 'payment-cod'), false);
     }
 
     public function test_detail_page_renders_config_tab_per_method(): void

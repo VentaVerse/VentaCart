@@ -295,7 +295,7 @@ class CheckoutController extends Controller
 
         $bankInstructions = null;
         if (str_starts_with($order->payment_method, 'bank_transfer')) {
-            $bankInstructions = \App\Services\PaymentMethods\BankTransferPayment::getInstructionsForOrder($order);
+            $bankInstructions = class_exists(\Extensions\PaymentBankTransfer\BankTransferPayment::class) ? \Extensions\PaymentBankTransfer\BankTransferPayment::getInstructionsForOrder($order) : null;
         }
 
         return view('checkout.confirmation', compact('order', 'bankInstructions'));

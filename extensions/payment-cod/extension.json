@@ -1,0 +1,12 @@
+{
+    "name": "payment-cod",
+    "title": "Cash on Delivery",
+    "version": "1.0.0",
+    "description": "Customer pays upon delivery",
+    "provider": "Extensions\\PaymentCod\\PaymentCodServiceProvider",
+    "icon": "payments",
+    "type": "payment",
+    "family": "cod",
+    "configure_route": "admin.payment-settings.show",
+    "configure_params": {"method": "cod"}
+}

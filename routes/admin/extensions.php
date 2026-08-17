@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\ExtensionsController;
 use App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController;
-use App\Http\Controllers\Admin\Settings\BankAccountController;
 use App\Http\Controllers\Admin\Settings\ShippingSettingController;
 use App\Http\Controllers\Admin\Settings\ShippingTestController;
 use App\Http\Controllers\Admin\Settings\PaymentMethodPageController;
@@ -51,22 +50,9 @@ Route::prefix('extensions')->group(function () {
     Route::prefix('payments')->group(function () {
         Route::get('/', [PaymentSettingController::class, 'index'])->name('payment-settings.index');
 
-        // The standard row switch. {family} is constrained to the known
-        // families so these wildcards can never swallow a literal sibling.
-        Route::post('/{family}/enable', [PaymentSettingController::class, 'enable'])
-            ->whereIn('family', array_keys(\App\Support\PaymentFamilies::LIST))
-            ->name('payment-settings.enable');
-        Route::post('/{family}/disable', [PaymentSettingController::class, 'disable'])
-            ->whereIn('family', array_keys(\App\Support\PaymentFamilies::LIST))
-            ->name('payment-settings.disable');
 
-        // Bank Accounts (bank-transfer method's account list) — literal
-        // sub-paths, must be registered before the {method} wildcard below.
-        Route::get('/bank-accounts/create', [BankAccountController::class, 'create'])->name('bank-accounts.create');
-        Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
-        Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
-        Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
-        Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
+        // Bank accounts moved to the payment-bank-transfer extension
+        // (extensions/payment-bank-transfer/routes/web.php).
 
         // Payment Restrictions — the standalone index/create/edit pages have
         // been absorbed into the payment method detail page's Availability

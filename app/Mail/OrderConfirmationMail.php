@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use App\Models\Order;
-use App\Services\PaymentMethods\BankTransferPayment;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -27,7 +26,9 @@ class OrderConfirmationMail extends Mailable
     {
         $bankInstructions = null;
         if (str_starts_with($this->order->payment_method, 'bank_transfer')) {
-            $bankInstructions = BankTransferPayment::getInstructionsForOrder($this->order);
+            $bankInstructions = class_exists(\Extensions\PaymentBankTransfer\BankTransferPayment::class)
+                ? \Extensions\PaymentBankTransfer\BankTransferPayment::getInstructionsForOrder($this->order)
+                : null;
         }
 
         $this->order->loadMissing('products.product');

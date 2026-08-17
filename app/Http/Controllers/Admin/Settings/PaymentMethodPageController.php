@@ -3,28 +3,29 @@
 namespace App\Http\Controllers\Admin\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Models\BankAccount;
 use App\Models\OrderStatus;
 use App\Models\PaymentMethodRestriction;
 use App\Models\Setting;
 use App\Support\PaymentFamilies;
 use App\Support\PaymentRestrictionFormData;
-use Illuminate\Support\Facades\Crypt;
 
+/**
+ * The method page FRAMEWORK (core): tabs, display-name setting, and the
+ * Availability (restrictions) tab. The Configuration tab's content is the
+ * method extension's own view ("payment-{name}::config"); anything that
+ * view needs beyond this page's shared data (bank accounts, masked API
+ * keys) arrives via a view composer the extension registers. A family
+ * whose extension is not enabled 404s: its page does not exist, exactly
+ * like any other disabled extension's pages.
+ */
 class PaymentMethodPageController extends Controller
 {
-    private const ENCRYPTED_KEYS = [
-        'hitpay_sandbox_api_key',
-        'hitpay_sandbox_salt',
-        'hitpay_production_api_key',
-        'hitpay_production_salt',
-    ];
-
     public function show(string $method)
     {
-        abort_unless(array_key_exists($method, PaymentFamilies::LIST), 404);
+        $families = PaymentFamilies::enabledFamilies();
+        abort_unless(array_key_exists($method, $families), 404);
 
-        $meta = PaymentFamilies::LIST[$method];
+        $meta = $families[$method];
 
         $settings = ['payment' => []];
         foreach (Setting::where('group', 'payment')->get() as $s) {
@@ -38,36 +39,16 @@ class PaymentMethodPageController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'name']);
 
-        $maskedKeys = [];
-        if ($method === 'hitpay') {
-            foreach (self::ENCRYPTED_KEYS as $key) {
-                $encrypted = $settings['payment'][$key] ?? null;
-                if ($encrypted) {
-                    try {
-                        $plain = Crypt::decryptString($encrypted);
-                        $maskedKeys[$key] = str_repeat('*', max(0, strlen($plain) - 4)) . substr($plain, -4);
-                    } catch (\Throwable) {
-                        $maskedKeys[$key] = '********';
-                    }
-                }
-            }
-        }
-
-        $bankAccounts = $method === 'bank_transfer'
-            ? BankAccount::orderBy('sort_order')->orderBy('bank_name')->get()
-            : collect();
-
         $restriction = PaymentMethodRestriction::where('payment_method', $method)->first();
 
         return view('admin.settings.payments.show', [
             'method' => $method,
+            'configView' => $meta['extension'] . '::config',
             'name' => $name,
             'defaultName' => $meta['default_name'],
             'description' => $meta['description'],
             'settings' => $settings,
             'orderStatuses' => $orderStatuses,
-            'maskedKeys' => $maskedKeys,
-            'bankAccounts' => $bankAccounts,
             'restriction' => $restriction,
             ...PaymentRestrictionFormData::get(),
         ]);

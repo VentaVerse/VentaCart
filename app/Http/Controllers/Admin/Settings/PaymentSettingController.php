@@ -3,73 +3,34 @@
 namespace App\Http\Controllers\Admin\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Models\PaymentMethodRestriction;
-use App\Models\Setting;
-use App\Support\PaymentFamilies;
+use App\Services\ExtensionManager;
+use App\Support\ExtensionCard;
 
 class PaymentSettingController extends Controller
 {
+    /**
+     * The payment methods page, extension-driven (wave 2): every
+     * payment-category extension is a row with the standard button set
+     * (owner ruling 2026-08-18). Restrictions live in each method page's
+     * Availability tab, reached through Configure.
+     */
     public function index()
     {
-        $settings = [];
-        foreach (Setting::where('group', 'payment')->get() as $s) {
-            $settings[$s->key] = $s->value;
-        }
+        $manager = app(ExtensionManager::class);
 
-        $restrictions = PaymentMethodRestriction::where('is_active', true)
-            ->whereIn('payment_method', array_keys(PaymentFamilies::LIST))
-            ->get()
-            ->keyBy('payment_method');
+        $cards = $manager->discovered()
+            ->filter(fn (array $m) => ($m['type'] ?? '') === 'payment')
+            ->sortBy(fn (array $m) => $m['title'] ?? $m['name'])
+            ->values()
+            ->map(fn (array $manifest) => ExtensionCard::for($manifest, $manager));
 
-        $cards = [];
-        foreach (PaymentFamilies::LIST as $family => $meta) {
-            $restriction = $restrictions->get($family);
-            $displayName = $settings["{$family}_display_name"] ?? '';
-            $cards[] = [
-                'family' => $family,
-                'name' => !empty($displayName) ? $displayName : $meta['default_name'],
-                'description' => $meta['description'],
-                'enabled' => ($settings["{$family}_enabled"] ?? '0') === '1',
-                'restricted' => $restriction !== null,
-                'restriction_summary' => $restriction?->getConditionsSummary(),
-            ];
-        }
+        // The storefront cannot check out without at least one enabled
+        // payment method.
+        $noMethodEnabled = $cards->every(fn (array $c) => $c['state'] !== 'enabled');
 
-        $noMethodEnabled = collect($cards)->every(fn (array $c) => ! $c['enabled']);
-
-        return view('admin.settings.payments.index', compact('cards', 'noMethodEnabled'));
-    }
-
-    public function enable(string $family)
-    {
-        return $this->setEnabled($family, true);
-    }
-
-    public function disable(string $family)
-    {
-        return $this->setEnabled($family, false);
-    }
-
-    /**
-     * The standard row switch (owner ruling 2026-08-18: one button
-     * grammar on every listing — no anonymous toggles). {family}
-     * validates against PaymentFamilies::LIST so nothing else reaches
-     * a write.
-     */
-    private function setEnabled(string $family, bool $on)
-    {
-        abort_unless(array_key_exists($family, PaymentFamilies::LIST), 404);
-
-        Setting::updateOrCreate(
-            ['group' => 'payment', 'key' => "{$family}_enabled"],
-            ['value' => $on ? '1' : '0', 'type' => 'text'],
-        );
-
-        app(\App\Services\ThemeService::class)->clearCache();
-
-        $name = PaymentFamilies::LIST[$family]['default_name'];
-
-        return redirect()->route('admin.payment-settings.index')
-            ->with('success', $name . ($on ? ' enabled.' : ' disabled.'));
+        return view('admin.settings.payments.index', [
+            'cards' => $cards,
+            'noMethodEnabled' => $noMethodEnabled,
+        ]);
     }
 }

@@ -103,7 +103,7 @@
                                             @php
                                                 $bankAcct = null;
                                                 if (preg_match('/^bank_transfer_(\d+)$/', $order->payment_method, $m)) {
-                                                    $bankAcct = \App\Models\BankAccount::find((int) $m[1]);
+                                                    $bankAcct = class_exists(\Extensions\PaymentBankTransfer\Models\BankAccount::class) ? \Extensions\PaymentBankTransfer\Models\BankAccount::find((int) $m[1]) : null;
                                                 }
                                             @endphp
                                             @if ($bankAcct)

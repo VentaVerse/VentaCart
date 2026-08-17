@@ -14,7 +14,6 @@ use App\Http\Controllers\Storefront\AccountAddressController;
 use App\Http\Controllers\Storefront\OrderHistoryController;
 use App\Http\Controllers\Storefront\CheckoutController as StorefrontCheckoutController;
 use App\Http\Controllers\Storefront\CouponController as StorefrontCouponController;
-use App\Http\Controllers\Storefront\HitPayWebhookController;
 use App\Http\Controllers\Storefront\AddressLookupController as StorefrontAddressLookupController;
 use App\Http\Controllers\Storefront\DeepAddressLookupController;
 use App\Http\Controllers\Storefront\BrandController as StorefrontBrandController;
@@ -49,10 +48,8 @@ Route::delete('/cart/{cartItem}', [StorefrontCartController::class, 'remove'])->
 Route::delete('/cart', [StorefrontCartController::class, 'clear'])->name('cart.clear');
 Route::post('/cart/shipping-estimate', [StorefrontCartController::class, 'estimateShipping'])->name('cart.estimate-shipping');
 
-// HitPay webhook (no CSRF, no auth — signature-verified)
-Route::post('/hitpay/webhook', HitPayWebhookController::class)
-    ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class)
-    ->name('hitpay.webhook');
+// HitPay webhook moved to the payment-hitpay extension
+// (extensions/payment-hitpay/routes/web.php).
 
 // Checkout (authenticated customers)
 Route::middleware(['customer.auth', 'noindex'])->group(function () {

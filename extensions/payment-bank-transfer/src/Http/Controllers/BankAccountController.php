@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace Extensions\PaymentBankTransfer\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\BankAccount;
+use Extensions\PaymentBankTransfer\Models\BankAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,7 +11,7 @@ class BankAccountController extends Controller
 {
     public function create()
     {
-        return view('admin.settings.payments.create-bank-account');
+        return view('payment-bank-transfer::create-account');
     }
 
     public function store(Request $request)
@@ -45,7 +45,7 @@ class BankAccountController extends Controller
     {
         $bankAccounts = BankAccount::orderBy('sort_order')->get();
 
-        return view('admin.settings.payments.edit-bank-account', compact('bankAccount', 'bankAccounts'));
+        return view('payment-bank-transfer::edit-account', compact('bankAccount', 'bankAccounts'));
     }
 
     public function update(Request $request, BankAccount $bankAccount)

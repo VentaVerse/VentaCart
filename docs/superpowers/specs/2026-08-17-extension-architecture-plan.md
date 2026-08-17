@@ -59,13 +59,13 @@ To convert from app/:
 | stock-alerts | DONE (first conversion): waitlist + notified admin, storefront subscribe, stock:notify, stock:check-low | 1 |
 | abandoned-carts | DONE (second conversion): ops pages in Sales via manifest admin_nav, config (settings/rules/templates) under Extensions, cart:notify, template seeder, full v3 rebuild | 1 |
 | seo | 9-page space, AI suggestions + cron, redirects, 404s, Search Console, slugs, sitemap (+ /sitemap.xml route) | 1 |
-| payment-bank-transfer | bank accounts + QR config, checkout method | 2 |
-| payment-cod | COD method | 2 |
-| payment-hitpay | HitPay adapter + webhook | 2 |
-| shipping-flat-rate | flat rates | 2 |
-| shipping-weight-based | weight matrix methods | 2 |
-| shipping-free | free shipping + rules | 2 |
-| shipping-dhl | DHL rates | 2 |
+| payment-bank-transfer | DONE: method factory, accounts model/CRUD/QR, webhook-free, adopt-on-install | 2 |
+| payment-cod | DONE: method + config view | 2 |
+| payment-hitpay | DONE: method, webhook route + controller, masked-key composer | 2 |
+| shipping-flat-rate | DONE: provider, model, CRUD, adopt-on-install | 2 |
+| shipping-weight-based | DONE: provider, models, CRUD, pivots, adopt-on-install | 2 |
+| shipping-free | DONE: provider, rules model/CRUD, badge source (guarded core refs) | 2 |
+| shipping-dhl | DONE: provider, API service, credentials page | 2 |
 | reviews | moderation, storefront reviews, review:send, ERP review endpoint | 3 |
 | blog | posts + categories, storefront blog | 3 |
 | erp-sync | Erp* API endpoints, sync logs, token | 3 |
@@ -79,9 +79,14 @@ To convert from app/:
    manifests' admin_nav; config/admin-nav.php carries no extension rows).
    Registry merge is runtime, guarded, and cached; disabled extension =
    entries gone. This closes the last decoupling gap.
-2. **Typed provider contracts.** PaymentManager and ShippingQuoteService
-   accept providers registered by extensions (the CourierManager pattern,
-   which is the proven reference). Per-provider enable + sort order.
+2. **Typed provider contracts.** DONE (wave 2): PaymentManager and
+   ShippingQuoteService both carry the CourierManager-style sign-in
+   sheet; method extensions register from their providers (quote
+   providers with a chain sequence). Registration IS the enable: the
+   old *_enabled settings retired via continuity migrations. The
+   standard button set (Install / Uninstall / Enable-Disable /
+   Configure) renders on every listing through the shared
+   ExtensionCard + lifecycle-actions partial.
    Guardrail: the checkout settings page and dashboard warn when zero
    payment or shipping methods are enabled; disabling the last one is
    allowed but loudly stated (a store that cannot check out says so).
