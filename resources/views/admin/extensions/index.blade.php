@@ -1,8 +1,15 @@
-<x-admin3.shell title="Extensions">
+<x-admin3.shell :title="$heading">
     <div class="v3-head">
         <div class="v3-head__body">
-            <h1 class="v3-head__title">Extensions</h1>
-            <p class="v3-head__standing">Every packaged feature the platform ships, and its switch.</p>
+            @if ($heading !== 'Extensions')
+                <div class="v3-head__trail">
+                    <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                    <span aria-hidden="true">/</span>
+                    <span>{{ $heading }}</span>
+                </div>
+            @endif
+            <h1 class="v3-head__title">{{ $heading }}</h1>
+            <p class="v3-head__standing">{{ $standing }}</p>
         </div>
     </div>
 
@@ -25,6 +32,9 @@
                             @if (!empty($module['description']))<x-admin3.help :text="$module['description']" />@endif
                         </span>
                     </span>
+                    @if ($showCategory)
+                        <span class="v3-dir__cat">{{ $module['category'] }}</span>
+                    @endif
                     @if ($module['kind'] === 'extension')
                         <span class="v3-dir__state">
                             <span class="v3-badge {{ ($module['state_tone'] ?? '') === 'success' ? 'v3-badge--good' : (($module['state_tone'] ?? '') === 'warning' ? 'v3-badge--warn' : (($module['state_tone'] ?? '') === 'danger' ? 'v3-badge--bad' : 'v3-badge--quiet')) }}">{{ $module['state_label'] }}</span>

@@ -555,6 +555,14 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-dir__card--static:hover { background: var(--v3-surface); }
 .v3-dir__body { flex: 1; min-width: 0; }
 .v3-dir__state { flex-shrink: 0; margin-right: 6px; }
+.v3-dir__cat { flex-shrink: 0; margin-right: 14px; font-size: 11px; font-weight: 620; color: var(--v3-ink-3); text-transform: uppercase; letter-spacing: .05em; }
+@media (max-width: 719px) {
+    /* Name takes the first line whole; category, state, and actions
+       settle onto their own line instead of colliding with it. */
+    .v3-dir__card--static { flex-wrap: wrap; }
+    .v3-dir__card--static .v3-dir__body { flex-basis: calc(100% - 49px); }
+    .v3-dir__card--static .v3-actrow { margin-left: auto; }
+}
 
 /* --- Theme page: color wells, swatches, drag rows -------------- */
 

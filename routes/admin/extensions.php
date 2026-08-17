@@ -23,6 +23,9 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('extensions')->group(function () {
     // The directory + lifecycle (install/enable/disable; uninstall stays route-only)
     Route::get('/', [ExtensionsController::class, 'index'])->name('extensions.index');
+    // The Modules category (literal, so it must never collide with an
+    // extension mount: 'modules' is a reserved extension name).
+    Route::get('/modules', [ExtensionsController::class, 'modules'])->name('extensions.modules');
     Route::post('/features/{feature}/enable', [ExtensionsController::class, 'featureEnable'])->name('extensions.feature-enable');
     Route::post('/features/{feature}/disable', [ExtensionsController::class, 'featureDisable'])->name('extensions.feature-disable');
     Route::post('/{name}/install', [ExtensionsController::class, 'install'])->name('extensions.install');

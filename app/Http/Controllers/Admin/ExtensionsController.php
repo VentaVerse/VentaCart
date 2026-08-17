@@ -37,7 +37,46 @@ class ExtensionsController extends Controller
     {
     }
 
+    /**
+     * Manifest type => directory category (owner ruling 2026-08-18,
+     * mirroring OpenCart's typed extension views): Payments and Shipping
+     * are the typed categories with working pages of their own; Modules
+     * is everything else — the features a store could live without.
+     * Unknown types land in Modules so a new type is never invisible.
+     */
+    private const CATEGORY_BY_TYPE = [
+        'feature' => 'Modules',
+        'courier' => 'Shipping',
+        'shipping' => 'Shipping',
+        'payment' => 'Payments',
+    ];
+
     public function index()
+    {
+        return view('admin.extensions.index', [
+            'modules' => $this->cards(),
+            'heading' => 'Extensions',
+            'standing' => 'Every packaged feature the platform ships, and its switch.',
+            'showCategory' => true,
+        ]);
+    }
+
+    /**
+     * The Modules category: the residual bucket beside the typed Payments
+     * and Shipping pages. Same rows, same lifecycle actions — only the
+     * scope narrows.
+     */
+    public function modules()
+    {
+        return view('admin.extensions.index', [
+            'modules' => $this->cards()->filter(fn (array $m) => $m['category'] === 'Modules')->values(),
+            'heading' => 'Modules',
+            'standing' => 'Features beyond payments and shipping, and their switches.',
+            'showCategory' => false,
+        ]);
+    }
+
+    private function cards(): \Illuminate\Support\Collection
     {
         $automations = Automation::whereIn('key', ['seo_generate'])->get()->keyBy('key');
 
@@ -54,6 +93,7 @@ class ExtensionsController extends Controller
         $coreFeatures = [
             [
                 'kind' => 'core',
+                'category' => 'Modules',
                 'key' => 'seo',
                 'name' => 'SEO',
                 'title' => 'SEO',
@@ -70,16 +110,12 @@ class ExtensionsController extends Controller
         // is a core feature of the platform; the filesystem distinction
         // (extensions/ with lifecycle vs app/ with a master switch) shows
         // only in which actions a row offers, never as separate sections.
-        $modules = $this->manager->discovered()
+        return $this->manager->discovered()
             ->map(fn (array $manifest) => $this->extensionCard($manifest))
             ->values()
             ->concat($coreFeatures)
             ->sortBy(fn (array $m) => $m['title'])
             ->values();
-
-        return view('admin.extensions.index', [
-            'modules' => $modules,
-        ]);
     }
 
     public function install(string $name): RedirectResponse
@@ -202,6 +238,7 @@ class ExtensionsController extends Controller
 
         return [
             'kind' => 'extension',
+            'category' => self::CATEGORY_BY_TYPE[$manifest['type'] ?? 'feature'] ?? 'Modules',
             'name' => $name,
             'title' => $manifest['title'] ?? $name,
             'description' => $manifest['description'] ?? '',

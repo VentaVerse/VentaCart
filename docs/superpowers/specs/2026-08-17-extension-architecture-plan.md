@@ -90,15 +90,23 @@ To convert from app/:
    and adopt, never recreate; fresh installs create cleanly. No one-off
    data migrations shipped (standing rule).
 4. **The Extensions menu.** New top-level nav group "Extensions" in the
-   classic sidebar (between Marketing and Settings), with THREE
-   children (owner ruling: couriers are part of shipping):
-   All Extensions (the directory, relocated out of Settings),
-   Payments, and Shipping (rate methods section + couriers section).
-   Individual extensions never get menu items; only typed categories
-   do, so the menu never sprawls. Feature extensions (Blog, SEO,
-   Reviews...) appear as directory rows only, their operations in the
-   work nav. Settings goes back to being the website's core settings
-   only. Crossings by labeled buttons both ways.
+   classic sidebar (between Marketing and Settings), with FOUR
+   children (owner rulings: couriers are part of shipping; 2026-08-18
+   added the residual category): All Extensions (the full rundown with
+   each row's category named), Modules (the residual category page,
+   OpenCart's word for everything that is not a payment or shipping
+   concern; manifest type drives the mapping: feature -> Modules,
+   courier/shipping -> Shipping, payment -> Payments), Payments, and
+   Shipping (rate methods section + couriers section). Categories the
+   references carry that Venta deliberately does NOT: captcha (core,
+   Cloudflare Turnstile in Settings > Security), feeds/analytics
+   (core settings). Individual extensions never get menu items; only
+   typed categories do, so the menu never sprawls. Feature extensions
+   (Blog, SEO, Reviews...) appear as directory rows only, their
+   operations in the work nav. Settings goes back to being the
+   website's core settings only. Crossings by labeled buttons both
+   ways. 'modules' is a reserved extension name (the category page's
+   URL segment).
 5. **Rename.** Modules -> Extensions everywhere in UI (page titles, nav
    labels, breadcrumbs, hub cards). Route names migrate
    (admin.modules.* -> admin.extensions.*) with redirects; tests repin.

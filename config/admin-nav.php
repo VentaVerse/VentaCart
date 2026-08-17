@@ -84,7 +84,8 @@ return [
             // child segment); activeItemKey() lights a group's first item
             // at its root URL. Typed category children (Payments, Shipping)
             // join as their pages re-home (wave 0 pieces 2b/2c).
-            ['key' => 'all', 'label' => 'All Extensions', 'route' => 'admin.extensions.index', 'icon' => 'modules', 'permission' => null, 'keywords' => ['extensions', 'plugins', 'modules', 'install']],
+            ['key' => 'all', 'label' => 'All Extensions', 'route' => 'admin.extensions.index', 'icon' => 'modules', 'permission' => null, 'keywords' => ['extensions', 'plugins', 'install']],
+            ['key' => 'modules', 'label' => 'Modules', 'route' => 'admin.extensions.modules', 'icon' => 'modules', 'permission' => null, 'keywords' => ['modules', 'features', 'banners', 'seo', 'stock alerts', 'abandoned carts']],
             ['key' => 'payments', 'label' => 'Payments', 'route' => 'admin.payment-settings.index', 'icon' => 'payments', 'permission' => null, 'keywords' => ['bank transfer', 'cod', 'hitpay', 'gateway', 'restrictions']],
             ['key' => 'shipping', 'label' => 'Shipping', 'route' => 'admin.shipping-settings.index', 'icon' => 'shipping', 'permission' => null, 'keywords' => ['rates', 'flat rate', 'weight', 'free shipping', 'dhl', 'couriers']],
         ],
