@@ -324,7 +324,12 @@ class SettingController extends Controller
 
     public function testDhl()
     {
-        $service = new \App\Services\DhlExpressService();
+        // Guarded: the service lives in the shipping-dhl extension.
+        if (! class_exists(\Extensions\ShippingDhl\DhlExpressService::class)) {
+            return $this->dhlResult(false, 'The DHL extension is not enabled.');
+        }
+
+        $service = new \Extensions\ShippingDhl\DhlExpressService();
 
         if (!$service->isConfigured()) {
             return $this->dhlResult(false, 'DHL credentials not configured. Save them first.');

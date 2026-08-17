@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\FreeShippingRule;
 use App\Models\Product;
 use Illuminate\Support\Facades\Cache;
 
@@ -161,7 +160,14 @@ class BadgeService
     private function getFreeShippingBadgeRules()
     {
         return Cache::remember('free_shipping_badge_rules', 3600, function () {
-            return FreeShippingRule::where('is_active', true)
+            // Guarded: the model lives in the shipping-free extension;
+            // no extension, no free shipping badges.
+            if (! class_exists(\Extensions\ShippingFree\Models\FreeShippingRule::class)
+                || ! \Illuminate\Support\Facades\Schema::hasTable('free_shipping_rules')) {
+                return collect();
+            }
+
+            return \Extensions\ShippingFree\Models\FreeShippingRule::where('is_active', true)
                 ->where('show_badge', true)
                 ->get();
         });

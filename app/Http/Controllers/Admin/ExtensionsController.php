@@ -21,8 +21,8 @@ class ExtensionsController extends Controller
      * ExtensionManager's own lifecycle methods would either throw
      * (ModelNotFoundException from enable()/disable()'s firstOrFail()) or,
      * worse, silently do the wrong thing; neither is a good admin-facing
-     * failure mode. The Modules page never renders a button for a
-     * disallowed transition (see extensionCard()/actionsForState() below),
+     * failure mode. No listing renders a button for a disallowed
+     * transition (see App\Support\ExtensionCard::actionsForState()),
      * so hitting this branch means the request didn't come from the
      * rendered form — a forged/stale request, not a real user flow.
      */
@@ -36,21 +36,6 @@ class ExtensionsController extends Controller
     public function __construct(protected ExtensionManager $manager)
     {
     }
-
-    /**
-     * Manifest type => directory category (owner ruling 2026-08-18,
-     * mirroring OpenCart's typed extension views): Payments and Shipping
-     * are the typed categories with working pages of their own; Modules
-     * is everything else — the features a store could live without.
-     * Unknown types land in Modules so a new type is never invisible.
-     */
-    private const CATEGORY_BY_TYPE = [
-        'feature' => 'Modules',
-        'courier' => 'Shipping',
-        'shipping' => 'Shipping',
-        'payment' => 'Payments',
-        'theme' => 'Themes',
-    ];
 
     public function index()
     {
@@ -112,7 +97,7 @@ class ExtensionsController extends Controller
         // (extensions/ with lifecycle vs app/ with a master switch) shows
         // only in which actions a row offers, never as separate sections.
         return $this->manager->discovered()
-            ->map(fn (array $manifest) => $this->extensionCard($manifest))
+            ->map(fn (array $manifest) => \App\Support\ExtensionCard::for($manifest, $this->manager))
             ->values()
             ->concat($coreFeatures)
             ->sortBy(fn (array $m) => $m['title'])
@@ -223,69 +208,4 @@ class ExtensionsController extends Controller
         return redirect()->route('admin.extensions.index')->with('success', $message);
     }
 
-    private function extensionCard(array $manifest): array
-    {
-        $name = $manifest['name'];
-        $state = $this->manager->state($name);
-        $registryRow = $this->manager->registry()->get($name);
-
-        $stateMeta = [
-            'not_installed' => ['label' => 'Not installed', 'tone' => 'neutral'],
-            'enabled' => ['label' => 'Enabled', 'tone' => 'success'],
-            'disabled' => ['label' => 'Disabled', 'tone' => 'neutral'],
-            'needs_migration' => ['label' => 'Update available', 'tone' => 'warning'],
-            'missing_files' => ['label' => 'Missing files', 'tone' => 'danger'],
-        ][$state];
-
-        return [
-            'kind' => 'extension',
-            'category' => self::CATEGORY_BY_TYPE[$manifest['type'] ?? 'feature'] ?? 'Modules',
-            'name' => $name,
-            'title' => $manifest['title'] ?? $name,
-            'description' => $manifest['description'] ?? '',
-            'icon' => $manifest['icon'] ?? 'categories',
-            'version' => $registryRow->version ?? ($manifest['version'] ?? null),
-            'state' => $state,
-            'state_label' => $stateMeta['label'],
-            'state_tone' => $stateMeta['tone'],
-            'actions' => self::actionsForState($state),
-            'configure' => $state === 'enabled' ? $this->configureUrl($manifest, $name) : null,
-        ];
-    }
-
-    /**
-     * The Modules page's "Configure" link target for an enabled extension.
-     *
-     * Prefers an explicit `configure_route` in extension.json — needed for
-     * any extension (courier-fulfillment included) whose main admin surface
-     * is an *operational* page at a frozen route name that doesn't match
-     * the "admin.{name}.index" convention (its queue lives under Sales, at
-     * admin.fulfillment.index — "Configure" on this card means the
-     * SETTINGS page, admin.fulfillment.settings, not that queue). Falls
-     * back to the original "admin.{name}.index" convention — the settings/
-     * modules/{name} mount convention banners established pre-kernel —
-     * for every extension that doesn't need the override. Route::has()
-     * guards both branches so a manifest typo or an extension whose
-     * provider hasn't booted yet just hides the link rather than 500ing.
-     */
-    private function configureUrl(array $manifest, string $name): ?string
-    {
-        $route = $manifest['configure_route'] ?? "admin.{$name}.index";
-
-        return Route::has($route) ? route($route) : null;
-    }
-
-    private static function actionsForState(string $state): array
-    {
-        return match ($state) {
-            'not_installed' => ['install'],
-            'enabled' => ['disable', 'uninstall'],
-            'disabled' => ['enable', 'uninstall'],
-            'needs_migration' => ['install', 'uninstall'],
-            // missing_files: manifest is gone, so discovered() won't
-            // validate any action against it anyway (see runLifecycle's
-            // docblock) — no button would be actionable, so none is shown.
-            default => [],
-        };
-    }
 }

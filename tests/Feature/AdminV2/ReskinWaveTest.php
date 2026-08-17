@@ -19,9 +19,9 @@ use App\Models\Customer;
 use App\Models\CustomerActivity;
 use App\Models\CustomerGroup;
 use App\Models\EmailTemplate;
-use App\Models\FlatShippingRate;
+use Extensions\ShippingFlatRate\Models\FlatShippingRate;
 use App\Models\FooterColumn;
-use App\Models\FreeShippingRule;
+use Extensions\ShippingFree\Models\FreeShippingRule;
 use App\Models\GeoZone;
 use App\Models\HomepageSection;
 use App\Models\NavMenuItem;
@@ -38,7 +38,7 @@ use App\Models\ShippingCourier;
 use App\Models\Store;
 use App\Models\Tag;
 use App\Models\User;
-use App\Models\WeightBasedMethod;
+use Extensions\ShippingWeightBased\Models\WeightBasedMethod;
 use App\Models\Zone;
 use Extensions\Banners\Models\Banner;
 use Extensions\Banners\Models\BannerGroup;
@@ -623,6 +623,11 @@ class ReskinWaveTest extends TestCase
     public function test_marketing_and_child_forms_render_in_new_shell(): void
     {
         $this->actingAs(User::factory()->create());
+        $manager = app(\App\Services\ExtensionManager::class);
+        foreach (['shipping-flat-rate', 'shipping-weight-based', 'shipping-free'] as $name) {
+            $manager->install($name);
+        }
+        $manager->bootEnabled();
 
         $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
         $geoZone = GeoZone::create(['name' => 'Metro Manila', 'is_active' => true]);

@@ -13,19 +13,41 @@ class ShippingQuoteService
      */
     private static array $context = [];
 
+    /**
+     * The chain's sign-in sheet (mirror of PaymentManager / CourierManager).
+     * Method extensions register their quote provider from their service
+     * providers with a sequence; the chain evaluates in sequence order, so
+     * free shipping (10) is always consulted before the paid methods it can
+     * replace. A repo-wide search for calls to register() enumerates every
+     * shipping method.
+     *
+     * @var array<class-string<ShippingProviderInterface>, int> class => sequence
+     */
+    private static array $registered = [];
+
     public static function getContext(): array
     {
         return static::$context;
     }
 
+    public static function register(string $class, int $sequence): void
+    {
+        self::$registered[$class] = $sequence;
+    }
+
+    /** @return ShippingProviderInterface[] in chain (sequence) order */
     public function getProviders(): array
     {
-        return [
-            new FreeShippingRuleProvider(),
-            new WeightBasedShippingProvider(),
-            new FlatRateShippingProvider(),
-            new DhlShippingProvider(),
-        ];
+        $classes = self::$registered;
+        asort($classes);
+
+        return array_map(fn (string $class) => new $class(), array_keys($classes));
+    }
+
+    /** Test hook. */
+    public static function reset(): void
+    {
+        self::$registered = [];
     }
 
     /**

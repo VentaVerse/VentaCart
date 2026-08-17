@@ -14,47 +14,24 @@
             </div>
         @endif
 
-        {{-- The standard row (owner ruling 2026-08-18): Enable/Disable and
-             Configure, no anonymous toggles. Free Shipping has no switch
-             (its "on" state is any active rule), so its row says that
-             instead. These methods gain Install/Uninstall when wave 2
-             turns them into extensions. --}}
+        {{-- Every row is an extension wearing the standard button set
+             (wave 2): the four rate methods in chain order, then
+             Fulfillment as the courier hub. --}}
         <div class="v3-dir">
-            @foreach ($chain as $i => $provider)
+            @foreach ($chain as $i => $module)
                 <div class="v3-dir__card v3-dir__card--static">
-                    <span class="v3-dir__ico v3-mono">{{ $i + 1 }}</span>
+                    @if ($module['name'] === 'courier-fulfillment')
+                        <span class="v3-dir__ico"><x-admin3.icon name="package" /></span>
+                    @else
+                        <span class="v3-dir__ico v3-mono">{{ $i + 1 }}</span>
+                    @endif
                     <span class="v3-dir__body">
-                        <span class="v3-dir__name">{{ $provider['label'] }}</span>
-                        <span class="v3-dir__line v3-block">{{ $provider['description'] }} {{ $provider['summary'] ? '· ' . $provider['summary'] : '' }}</span>
+                        <span class="v3-dir__name">{{ $module['title'] }}</span>
+                        <span class="v3-dir__line v3-block">{{ $module['description'] }} {{ $module['summary'] ? '· ' . $module['summary'] : '' }}</span>
                     </span>
-                    <span class="v3-actrow">
-                        @if ($provider['settingKey'])
-                            <form method="POST" action="{{ route($provider['active'] ? 'admin.shipping-settings.disable' : 'admin.shipping-settings.enable', $provider['id']) }}">
-                                @csrf
-                                <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">{{ $provider['active'] ? 'Disable' : 'Enable' }}</button>
-                            </form>
-                        @endif
-                        <a href="{{ $provider['route'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
-                    </span>
+                    @include('admin.extensions.partials.lifecycle-actions')
                 </div>
             @endforeach
-            @if ($fulfillment)
-                {{-- The couriers, joined with the rest as their one
-                     extension (owner ruling): Fulfillment is the module;
-                     QuadX, SPX, and LBC separate inside its settings. Its
-                     lifecycle buttons live on the Extensions directory;
-                     here it is one chain row like the rest. --}}
-                <div class="v3-dir__card v3-dir__card--static">
-                    <span class="v3-dir__ico"><x-admin3.icon name="package" /></span>
-                    <span class="v3-dir__body">
-                        <span class="v3-dir__name">{{ $fulfillment['name'] }}</span>
-                        <span class="v3-dir__line v3-block">Couriers the fulfillment queue books with. {{ $fulfillment['summary'] }}</span>
-                    </span>
-                    <span class="v3-actrow">
-                        <a href="{{ $fulfillment['url'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
-                    </span>
-                </div>
-            @endif
         </div>
 
         <div class="v3-gap-lg">

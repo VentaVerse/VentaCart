@@ -1,0 +1,12 @@
+{
+    "name": "shipping-dhl",
+    "title": "DHL Express",
+    "version": "1.0.0",
+    "description": "International shipments via the DHL Express API.",
+    "provider": "Extensions\\ShippingDhl\\ShippingDhlServiceProvider",
+    "icon": "shipping",
+    "type": "shipping",
+    "chain_sequence": 40,
+    "quote_key": "dhl",
+    "configure_route": "admin.shipping-settings.dhl"
+}

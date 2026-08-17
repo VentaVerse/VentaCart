@@ -1,0 +1,12 @@
+{
+    "name": "shipping-flat-rate",
+    "title": "Flat Rate",
+    "version": "1.0.0",
+    "description": "Fixed-cost shipping methods with custom names.",
+    "provider": "Extensions\\ShippingFlatRate\\ShippingFlatRateServiceProvider",
+    "icon": "shipping",
+    "type": "shipping",
+    "chain_sequence": 30,
+    "quote_key": "flat_rate",
+    "configure_route": "admin.shipping-settings.flat-rate"
+}

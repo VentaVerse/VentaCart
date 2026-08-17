@@ -3,11 +3,8 @@
 use App\Http\Controllers\Admin\ExtensionsController;
 use App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController;
 use App\Http\Controllers\Admin\Settings\BankAccountController;
-use App\Http\Controllers\Admin\Settings\FlatRateController;
-use App\Http\Controllers\Admin\Settings\FreeShippingRuleController;
 use App\Http\Controllers\Admin\Settings\ShippingSettingController;
 use App\Http\Controllers\Admin\Settings\ShippingTestController;
-use App\Http\Controllers\Admin\Settings\WeightBasedMethodController;
 use App\Http\Controllers\Admin\Settings\PaymentMethodPageController;
 use App\Http\Controllers\Admin\Settings\PaymentRestrictionController;
 use App\Http\Controllers\Admin\Settings\PaymentSettingController;
@@ -98,49 +95,10 @@ Route::prefix('extensions')->group(function () {
         Route::get('/', [ShippingSettingController::class, 'index'])->name('shipping-settings.index');
         Route::post('/test', ShippingTestController::class)->name('shipping-settings.test');
 
-        // The standard row switch, constrained to providers that have one.
-        Route::post('/{provider}/enable', [ShippingSettingController::class, 'enable'])
-            ->whereIn('provider', ['weight-based', 'flat-rate', 'dhl'])
-            ->name('shipping-settings.enable');
-        Route::post('/{provider}/disable', [ShippingSettingController::class, 'disable'])
-            ->whereIn('provider', ['weight-based', 'flat-rate', 'dhl'])
-            ->name('shipping-settings.disable');
 
-        // Per-provider configuration pages (each provider in the
-        // ShippingQuoteService chain gets its own page; the index above is
-        // now a provider list only). Literal, so no conflict with the
-        // deeper '/free-rules', '/flat-rates/*', '/weight-based/*' child
-        // CRUD routes registered below.
-        Route::get('/free-shipping', [ShippingSettingController::class, 'freeShipping'])->name('shipping-settings.free-shipping');
-        Route::get('/weight-based', [ShippingSettingController::class, 'weightBased'])->name('shipping-settings.weight-based');
-        Route::get('/flat-rate', [ShippingSettingController::class, 'flatRate'])->name('shipping-settings.flat-rate');
-        Route::get('/dhl', [ShippingSettingController::class, 'dhl'])->name('shipping-settings.dhl');
-
-        // Route name stays 'free-shipping-rules.*' (frozen); URI segment is
-        // 'free-rules' per the grammar map.
-        Route::resource('free-rules', FreeShippingRuleController::class)
-            ->except(['show'])
-            ->parameters(['free-rules' => 'freeShippingRule'])
-            ->names('free-shipping-rules');
-        Route::post('/free-rules/{freeShippingRule}/toggle', [FreeShippingRuleController::class, 'toggleActive'])->name('free-shipping-rules.toggle');
-
-        Route::get('/flat-rates/create', [FlatRateController::class, 'create'])->name('flat-rates.create');
-        Route::post('/flat-rates', [FlatRateController::class, 'store'])->name('flat-rates.store');
-        Route::get('/flat-rates/{flatRate}/edit', [FlatRateController::class, 'edit'])->name('flat-rates.edit');
-        Route::put('/flat-rates/{flatRate}', [FlatRateController::class, 'update'])->name('flat-rates.update');
-        Route::delete('/flat-rates/{flatRate}', [FlatRateController::class, 'destroy'])->name('flat-rates.destroy');
-
-        // Route name stays 'weight-based-methods.*' (frozen); URI segment is
-        // 'weight-based' per the grammar map. 'bulk' must precede the
-        // {weightBasedMethod} PUT route below it, exactly as in the
-        // pre-split file, or it would be captured as an id.
-        Route::get('/weight-based/create', [WeightBasedMethodController::class, 'create'])->name('weight-based-methods.create');
-        Route::post('/weight-based', [WeightBasedMethodController::class, 'store'])->name('weight-based-methods.store');
-        Route::put('/weight-based/bulk', [WeightBasedMethodController::class, 'bulkUpdate'])->name('weight-based-methods.bulk-update');
-        Route::get('/weight-based/{weightBasedMethod}/edit', [WeightBasedMethodController::class, 'edit'])->name('weight-based-methods.edit');
-        Route::put('/weight-based/{weightBasedMethod}', [WeightBasedMethodController::class, 'update'])->name('weight-based-methods.update');
-        Route::post('/weight-based/{weightBasedMethod}/duplicate', [WeightBasedMethodController::class, 'duplicate'])->name('weight-based-methods.duplicate');
-        Route::delete('/weight-based/{weightBasedMethod}', [WeightBasedMethodController::class, 'destroy'])->name('weight-based-methods.destroy');
+        // Per-provider pages and CRUD moved into the four shipping method
+        // extensions (extensions/shipping-*/routes/web.php). Route names
+        // frozen there.
     });
 
 });

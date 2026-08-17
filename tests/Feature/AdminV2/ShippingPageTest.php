@@ -4,13 +4,13 @@ namespace Tests\Feature\AdminV2;
 
 use App\Models\Country;
 use App\Models\CustomerGroup;
-use App\Models\FlatShippingRate;
-use App\Models\FreeShippingRule;
+use Extensions\ShippingFlatRate\Models\FlatShippingRate;
+use Extensions\ShippingFree\Models\FreeShippingRule;
 use App\Models\GeoZone;
 use App\Models\Setting;
 use App\Models\Store;
 use App\Models\User;
-use App\Models\WeightBasedMethod;
+use Extensions\ShippingWeightBased\Models\WeightBasedMethod;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
 use Tests\TestCase;
@@ -18,6 +18,19 @@ use Tests\TestCase;
 class ShippingPageTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Wave 2: the four rate methods are extensions; their pages and
+        // providers exist only while installed and enabled.
+        $manager = app(\App\Services\ExtensionManager::class);
+        foreach (['shipping-free', 'shipping-weight-based', 'shipping-flat-rate', 'shipping-dhl'] as $name) {
+            $manager->install($name);
+        }
+        $manager->bootEnabled();
+    }
 
     /**
      * The Origin card is gone: the store's pickup origin moved into the
@@ -107,6 +120,12 @@ class ShippingPageTest extends TestCase
             ['group' => 'shipping', 'key' => 'dhl_password'],
             ['value' => Crypt::encryptString('secretpass')]
         );
+        // The summary now reports DhlExpressService::isConfigured(), which
+        // requires the account number too (what quoting actually needs).
+        Setting::updateOrCreate(
+            ['group' => 'shipping', 'key' => 'dhl_account_number'],
+            ['value' => '123456789']
+        );
 
         $response = $this->get(route('admin.shipping-settings.index'));
 
@@ -127,33 +146,29 @@ class ShippingPageTest extends TestCase
     }
 
     /**
-     * The standard row (owner ruling 2026-08-18): each switchable provider
-     * posts to its own enable/disable endpoint — no batched toggles. Free
-     * Shipping has no switch (rule-driven), so no endpoint renders for it.
+     * The standard row (owner rulings 2026-08-18): every method is an
+     * extension row wearing the lifecycle button set — Uninstall,
+     * Enable/Disable, Configure — including Free Shipping and the
+     * Fulfillment hub. No toggles, no per-method switch endpoints.
      */
-    public function test_provider_rows_carry_the_standard_switch(): void
+    public function test_provider_rows_carry_the_standard_lifecycle_set(): void
     {
         $this->actingAs(User::factory()->create());
 
         $page = $this->get(route('admin.shipping-settings.index'))->assertOk();
-        $page->assertSee(route('admin.shipping-settings.enable', 'weight-based'), false);
-        $page->assertSee(route('admin.shipping-settings.enable', 'flat-rate'), false);
-        $page->assertSee(route('admin.shipping-settings.enable', 'dhl'), false);
+        foreach (['shipping-free', 'shipping-weight-based', 'shipping-flat-rate', 'shipping-dhl'] as $name) {
+            $page->assertSee(route('admin.extensions.disable', $name), false);
+            $page->assertSee(route('admin.extensions.uninstall', $name), false);
+        }
         $page->assertDontSee('v3-toggle', false);
 
-        $this->post(route('admin.shipping-settings.enable', 'flat-rate'))
-            ->assertRedirect(route('admin.shipping-settings.index'));
+        $this->post(route('admin.extensions.disable', 'shipping-flat-rate'))
+            ->assertRedirect(route('admin.extensions.index'));
 
-        $this->assertDatabaseHas('settings', ['group' => 'shipping', 'key' => 'flat_rate_enabled', 'value' => '1']);
+        $this->assertDatabaseHas('extensions', ['name' => 'shipping-flat-rate', 'enabled' => false]);
 
         $this->get(route('admin.shipping-settings.index'))
-            ->assertSee(route('admin.shipping-settings.disable', 'flat-rate'), false);
-
-        $this->post(route('admin.shipping-settings.disable', 'flat-rate'));
-        $this->assertDatabaseHas('settings', ['group' => 'shipping', 'key' => 'flat_rate_enabled', 'value' => '0']);
-
-        $refused = $this->post('/'.config('admin.prefix', 'admin').'/extensions/shipping/free-shipping/enable');
-        $this->assertGreaterThanOrEqual(400, $refused->status());
+            ->assertSee(route('admin.extensions.enable', 'shipping-flat-rate'), false);
     }
 
     // ==================== Per-provider pages ====================

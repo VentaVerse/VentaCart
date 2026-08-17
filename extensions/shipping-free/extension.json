@@ -1,0 +1,12 @@
+{
+    "name": "shipping-free",
+    "title": "Free Shipping",
+    "version": "1.0.0",
+    "description": "Waives shipping cost automatically when a rule's conditions are met.",
+    "provider": "Extensions\\ShippingFree\\ShippingFreeServiceProvider",
+    "icon": "shipping",
+    "type": "shipping",
+    "chain_sequence": 10,
+    "quote_key": "free_shipping",
+    "configure_route": "admin.shipping-settings.free-shipping"
+}

@@ -4,34 +4,13 @@ namespace App\Http\Controllers\Admin\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Models\Country;
-use App\Models\CustomerGroup;
-use App\Models\FlatShippingRate;
-use App\Models\FreeShippingRule;
-use App\Models\GeoZone;
-use App\Models\Setting;
-use App\Models\WeightBasedMethod;
-use Illuminate\Support\Facades\Crypt;
+use App\Services\ExtensionManager;
+use App\Services\Shipping\ShippingQuoteService;
+use App\Support\ExtensionCard;
 use Illuminate\Support\Str;
 
 class ShippingSettingController extends Controller
 {
-    private const ENCRYPTED_KEYS = [
-        'dhl_site_id',
-        'dhl_password',
-    ];
-
-    /**
-     * Chain providers with a real on/off switch, by their URL id (free
-     * shipping is rule-driven and deliberately absent). The standard row
-     * switch (owner ruling 2026-08-18: one button grammar on every
-     * listing — no anonymous toggles) validates against this map.
-     */
-    private const TOGGLABLE = [
-        'weight-based' => ['weight_based_enabled', 'Weight Based'],
-        'flat-rate' => ['flat_rate_enabled', 'Flat Rate'],
-        'dhl' => ['dhl_enabled', 'DHL'],
-    ];
-
     // Legacy '?tab=<slug>' deep links into the old single-page layout — each
     // now has its own dedicated provider page (see routes/admin/settings.php).
     private const TAB_REDIRECTS = [
@@ -53,167 +32,62 @@ class ShippingSettingController extends Controller
             return redirect()->route(self::TAB_REDIRECTS[$tab], [], 301);
         }
 
-        $settings = $this->loadSettings();
+        // The chain, extension-driven (wave 2): every shipping-category
+        // extension is a row with the standard button set, ordered by its
+        // manifest chain_sequence (the quote chain's real evaluation
+        // order; Fulfillment sits last as the courier hub). An enabled
+        // extension's registered provider contributes its one-line
+        // summary; anything else shows its manifest description only.
+        $manager = app(ExtensionManager::class);
+        $providersByKey = collect(app(ShippingQuoteService::class)->getProviders())
+            ->keyBy(fn ($p) => $p->getKey());
 
-        $freeShippingActiveCount = FreeShippingRule::where('is_active', true)->count();
-        $weightTierCount = WeightBasedMethod::withCount('rates')->get()->sum('rates_count');
-        $flatRateCount = FlatShippingRate::count();
-        $dhlConfigured = !empty($settings['shipping']['dhl_site_id']) && !empty($settings['shipping']['dhl_password']);
+        $chain = $manager->discovered()
+            ->filter(fn (array $m) => ($m['type'] ?? '') === 'shipping')
+            ->sortBy(fn (array $m) => $m['chain_sequence'] ?? 100)
+            ->values()
+            ->map(function (array $manifest) use ($manager, $providersByKey) {
+                $card = ExtensionCard::for($manifest, $manager);
+                $provider = $providersByKey->get($manifest['quote_key'] ?? '');
+                $card['summary'] = ($provider && method_exists($provider, 'adminSummary'))
+                    ? $provider->adminSummary()
+                    : null;
+                $card['chain_sequence'] = $manifest['chain_sequence'] ?? 100;
 
-        // Real evaluation order from ShippingQuoteService::getProviders() —
-        // free shipping has no enable setting (its "on" state is any active
-        // rule) so it carries no settingKey and the view renders no toggle
-        // for it.
-        $chain = [
-            [
-                'id' => 'free-shipping',
-                'label' => 'Free Shipping',
-                'description' => 'Waives shipping cost automatically when a rule\'s conditions are met.',
-                'settingKey' => null,
-                'active' => $freeShippingActiveCount > 0,
-                'summary' => $freeShippingActiveCount . ' active ' . Str::plural('rule', $freeShippingActiveCount),
-                'route' => route('admin.shipping-settings.free-shipping'),
-            ],
-            [
-                'id' => 'weight-based',
-                'label' => 'Weight Based',
-                'description' => 'Cost tiers based on cart weight.',
-                'settingKey' => 'weight_based_enabled',
-                'active' => ($settings['shipping']['weight_based_enabled'] ?? '0') === '1',
-                'summary' => $weightTierCount . ' rate ' . Str::plural('tier', $weightTierCount),
-                'route' => route('admin.shipping-settings.weight-based'),
-            ],
-            [
-                'id' => 'flat-rate',
-                'label' => 'Flat Rate',
-                'description' => 'Fixed-cost shipping methods with custom names.',
-                'settingKey' => 'flat_rate_enabled',
-                'active' => ($settings['shipping']['flat_rate_enabled'] ?? '0') === '1',
-                'summary' => $flatRateCount . ' flat ' . Str::plural('rate', $flatRateCount),
-                'route' => route('admin.shipping-settings.flat-rate'),
-            ],
-            [
-                'id' => 'dhl',
-                'label' => 'DHL',
-                'description' => 'International shipments via the DHL Express API.',
-                'settingKey' => 'dhl_enabled',
-                'active' => ($settings['shipping']['dhl_enabled'] ?? '0') === '1',
-                'summary' => $dhlConfigured ? 'Configured' : 'Not configured',
-                'route' => route('admin.shipping-settings.dhl'),
-            ],
-        ];
+                return $card;
+            });
+
+        // The storefront cannot quote without at least one enabled rate
+        // method (couriers are booking, not checkout rates — and
+        // Fulfillment joins the list only after this is computed).
+        $noMethodEnabled = $chain->every(fn (array $c) => $c['state'] !== 'enabled');
 
         $countries = Country::orderBy('name')->get();
         $defaultCountryId = Country::where('iso2', 'PH')->value('id') ?? $countries->first()?->id ?? 1;
 
-        // The guardrail (extension architecture wave 0): disabling the last
-        // method is allowed but loudly stated — a store that cannot quote
-        // shipping cannot check out.
-        $noMethodEnabled = collect($chain)->every(fn (array $m) => ! $m['active']);
-
-        // The couriers section presents the EXTENSION, never its internals
-        // (owner ruling: Fulfillment is the module; QuadX, SPX, and LBC are
-        // separated one level down, inside its own settings hub). Guarded:
-        // absent or disabled extension renders no section.
-        $fulfillment = null;
-        if (class_exists(\Extensions\CourierFulfillment\CourierManager::class)
-            && \Illuminate\Support\Facades\Route::has('admin.fulfillment.settings')) {
-            $enabledCouriers = count(\Extensions\CourierFulfillment\CourierManager::flagged());
-            $fulfillment = [
-                'name' => 'Fulfillment',
-                'summary' => $enabledCouriers . ' ' . \Illuminate\Support\Str::plural('courier', $enabledCouriers) . ' enabled',
-                'active' => $enabledCouriers > 0,
-                'url' => route('admin.fulfillment.settings'),
-            ];
+        // Fulfillment (the courier hub) joins the same list as its own
+        // standard row (owner ruling: every listing, every row, one
+        // grammar), summarized by its enabled-courier count.
+        $fulfillmentManifest = $manager->discovered()->get('courier-fulfillment');
+        if ($fulfillmentManifest) {
+            $card = ExtensionCard::for($fulfillmentManifest, $manager);
+            if (class_exists(\Extensions\CourierFulfillment\CourierManager::class) && $card['state'] === 'enabled') {
+                $enabledCouriers = count(\Extensions\CourierFulfillment\CourierManager::flagged());
+                $card['summary'] = $enabledCouriers . ' ' . Str::plural('courier', $enabledCouriers) . ' enabled';
+            } else {
+                $card['summary'] = null;
+            }
+            $card['chain_sequence'] = 90;
+            $chain = $chain->push($card);
         }
 
         $customerGroups = \App\Models\CustomerGroup::orderBy('name')->get(['id', 'name']);
         $addressProviders = app(\App\Services\AddressProviderRegistry::class)->toFrontendManifest();
 
         return view('admin.settings.shipping.index', compact(
-            'settings', 'chain', 'countries', 'defaultCountryId', 'noMethodEnabled', 'fulfillment',
+            'chain', 'countries', 'defaultCountryId', 'noMethodEnabled',
             'customerGroups', 'addressProviders'
         ));
     }
 
-    public function enable(string $provider)
-    {
-        return $this->setEnabled($provider, true);
-    }
-
-    public function disable(string $provider)
-    {
-        return $this->setEnabled($provider, false);
-    }
-
-    private function setEnabled(string $provider, bool $on)
-    {
-        abort_unless(array_key_exists($provider, self::TOGGLABLE), 404);
-
-        [$key, $label] = self::TOGGLABLE[$provider];
-
-        Setting::updateOrCreate(
-            ['group' => 'shipping', 'key' => $key],
-            ['value' => $on ? '1' : '0', 'type' => 'text'],
-        );
-
-        app(\App\Services\ThemeService::class)->clearCache();
-
-        return redirect()->route('admin.shipping-settings.index')
-            ->with('success', $label . ($on ? ' enabled.' : ' disabled.'));
-    }
-
-    public function freeShipping()
-    {
-        $freeShippingRules = FreeShippingRule::orderBy('sort_order')->get();
-
-        return view('admin.settings.shipping.free-shipping', compact('freeShippingRules'));
-    }
-
-    public function weightBased()
-    {
-        $weightMethods = WeightBasedMethod::with('geoZones', 'customerGroups', 'rates')->withCount('rates')->orderBy('sort_order')->get();
-        $geoZones = GeoZone::where('is_active', true)->orderBy('name')->get();
-        $customerGroups = CustomerGroup::orderBy('name')->get();
-
-        return view('admin.settings.shipping.weight-based', compact('weightMethods', 'geoZones', 'customerGroups'));
-    }
-
-    public function flatRate()
-    {
-        $flatRates = FlatShippingRate::with('geoZone', 'customerGroup')->orderBy('sort_order')->get();
-
-        return view('admin.settings.shipping.flat-rate', compact('flatRates'));
-    }
-
-    public function dhl()
-    {
-        $settings = $this->loadSettings();
-        $maskedKeys = [];
-
-        foreach (self::ENCRYPTED_KEYS as $key) {
-            $encrypted = $settings['shipping'][$key] ?? null;
-            if ($encrypted) {
-                try {
-                    $plain = Crypt::decryptString($encrypted);
-                    $maskedKeys[$key] = str_repeat('*', max(0, strlen($plain) - 4)) . substr($plain, -4);
-                } catch (\Throwable) {
-                    $maskedKeys[$key] = '********';
-                }
-            }
-        }
-
-        return view('admin.settings.shipping.dhl', compact('settings', 'maskedKeys'));
-    }
-
-
-    private function loadSettings(): array
-    {
-        $settings = [];
-        foreach (Setting::all() as $s) {
-            $settings[$s->group][$s->key] = $s->value;
-        }
-
-        return $settings;
-    }
 }

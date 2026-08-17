@@ -1,0 +1,12 @@
+{
+    "name": "shipping-weight-based",
+    "title": "Weight Based",
+    "version": "1.0.0",
+    "description": "Cost tiers based on cart weight.",
+    "provider": "Extensions\\ShippingWeightBased\\ShippingWeightBasedServiceProvider",
+    "icon": "shipping",
+    "type": "shipping",
+    "chain_sequence": 20,
+    "quote_key": "weight_based",
+    "configure_route": "admin.shipping-settings.weight-based"
+}
