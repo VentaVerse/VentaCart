@@ -286,3 +286,9 @@ Route::get('settings/shipping/{path?}', function (?string $path = null) {
 
     return redirect($destination.($query ? '?'.$query : ''), 301);
 })->where('path', '.*')->name('legacy-shipping-redirect');
+
+Route::get('settings/stock-alerts/{path?}', function (?string $path = null) {
+    $destination = '/'.trim(config('admin.prefix', 'admin').'/extensions/stock-alerts/'.($path ?? ''), '/');
+
+    return redirect($destination, 301);
+})->where('path', '.*')->name('legacy-stock-alerts-redirect');

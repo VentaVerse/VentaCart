@@ -20,14 +20,12 @@ use App\Http\Controllers\Storefront\DeepAddressLookupController;
 use App\Http\Controllers\Storefront\BrandController as StorefrontBrandController;
 use App\Http\Controllers\Storefront\RecentlyViewedController;
 use App\Http\Controllers\Storefront\ReviewController as StorefrontReviewController;
-use App\Http\Controllers\Storefront\StockNotificationController as StorefrontStockNotificationController;
 use Illuminate\Support\Facades\Route;
 
 // Storefront
 Route::get('/', [StorefrontHomeController::class, 'index'])->name('home');
 Route::get('/search/autocomplete', [StorefrontSearchController::class, 'autocomplete'])->name('search.autocomplete');
 Route::get('/search', [StorefrontSearchController::class, 'results'])->middleware('noindex:follow')->name('search.results');
-Route::post('/notify-stock', [StorefrontStockNotificationController::class, 'store'])->name('notify-stock.store');
 Route::get('/contact', [ContactController::class, 'show'])->name('contact');
 Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 Route::get('/recently-viewed', [RecentlyViewedController::class, 'index'])->middleware('noindex')->name('recently-viewed');

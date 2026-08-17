@@ -83,10 +83,12 @@ class CoreFeatureTogglesTest extends TestCase
 
     public function test_disabled_feature_commands_no_op(): void
     {
-        Setting::create(['group' => 'features', 'key' => 'stock_alerts_enabled', 'value' => '0', 'type' => 'text']);
+        // stock-alerts converted to a real extension (wave 1); seo remains
+        // the core-feature example until its own conversion.
+        Setting::create(['group' => 'features', 'key' => 'seo_enabled', 'value' => '0', 'type' => 'text']);
         \Closure::bind(fn () => CoreFeatures::$memo = null, null, CoreFeatures::class)();
 
-        $this->artisan('stock:notify')
+        $this->artisan('seo:generate')
             ->expectsOutputToContain('Feature disabled in Modules')
             ->assertExitCode(0);
     }

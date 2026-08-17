@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Storefront;
+namespace Extensions\StockAlerts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\StockNotification;
+use Extensions\StockAlerts\Models\StockNotification;
 use App\Services\TurnstileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class StockNotificationController extends Controller
+class SubscribeController extends Controller
 {
     public function store(Request $request, TurnstileService $turnstile): JsonResponse
     {

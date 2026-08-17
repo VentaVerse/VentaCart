@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Extensions\StockAlerts\Console;
 
-use App\Mail\StockNotificationMail;
-use App\Models\StockNotification;
-use App\Models\StockNotificationTemplate;
+use Extensions\StockAlerts\Mail\StockNotificationMail;
+use Extensions\StockAlerts\Models\StockNotification;
+use Extensions\StockAlerts\Models\StockNotificationTemplate;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -16,12 +16,6 @@ class NotifyStockSubscribers extends Command
 
     public function handle(): int
     {
-        if (! \App\Support\CoreFeatures::enabled('stock-alerts')) {
-            $this->info('Feature disabled in Modules; nothing to do.');
-
-            return self::SUCCESS;
-        }
-
         $waiting = StockNotification::waiting()
             ->with(['product.images', 'variant'])
             ->get();

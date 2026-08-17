@@ -3,7 +3,6 @@
 // Venta Admin v3 Settings area. General is general; a module's settings
 // live with the module. 'section' non-null resolves through
 // admin.settings.section; null items are standalone settings pages.
-// Migration notes: Email Templates and Stock Alerts fold into
 // Notifications when that page is rebuilt; Couriers & Tracking folds
 // into the Fulfillment module space.
 return [
@@ -29,7 +28,6 @@ return [
         'items' => [
             ['key' => 'mail', 'line' => 'Mail server, sender, and test sends.', 'label' => 'Notifications', 'icon' => 'mail', 'route' => 'admin.settings.section', 'section' => 'mail'],
             ['key' => 'email-templates', 'line' => 'Transactional email content.', 'label' => 'Email Templates', 'icon' => 'content', 'route' => 'admin.email-templates.index', 'section' => null],
-            ['key' => 'stock-alerts', 'line' => 'Back-in-stock subscriber emails.', 'label' => 'Stock Alerts', 'icon' => 'warning', 'route' => 'admin.stock-notifications.index', 'section' => null],
         ],
     ],
     [

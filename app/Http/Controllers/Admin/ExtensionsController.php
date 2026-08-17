@@ -7,7 +7,6 @@ use App\Models\Automation;
 use App\Models\Cart;
 use App\Models\SeoSuggestion;
 use App\Models\Setting;
-use App\Models\StockNotification;
 use App\Services\ExtensionManager;
 use App\Support\CoreFeatures;
 use Illuminate\Http\RedirectResponse;
@@ -42,14 +41,10 @@ class ExtensionsController extends Controller
 
     public function index()
     {
-        $automations = Automation::whereIn('key', ['seo_generate', 'stock_notify', 'stock_check_low'])->get()->keyBy('key');
-        $flags = Setting::whereIn('group', ['stock', 'abandoned_cart'])->get()
+        $automations = Automation::whereIn('key', ['seo_generate'])->get()->keyBy('key');
+        $flags = Setting::whereIn('group', ['abandoned_cart'])->get()
             ->groupBy('group')->map(fn ($rows) => $rows->pluck('value', 'key'));
 
-        $backInStock = (bool) ($automations['stock_notify']->enabled ?? false);
-        $lowStock = ($flags['stock']['low_stock_alert_enabled'] ?? '0') === '1'
-            && (bool) ($automations['stock_check_low']->enabled ?? false);
-        $stockAlertEnabled = $backInStock || $lowStock;
         $seoAutoEnabled = (bool) ($automations['seo_generate']->enabled ?? false);
         $abandonedCartEnabled = ($flags['abandoned_cart']['enabled'] ?? '0') === '1';
 
@@ -62,21 +57,6 @@ class ExtensionsController extends Controller
         // uninstallable, so no lifecycle buttons. Kept as a hardcoded list
         // (no extension.json — they're not extensions) per the brief.
         $coreFeatures = [
-            [
-                'kind' => 'core',
-                'key' => 'stock-alerts',
-                'name' => 'Stock Alerts',
-                'title' => 'Stock Alerts',
-                'description' => 'Back-in-stock customer emails and low-stock admin warnings.',
-                'icon' => 'warning',
-                'enabled' => $masters['stock-alerts'],
-                'status_label' => ! $masters['stock-alerts'] ? 'Disabled'
-                    : ('Back-in-stock ' . ($backInStock ? 'on' : 'off') . ' · Low-stock ' . ($lowStock ? 'on' : 'off')),
-                'tone' => ! $masters['stock-alerts'] ? 'neutral'
-                    : (($backInStock && $lowStock) ? 'success' : (($backInStock || $lowStock) ? 'warning' : 'neutral')),
-                'stats' => StockNotification::where('status', 'waiting')->count() . ' waiting',
-                'configure' => route('admin.stock-notifications.index'),
-            ],
             [
                 'kind' => 'core',
                 'key' => 'seo',
@@ -162,7 +142,7 @@ class ExtensionsController extends Controller
 
         CoreFeatures::set($feature, $on);
 
-        $name = ['stock-alerts' => 'Stock Alerts', 'seo' => 'SEO', 'abandoned-carts' => 'Abandoned Carts'][$feature];
+        $name = ['seo' => 'SEO', 'abandoned-carts' => 'Abandoned Carts'][$feature];
 
         return redirect()->route('admin.extensions.index')
             ->with('success', $name . ' ' . ($on ? 'enabled.' : 'disabled. Its nav entry is hidden and its scheduled jobs are paused.'));

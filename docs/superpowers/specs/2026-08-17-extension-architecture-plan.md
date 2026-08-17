@@ -56,7 +56,7 @@ To convert from app/:
 
 | Extension | Contents today | Wave |
 |---|---|---|
-| stock-alerts | waitlist + notified admin, storefront subscribe, stock:notify, stock:check-low | 1 |
+| stock-alerts | DONE (first conversion): waitlist + notified admin, storefront subscribe, stock:notify, stock:check-low | 1 |
 | abandoned-carts | carts list, notify rules, cart:notify | 1 |
 | seo | 9-page space, AI suggestions + cron, redirects, 404s, Search Console, slugs, sitemap (+ /sitemap.xml route) | 1 |
 | payment-bank-transfer | bank accounts + QR config, checkout method | 2 |

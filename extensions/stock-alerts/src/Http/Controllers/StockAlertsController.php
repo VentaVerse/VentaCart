@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace Extensions\StockAlerts\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Mail\StockNotificationMail;
-use App\Models\StockNotification;
-use App\Models\StockNotificationTemplate;
+use Extensions\StockAlerts\Mail\StockNotificationMail;
+use Extensions\StockAlerts\Models\StockNotification;
+use Extensions\StockAlerts\Models\StockNotificationTemplate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 
-class StockNotificationController extends Controller
+class StockAlertsController extends Controller
 {
     public function index(Request $request)
     {
@@ -70,7 +70,7 @@ class StockNotificationController extends Controller
         $totalNotified = StockNotification::notified()->count();
         $totalFailed = StockNotification::where('status', 'failed')->count();
 
-        return view('admin.settings.stock-notifications.index', compact(
+        return view('stock-alerts::index', compact(
             'tab', 'search', 'waitlist', 'notified', 'template',
             'topProducts', 'totalWaiting', 'totalNotified', 'totalFailed'
         ));

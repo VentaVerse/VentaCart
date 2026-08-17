@@ -1,8 +1,8 @@
 <?php
 
-namespace Database\Seeders;
+namespace Extensions\StockAlerts\Database\Seeders;
 
-use App\Models\StockNotificationTemplate;
+use Extensions\StockAlerts\Models\StockNotificationTemplate;
 use Illuminate\Database\Seeder;
 
 class StockNotificationTemplateSeeder extends Seeder

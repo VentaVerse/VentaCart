@@ -1,6 +1,11 @@
-<x-admin3.settings-shell title="Stock Alerts" active="stock-alerts">
+<x-admin3.shell title="Stock Alerts">
     <div class="v3-head">
         <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span aria-hidden="true">/</span>
+                <span>Stock Alerts</span>
+            </div>
             <h1 class="v3-head__title">Stock Alerts</h1>
             <p class="v3-head__standing">Who is waiting for what, and the email they get when it returns.</p>
         </div>
@@ -236,4 +241,4 @@
         });
     </script>
     @endpush
-</x-admin3.settings-shell>
+</x-admin3.shell>

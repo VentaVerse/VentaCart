@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace Extensions\StockAlerts\Models;
 
+use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

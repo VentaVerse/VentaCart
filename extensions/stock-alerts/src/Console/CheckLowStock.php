@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Extensions\StockAlerts\Console;
 
-use App\Models\LowStockAlert;
+use Extensions\StockAlerts\Models\LowStockAlert;
 use App\Models\ProductVariant;
 use App\Models\Setting;
 use App\Services\TemplateMailService;
@@ -16,12 +16,6 @@ class CheckLowStock extends Command
 
     public function handle(): int
     {
-        if (! \App\Support\CoreFeatures::enabled('stock-alerts')) {
-            $this->info('Feature disabled in Modules; nothing to do.');
-
-            return self::SUCCESS;
-        }
-
         $enabled = Setting::where('group', 'stock')->where('key', 'low_stock_alert_enabled')->value('value');
         if (!$enabled) {
             $this->info('Low stock alerts are disabled.');

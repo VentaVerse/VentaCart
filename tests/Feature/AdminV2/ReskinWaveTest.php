@@ -851,6 +851,8 @@ class ReskinWaveTest extends TestCase
 
     public function test_spokes_wave2_pages_render_in_new_shell(): void
     {
+        app(\App\Services\ExtensionManager::class)->install('stock-alerts');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 
         $category = Category::create(['store_id' => 1, 'name' => 'Pedals', 'slug' => 'pedals']);

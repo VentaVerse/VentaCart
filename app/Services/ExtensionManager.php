@@ -35,7 +35,7 @@ class ExtensionManager
      * on every single storefront request (BootExtensions is global
      * middleware, not admin-only).
      */
-    protected const REGISTRY_CACHE_KEY = 'extensions.registry';
+    public const REGISTRY_CACHE_KEY = 'extensions.registry';
 
     protected ?Collection $discoveredCache = null;
 

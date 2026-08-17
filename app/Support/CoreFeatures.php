@@ -24,7 +24,6 @@ class CoreFeatures
 {
     /** @var array<string, array{0: string, 1: string}> feature key => [settings group, settings key] */
     public const FEATURES = [
-        'stock-alerts' => ['features', 'stock_alerts_enabled'],
         'seo' => ['features', 'seo_enabled'],
         'abandoned-carts' => ['features', 'abandoned_carts_enabled'],
     ];

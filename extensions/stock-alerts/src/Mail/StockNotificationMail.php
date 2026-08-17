@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Mail;
+namespace Extensions\StockAlerts\Mail;
 
-use App\Models\StockNotification;
-use App\Models\StockNotificationTemplate;
+use Extensions\StockAlerts\Models\StockNotification;
+use Extensions\StockAlerts\Models\StockNotificationTemplate;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -47,7 +47,7 @@ class StockNotificationMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.stock-notification',
+            view: 'stock-alerts::emails.notification',
             with: [
                 'body' => $this->renderedBody,
                 'productName' => $this->notification->product->name,

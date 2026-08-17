@@ -1,0 +1,10 @@
+{
+    "name": "stock-alerts",
+    "title": "Stock Alerts",
+    "version": "1.0.0",
+    "description": "Back-in-stock customer emails and low-stock admin warnings.",
+    "provider": "Extensions\\StockAlerts\\StockAlertsServiceProvider",
+    "icon": "warning",
+    "type": "feature",
+    "configure_route": "admin.stock-notifications.index"
+}

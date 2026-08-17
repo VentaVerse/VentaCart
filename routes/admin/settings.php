@@ -15,7 +15,6 @@ use App\Http\Controllers\Admin\Settings\SettingsHubController;
 use App\Http\Controllers\Admin\Settings\SettingsSectionController;
 use App\Http\Controllers\Admin\Settings\ShippingCourierController;
 use App\Http\Controllers\Admin\Settings\StoreIdentityController;
-use App\Http\Controllers\Admin\Settings\StockNotificationController as AdminStockNotificationController;
 use App\Http\Controllers\Admin\Settings\ThemeController;
 use App\Http\Controllers\Admin\Settings\UserController;
 use Illuminate\Support\Facades\Route;
@@ -77,13 +76,6 @@ Route::prefix('settings')->group(function () {
     Route::put('/email-templates/{emailTemplate}', [EmailTemplateController::class, 'update'])->name('email-templates.update');
     Route::post('/email-templates/{emailTemplate}/toggle', [EmailTemplateController::class, 'toggleActive'])->name('email-templates.toggle');
     Route::post('/email-templates/{emailTemplate}/test', [EmailTemplateController::class, 'sendTest'])->name('email-templates.send-test');
-
-    // Stock Alerts
-    Route::get('/stock-alerts', [AdminStockNotificationController::class, 'index'])->name('stock-notifications.index');
-    Route::delete('/stock-alerts/{stockNotification}', [AdminStockNotificationController::class, 'destroy'])->name('stock-notifications.destroy');
-    Route::post('/stock-alerts/bulk-delete', [AdminStockNotificationController::class, 'bulkDelete'])->name('stock-notifications.bulk-delete');
-    Route::post('/stock-alerts/template', [AdminStockNotificationController::class, 'updateTemplate'])->name('stock-notifications.update-template');
-    Route::post('/stock-alerts/test-email', [AdminStockNotificationController::class, 'sendTest'])->name('stock-notifications.send-test');
 
     // Localization
     Route::get('/localization', [LocalizationController::class, 'index'])->name('localization.index');
@@ -170,6 +162,7 @@ Route::prefix('settings')->group(function () {
     Route::get('/payments', fn () => redirect(route('admin.payment-settings.index'), 301));
     Route::get('/shipping', fn () => redirect(route('admin.shipping-settings.index'), 301));
     Route::get('/modules', fn () => redirect(route('admin.extensions.index'), 301));
+    Route::get('/stock-alerts', fn () => redirect(route('admin.stock-notifications.index'), 301));
 
     // single-segment wildcard that would otherwise swallow every literal
     // settings/* route registered above it (payments, shipping, etc).
