@@ -184,3 +184,71 @@ One number carried through three APIs on the test key:
 The product catalogue lists an **LBC 3PL webhook API**: *"a webhook listener for 3PL partners capable of callbackURL tracking their own internal status and events."* If usable, tracking could be **push** and the SOAP client avoided entirely.
 
 `LBC Pickup Request` also advertises **"Pickup at LBC Branches"**, which is the branch-collection workflow the owner currently arranges by hand.
+
+## 2026-08-17: the test tracking number is somebody else's 2024 test
+
+The owner searched 1234567894444 on LBC's public tracker and found an
+old shipment. Re-queried through Track and Trace V2 with our test key,
+same answer: one event, PICKED UP BY LBC at LBC CARGO FACILITY-MANILA 2
+(CORPORATE, branch SOT03), dated 10/09/2024, remarks "RBRON | TEST PICK
+UP". Raw response archived in this session's notes.
+
+What this establishes:
+
+1. The number was already used by an earlier TEST (remarks say so;
+   RBRON looks like an LBC staffer or another integrator) years before
+   our 2026-08-14 pickup. It is not a live customer parcel.
+2. The tracking event we credited to our own end-to-end test was THIS
+   2024 entry all along. Our pickup was genuinely accepted (Code 100 is
+   our own submission), and AWB rendering is real, but no tracking
+   event of ours exists; events appear when a rider scans, and no rider
+   scans a test pickup.
+3. Track and Trace reads the PRODUCTION tracking database even on the
+   test key, and the public website tracker sees the same records.
+   There is no separate test tracking store.
+4. Live proof of the uniqueness hazard: LBC accepted our pickup on a
+   number that already carried history. The allocator remains a
+   correctness requirement on our side.
+
+## 2026-08-17: LBC answered the Client code
+
+"Kindly use NGD." Stored in settings as lbc_client_code. In test, any
+string was accepted (free text, see above); NGD is the value that
+matters for production attribution. Tracking number series: LBC says
+to follow.
+
+## 2026-08-17: second test booking, this time with OUR data
+
+Submitted with the store's real default pickup address (Paolo, San
+Bartolome, Quezon City), Client NGD (LBC's confirmed value), and a
+date-coded tracking number pre-checked clean on the tracker
+(2026081700001 -> 201 "No Record Found" before booking).
+
+    PICKUP  IsSuccess true, Code 100, "Successfully saved. 8/17/2026
+            2:10:50 PM", TrackingNo 2026081700001
+    TRACK   still 201 "No Record Found" after booking: a pickup request
+            creates no tracking event; events appear only when a parcel
+            is scanned. Verifying a test booking therefore means asking
+            LBC to check the PICKUP REQUEST record, never the tracker.
+
+Validation learned by sending our own values first:
+
+1. Code 107 "Shipper Account No. is not valid" when sent as 0. The
+   field is validated, and we do not have our account number: ask LBC.
+   The successful submission borrowed the PDF sample's 2015062300003,
+   clearly marked test.
+2. Code 127 "Consignee Send SMS is required" when ConsigneeSendSMS is
+   0, while ShipperSendSMS 0 passes. 0 on the consignee flag is treated
+   as missing; 1 was required to book.
+3. Our own address spellings (Quezon City, Metro Manila, San Bartolome)
+   passed pickup validation untouched, so pickup does NOT enforce the
+   Common API's exact name vocabulary.
+4. The payload archived at the session scratchpad and reproduced in
+   full in the LBC correspondence. Attachment slots are NAME/VALUE
+   pairs (AttachmentNameOne ORDERNO + ReferenceNoOne, etc.), unused
+   slots filled with 0 per the sample: the "are attachments mandatory"
+   question is now answered by the sample's own idiom.
+5. The PDF's code tables (ServiceMode, ProductLine, PKG, Commodity
+   legends, Tables 1.0 and 2.0) are IMAGES in the PDF and cannot be
+   read as text: the meanings of ShipmentMode 1 / ProductLine 2 /
+   ServiceMode 8 / PKG 16 / Commodity 1 still need LBC's legend.
