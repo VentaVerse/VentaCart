@@ -124,3 +124,50 @@ tracking preserved via tokens; minor weight/size differences remain.
 - [x] Parity screenshots (clean-light strict, stage-ready approximate)
 - [ ] Old theme folders deletion (awaiting owner confirmation on their sites)
 - [ ] Feature suite green (running)
+
+## Phase 2a: the layout system (2026-08-17)
+
+Journal-style choosable layouts, owner-scoped to all four regions. Each is an
+option token in theme.json settings (so presets capture it), selecting Blade
+variants; every default equals the pre-existing arrangement (parity held:
+zero differing rows after the header extraction).
+
+- header_layout: marketplace (original), centered, inline, search-under.
+  Shared parts under views/partials/header/parts/ (topbar, logo, hamburger,
+  search with $searchClass param, cart, mobile-search, nav-items); variants
+  compose them. Search folds behind an icon in centered/inline
+  (.hdr-searchpanel); search-under adds a full-width band (.hdr-under__band).
+- category_layout: sidebar-left, sidebar-right, offcanvas. Shared
+  partials/listing-sidebar.blade.php used by category and brand pages.
+- product_gallery_side (left/right via lg:flex-row-reverse) and
+  product_info_style (tabs/stacked); reviews extracted to
+  product/partials/reviews.blade.php so both styles share it.
+- footer_layout: columns (original), centered, split. Column content
+  extracted to partials/footer/parts/column-content.blade.php.
+
+Gotchas recorded: extracted partials must not swallow wrapper close tags
+(the nav-items part briefly took the band's </div> and broke Alpine scopes);
+new arbitrary Tailwind classes in partials need npm run build before they
+paint; nav link styling is scoped .nav-bar > div > a so the inline variant
+needed .nav-bar--inline > a added to four selector groups; .search-bar sizing
+was scoped under .site-header and needed :is(.site-header, .hdr-under__band).
+
+Draft presets (draft-paper-trail, draft-house-color, draft-stockroom,
+draft-boutique) now carry layout pairings. Default look decision pending
+owner pick from the round-two artifact. Admin login note: username `dev`.
+
+## Phase 2b: default look decided (2026-08-17, owner verdicts)
+
+- Standard (white, Figtree, marketplace layout) APPROVED as Venta's default:
+  preset `standard`, seeder active_preset now `standard`, master theme.json
+  fonts moved to Figtree (colors already matched).
+- Centered: House Color's centered header + split footer approved, navy
+  program NOT; recolored white with navy only on primary actions and brass
+  on sale/stars. Ships as preset `centered`.
+- Stockroom layout approved; ships as preset `stockroom` unchanged.
+- Paper Trail not approved (wasted vertical space above the search band);
+  draft deleted. The search-under header VARIANT stays but was tightened
+  (slimmer identity row and band padding).
+- All draft-* presets and their dev snapshot groups removed. Owner confirmed
+  understanding: colors/fonts/sizes stay editor-editable per preset; layout
+  arrangements are fixed templates chosen via Theme options.

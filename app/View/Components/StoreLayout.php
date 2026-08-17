@@ -38,7 +38,8 @@ class StoreLayout extends Component
 
         $headingFont = $theme->get('fonts.heading', 'Oswald');
         $bodyFont = $theme->get('fonts.body', 'Roboto Slab');
-        $googleFontsUrl = $this->buildGoogleFontsUrl($headingFont, $bodyFont);
+        $priceFont = $theme->get('fonts.price');
+        $googleFontsUrl = $this->buildGoogleFontsUrl($headingFont, $bodyFont, $priceFont);
 
         $navItems = $theme->getNavItems();
 
@@ -103,7 +104,7 @@ class StoreLayout extends Component
         ]);
     }
 
-    private function buildGoogleFontsUrl(string $headingFont, string $bodyFont): string
+    private function buildGoogleFontsUrl(string $headingFont, string $bodyFont, ?string $priceFont = null): string
     {
         $fonts = [];
 
@@ -113,6 +114,11 @@ class StoreLayout extends Component
         if ($bodyFont !== $headingFont) {
             $bodyParam = str_replace(' ', '+', $bodyFont);
             $fonts[] = "family={$bodyParam}:wght@300;400;500;700";
+        }
+
+        if ($priceFont && $priceFont !== $headingFont && $priceFont !== $bodyFont) {
+            $priceParam = str_replace(' ', '+', $priceFont);
+            $fonts[] = "family={$priceParam}:wght@400;500;700";
         }
 
         return 'https://fonts.googleapis.com/css2?' . implode('&', $fonts) . '&display=swap';

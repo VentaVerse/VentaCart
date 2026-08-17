@@ -43,7 +43,7 @@ class ThemeSeeder extends Seeder
                 'logo' => null,
                 'favicon' => null,
                 'active_theme' => $activeTheme,
-                'active_preset' => 'clean-light',
+                'active_preset' => 'standard',
             ],
             'colors' => $themeColors,
             'fonts' => [

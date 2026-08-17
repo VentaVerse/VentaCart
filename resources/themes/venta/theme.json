@@ -50,12 +50,61 @@
         "brand_tile_bg": "transparent"
     },
     "fonts": {
-        "heading": "Inter",
-        "body": "Inter",
+        "heading": "Figtree",
+        "body": "Figtree",
         "heading_stack": "sans-serif",
         "body_stack": "sans-serif"
     },
     "settings": {
+        "header_layout": {
+            "type": "select",
+            "label": "Header Layout",
+            "options": [
+                "marketplace",
+                "centered",
+                "inline",
+                "search-under"
+            ],
+            "default": "marketplace"
+        },
+        "category_layout": {
+            "type": "select",
+            "label": "Category Layout",
+            "options": [
+                "sidebar-left",
+                "sidebar-right",
+                "offcanvas"
+            ],
+            "default": "sidebar-left"
+        },
+        "product_gallery_side": {
+            "type": "select",
+            "label": "Product Gallery Side",
+            "options": [
+                "left",
+                "right"
+            ],
+            "default": "left"
+        },
+        "product_info_style": {
+            "type": "select",
+            "label": "Product Info Style",
+            "options": [
+                "tabs",
+                "stacked"
+            ],
+            "default": "tabs"
+        },
+        "footer_layout": {
+            "type": "select",
+            "label": "Footer Layout",
+            "options": [
+                "columns",
+                "centered",
+                "split"
+            ],
+            "default": "columns"
+        },
         "glow_intensity": {
             "type": "select",
             "label": "Glow Intensity",

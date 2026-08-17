@@ -66,7 +66,7 @@
     @endphp
 
     <div class="container-store py-8">
-        <div class="flex flex-col lg:flex-row gap-10"
+        <div class="flex flex-col lg:flex-row gap-10 {{ app(\App\Services\ThemeService::class)->getThemeSetting('product_gallery_side', 'left') === 'right' ? 'lg:flex-row-reverse' : '' }}"
              x-data="addToCart({
                  productId: {{ $product->id }},
                  hasVariants: {{ $product->has_variants ? 'true' : 'false' }},
@@ -279,7 +279,7 @@
                     {{-- Variant + sale: show slashed regular variant price --}}
                     <div class="flex items-baseline gap-3"
                          x-show="hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price">
-                        <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
+                        <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); color: var(--color-primary); letter-spacing: 0.05em;">
                             <span x-text="money(displayPrice)"></span>
                         </span>
                         <span class="text-lg text-[var(--color-text)] line-through">
@@ -292,7 +292,7 @@
                     @endif
 
                     {{-- Dynamic price: per-unit price (line total shown in the clarifier below) --}}
-                    <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;"
+                    <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); letter-spacing: 0.05em;"
                           :style="(quantity > 1 || (hasVariants && activeVariant)) @if ($activeSpecial)&& !(hasVariants && activeVariant && activeVariant.regular_price > activeVariant.price)@endif ? '' : 'display:none'">
                         <span x-text="money(displayPrice)"></span>
                     </span>
@@ -308,7 +308,7 @@
                     <div x-show="quantity <= 1 && (!hasVariants || !activeVariant)">
                         @if ($activeSpecial)
                             <div class="flex items-baseline gap-3">
-                                <span class="text-4xl" style="font-family: var(--font-heading); color: var(--color-primary); letter-spacing: 0.05em;">
+                                <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); color: var(--color-primary); letter-spacing: 0.05em;">
                                     {{ money($activeSpecial->price) }}
                                 </span>
                                 <span class="text-lg text-[var(--color-text)] line-through">
@@ -334,11 +334,11 @@
                                 </div>
                             @endif
                         @elseif ($overrideSpecial)
-                            <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
+                            <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); letter-spacing: 0.05em;">
                                 {{ money($overrideSpecial->price) }}
                             </span>
                         @else
-                            <span class="text-4xl" style="font-family: var(--font-heading); letter-spacing: 0.05em;">
+                            <span class="text-4xl" style="font-family: var(--font-price, var(--font-heading)); letter-spacing: 0.05em;">
                                 {{ money($product->price) }}
                             </span>
                         @endif
@@ -500,85 +500,42 @@
         </div>
 
         {{-- Description Tabs --}}
-        <div class="mt-12" x-data="{ tab: 'description' }" id="reviews">
-            <div class="flex border-b border-[var(--color-border)]">
-                <button @click="tab = 'description'" :class="tab === 'description' ? 'active' : ''" class="product-tab-btn">
-                    DESCRIPTION
-                </button>
-                <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
-                    REVIEWS ({{ $reviewCount }})
-                </button>
-            </div>
-            <div class="py-6">
-                <div x-show="tab === 'description'" class="product-description">
+        @php
+            $vProdInfo = (string) app(\App\Services\ThemeService::class)->getThemeSetting('product_info_style', 'tabs');
+        @endphp
+        @if ($vProdInfo === 'stacked')
+            {{-- Stacked description and reviews --}}
+            <div class="mt-12" id="reviews">
+                <h2 class="text-lg font-bold mb-4" style="font-family: var(--font-heading); letter-spacing: var(--track-heading, 0); color: var(--color-text-heading);">Description</h2>
+                <div class="product-description">
                     {!! $product->description !!}
                 </div>
-                <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
-                    @if ($approvedReviews->isNotEmpty())
-                        <div class="space-y-6">
-                            @foreach ($approvedReviews as $idx => $review)
-                                <div class="review-card" x-show="{{ $idx }} >= (reviewPage - 1) * perPage && {{ $idx }} < reviewPage * perPage">
-                                    <div class="flex items-start justify-between mb-2">
-                                        <div>
-                                            <div class="flex items-center gap-2 mb-1">
-                                                <span class="text-sm font-medium text-[var(--color-text-heading)]">{{ $review->name }}</span>
-                                            </div>
-                                            <div class="star-rating">
-                                                @for ($i = 1; $i <= 5; $i++)
-                                                    @if ($i <= $review->rating)
-                                                        <span>&#9733;</span>
-                                                    @else
-                                                        <span class="star-empty">&#9733;</span>
-                                                    @endif
-                                                @endfor
-                                            </div>
-                                        </div>
-                                        <span class="text-xs text-[var(--color-text-muted)]">{{ $review->published_at?->format('M j, Y') }}</span>
-                                    </div>
-                                    @if ($review->title)
-                                        <h4 class="text-sm font-semibold text-[var(--color-text-heading)] mb-1">{{ $review->title }}</h4>
-                                    @endif
-                                    @if ($review->body)
-                                        <p class="text-sm text-[var(--color-text)] whitespace-pre-wrap">{{ $review->body }}</p>
-                                    @endif
-                                    @if ($review->images->isNotEmpty())
-                                        <div class="flex gap-2 mt-3">
-                                            @foreach ($review->images as $img)
-                                                <a href="{{ storage_url($img->path) }}" target="_blank" class="w-16 h-16 rounded overflow-hidden border border-[var(--color-border)]">
-                                                    <img src="{{ storage_url($img->path) }}" alt="Review photo" class="w-full h-full object-cover">
-                                                </a>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                </div>
-                            @endforeach
-                        </div>
-
-                        @if ($approvedReviews->count() > 20)
-                            <div class="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-[var(--color-border)]">
-                                <button @click="reviewPage = Math.max(1, reviewPage - 1); document.getElementById('reviews').scrollIntoView({behavior: 'smooth'})"
-                                    :disabled="reviewPage === 1"
-                                    style="padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; color: #6b7280; background: transparent; cursor: pointer;"
-                                    :style="reviewPage === 1 && 'opacity: 0.3; cursor: not-allowed;'">
-                                    &laquo; Prev
-                                </button>
-                                <span style="font-size: 13px; color: #9ca3af;">
-                                    Page <span x-text="reviewPage"></span> of <span x-text="Math.ceil({{ $approvedReviews->count() }} / perPage)"></span>
-                                </span>
-                                <button @click="reviewPage = Math.min(Math.ceil({{ $approvedReviews->count() }} / perPage), reviewPage + 1); document.getElementById('reviews').scrollIntoView({behavior: 'smooth'})"
-                                    :disabled="reviewPage >= Math.ceil({{ $approvedReviews->count() }} / perPage)"
-                                    style="padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; color: #6b7280; background: transparent; cursor: pointer;"
-                                    :style="reviewPage >= Math.ceil({{ $approvedReviews->count() }} / perPage) && 'opacity: 0.3; cursor: not-allowed;'">
-                                    Next &raquo;
-                                </button>
-                            </div>
-                        @endif
-                    @else
-                        <p class="text-[var(--color-text-muted)] text-sm">No reviews yet.</p>
-                    @endif
+                <h2 class="text-lg font-bold mt-10 mb-4" style="font-family: var(--font-heading); letter-spacing: var(--track-heading, 0); color: var(--color-text-heading);">Reviews ({{ $reviewCount }})</h2>
+                <div x-data="{ reviewPage: 1, perPage: 20 }">
+                    @include('product.partials.reviews')
                 </div>
             </div>
-        </div>
+        @else
+            {{-- Description Tabs --}}
+            <div class="mt-12" x-data="{ tab: 'description' }" id="reviews">
+                <div class="flex border-b border-[var(--color-border)]">
+                    <button @click="tab = 'description'" :class="tab === 'description' ? 'active' : ''" class="product-tab-btn">
+                        DESCRIPTION
+                    </button>
+                    <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
+                        REVIEWS ({{ $reviewCount }})
+                    </button>
+                </div>
+                <div class="py-6">
+                    <div x-show="tab === 'description'" class="product-description">
+                        {!! $product->description !!}
+                    </div>
+                    <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
+                        @include('product.partials.reviews')
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- Related Products --}}
         @if (in_array('related', $belowModules) && $relatedProducts->isNotEmpty())
