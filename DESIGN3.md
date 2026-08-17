@@ -33,11 +33,7 @@ stated in `tokens.css` with AA-checked stops.
   `resources/js/admin3/register.js` and are registered by BOTH
   bundles (`registerV3()`), so the save doctrine runs on whichever
   Alpine the page booted and no page ever loads two. The v3 dark
-  tokens flip with the classic theme switch. `x-admin3.rail` keeps
-  only its condensed icon strip, used by the space shells, and that
-  strip now carries a small word under each icon (owner ruling: an
-  icon alone is a memory quiz; words for the level you navigate by,
-  always). The classic sidebar carries work-waiting counts
+  tokens flip with the classic theme switch. The classic sidebar carries work-waiting counts
   (App\Support\NavBadges, cached 60s: Fulfillment to-ship, Reviews
   pending) through the shell's existing badge lookup, adopted from
   the v3 nav evaluation as its one surviving benefit; the
@@ -102,12 +98,10 @@ caught in verification).
 
 ## Nav components
 
-- `x-admin3.rail`: the icon strip only. The full rendition is gone
-  (one admin, one nav: the classic slab). What remains is the space
-  shells' strip of main-menu parents derived from
-  `config/admin-nav.php`, each icon carrying a small word beneath it
-  (words for the level you navigate by, always), so the strip can
-  never drift from the main menu and never becomes a memory quiz.
+- `x-admin3.rail`: deleted entirely. The full rendition went with
+  the one-nav ruling; the condensed icon strip went when the spaces
+  conformed to the one chrome and stopped needing a stand-in for the
+  main menu. One nav template remains: the classic slab.
   `config/admin3-nav.php` is deleted.
 - Motion architecture, final form: NO view transitions anywhere.
   The opt-in was tried as a frame-hold against the white inter-page

@@ -284,97 +284,9 @@
     .v3-settings__main { padding: 18px 16px 110px; }
 }
 
-/* --- Icon rail (the slab, condensed) --------------------------
-   Inside Settings the work nav does not disappear; it condenses to
-   a strip of icons on the far left, every one still a direct jump.
-   The settings nav takes the full rail beside it. */
-
-.v3-irail {
-    z-index: 2; /* paints above the settings nav; pills extend past it */
-    background: var(--v3-slab);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 12px 8px;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    width: 56px;
-    flex-shrink: 0;
-}
-.v3-irail__mark {
-    width: 34px; height: 34px;
-    display: grid; place-items: center;
-    background: var(--v3-act-fill);
-    color: var(--v3-act-ink);
-    border-radius: var(--v3-r-sm);
-    font-weight: 700;
-    font-size: 16px;
-    text-decoration: none;
-    margin-bottom: 10px;
-}
-.v3-irail__item {
-    position: relative;
-    width: 64px;
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 8px 2px 6px;
-    border-radius: var(--v3-r-md);
-    color: var(--v3-slab-ink);
-    text-decoration: none;
-    transition: background var(--v3-fast), color var(--v3-fast);
-}
-.v3-irail__word {
-    font-size: 9.5px;
-    font-weight: 620;
-    letter-spacing: .01em;
-    line-height: 1;
-    max-width: 100%;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.v3-irail__item:hover { background: var(--v3-slab-2); color: var(--v3-slab-on); }
-.v3-irail__item[aria-current="page"] {
-    background: var(--v3-slab-2);
-    color: var(--v3-slab-on);
-    box-shadow: inset 3px 0 0 var(--v3-act-fill);
-}
-.v3-irail__item svg { width: 19px; height: 19px; flex-shrink: 0; }
-.v3-irail__mark { position: relative; }
-.v3-irail__tip {
-    position: absolute;
-    left: calc(100% + 10px);
-    top: 50%;
-    translate: 0 -50%;
-    z-index: 5;
-    padding: 5px 11px;
-    background: var(--v3-slab);
-    border: 1px solid var(--v3-slab-2);
-    border-radius: var(--v3-r-md);
-    box-shadow: 0 4px 14px rgba(10, 20, 34, .28);
-    color: #fff;
-    font-size: 12.5px;
-    font-weight: 560;
-    white-space: nowrap;
-    display: none;
-    opacity: 0;
-    transform: translateX(-3px);
-    pointer-events: none;
-    transition: opacity .06s ease-out, transform .09s ease-out, display .09s allow-discrete;
-}
-.v3-irail__item:hover .v3-irail__tip,
-.v3-irail__item:focus-visible .v3-irail__tip,
-.v3-irail__mark:hover .v3-irail__tip,
-.v3-irail__mark:focus-visible .v3-irail__tip {
-    display: block;
-    opacity: 1;
-    transform: translateX(0);
-    @starting-style {
-        opacity: 0;
-        transform: translateX(-3px);
-    }
-}
+/* .v3-irail is retired (one chrome); __rule survives as a borrowed
+   divider in the theme preview. */
 .v3-irail__rule { width: 26px; border: 0; border-top: 1px solid var(--v3-slab-line); margin: 8px 0; }
-.v3-irail__foot { margin-top: auto; }
 
 .v3-settings-root { display: flex; }
 
@@ -389,7 +301,6 @@
 .v3-settings__frame { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
 @media (max-width: 1023px) {
-    .v3-irail { display: none; }
 }
 
 
