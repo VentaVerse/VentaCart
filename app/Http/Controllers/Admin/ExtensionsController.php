@@ -49,6 +49,7 @@ class ExtensionsController extends Controller
         'courier' => 'Shipping',
         'shipping' => 'Shipping',
         'payment' => 'Payments',
+        'theme' => 'Themes',
     ];
 
     public function index()

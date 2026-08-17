@@ -1,0 +1,21 @@
+{
+    "name": "theme",
+    "title": "Theme",
+    "version": "1.0.0",
+    "description": "Storefront appearance: looks and presets, colors, homepage sections, navigation, footer.",
+    "provider": "Extensions\\Theme\\ThemeExtensionServiceProvider",
+    "icon": "tags",
+    "type": "theme",
+    "configure_route": "admin.theme.index",
+    "admin_nav": [
+        {
+            "group": "Extensions",
+            "after": "shipping",
+            "key": "themes",
+            "label": "Themes",
+            "route": "admin.theme.index",
+            "icon": "tags",
+            "keywords": ["storefront", "colors", "fonts", "homepage", "logo", "favicon", "presets", "looks"]
+        }
+    ]
+}

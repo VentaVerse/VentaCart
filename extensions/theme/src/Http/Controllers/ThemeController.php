@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace Extensions\Theme\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
@@ -41,7 +41,7 @@ class ThemeController extends Controller
             $themeSettingValues[$key] = $theme->getThemeSetting($key, $schema['default'] ?? null);
         }
 
-        return view('admin.settings.theme.index', compact(
+        return view('theme::index', compact(
             'settings', 'sections', 'navItems', 'footerColumns', 'currencies', 'categories',
             'installedThemes', 'activeTheme', 'installedPresets', 'activePreset',
             'themeSettingsSchema', 'themeSettingValues'

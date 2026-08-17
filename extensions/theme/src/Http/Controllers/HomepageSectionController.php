@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace Extensions\Theme\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\HomepageSection;
@@ -33,7 +33,7 @@ class HomepageSectionController extends Controller
 
     public function edit(HomepageSection $section)
     {
-        return view('admin.settings.theme.section', compact('section'));
+        return view('theme::section', compact('section'));
     }
 
     public function update(Request $request, HomepageSection $section)

@@ -1,7 +1,9 @@
-<x-admin3.settings-shell :title="'Edit ' . $section->title" active="theme">
+<x-admin3.shell :title="'Edit ' . $section->title">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.theme.index') }}">Theme</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.theme.index', ['tab' => 'homepage']) }}">Homepage</a>
@@ -30,8 +32,8 @@
                 </div>
             </div>
             <div class="v3-gap">
-                @include('admin.settings.theme.section-config', ['section' => $section])
+                @include('theme::section-config', ['section' => $section])
             </div>
         </x-admin3.panel>
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>

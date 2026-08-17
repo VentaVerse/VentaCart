@@ -1,0 +1,47 @@
+<?php
+
+use Extensions\Theme\Http\Controllers\FooterColumnController;
+use Extensions\Theme\Http\Controllers\HomepageSectionController;
+use Extensions\Theme\Http\Controllers\NavMenuController;
+use Extensions\Theme\Http\Controllers\ThemeController;
+use Illuminate\Support\Facades\Route;
+
+$adminPrefix = config('admin.prefix', 'admin');
+
+// The theme editor, mounted under the extensions/{name} convention.
+// Route names frozen (admin.theme.*); only the mount moved with the
+// conversion. admin.theme.currencies.* is a separate, core family
+// (Settings > Currencies CRUD) and never lived here.
+Route::middleware(['web', 'auth', 'admin.session.cap'])
+    ->prefix($adminPrefix . '/extensions/theme')
+    ->name('admin.theme.')
+    ->group(function () {
+        Route::get('/', [ThemeController::class, 'index'])->name('index');
+        Route::post('/settings', [ThemeController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/switch', [ThemeController::class, 'switchTheme'])->name('switch');
+        Route::post('/revert-colors', [ThemeController::class, 'revertThemeColors'])->name('revert-colors');
+        Route::post('/presets', [ThemeController::class, 'storePreset'])->name('presets.store');
+        Route::post('/presets/import', [ThemeController::class, 'importPreset'])->name('presets.import');
+        Route::get('/presets/{slug}/export', [ThemeController::class, 'exportPreset'])->name('presets.export');
+        Route::delete('/presets/{slug}', [ThemeController::class, 'destroyPreset'])->name('presets.destroy');
+        Route::post('/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('update-theme-settings');
+
+        Route::post('/sections', [HomepageSectionController::class, 'store'])->name('sections.store');
+        Route::get('/sections/{section}/edit', [HomepageSectionController::class, 'edit'])->name('sections.edit');
+        Route::put('/sections/{section}', [HomepageSectionController::class, 'update'])->name('sections.update');
+        Route::delete('/sections/{section}', [HomepageSectionController::class, 'destroy'])->name('sections.destroy');
+        Route::post('/sections/reorder', [HomepageSectionController::class, 'reorder'])->name('sections.reorder');
+
+        Route::post('/nav', [NavMenuController::class, 'store'])->name('nav.store');
+        Route::get('/nav/{item}/edit', [NavMenuController::class, 'edit'])->name('nav.edit');
+        Route::put('/nav/{item}', [NavMenuController::class, 'update'])->name('nav.update');
+        Route::delete('/nav/{item}', [NavMenuController::class, 'destroy'])->name('nav.destroy');
+        Route::post('/nav/reorder', [NavMenuController::class, 'reorder'])->name('nav.reorder');
+
+        Route::post('/footer', [FooterColumnController::class, 'store'])->name('footer.store');
+        Route::post('/footer/bulk-update', [FooterColumnController::class, 'bulkUpdate'])->name('footer.bulk-update');
+        Route::get('/footer/{column}/edit', [FooterColumnController::class, 'edit'])->name('footer.edit');
+        Route::put('/footer/{column}', [FooterColumnController::class, 'update'])->name('footer.update');
+        Route::delete('/footer/{column}', [FooterColumnController::class, 'destroy'])->name('footer.destroy');
+        Route::post('/footer/reorder', [FooterColumnController::class, 'reorder'])->name('footer.reorder');
+    });

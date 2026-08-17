@@ -91,8 +91,9 @@ To convert from app/:
    data migrations shipped (standing rule).
 4. **The Extensions menu.** New top-level nav group "Extensions" in the
    classic sidebar (between Marketing and Settings), with FOUR
-   children (owner rulings: couriers are part of shipping; 2026-08-18
-   added the residual category): All Extensions (the full rundown with
+   children plus Themes (owner rulings: couriers are part of shipping;
+   2026-08-18 added the residual category and made the theme editor an
+   extension): All Extensions (the full rundown with
    each row's category named), Modules (the residual category page,
    OpenCart's word for everything that is not a payment or shipping
    concern; manifest type drives the mapping: feature -> Modules,
@@ -106,7 +107,11 @@ To convert from app/:
    operations in the work nav. Settings goes back to being the
    website's core settings only. Crossings by labeled buttons both
    ways. 'modules' is a reserved extension name (the category page's
-   URL segment).
+   URL segment). The theme EDITOR is an extension (type theme, nav item
+   Themes, mounted at extensions/theme, ships installed on every store
+   because a store needs its look on day one); the theme SYSTEM
+   (ThemeService, rendering, the homepage/nav/footer tables) stays core
+   per the framework-stays-core doctrine.
 5. **Rename.** Modules -> Extensions everywhere in UI (page titles, nav
    labels, breadcrumbs, hub cards). Route names migrate
    (admin.modules.* -> admin.extensions.*) with redirects; tests repin.

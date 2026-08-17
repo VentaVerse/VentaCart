@@ -431,6 +431,12 @@ class ExtensionLifecycleTest extends TestCase
         // happens across two separate HTTP requests/processes in production,
         // unlike the in-process $booted flag which only helps a single
         // long-lived instance (Octane).
+        // The theme continuity migration ships one row on every fresh
+        // database; clear it so this test still starts from the empty
+        // snapshot its cache choreography is built around.
+        Extension::query()->delete();
+        \Illuminate\Support\Facades\Cache::forget(ExtensionManager::REGISTRY_CACHE_KEY);
+
         $first = $this->fixtureManager();
         $this->assertTrue($first->registry()->isEmpty());
 

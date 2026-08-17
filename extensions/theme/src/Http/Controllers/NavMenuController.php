@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace Extensions\Theme\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\NavMenuItem;
@@ -41,7 +41,7 @@ class NavMenuController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.settings.theme.nav-item', compact('item', 'categories'));
+        return view('theme::nav-item', compact('item', 'categories'));
     }
 
     public function update(Request $request, NavMenuItem $item)

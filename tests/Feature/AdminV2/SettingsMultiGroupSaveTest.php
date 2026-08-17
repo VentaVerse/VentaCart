@@ -84,6 +84,8 @@ class SettingsMultiGroupSaveTest extends TestCase
 
     public function test_theme_settings_save_carries_every_tab_in_one_submit(): void
     {
+        app(\App\Services\ExtensionManager::class)->install('theme');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 
         $this->post(route('admin.theme.settings.update'), [

@@ -13,7 +13,6 @@ return [
             ['key' => 'checkout', 'line' => 'Guest checkout and stock rules.', 'label' => 'Checkout & Stock', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout'],
             ['key' => 'currencies', 'line' => 'Currency list and exchange rates.', 'label' => 'Currencies', 'icon' => 'currency', 'route' => 'admin.settings.section', 'section' => 'currencies'],
             ['key' => 'localization', 'line' => 'Countries, provinces, and geo zones.', 'label' => 'Localization', 'icon' => 'globe', 'route' => 'admin.localization.index', 'section' => null],
-            ['key' => 'theme', 'line' => 'Storefront appearance and homepage.', 'label' => 'Theme', 'icon' => 'theme', 'route' => 'admin.theme.index', 'section' => null],
         ],
     ],
     [

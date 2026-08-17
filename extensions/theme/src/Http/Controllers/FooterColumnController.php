@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace Extensions\Theme\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\FooterColumn;
@@ -38,7 +38,7 @@ class FooterColumnController extends Controller
 
     public function edit(FooterColumn $column)
     {
-        return view('admin.settings.theme.footer-column', compact('column'));
+        return view('theme::footer-column', compact('column'));
     }
 
     public function bulkUpdate(Request $request)

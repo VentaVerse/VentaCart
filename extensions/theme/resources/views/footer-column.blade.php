@@ -1,7 +1,9 @@
-<x-admin3.settings-shell :title="'Edit ' . $column->title" active="theme">
+<x-admin3.shell :title="'Edit ' . $column->title">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.theme.index') }}">Theme</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.theme.index', ['tab' => 'footer']) }}">Footer</a>
@@ -104,4 +106,4 @@
         </x-admin3.panel>
         </div>
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>

@@ -14,7 +14,6 @@ return [
             ['key' => 'checkout', 'label' => 'Checkout & Stock', 'description' => 'Guest checkout, out-of-stock rules, low-stock alerts.', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout', 'permission' => null, 'keywords' => ['guest', 'out of stock', 'low stock', 'threshold']],
             ['key' => 'currencies', 'label' => 'Currencies', 'description' => 'Currency list, symbols, and exchange-rate updates.', 'icon' => 'coupons', 'route' => 'admin.settings.section', 'section' => 'currencies', 'permission' => null, 'keywords' => ['exchange rate', 'peso', 'php', 'forex', 'symbol']],
             ['key' => 'localization', 'label' => 'Localization', 'description' => 'Countries, zones, and geo zones.', 'icon' => 'media', 'route' => 'admin.localization.index', 'section' => null, 'permission' => null, 'keywords' => ['countries', 'provinces', 'geo zones', 'regions']],
-            ['key' => 'theme', 'label' => 'Theme', 'description' => 'Storefront appearance, homepage sections, navigation.', 'icon' => 'tags', 'route' => 'admin.theme.index', 'section' => null, 'permission' => null, 'keywords' => ['storefront', 'colors', 'fonts', 'homepage', 'logo', 'favicon']],
         ],
     ],
     [

@@ -292,3 +292,10 @@ Route::get('settings/stock-alerts/{path?}', function (?string $path = null) {
 
     return redirect($destination, 301);
 })->where('path', '.*')->name('legacy-stock-alerts-redirect');
+
+Route::get('settings/theme/{path?}', function (?string $path = null) {
+    $destination = '/'.trim(config('admin.prefix', 'admin').'/extensions/theme/'.($path ?? ''), '/');
+    $query = request()->getQueryString();
+
+    return redirect($destination.($query ? '?'.$query : ''), 301);
+})->where('path', '.*')->name('legacy-theme-redirect');

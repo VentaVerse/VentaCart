@@ -1,6 +1,11 @@
-<x-admin3.settings-shell title="Theme" active="theme">
+<x-admin3.shell title="Theme">
     <div class="v3-head">
         <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span aria-hidden="true">/</span>
+                <span>Theme</span>
+            </div>
             <h1 class="v3-head__title">Theme</h1>
             <p class="v3-head__standing">How the storefront looks. One save commits every settings tab below.</p>
         </div>
@@ -681,4 +686,4 @@
         }
     </script>
     @endpush
-</x-admin3.settings-shell>
+</x-admin3.shell>

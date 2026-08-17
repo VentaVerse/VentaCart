@@ -4,10 +4,7 @@ use App\Http\Controllers\Admin\AutomationController;
 use App\Http\Controllers\Admin\Settings\ApiSyncLogController;
 use App\Http\Controllers\Admin\Settings\CurrencyController;
 use App\Http\Controllers\Admin\Settings\EmailTemplateController;
-use App\Http\Controllers\Admin\Settings\FooterColumnController;
-use App\Http\Controllers\Admin\Settings\HomepageSectionController;
 use App\Http\Controllers\Admin\Settings\LocalizationController;
-use App\Http\Controllers\Admin\Settings\NavMenuController;
 use App\Http\Controllers\Admin\Settings\OrderStatusController;
 use App\Http\Controllers\Admin\Settings\RolePermissionController;
 use App\Http\Controllers\Admin\Settings\SettingController;
@@ -15,7 +12,6 @@ use App\Http\Controllers\Admin\Settings\SettingsHubController;
 use App\Http\Controllers\Admin\Settings\SettingsSectionController;
 use App\Http\Controllers\Admin\Settings\ShippingCourierController;
 use App\Http\Controllers\Admin\Settings\StoreIdentityController;
-use App\Http\Controllers\Admin\Settings\ThemeController;
 use App\Http\Controllers\Admin\Settings\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -102,38 +98,10 @@ Route::prefix('settings')->group(function () {
     Route::get('/permissions', [RolePermissionController::class, 'index'])->name('permissions.index');
     Route::post('/permissions', [RolePermissionController::class, 'update'])->name('permissions.update');
 
-    // Theme (storefront appearance: homepage sections, nav, footer). Site
-    // currencies are their own settings-nav entry — see /currencies below.
-    Route::prefix('theme')->group(function () {
-        Route::get('/', [ThemeController::class, 'index'])->name('theme.index');
-        Route::post('/settings', [ThemeController::class, 'updateSettings'])->name('theme.settings.update');
-        Route::post('/switch', [ThemeController::class, 'switchTheme'])->name('theme.switch');
-        Route::post('/revert-colors', [ThemeController::class, 'revertThemeColors'])->name('theme.revert-colors');
-        Route::post('/presets', [ThemeController::class, 'storePreset'])->name('theme.presets.store');
-        Route::post('/presets/import', [ThemeController::class, 'importPreset'])->name('theme.presets.import');
-        Route::get('/presets/{slug}/export', [ThemeController::class, 'exportPreset'])->name('theme.presets.export');
-        Route::delete('/presets/{slug}', [ThemeController::class, 'destroyPreset'])->name('theme.presets.destroy');
-        Route::post('/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('theme.update-theme-settings');
-
-        Route::post('/sections', [HomepageSectionController::class, 'store'])->name('theme.sections.store');
-        Route::get('/sections/{section}/edit', [HomepageSectionController::class, 'edit'])->name('theme.sections.edit');
-        Route::put('/sections/{section}', [HomepageSectionController::class, 'update'])->name('theme.sections.update');
-        Route::delete('/sections/{section}', [HomepageSectionController::class, 'destroy'])->name('theme.sections.destroy');
-        Route::post('/sections/reorder', [HomepageSectionController::class, 'reorder'])->name('theme.sections.reorder');
-
-        Route::post('/nav', [NavMenuController::class, 'store'])->name('theme.nav.store');
-        Route::get('/nav/{item}/edit', [NavMenuController::class, 'edit'])->name('theme.nav.edit');
-        Route::put('/nav/{item}', [NavMenuController::class, 'update'])->name('theme.nav.update');
-        Route::delete('/nav/{item}', [NavMenuController::class, 'destroy'])->name('theme.nav.destroy');
-        Route::post('/nav/reorder', [NavMenuController::class, 'reorder'])->name('theme.nav.reorder');
-
-        Route::post('/footer', [FooterColumnController::class, 'store'])->name('theme.footer.store');
-        Route::post('/footer/bulk-update', [FooterColumnController::class, 'bulkUpdate'])->name('theme.footer.bulk-update');
-        Route::get('/footer/{column}/edit', [FooterColumnController::class, 'edit'])->name('theme.footer.edit');
-        Route::put('/footer/{column}', [FooterColumnController::class, 'update'])->name('theme.footer.update');
-        Route::delete('/footer/{column}', [FooterColumnController::class, 'destroy'])->name('theme.footer.destroy');
-        Route::post('/footer/reorder', [FooterColumnController::class, 'reorder'])->name('theme.footer.reorder');
-    });
+    // Theme editor moved to the theme extension
+    // (extensions/theme/routes/web.php). Site currencies stay core —
+    // see /currencies below (their admin.theme.currencies.* names are
+    // frozen history, not a theme dependency).
 
     // Currencies (Settings > Store > Currencies section page's backing CRUD;
     // the page itself renders through the settings/{section} catch-all
@@ -163,6 +131,7 @@ Route::prefix('settings')->group(function () {
     Route::get('/shipping', fn () => redirect(route('admin.shipping-settings.index'), 301));
     Route::get('/modules', fn () => redirect(route('admin.extensions.index'), 301));
     Route::get('/stock-alerts', fn () => redirect(route('admin.stock-notifications.index'), 301));
+    Route::get('/theme', fn () => redirect(route('admin.theme.index'), 301));
 
     // single-segment wildcard that would otherwise swallow every literal
     // settings/* route registered above it (payments, shipping, etc).
