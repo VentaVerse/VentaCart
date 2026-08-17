@@ -115,13 +115,13 @@ caught in verification).
 
 ## Nav components
 
-- `x-admin3.rail`: THE main nav, both renditions of it. Full azure
-  sidebar by default; `condensed` renders the 56px icon strip of
-  main-menu parents derived from `config/admin-nav.php` (the v2 main
-  menu's registry), so the rail can never drift from what the person
-  saw before entering Settings. The full rendition still reads
-  `admin3-nav.php` pending the first work-area migration. Full mode
-  expects the work shell's Alpine `nav` drawer boolean in scope.
+- `x-admin3.rail`: the icon strip only. The full rendition is gone
+  (one admin, one nav: the classic slab). What remains is the space
+  shells' strip of main-menu parents derived from
+  `config/admin-nav.php`, each icon carrying a small word beneath it
+  (words for the level you navigate by, always), so the strip can
+  never drift from the main menu and never becomes a memory quiz.
+  `config/admin3-nav.php` is deleted.
 - Motion architecture, final form: NO view transitions anywhere.
   The opt-in was tried as a frame-hold against the white inter-page
   flash and measurably EXTENDED the blank gap instead (owner saw it
