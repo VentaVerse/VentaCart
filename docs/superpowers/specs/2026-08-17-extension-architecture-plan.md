@@ -137,11 +137,15 @@ pipeline), #122 (ops/settings splits, absorbed by wave 0's menu), #121
 (savebar leftovers, absorbed by wave 1 abandoned-carts), developer
 platform card (self-registration is its first two items).
 
-## Anti-goals: this is not WordPress (owner concern, 2026-08-17)
+## Anti-goals: this is not WordPress
 
-The folder-plus-switch gesture is shared with every healthy extension
-system (VS Code, browsers, OpenCart at its best). What is refused is
-what makes WordPress WordPress:
+Design rationale, not an owner decree: Paolo voiced distaste for the
+WordPress model and left the call to the architecture. These are the
+architect's guardrails against the failure modes that made WordPress
+what it is; any of them can be revisited as an ordinary design
+discussion. The folder-plus-switch gesture is shared with every
+healthy extension system (VS Code, browsers, OpenCart at its best).
+What this design refuses is what makes WordPress WordPress:
 
 1. **Core stays the whole store.** The engine is complete and
    non-optional; a zero-extensions install still sells. Nothing
