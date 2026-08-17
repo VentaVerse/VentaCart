@@ -89,13 +89,15 @@ To convert from app/:
    and adopt, never recreate; fresh installs create cleanly. No one-off
    data migrations shipped (standing rule).
 4. **The Extensions menu.** New top-level nav group "Extensions" in the
-   classic sidebar (between Marketing and Settings), holding the
-   extensions directory (today's Modules page, relocated out of
-   Settings) and, as waves land, the typed category pages (Payments,
-   Shipping, Couriers). Settings goes back to being the website's core
-   settings only. Operations stay in the work nav (Sales > Fulfillment
-   stays put); an extension's settings live behind the Extensions door;
-   crossings by labeled buttons both ways.
+   classic sidebar (between Marketing and Settings), with THREE
+   children (owner ruling: couriers are part of shipping):
+   All Extensions (the directory, relocated out of Settings),
+   Payments, and Shipping (rate methods section + couriers section).
+   Individual extensions never get menu items; only typed categories
+   do, so the menu never sprawls. Feature extensions (Blog, SEO,
+   Reviews...) appear as directory rows only, their operations in the
+   work nav. Settings goes back to being the website's core settings
+   only. Crossings by labeled buttons both ways.
 5. **Rename.** Modules -> Extensions everywhere in UI (page titles, nav
    labels, breadcrumbs, hub cards). Route names migrate
    (admin.modules.* -> admin.extensions.*) with redirects; tests repin.
