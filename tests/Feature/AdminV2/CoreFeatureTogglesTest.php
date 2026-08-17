@@ -41,17 +41,17 @@ class CoreFeatureTogglesTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->post(route('admin.modules.feature-disable', 'seo'))
-            ->assertRedirect(route('admin.modules.index'));
+        $this->post(route('admin.extensions.feature-disable', 'seo'))
+            ->assertRedirect(route('admin.extensions.index'));
 
         $this->assertDatabaseHas('settings', ['group' => 'features', 'key' => 'seo_enabled', 'value' => '0']);
 
-        $this->get(route('admin.modules.index'))
+        $this->get(route('admin.extensions.index'))
             ->assertOk()
-            ->assertSee(route('admin.modules.feature-enable', 'seo'), false);
+            ->assertSee(route('admin.extensions.feature-enable', 'seo'), false);
 
-        $this->post(route('admin.modules.feature-enable', 'seo'))
-            ->assertRedirect(route('admin.modules.index'));
+        $this->post(route('admin.extensions.feature-enable', 'seo'))
+            ->assertRedirect(route('admin.extensions.index'));
 
         $this->assertDatabaseHas('settings', ['group' => 'features', 'key' => 'seo_enabled', 'value' => '1']);
     }
@@ -60,7 +60,7 @@ class CoreFeatureTogglesTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->post(route('admin.modules.feature-disable', 'not-a-feature'))->assertNotFound();
+        $this->post(route('admin.extensions.feature-disable', 'not-a-feature'))->assertNotFound();
 
         $this->assertDatabaseMissing('settings', ['group' => 'features', 'key' => 'not-a-feature_enabled']);
     }

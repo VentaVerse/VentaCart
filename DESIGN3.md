@@ -310,9 +310,14 @@ area) and the abandoned-carts pages (their module's wave).
   select with a live-count confirm, and the alert template under
   the doctrine with TinyMCE wired in.
 
-- Modules: ONE list (owner ruling 2026-08-17: anything shipped in
-  the repo is a core feature; no Extensions/Core split, and no
-  Uninstall button, because you do not uninstall your own platform).
+- Extensions (wave 0): a top-level area beside Settings, never
+  inside it. The sidebar's Extensions group (between Marketing and
+  Settings) holds All Extensions, the directory at /extensions;
+  every extension's settings mount at extensions/{name} (banners,
+  courier-fulfillment, abandoned-carts, seo), with path-preserving
+  301s from the old settings/modules tree. ONE list (owner ruling:
+  no Extensions/Core split, and no Uninstall button, because you do
+  not uninstall your own platform).
   Rows sort alphabetically; the filesystem difference shows only in
   a row's actions: extensions/ modules offer Install/Update (their
   migrations) + Enable/Disable via ExtensionManager, app/ features

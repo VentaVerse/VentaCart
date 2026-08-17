@@ -42,7 +42,6 @@ return [
             ['key' => 'security', 'line' => 'Admin URL and login protection.', 'label' => 'Security', 'icon' => 'lock', 'route' => 'admin.settings.section', 'section' => 'security'],
             ['key' => 'api', 'line' => 'ERP token and sync logs.', 'label' => 'API & Sync', 'icon' => 'api', 'route' => 'admin.settings.section', 'section' => 'api'],
             ['key' => 'automations', 'line' => 'Scheduled jobs and run-now.', 'label' => 'Automations', 'icon' => 'clock', 'route' => 'admin.settings.section', 'section' => 'automations'],
-            ['key' => 'modules', 'line' => 'Installed feature modules.', 'label' => 'Modules', 'icon' => 'modules', 'route' => 'admin.modules.index', 'section' => null],
         ],
     ],
 ];

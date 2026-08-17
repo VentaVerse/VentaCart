@@ -77,6 +77,18 @@ return [
         ],
     ],
     [
+        'label' => 'Extensions',
+        'icon' => 'modules',
+        'segment' => 'extensions',
+        'items' => [
+            // The directory is the group's landing (URL /extensions, no
+            // child segment); activeItemKey() lights a group's first item
+            // at its root URL. Typed category children (Payments, Shipping)
+            // join as their pages re-home (wave 0 pieces 2b/2c).
+            ['key' => 'all', 'label' => 'All Extensions', 'route' => 'admin.extensions.index', 'icon' => 'modules', 'permission' => null, 'keywords' => ['extensions', 'plugins', 'modules', 'install']],
+        ],
+    ],
+    [
         // Settings is a door, not a dropdown: one click leaves the work
         // area and opens the Settings space (the main nav condenses to
         // the icon rail there).

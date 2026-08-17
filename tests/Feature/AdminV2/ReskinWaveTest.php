@@ -1137,8 +1137,8 @@ class ReskinWaveTest extends TestCase
 
     /**
      * Owner report: "When I go to their settings, there are menus that bring
-     * me to the Main Nav." Settings-context pages (settings/modules/seo/...
-     * and settings/modules/abandoned-carts/...) used to @include the
+     * me to the Main Nav." Settings-context pages (extensions/seo/...
+     * and extensions/abandoned-carts/...) used to @include the
      * Marketing/SEO and Sales workspace navs wholesale, so every link out of
      * a Settings page re-entered a different workspace's main nav. Pin that
      * these pages no longer carry those workspace-nav markers, while the
@@ -1336,8 +1336,8 @@ class ReskinWaveTest extends TestCase
 
         // Courier settings route (mounted separately under Settings > Modules)
         // renders in the v3 settings space since the savebar sweep.
-        $this->get('/' . config('admin.prefix', 'admin') . '/settings/modules/courier-fulfillment')
+        $this->get('/' . config('admin.prefix', 'admin') . '/extensions/courier-fulfillment')
             ->assertOk()
-            ->assertSee('v3-settings-root', false);
+            ->assertSee('v-admin', false);
     }
 }

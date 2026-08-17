@@ -155,13 +155,13 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertDatabaseHas('extensions', ['name' => 'banners', 'enabled' => true]);
 
         // Hit banners' literal URL — now mounted under the *configured*
-        // admin prefix at settings/modules/banners (the Part 1 prefix-bug
+        // admin prefix at extensions/banners (the Part 1 prefix-bug
         // fix) — rather than route('admin.banners.index'): the named route
         // can't be resolved to build a URL until
         // App\Http\Middleware\BootExtensions has actually run once, and
         // that only happens once a request is dispatched.
         $this->actingAs(User::factory()->create())
-            ->get('/'.config('admin.prefix', 'admin').'/settings/modules/banners')
+            ->get('/'.config('admin.prefix', 'admin').'/extensions/banners')
             ->assertOk();
 
         // A request has now run BannerServiceProvider::boot() via the
@@ -274,7 +274,7 @@ class ExtensionLifecycleTest extends TestCase
         $admin = User::factory()->create();
         (new ExtensionManager())->install('courier-fulfillment');
 
-        $response = $this->actingAs($admin)->get(route('admin.modules.index'));
+        $response = $this->actingAs($admin)->get(route('admin.extensions.index'));
 
         $response->assertOk();
 
@@ -468,9 +468,9 @@ class ExtensionLifecycleTest extends TestCase
         config(['extensions.path' => base_path('tests/fixtures/extensions')]);
         $admin = User::factory()->create();
 
-        $response = $this->actingAs($admin)->post(route('admin.modules.install', 'demo'));
+        $response = $this->actingAs($admin)->post(route('admin.extensions.install', 'demo'));
 
-        $response->assertRedirect(route('admin.modules.index'));
+        $response->assertRedirect(route('admin.extensions.index'));
         $response->assertSessionHas('success');
 
         $manager = app(ExtensionManager::class);
@@ -478,7 +478,7 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertDatabaseHas('extensions', ['name' => 'demo', 'enabled' => true]);
 
         $this->actingAs($admin)
-            ->get(route('admin.modules.index'))
+            ->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee('Demo Extension')
             ->assertSee('Enabled');
@@ -492,16 +492,16 @@ class ExtensionLifecycleTest extends TestCase
         $manager = app(ExtensionManager::class);
         $manager->install('demo');
 
-        $response = $this->actingAs($admin)->post(route('admin.modules.disable', 'demo'));
+        $response = $this->actingAs($admin)->post(route('admin.extensions.disable', 'demo'));
 
-        $response->assertRedirect(route('admin.modules.index'));
+        $response->assertRedirect(route('admin.extensions.index'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('extensions', ['name' => 'demo', 'enabled' => false]);
         $this->assertSame('disabled', $manager->state('demo'));
 
         $this->actingAs($admin)
-            ->get(route('admin.modules.index'))
+            ->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee('Demo Extension')
             ->assertSee('Disabled');
@@ -546,9 +546,9 @@ class ExtensionLifecycleTest extends TestCase
         $manager->install('demo');
         $this->assertTrue(Schema::hasTable('demo_extension_items'));
 
-        $response = $this->actingAs($admin)->post(route('admin.modules.uninstall', 'demo'));
+        $response = $this->actingAs($admin)->post(route('admin.extensions.uninstall', 'demo'));
 
-        $response->assertRedirect(route('admin.modules.index'));
+        $response->assertRedirect(route('admin.extensions.index'));
         $response->assertSessionHas('success');
 
         $this->assertDatabaseMissing('extensions', ['name' => 'demo']);
@@ -556,7 +556,7 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertSame('not_installed', $manager->state('demo'));
 
         $this->actingAs($admin)
-            ->get(route('admin.modules.index'))
+            ->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee('Not installed');
     }
@@ -574,11 +574,11 @@ class ExtensionLifecycleTest extends TestCase
 
         foreach (['install', 'enable', 'disable', 'uninstall'] as $action) {
             $this->actingAs($admin)
-                ->post(route("admin.modules.{$action}", 'ghost'))
+                ->post(route("admin.extensions.{$action}", 'ghost'))
                 ->assertNotFound();
 
             $this->actingAs($admin)
-                ->post(route("admin.modules.{$action}", 'totally-bogus-extension'))
+                ->post(route("admin.extensions.{$action}", 'totally-bogus-extension'))
                 ->assertNotFound();
         }
 
@@ -596,7 +596,7 @@ class ExtensionLifecycleTest extends TestCase
         // installed — enabling it is a nonsensical transition the UI never
         // offers a button for. The controller must reject it gracefully
         // (redirect + flashed error), not 500 or silently no-op.
-        $response = $this->actingAs($admin)->post(route('admin.modules.enable', 'demo'));
+        $response = $this->actingAs($admin)->post(route('admin.extensions.enable', 'demo'));
 
         $response->assertRedirect();
         $response->assertSessionHas('error');
@@ -611,9 +611,9 @@ class ExtensionLifecycleTest extends TestCase
         $this->writeFakeRouteCacheFile();
 
         try {
-            $response = $this->actingAs($admin)->post(route('admin.modules.install', 'demo'));
+            $response = $this->actingAs($admin)->post(route('admin.extensions.install', 'demo'));
 
-            $response->assertRedirect(route('admin.modules.index'));
+            $response->assertRedirect(route('admin.extensions.index'));
             $response->assertSessionHas('success', function ($message) {
                 return str_contains($message, 'route cache');
             });
@@ -629,7 +629,7 @@ class ExtensionLifecycleTest extends TestCase
 
         $this->assertFalse(app()->routesAreCached(), 'Precondition: no route cache should be active before this test.');
 
-        $response = $this->actingAs($admin)->post(route('admin.modules.install', 'demo'));
+        $response = $this->actingAs($admin)->post(route('admin.extensions.install', 'demo'));
 
         $response->assertSessionHas('success', function ($message) {
             return ! str_contains($message, 'route cache');

@@ -3,7 +3,7 @@
             <x-admin.button href="{{ route('admin.abandoned-carts.templates.create') }}">Create Template</x-admin.button>
         </x-slot:actions>
 
-        @include('admin.settings.modules.abandoned-carts.partials.nav')
+        @include('admin.extensions.abandoned-carts.partials.nav')
 
         <div class="space-y-4">
                 <x-admin.table>

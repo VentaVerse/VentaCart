@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  *     to its own index URL
  *   - deeper segments (anything past the entity) -> a single trailing
  *     unlinked crumb built from the page's own $title, EXCEPT under
- *     settings/modules/{name}/... where {name} always gets its own linked
+ *     extensions/{name}/... where {name} always gets its own linked
  *     crumb first (registry item if one exists — e.g. abandoned-carts, seo —
  *     else the extension's manifest title via ExtensionManager::discovered(),
  *     e.g. banners) before any further $title crumb.
@@ -54,6 +54,10 @@ class Breadcrumbs
 
         if ($segments[0] === 'settings') {
             return static::forSettings($segments, $title);
+        }
+
+        if ($segments[0] === 'extensions') {
+            return static::forExtensions($segments, $title);
         }
 
         return static::forAdminNav($segments, $title);
@@ -119,38 +123,45 @@ class Breadcrumbs
 
         $entitySegment = $segments[1];
 
-        if ($entitySegment === 'modules' && isset($segments[2])) {
-            $modulesItem = SettingsNav::find('modules');
-            $crumbs[] = [
-                'label' => $modulesItem['label'] ?? 'Modules',
-                'url' => $modulesItem ? SettingsNav::url($modulesItem) : route('admin.modules.index'),
-            ];
-
-            $name = $segments[2];
-            $navItem = static::findSettingsItemByKey($name);
-
-            if ($navItem) {
-                $crumbs[] = ['label' => $navItem['label'], 'url' => SettingsNav::url($navItem)];
-            } else {
-                $manifest = app(ExtensionManager::class)->discovered()->get($name);
-                $crumbs[] = [
-                    'label' => $manifest['title'] ?? Str::title(str_replace('-', ' ', $name)),
-                    'url' => static::extensionUrl($name),
-                ];
-            }
-
-            if (count($segments) > 3 && $title) {
-                $crumbs[] = ['label' => $title];
-            }
-
-            return $crumbs;
-        }
-
         $navItem = static::findSettingsItemByKey($entitySegment);
 
         $crumbs[] = $navItem
             ? ['label' => $navItem['label'], 'url' => SettingsNav::url($navItem)]
             : ['label' => Str::title(str_replace('-', ' ', $entitySegment))];
+
+        if (count($segments) > 2 && $title) {
+            $crumbs[] = ['label' => $title];
+        }
+
+        return $crumbs;
+    }
+
+    /**
+     * Trails inside the Extensions area (wave 0): the directory itself
+     * has no ancestors; extensions/{name}/... gets "Extensions" then the
+     * extension's own linked crumb (registry item if one exists, else the
+     * manifest title), then the page's own $title when deeper.
+     */
+    protected static function forExtensions(array $segments, ?string $title): array
+    {
+        if (! isset($segments[1])) {
+            return [];
+        }
+
+        $crumbs = [['label' => 'Extensions', 'url' => route('admin.extensions.index')]];
+
+        $name = $segments[1];
+        $navItem = static::findSettingsItemByKey($name);
+
+        if ($navItem) {
+            $crumbs[] = ['label' => $navItem['label'], 'url' => SettingsNav::url($navItem)];
+        } else {
+            $manifest = app(ExtensionManager::class)->discovered()->get($name);
+            $crumbs[] = [
+                'label' => $manifest['title'] ?? Str::title(str_replace('-', ' ', $name)),
+                'url' => static::extensionUrl($name),
+            ];
+        }
 
         if (count($segments) > 2 && $title) {
             $crumbs[] = ['label' => $title];
@@ -172,11 +183,11 @@ class Breadcrumbs
         return null;
     }
 
-    /** Canonical URL for an extension mounted under the kernel's settings/modules/{name} convention. */
+    /** Canonical URL for an extension mounted under the kernel's extensions/{name} convention. */
     protected static function extensionUrl(string $name): string
     {
         $prefix = trim((string) config('admin.prefix', 'admin'), '/');
 
-        return url($prefix.'/settings/modules/'.$name);
+        return url($prefix.'/extensions/'.$name);
     }
 }

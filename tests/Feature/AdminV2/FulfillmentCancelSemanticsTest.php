@@ -61,7 +61,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
     private function settingsUrl(): string
     {
-        return '/' . $this->prefix . '/settings/modules/courier-fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     private function installExtension(): void

@@ -17,7 +17,7 @@
             ->all(),
     ];
 @endphp
-<x-admin3.settings-shell :title="$title" active="modules">
+<x-admin3.shell :title="$title">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -248,4 +248,4 @@
         }
     </script>
     @endpush
-</x-admin3.settings-shell>
+</x-admin3.shell>

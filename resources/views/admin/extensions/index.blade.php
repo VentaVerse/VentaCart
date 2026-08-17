@@ -1,8 +1,8 @@
-<x-admin3.settings-shell title="Modules" active="modules">
+<x-admin3.shell title="Extensions">
     <div class="v3-head">
         <div class="v3-head__body">
-            <h1 class="v3-head__title">Modules</h1>
-            <p class="v3-head__standing">Everything the platform ships that switches on and off.</p>
+            <h1 class="v3-head__title">Extensions</h1>
+            <p class="v3-head__standing">Every packaged feature the platform ships, and its switch.</p>
         </div>
     </div>
 
@@ -34,19 +34,19 @@
                                 <a href="{{ $module['configure'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
                             @endif
                             @if (in_array('install', $module['actions'], true))
-                                <form method="POST" action="{{ route('admin.modules.install', $module['name']) }}">
+                                <form method="POST" action="{{ route('admin.extensions.install', $module['name']) }}">
                                     @csrf
                                     <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">{{ $module['state'] === 'needs_migration' ? 'Update' : 'Install' }}</button>
                                 </form>
                             @endif
                             @if (in_array('enable', $module['actions'], true))
-                                <form method="POST" action="{{ route('admin.modules.enable', $module['name']) }}">
+                                <form method="POST" action="{{ route('admin.extensions.enable', $module['name']) }}">
                                     @csrf
                                     <button type="submit" class="v3-btn v3-btn--primary v3-btn--sm">Enable</button>
                                 </form>
                             @endif
                             @if (in_array('disable', $module['actions'], true))
-                                <form method="POST" action="{{ route('admin.modules.disable', $module['name']) }}">
+                                <form method="POST" action="{{ route('admin.extensions.disable', $module['name']) }}">
                                     @csrf
                                     <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">Disable</button>
                                 </form>
@@ -63,7 +63,7 @@
                             {{-- The master switch. Off hides the feature's nav
                                  entry and pauses its scheduled jobs; its own
                                  settings stay reachable through Configure. --}}
-                            <form method="POST" action="{{ route($module['enabled'] ? 'admin.modules.feature-disable' : 'admin.modules.feature-enable', $module['key']) }}">
+                            <form method="POST" action="{{ route($module['enabled'] ? 'admin.extensions.feature-disable' : 'admin.extensions.feature-enable', $module['key']) }}">
                                 @csrf
                                 <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">{{ $module['enabled'] ? 'Disable' : 'Enable' }}</button>
                             </form>
@@ -73,4 +73,4 @@
             @endforeach
         </div>
     </div>
-</x-admin3.settings-shell>
+</x-admin3.shell>

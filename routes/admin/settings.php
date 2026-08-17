@@ -1,8 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\AutomationController;
-use App\Http\Controllers\Admin\Marketing\Seo\SeoExtensionController;
-use App\Http\Controllers\Admin\Sales\AbandonedCartController;
 use App\Http\Controllers\Admin\Settings\ApiSyncLogController;
 use App\Http\Controllers\Admin\Settings\BankAccountController;
 use App\Http\Controllers\Admin\Settings\CurrencyController;
@@ -12,7 +10,6 @@ use App\Http\Controllers\Admin\Settings\FooterColumnController;
 use App\Http\Controllers\Admin\Settings\FreeShippingRuleController;
 use App\Http\Controllers\Admin\Settings\HomepageSectionController;
 use App\Http\Controllers\Admin\Settings\LocalizationController;
-use App\Http\Controllers\Admin\Settings\ModuleController;
 use App\Http\Controllers\Admin\Settings\NavMenuController;
 use App\Http\Controllers\Admin\Settings\OrderStatusController;
 use App\Http\Controllers\Admin\Settings\PaymentMethodPageController;
@@ -239,51 +236,8 @@ Route::prefix('settings')->group(function () {
         Route::delete('/weight-based/{weightBasedMethod}', [WeightBasedMethodController::class, 'destroy'])->name('weight-based-methods.destroy');
     });
 
-    // Modules — extension manager (install/enable lifecycle UI)
-    Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
-    Route::post('/modules/features/{feature}/enable', [ModuleController::class, 'featureEnable'])->name('modules.feature-enable');
-    Route::post('/modules/features/{feature}/disable', [ModuleController::class, 'featureDisable'])->name('modules.feature-disable');
-    Route::post('/modules/{name}/install', [ModuleController::class, 'install'])->name('modules.install');
-    Route::post('/modules/{name}/enable', [ModuleController::class, 'enable'])->name('modules.enable');
-    Route::post('/modules/{name}/disable', [ModuleController::class, 'disable'])->name('modules.disable');
-    Route::post('/modules/{name}/uninstall', [ModuleController::class, 'uninstall'])->name('modules.uninstall');
 
-    // Abandoned Carts — configuration (rules, templates, settings). This is
-    // a core feature (not an uninstallable extension), so it adopts the
-    // settings/modules/{name} URL *convention* only, without a manifest.
-    // Operational pages live at sales/abandoned-carts — see sales.php.
-    Route::prefix('modules/abandoned-carts')->group(function () {
-        Route::get('/rules', [AbandonedCartController::class, 'rules'])->name('abandoned-carts.rules');
-        Route::get('/rules/create', [AbandonedCartController::class, 'createRule'])->name('abandoned-carts.rules.create');
-        Route::post('/rules', [AbandonedCartController::class, 'storeRule'])->name('abandoned-carts.rules.store');
-        Route::get('/rules/{rule}/edit', [AbandonedCartController::class, 'editRule'])->name('abandoned-carts.rules.edit');
-        Route::put('/rules/{rule}', [AbandonedCartController::class, 'updateRule'])->name('abandoned-carts.rules.update');
-        Route::delete('/rules/{rule}', [AbandonedCartController::class, 'destroyRule'])->name('abandoned-carts.rules.destroy');
 
-        Route::get('/templates', [AbandonedCartController::class, 'templates'])->name('abandoned-carts.templates');
-        Route::get('/templates/create', [AbandonedCartController::class, 'createTemplate'])->name('abandoned-carts.templates.create');
-        Route::post('/templates', [AbandonedCartController::class, 'storeTemplate'])->name('abandoned-carts.templates.store');
-        Route::get('/templates/{emailTemplate}/edit', [AbandonedCartController::class, 'editTemplate'])->name('abandoned-carts.templates.edit');
-        Route::put('/templates/{emailTemplate}', [AbandonedCartController::class, 'updateTemplate'])->name('abandoned-carts.templates.update');
-        Route::post('/templates/{emailTemplate}/toggle', [AbandonedCartController::class, 'toggleTemplate'])->name('abandoned-carts.templates.toggle');
-        Route::post('/templates/{emailTemplate}/test', [AbandonedCartController::class, 'testTemplate'])->name('abandoned-carts.templates.test');
-        Route::delete('/templates/{emailTemplate}', [AbandonedCartController::class, 'destroyTemplate'])->name('abandoned-carts.templates.destroy');
-
-        Route::get('/settings', [AbandonedCartController::class, 'settings'])->name('abandoned-carts.settings');
-        Route::post('/settings', [AbandonedCartController::class, 'updateSettings'])->name('abandoned-carts.settings.update');
-    });
-
-    // SEO engine config (Claude API key, generation rules, GSC credentials).
-    // Same mount-convention-only treatment as abandoned-carts above. SEO
-    // *workspace* (daily work) lives at marketing/seo — see marketing.php.
-    // Route names keep the 'extensions.seo.' prefix (frozen).
-    Route::prefix('modules/seo')->name('extensions.seo.')->group(function () {
-        Route::get('/settings', [SeoExtensionController::class, 'settings'])->name('settings');
-        Route::post('/settings', [SeoExtensionController::class, 'saveSettings'])->name('save-settings');
-        Route::post('/settings/upload-gsc', [SeoExtensionController::class, 'uploadGsc'])->name('upload-gsc');
-        Route::post('/settings/test-claude', [SeoExtensionController::class, 'testClaude'])->name('test-claude');
-        Route::post('/settings/test-gsc', [SeoExtensionController::class, 'testGsc'])->name('test-gsc');
-    });
 
     // Key-value settings pages (general, mail, checkout, currencies, api,
     // security, automations). MUST be registered last in this file: it's a

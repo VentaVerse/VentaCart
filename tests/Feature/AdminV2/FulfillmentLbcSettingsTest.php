@@ -56,7 +56,7 @@ class FulfillmentLbcSettingsTest extends TestCase
      */
     private function settingsUrl(string $suffix = ''): string
     {
-        return '/' . $this->prefix . '/settings/modules/courier-fulfillment' . $suffix;
+        return '/' . $this->prefix . '/extensions/courier-fulfillment' . $suffix;
     }
 
     private function installExtension(): void

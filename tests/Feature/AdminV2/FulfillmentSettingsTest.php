@@ -18,7 +18,7 @@ use Tests\TestCase;
  * Task W3 of the Fulfillment Workflow v2 + SPX plan: the single combined
  * courier settings page split into a HUB (module-level settings + one card
  * per registered courier) and PER-COURIER PAGES at
- * settings/modules/courier-fulfillment/{courier}. See
+ * extensions/courier-fulfillment/{courier}. See
  * docs/superpowers/plans/2026-08-08-spx-courier.md (Task W3) and the
  * workflow spec's Part 4.
  *
@@ -71,7 +71,7 @@ class FulfillmentSettingsTest extends TestCase
      */
     private function settingsUrl(string $suffix = ''): string
     {
-        return '/' . $this->prefix . '/settings/modules/courier-fulfillment' . $suffix;
+        return '/' . $this->prefix . '/extensions/courier-fulfillment' . $suffix;
     }
 
     private function installExtension(): void
@@ -823,7 +823,7 @@ class FulfillmentSettingsTest extends TestCase
 
         $response->assertStatus(301);
         $this->assertStringContainsString(
-            '/' . $this->prefix . '/settings/modules/courier-fulfillment',
+            '/' . $this->prefix . '/extensions/courier-fulfillment',
             $response->headers->get('Location')
         );
     }

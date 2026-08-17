@@ -107,14 +107,14 @@ class AbandonedCartController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('admin.settings.modules.abandoned-carts.templates', compact('templates'));
+        return view('admin.extensions.abandoned-carts.templates', compact('templates'));
     }
 
     public function createTemplate()
     {
         $placeholders = self::ABANDONED_CART_PLACEHOLDERS;
 
-        return view('admin.settings.modules.abandoned-carts.template-form', [
+        return view('admin.extensions.abandoned-carts.template-form', [
             'emailTemplate' => null,
             'placeholders' => $placeholders,
         ]);
@@ -143,7 +143,7 @@ class AbandonedCartController extends Controller
     {
         $placeholders = self::ABANDONED_CART_PLACEHOLDERS;
 
-        return view('admin.settings.modules.abandoned-carts.template-form', compact('emailTemplate', 'placeholders'));
+        return view('admin.extensions.abandoned-carts.template-form', compact('emailTemplate', 'placeholders'));
     }
 
     public function updateTemplate(Request $request, EmailTemplate $emailTemplate)
@@ -200,7 +200,7 @@ class AbandonedCartController extends Controller
             ->orderByDesc('priority')
             ->get();
 
-        return view('admin.settings.modules.abandoned-carts.rules', compact('rules'));
+        return view('admin.extensions.abandoned-carts.rules', compact('rules'));
     }
 
     public function createRule()
@@ -211,7 +211,7 @@ class AbandonedCartController extends Controller
             ->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
-        return view('admin.settings.modules.abandoned-carts.rule-form', [
+        return view('admin.extensions.abandoned-carts.rule-form', [
             'rule' => null,
             'templates' => $templates,
             'customerGroups' => $customerGroups,
@@ -245,7 +245,7 @@ class AbandonedCartController extends Controller
             ->get();
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
-        return view('admin.settings.modules.abandoned-carts.rule-form', compact('rule', 'templates', 'customerGroups'));
+        return view('admin.extensions.abandoned-carts.rule-form', compact('rule', 'templates', 'customerGroups'));
     }
 
     public function updateRule(Request $request, AbandonedCartRule $rule)
@@ -348,7 +348,7 @@ class AbandonedCartController extends Controller
         $enabled = ($settings->get('enabled') ?? '0') === '1';
         $skipOutOfStock = ($settings->get('skip_out_of_stock') ?? '1') === '1';
 
-        return view('admin.settings.modules.abandoned-carts.settings', compact('enabled', 'skipOutOfStock'));
+        return view('admin.extensions.abandoned-carts.settings', compact('enabled', 'skipOutOfStock'));
     }
 
     public function updateSettings(Request $request)

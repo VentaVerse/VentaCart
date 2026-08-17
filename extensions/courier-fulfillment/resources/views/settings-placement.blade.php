@@ -1,4 +1,4 @@
-<x-admin3.settings-shell title="Status Placement" active="modules">
+<x-admin3.shell title="Status Placement">
     @php
         // The select's own vocabulary, built once: the empty value is a real
         // choice (not placed), and its LABEL carries the one consequence that
@@ -11,7 +11,7 @@
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
-                <a href="{{ route('admin.modules.index') }}">Modules</a>
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.fulfillment.settings') }}">Courier Fulfillment</a>
                 <span aria-hidden="true">/</span>
@@ -96,4 +96,4 @@
         </x-admin3.panel>
 
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>

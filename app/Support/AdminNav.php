@@ -286,6 +286,14 @@ class AdminNav
 
             $entityKey = $segments[1] ?? null;
 
+            // A group's own root URL (today only /extensions, the
+            // directory) belongs to its first item.
+            if ($entityKey === null) {
+                $first = $group['items'][0]['key'] ?? null;
+
+                return ['group' => $group['label'], 'item' => $first];
+            }
+
             foreach ($group['items'] as $item) {
                 if (($item['key'] ?? null) === $entityKey) {
                     return ['group' => $group['label'], 'item' => $item['key']];

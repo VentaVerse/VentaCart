@@ -153,7 +153,7 @@ if (! function_exists('adminLegacyExtensionRedirect')) {
 // Ordered most-specific-first per house convention, though 'fulfillment/settings'
 // (2 segments), 'fulfillment/{order}/label' (3 segments), and bare
 // 'fulfillment' (1 segment) are different depths with no precedence hazard.
-adminLegacyExtensionRedirect('fulfillment/settings', 'settings/modules/courier-fulfillment');
+adminLegacyExtensionRedirect('fulfillment/settings', 'extensions/courier-fulfillment');
 adminLegacyExtensionRedirect('fulfillment/{order}/label', 'sales/fulfillment/%s/label');
 adminLegacyExtensionRedirect('fulfillment', 'sales/fulfillment');
 
@@ -174,7 +174,7 @@ adminLegacyRedirect('pages/{page}/edit', 'admin.pages.edit');
 adminLegacyRedirect('settings/section/{section}', 'admin.settings.section');
 adminLegacyRedirect('automations', 'admin.automations.index');
 adminLegacyRedirect('api-sync-logs', 'admin.api-sync-logs.index');
-adminLegacyRedirect('modules', 'admin.modules.index');
+adminLegacyRedirect('modules', 'admin.extensions.index');
 
 // Sales — Abandoned Carts (operational) + Settings > Modules > Abandoned
 // Carts (config) — literal siblings before the {cart} show wildcard
@@ -215,7 +215,8 @@ adminLegacyRedirect('extensions/seo/search-console', 'admin.extensions.seo.searc
 adminLegacyRedirect('extensions/seo/strategy', 'admin.extensions.seo.strategy');
 adminLegacyRedirect('extensions/seo/review', 'admin.extensions.seo.review');
 adminLegacyRedirect('extensions/seo/slugs', 'admin.extensions.seo.slugs');
-adminLegacyRedirect('extensions/seo/settings', 'admin.extensions.seo.settings');
+// ('extensions/seo/settings' is NOT redirected: since the wave-0 move it
+// is a real page again — the engine settings' own home.)
 adminLegacyRedirect('extensions/seo/redirects', 'admin.extensions.seo.redirects.index');
 adminLegacyRedirect('extensions/seo/not-found', 'admin.extensions.seo.not-found.index');
 adminLegacyRedirect('extensions/seo', 'admin.extensions.seo.dashboard');
@@ -259,3 +260,15 @@ adminLegacyRedirect('weight-based-methods/{weightBasedMethod}/edit', 'admin.weig
 
 // Settings — Theme
 adminLegacyRedirect('theme', 'admin.theme.index');
+
+// Extension architecture wave 0: the whole settings/modules subtree moved
+// to the top-level /extensions area (the directory, the lifecycle, and
+// every extension's settings mounted under the extensions/{name}
+// convention). Path-preserving so every bookmarked module page lands on
+// its new home.
+Route::get('settings/modules/{path?}', function (?string $path = null) {
+    $destination = '/'.trim(config('admin.prefix', 'admin').'/extensions/'.($path ?? ''), '/');
+    $query = request()->getQueryString();
+
+    return redirect($destination.($query ? '?'.$query : ''), 301);
+})->where('path', '.*')->name('legacy-modules-redirect');

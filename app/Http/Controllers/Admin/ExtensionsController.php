@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Automation;
@@ -14,7 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
-class ModuleController extends Controller
+class ExtensionsController extends Controller
 {
     /**
      * States (per ExtensionManager::state()) that legally allow each
@@ -115,7 +115,7 @@ class ModuleController extends Controller
             ->sortBy(fn (array $m) => $m['title'])
             ->values();
 
-        return view('admin.settings.modules.index', [
+        return view('admin.extensions.index', [
             'modules' => $modules,
         ]);
     }
@@ -164,7 +164,7 @@ class ModuleController extends Controller
 
         $name = ['stock-alerts' => 'Stock Alerts', 'seo' => 'SEO', 'abandoned-carts' => 'Abandoned Carts'][$feature];
 
-        return redirect()->route('admin.modules.index')
+        return redirect()->route('admin.extensions.index')
             ->with('success', $name . ' ' . ($on ? 'enabled.' : 'disabled. Its nav entry is hidden and its scheduled jobs are paused.'));
     }
 
@@ -221,7 +221,7 @@ class ModuleController extends Controller
             $message .= ' The compiled route cache was stale and has been automatically cleared, so its routes are live immediately.';
         }
 
-        return redirect()->route('admin.modules.index')->with('success', $message);
+        return redirect()->route('admin.extensions.index')->with('success', $message);
     }
 
     private function extensionCard(array $manifest): array

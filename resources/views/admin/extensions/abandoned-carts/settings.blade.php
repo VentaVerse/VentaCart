@@ -1,5 +1,5 @@
 <x-admin.settings-shell title="Abandoned Cart Settings">
-        @include('admin.settings.modules.abandoned-carts.partials.nav')
+        @include('admin.extensions.abandoned-carts.partials.nav')
 
         <div class="max-w-2xl space-y-6">
                 {{-- Enable/Disable --}}

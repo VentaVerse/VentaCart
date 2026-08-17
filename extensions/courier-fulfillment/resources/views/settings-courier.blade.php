@@ -10,7 +10,7 @@
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
-                <a href="{{ route('admin.modules.index') }}">Modules</a>
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.fulfillment.settings') }}">Courier Fulfillment</a>
                 <span aria-hidden="true">/</span>
@@ -208,4 +208,4 @@
         </div>
     </x-admin3.form>
 
-</x-admin3.settings-shell>
+</x-admin3.shell>

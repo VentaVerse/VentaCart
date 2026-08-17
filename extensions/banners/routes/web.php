@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 // old hardcoded 'admin/banners/*' paths now 301 via routes/admin.php's
 // legacy-banners-redirect route. Route names are unchanged ('admin.banners.*').
 Route::middleware(['web', 'auth', 'admin.session.cap'])
-    ->prefix(config('admin.prefix', 'admin').'/settings/modules/banners')
+    ->prefix(config('admin.prefix', 'admin').'/extensions/banners')
     ->name('admin.banners.')
     ->group(function () {
     // Groups

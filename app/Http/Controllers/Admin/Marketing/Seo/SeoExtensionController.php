@@ -565,7 +565,7 @@ class SeoExtensionController extends Controller
             }
         }
 
-        return view('admin.settings.modules.seo.settings', compact(
+        return view('admin.extensions.seo.settings', compact(
             'seoSettings', 'gscCredentialsExist', 'maskedApiKey'
         ));
     }

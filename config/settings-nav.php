@@ -44,7 +44,6 @@ return [
             ['key' => 'permissions', 'label' => 'Permissions', 'description' => 'Role-based access control.', 'icon' => 'groups', 'route' => 'admin.permissions.index', 'section' => null, 'permission' => null, 'keywords' => ['roles', 'access', 'rbac']],
             ['key' => 'security', 'label' => 'Security', 'description' => 'Admin URL prefix and Turnstile protection.', 'icon' => 'check', 'route' => 'admin.settings.section', 'section' => 'security', 'permission' => null, 'keywords' => ['turnstile', 'captcha', 'admin prefix', 'login']],
             ['key' => 'api', 'label' => 'API & Sync', 'description' => 'ERP token and sync logging.', 'icon' => 'external', 'route' => 'admin.settings.section', 'section' => 'api', 'permission' => null, 'keywords' => ['erp', 'token', 'sync logs', 'integration']],
-            ['key' => 'modules', 'label' => 'Modules', 'description' => 'Installed feature modules and extensions.', 'icon' => 'categories', 'route' => 'admin.modules.index', 'section' => null, 'permission' => null, 'keywords' => ['extensions', 'plugins', 'banners']],
             // key equals the URL's modules/{key} segment ({p}/settings/modules/seo/settings),
             // not the display label — see App\Support\Breadcrumbs.
             ['key' => 'seo', 'label' => 'SEO Engine', 'description' => 'Claude API, generation rules, and strategy.', 'icon' => 'seo', 'route' => 'admin.extensions.seo.settings', 'section' => null, 'permission' => null, 'keywords' => ['claude', 'meta generation', 'suggestions', 'gsc']],

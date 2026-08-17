@@ -73,7 +73,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
 // same 'admin.fulfillment.' name prefix — names are frozen, only the two
 // URI roots differ per the grammar's section-based mount.
 Route::middleware(['web', 'auth', 'admin.session.cap'])
-    ->prefix($adminPrefix . '/settings/modules/courier-fulfillment')
+    ->prefix($adminPrefix . '/extensions/courier-fulfillment')
     ->name('admin.fulfillment.')
     ->group(function () {
         // Hub (Task W3 split): module-level settings + one card per

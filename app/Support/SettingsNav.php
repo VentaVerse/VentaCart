@@ -60,15 +60,11 @@ class SettingsNav
 
     /**
      * The settings-nav item key that should highlight as active for a given
-     * request path, by longest-URL-prefix match (Task 7). Item keys already
-     * equal their URL segment (settings/{key}) for ordinary items; items
-     * mounted under the extension-kernel convention (settings/modules/{key}/…)
-     * match on that 3-segment prefix instead of their own — often deeper —
-     * resolved URL, so any page anywhere under a module highlights
-     * consistently (e.g. settings/modules/abandoned-carts/rules still
-     * highlights 'abandoned-carts', even though that item's own URL is
-     * .../abandoned-carts/settings). See Breadcrumbs, which shares this
-     * convention for the breadcrumb trail.
+     * request path, by longest-URL-prefix match (Task 7). Item keys equal
+     * their URL segment (settings/{key}). The old settings/modules/{key}
+     * convention retired with the Extensions area (wave 0): extension
+     * pages live at extensions/{name} and answer to the main nav's
+     * Extensions group, not this space.
      */
     public static function activeKeyForPath(string $path): ?string
     {
@@ -78,13 +74,7 @@ class SettingsNav
             return null;
         }
 
-        $entitySegment = $segments[1] ?? null;
-
-        if ($entitySegment === 'modules' && isset($segments[2])) {
-            return $segments[2];
-        }
-
-        return $entitySegment;
+        return $segments[1] ?? null;
     }
 
     /** Flat entries for the command palette, namespaced under "Settings". */

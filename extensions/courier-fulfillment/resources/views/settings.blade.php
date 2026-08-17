@@ -1,4 +1,4 @@
-<x-admin3.settings-shell title="Courier Settings" active="modules">
+<x-admin3.shell title="Courier Settings">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -6,7 +6,7 @@
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
-                <a href="{{ route('admin.modules.index') }}">Modules</a>
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <span>Courier Fulfillment</span>
             </div>
@@ -192,4 +192,4 @@
         @endforeach
 
     </div>
-</x-admin3.settings-shell>
+</x-admin3.shell>

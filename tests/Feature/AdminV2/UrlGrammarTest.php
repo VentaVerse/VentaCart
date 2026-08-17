@@ -25,7 +25,7 @@ class UrlGrammarTest extends TestCase
     /** Section roots the grammar map defines (spec §Part 1 URL map). */
     private const ALLOWED_ROOTS = [
         'dashboard', 'sales', 'catalog', 'customers', 'content',
-        'marketing', 'settings', 'profile',
+        'marketing', 'extensions', 'settings', 'profile',
     ];
 
     // ------------------------------------------------------------------
@@ -85,7 +85,7 @@ class UrlGrammarTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/'.$this->prefix().'/settings/modules')->assertOk();
+        $this->get('/'.$this->prefix().'/extensions')->assertOk();
     }
 
     public function test_marketing_seo_workspace_is_ok_at_new_url(): void
@@ -99,7 +99,7 @@ class UrlGrammarTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/'.$this->prefix().'/settings/modules/seo/settings')->assertOk();
+        $this->get('/'.$this->prefix().'/extensions/seo/settings')->assertOk();
     }
 
     /**
@@ -125,12 +125,12 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment')->assertOk();
+        $this->get('/'.$this->prefix().'/extensions/courier-fulfillment')->assertOk();
     }
 
     /**
      * Task W3 (spx-courier plan): per-courier settings pages under the hub,
-     * grammar-conformant at settings/modules/courier-fulfillment/{courier}.
+     * grammar-conformant at extensions/courier-fulfillment/{courier}.
      * An unregistered courier key is a 404, never a rendered page.
      */
     public function test_fulfillment_courier_settings_page_is_ok_at_new_url(): void
@@ -138,8 +138,8 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/quadx')->assertOk();
-        $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/nope')->assertNotFound();
+        $this->get('/'.$this->prefix().'/extensions/courier-fulfillment/quadx')->assertOk();
+        $this->get('/'.$this->prefix().'/extensions/courier-fulfillment/nope')->assertNotFound();
     }
 
     /**
@@ -209,15 +209,16 @@ class UrlGrammarTest extends TestCase
         $response->assertRedirect(route('admin.extensions.seo.dashboard'));
     }
 
-    public function test_old_extensions_seo_settings_redirects_to_settings_modules_seo(): void
+    public function test_extensions_seo_settings_is_a_real_page_again(): void
     {
+        // Wave 0 repin: the engine settings' home IS extensions/seo/settings
+        // now; the legacy redirect that used to occupy this URL is gone
+        // (it would have shadowed the real route in the collection).
         $this->actingAs(User::factory()->create());
 
-        $response = $this->get('/'.$this->prefix().'/extensions/seo/settings');
-
-        $response->assertStatus(301);
-        $response->assertRedirect(route('admin.extensions.seo.settings'));
-        $this->assertStringContainsString('/settings/modules/seo/settings', $response->headers->get('Location'));
+        $this->get('/'.$this->prefix().'/extensions/seo/settings')->assertOk();
+        $this->get('/'.$this->prefix().'/settings/modules/seo/settings')
+            ->assertStatus(301);
     }
 
     public function test_old_abandoned_carts_settings_redirects_to_settings_modules(): void
@@ -228,7 +229,7 @@ class UrlGrammarTest extends TestCase
 
         $response->assertStatus(301);
         $response->assertRedirect(route('admin.abandoned-carts.settings'));
-        $this->assertStringContainsString('/settings/modules/abandoned-carts/settings', $response->headers->get('Location'));
+        $this->assertStringContainsString('/extensions/abandoned-carts/settings', $response->headers->get('Location'));
     }
 
     public function test_old_abandoned_carts_index_still_resolves_operationally(): void
@@ -249,7 +250,7 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/modules');
 
         $response->assertStatus(301);
-        $response->assertRedirect(route('admin.modules.index'));
+        $response->assertRedirect(route('admin.extensions.index'));
     }
 
     public function test_old_order_edit_url_redirects_preserving_the_order_param(): void
@@ -302,7 +303,7 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/fulfillment/settings');
 
         $response->assertStatus(301);
-        $this->assertStringContainsString('/'.$this->prefix().'/settings/modules/courier-fulfillment', $response->headers->get('Location'));
+        $this->assertStringContainsString('/'.$this->prefix().'/extensions/courier-fulfillment', $response->headers->get('Location'));
     }
 
     public function test_old_fulfillment_label_url_redirects_preserving_the_order_param(): void
@@ -323,7 +324,7 @@ class UrlGrammarTest extends TestCase
 
         $response->assertStatus(301);
         $this->assertStringContainsString(
-            '/'.$this->prefix().'/settings/modules/banners',
+            '/'.$this->prefix().'/extensions/banners',
             $response->headers->get('Location')
         );
     }
@@ -457,7 +458,7 @@ class UrlGrammarTest extends TestCase
     // Task 7: path-derived breadcrumbs (App\Support\Breadcrumbs). Three
     // representative deep pages — an extension-kernel page (proving the
     // ExtensionManager manifest-title fallback), a plain admin-nav create
-    // form, and a settings/modules/{name} sub-page — each rendered end to
+    // form, and a extensions/{name} sub-page — each rendered end to
     // end through x-admin.page's auto-derivation (no :breadcrumb passed).
     // ------------------------------------------------------------------
 
@@ -466,12 +467,12 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('banners');
 
-        $response = $this->get('/'.$this->prefix().'/settings/modules/banners');
+        $response = $this->get('/'.$this->prefix().'/extensions/banners');
 
         $response->assertOk();
         // v3 repin: the settings space IS Settings, so the trail starts
         // at Modules like every other v3 settings page.
-        $this->assertBreadcrumbTrail($response->getContent(), ['Modules', 'Banners']);
+        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Banners']);
     }
 
     /** Task 2: the Fulfillment sidebar item (admin-nav) supplies the queue's crumb. */
@@ -498,17 +499,17 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $response = $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment');
+        $response = $this->get('/'.$this->prefix().'/extensions/courier-fulfillment');
 
         $response->assertOk();
         // v3 repin: the settings space IS Settings, so its trail starts at
         // Modules like every other v3 settings page.
-        $this->assertBreadcrumbTrail($response->getContent(), ['Modules', 'Courier Fulfillment']);
+        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Courier Fulfillment']);
     }
 
     /**
      * Task W3: a per-courier settings page is one segment deeper than the
-     * extension's settings/modules/{name} mount, so the derivation's
+     * extension's extensions/{name} mount, so the derivation's
      * "deeper than the module" rule appends the page's own title (the
      * courier's name) as the trailing crumb — no new plumbing.
      */
@@ -517,10 +518,10 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $response = $this->get('/'.$this->prefix().'/settings/modules/courier-fulfillment/quadx');
+        $response = $this->get('/'.$this->prefix().'/extensions/courier-fulfillment/quadx');
 
         $response->assertOk();
-        $this->assertBreadcrumbTrail($response->getContent(), ['Modules', 'Courier Fulfillment', 'QuadX']);
+        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Courier Fulfillment', 'QuadX']);
     }
 
     /**
@@ -553,10 +554,10 @@ class UrlGrammarTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $response = $this->get('/'.$this->prefix().'/settings/modules/abandoned-carts/rules');
+        $response = $this->get('/'.$this->prefix().'/extensions/abandoned-carts/rules');
 
         $response->assertOk();
-        $this->assertBreadcrumbTrail($response->getContent(), ['Settings', 'Modules', 'Abandoned Carts', 'Rules']);
+        $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Abandoned Carts', 'Rules']);
     }
 
     public function test_breadcrumbs_forpath_unit_cases(): void
@@ -579,11 +580,10 @@ class UrlGrammarTest extends TestCase
 
         $this->assertSame(
             [
-                ['label' => 'Settings', 'url' => route('admin.settings.index')],
-                ['label' => 'Modules', 'url' => route('admin.modules.index')],
-                ['label' => 'Banners', 'url' => url($this->prefix().'/settings/modules/banners')],
+                ['label' => 'Extensions', 'url' => route('admin.extensions.index')],
+                ['label' => 'Banners', 'url' => url($this->prefix().'/extensions/banners')],
             ],
-            Breadcrumbs::forPath('/'.$this->prefix().'/settings/modules/banners')
+            Breadcrumbs::forPath('/'.$this->prefix().'/extensions/banners/slides')
         );
     }
 
