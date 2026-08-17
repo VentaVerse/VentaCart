@@ -1,4 +1,5 @@
 <x-admin.shell title="Abandoned Cart Settings">
+    <x-admin.page title="Abandoned Cart Settings">
         @include('admin.extensions.abandoned-carts.partials.nav')
 
         <div class="max-w-2xl space-y-6">
@@ -29,4 +30,5 @@
                     </div>
                 </x-admin.card>
         </div>
+    </x-admin.page>
 </x-admin.shell>

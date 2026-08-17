@@ -1,5 +1,6 @@
 <x-admin.shell :title="$emailTemplate ? 'Edit Template' : 'Create Template'">
     <x-admin.page :title="$emailTemplate ? 'Edit Template' : 'Create Template'">
+    <x-admin.page :title="$emailTemplate ? 'Edit Template' : 'Create Template'">
         <x-slot:actions>
             <x-admin.button variant="ghost" href="{{ route('admin.abandoned-carts.templates') }}">Cancel</x-admin.button>
         </x-slot:actions>
@@ -81,4 +82,5 @@
         });
     </script>
     @endpush
+    </x-admin.page>
 </x-admin.shell>
