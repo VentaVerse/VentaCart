@@ -254,6 +254,111 @@ class ThemeService
         $this->clearCache();
     }
 
+    /**
+     * Capture the live look (colors, fonts, vars, and this theme's options)
+     * as a new preset file. The preset dir is the only writable target and
+     * the slug alphabet is closed, so a crafted name cannot escape it.
+     */
+    public function saveCurrentAsPreset(string $name, ?string $description = null): string
+    {
+        $slug = \Illuminate\Support\Str::slug($name);
+        if ($slug === '') {
+            throw new \InvalidArgumentException('The preset needs a name.');
+        }
+
+        $path = $this->presetPath($slug);
+        if (file_exists($path)) {
+            throw new \InvalidArgumentException("A preset named [{$slug}] already exists.");
+        }
+
+        $theme = $this->getActiveTheme();
+        $options = [];
+        foreach (Setting::where('group', 'theme_settings')->where('key', 'like', "{$theme}_%")->pluck('value', 'key') as $key => $value) {
+            $options[substr($key, strlen($theme) + 1)] = $value;
+        }
+
+        $preset = [
+            'name' => $name,
+            'description' => $description ?: 'Saved from the live look on ' . now()->format('M j, Y') . '.',
+            'colors' => Setting::where('group', 'colors')->orderBy('key')->pluck('value', 'key')->all(),
+            'fonts' => Setting::where('group', 'fonts')->orderBy('key')->pluck('value', 'key')->all(),
+            'vars' => Setting::where('group', 'vars')->orderBy('key')->pluck('value', 'key')->all(),
+            'options' => $options,
+        ];
+
+        file_put_contents($path, json_encode($preset, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+        return $slug;
+    }
+
+    public function deletePreset(string $slug): void
+    {
+        if ($slug === $this->getActivePreset()) {
+            throw new \InvalidArgumentException('The active preset cannot be deleted. Switch to another look first.');
+        }
+
+        $path = $this->presetPath($slug);
+        if (!file_exists($path)) {
+            throw new \InvalidArgumentException("Unknown preset [{$slug}].");
+        }
+
+        unlink($path);
+
+        foreach (['colors', 'fonts', 'vars', 'theme_settings'] as $family) {
+            Setting::where('group', "{$family}__{$slug}")->delete();
+        }
+    }
+
+    /**
+     * Validate and install an uploaded preset JSON. Only the known families
+     * survive; anything else in the file is dropped rather than stored.
+     */
+    public function importPreset(string $json): string
+    {
+        $data = json_decode($json, true);
+        if (!is_array($data) || empty($data['name']) || !is_string($data['name'])) {
+            throw new \InvalidArgumentException('Not a preset file: it needs at least a name.');
+        }
+        if (empty($data['colors']) || !is_array($data['colors'])) {
+            throw new \InvalidArgumentException('Not a preset file: it carries no colors.');
+        }
+
+        $slug = \Illuminate\Support\Str::slug($data['name']);
+        if ($slug === '' || file_exists($this->presetPath($slug))) {
+            throw new \InvalidArgumentException("A preset named [{$slug}] already exists.");
+        }
+
+        $clean = ['name' => $data['name']];
+        $clean['description'] = is_string($data['description'] ?? null) ? $data['description'] : 'Imported preset.';
+        foreach (['colors', 'fonts', 'vars', 'options'] as $family) {
+            $values = $data[$family] ?? [];
+            if (!is_array($values)) {
+                continue;
+            }
+            $clean[$family] = collect($values)
+                ->filter(fn ($v, $k) => is_string($k) && (is_scalar($v) || is_null($v)))
+                ->all();
+        }
+
+        file_put_contents($this->presetPath($slug), json_encode($clean, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+        return $slug;
+    }
+
+    private function presetPath(string $slug): string
+    {
+        if (!preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug)) {
+            throw new \InvalidArgumentException('Preset names use letters, numbers, and dashes.');
+        }
+
+        $dir = $this->getThemePath() . '/presets';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        return $dir . '/' . $slug . '.json';
+    }
+
     public function getThemeSettingsSchema(?string $theme = null): array
     {
         $theme = $theme ?? $this->getActiveTheme();

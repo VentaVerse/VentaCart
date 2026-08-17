@@ -24,7 +24,7 @@ class FooterColumnController extends Controller
             'text' => ['content' => ''],
         };
 
-        FooterColumn::create([
+        $column = FooterColumn::create([
             'title' => $request->input('title'),
             'type' => $request->input('type'),
             'config' => $defaults,
@@ -33,7 +33,12 @@ class FooterColumnController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return back()->with('success', 'Footer column added.')->with('tab', 'footer');
+        return redirect()->route('admin.theme.footer.edit', $column)->with('success', 'Footer column added. Fill it in below.');
+    }
+
+    public function edit(FooterColumn $column)
+    {
+        return view('admin.settings.theme.footer-column', compact('column'));
     }
 
     public function bulkUpdate(Request $request)
@@ -124,7 +129,7 @@ class FooterColumnController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return back()->with('success', 'Footer column updated.')->with('tab', 'footer');
+        return redirect()->route('admin.theme.index', ['tab' => 'footer'])->with('success', 'Footer column updated.');
     }
 
     public function destroy(FooterColumn $column)

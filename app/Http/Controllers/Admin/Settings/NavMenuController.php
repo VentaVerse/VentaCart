@@ -34,6 +34,16 @@ class NavMenuController extends Controller
         return back()->with('success', 'Menu item added.')->with('tab', 'navigation');
     }
 
+    public function edit(NavMenuItem $item)
+    {
+        $categories = \App\Models\Category::whereNull('parent_id')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.settings.theme.nav-item', compact('item', 'categories'));
+    }
+
     public function update(Request $request, NavMenuItem $item)
     {
         $request->validate([
@@ -50,7 +60,7 @@ class NavMenuController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return back()->with('success', 'Menu item updated.')->with('tab', 'navigation');
+        return redirect()->route('admin.theme.index', ['tab' => 'navigation'])->with('success', 'Menu item updated.');
     }
 
     public function destroy(NavMenuItem $item)

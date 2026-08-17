@@ -166,7 +166,7 @@
                     const root = this.levels.find((level) => !level.paramFrom);
                     if (root) {
                         this.loadLevel(root, true).then(() => this.$nextTick(() => {
-                            if (this.rebaseline) this.rebaseline();
+                            this.$el.dispatchEvent(new CustomEvent('v3-rebaseline', { bubbles: true }));
                         }));
                     }
                 },

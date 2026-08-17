@@ -13,6 +13,7 @@
                 <form method="POST" action="{{ $action }}" class="v3-modal__acts">
                     @csrf
                     @if (strtoupper($method) !== 'POST') @method($method) @endif
+                    {{ $slot ?? '' }}
                     <button type="button" class="v3-btn v3-btn--ghost" x-ref="cancel" @click="open = false">Cancel</button>
                     <button type="submit" class="v3-btn {{ $danger ? 'v3-btn--danger-fill' : 'v3-btn--primary' }}">{{ $confirm }}</button>
                 </form>

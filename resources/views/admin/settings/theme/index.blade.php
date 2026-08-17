@@ -6,35 +6,90 @@
         </div>
     </div>
 
-    <x-admin3.panel title="Active look" :note="$installedPresets[$activePreset]['description'] ?? ''">
+    {{-- Every installed look: apply, export, delete, plus save-as and
+         import verbs. A preset is a JSON overlay, so a look travels between
+         stores as one small file. --}}
+    <div class="v3-settle">
+    <x-admin3.panel title="Looks" flush>
         <x-slot:acts>
-            <form method="POST" action="{{ route('admin.theme.switch') }}" id="v3-theme-switch" class="v3-actrow">
-                @csrf
-                <select name="preset" aria-label="Storefront look" class="v3-control v3-w-name">
-                    @foreach ($installedPresets as $slug => $meta)
-                        <option value="{{ $slug }}" @selected($slug === $activePreset)>{{ $meta['name'] ?? $slug }}</option>
-                    @endforeach
-                </select>
-                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="$dispatch('v3-confirm', 'switch-theme')">Switch</button>
-            </form>
+            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                    onclick="document.getElementById('preset-import-form').querySelector('input[type=file]').click()">Import preset</button>
         </x-slot:acts>
-        <p class="v3-cell-quiet">{{ $installedPresets[$activePreset]['name'] ?? 'No preset' }} is live on the storefront now.</p>
+        <div class="v3-tablewrap">
+            <table class="v3-table">
+                <thead>
+                    <tr><th>Look</th><th>Palette</th><th class="v3-cell-act"><span class="v3-sr">Actions</span></th></tr>
+                </thead>
+                <tbody>
+                    @foreach ($installedPresets as $slug => $meta)
+                        <tr>
+                            <td>
+                                <span class="v3-namerow">
+                                    <strong>{{ $meta['name'] ?? $slug }}</strong>
+                                    @if ($slug === $activePreset)
+                                        <span class="v3-badge v3-badge--good">Live</span>
+                                    @endif
+                                </span>
+                                <span class="v3-cell-quiet v3-block">{{ $meta['description'] ?? '' }}</span>
+                            </td>
+                            <td>
+                                <span class="v3-palrow">
+                                    @foreach (['bg', 'primary', 'secondary', 'text_heading', 'card_bg'] as $chipKey)
+                                        @if (!empty($meta['colors'][$chipKey]))
+                                            {{-- The color is a record's own data, carried as an SVG
+                                                 presentation attribute rather than a stylesheet rule. --}}
+                                            <svg class="v3-palchip" viewBox="0 0 10 10" role="img" aria-label="{{ $chipKey }} {{ $meta['colors'][$chipKey] }}"><title>{{ $chipKey }}: {{ $meta['colors'][$chipKey] }}</title><rect width="10" height="10" rx="3" fill="{{ $meta['colors'][$chipKey] }}"/></svg>
+                                        @endif
+                                    @endforeach
+                                </span>
+                            </td>
+                            <td class="v3-cell-act">
+                                @if ($slug !== $activePreset)
+                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'apply-preset-{{ $slug }}')">Apply</button>
+                                @endif
+                                <a href="{{ route('admin.theme.presets.export', $slug) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Export</a>
+                                @if ($slug !== $activePreset)
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'delete-preset-{{ $slug }}')">Delete</button>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </x-admin3.panel>
 
-    {{-- The switch restyles the live storefront the moment it lands. --}}
-    <div x-data="{ open: false }" x-on:v3-confirm.window="if ($event.detail === 'switch-theme') open = true" x-on:keydown.escape.window="open = false">
-        <template x-if="open">
-            <div class="v3-overlay" @click.self="open = false">
-                <div class="v3-modal" role="dialog" aria-modal="true" aria-labelledby="v3c-switch">
-                    <h2 class="v3-modal__title" id="v3c-switch">Switch the storefront look?</h2>
-                    <p class="v3-modal__body">Shoppers see the new look immediately. Colors, fonts, and options saved for it are restored; the current look's are kept for switching back.</p>
-                    <div class="v3-modal__acts">
-                        <button type="button" class="v3-btn v3-btn--ghost" @click="open = false">Cancel</button>
-                        <button type="submit" form="v3-theme-switch" class="v3-btn v3-btn--primary">Switch look</button>
-                    </div>
-                </div>
-            </div>
-        </template>
+    @foreach ($installedPresets as $slug => $meta)
+        @if ($slug !== $activePreset)
+            <x-admin3.confirm name="apply-preset-{{ $slug }}" title="Switch to {{ $meta['name'] ?? $slug }}?"
+                message="Shoppers see the new look immediately. Colors, fonts, and options saved for it are restored; the current look's are kept for switching back."
+                confirm="Switch look" :danger="false"
+                :action="route('admin.theme.switch')" method="POST">
+                <input type="hidden" name="preset" value="{{ $slug }}">
+            </x-admin3.confirm>
+            <x-admin3.confirm name="delete-preset-{{ $slug }}" title="Delete {{ $meta['name'] ?? $slug }}?"
+                message="The preset file and its saved edits are removed. The live look is untouched."
+                confirm="Delete"
+                :action="route('admin.theme.presets.destroy', $slug)" method="DELETE" />
+        @endif
+    @endforeach
+
+    {{-- Save the live look as a new preset --}}
+    <x-admin3.panel title="Save the live look">
+        <form method="POST" action="{{ route('admin.theme.presets.store') }}" class="v3-addrow v3-addrow--3">
+            @csrf
+            <input type="text" name="name" required maxlength="60" placeholder="Preset name" aria-label="Preset name" class="v3-control">
+            <input type="text" name="description" maxlength="200" placeholder="Description" aria-label="Preset description" class="v3-control">
+            <button type="submit" class="v3-btn v3-btn--primary">Save as preset</button>
+        </form>
+    </x-admin3.panel>
+
+    <form id="preset-import-form" method="POST" action="{{ route('admin.theme.presets.import') }}" enctype="multipart/form-data" hidden>
+        @csrf
+        <input type="file" name="preset_file" accept="application/json,.json" aria-label="Preset JSON file" onchange="this.form.submit()">
+    </form>
     </div>
 
     <div x-data="{ tab: @js(session('tab', request('tab', 'colors'))),
@@ -61,9 +116,10 @@
                     @php
                         $colorGroups = [
                             'Storefront' => ['primary' => 'Buttons & Links', 'secondary' => 'Sale Badges & Accents', 'btn_text' => 'Text on Buttons', 'price' => 'Product Prices'],
-                            'Product Cards' => ['badge_new' => '"New" Badge', 'badge_hot' => '"Hot" Badge', 'badge_free_shipping' => '"Free Shipping" Badge', 'star_rating' => 'Star Ratings', 'sale_price' => 'Sale Price', 'card_hover' => 'Card Hover Effect'],
+                            'Product Cards' => ['badge_new' => '"New" Badge', 'badge_hot' => '"Hot" Badge', 'badge_free_shipping' => '"Free Shipping" Badge', 'star_rating' => 'Star Ratings', 'sale_price' => 'Sale Price', 'card_hover' => 'Card Hover Effect', 'brand_tile_bg' => 'Brand Tile Background'],
                             'Page' => ['bg' => 'Page Background', 'card_bg' => 'Product Card Background', 'border' => 'Lines & Dividers', 'input_bg' => 'Form Field Background', 'input_border' => 'Form Field Borders', 'breadcrumb_bg' => 'Breadcrumb Bar', 'dropdown_bg' => 'Dropdown & Popup Background', 'sidebar_bg' => 'Sidebar Background', 'success' => 'Success / In Stock', 'error' => 'Error / Out of Stock'],
                             'Checkout' => ['checkout_option_bg' => 'Payment & Shipping Cards', 'review_bg' => 'Review Cards'],
+                            'Status Messages' => ['danger_bg' => 'Error Panel Background', 'danger_border' => 'Error Panel Border', 'danger_text' => 'Error Panel Text', 'danger_accent' => 'Error Accents', 'success_bg' => 'Success Panel Background', 'success_text' => 'Success Panel Text', 'success_accent' => 'Success Accents'],
                             'Text' => ['text' => 'Paragraph Text', 'text_heading' => 'Titles & Headings', 'text_muted' => 'Hints & Small Descriptions', 'content_text' => 'Product Description Text'],
                             'Header' => ['nav_bg' => 'Background', 'nav_text' => 'Cart, Menu & Account Text', 'search_bg' => 'Search Bar', 'announcement_bg' => 'Announcement Background', 'announcement_text' => 'Announcement Text', 'logo_text' => 'Logo / Store Name'],
                             'Footer' => ['footer_bg' => 'Background', 'footer_text' => 'Links & Text', 'footer_heading' => 'Section Titles'],
@@ -110,7 +166,7 @@
                  }">
                 <x-admin3.panel title="Fonts">
                     @php
-                        $fontOptions = ['Barlow','Bebas Neue','Bitter','Cormorant Garamond','DM Sans','DM Serif Display','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Lato','Libre Baskerville','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Source Sans 3','Space Grotesk','Space Mono','Ubuntu','Work Sans'];
+                        $fontOptions = ['Anton','Archivo','Barlow','Bebas Neue','Bitter','Bricolage Grotesque','Cormorant Garamond','DM Sans','DM Serif Display','Figtree','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Karla','Lato','Libre Baskerville','Libre Franklin','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Saira','Saira Condensed','Source Sans 3','Space Grotesk','Space Mono','Spline Sans','Spline Sans Mono','Ubuntu','Work Sans'];
                         $sizeFields = [
                             'size_logo' => ['label' => 'Logo / Store Name', 'default' => '32', 'min' => 18, 'max' => 60],
                             'size_section_title' => ['label' => 'Section Titles', 'default' => '24', 'min' => 16, 'max' => 48],
@@ -137,6 +193,17 @@
                                         @endforeach
                                     </select>
                                 </x-admin3.field>
+                            </div>
+                            <div class="v3-gap">
+                                <div class="v3-label v3-gap-sm">Letter spacing <x-admin3.help text="CSS letter-spacing for the nav links and section headings, e.g. 0.05em. 0 is normal." /></div>
+                                <div class="v3-grid v3-grid--2">
+                                    <x-admin3.field name="groups.vars.track_nav" label="Navigation">
+                                        <input type="text" name="groups[vars][track_nav]" value="{{ $settings['vars']['track_nav'] ?? '0' }}" placeholder="0" class="v3-control v3-mono">
+                                    </x-admin3.field>
+                                    <x-admin3.field name="groups.vars.track_heading" label="Headings">
+                                        <input type="text" name="groups[vars][track_heading]" value="{{ $settings['vars']['track_heading'] ?? '0' }}" placeholder="0" class="v3-control v3-mono">
+                                    </x-admin3.field>
+                                </div>
                             </div>
                             <div class="v3-gap">
                                 <div class="v3-label v3-gap-sm">Font sizes</div>
@@ -359,6 +426,7 @@
                                     <span class="v3-dir__line v3-block">{{ $item->type === 'category' ? 'Category: ' . ($item->category?->name ?? 'N/A') : 'Custom: ' . $item->url }}</span>
                                 </span>
                                 <span class="v3-badge {{ $item->is_enabled ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $item->is_enabled ? 'Active' : 'Disabled' }}</span>
+                                <a href="{{ route('admin.theme.nav.edit', $item) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
                                 <button type="button" class="v3-row__x" aria-label="Delete {{ $item->label }}" @click="$dispatch('v3-confirm', 'delete-nav-{{ $item->id }}')">
                                     <x-admin3.icon name="trash" />
                                 </button>
@@ -421,40 +489,17 @@
                 <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.sections.reorder')))">
                     <div data-sortable>
                         @foreach ($sections as $section)
-                            <div class="v3-dragcard" x-data="{ expanded: false }" draggable="true" data-id="{{ $section->id }}">
-                                <div class="v3-dragrow v3-dragrow--bare">
-                                    <x-admin3.icon name="menu" class="v3-dragrow__grip drag-handle" />
-                                    <span class="v3-badge v3-badge--quiet">{{ $section->type }}</span>
-                                    <span class="v3-dir__name">{{ $section->title }}</span>
-                                    <span class="v3-dragrow__end">
-                                        <span class="v3-badge {{ $section->is_enabled ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $section->is_enabled ? 'Active' : 'Disabled' }}</span>
-                                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="expanded = !expanded"
-                                                :aria-expanded="expanded ? 'true' : 'false'" x-text="expanded ? 'Close' : 'Edit'">Edit</button>
-                                        <button type="button" class="v3-row__x" aria-label="Delete {{ $section->title }}" @click="$dispatch('v3-confirm', 'delete-section-{{ $section->id }}')">
-                                            <x-admin3.icon name="trash" />
-                                        </button>
-                                    </span>
-                                </div>
-                                <div x-show="expanded" x-cloak class="v3-dragcard__body">
-                                    <x-admin3.form :action="route('admin.theme.sections.update', $section)" method="PUT">
-                                        <div class="v3-grid v3-grid--2">
-                                            <x-admin3.field name="title" label="Title" required>
-                                                <input type="text" name="title" value="{{ $section->title }}" class="v3-control">
-                                            </x-admin3.field>
-                                            <div class="v3-addrow__opts">
-                                                <label class="v3-toggle">
-                                                    <input type="hidden" name="is_enabled" value="0">
-                                                    <input type="checkbox" name="is_enabled" value="1" @checked($section->is_enabled)>
-                                                    <span class="v3-toggle__track" aria-hidden="true"></span>
-                                                    Enabled
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div class="v3-gap">
-                                            @include('admin.settings.theme.section-config', ['section' => $section])
-                                        </div>
-                                    </x-admin3.form>
-                                </div>
+                            <div class="v3-dragrow" draggable="true" data-id="{{ $section->id }}">
+                                <x-admin3.icon name="menu" class="v3-dragrow__grip drag-handle" />
+                                <span class="v3-badge v3-badge--quiet">{{ $section->type }}</span>
+                                <span class="v3-dir__name">{{ $section->title }}</span>
+                                <span class="v3-dragrow__end">
+                                    <span class="v3-badge {{ $section->is_enabled ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $section->is_enabled ? 'Active' : 'Disabled' }}</span>
+                                    <a href="{{ route('admin.theme.sections.edit', $section) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-row__x" aria-label="Delete {{ $section->title }}" @click="$dispatch('v3-confirm', 'delete-section-{{ $section->id }}')">
+                                        <x-admin3.icon name="trash" />
+                                    </button>
+                                </span>
                             </div>
                         @endforeach
                     </div>
@@ -490,97 +535,25 @@
 
         {{-- ========== FOOTER (records, bulk) ========== --}}
         <div x-show="tab === 'footer'" x-cloak>
-            <x-admin3.panel title="Footer columns" note="One save commits every column below.">
-                <x-admin3.form :action="route('admin.theme.footer.bulk-update')" enctype="multipart/form-data">
-                    <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.footer.reorder')))">
-                        <div data-sortable>
-                            @foreach ($footerColumns as $col)
-                                <div class="v3-dragcard" data-id="{{ $col->id }}" draggable="true"
-                                     x-data="{
-                                        open: false,
-                                        links: @js($col->config['links'] ?? []),
-                                        socials: @js($col->type === 'social' ? ($col->config['links'] ?? []) : []),
-                                        payIcons: @js(collect($col->config['icons'] ?? [])->map(fn ($icon) => is_string($icon) ? ['type' => 'text', 'value' => $icon] : $icon)->values()->toArray()),
-                                     }">
-                                    <input type="hidden" name="columns[{{ $col->id }}][id]" value="{{ $col->id }}">
-                                    <div class="v3-dragrow v3-dragrow--bare">
-                                        <x-admin3.icon name="menu" class="v3-dragrow__grip drag-handle" />
-                                        <span class="v3-badge v3-badge--quiet">{{ $col->type }}</span>
-                                        <input type="text" name="columns[{{ $col->id }}][title]" value="{{ $col->title }}" aria-label="Column title" class="v3-control v3-w-name">
-                                        <span class="v3-dragrow__end">
-                                            <label class="v3-check" title="Column shown in the footer">
-                                                <input type="hidden" name="columns[{{ $col->id }}][is_enabled]" value="0">
-                                                <input type="checkbox" name="columns[{{ $col->id }}][is_enabled]" value="1" @checked($col->is_enabled) aria-label="Show this footer column">
-                                            </label>
-                                            <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" x-text="open ? 'Close' : 'Edit'">Edit</button>
-                                            <button type="button" class="v3-row__x" @click="$dispatch('v3-confirm', 'delete-footer-col-{{ $col->id }}')" aria-label="Delete {{ $col->title }} footer column">
-                                                <x-admin3.icon name="trash" />
-                                            </button>
-                                        </span>
-                                    </div>
-
-                                    <div x-show="open" x-cloak class="v3-dragcard__body">
-                                        @if ($col->type === 'links')
-                                            <template x-for="(link, idx) in links" :key="idx">
-                                                <div class="v3-row">
-                                                    <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][label]'" x-model="link.label" aria-label="Link label" placeholder="Label" class="v3-control">
-                                                    <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="link.url" aria-label="Link URL" placeholder="/slug" class="v3-control v3-mono">
-                                                    <button type="button" class="v3-row__x" @click="links.splice(idx, 1)" aria-label="Remove link"><x-admin3.icon name="x" /></button>
-                                                </div>
-                                            </template>
-                                            <div class="v3-gap">
-                                                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="links.push({label: '', url: ''})"><x-admin3.icon name="plus" /> Add link</button>
-                                            </div>
-                                        @elseif ($col->type === 'social')
-                                            <template x-for="(social, idx) in socials" :key="idx">
-                                                <div class="v3-row">
-                                                    <select :name="'columns[{{ $col->id }}][config][links]['+idx+'][platform]'" x-model="social.platform" aria-label="Social platform" class="v3-control v3-w-name">
-                                                        <option value="facebook">Facebook</option>
-                                                        <option value="instagram">Instagram</option>
-                                                        <option value="youtube">YouTube</option>
-                                                        <option value="tiktok">TikTok</option>
-                                                    </select>
-                                                    <input type="text" :name="'columns[{{ $col->id }}][config][links]['+idx+'][url]'" x-model="social.url" aria-label="Social profile URL" class="v3-control v3-mono">
-                                                    <button type="button" class="v3-row__x" @click="socials.splice(idx, 1)" aria-label="Remove social link"><x-admin3.icon name="x" /></button>
-                                                </div>
-                                            </template>
-                                            <div class="v3-gap">
-                                                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="socials.push({platform: 'facebook', url: ''})"><x-admin3.icon name="plus" /> Add social link</button>
-                                            </div>
-                                        @elseif ($col->type === 'payment_icons')
-                                            <template x-for="(icon, idx) in payIcons" :key="idx">
-                                                <div class="v3-row">
-                                                    <select :name="'columns[{{ $col->id }}][config][icons]['+idx+'][type]'" x-model="icon.type" aria-label="Payment mark kind" class="v3-control v3-w-sort">
-                                                        <option value="text">Text</option>
-                                                        <option value="image">Image</option>
-                                                    </select>
-                                                    <template x-if="icon.type === 'text'">
-                                                        <input type="text" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" x-model="icon.value" aria-label="Payment mark label" class="v3-control">
-                                                    </template>
-                                                    <template x-if="icon.type === 'image'">
-                                                        <span class="v3-actrow">
-                                                            <template x-if="icon.value">
-                                                                <img :src="icon.value.startsWith('http') || icon.value.startsWith('/') ? icon.value : '/storage/' + icon.value" class="v3-payicon" alt="">
-                                                            </template>
-                                                            <input type="hidden" :name="'columns[{{ $col->id }}][config][icons]['+idx+'][value]'" :value="icon.value">
-                                                            <input type="file" :name="'icon_uploads[{{ $col->id }}]['+idx+']'" accept="image/*" aria-label="Payment mark image" class="v3-file">
-                                                        </span>
-                                                    </template>
-                                                    <button type="button" class="v3-row__x" @click="payIcons.splice(idx, 1)" aria-label="Remove payment icon"><x-admin3.icon name="x" /></button>
-                                                </div>
-                                            </template>
-                                            <div class="v3-gap">
-                                                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="payIcons.push({type: 'text', value: ''})"><x-admin3.icon name="plus" /> Add payment method</button>
-                                            </div>
-                                        @elseif ($col->type === 'text')
-                                            <textarea name="columns[{{ $col->id }}][config][content]" rows="3" aria-label="Column text" class="v3-control" placeholder="Free text content…">{{ $col->config['content'] ?? '' }}</textarea>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
+            <x-admin3.panel title="Footer columns">
+                <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.footer.reorder')))">
+                    <div data-sortable>
+                        @foreach ($footerColumns as $col)
+                            <div class="v3-dragrow" draggable="true" data-id="{{ $col->id }}">
+                                <x-admin3.icon name="menu" class="v3-dragrow__grip drag-handle" />
+                                <span class="v3-badge v3-badge--quiet">{{ $col->type }}</span>
+                                <span class="v3-dir__name">{{ $col->title }}</span>
+                                <span class="v3-dragrow__end">
+                                    <span class="v3-badge {{ $col->is_enabled ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $col->is_enabled ? 'Active' : 'Disabled' }}</span>
+                                    <a href="{{ route('admin.theme.footer.edit', $col) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-row__x" @click="$dispatch('v3-confirm', 'delete-footer-col-{{ $col->id }}')" aria-label="Delete {{ $col->title }} footer column">
+                                        <x-admin3.icon name="trash" />
+                                    </button>
+                                </span>
+                            </div>
+                        @endforeach
                     </div>
-                </x-admin3.form>
+                </div>
 
                 <div class="v3-gap-lg">
                     <div class="v3-label v3-gap-sm">Add footer column</div>
@@ -620,7 +593,11 @@
                             @foreach ($themeSettingsSchema as $key => $schema)
                                 <div class="{{ $loop->first ? '' : 'v3-gap' }}">
                                     <x-admin3.field name="theme_settings.{{ $key }}" :label="$schema['label'] ?? $key">
-                                        @if (($schema['type'] ?? '') === 'select')
+                                        @if (($schema['type'] ?? '') === 'layout')
+                                            <x-admin3.layout-pick :kind="$key" name="theme_settings[{{ $key }}]"
+                                                :options="$schema['options'] ?? []"
+                                                :value="$themeSettingValues[$key] ?? ($schema['default'] ?? '')" />
+                                        @elseif (($schema['type'] ?? '') === 'select')
                                             <select name="theme_settings[{{ $key }}]" class="v3-control">
                                                 @foreach ($schema['options'] ?? [] as $option)
                                                     <option value="{{ $option }}" @selected(($themeSettingValues[$key] ?? ($schema['default'] ?? '')) == $option)>{{ ucfirst($option) }}</option>

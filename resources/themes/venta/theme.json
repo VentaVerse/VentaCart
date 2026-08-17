@@ -57,7 +57,7 @@
     },
     "settings": {
         "header_layout": {
-            "type": "select",
+            "type": "layout",
             "label": "Header Layout",
             "options": [
                 "marketplace",
@@ -68,7 +68,7 @@
             "default": "marketplace"
         },
         "category_layout": {
-            "type": "select",
+            "type": "layout",
             "label": "Category Layout",
             "options": [
                 "sidebar-left",
@@ -78,7 +78,7 @@
             "default": "sidebar-left"
         },
         "product_gallery_side": {
-            "type": "select",
+            "type": "layout",
             "label": "Product Gallery Side",
             "options": [
                 "left",
@@ -87,7 +87,7 @@
             "default": "left"
         },
         "product_info_style": {
-            "type": "select",
+            "type": "layout",
             "label": "Product Info Style",
             "options": [
                 "tabs",
@@ -96,7 +96,7 @@
             "default": "tabs"
         },
         "footer_layout": {
-            "type": "select",
+            "type": "layout",
             "label": "Footer Layout",
             "options": [
                 "columns",

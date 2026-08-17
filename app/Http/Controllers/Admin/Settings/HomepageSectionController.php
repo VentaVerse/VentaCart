@@ -28,7 +28,12 @@ class HomepageSectionController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return back()->with('success', 'Section added.')->with('tab', 'homepage');
+        return redirect()->route('admin.theme.sections.edit', $section)->with('success', 'Section added. Configure it below.');
+    }
+
+    public function edit(HomepageSection $section)
+    {
+        return view('admin.settings.theme.section', compact('section'));
     }
 
     public function update(Request $request, HomepageSection $section)
@@ -45,7 +50,7 @@ class HomepageSectionController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return back()->with('success', 'Section updated.')->with('tab', 'homepage');
+        return redirect()->route('admin.theme.index', ['tab' => 'homepage'])->with('success', 'Section updated.');
     }
 
     public function destroy(HomepageSection $section)

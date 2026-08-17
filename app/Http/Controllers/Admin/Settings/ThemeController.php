@@ -115,6 +115,64 @@ class ThemeController extends Controller
         return back()->with('success', 'Storefront look switched to ' . ($presets[$slug]['name'] ?? $slug) . '.');
     }
 
+    public function storePreset(Request $request, ThemeService $theme)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:60'],
+            'description' => ['nullable', 'string', 'max:200'],
+        ]);
+
+        try {
+            $slug = $theme->saveCurrentAsPreset($validated['name'], $validated['description'] ?? null);
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', "The live look is saved as the '{$slug}' preset.");
+    }
+
+    public function destroyPreset(string $slug, ThemeService $theme)
+    {
+        try {
+            $theme->deletePreset($slug);
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Preset deleted.');
+    }
+
+    public function exportPreset(string $slug, ThemeService $theme)
+    {
+        $preset = $theme->getInstalledPresets()[$slug] ?? null;
+        if (!$preset) {
+            abort(404);
+        }
+
+        unset($preset['slug']);
+
+        return response()->streamDownload(
+            fn () => print(json_encode($preset, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)),
+            "venta-preset-{$slug}.json",
+            ['Content-Type' => 'application/json']
+        );
+    }
+
+    public function importPreset(Request $request, ThemeService $theme)
+    {
+        $request->validate([
+            'preset_file' => ['required', 'file', 'max:512', 'mimetypes:application/json,text/plain'],
+        ]);
+
+        try {
+            $slug = $theme->importPreset($request->file('preset_file')->get());
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', "Preset '{$slug}' imported.");
+    }
+
     public function revertThemeColors(ThemeService $themeService)
     {
         $activeTheme = $themeService->getActiveTheme();

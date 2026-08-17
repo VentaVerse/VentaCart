@@ -129,20 +129,27 @@ Route::prefix('settings')->group(function () {
         Route::post('/settings', [ThemeController::class, 'updateSettings'])->name('theme.settings.update');
         Route::post('/switch', [ThemeController::class, 'switchTheme'])->name('theme.switch');
         Route::post('/revert-colors', [ThemeController::class, 'revertThemeColors'])->name('theme.revert-colors');
+        Route::post('/presets', [ThemeController::class, 'storePreset'])->name('theme.presets.store');
+        Route::post('/presets/import', [ThemeController::class, 'importPreset'])->name('theme.presets.import');
+        Route::get('/presets/{slug}/export', [ThemeController::class, 'exportPreset'])->name('theme.presets.export');
+        Route::delete('/presets/{slug}', [ThemeController::class, 'destroyPreset'])->name('theme.presets.destroy');
         Route::post('/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('theme.update-theme-settings');
 
         Route::post('/sections', [HomepageSectionController::class, 'store'])->name('theme.sections.store');
+        Route::get('/sections/{section}/edit', [HomepageSectionController::class, 'edit'])->name('theme.sections.edit');
         Route::put('/sections/{section}', [HomepageSectionController::class, 'update'])->name('theme.sections.update');
         Route::delete('/sections/{section}', [HomepageSectionController::class, 'destroy'])->name('theme.sections.destroy');
         Route::post('/sections/reorder', [HomepageSectionController::class, 'reorder'])->name('theme.sections.reorder');
 
         Route::post('/nav', [NavMenuController::class, 'store'])->name('theme.nav.store');
+        Route::get('/nav/{item}/edit', [NavMenuController::class, 'edit'])->name('theme.nav.edit');
         Route::put('/nav/{item}', [NavMenuController::class, 'update'])->name('theme.nav.update');
         Route::delete('/nav/{item}', [NavMenuController::class, 'destroy'])->name('theme.nav.destroy');
         Route::post('/nav/reorder', [NavMenuController::class, 'reorder'])->name('theme.nav.reorder');
 
         Route::post('/footer', [FooterColumnController::class, 'store'])->name('theme.footer.store');
         Route::post('/footer/bulk-update', [FooterColumnController::class, 'bulkUpdate'])->name('theme.footer.bulk-update');
+        Route::get('/footer/{column}/edit', [FooterColumnController::class, 'edit'])->name('theme.footer.edit');
         Route::put('/footer/{column}', [FooterColumnController::class, 'update'])->name('theme.footer.update');
         Route::delete('/footer/{column}', [FooterColumnController::class, 'destroy'])->name('theme.footer.destroy');
         Route::post('/footer/reorder', [FooterColumnController::class, 'reorder'])->name('theme.footer.reorder');

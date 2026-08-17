@@ -43,6 +43,9 @@ document.addEventListener('alpine:init', () => {
 
             formEl.addEventListener('input', () => this.check());
             formEl.addEventListener('change', () => this.check());
+            // Async widgets dispatch this when hydration settles, so the
+            // hydrated state becomes the clean state (see rebaseline()).
+            formEl.addEventListener('v3-rebaseline', () => this.rebaseline());
 
             formEl.addEventListener('submit', () => {
                 this.saving = true;
