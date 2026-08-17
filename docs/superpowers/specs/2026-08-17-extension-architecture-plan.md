@@ -136,3 +136,25 @@ extension conversion (wave 3) rather than being done twice.
 pipeline), #122 (ops/settings splits, absorbed by wave 0's menu), #121
 (savebar leftovers, absorbed by wave 1 abandoned-carts), developer
 platform card (self-registration is its first two items).
+
+## Anti-goals: this is not WordPress (owner concern, 2026-08-17)
+
+The folder-plus-switch gesture is shared with every healthy extension
+system (VS Code, browsers, OpenCart at its best). What is refused is
+what makes WordPress WordPress:
+
+1. **Core stays the whole store.** The engine is complete and
+   non-optional; a zero-extensions install still sells. Nothing
+   essential ever migrates out of app/. (The owner's core definition,
+   enforced.)
+2. **Typed contracts only, never generic hooks.** An extension is a
+   courier, a payment method, a rate provider, a feature with declared
+   nav entries and schedules. There is NO filter-anything API: an
+   extension cannot rewrite core behavior, intercept another
+   extension, or inject into arbitrary pages. Each new extension
+   capability arrives as a new NAMED contract, deliberately, in this
+   spec, never as a convenience hook. Hook creep is how WordPress
+   happened; refuse it one request at a time.
+3. **No arbitrary code installed from inside the admin.** Repo-shipped
+   and reviewed today; any future marketplace is curated and versioned
+   against the manifest's compatibility declaration.
