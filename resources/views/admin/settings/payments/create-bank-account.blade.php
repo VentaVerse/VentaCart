@@ -1,4 +1,4 @@
-<x-admin3.settings-shell title="Add bank account" active="payments">
+<x-admin3.shell title="Add bank account">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -48,4 +48,4 @@
             </div>
         </x-admin3.panel>
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>

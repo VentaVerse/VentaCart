@@ -1,4 +1,4 @@
-<x-admin3.settings-shell title="Shipping" active="shipping">
+<x-admin3.shell title="Shipping">
     <div class="v3-head">
         <div class="v3-head__body">
             <h1 class="v3-head__title">Shipping</h1>
@@ -7,6 +7,13 @@
     </div>
 
     <div class="v3-settle">
+        @if ($noMethodEnabled)
+            <div class="v3-notice">
+                <p class="v3-notice__title">No shipping method is enabled</p>
+                <p class="v3-notice__text">The storefront cannot check out until a method below is turned back on or a free shipping rule is active.</p>
+            </div>
+        @endif
+
         <x-admin3.form :action="route('admin.settings.update')">
             <input type="hidden" name="group" value="shipping">
             <input type="hidden" name="_redirect" value="{{ route('admin.shipping-settings.index') }}">
@@ -111,5 +118,29 @@
                 @endif
             </x-admin3.panel>
         </div>
+
+        @if ($couriers !== [])
+            {{-- Couriers are part of Shipping (owner ruling): the carriers
+                 the fulfillment queue books with, configured through the
+                 fulfillment extension's own pages. --}}
+            <x-admin3.panel title="Couriers" flush>
+                <div class="v3-dir">
+                    @foreach ($couriers as $courier)
+                        <div class="v3-dir__card v3-dir__card--static">
+                            <span class="v3-dir__ico"><x-admin3.icon name="package" /></span>
+                            <span class="v3-dir__body">
+                                <span class="v3-dir__name">{{ $courier['name'] }}</span>
+                            </span>
+                            <span class="v3-dir__state">
+                                <span class="v3-badge {{ $courier['flagged'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $courier['flagged'] ? 'Enabled' : 'Off' }}</span>
+                            </span>
+                            <span class="v3-actrow">
+                                <a href="{{ $courier['url'] }}" class="v3-btn v3-btn--ghost v3-btn--sm">Configure</a>
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            </x-admin3.panel>
+        @endif
     </div>
-</x-admin3.settings-shell>
+</x-admin3.shell>

@@ -35,6 +35,8 @@ class PaymentSettingController extends Controller
             ];
         }
 
-        return view('admin.settings.payments.index', compact('cards'));
+        $noMethodEnabled = collect($cards)->every(fn (array $c) => ! $c['enabled']);
+
+        return view('admin.settings.payments.index', compact('cards', 'noMethodEnabled'));
     }
 }

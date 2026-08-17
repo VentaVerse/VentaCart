@@ -61,4 +61,4 @@
             </div>
         </x-admin3.panel>
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>

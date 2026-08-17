@@ -22,18 +22,13 @@ class SettingsSectionTest extends TestCase
 
         // 'payments' exists in the settings-nav registry but points at an
         // external page (PaymentSettingController), not
-        // SettingsSectionController. Since the Task 3 URL grammar restructure,
-        // admin.settings.section's own URI (settings/{section}) and
-        // 'payments' real literal page (settings/payments — registered
-        // earlier in routes/admin/settings.php, specifically so it takes
-        // precedence over the generic {section} catch-all) now happen to
-        // collide on the exact same string when section='payments'. That
-        // collision is intentional: it proves the real page — not a 404 —
-        // is what actually answers, because Laravel resolves routes by
-        // registration order and the literal route always wins.
+        // Wave 0 repin: payments left Settings for the Extensions area, so
+        // the literal registered before the {section} catch-all is now a
+        // 301 to the category's new home — still proving the literal wins
+        // over the wildcard, which is the property under test.
         $this->get(route('admin.settings.section', 'payments'))
-            ->assertOk()
-            ->assertViewIs('admin.settings.payments.index');
+            ->assertStatus(301)
+            ->assertRedirect(route('admin.payment-settings.index'));
     }
 
     public function test_mail_section_renders_in_shell_with_sub_sidebar(): void

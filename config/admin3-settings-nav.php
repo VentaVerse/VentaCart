@@ -20,8 +20,6 @@ return [
     [
         'label' => 'Commerce',
         'items' => [
-            ['key' => 'payments', 'line' => 'Methods, bank accounts, and restrictions.', 'label' => 'Payments', 'icon' => 'payments', 'route' => 'admin.payment-settings.index', 'section' => null],
-            ['key' => 'shipping', 'line' => 'Rates, methods, and free-shipping rules.', 'label' => 'Shipping', 'icon' => 'shipping', 'route' => 'admin.shipping-settings.index', 'section' => null],
             ['key' => 'order-statuses', 'line' => 'Status flow and stock actions.', 'label' => 'Orders', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null],
             ['key' => 'couriers', 'line' => 'Courier list and tracking links.', 'label' => 'Couriers & Tracking', 'icon' => 'package', 'route' => 'admin.shipping-couriers.index', 'section' => null],
         ],

@@ -2,31 +2,22 @@
 
 use App\Http\Controllers\Admin\AutomationController;
 use App\Http\Controllers\Admin\Settings\ApiSyncLogController;
-use App\Http\Controllers\Admin\Settings\BankAccountController;
 use App\Http\Controllers\Admin\Settings\CurrencyController;
 use App\Http\Controllers\Admin\Settings\EmailTemplateController;
-use App\Http\Controllers\Admin\Settings\FlatRateController;
 use App\Http\Controllers\Admin\Settings\FooterColumnController;
-use App\Http\Controllers\Admin\Settings\FreeShippingRuleController;
 use App\Http\Controllers\Admin\Settings\HomepageSectionController;
 use App\Http\Controllers\Admin\Settings\LocalizationController;
 use App\Http\Controllers\Admin\Settings\NavMenuController;
 use App\Http\Controllers\Admin\Settings\OrderStatusController;
-use App\Http\Controllers\Admin\Settings\PaymentMethodPageController;
-use App\Http\Controllers\Admin\Settings\PaymentRestrictionController;
-use App\Http\Controllers\Admin\Settings\PaymentSettingController;
 use App\Http\Controllers\Admin\Settings\RolePermissionController;
 use App\Http\Controllers\Admin\Settings\SettingController;
 use App\Http\Controllers\Admin\Settings\SettingsHubController;
 use App\Http\Controllers\Admin\Settings\SettingsSectionController;
 use App\Http\Controllers\Admin\Settings\ShippingCourierController;
-use App\Http\Controllers\Admin\Settings\ShippingSettingController;
-use App\Http\Controllers\Admin\Settings\ShippingTestController;
 use App\Http\Controllers\Admin\Settings\StoreIdentityController;
 use App\Http\Controllers\Admin\Settings\StockNotificationController as AdminStockNotificationController;
 use App\Http\Controllers\Admin\Settings\ThemeController;
 use App\Http\Controllers\Admin\Settings\UserController;
-use App\Http\Controllers\Admin\Settings\WeightBasedMethodController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('settings')->group(function () {
@@ -164,85 +155,23 @@ Route::prefix('settings')->group(function () {
     });
 
     // Payments
-    Route::prefix('payments')->group(function () {
-        Route::get('/', [PaymentSettingController::class, 'index'])->name('payment-settings.index');
-
-        // Bank Accounts (bank-transfer method's account list) — literal
-        // sub-paths, must be registered before the {method} wildcard below.
-        Route::get('/bank-accounts/create', [BankAccountController::class, 'create'])->name('bank-accounts.create');
-        Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
-        Route::get('/bank-accounts/{bankAccount}/edit', [BankAccountController::class, 'edit'])->name('bank-accounts.edit');
-        Route::put('/bank-accounts/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
-        Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
-
-        // Payment Restrictions — the standalone index/create/edit pages have
-        // been absorbed into the payment method detail page's Availability
-        // tab (Task 5 of the admin-v2 sales-channels plan); their views are
-        // deleted, so the GET pages now 302 into the corresponding payments
-        // page. The resource POST/PUT/DELETE and toggle endpoints are
-        // unchanged and still power the Availability form.
-        Route::get('/restrictions', [PaymentRestrictionController::class, 'index'])->name('payment-restrictions.index');
-        Route::get('/restrictions/create', [PaymentRestrictionController::class, 'create'])->name('payment-restrictions.create');
-        Route::get('/restrictions/{paymentRestriction}/edit', [PaymentRestrictionController::class, 'edit'])->name('payment-restrictions.edit');
-        Route::post('/restrictions', [PaymentRestrictionController::class, 'store'])->name('payment-restrictions.store');
-        Route::put('/restrictions/{paymentRestriction}', [PaymentRestrictionController::class, 'update'])->name('payment-restrictions.update');
-        Route::delete('/restrictions/{paymentRestriction}', [PaymentRestrictionController::class, 'destroy'])->name('payment-restrictions.destroy');
-        Route::post('/restrictions/{paymentRestriction}/toggle', [PaymentRestrictionController::class, 'toggleActive'])->name('payment-restrictions.toggle');
-
-        // Method detail page — must stay last: a single-segment wildcard
-        // that would otherwise swallow /bank-accounts and /restrictions.
-        Route::get('/{method}', [PaymentMethodPageController::class, 'show'])->name('payment-settings.show');
-    });
 
     // Shipping
-    Route::prefix('shipping')->group(function () {
-        Route::get('/', [ShippingSettingController::class, 'index'])->name('shipping-settings.index');
-        Route::post('/test', ShippingTestController::class)->name('shipping-settings.test');
-
-        // Per-provider configuration pages (each provider in the
-        // ShippingQuoteService chain gets its own page; the index above is
-        // now a provider list only). Literal, so no conflict with the
-        // deeper '/free-rules', '/flat-rates/*', '/weight-based/*' child
-        // CRUD routes registered below.
-        Route::get('/free-shipping', [ShippingSettingController::class, 'freeShipping'])->name('shipping-settings.free-shipping');
-        Route::get('/weight-based', [ShippingSettingController::class, 'weightBased'])->name('shipping-settings.weight-based');
-        Route::get('/flat-rate', [ShippingSettingController::class, 'flatRate'])->name('shipping-settings.flat-rate');
-        Route::get('/dhl', [ShippingSettingController::class, 'dhl'])->name('shipping-settings.dhl');
-
-        // Route name stays 'free-shipping-rules.*' (frozen); URI segment is
-        // 'free-rules' per the grammar map.
-        Route::resource('free-rules', FreeShippingRuleController::class)
-            ->except(['show'])
-            ->parameters(['free-rules' => 'freeShippingRule'])
-            ->names('free-shipping-rules');
-        Route::post('/free-rules/{freeShippingRule}/toggle', [FreeShippingRuleController::class, 'toggleActive'])->name('free-shipping-rules.toggle');
-
-        Route::get('/flat-rates/create', [FlatRateController::class, 'create'])->name('flat-rates.create');
-        Route::post('/flat-rates', [FlatRateController::class, 'store'])->name('flat-rates.store');
-        Route::get('/flat-rates/{flatRate}/edit', [FlatRateController::class, 'edit'])->name('flat-rates.edit');
-        Route::put('/flat-rates/{flatRate}', [FlatRateController::class, 'update'])->name('flat-rates.update');
-        Route::delete('/flat-rates/{flatRate}', [FlatRateController::class, 'destroy'])->name('flat-rates.destroy');
-
-        // Route name stays 'weight-based-methods.*' (frozen); URI segment is
-        // 'weight-based' per the grammar map. 'bulk' must precede the
-        // {weightBasedMethod} PUT route below it, exactly as in the
-        // pre-split file, or it would be captured as an id.
-        Route::get('/weight-based/create', [WeightBasedMethodController::class, 'create'])->name('weight-based-methods.create');
-        Route::post('/weight-based', [WeightBasedMethodController::class, 'store'])->name('weight-based-methods.store');
-        Route::put('/weight-based/bulk', [WeightBasedMethodController::class, 'bulkUpdate'])->name('weight-based-methods.bulk-update');
-        Route::get('/weight-based/{weightBasedMethod}/edit', [WeightBasedMethodController::class, 'edit'])->name('weight-based-methods.edit');
-        Route::put('/weight-based/{weightBasedMethod}', [WeightBasedMethodController::class, 'update'])->name('weight-based-methods.update');
-        Route::post('/weight-based/{weightBasedMethod}/duplicate', [WeightBasedMethodController::class, 'duplicate'])->name('weight-based-methods.duplicate');
-        Route::delete('/weight-based/{weightBasedMethod}', [WeightBasedMethodController::class, 'destroy'])->name('weight-based-methods.destroy');
-    });
 
 
 
 
     // Key-value settings pages (general, mail, checkout, currencies, api,
     // security, automations). MUST be registered last in this file: it's a
+    // Moved subtrees (wave 0): their roots must 301 to the Extensions
+    // area BEFORE the {section} wildcard below swallows them. The
+    // path-preserving deep redirects live in redirects.php; these two
+    // cover the bare roots the wildcard would otherwise claim.
+    Route::get('/payments', fn () => redirect(route('admin.payment-settings.index'), 301));
+    Route::get('/shipping', fn () => redirect(route('admin.shipping-settings.index'), 301));
+    Route::get('/modules', fn () => redirect(route('admin.extensions.index'), 301));
+
     // single-segment wildcard that would otherwise swallow every literal
-    // settings/* route registered above it (payments, shipping, modules,
-    // etc).
+    // settings/* route registered above it (payments, shipping, etc).
     Route::get('/{section}', [SettingsSectionController::class, 'show'])->name('settings.section');
 });

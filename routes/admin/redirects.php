@@ -272,3 +272,17 @@ Route::get('settings/modules/{path?}', function (?string $path = null) {
 
     return redirect($destination.($query ? '?'.$query : ''), 301);
 })->where('path', '.*')->name('legacy-modules-redirect');
+
+Route::get('settings/payments/{path?}', function (?string $path = null) {
+    $destination = '/'.trim(config('admin.prefix', 'admin').'/extensions/payments/'.($path ?? ''), '/');
+    $query = request()->getQueryString();
+
+    return redirect($destination.($query ? '?'.$query : ''), 301);
+})->where('path', '.*')->name('legacy-payments-redirect');
+
+Route::get('settings/shipping/{path?}', function (?string $path = null) {
+    $destination = '/'.trim(config('admin.prefix', 'admin').'/extensions/shipping/'.($path ?? ''), '/');
+    $query = request()->getQueryString();
+
+    return redirect($destination.($query ? '?'.$query : ''), 301);
+})->where('path', '.*')->name('legacy-shipping-redirect');

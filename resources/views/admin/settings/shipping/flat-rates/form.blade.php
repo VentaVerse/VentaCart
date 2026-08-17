@@ -1,4 +1,4 @@
-<x-admin3.settings-shell :title="$rate ? 'Edit flat rate' : 'Add flat rate'" active="shipping">
+<x-admin3.shell :title="$rate ? 'Edit flat rate' : 'Add flat rate'">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -58,4 +58,4 @@
             </div>
         </x-admin3.panel>
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>

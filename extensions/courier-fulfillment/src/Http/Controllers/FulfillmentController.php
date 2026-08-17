@@ -396,12 +396,9 @@ class FulfillmentController extends Controller
      */
     private function canConfigureCouriers(): bool
     {
-        $item = SettingsNav::find('fulfillment');
-        if (!$item) {
-            return false;
-        }
-
-        return $item['permission'] === null || (Auth::user()?->hasPermission($item['permission']) ?? false);
+        // Wave 0: same manifest-owned rule as the configure gate — never a
+        // core registry lookup (the retired SettingsNav entry).
+        return \Illuminate\Support\Facades\Gate::allows('courier-fulfillment.configure');
     }
 
     /**

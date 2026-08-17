@@ -7,10 +7,12 @@ use Tests\TestCase;
 
 class SettingsNavTest extends TestCase
 {
-    public function test_groups_returns_all_four_categories(): void
+    public function test_groups_returns_all_three_categories(): void
     {
+        // Wave 0 repin: Sales channels retired — payments, shipping, and
+        // fulfillment settings all live in the Extensions area now.
         $labels = collect(SettingsNav::groups(null))->pluck('label')->all();
-        $this->assertSame(['Store', 'Sales channels', 'Operations', 'Access & system'], $labels);
+        $this->assertSame(['Store', 'Operations', 'Access & system'], $labels);
     }
 
     public function test_every_item_resolves_to_a_real_route(): void

@@ -1,4 +1,4 @@
-<x-admin3.settings-shell :title="$method ? 'Edit weight-based method' : 'Add weight-based method'" active="shipping">
+<x-admin3.shell :title="$method ? 'Edit weight-based method' : 'Add weight-based method'">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -111,4 +111,4 @@
         </div>
       </div>
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>

@@ -49,18 +49,21 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
 
         // Who may configure this module. Same answer FulfillmentController
         // already computes for its own "Courier settings" affordance (the
-        // settings-nav item's permission, null meaning any authenticated
+        // manifest nav entry's permission, null meaning any authenticated
         // admin), stated once as an ability so the pickup-address CRUD's
         // controller and its Form Request authorize against the same rule
         // rather than each re-deriving it.
         Gate::define('courier-fulfillment.configure', function ($user) {
-            $item = SettingsNav::find('fulfillment');
+            // Wave 0: the rule lives in the extension's OWN manifest (the
+            // admin_nav entry's 'permission'; null = any authenticated
+            // admin). An extension never depends on a core registry entry
+            // for its own gate — the old SettingsNav::find('fulfillment')
+            // read broke the moment that core entry retired.
+            $manifest = app(\App\Services\ExtensionManager::class)
+                ->discovered()->get('courier-fulfillment');
+            $permission = $manifest['admin_nav'][0]['permission'] ?? null;
 
-            if (!$item) {
-                return false;
-            }
-
-            return $item['permission'] === null || $user->hasPermission($item['permission']);
+            return $permission === null || $user->hasPermission($permission);
         });
         $this->registerSeeder(CourierFulfillmentAutomationSeeder::class);
 

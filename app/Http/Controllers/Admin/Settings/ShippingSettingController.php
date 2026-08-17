@@ -94,8 +94,29 @@ class ShippingSettingController extends Controller
         $countries = Country::orderBy('name')->get();
         $defaultCountryId = Country::where('iso2', 'PH')->value('id') ?? $countries->first()?->id ?? 1;
 
+        // The guardrail (extension architecture wave 0): disabling the last
+        // method is allowed but loudly stated — a store that cannot quote
+        // shipping cannot check out.
+        $noMethodEnabled = collect($chain)->every(fn (array $m) => ! $m['active']);
+
+        // The couriers section (owner ruling: couriers are part of
+        // Shipping). Guarded read of the fulfillment extension's registry;
+        // absent or disabled extension simply renders no section.
+        $couriers = [];
+        if (class_exists(\Extensions\CourierFulfillment\CourierManager::class)
+            && \Illuminate\Support\Facades\Route::has('admin.fulfillment.settings.courier')) {
+            foreach (\Extensions\CourierFulfillment\CourierManager::all() as $courier) {
+                $couriers[] = [
+                    'key' => $courier->getKey(),
+                    'name' => $courier->getName(),
+                    'flagged' => \Extensions\CourierFulfillment\CourierManager::isFlagged($courier->getKey()),
+                    'url' => route('admin.fulfillment.settings.courier', $courier->getKey()),
+                ];
+            }
+        }
+
         return view('admin.settings.shipping.index', compact(
-            'settings', 'chain', 'countries', 'defaultCountryId'
+            'settings', 'chain', 'countries', 'defaultCountryId', 'noMethodEnabled', 'couriers'
         ));
     }
 

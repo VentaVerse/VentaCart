@@ -1,4 +1,4 @@
-<x-admin3.settings-shell title="Flat Rate" active="shipping">
+<x-admin3.shell title="Flat Rate">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -52,4 +52,4 @@
                 confirm="Delete" :action="route('admin.flat-rates.destroy', $fr)" method="DELETE" />
         @endforeach
     </div>
-</x-admin3.settings-shell>
+</x-admin3.shell>

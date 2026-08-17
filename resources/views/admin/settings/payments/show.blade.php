@@ -1,4 +1,4 @@
-<x-admin3.settings-shell :title="$name" active="payments">
+<x-admin3.shell :title="$name">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -25,4 +25,4 @@
             @include('admin.settings.payments.partials.availability')
         </div>
     </div>
-</x-admin3.settings-shell>
+</x-admin3.shell>

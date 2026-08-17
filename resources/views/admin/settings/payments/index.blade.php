@@ -1,4 +1,4 @@
-<x-admin3.settings-shell title="Payments" active="payments">
+<x-admin3.shell title="Payments">
     <div class="v3-head">
         <div class="v3-head__body">
             <h1 class="v3-head__title">Payments</h1>
@@ -42,4 +42,4 @@
             @endforeach
         </div>
     </x-admin3.form>
-</x-admin3.settings-shell>
+</x-admin3.shell>
