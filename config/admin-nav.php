@@ -31,7 +31,7 @@ return [
         'items' => [
             ['key' => 'orders', 'label' => 'Orders', 'route' => 'admin.orders.index', 'icon' => 'orders', 'permission' => null, 'keywords' => ['sales', 'invoices']],
             ['key' => 'fulfillment', 'label' => 'Fulfillment', 'route' => 'admin.fulfillment.index', 'icon' => 'fulfillment', 'permission' => null, 'keywords' => ['booking', 'waybill', 'awb', 'tracking', 'quadx', 'courier'], 'enabled_setting' => ['group' => 'courier', 'key' => 'fulfillment_enabled']],
-            ['key' => 'abandoned-carts', 'label' => 'Abandoned Carts', 'route' => 'admin.abandoned-carts.index', 'icon' => 'cart', 'permission' => null, 'keywords' => ['recovery']],
+            ['key' => 'abandoned-carts', 'label' => 'Abandoned Carts', 'route' => 'admin.abandoned-carts.index', 'icon' => 'cart', 'permission' => null, 'keywords' => ['recovery'], 'enabled_setting' => ['group' => 'features', 'key' => 'abandoned_carts_enabled']],
             ['key' => 'reviews', 'label' => 'Reviews', 'route' => 'admin.reviews.index', 'icon' => 'reviews', 'permission' => null, 'keywords' => ['ratings', 'stars']],
         ],
     ],
@@ -74,7 +74,7 @@ return [
         'segment' => 'marketing',
         'items' => [
             ['key' => 'coupons', 'label' => 'Coupons', 'route' => 'admin.coupons.index', 'icon' => 'coupons', 'permission' => null, 'keywords' => ['discount', 'promo', 'voucher']],
-            ['key' => 'seo', 'label' => 'SEO', 'route' => 'admin.extensions.seo.dashboard', 'icon' => 'seo', 'permission' => null, 'keywords' => ['search', 'meta', 'suggestions']],
+            ['key' => 'seo', 'label' => 'SEO', 'route' => 'admin.extensions.seo.dashboard', 'icon' => 'seo', 'permission' => null, 'keywords' => ['search', 'meta', 'suggestions'], 'enabled_setting' => ['group' => 'features', 'key' => 'seo_enabled']],
         ],
     ],
     [

@@ -16,6 +16,12 @@ class NotifyStockSubscribers extends Command
 
     public function handle(): int
     {
+        if (! \App\Support\CoreFeatures::enabled('stock-alerts')) {
+            $this->info('Feature disabled in Modules; nothing to do.');
+
+            return self::SUCCESS;
+        }
+
         $waiting = StockNotification::waiting()
             ->with(['product.images', 'variant'])
             ->get();

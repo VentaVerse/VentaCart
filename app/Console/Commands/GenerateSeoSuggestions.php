@@ -13,6 +13,12 @@ class GenerateSeoSuggestions extends Command
 
     public function handle(): int
     {
+        if (! \App\Support\CoreFeatures::enabled('seo')) {
+            $this->info('Feature disabled in Modules; nothing to do.');
+
+            return self::SUCCESS;
+        }
+
         $service = new SeoGeneratorService();
 
         if (!$service->isConfigured()) {

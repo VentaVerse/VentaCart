@@ -241,6 +241,8 @@ Route::prefix('settings')->group(function () {
 
     // Modules — extension manager (install/enable lifecycle UI)
     Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+    Route::post('/modules/features/{feature}/enable', [ModuleController::class, 'featureEnable'])->name('modules.feature-enable');
+    Route::post('/modules/features/{feature}/disable', [ModuleController::class, 'featureDisable'])->name('modules.feature-disable');
     Route::post('/modules/{name}/install', [ModuleController::class, 'install'])->name('modules.install');
     Route::post('/modules/{name}/enable', [ModuleController::class, 'enable'])->name('modules.enable');
     Route::post('/modules/{name}/disable', [ModuleController::class, 'disable'])->name('modules.disable');

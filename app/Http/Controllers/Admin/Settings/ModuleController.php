@@ -9,6 +9,7 @@ use App\Models\SeoSuggestion;
 use App\Models\Setting;
 use App\Models\StockNotification;
 use App\Services\ExtensionManager;
+use App\Support\CoreFeatures;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -52,6 +53,11 @@ class ModuleController extends Controller
         $seoAutoEnabled = (bool) ($automations['seo_generate']->enabled ?? false);
         $abandonedCartEnabled = ($flags['abandoned_cart']['enabled'] ?? '0') === '1';
 
+        // The master switches (CoreFeatures). A feature switched OFF hides
+        // its nav entry and no-ops its scheduled commands; the sub-states
+        // above describe what it is doing while ON.
+        $masters = CoreFeatures::all();
+
         // Core features: built-in, always-present functionality — never
         // uninstallable, so no lifecycle buttons. Kept as a hardcoded list
         // (no extension.json — they're not extensions) per the brief.
@@ -61,9 +67,11 @@ class ModuleController extends Controller
                 'name' => 'Stock Alerts',
                 'description' => 'Back-in-stock customer emails and low-stock admin warnings.',
                 'icon' => 'warning',
-                'enabled' => $stockAlertEnabled,
-                'status_label' => 'Back-in-stock ' . ($backInStock ? 'on' : 'off') . ' · Low-stock ' . ($lowStock ? 'on' : 'off'),
-                'tone' => ($backInStock && $lowStock) ? 'success' : (($backInStock || $lowStock) ? 'warning' : 'neutral'),
+                'enabled' => $masters['stock-alerts'],
+                'status_label' => ! $masters['stock-alerts'] ? 'Disabled'
+                    : ('Back-in-stock ' . ($backInStock ? 'on' : 'off') . ' · Low-stock ' . ($lowStock ? 'on' : 'off')),
+                'tone' => ! $masters['stock-alerts'] ? 'neutral'
+                    : (($backInStock && $lowStock) ? 'success' : (($backInStock || $lowStock) ? 'warning' : 'neutral')),
                 'stats' => StockNotification::where('status', 'waiting')->count() . ' waiting',
                 'configure' => route('admin.stock-notifications.index'),
             ],
@@ -72,8 +80,8 @@ class ModuleController extends Controller
                 'name' => 'SEO',
                 'description' => 'AI meta suggestions, redirects, and Search Console.',
                 'icon' => 'seo',
-                'enabled' => $seoAutoEnabled,
-                'status_label' => $seoAutoEnabled ? 'Auto-generating' : 'Manual only',
+                'enabled' => $masters['seo'],
+                'status_label' => ! $masters['seo'] ? 'Disabled' : ($seoAutoEnabled ? 'Auto-generating' : 'Manual only'),
                 'stats' => SeoSuggestion::where('status', 'pending')->count() . ' pending suggestions',
                 'configure' => route('admin.extensions.seo.settings'),
             ],
@@ -82,8 +90,9 @@ class ModuleController extends Controller
                 'name' => 'Abandoned Carts',
                 'description' => 'Cart recovery email rules and tracking.',
                 'icon' => 'cart',
-                'enabled' => $abandonedCartEnabled,
-                'status_label' => $abandonedCartEnabled ? 'Active' : 'Disabled',
+                'enabled' => $masters['abandoned-carts'],
+                'status_label' => ! $masters['abandoned-carts'] ? 'Disabled'
+                    : ($abandonedCartEnabled ? 'Recovery emails on' : 'Recovery emails off'),
                 'stats' => Cart::whereHas('items')->where('updated_at', '<', now()->subHour())->count() . ' tracked carts',
                 'configure' => route('admin.abandoned-carts.settings'),
             ],
@@ -117,6 +126,34 @@ class ModuleController extends Controller
     public function uninstall(string $name): RedirectResponse
     {
         return $this->runLifecycle($name, 'uninstall', 'uninstalled');
+    }
+
+    public function featureEnable(string $feature): RedirectResponse
+    {
+        return $this->setFeature($feature, true);
+    }
+
+    public function featureDisable(string $feature): RedirectResponse
+    {
+        return $this->setFeature($feature, false);
+    }
+
+    /**
+     * The master switch for a built-in feature. {$feature} validates
+     * against CoreFeatures::FEATURES (a fixed code-side list, same
+     * posture as runLifecycle's discovered() check) so nothing outside
+     * it ever reaches a write.
+     */
+    private function setFeature(string $feature, bool $on): RedirectResponse
+    {
+        abort_unless(array_key_exists($feature, CoreFeatures::FEATURES), 404);
+
+        CoreFeatures::set($feature, $on);
+
+        $name = ['stock-alerts' => 'Stock Alerts', 'seo' => 'SEO', 'abandoned-carts' => 'Abandoned Carts'][$feature];
+
+        return redirect()->route('admin.modules.index')
+            ->with('success', $name . ' ' . ($on ? 'enabled.' : 'disabled. Its nav entry is hidden and its scheduled jobs are paused.'));
     }
 
     /**

@@ -17,6 +17,12 @@ class SendAbandonedCartNotifications extends Command
 
     public function handle(): int
     {
+        if (! \App\Support\CoreFeatures::enabled('abandoned-carts')) {
+            $this->info('Feature disabled in Modules; nothing to do.');
+
+            return self::SUCCESS;
+        }
+
         $enabled = Setting::where('group', 'abandoned_cart')
             ->where('key', 'enabled')
             ->value('value') === '1';

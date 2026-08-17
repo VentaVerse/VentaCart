@@ -311,7 +311,13 @@ area) and the abandoned-carts pages (their module's wave).
   the doctrine with TinyMCE wired in.
 
 - Modules: extensions and core features as directory rows carrying
-  state badges, action forms, and uninstall confirms.
+  state badges, action forms, and uninstall confirms. Core features
+  (Stock Alerts, SEO, Abandoned Carts) carry a master switch
+  (App\Support\CoreFeatures, settings group `features`, opt-out
+  defaults like fulfillment's): off hides the feature's nav entry
+  (admin-nav `enabled_setting`) and no-ops its scheduled commands;
+  Configure stays reachable so a disabled feature can be turned back
+  on from either side.
 
 - Theme: the critique's worst multi-save offender rebuilt as ONE
   doctrine form spanning seven settings tabs (colors, fonts, header,
