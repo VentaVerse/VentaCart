@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace Extensions\ErpSync\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class ErpVariantController extends Controller
 {
-    use LogsApiCalls;
+    use \App\Http\Controllers\Api\LogsApiCalls;
 
     /**
      * GET /api/v1/products/{sku}/variants

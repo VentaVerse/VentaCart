@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace Extensions\ErpSync\Http\Controllers;
 
 use App\Exceptions\RemoteImageFetchException;
 use App\Http\Controllers\Controller;
@@ -17,8 +17,8 @@ use Illuminate\Validation\Rule;
 
 class ErpProductController extends Controller
 {
-    use FetchesRemoteImages;
-    use LogsApiCalls;
+    use \App\Http\Controllers\Api\FetchesRemoteImages;
+    use \App\Http\Controllers\Api\LogsApiCalls;
 
     public function index(Request $request): JsonResponse
     {

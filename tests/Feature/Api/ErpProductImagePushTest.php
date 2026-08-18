@@ -50,6 +50,11 @@ class ErpProductImagePushTest extends TestCase
         parent::setUp();
 
         Store::create(['name' => 'Test Store', 'code' => 'test']);
+
+        // The push endpoints live in extensions now (wave 3).
+        app(\App\Services\ExtensionManager::class)->install('erp-sync');
+        app(\App\Services\ExtensionManager::class)->install('reviews');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         Storage::fake('public');
 
         Setting::create([

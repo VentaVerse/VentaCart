@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace Extensions\ErpSync\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 
 class ErpCatalogController extends Controller
 {
-    use LogsApiCalls;
+    use \App\Http\Controllers\Api\LogsApiCalls;
 
     public function categories(Request $request): JsonResponse
     {

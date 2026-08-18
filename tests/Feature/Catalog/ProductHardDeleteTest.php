@@ -47,6 +47,7 @@ class ProductHardDeleteTest extends TestCase
 
         app(\App\Services\ExtensionManager::class)->install('stock-alerts');
         app(\App\Services\ExtensionManager::class)->install('seo');
+        app(\App\Services\ExtensionManager::class)->install('erp-sync');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         Store::create(['id' => 1, 'name' => 'Test Store', 'code' => 'test']);

@@ -66,9 +66,9 @@ To convert from app/:
 | shipping-weight-based | DONE: provider, models, CRUD, pivots, adopt-on-install | 2 |
 | shipping-free | DONE: provider, rules model/CRUD, badge source (guarded core refs) | 2 |
 | shipping-dhl | DONE: provider, API service, credentials page | 2 |
-| reviews | moderation, storefront reviews, review:send, ERP review endpoint | 3 |
-| blog | posts + categories, storefront blog | 3 |
-| erp-sync | Erp* API endpoints, sync logs, token | 3 |
+| reviews | DONE: all three surfaces (admin, storefront token page, ERP push), review:send, v3 page rebuild folded in, guarded rating aggregates | 3 |
+| blog | DONE: admin + storefront, both nav items via manifest, SEO extension's blog arm guarded cross-extension | 3 |
+| erp-sync | DONE (wave 3 closes): the four push controllers + api/v1 group; DEVIATION: token, erp.auth, sync logs, shared traits stay core as shared API framework (reviews' endpoint rides it) | 3 |
 
 ## Wave 0: the mechanism (prerequisite for everything)
 

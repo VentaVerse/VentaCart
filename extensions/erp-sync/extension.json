@@ -1,0 +1,11 @@
+{
+    "name": "erp-sync",
+    "title": "ERP Sync",
+    "version": "1.0.0",
+    "description": "The ERP push API: products, variants, orders, and catalog lookups.",
+    "provider": "Extensions\\ErpSync\\ErpSyncServiceProvider",
+    "icon": "settings",
+    "type": "feature",
+    "configure_route": "admin.settings.section",
+    "configure_params": {"section": "api"}
+}
