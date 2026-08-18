@@ -1,10 +1,18 @@
 <x-admin.shell title="Blog Posts">
     <x-admin.page title="Blog Posts">
         <x-slot:actions>
-            <form method="POST" action="{{ route('admin.extensions.disable', 'blog') }}" class="inline">
+            {{-- Owner ruling 2026-08-20: the switch never auto-saves.
+                 Flipping it arms an explicit Save; only that performs the
+                 disable (which removes this page, hence the directory
+                 redirect). --}}
+            <form method="POST" action="{{ route('admin.extensions.disable', 'blog') }}" class="inline-flex items-center gap-3"
+                  x-data="{ armed: false }">
                 @csrf
                 <input type="hidden" name="_redirect" value="{{ route('admin.extensions.index') }}">
-                <x-admin.toggle name="_extension_enabled" :checked="true" label="Enabled" onchange="this.form.submit()" />
+                <x-admin.toggle name="_extension_enabled" :checked="true" label="Enabled" @change="armed = !$event.target.checked" />
+                <template x-if="armed">
+                    <x-admin.button type="submit">Save</x-admin.button>
+                </template>
             </form>
             <x-admin.button variant="secondary" href="{{ route('admin.blog-categories.index') }}">Categories</x-admin.button>
             <x-admin.button variant="primary" href="{{ route('admin.blog.create') }}">

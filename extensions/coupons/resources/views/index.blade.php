@@ -1,11 +1,10 @@
 <x-admin.shell title="Coupons">
     <x-admin.page title="Coupons">
         <x-slot:actions>
-            <form method="POST" action="{{ route('admin.extensions.disable', 'coupons') }}" class="inline">
-                @csrf
-                <input type="hidden" name="_redirect" value="{{ route('admin.extensions.index') }}">
-                <x-admin.toggle name="_extension_enabled" :checked="true" label="Enabled" onchange="this.form.submit()" />
-            </form>
+            {{-- The extension switch lives on the Configure page
+                 (extensions/coupons/settings) with the standard save bar;
+                 this work page carries no lifecycle control. --}}
+            <x-admin.button variant="secondary" href="{{ route('admin.coupons.settings') }}">Settings</x-admin.button>
             <x-admin.button variant="primary" href="{{ route('admin.coupons.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> Add Coupon
             </x-admin.button>
