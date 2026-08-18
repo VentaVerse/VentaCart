@@ -63,7 +63,7 @@
                          from the ISO lookup. --}}
                     <x-admin3.field name="country_display" label="Country"
                         :hint="'Every courier this module books with collects in ' . $country->name . '.'">
-                        <p id="country_display" class="v-fixedvalue">{{ $country->name }}</p>
+                        <p id="country_display" class="v3-mono">{{ $country->name }}</p>
                     </x-admin3.field>
                 </div>
 

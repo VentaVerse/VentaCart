@@ -42,6 +42,15 @@ if (! function_exists('adminLegacyRedirect')) {
     function adminLegacyRedirect(string $old, string $name): void
     {
         Route::get($old, function (...$params) use ($name) {
+            // Resolved at request time on purpose: a legacy URL whose
+            // target lives in an extension only resolves while that
+            // extension is enabled. Disabled extension = honest 404,
+            // never a RouteNotFoundException 500 (flat-rates/create
+            // shipped that way with shipping-flat-rate switched off).
+            if (! Route::has($name)) {
+                abort(404);
+            }
+
             $url = route($name, $params);
 
             if ($qs = request()->getQueryString()) {

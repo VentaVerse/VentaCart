@@ -39,7 +39,7 @@
                     </button>
                 </x-slot:acts>
                 <div class="banner-stage">
-                    <div class="relative overflow-hidden w-full" x-ref="previewCanvas"
+                    <div class="banner-canvas" x-ref="previewCanvas"
                          :style="'height: ' + height + 'px; background-color: ' + bgColor + '; background-size: ' + bgSize + '; background-position: center; background-repeat: no-repeat;' + (bgImage ? 'background-image: url(/storage/' + bgImage + ')' : '')">
                         {{-- Centered stage container for layers (matches the storefront stage) --}}
                         <div class="banner-frame">
@@ -51,7 +51,7 @@
                                  ]"
                                  @mousedown.prevent="startDrag($event, i)"
                                  @click="selectedLayer = i"
-                                 class="absolute cursor-move select-none">
+                                 class="banner-layer">
 
                                 {{-- Text layer --}}
                                 <div x-show="layer.type === 'text'" x-text="layer.content || 'Text'" class="banner-layer-text"></div>
@@ -60,7 +60,7 @@
                                 <img x-show="layer.type === 'image'" alt="" aria-hidden="true"
                                      :src="layer.src ? '/storage/' + layer.src : 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/></svg>'"
                                      :style="'width: ' + (layer.width || 200) + 'px; height: ' + (layer.height || 'auto')"
-                                     class="block max-w-none pointer-events-none" draggable="false">
+                                     class="banner-layer__img" draggable="false">
 
                                 {{-- Button layer --}}
                                 <span x-show="layer.type === 'button'"
@@ -70,7 +70,7 @@
                                 {{-- Resize handle --}}
                                 <div x-show="selectedLayer === i"
                                      @mousedown.stop.prevent="startResize($event, i)"
-                                     class="banner-handle absolute -bottom-1.5 -right-1.5 w-3 h-3 rounded-sm cursor-se-resize"></div>
+                                     class="banner-handle"></div>
                             </div>
                         </template>
                         </div>
@@ -333,7 +333,7 @@
 
                     <div class="v3-mediagrid-wrap">
                         <div x-show="browserLoading" class="v3-empty"><p class="v3-empty__title">Loading…</p></div>
-                        <div x-show="!browserLoading" class="banner-picker-grid grid gap-2">
+                        <div x-show="!browserLoading" class="banner-picker-grid">
                             <template x-if="browserPath !== ''">
                                 <button type="button" @click="browseDir(browserParent)" class="v3-mediatile">
                                     <x-admin3.icon name="folder" class="v3-mediatile__folder" />

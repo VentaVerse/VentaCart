@@ -49,7 +49,21 @@
 .banner-layer-text,
 .banner-layer-button { white-space: pre-line; pointer-events: none; }
 
-.banner-handle { pointer-events: auto; z-index: 50; }
+.banner-handle {
+    pointer-events: auto;
+    z-index: 50;
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    cursor: se-resize;
+}
+
+.banner-canvas { position: relative; overflow: hidden; width: 100%; }
+.banner-layer { position: absolute; cursor: move; user-select: none; }
+.banner-layer__img { display: block; max-width: none; pointer-events: none; }
 
 /* The modal ground the media browser opens on. */
 .banner-veil {
@@ -57,7 +71,7 @@
     backdrop-filter: blur(3px);
 }
 
-.banner-picker-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.banner-picker-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 
 /* ------------------------------------------------------------
    The animation library, played in the preview
