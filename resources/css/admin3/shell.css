@@ -239,6 +239,19 @@
     font-weight: 600;
 }
 .v3-snav__item svg { width: 17px; height: 17px; flex-shrink: 0; opacity: .8; }
+.v3-snav__count { margin-left: auto; font-size: 11.5px; font-weight: 640; color: var(--v3-ink-3); font-variant-numeric: tabular-nums; }
+.v3-snav__item[aria-current="page"] .v3-snav__count { color: inherit; }
+/* Client-side side pans (one-form pages: theme, method pages) reuse the
+   snav vocabulary with buttons; the grid is local because those pages
+   live in the plain shell, not a space. */
+button.v3-snav__item { border: 0; background: none; width: 100%; text-align: left; cursor: pointer; font: inherit; }
+.v3-modgrid { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start; }
+.v3-modgrid > .v3-snav { position: sticky; top: 18px; padding: 6px; background: var(--v3-surface); border: 1px solid var(--v3-line); border-radius: var(--v3-r-lg); box-shadow: var(--v3-lift); }
+@media (max-width: 1023px) {
+    .v3-modgrid { grid-template-columns: minmax(0, 1fr); }
+    .v3-modgrid > .v3-snav { position: static; display: flex; flex-wrap: wrap; gap: 2px; }
+    .v3-modgrid > .v3-snav .v3-snav__group { display: none; }
+}
 .v3-snav__picker { display: none; }
 
 .v3-settings__main { padding: 26px var(--v3-gutter) 96px; min-width: 0; }

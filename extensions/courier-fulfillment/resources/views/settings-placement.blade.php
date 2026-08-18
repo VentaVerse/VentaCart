@@ -1,4 +1,4 @@
-<x-admin3.shell title="Status Mapping">
+<x-courier-fulfillment::space title="Status Mapping" active="status-mapping">
     @php
         // The select's own vocabulary, built once: the empty value is a real
         // choice (not placed), and its LABEL carries the one consequence that
@@ -21,7 +21,6 @@
         </div>
     </div>
 
-    @include('courier-fulfillment::partials.config-tabs')
 
     <x-admin3.form :action="route('admin.fulfillment.settings.placement.update')" class="v3-settle">
 
@@ -98,4 +97,4 @@
         </x-admin3.panel>
 
     </x-admin3.form>
-</x-admin3.shell>
+</x-courier-fulfillment::space>

@@ -13,6 +13,7 @@ class ReviewsServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'reviews');
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(__DIR__ . '/../resources/views/components', 'reviews');
 
         // review:send exists only while this extension is enabled; its
         // Automations row keeps the schedule and fails visibly while it

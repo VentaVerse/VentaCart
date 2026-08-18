@@ -1,11 +1,10 @@
-<x-admin3.shell title="Recovered Carts" active="sales">
+<x-abandoned-carts::space title="Recovered Carts" active="recovered">
     <div class="v3-head">
         <div class="v3-head__body">
             <h1 class="v3-head__title">Abandoned Carts</h1>
         </div>
     </div>
 
-    @include('abandoned-carts::partials.tabs')
 
     <div class="v3-settle">
         <x-admin3.panel flush>
@@ -37,4 +36,4 @@
             </div>
         </x-admin3.panel>
     </div>
-</x-admin3.shell>
+</x-abandoned-carts::space>

@@ -21,6 +21,7 @@ class CourierFulfillmentServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'courier-fulfillment');
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(__DIR__ . '/../resources/views/components', 'courier-fulfillment');
 
         // Register couriers. Adding a competitor later = one more line here.
         CourierManager::register(QuadXFulfillment::class);

@@ -1,4 +1,4 @@
-<x-admin3.shell :title="$rule ? 'Edit Rule' : 'Create Rule'">
+<x-abandoned-carts::space :title="$rule ? 'Edit Rule' : 'Create Rule'" active="rules">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -56,4 +56,4 @@
             </x-admin3.panel>
         </div>
     </x-admin3.form>
-</x-admin3.shell>
+</x-abandoned-carts::space>

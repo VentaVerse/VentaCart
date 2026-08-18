@@ -22,11 +22,22 @@
 
     <div x-data="{ tab: @js($tab ?: 'waitlist'),
             pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
-        <div class="v3-tabs" role="tablist">
-            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'waitlist' ? 'true' : 'false'" @click="pick('waitlist')">Waitlist</button>
-            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'notified' ? 'true' : 'false'" @click="pick('notified')">Notified</button>
-            <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'template' ? 'true' : 'false'" @click="pick('template')">Email template</button>
-        </div>
+        <div class="v3-modgrid">
+        <nav class="v3-snav" aria-label="Sections">
+            <button type="button" class="v3-snav__item" :aria-current="tab === 'waitlist' ? 'page' : false" @click="pick('waitlist')">
+                <x-admin3.icon name="clock" />
+                Waitlist
+            </button>
+            <button type="button" class="v3-snav__item" :aria-current="tab === 'notified' ? 'page' : false" @click="pick('notified')">
+                <x-admin3.icon name="check" />
+                Notified
+            </button>
+            <button type="button" class="v3-snav__item" :aria-current="tab === 'template' ? 'page' : false" @click="pick('template')">
+                <x-admin3.icon name="mail" />
+                Email template
+            </button>
+        </nav>
+        <div class="v3-modmain">
 
         {{-- ==================== WAITLIST ==================== --}}
         <div x-show="tab === 'waitlist'" class="v3-settle" x-data="{ selected: [] }">
@@ -217,6 +228,8 @@
                     </div>
                 </x-admin3.panel>
             </x-admin3.form>
+        </div>
+        </div>
         </div>
     </div>
 

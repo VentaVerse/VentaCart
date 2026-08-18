@@ -1,4 +1,4 @@
-<x-admin3.shell :title="'Review #' . $review->id" active="sales">
+<x-reviews::space :title="'Review #' . $review->id" :active="$review->status">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -84,4 +84,4 @@
     <x-admin3.confirm name="delete-review" title="Delete review?"
         message="Delete this review permanently? This cannot be undone." confirm="Delete"
         :action="route('admin.reviews.destroy', $review)" method="DELETE" />
-</x-admin3.shell>
+</x-reviews::space>

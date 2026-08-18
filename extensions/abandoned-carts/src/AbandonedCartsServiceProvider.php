@@ -13,6 +13,7 @@ class AbandonedCartsServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'abandoned-carts');
+        \Illuminate\Support\Facades\Blade::anonymousComponentPath(__DIR__ . '/../resources/views/components', 'abandoned-carts');
 
         // cart:notify exists only while this extension is enabled. Its
         // Automations row keeps the schedule; while disabled the scheduled

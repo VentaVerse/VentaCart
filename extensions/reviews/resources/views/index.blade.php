@@ -1,11 +1,10 @@
-<x-admin3.shell title="Reviews" active="sales">
+<x-reviews::space title="Reviews" :active="$tab" :counts="$counts">
     <div class="v3-head">
         <div class="v3-head__body">
             <h1 class="v3-head__title">Reviews</h1>
         </div>
     </div>
 
-    @include('reviews::partials.tabs')
 
         <div class="v3-settle">
             <form method="GET" action="{{ route('admin.reviews.index') }}" class="v3-filterbar">
@@ -70,4 +69,4 @@
                     :action="route('admin.reviews.destroy', $review)" method="DELETE" />
             @endforeach
         </div>
-</x-admin3.shell>
+</x-reviews::space>

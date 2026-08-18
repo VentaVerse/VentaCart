@@ -17,7 +17,7 @@
             ->all(),
     ];
 @endphp
-<x-admin3.shell :title="$title">
+<x-courier-fulfillment::space :title="$title" active="pickup-addresses">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -248,4 +248,4 @@
         }
     </script>
     @endpush
-</x-admin3.shell>
+</x-courier-fulfillment::space>

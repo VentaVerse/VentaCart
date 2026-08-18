@@ -1,4 +1,4 @@
-<x-admin3.shell :title="'Cart #' . $cart->id" active="sales">
+<x-abandoned-carts::space :title="'Cart #' . $cart->id" active="carts">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -76,4 +76,4 @@
     <x-admin3.confirm name="delete-cart" title="Delete abandoned cart?"
         message="Delete this abandoned cart? This cannot be undone." confirm="Delete cart"
         :action="route('admin.abandoned-carts.destroy', $cart)" method="DELETE" />
-</x-admin3.shell>
+</x-abandoned-carts::space>

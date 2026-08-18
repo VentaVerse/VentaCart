@@ -1,4 +1,4 @@
-<x-admin3.shell title="Abandoned Carts" active="sales">
+<x-abandoned-carts::space title="Abandoned Carts" active="carts">
     <div class="v3-head">
         <div class="v3-head__body">
             <h1 class="v3-head__title">Abandoned Carts</h1>
@@ -9,7 +9,6 @@
         </div>
     </div>
 
-    @include('abandoned-carts::partials.tabs')
 
     <div class="v3-settle">
         <div class="v3-stats">
@@ -89,4 +88,4 @@
             <input type="hidden" name="type" value="all">
         </x-admin3.confirm>
     </div>
-</x-admin3.shell>
+</x-abandoned-carts::space>

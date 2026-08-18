@@ -1,4 +1,4 @@
-<x-admin3.shell title="Recovery Rules">
+<x-abandoned-carts::space title="Recovery Rules" active="rules">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -15,7 +15,6 @@
         </div>
     </div>
 
-    @include('abandoned-carts::partials.tabs')
 
     <div class="v3-settle">
         <x-admin3.panel flush>
@@ -52,4 +51,4 @@
                 :action="route('admin.abandoned-carts.rules.destroy', $rule)" method="DELETE" />
         @endforeach
     </div>
-</x-admin3.shell>
+</x-abandoned-carts::space>

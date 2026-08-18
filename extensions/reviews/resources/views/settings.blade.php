@@ -1,4 +1,4 @@
-<x-admin3.shell title="Review Settings">
+<x-reviews::space title="Review Settings" active="settings">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -15,7 +15,6 @@
         </div>
     </div>
 
-    @include('reviews::partials.tabs')
 
         <x-admin3.form :action="route('admin.settings.update')">
             <input type="hidden" name="group" value="reviews">
@@ -103,4 +102,4 @@
                 </x-admin3.panel>
             </div>
         </x-admin3.form>
-</x-admin3.shell>
+</x-reviews::space>

@@ -1,4 +1,4 @@
-<x-admin3.shell title="Abandoned Cart Settings">
+<x-abandoned-carts::space title="Abandoned Cart Settings" active="settings">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -15,7 +15,6 @@
         </div>
     </div>
 
-    @include('abandoned-carts::partials.tabs')
 
     <x-admin3.form :action="route('admin.abandoned-carts.settings.update')">
         <div class="v3-settle">
@@ -47,4 +46,4 @@
             </x-admin3.panel>
         </div>
     </x-admin3.form>
-</x-admin3.shell>
+</x-abandoned-carts::space>

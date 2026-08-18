@@ -1,4 +1,4 @@
-<x-admin3.shell :title="$emailTemplate ? 'Edit Template' : 'Create Template'">
+<x-abandoned-carts::space :title="$emailTemplate ? 'Edit Template' : 'Create Template'" active="templates">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
@@ -78,4 +78,4 @@
         });
     </script>
     @endpush
-</x-admin3.shell>
+</x-abandoned-carts::space>

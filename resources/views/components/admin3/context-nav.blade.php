@@ -11,6 +11,9 @@
                @if ($active === $item['key']) aria-current="page" @endif>
                 <x-admin3.icon :name="$item['icon']" />
                 {{ $item['label'] }}
+                @if (isset($item['count']) && $item['count'] > 0)
+                    <span class="v3-snav__count">{{ number_format($item['count']) }}</span>
+                @endif
             </a>
         @endforeach
     @endforeach

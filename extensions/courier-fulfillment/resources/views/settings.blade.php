@@ -1,4 +1,4 @@
-<x-admin3.shell title="Courier Settings">
+<x-courier-fulfillment::space title="Courier Settings" active="settings">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -17,7 +17,6 @@
         </div>
     </div>
 
-    @include('courier-fulfillment::partials.config-tabs')
 
     <div class="v3-settle">
 
@@ -116,4 +115,4 @@
         </x-admin3.form>
 
     </div>
-</x-admin3.shell>
+</x-courier-fulfillment::space>

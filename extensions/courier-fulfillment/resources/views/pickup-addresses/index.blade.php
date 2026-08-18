@@ -1,4 +1,4 @@
-<x-admin3.shell title="Pickup Addresses">
+<x-courier-fulfillment::space title="Pickup Addresses" active="pickup-addresses">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -19,7 +19,6 @@
         </div>
     </div>
 
-    @include('courier-fulfillment::partials.config-tabs')
 
     <div class="v3-settle">
 
@@ -97,4 +96,4 @@
         @endforeach
 
     </div>
-</x-admin3.shell>
+</x-courier-fulfillment::space>

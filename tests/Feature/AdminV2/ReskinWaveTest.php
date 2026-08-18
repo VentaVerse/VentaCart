@@ -1161,11 +1161,12 @@ class ReskinWaveTest extends TestCase
      * these pages no longer carry those workspace-nav markers, while the
      * single, explicit crossing links (in both directions) still render.
      */
-    public function test_one_home_pages_share_one_tab_bar(): void
+    public function test_one_home_pages_share_one_side_pan(): void
     {
-        // One home (owner ruling 2026-08-19): ops and config pages are
-        // tabs of the same bar under the extension; no crossing links,
-        // no foreign workspace navs, no separate chrome.
+        // One home, side-pan menus (owner ruling 2026-08-19 evening,
+        // superseding the tab bars of the same morning): ops and config
+        // pages share the module's own context nav, the same v3-snav the
+        // Settings and SEO spaces wear.
         app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
         app(\App\Services\ExtensionManager::class)->install('reviews');
         app(\App\Services\ExtensionManager::class)->install('seo');
@@ -1179,7 +1180,8 @@ class ReskinWaveTest extends TestCase
         ] as $url) {
             $this->get($url)
                 ->assertOk()
-                ->assertSee('aria-label="Abandoned carts workspace"', false)
+                ->assertSee('aria-label="Abandoned Carts"', false)
+                ->assertSee('v3-snav', false)
                 ->assertSee('Templates')
                 ->assertSee('Settings');
         }
@@ -1187,7 +1189,8 @@ class ReskinWaveTest extends TestCase
         foreach ([route('admin.reviews.index'), route('admin.reviews.settings')] as $url) {
             $this->get($url)
                 ->assertOk()
-                ->assertSee('aria-label="Reviews workspace"', false)
+                ->assertSee('aria-label="Reviews"', false)
+                ->assertSee('v3-snav', false)
                 ->assertSee('Settings');
         }
 

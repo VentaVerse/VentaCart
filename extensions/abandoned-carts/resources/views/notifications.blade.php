@@ -1,11 +1,10 @@
-<x-admin3.shell title="Cart Notifications" active="sales">
+<x-abandoned-carts::space title="Cart Notifications" active="notifications">
     <div class="v3-head">
         <div class="v3-head__body">
             <h1 class="v3-head__title">Abandoned Carts</h1>
         </div>
     </div>
 
-    @include('abandoned-carts::partials.tabs')
 
     <div class="v3-settle">
         <form method="GET" action="{{ route('admin.abandoned-carts.notifications') }}" class="v3-filterbar">
@@ -60,4 +59,4 @@
 
         <x-admin3.pager :paginator="$notifications" />
     </div>
-</x-admin3.shell>
+</x-abandoned-carts::space>

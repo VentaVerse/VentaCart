@@ -103,11 +103,16 @@
     <div x-data="{ tab: @js(session('tab', request('tab', 'colors'))),
             pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }"
          class="v3-gap-lg">
-        <div class="v3-tabs v3-tabs--wrap" role="tablist">
-            @foreach (['colors' => 'Colors', 'fonts' => 'Fonts', 'header' => 'Header', 'navigation' => 'Navigation', 'homepage' => 'Homepage', 'product_page' => 'Product page', 'category_page' => 'Category page', 'badges' => 'Badges', 'footer' => 'Footer', 'blog' => 'Blog', 'theme-settings' => 'Theme options'] as $tid => $tlabel)
-                <button type="button" class="v3-tab" role="tab" :aria-selected="tab === @js($tid) ? 'true' : 'false'" @click="pick(@js($tid))">{{ $tlabel }}</button>
+        <div class="v3-modgrid">
+        <nav class="v3-snav" aria-label="Theme sections">
+            @foreach (['colors' => ['Colors', 'theme'], 'fonts' => ['Fonts', 'text'], 'header' => ['Header', 'menu'], 'navigation' => ['Navigation', 'link'], 'homepage' => ['Homepage', 'home'], 'product_page' => ['Product page', 'products'], 'category_page' => ['Category page', 'folder'], 'badges' => ['Badges', 'check'], 'footer' => ['Footer', 'layers'], 'blog' => ['Blog', 'content'], 'theme-settings' => ['Theme options', 'settings']] as $tid => [$tlabel, $ticon])
+                <button type="button" class="v3-snav__item" :aria-current="tab === @js($tid) ? 'page' : false" @click="pick(@js($tid))">
+                    <x-admin3.icon :name="$ticon" />
+                    {{ $tlabel }}
+                </button>
             @endforeach
-        </div>
+        </nav>
+        <div class="v3-modmain">
 
         {{-- ============ THE ONE SETTINGS SAVE ============
              Every settings tab lives in this form; the record tabs
@@ -636,6 +641,8 @@
                     </div>
                 @endif
             </x-admin3.panel>
+        </div>
+        </div>
         </div>
     </div>
 
