@@ -1,351 +1,318 @@
-<x-admin.shell :title="$post ? 'Edit Post' : 'New Post'">
-    <x-admin.page :title="$post ? 'Edit Post' : 'New Post'">
-        <x-slot:actions>
-            <x-admin.button variant="ghost" href="{{ route('admin.blog.index') }}">Back to Posts</x-admin.button>
-        </x-slot:actions>
+<x-admin3.shell :title="$post ? 'Edit Post' : 'New Post'">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.blog.index') }}">Blog</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $post->title ?? 'New' }}</span>
+            </div>
+            <h1 class="v3-head__title">{{ $post ? $post->title : 'New post' }}</h1>
+        </div>
+    </div>
 
-        <form method="POST" action="{{ $post ? route('admin.blog.update', $post) : route('admin.blog.store') }}"
-              data-v-form onsubmit="if(typeof tinymce !== 'undefined') tinymce.triggerSave();">
-            @csrf
-            @if ($post)
-                @method('PUT')
-            @endif
+    <x-admin3.form id="v3-post-form" :action="$post ? route('admin.blog.update', $post) : route('admin.blog.store')"
+                   :method="$post ? 'PUT' : 'POST'" class="v3-settle"
+                   onsubmit="if (typeof tinymce !== 'undefined') tinymce.triggerSave();">
+        <x-admin3.panel title="Post">
+            <x-admin3.field name="title" label="Title" required>
+                <input type="text" name="title" required class="v3-control" value="{{ old('title', $post?->title) }}">
+            </x-admin3.field>
+            <div class="v3-gap">
+                <x-admin3.field name="slug" label="Slug" hint="Leave blank to auto-generate from the title.">
+                    <input type="text" name="slug" class="v3-control v3-mono" value="{{ old('slug', $post?->slug) }}">
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap">
+                <x-admin3.field name="content" label="Content" required>
+                    <textarea name="content" id="v3-post-content" rows="16" class="v3-control">{{ old('content', $post?->content) }}</textarea>
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap">
+                <x-admin3.field name="excerpt" label="Excerpt">
+                    <textarea name="excerpt" rows="3" class="v3-control">{{ old('excerpt', $post?->excerpt) }}</textarea>
+                </x-admin3.field>
+            </div>
+        </x-admin3.panel>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {{-- Main Content --}}
-                <div class="lg:col-span-2 space-y-6">
-                    <x-admin.card>
-                        <div class="space-y-4">
-                            <x-admin.field name="title" label="Title" required>
-                                <x-admin.input type="text" name="title" required :value="$post?->title" />
-                            </x-admin.field>
+        <x-admin3.panel title="Publish">
+            <div class="v3-grid v3-grid--2">
+                <x-admin3.field name="blog_category_id" label="Category">
+                    <select name="blog_category_id" class="v3-control">
+                        <option value="">(None)</option>
+                        @foreach ($categories as $cat)
+                            <option value="{{ $cat->id }}" @selected(old('blog_category_id', $post?->blog_category_id) == $cat->id)>{{ $cat->name }}</option>
+                        @endforeach
+                    </select>
+                </x-admin3.field>
+                <x-admin3.field name="published_at" label="Published date">
+                    <input type="datetime-local" name="published_at" class="v3-control v3-mono" value="{{ old('published_at', $post?->published_at?->format('Y-m-d\TH:i')) }}">
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap v3-actrow">
+                <label class="v3-toggle">
+                    <input type="hidden" name="is_published" value="0">
+                    <input type="checkbox" name="is_published" value="1" @checked(old('is_published', $post?->is_published ?? false))>
+                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    <span>Published</span>
+                </label>
+            </div>
+        </x-admin3.panel>
 
-                            <x-admin.field name="slug" label="Slug" help="Auto-generated if empty">
-                                <x-admin.input type="text" name="slug" :value="$post?->slug" />
-                            </x-admin.field>
+        <x-admin3.panel title="Featured image">
+            <div x-data="featuredImagePicker()">
+                <input type="hidden" name="featured_image" :value="selectedPath">
 
-                            <x-admin.field name="content" label="Content" required>
-                                <textarea name="content" id="content" rows="16"
-                                    class="tinymce-editor v-control w-full text-[13px] bg-v-surface text-v-text border border-v-border rounded-v-md">{{ old('content', $post?->content) }}</textarea>
-                            </x-admin.field>
-
-                            <x-admin.field name="excerpt" label="Excerpt">
-                                <x-admin.textarea name="excerpt" rows="3" :value="$post?->excerpt" />
-                            </x-admin.field>
-                        </div>
-                    </x-admin.card>
-
-                    {{-- SEO --}}
-                    <x-admin.card title="SEO">
-                        <div class="space-y-4">
-                            <x-admin.field name="meta_title" label="Meta Title">
-                                <x-admin.input type="text" name="meta_title" :value="$post?->meta_title" />
-                            </x-admin.field>
-                            <x-admin.field name="meta_description" label="Meta Description">
-                                <x-admin.textarea name="meta_description" rows="2" :value="$post?->meta_description" />
-                            </x-admin.field>
-
-                            {{-- AI SEO Optimizer --}}
-                            <div x-data="{
-                                loading: false,
-                                suggestion: null,
-                                error: null,
-                                async optimize() {
-                                    this.loading = true;
-                                    this.error = null;
-                                    this.suggestion = null;
-                                    try {
-                                        const res = await fetch('{{ route("admin.extensions.seo.optimize") }}', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                                            body: JSON.stringify({ entity_type: 'blog_post', entity_id: {{ $post->id ?? 0 }} })
-                                        });
-                                        const data = await res.json();
-                                        if (data.ok) {
-                                            this.suggestion = data.suggestion;
-                                        } else {
-                                            this.error = data.message || 'Failed to generate suggestion.';
-                                        }
-                                    } catch (e) {
-                                        this.error = 'Request failed. Check your Claude API key in Extensions > SEO > Settings.';
-                                    }
-                                    this.loading = false;
-                                },
-                                apply() {
-                                    if (!this.suggestion) return;
-                                    const s = this.suggestion;
-                                    const mt = document.querySelector('[name=meta_title]');
-                                    const md = document.querySelector('[name=meta_description]');
-                                    if (mt && s.suggested_meta_title) mt.value = s.suggested_meta_title;
-                                    if (md && s.suggested_meta_description) md.value = s.suggested_meta_description;
-                                    this.suggestion = null;
-                                }
-                            }" class="mt-4 pt-4 border-t border-v-border">
-                                @if ($post ?? false)
-                                    <x-admin.button type="button" variant="primary" @click="optimize()" x-bind:disabled="loading">
-                                        <template x-if="!loading">
-                                            <x-admin.icon name="sparkles" class="w-4 h-4" />
-                                        </template>
-                                        <template x-if="loading">
-                                            <x-admin.icon name="spinner" class="w-4 h-4 animate-spin" />
-                                        </template>
-                                        <span x-text="loading ? 'Optimizing...' : 'Optimize with AI'"></span>
-                                    </x-admin.button>
-                                @else
-                                    <p class="text-xs text-v-muted">Save the post first to use AI optimization.</p>
-                                @endif
-
-                                <div x-show="error" x-cloak class="mt-3 rounded-v-md border border-v-danger bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] p-3 text-[13px] text-v-danger" x-text="error"></div>
-
-                                <div x-show="suggestion" x-cloak class="mt-3 rounded-v-md border border-v-border bg-v-accent-weak p-4">
-                                    <h4 class="mb-3 text-[13px] font-semibold text-v-text">AI Suggestion Preview</h4>
-                                    <div class="space-y-3">
-                                        <template x-for="field in ['meta_title', 'meta_description', 'og_title', 'og_description']" :key="field">
-                                            <div>
-                                                <label class="v-label" x-text="field.replace(/_/g, ' ')"></label>
-                                                <div class="mt-1 grid grid-cols-2 gap-2">
-                                                    <div class="rounded-v-sm bg-v-surface p-2 text-xs">
-                                                        <span class="mb-0.5 block text-v-muted">Current:</span>
-                                                        <span x-text="suggestion?.['current_' + field] || '(empty)'"></span>
-                                                    </div>
-                                                    <div class="rounded-v-sm border-l-2 border-v-accent bg-v-surface p-2 text-xs">
-                                                        <span class="mb-0.5 block text-v-accent">Suggested:</span>
-                                                        <span x-text="suggestion?.['suggested_' + field] || '(empty)'"></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    <div class="mt-4 flex gap-2">
-                                        <x-admin.button type="button" variant="primary" size="sm" @click="apply()">Apply to Form</x-admin.button>
-                                        <x-admin.button type="button" variant="secondary" size="sm" @click="suggestion = null">Dismiss</x-admin.button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </x-admin.card>
+                <div x-show="selectedPath" class="v3-gap-sm">
+                    <img :src="previewUrl" class="v3-imgpreview" alt="Featured image">
                 </div>
 
-                {{-- Sidebar --}}
-                <div class="space-y-6">
-                    {{-- Publish --}}
-                    <x-admin.card title="Publish">
-                        <div class="space-y-4">
-                            <x-admin.toggle name="is_published" :checked="$post?->is_published ?? false" label="Published" />
+                <div class="v3-actrow">
+                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openBrowser()">
+                        <span x-text="selectedPath ? 'Change image' : 'Choose image'"></span>
+                    </button>
+                    <template x-if="selectedPath">
+                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="selectedPath = ''; touch()">Remove</button>
+                    </template>
+                </div>
 
-                            <x-admin.field name="published_at" label="Published Date">
-                                <x-admin.input type="datetime-local" name="published_at" :value="$post?->published_at?->format('Y-m-d\TH:i')" />
-                            </x-admin.field>
-
-                            <div class="flex gap-2">
-                                <x-admin.button type="submit" class="flex-1 justify-center">
-                                    {{ $post ? 'Update' : 'Create' }}
-                                </x-admin.button>
-                                <x-admin.button variant="secondary" href="{{ route('admin.blog.index') }}">Cancel</x-admin.button>
+                {{-- Browser modal --}}
+                <div x-show="browserOpen" x-cloak class="v3-overlay"
+                     @keydown.escape.window="browserOpen = false" @click.self="browserOpen = false">
+                    <div class="v3-modal v3-modal--media" role="dialog" aria-modal="true" aria-label="Choose featured image">
+                        <div class="v3-between">
+                            <nav class="v3-crumbrow" aria-label="Folders">
+                                <button type="button" @click="browseDir(root)" class="v3-link">blog</button>
+                                <template x-for="(crumb, i) in breadcrumbs" :key="i">
+                                    <span class="v3-crumbrow">
+                                        <span aria-hidden="true">/</span>
+                                        <button type="button" @click="browseDir(crumb.path)" class="v3-link" x-text="crumb.name"></button>
+                                    </span>
+                                </template>
+                            </nav>
+                            <button type="button" @click="browserOpen = false" class="v3-row__x" aria-label="Close image browser"><x-admin3.icon name="x" /></button>
+                        </div>
+                        <div class="v3-mediagrid-wrap">
+                            <div x-show="loading" class="v3-empty"><p class="v3-empty__title">Loading…</p></div>
+                            <div x-show="!loading" class="v3-mediagrid">
+                                <template x-if="currentPath !== ''">
+                                    <button type="button" @click="browseDir(parentPath)" class="v3-mediatile">
+                                        <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                                        <span>..</span>
+                                    </button>
+                                </template>
+                                <template x-for="folder in folders" :key="folder.path">
+                                    <button type="button" @click="browseDir(folder.path)" class="v3-mediatile">
+                                        <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                                        <span x-text="folder.name"></span>
+                                    </button>
+                                </template>
+                                <template x-for="file in files" :key="file.path">
+                                    <button type="button" @click="selectFile(file); touch()" class="v3-mediatile"
+                                            :aria-pressed="selectedPath === file.path ? 'true' : 'false'">
+                                        <span class="v3-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
+                                        <span x-text="file.name"></span>
+                                    </button>
+                                </template>
                             </div>
                         </div>
-                    </x-admin.card>
-
-                    {{-- Category --}}
-                    <x-admin.card title="Category">
-                        <x-admin.select name="blog_category_id">
-                            <option value="">(None)</option>
-                            @foreach ($categories as $cat)
-                                <option value="{{ $cat->id }}" {{ old('blog_category_id', $post?->blog_category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
-                            @endforeach
-                        </x-admin.select>
-                    </x-admin.card>
-
-                    {{-- Featured Image --}}
-                    <x-admin.card title="Featured Image">
-                        <div x-data="featuredImagePicker()" class="space-y-4">
-                            <input type="hidden" name="featured_image" :value="selectedPath">
-
-                            {{-- Preview --}}
-                            <div x-show="selectedPath" class="relative inline-block">
-                                <img :src="previewUrl" class="w-full max-w-[200px] h-auto rounded-v-md border border-v-border" alt="Featured image">
-                                <button type="button" @click="selectedPath = ''" aria-label="Remove featured image" class="absolute top-1 right-1 w-6 h-6 bg-v-danger text-v-danger-text rounded-full flex items-center justify-center hover:opacity-90 shadow-v-lift">
-                                    <x-admin.icon name="x" class="w-3 h-3" />
-                                </button>
-                            </div>
-
-                            <x-admin.button type="button" variant="primary" @click="openBrowser()">
-                                <x-admin.icon name="media" class="w-4 h-4" />
-                                <span x-text="selectedPath ? 'Change Image' : 'Choose Image'"></span>
-                            </x-admin.button>
-
-                            {{-- Browser Modal --}}
-                            <div x-show="browserOpen" x-cloak x-transition.opacity.duration.200ms
-                                 class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/45 backdrop-blur-[3px]"
-                                 @keydown.escape.window="browserOpen = false">
-                                <div class="v-modal w-full max-w-4xl max-h-[80vh] flex flex-col bg-v-surface rounded-v-lg border border-v-border overflow-hidden"
-                                     role="dialog" aria-modal="true" aria-label="Choose featured image"
-                                     @click.outside="browserOpen = false">
-                                    {{-- Header --}}
-                                    <div class="flex items-center justify-between px-5 py-3.5 border-b border-v-border bg-v-sunken">
-                                        <div class="flex items-center gap-2">
-                                            <x-admin.icon name="media" class="w-5 h-5 text-v-accent" />
-                                            <h3 class="text-[13px] font-semibold text-v-text">Choose Featured Image</h3>
-                                            <span class="text-v-border">|</span>
-                                            <nav class="flex items-center gap-0.5 text-[13px]">
-                                                <button type="button" @click="browseDir(root)" class="text-v-accent hover:opacity-80 font-medium">blog</button>
-                                                <template x-for="(crumb, i) in breadcrumbs" :key="i">
-                                                    <span class="flex items-center gap-0.5">
-                                                        <span class="text-v-muted">/</span>
-                                                        <button type="button" @click="browseDir(crumb.path)" class="text-v-accent hover:opacity-80 font-medium" x-text="crumb.name"></button>
-                                                    </span>
-                                                </template>
-                                            </nav>
-                                        </div>
-                                        <button type="button" @click="browserOpen = false" aria-label="Close" class="text-v-muted hover:text-v-text p-1 rounded-v-md hover:bg-v-hover">
-                                            <x-admin.icon name="x" class="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    {{-- Content --}}
-                                    <div class="flex-1 overflow-y-auto p-5 bg-v-sunken/50">
-                                        <div x-show="loading" class="flex items-center justify-center py-16">
-                                            <x-admin.icon name="spinner" class="w-6 h-6 animate-spin text-v-accent" />
-                                        </div>
-                                        <div x-show="!loading" class="v-tiles v-tiles--sm">
-                                            <template x-if="currentPath !== ''">
-                                                <button type="button" @click="browseDir(parentPath)" class="v-tile v-tile--dir">
-                                                    <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
-                                                    <span class="v-tile__name v-tile__name--dim">..</span>
-                                                </button>
-                                            </template>
-                                            <template x-for="folder in folders" :key="folder.path">
-                                                <button type="button" @click="browseDir(folder.path)" class="v-tile v-tile--dir">
-                                                    <span class="v-tile__art"><x-admin.icon name="folder" class="v-tile__mark" /></span>
-                                                    <span class="v-tile__name" x-text="folder.name"></span>
-                                                </button>
-                                            </template>
-                                            <template x-for="file in files" :key="file.path">
-                                                <button type="button" @click="selectFile(file)" class="v-tile"
-                                                    :aria-pressed="selectedPath === file.path ? 'true' : 'false'">
-                                                    <span class="v-tile__art">
-                                                        <img :src="file.url" :alt="file.name" class="v-tile__img" loading="lazy">
-                                                    </span>
-                                                    <span class="v-tile__name" x-text="file.name"></span>
-                                                </button>
-                                            </template>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </x-admin.card>
-
-                    {{-- Tags --}}
-                    <x-admin.card title="Tags">
-                        @php $selectedTags = old('tags', $post?->tags?->pluck('id')->toArray() ?? []); @endphp
-                        <div class="space-y-1.5 max-h-48 overflow-y-auto">
-                            @foreach ($tags as $tag)
-                                <label class="flex items-center gap-2 text-[13px] cursor-pointer text-v-text">
-                                    <input type="checkbox" name="tags[]" value="{{ $tag->id }}" {{ in_array($tag->id, $selectedTags) ? 'checked' : '' }}
-                                        class="w-4 h-4 rounded-v-sm border-v-strong text-v-accent focus:ring-v-accent bg-v-surface">
-                                    {{ $tag->name }}
-                                </label>
-                            @endforeach
-                        </div>
-                        @if ($tags->isEmpty())
-                            <p class="text-xs text-v-muted">No tags created yet.</p>
-                        @endif
-                    </x-admin.card>
+                    </div>
                 </div>
             </div>
-        </form>
-        @push('scripts')
-        <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
-        <script>
-            tinymce.init({
-                selector: '.tinymce-editor',
-                height: 600,
-                menubar: 'file edit view insert format table',
-                plugins: 'lists link autolink code table media image fullscreen',
-                toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright | link image media table | removeformat code fullscreen',
-                content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; } img { max-width: 100%; height: auto; }',
-                branding: false,
-                promotion: false,
-                license_key: 'gpl',
-                relative_urls: false,
-                remove_script_host: true,
-                image_advtab: true,
-                image_dimensions: true,
-                extended_valid_elements: 'iframe[src|width|height|name|align|frameborder|scrolling|allowfullscreen|allow|style|class]',
-                sandbox_iframes: false,
-                convert_unsafe_embeds: false,
-                media_live_embeds: true,
-            });
+        </x-admin3.panel>
 
-            function featuredImagePicker() {
-                return {
-                    selectedPath: @json(old('featured_image', $post?->featured_image ?? '')),
-                    browserOpen: false,
-                    loading: false,
-                    currentPath: '',
-                    parentPath: '',
-                    folders: [],
-                    files: [],
-                    lastBrowsedPath: null,
-                    root: 'blog',
+        <x-admin3.panel title="Tags">
+            @if ($tags->isEmpty())
+                <p class="v3-empty__line">No tags created yet.</p>
+            @else
+                <x-admin3.picklist name="tags" label="Tags"
+                    :items="$tags->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->all()"
+                    :selected="old('tags', $post?->tags?->pluck('id')->toArray() ?? [])" />
+            @endif
+        </x-admin3.panel>
 
-                    get previewUrl() {
-                        if (!this.selectedPath) return '';
-                        return '/storage/' + this.selectedPath.split('/').map(encodeURIComponent).join('/');
-                    },
+        <x-admin3.panel title="SEO">
+            <div class="v3-grid v3-grid--2">
+                <x-admin3.field name="meta_title" label="Meta title">
+                    <input type="text" name="meta_title" class="v3-control" value="{{ old('meta_title', $post?->meta_title) }}">
+                </x-admin3.field>
+                <x-admin3.field name="meta_description" label="Meta description">
+                    <textarea name="meta_description" rows="2" class="v3-control">{{ old('meta_description', $post?->meta_description) }}</textarea>
+                </x-admin3.field>
+            </div>
 
-                    get breadcrumbs() {
-                        if (!this.currentPath) return [];
-                        return this.currentPath.split('/').map((part, i, arr) => ({
-                            name: part,
-                            path: arr.slice(0, i + 1).join('/'),
-                        }));
-                    },
-
-                    async openBrowser() {
-                        this.browserOpen = true;
-
-                        let startPath = '';
-
-                        if (this.lastBrowsedPath !== null) {
-                            startPath = this.lastBrowsedPath;
-                        } else if (this.selectedPath) {
-                            const lastSlash = this.selectedPath.lastIndexOf('/');
-                            if (lastSlash > 0) {
-                                // Navigate to the existing image's folder (full path).
-                                startPath = this.selectedPath.substring(0, lastSlash);
-                            }
-                        } else {
-                            startPath = this.root;
-                        }
-
-                        await this.browseDir(startPath);
-                    },
-
-                    async browseDir(path) {
-                        this.loading = true;
-                        const qs = new URLSearchParams();
-                        if (path) qs.set('path', path);
-                        qs.set('root', this.root);
-                        const res = await fetch(`{{ route('admin.products.images.browse') }}?${qs}`);
+            {{-- AI SEO Optimizer (SEO extension's endpoint; the button only
+                 renders for a saved post) --}}
+            <div class="v3-gap" x-data="{
+                loading: false,
+                suggestion: null,
+                error: null,
+                async optimize() {
+                    this.loading = true;
+                    this.error = null;
+                    this.suggestion = null;
+                    try {
+                        const res = await fetch('{{ route("admin.extensions.seo.optimize") }}', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                            body: JSON.stringify({ entity_type: 'blog_post', entity_id: {{ $post->id ?? 0 }} })
+                        });
                         const data = await res.json();
                         if (data.ok) {
-                            this.currentPath = data.path;
-                            this.parentPath = data.parent ?? '';
-                            this.folders = data.folders;
-                            this.files = data.files;
-                            this.lastBrowsedPath = data.path;
+                            this.suggestion = data.suggestion;
+                        } else {
+                            this.error = data.message || 'Failed to generate suggestion.';
                         }
-                        this.loading = false;
-                    },
+                    } catch (e) {
+                        this.error = 'Request failed. Check the Claude API key under Extensions, SEO, Settings.';
+                    }
+                    this.loading = false;
+                },
+                apply() {
+                    if (!this.suggestion) return;
+                    const s = this.suggestion;
+                    const mt = document.querySelector('[name=meta_title]');
+                    const md = document.querySelector('[name=meta_description]');
+                    if (mt && s.suggested_meta_title) mt.value = s.suggested_meta_title;
+                    if (md && s.suggested_meta_description) md.value = s.suggested_meta_description;
+                    this.suggestion = null;
+                }
+            }">
+                @if ($post ?? false)
+                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="optimize()" :disabled="loading">
+                        <span x-text="loading ? 'Optimizing…' : 'Optimize with AI'"></span>
+                    </button>
+                @endif
 
-                    selectFile(file) {
-                        this.selectedPath = file.path;
-                        this.browserOpen = false;
-                    },
-                };
-            }
-        </script>
-        @endpush
-    </x-admin.page>
-</x-admin.shell>
+                <p x-show="error" x-cloak class="v3-field__error v3-gap-sm" x-text="error"></p>
+
+                <div x-show="suggestion" x-cloak class="v3-well v3-gap">
+                    <template x-for="field in ['meta_title', 'meta_description', 'og_title', 'og_description']" :key="field">
+                        <div class="v3-gap-sm">
+                            <span class="v3-field__label" x-text="field.replace(/_/g, ' ')"></span>
+                            <div class="v3-grid v3-grid--2">
+                                <div>
+                                    <span class="v3-cell-quiet v3-block">Current</span>
+                                    <span x-text="suggestion?.['current_' + field] || '(empty)'"></span>
+                                </div>
+                                <div>
+                                    <span class="v3-tone-act v3-block">Suggested</span>
+                                    <span x-text="suggestion?.['suggested_' + field] || '(empty)'"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                    <div class="v3-gap v3-actrow">
+                        <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="apply(); touch()">Apply to form</button>
+                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="suggestion = null">Dismiss</button>
+                    </div>
+                </div>
+            </div>
+        </x-admin3.panel>
+    </x-admin3.form>
+
+    @push('scripts')
+    <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
+    <script>
+        tinymce.init({
+            selector: '#v3-post-content',
+            height: 600,
+            menubar: 'file edit view insert format table',
+            plugins: 'lists link autolink code table media image fullscreen',
+            toolbar: 'undo redo | blocks | bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright | link image media table | removeformat code fullscreen',
+            content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; } img { max-width: 100%; height: auto; }',
+            branding: false,
+            promotion: false,
+            license_key: 'gpl',
+            relative_urls: false,
+            remove_script_host: true,
+            image_advtab: true,
+            image_dimensions: true,
+            extended_valid_elements: 'iframe[src|width|height|name|align|frameborder|scrolling|allowfullscreen|allow|style|class]',
+            sandbox_iframes: false,
+            convert_unsafe_embeds: false,
+            media_live_embeds: true,
+            setup: function (editor) {
+                // The editor lives outside the form's input events; sync it
+                // back to the textarea and tell the save doctrine on every
+                // edit, so the save bar and leave guard see TinyMCE changes.
+                editor.on('input change undo redo', function () {
+                    editor.save();
+                    var form = document.getElementById('v3-post-form');
+                    if (form) form.dispatchEvent(new Event('input'));
+                });
+            },
+        });
+
+        function featuredImagePicker() {
+            return {
+                selectedPath: @json(old('featured_image', $post?->featured_image ?? '')),
+                browserOpen: false,
+                loading: false,
+                currentPath: '',
+                parentPath: '',
+                folders: [],
+                files: [],
+                lastBrowsedPath: null,
+                root: 'blog',
+
+                get previewUrl() {
+                    if (!this.selectedPath) return '';
+                    return '/storage/' + this.selectedPath.split('/').map(encodeURIComponent).join('/');
+                },
+
+                get breadcrumbs() {
+                    if (!this.currentPath) return [];
+                    return this.currentPath.split('/').map((part, i, arr) => ({
+                        name: part,
+                        path: arr.slice(0, i + 1).join('/'),
+                    }));
+                },
+
+                async openBrowser() {
+                    this.browserOpen = true;
+
+                    let startPath = '';
+
+                    if (this.lastBrowsedPath !== null) {
+                        startPath = this.lastBrowsedPath;
+                    } else if (this.selectedPath) {
+                        const lastSlash = this.selectedPath.lastIndexOf('/');
+                        if (lastSlash > 0) {
+                            // Navigate to the existing image's folder (full path).
+                            startPath = this.selectedPath.substring(0, lastSlash);
+                        }
+                    } else {
+                        startPath = this.root;
+                    }
+
+                    await this.browseDir(startPath);
+                },
+
+                async browseDir(path) {
+                    this.loading = true;
+                    const qs = new URLSearchParams();
+                    if (path) qs.set('path', path);
+                    qs.set('root', this.root);
+                    const res = await fetch(`{{ route('admin.products.images.browse') }}?${qs}`);
+                    const data = await res.json();
+                    if (data.ok) {
+                        this.currentPath = data.path;
+                        this.parentPath = data.parent ?? '';
+                        this.folders = data.folders;
+                        this.files = data.files;
+                        this.lastBrowsedPath = data.path;
+                    }
+                    this.loading = false;
+                },
+
+                selectFile(file) {
+                    this.selectedPath = file.path;
+                    this.browserOpen = false;
+                },
+            };
+        }
+    </script>
+    @endpush
+</x-admin3.shell>

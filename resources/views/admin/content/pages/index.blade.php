@@ -1,78 +1,80 @@
-<x-admin.shell title="Pages">
-    <x-admin.page title="Pages">
-        <x-slot:actions>
-            <x-admin.button variant="primary" href="{{ route('admin.pages.create') }}">
-                <x-admin.icon name="plus" class="w-4 h-4" /> New Page
-            </x-admin.button>
-        </x-slot:actions>
-
-        <div>
-            <x-admin.filters :action="route('admin.pages.index')">
-                <x-admin.field name="search" label="Search" class="v-field--grow">
-                    <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search pages..." />
-                </x-admin.field>
-                <x-admin.field name="status" label="Status" class="w-40">
-                    <x-admin.select name="status">
-                        <option value="">All statuses</option>
-                        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.button type="submit" variant="secondary">Filter</x-admin.button>
-                @if (request()->anyFilled(['search', 'status']))
-                    <a href="{{ route('admin.pages.index') }}" class="v-filters__reset">Clear</a>
-                @endif
-            </x-admin.filters>
-
-            <x-admin.table>
-                <x-slot:head>
-                    <x-admin.table.th>Title</x-admin.table.th>
-                    <x-admin.table.th>URL</x-admin.table.th>
-                    <x-admin.table.th align="right">Order</x-admin.table.th>
-                    <x-admin.table.th>Status</x-admin.table.th>
-                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                </x-slot:head>
-                @forelse ($pages as $page)
-                    <x-admin.table.row href="{{ route('admin.pages.edit', $page) }}">
-                        <x-admin.table.cell>
-                            <span class="text-[13px] font-medium text-v-text">{{ $page->title }}</span>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            <a href="/{{ $page->slug }}" target="_blank" class="v-sub">/{{ $page->slug }}</a>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>{{ $page->sort_order }}</x-admin.table.cell>
-                        <x-admin.table.cell>
-                            <x-admin.badge :tone="$page->is_active ? 'success' : 'neutral'">
-                                {{ $page->is_active ? 'Active' : 'Inactive' }}
-                            </x-admin.badge>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell class="v-col-act">
-                            <div class="v-rowactions v-rowactions--end">
-                                <x-admin.button size="sm" variant="ghost" :href="route('admin.pages.edit', $page)">Edit</x-admin.button>
-                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-page-{{ $page->id }}')">Delete</x-admin.button>
-                            </div>
-                        </x-admin.table.cell>
-                    </x-admin.table.row>
-                @empty
-                    <tr>
-                        <td colspan="5">
-                            <x-admin.empty-state title="No pages yet" :description="request()->anyFilled(['search', 'status']) ? 'Try adjusting your filters.' : null">
-                                <x-admin.button variant="primary" :href="route('admin.pages.create')">Create your first page</x-admin.button>
-                            </x-admin.empty-state>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($pages->hasPages())
-                    <x-slot:footer>
-                        {{ $pages->links() }}
-                    </x-slot:footer>
-                @endif
-            </x-admin.table>
+<x-admin3.shell title="Pages" active="content">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Pages</h1>
         </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.pages.create') }}" class="v3-btn v3-btn--primary">New page</a>
+        </div>
+    </div>
+
+    <div class="v3-settle">
+        <form method="GET" action="{{ route('admin.pages.index') }}" class="v3-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Title or slug…"
+                   aria-label="Search pages" class="v3-control v3-filterbar__grow">
+            <select name="status" aria-label="Filter by status" class="v3-control v3-w-name">
+                <option value="">All statuses</option>
+                <option value="active" @selected(request('status') === 'active')>Active</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+            </select>
+            <button type="submit" class="v3-btn v3-btn--secondary">Filter</button>
+            @if (request()->anyFilled(['search', 'status']))
+                <a href="{{ route('admin.pages.index') }}" class="v3-link">Clear</a>
+            @endif
+        </form>
+
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>URL</th>
+                            <th class="v3-cell-num">Order</th>
+                            <th>Status</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($pages as $page)
+                            <tr>
+                                <td><a href="{{ route('admin.pages.edit', $page) }}" class="v3-rowlink">{{ $page->title }}</a></td>
+                                <td><a href="/{{ $page->slug }}" target="_blank" class="v3-link v3-mono">/{{ $page->slug }}</a></td>
+                                <td class="v3-cell-num v3-mono">{{ $page->sort_order }}</td>
+                                <td>
+                                    <span class="v3-badge v3-badge--{{ $page->is_active ? 'good' : 'quiet' }}">
+                                        {{ $page->is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.pages.edit', $page) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'delete-page-{{ $page->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No pages yet</p>
+                                        <p class="v3-empty__line">{{ request()->anyFilled(['search', 'status']) ? 'Try adjusting the filters.' : 'Static storefront pages (about, terms, delivery) live here.' }}</p>
+                                        @unless (request()->anyFilled(['search', 'status']))
+                                            <a href="{{ route('admin.pages.create') }}" class="v3-btn v3-btn--primary v3-btn--sm">Create your first page</a>
+                                        @endunless
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.pager :paginator="$pages" />
 
         @foreach ($pages as $page)
-            <x-admin.confirm-dialog name="delete-page-{{ $page->id }}" title="Delete {{ $page->title }}?"
+            <x-admin3.confirm name="delete-page-{{ $page->id }}" title="Delete {{ $page->title }}?"
                 message="This cannot be undone." confirm="Delete" :action="route('admin.pages.destroy', $page)" method="DELETE" />
         @endforeach
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>

@@ -928,6 +928,19 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
     min-height: 200px;
 }
 
+.v3-imgpreview {
+    display: block;
+    max-width: 220px;
+    border-radius: 8px;
+    border: 1px solid var(--v3-line);
+}
+
+.v3-mediagrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
 .v3-crumbrow {
     display: inline-flex;
     align-items: center;

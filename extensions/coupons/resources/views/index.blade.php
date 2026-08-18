@@ -1,138 +1,121 @@
-<x-admin.shell title="Coupons">
-    <x-admin.page title="Coupons">
-        <x-slot:actions>
-            {{-- The extension switch lives on the Configure page
-                 (extensions/coupons/settings) with the standard save bar;
-                 this work page carries no lifecycle control. --}}
-            <x-admin.button variant="secondary" href="{{ route('admin.coupons.settings') }}">Settings</x-admin.button>
-            <x-admin.button variant="primary" href="{{ route('admin.coupons.create') }}">
-                <x-admin.icon name="plus" class="w-4 h-4" /> Add Coupon
-            </x-admin.button>
-        </x-slot:actions>
-
-        <div class="space-y-5">
-            {{-- Filters --}}
-            <x-admin.card>
-                <form method="GET" action="{{ route('admin.coupons.index') }}" class="flex flex-wrap items-end gap-3">
-                    <div class="v-field--grow">
-                        <x-admin.field name="search" label="Search">
-                            <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search code or name..." />
-                        </x-admin.field>
-                    </div>
-                    <div class="w-44">
-                        <x-admin.field name="type" label="Type">
-                            <x-admin.select name="type">
-                                <option value="">All Types</option>
-                                <option value="percent" {{ request('type') === 'percent' ? 'selected' : '' }}>Percent</option>
-                                <option value="fixed" {{ request('type') === 'fixed' ? 'selected' : '' }}>Fixed</option>
-                                <option value="free_shipping" {{ request('type') === 'free_shipping' ? 'selected' : '' }}>Free Shipping</option>
-                            </x-admin.select>
-                        </x-admin.field>
-                    </div>
-                    <div class="w-40">
-                        <x-admin.field name="status" label="Status">
-                            <x-admin.select name="status">
-                                <option value="">All Statuses</option>
-                                <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                                <option value="expired" {{ request('status') === 'expired' ? 'selected' : '' }}>Expired</option>
-                            </x-admin.select>
-                        </x-admin.field>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <x-admin.button type="submit" variant="primary">Filter</x-admin.button>
-                        @if (request()->anyFilled(['search', 'type', 'status']))
-                            <a href="{{ route('admin.coupons.index') }}" class="text-[13px] text-v-muted underline hover:text-v-text">Clear</a>
-                        @endif
-                    </div>
-                </form>
-            </x-admin.card>
-
-            {{-- Table --}}
-            <x-admin.table>
-                <x-slot:head>
-                    <x-admin.table.th>Code</x-admin.table.th>
-                    <x-admin.table.th>Name</x-admin.table.th>
-                    <x-admin.table.th>Type</x-admin.table.th>
-                    <x-admin.table.th align="right">Discount</x-admin.table.th>
-                    <x-admin.table.th>Usage</x-admin.table.th>
-                    <x-admin.table.th>Status</x-admin.table.th>
-                    <x-admin.table.th>Dates</x-admin.table.th>
-                    <x-admin.table.th align="right">Actions</x-admin.table.th>
-                </x-slot:head>
-                @forelse ($coupons as $coupon)
-                    <x-admin.table.row href="{{ route('admin.coupons.edit', $coupon) }}">
-                        <x-admin.table.cell mono><span class="font-medium text-v-text">{{ $coupon->code }}</span></x-admin.table.cell>
-                        <x-admin.table.cell>{{ $coupon->name }}</x-admin.table.cell>
-                        <x-admin.table.cell>
-                            @if ($coupon->type === 'percent')
-                                <x-admin.badge tone="info">Percent</x-admin.badge>
-                            @elseif ($coupon->type === 'fixed')
-                                <x-admin.badge tone="warning">Fixed</x-admin.badge>
-                            @else
-                                <x-admin.badge tone="success">Free Shipping</x-admin.badge>
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>
-                            @if ($coupon->type === 'percent')
-                                {{ rtrim(rtrim(number_format($coupon->discount_value, 2), '0'), '.') }}%
-                            @elseif ($coupon->type === 'fixed')
-                                {{ number_format($coupon->discount_value, 2) }}
-                            @else
-                                -
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            {{ $coupon->times_used }}{{ $coupon->usage_limit ? ' / ' . $coupon->usage_limit : '' }}
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            @if ($coupon->is_expired)
-                                <x-admin.badge tone="danger">Expired</x-admin.badge>
-                            @elseif ($coupon->is_active)
-                                <x-admin.badge tone="success">Active</x-admin.badge>
-                            @else
-                                <x-admin.badge tone="neutral">Inactive</x-admin.badge>
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            @if ($coupon->date_start || $coupon->date_end)
-                                <span class="text-v-secondary">
-                                    {{ $coupon->date_start?->format('M d, Y') ?? 'Any' }}
-                                    <x-admin.icon name="arrow-right" class="inline w-3 h-3 align-[-1px]" />
-                                    {{ $coupon->date_end?->format('M d, Y') ?? 'No end' }}
-                                </span>
-                            @else
-                                <span class="text-v-muted">No dates</span>
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell align="right">
-                            <div class="flex items-center justify-end gap-3">
-                                <a href="{{ route('admin.coupons.edit', $coupon) }}" class="text-[13px] text-v-accent hover:opacity-80">Edit</a>
-                                <button type="button" class="text-[13px] text-v-danger hover:opacity-80" @click="$dispatch('open-modal', 'delete-coupon-{{ $coupon->id }}')">Delete</button>
-                            </div>
-                        </x-admin.table.cell>
-                    </x-admin.table.row>
-                @empty
-                    <tr>
-                        <td colspan="8" class="px-4 py-2">
-                            <x-admin.empty-state icon="coupons" title="No coupons found" :description="request()->anyFilled(['search', 'type', 'status']) ? 'Try adjusting your filters.' : null">
-                                <a href="{{ route('admin.coupons.create') }}" class="text-[13px] text-v-accent hover:underline">Create your first coupon</a>
-                            </x-admin.empty-state>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($coupons->hasPages())
-                    <x-slot:footer>
-                        {{ $coupons->links() }}
-                    </x-slot:footer>
-                @endif
-            </x-admin.table>
+<x-admin3.shell title="Coupons">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.extensions.order-totals') }}">Order Totals</a>
+                <span aria-hidden="true">/</span>
+                <span>Coupons</span>
+            </div>
+            <h1 class="v3-head__title">Coupons</h1>
         </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.coupons.settings') }}" class="v3-btn v3-btn--secondary">Settings</a>
+            <a href="{{ route('admin.coupons.create') }}" class="v3-btn v3-btn--primary">Add coupon</a>
+        </div>
+    </div>
+
+    <div class="v3-settle">
+        <form method="GET" action="{{ route('admin.coupons.index') }}" class="v3-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Code or name…"
+                   aria-label="Search coupons" class="v3-control v3-filterbar__grow">
+            <select name="type" aria-label="Filter by type" class="v3-control v3-w-name">
+                <option value="">All types</option>
+                <option value="percent" @selected(request('type') === 'percent')>Percent</option>
+                <option value="fixed" @selected(request('type') === 'fixed')>Fixed</option>
+                <option value="free_shipping" @selected(request('type') === 'free_shipping')>Free shipping</option>
+            </select>
+            <select name="status" aria-label="Filter by status" class="v3-control v3-w-name">
+                <option value="">All statuses</option>
+                <option value="active" @selected(request('status') === 'active')>Active</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+                <option value="expired" @selected(request('status') === 'expired')>Expired</option>
+            </select>
+            <button type="submit" class="v3-btn v3-btn--secondary">Filter</button>
+            @if (request()->anyFilled(['search', 'type', 'status']))
+                <a href="{{ route('admin.coupons.index') }}" class="v3-link">Clear</a>
+            @endif
+        </form>
+
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th class="v3-cell-num">Discount</th>
+                            <th class="v3-cell-num">Usage</th>
+                            <th>Status</th>
+                            <th>Dates</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($coupons as $coupon)
+                            <tr>
+                                <td><a href="{{ route('admin.coupons.edit', $coupon) }}" class="v3-rowlink v3-mono">{{ $coupon->code }}</a></td>
+                                <td>{{ $coupon->name }}</td>
+                                <td>
+                                    <span class="v3-badge v3-badge--{{ ['percent' => 'info', 'fixed' => 'info', 'free_shipping' => 'good'][$coupon->type] ?? 'quiet' }}">
+                                        {{ ['percent' => 'Percent', 'fixed' => 'Fixed', 'free_shipping' => 'Free shipping'][$coupon->type] ?? $coupon->type }}
+                                    </span>
+                                </td>
+                                <td class="v3-cell-num v3-mono">
+                                    @if ($coupon->type === 'percent'){{ rtrim(rtrim(number_format($coupon->discount_value, 2), '0'), '.') }}%
+                                    @elseif ($coupon->type === 'fixed'){{ number_format($coupon->discount_value, 2) }}
+                                    @else -
+                                    @endif
+                                </td>
+                                <td class="v3-cell-num v3-mono">{{ $coupon->times_used }}@if ($coupon->usage_limit) / {{ $coupon->usage_limit }}@endif</td>
+                                <td>
+                                    @if ($coupon->is_expired)
+                                        <span class="v3-badge v3-badge--quiet">Expired</span>
+                                    @elseif ($coupon->is_active)
+                                        <span class="v3-badge v3-badge--good">Active</span>
+                                    @else
+                                        <span class="v3-badge v3-badge--warn">Inactive</span>
+                                    @endif
+                                </td>
+                                <td class="v3-cell-quiet">
+                                    @if ($coupon->date_start || $coupon->date_end)
+                                        {{ $coupon->date_start?->format('M d, Y') ?? 'Any' }} to {{ $coupon->date_end?->format('M d, Y') ?? 'any' }}
+                                    @else
+                                        Always
+                                    @endif
+                                </td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.coupons.edit', $coupon) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'delete-coupon-{{ $coupon->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No coupons found</p>
+                                        <p class="v3-empty__line">{{ request()->anyFilled(['search', 'type', 'status']) ? 'Try adjusting the filters.' : 'Discount codes customers apply at checkout live here.' }}</p>
+                                        @unless (request()->anyFilled(['search', 'type', 'status']))
+                                            <a href="{{ route('admin.coupons.create') }}" class="v3-btn v3-btn--primary v3-btn--sm">Create your first coupon</a>
+                                        @endunless
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.pager :paginator="$coupons" />
 
         @foreach ($coupons as $coupon)
-            <x-admin.confirm-dialog name="delete-coupon-{{ $coupon->id }}" title="Delete “{{ $coupon->code }}”?"
-                message="This coupon will no longer be usable at checkout. This cannot be undone."
+            <x-admin3.confirm name="delete-coupon-{{ $coupon->id }}" title="Delete {{ $coupon->code }}?"
+                message="This permanently removes the coupon and its usage history. This cannot be undone."
                 confirm="Delete" :action="route('admin.coupons.destroy', $coupon)" method="DELETE" />
         @endforeach
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>
