@@ -97,8 +97,6 @@
    snav vocabulary with buttons; the grid is local because those pages
    live in the plain shell, not a space. */
 button.v-snav__item { border: 0; background: none; width: 100%; text-align: left; cursor: pointer; font: inherit; }
-.v-modgrid { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start; }
-.v-modgrid > .v-snav { position: sticky; top: 18px; padding: 6px; background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-lg); box-shadow: var(--v-lift); }
 @media (max-width: 1023px) {
     .v-settings__body { grid-template-columns: minmax(0, 1fr); }
     .v-snav { display: none; }

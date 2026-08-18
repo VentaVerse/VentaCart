@@ -362,6 +362,9 @@ Still v2, waiting for its own wave: the reviews pages (Sales area).
 
 - Payments: directory rows with enable toggles and restriction
   summaries; per-method pages tab Configuration / Availability.
+  Owner ruling 2026-08-18: a side nav earns its column only when
+  sections are many (Theme, the settings space); two or three
+  sections take the v-tabs bar.
   Enable toggles submit through hidden sibling forms (the
   form="" attribute idiom) so they never nest inside the doctrine
   form. The availability rule is a record-scoped editor whose
