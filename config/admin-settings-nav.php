@@ -33,7 +33,7 @@ return [
         'label' => 'System',
         'items' => [
             ['key' => 'users', 'line' => 'Admin accounts.', 'label' => 'Users', 'icon' => 'customers', 'route' => 'admin.users.index', 'section' => null],
-            ['key' => 'permissions', 'line' => 'Role-based access.', 'label' => 'Permissions', 'icon' => 'shield', 'route' => 'admin.permissions.index', 'section' => null],
+            ['key' => 'user-groups', 'line' => 'Groups and their permissions.', 'label' => 'User Groups', 'icon' => 'shield', 'route' => 'admin.user-groups.index', 'section' => null],
             ['key' => 'security', 'line' => 'Admin URL and login protection.', 'label' => 'Security', 'icon' => 'lock', 'route' => 'admin.settings.section', 'section' => 'security'],
             ['key' => 'automations', 'line' => 'Scheduled jobs and run-now.', 'label' => 'Automations', 'icon' => 'clock', 'route' => 'admin.settings.section', 'section' => 'automations'],
         ],

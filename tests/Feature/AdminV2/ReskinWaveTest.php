@@ -821,7 +821,8 @@ class ReskinWaveTest extends TestCase
             route('admin.users.index'),
             route('admin.users.create'),
             route('admin.users.edit', $editableUser),
-            route('admin.permissions.index'),
+            route('admin.user-groups.index'),
+            route('admin.user-groups.create'),
             route('admin.email-templates.index'),
             route('admin.email-templates.edit', $template),
         ];
@@ -831,37 +832,62 @@ class ReskinWaveTest extends TestCase
         }
     }
 
-    public function test_permissions_matrix_round_trip_syncs_role_permissions(): void
+    public function test_user_group_crud_round_trip_owns_its_permission_config(): void
     {
         $this->actingAs(User::factory()->create());
-
-        $managerRole = Role::create(['name' => 'Store Manager', 'slug' => 'store-manager']);
-        $supportRole = Role::create(['name' => 'Support', 'slug' => 'support']);
 
         $viewOrders = Permission::create(['name' => 'View Orders', 'slug' => 'orders.view', 'group' => 'orders']);
         $editOrders = Permission::create(['name' => 'Edit Orders', 'slug' => 'orders.edit', 'group' => 'orders']);
         $viewProducts = Permission::create(['name' => 'View Products', 'slug' => 'products.view', 'group' => 'products']);
 
-        // Support role starts with an assignment that the round-trip below must clear
-        // (sync() replaces the full set, matching RolePermissionController::update).
-        $supportRole->permissions()->attach($viewProducts->id);
+        // Create: the group arrives with its own permission set and a
+        // generated slug.
+        $this->post(route('admin.user-groups.store'), [
+            'name' => 'Support',
+            'description' => 'Order desk',
+            'permissions' => [$viewOrders->id, $viewProducts->id],
+        ])->assertRedirect(route('admin.user-groups.index'));
 
-        $this->post(route('admin.permissions.update'), [
-            'permissions' => [
-                $managerRole->id => [$viewOrders->id, $editOrders->id],
-                $supportRole->id => [$viewOrders->id],
-            ],
-        ])->assertRedirect();
+        $support = Role::where('slug', 'support')->firstOrFail();
+        $this->assertEquals(2, $support->permissions()->count());
 
-        $this->assertDatabaseHas('role_permission', ['role_id' => $managerRole->id, 'permission_id' => $viewOrders->id]);
-        $this->assertDatabaseHas('role_permission', ['role_id' => $managerRole->id, 'permission_id' => $editOrders->id]);
-        $this->assertDatabaseHas('role_permission', ['role_id' => $supportRole->id, 'permission_id' => $viewOrders->id]);
+        // Update replaces the full set: the unsubmitted product grant drops.
+        $this->put(route('admin.user-groups.update', $support), [
+            'name' => 'Support',
+            'permissions' => [$viewOrders->id, $editOrders->id],
+        ])->assertRedirect(route('admin.user-groups.index'));
 
-        // Support's prior product-view grant was dropped since it wasn't resubmitted.
-        $this->assertDatabaseMissing('role_permission', ['role_id' => $supportRole->id, 'permission_id' => $viewProducts->id]);
+        $this->assertDatabaseHas('role_permission', ['role_id' => $support->id, 'permission_id' => $editOrders->id]);
+        $this->assertDatabaseMissing('role_permission', ['role_id' => $support->id, 'permission_id' => $viewProducts->id]);
 
-        $this->assertEquals(2, $managerRole->permissions()->count());
-        $this->assertEquals(1, $supportRole->permissions()->count());
+        // A rename keeps the slug anchor stable.
+        $this->put(route('admin.user-groups.update', $support), [
+            'name' => 'Order Desk',
+            'permissions' => [$viewOrders->id],
+        ]);
+        $this->assertEquals('support', $support->fresh()->slug);
+
+        // Super Admin can never be stripped: a save with no permissions
+        // still holds the full set afterward.
+        $superAdmin = Role::create(['name' => 'Super Admin', 'slug' => 'super-admin']);
+        $this->put(route('admin.user-groups.update', $superAdmin), [
+            'name' => 'Super Admin',
+            'permissions' => [],
+        ])->assertRedirect(route('admin.user-groups.index'));
+        $this->assertEquals(Permission::count(), $superAdmin->permissions()->count());
+
+        // Delete guards: never Super Admin, never a group that still has
+        // users; an empty group goes.
+        $this->delete(route('admin.user-groups.destroy', $superAdmin))->assertRedirect();
+        $this->assertDatabaseHas('roles', ['id' => $superAdmin->id]);
+
+        $staffed = Role::create(['name' => 'Staffed', 'slug' => 'staffed']);
+        User::factory()->create(['role_id' => $staffed->id]);
+        $this->delete(route('admin.user-groups.destroy', $staffed))->assertRedirect();
+        $this->assertDatabaseHas('roles', ['id' => $staffed->id]);
+
+        $this->delete(route('admin.user-groups.destroy', $support))->assertRedirect(route('admin.user-groups.index'));
+        $this->assertDatabaseMissing('roles', ['id' => $support->id]);
     }
 
     public function test_spokes_wave2_pages_render_in_new_shell(): void
@@ -1238,7 +1264,7 @@ class ReskinWaveTest extends TestCase
 
         // The two settings screens outside the section controller, one a
         // table and one a column of fields: same column either way.
-        $this->get(route('admin.permissions.index'))
+        $this->get(route('admin.user-groups.index'))
             ->assertOk()
             ->assertDontSee('v-workspace__main--narrow', false);
 

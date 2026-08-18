@@ -29,7 +29,7 @@ return [
         'label' => 'Access & system',
         'items' => [
             ['key' => 'users', 'label' => 'Users', 'description' => 'Admin accounts.', 'icon' => 'customers', 'route' => 'admin.users.index', 'section' => null, 'permission' => null, 'keywords' => ['admins', 'accounts', 'password']],
-            ['key' => 'permissions', 'label' => 'Permissions', 'description' => 'Role-based access control.', 'icon' => 'groups', 'route' => 'admin.permissions.index', 'section' => null, 'permission' => null, 'keywords' => ['roles', 'access', 'rbac']],
+            ['key' => 'user-groups', 'label' => 'User Groups', 'description' => 'Groups and their permissions.', 'icon' => 'groups', 'route' => 'admin.user-groups.index', 'section' => null, 'permission' => null, 'keywords' => ['roles', 'access', 'rbac', 'permissions']],
             ['key' => 'security', 'label' => 'Security', 'description' => 'Admin URL prefix and Turnstile protection.', 'icon' => 'check', 'route' => 'admin.settings.section', 'section' => 'security', 'permission' => null, 'keywords' => ['turnstile', 'captcha', 'admin prefix', 'login']],
             // key equals the URL's modules/{key} segment ({p}/settings/modules/seo/settings),
             // not the display label — see App\Support\Breadcrumbs.

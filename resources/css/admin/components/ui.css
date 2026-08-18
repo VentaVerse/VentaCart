@@ -643,6 +643,28 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 .v-picklist__scroll { max-height: 200px; overflow-y: auto; padding: 6px 10px; }
 .v-picklist__item { display: flex; width: 100%; padding: 3px 0; }
 
+/* --- Permission blocks (user group form) ----------------------- */
+
+.v-permgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px 22px;
+}
+.v-permblock {
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-md);
+    padding: 10px 14px 12px;
+}
+.v-permblock__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+.v-permblock__marks { display: inline-flex; gap: 10px; font-size: 12px; }
+.v-permblock__acts { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+
 /* --- Checklist (short bounded pick) ---------------------------- */
 
 .v-checklist {

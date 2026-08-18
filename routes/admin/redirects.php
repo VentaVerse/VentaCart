@@ -233,7 +233,10 @@ Route::get('extensions/seo/{type}', function (string $type) {
 adminLegacyRedirect('users', 'admin.users.index');
 adminLegacyRedirect('users/create', 'admin.users.create');
 adminLegacyRedirect('users/{user}/edit', 'admin.users.edit');
-adminLegacyRedirect('permissions', 'admin.permissions.index');
+// The Permissions matrix page became the User Groups CRUD (each group
+// carries its own permission config), so both spellings land there.
+adminLegacyRedirect('permissions', 'admin.user-groups.index');
+adminLegacyRedirect('settings/permissions', 'admin.user-groups.index');
 
 // Settings — Localization
 adminLegacyRedirect('localization', 'admin.localization.index');

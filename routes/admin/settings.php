@@ -6,13 +6,13 @@ use App\Http\Controllers\Admin\Settings\CurrencyController;
 use App\Http\Controllers\Admin\Settings\EmailTemplateController;
 use App\Http\Controllers\Admin\Settings\LocalizationController;
 use App\Http\Controllers\Admin\Settings\OrderStatusController;
-use App\Http\Controllers\Admin\Settings\RolePermissionController;
 use App\Http\Controllers\Admin\Settings\SettingController;
 use App\Http\Controllers\Admin\Settings\SettingsHubController;
 use App\Http\Controllers\Admin\Settings\SettingsSectionController;
 use App\Http\Controllers\Admin\Settings\ShippingCourierController;
 use App\Http\Controllers\Admin\Settings\StoreIdentityController;
 use App\Http\Controllers\Admin\Settings\UserController;
+use App\Http\Controllers\Admin\Settings\UserGroupController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('settings')->group(function () {
@@ -94,9 +94,9 @@ Route::prefix('settings')->group(function () {
     // Users
     Route::resource('users', UserController::class)->except(['show']);
 
-    // Role Permissions
-    Route::get('/permissions', [RolePermissionController::class, 'index'])->name('permissions.index');
-    Route::post('/permissions', [RolePermissionController::class, 'update'])->name('permissions.update');
+    // User Groups (OpenCart-style: each group carries its own
+    // permission config; replaced the all-groups Permissions matrix)
+    Route::resource('user-groups', UserGroupController::class)->except(['show']);
 
     // Theme editor moved to the theme extension
     // (extensions/theme/routes/web.php). Site currencies stay core —

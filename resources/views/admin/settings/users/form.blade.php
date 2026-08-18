@@ -29,9 +29,9 @@
                 </x-admin.field>
             </div>
             <div class="v-gap">
-                <x-admin.field name="role_id" label="Role" required>
+                <x-admin.field name="role_id" label="User group" required>
                     <select name="role_id" required class="v-control">
-                        <option value="">Select role…</option>
+                        <option value="">Select group…</option>
                         @foreach ($roles as $role)
                             <option value="{{ $role->id }}" @selected(old('role_id', $user->role_id ?? '') == $role->id)>{{ $role->name }}</option>
                         @endforeach

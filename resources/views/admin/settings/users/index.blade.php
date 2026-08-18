@@ -20,7 +20,7 @@
                             <th>Name</th>
                             <th>Username</th>
                             <th>Email</th>
-                            <th>Role</th>
+                            <th>Group</th>
                             <th>Status</th>
                             <th>Created</th>
                             <th class="v-cell-act"><span class="v-sr">Actions</span></th>
@@ -39,7 +39,7 @@
                                     @if ($user->role)
                                         <span class="v-badge {{ $user->role->slug === 'super-admin' ? 'v-badge--bad' : 'v-badge--quiet' }}">{{ $user->role->name }}</span>
                                     @else
-                                        <span class="v-badge v-badge--quiet">No role</span>
+                                        <span class="v-badge v-badge--quiet">No group</span>
                                     @endif
                                 </td>
                                 <td>
