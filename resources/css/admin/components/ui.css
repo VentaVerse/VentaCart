@@ -1500,6 +1500,22 @@ button.v-choicecard:hover { border-color: var(--v-act); background: var(--v-hove
 }
 .v-choicenote { margin: 0 0 10px; font-size: 13px; color: var(--v-warn); }
 
+/* Product variation: the fact that separates two otherwise identical
+   rows on a picking list. Brass, the tone the order editor already
+   gives this same field, and bordered so it reads as a discrete value
+   rather than a clause in the muted line beside it. Natural case, not
+   the factchip's uppercase: these carry real words ("Cable Length:
+   15 Ft") that shouting would only make harder to read. */
+.v-variant {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: var(--v-r-sm);
+    background: var(--v-act-wash);
+    border: 1px solid var(--v-act-edge);
+    font-size: 11.5px; font-weight: 600; line-height: 1.55;
+    color: var(--v-act);
+}
+
 /* Quiet fact chip: how the parcel was arranged, not a system state */
 .v-factchip {
     display: inline-block; margin-block: 2px; padding: 1px 6px;

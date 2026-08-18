@@ -610,7 +610,7 @@
                                 <td>
                                     @if ($item)
                                         @php($itemImage = $item->image ?? $item->product?->image)
-                                        <span class="v-namerow">
+                                        <span class="v-namerow v-fulfilitem">
                                             @if ($itemImage)
                                                 <img src="{{ storage_url($itemImage) }}" alt="" class="v-thumb">
                                             @else
@@ -619,9 +619,13 @@
                                             <span>
                                                 {{ $item->name ?: 'Unnamed product' }}
                                                 @if (trim((string) $item->sku) !== '' || trim((string) $item->variant_label) !== '')
-                                                    <span class="v-cell-quiet v-block">
-                                                        @if (trim((string) $item->sku) !== ''){{ $item->sku }}@endif
-                                                        @if (trim((string) $item->variant_label) !== '') &middot; {{ $item->variant_label }}@endif
+                                                    <span class="v-fulfilitem__meta">
+                                                        @if (trim((string) $item->variant_label) !== '')
+                                                            <span class="v-variant">{{ $item->variant_label }}</span>
+                                                        @endif
+                                                        @if (trim((string) $item->sku) !== '')
+                                                            <span class="v-cell-quiet v-mono">{{ $item->sku }}</span>
+                                                        @endif
                                                     </span>
                                                 @endif
                                             </span>

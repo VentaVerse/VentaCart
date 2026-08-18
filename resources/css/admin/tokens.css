@@ -438,6 +438,7 @@
     --v-act-fill-2: #A9762F;   /* its hover */
     --v-act-ink:    #241703;   /* text on a brass fill */
     --v-act-wash:   rgba(192, 135, 58, .10);
+    --v-act-edge:   rgba(192, 135, 58, .38);  /* the wash's own rule */
 
     /* --- Slab (the ERP cousinship) ---------------------------- */
     --v-slab:       #1B3D5F;
@@ -501,6 +502,7 @@
 
     --v-act:      #D9A45C;    /* brass word on dark; 6.5:1 */
     --v-act-wash: rgba(192, 135, 58, .14);
+    --v-act-edge: rgba(217, 164, 90, .42);
 
     --v-slab:     #10273C;
     --v-slab-2:   #17324C;

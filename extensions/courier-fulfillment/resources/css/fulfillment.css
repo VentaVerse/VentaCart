@@ -9,6 +9,22 @@
 .v-w-courier { width: 170px; }
 .v-w-status  { width: 170px; }
 
+/* The picking row is read against the parcel on the bench, not against
+   a catalogue: the packer is matching a physical thing to a screen, so
+   the item's image is larger here than in any list where the name does
+   the identifying. Scoped to this module rather than raised into
+   .v-thumb, which nine other pages size by their own needs. */
+.v-fulfilitem { gap: 12px; }
+.v-fulfilitem .v-thumb { width: 56px; height: 56px; }
+.v-fulfilitem .v-thumb--blank svg { width: 24px; height: 24px; }
+/* Variation first, then the identifier: on a picking list the variation
+   is what tells two identical-looking rows apart, and the SKU is what
+   you check once you have already found it. */
+.v-fulfilitem__meta {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 4px 8px; margin-top: 4px;
+}
+
 /* The booking sheet holds two different shapes and needs two widths.
    The courier step lays its options out as columns (up to four wide);
    the chosen courier's form is a column of fields and reads worse
