@@ -137,7 +137,7 @@ class Product extends Model
 
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class);
+        return $this->hasMany(\Extensions\Reviews\Models\Review::class);
     }
 
     public function seoSuggestions(): HasMany
@@ -152,16 +152,16 @@ class Product extends Model
 
     public function approvedReviews(): HasMany
     {
-        return $this->hasMany(Review::class)->where('status', 'approved')->latest('published_at');
+        return $this->hasMany(\Extensions\Reviews\Models\Review::class)->where('status', 'approved')->latest('published_at');
     }
 
     public function averageRating(): float
     {
-        return (float) $this->approvedReviews()->avg('rating');
+        return \App\Support\Reviews::enabled() ? (float) $this->approvedReviews()->avg('rating') : 0.0;
     }
 
     public function reviewCount(): int
     {
-        return $this->approvedReviews()->count();
+        return \App\Support\Reviews::enabled() ? $this->approvedReviews()->count() : 0;
     }
 }

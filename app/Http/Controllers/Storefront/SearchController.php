@@ -48,8 +48,11 @@ class SearchController extends Controller
         }
 
         $products = $products->with(['images', 'specials', 'brand'])
-            ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
-            ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
+            ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
+
+                ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+
+                ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]))
             ->paginate(12)->withQueryString();
 
         return view('search.results', compact('products', 'query', 'sort'));

@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Http\Controllers\Storefront;
+namespace Extensions\Reviews\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\Review;
-use App\Models\ReviewImage;
+use Extensions\Reviews\Models\Review;
+use Extensions\Reviews\Models\ReviewImage;
 use Illuminate\Http\Request;
 
-class ReviewController extends Controller
+class StorefrontReviewController extends Controller
 {
     public function show(string $token)
     {

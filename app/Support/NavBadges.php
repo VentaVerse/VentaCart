@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\Review;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -27,7 +26,9 @@ class NavBadges
             $badges = [];
 
             if (Route::has('admin.reviews.index') && Schema::hasTable('reviews')) {
-                $badges['admin.reviews.index'] = Review::where('status', 'pending')->count();
+                if (class_exists(\Extensions\Reviews\Models\Review::class)) {
+                    $badges['admin.reviews.index'] = \Extensions\Reviews\Models\Review::where('status', 'pending')->count();
+                }
             }
 
             // The fulfillment queue's To Ship tally (to pack + to handover),

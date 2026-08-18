@@ -36,8 +36,11 @@ class BrandController extends Controller
         $query = Product::where('is_active', true)
             ->where('brand_id', $brand->id)
             ->with(['images', 'specials', 'brand'])
-            ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
-            ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]);
+            ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
+
+                ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+
+                ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]));
 
         // Filters
         if ($request->filled('min_price')) {

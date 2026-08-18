@@ -10,7 +10,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductSpecial;
 use App\Models\ProductVariant;
-use App\Models\Review;
+use Extensions\Reviews\Models\Review;
 use Extensions\Seo\Models\SeoSuggestion;
 use App\Models\Setting;
 use Extensions\StockAlerts\Models\StockNotification;

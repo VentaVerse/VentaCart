@@ -9,7 +9,6 @@ use App\Models\Currency;
 use App\Models\CustomerActivity;
 use App\Models\Order;
 use App\Models\Product;
-use App\Models\Review;
 use App\Models\Setting;
 use App\Support\AdminNav;
 use App\Support\Inventory;
@@ -715,11 +714,16 @@ class DashboardController extends Controller
      */
     private function standingLines(int $cartsRecoverable, Carbon $now): array
     {
-        $pendingReviews = Review::pending()->count();
+        // Reviews live in their extension; without it there is no queue
+        // to report.
+        $reviewsAlive = \Illuminate\Support\Facades\Route::has('admin.reviews.index')
+            && class_exists(\Extensions\Reviews\Models\Review::class);
+
+        $pendingReviews = $reviewsAlive ? \Extensions\Reviews\Models\Review::pending()->count() : 0;
 
         $reviewDetail = null;
-        if ($pendingReviews > 0) {
-            $newest = Review::pending()->latest('id')->with('product:id,name')->first();
+        if ($reviewsAlive && $pendingReviews > 0) {
+            $newest = \Extensions\Reviews\Models\Review::pending()->latest('id')->with('product:id,name')->first();
             $reviewDetail = $newest?->product ? 'Newest is for ' . $newest->product->name : null;
         }
 
@@ -731,14 +735,16 @@ class DashboardController extends Controller
             $cartDetail = $idleAt ? 'Newest went idle ' . Carbon::parse($idleAt)->diffForHumans() : null;
         }
 
-        $lines = [
-            [
+        $lines = [];
+
+        if ($reviewsAlive) {
+            $lines[] = [
                 'label'  => 'Reviews awaiting approval',
                 'count'  => $pendingReviews,
                 'detail' => $reviewDetail,
                 'url'    => route('admin.reviews.index'),
-            ],
-        ];
+            ];
+        }
 
         if (Route::has('admin.extensions.seo.review')) {
             $lines[] = [

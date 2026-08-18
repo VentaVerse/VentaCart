@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Console\Commands;
+namespace Extensions\Reviews\Console;
 
 use App\Models\EmailTemplate;
 use App\Models\Order;
 use App\Models\OrderHistory;
-use App\Models\Review;
+use Extensions\Reviews\Models\Review;
 use App\Models\Setting;
 use App\Services\TemplateMailService;
 use Illuminate\Console\Command;

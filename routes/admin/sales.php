@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Admin\Sales\OrderController;
-use App\Http\Controllers\Admin\Sales\ReviewController as AdminReviewController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('sales')->group(function () {
@@ -19,10 +18,6 @@ Route::prefix('sales')->group(function () {
     // Abandoned Carts moved to the abandoned-carts extension
     // (extensions/abandoned-carts/routes/web.php).
 
-    // Reviews
-    Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
-    Route::get('/reviews/{review}', [AdminReviewController::class, 'show'])->name('reviews.show');
-    Route::post('/reviews/{review}/approve', [AdminReviewController::class, 'approve'])->name('reviews.approve');
-    Route::post('/reviews/{review}/reject', [AdminReviewController::class, 'reject'])->name('reviews.reject');
-    Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
+    // Reviews moved to the reviews extension
+    // (extensions/reviews/routes/web.php).
 });

@@ -720,9 +720,11 @@ class DaySheetTest extends TestCase
     {
         $this->actingAs($this->admin());
         $this->tradedBefore();
-        // "Carts recoverable" appears only while the abandoned-carts
-        // extension is installed (wave 1 conversion).
+        // "Carts recoverable" and "Reviews awaiting approval" appear only
+        // while their extensions are installed (waves 1 and 3).
         app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
+        app(\App\Services\ExtensionManager::class)->install('reviews');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
@@ -744,8 +746,11 @@ class DaySheetTest extends TestCase
         $this->actingAs($this->admin());
         $this->tradedBefore();
 
+        app(\App\Services\ExtensionManager::class)->install('reviews');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+
         $pedal = Product::create(['store_id' => 1, 'name' => 'Overdrive Pedal', 'slug' => 'overdrive-pedal', 'price' => 250]);
-        \App\Models\Review::create([
+        \Extensions\Reviews\Models\Review::create([
             'product_id' => $pedal->id, 'token' => 'review-token', 'name' => 'A Buyer', 'email' => 'buyer@example.com',
             'rating' => 5, 'body' => 'Great pedal', 'status' => 'pending',
         ]);

@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace Extensions\Reviews\Http\Controllers;
 
 use App\Exceptions\RemoteImageFetchException;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
-use App\Models\Review;
-use App\Models\ReviewImage;
+use Extensions\Reviews\Models\Review;
+use Extensions\Reviews\Models\ReviewImage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +15,8 @@ use Illuminate\Support\Str;
 
 class ErpReviewController extends Controller
 {
-    use FetchesRemoteImages;
-    use LogsApiCalls;
+    use \App\Http\Controllers\Api\FetchesRemoteImages;
+    use \App\Http\Controllers\Api\LogsApiCalls;
 
     public function store(Request $request): JsonResponse
     {

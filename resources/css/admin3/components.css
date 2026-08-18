@@ -370,6 +370,7 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-table .v3-control { min-height: 32px; }
 .v3-cell-act { text-align: right; white-space: nowrap; }
 .v3-cell-act .v3-btn { vertical-align: middle; }
+.v3-cell-act form { display: inline-block; }
 .v3-cell-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .v3-row-dim { opacity: .6; }
 .v3-badgebtn { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
@@ -1344,3 +1345,7 @@ nav.v3-pager {
 .v3-pager__steps { display: flex; gap: 8px; }
 .v3-pager [aria-disabled="true"] { opacity: .55; pointer-events: none; }
 .v3-modal { white-space: normal; }
+
+/* --- Reviews (extension) --------------------------------------- */
+.v3-stars { letter-spacing: 2px; font-size: 13px; color: var(--v3-line); white-space: nowrap; }
+.v3-stars__on { color: #d97706; }

@@ -4,7 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Product;
 use App\Models\ProductImage;
-use App\Models\Review;
+use Extensions\Reviews\Models\Review;
 use App\Models\Setting;
 use App\Models\Store;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -30,7 +30,6 @@ return [
         'segment' => 'sales',
         'items' => [
             ['key' => 'orders', 'label' => 'Orders', 'route' => 'admin.orders.index', 'icon' => 'orders', 'permission' => null, 'keywords' => ['sales', 'invoices']],
-            ['key' => 'reviews', 'label' => 'Reviews', 'route' => 'admin.reviews.index', 'icon' => 'reviews', 'permission' => null, 'keywords' => ['ratings', 'stars']],
         ],
     ],
     [

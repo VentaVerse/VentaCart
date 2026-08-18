@@ -31,7 +31,7 @@ use App\Models\OrderStatus;
 use App\Models\Page;
 use App\Models\Permission;
 use App\Models\Product;
-use App\Models\Review;
+use Extensions\Reviews\Models\Review;
 use App\Models\Role;
 use Extensions\Seo\Models\SeoSuggestion;
 use App\Models\ShippingCourier;
@@ -230,6 +230,7 @@ class ReskinWaveTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
+        app(\App\Services\ExtensionManager::class)->install('reviews');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail']);
@@ -974,6 +975,7 @@ class ReskinWaveTest extends TestCase
     public function test_dashboard_renders_in_new_shell(): void
     {
         app(\App\Services\ExtensionManager::class)->install('seo');
+        app(\App\Services\ExtensionManager::class)->install('reviews');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 

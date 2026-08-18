@@ -24,8 +24,11 @@ class ProductController extends Controller
             'specials',
             'variantTypes.values',
             'variants',
-            'approvedReviews.images',
         ]);
+
+        if (\App\Support\Reviews::enabled()) {
+            $product->load('approvedReviews.images');
+        }
 
         // Increment views
         $product->increment('views');
@@ -82,8 +85,11 @@ class ProductController extends Controller
                 ->where('id', '!=', $product->id)
                 ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
                 ->with('images', 'specials')
-                ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
-                ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
+                ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
+
+                    ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+
+                    ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]))
                 ->inRandomOrder()
                 ->limit(8)
                 ->get();
@@ -94,8 +100,11 @@ class ProductController extends Controller
                 ->where('id', '!=', $product->id)
                 ->where('brand_id', $product->brand_id)
                 ->with('images', 'specials')
-                ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
-                ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')])
+                ->when(\App\Support\Reviews::enabled(), fn ($rq) => $rq
+
+                    ->withAvg(['reviews as reviews_avg_rating' => fn($q) => $q->where('status', 'approved')], 'rating')
+
+                    ->withCount(['reviews as reviews_count' => fn($q) => $q->where('status', 'approved')]))
                 ->inRandomOrder()
                 ->limit(8)
                 ->get();
@@ -169,8 +178,9 @@ class ProductController extends Controller
             }
         }
 
-        // Review data
-        $approvedReviews = $product->approvedReviews;
+        // Review data (empty without the reviews extension: no stars,
+        // no review section, no error)
+        $approvedReviews = \App\Support\Reviews::enabled() ? $product->approvedReviews : collect();
         $averageRating = $approvedReviews->avg('rating') ?: 0;
         $reviewCount = $approvedReviews->count();
 

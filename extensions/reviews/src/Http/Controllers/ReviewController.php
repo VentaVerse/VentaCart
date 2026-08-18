@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Sales;
+namespace Extensions\Reviews\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\OrderStatus;
-use App\Models\Review;
-use App\Models\ReviewCoupon;
+use Extensions\Reviews\Models\Review;
+use Extensions\Reviews\Models\ReviewCoupon;
 use App\Models\Setting;
 use App\Services\TemplateMailService;
 use Illuminate\Http\Request;
@@ -55,13 +55,13 @@ class ReviewController extends Controller
         $customerGroups = \App\Models\CustomerGroup::orderBy('name')->get();
         $reviewEmailTemplates = \App\Models\EmailTemplate::where('slug', 'like', 'review%')->orWhere('type', 'customer')->get();
 
-        return view('admin.sales.reviews.index', compact('reviews', 'tab', 'search', 'counts', 'settings', 'orderStatuses', 'customerGroups', 'reviewEmailTemplates'));
+        return view('reviews::index', compact('reviews', 'tab', 'search', 'counts', 'settings', 'orderStatuses', 'customerGroups', 'reviewEmailTemplates'));
     }
 
     public function show(Review $review)
     {
         $review->load(['product.images', 'images', 'coupon']);
-        return view('admin.sales.reviews.show', compact('review'));
+        return view('reviews::show', compact('review'));
     }
 
     public function approve(Review $review)

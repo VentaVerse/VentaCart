@@ -1,7 +1,10 @@
 <?php
 
-namespace App\Models;
+namespace Extensions\Reviews\Models;
 
+use App\Models\Customer;
+use App\Models\Order;
+use App\Models\Product;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

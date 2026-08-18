@@ -18,7 +18,6 @@ use App\Http\Controllers\Storefront\AddressLookupController as StorefrontAddress
 use App\Http\Controllers\Storefront\DeepAddressLookupController;
 use App\Http\Controllers\Storefront\BrandController as StorefrontBrandController;
 use App\Http\Controllers\Storefront\RecentlyViewedController;
-use App\Http\Controllers\Storefront\ReviewController as StorefrontReviewController;
 use Illuminate\Support\Facades\Route;
 
 // Storefront
@@ -35,9 +34,8 @@ Route::get('/product/{product:slug}', [StorefrontProductController::class, 'show
 Route::get('/blog', [StorefrontBlogController::class, 'index'])->name('blog.index');
 Route::get('/blog/{post:slug}', [StorefrontBlogController::class, 'show'])->name('blog.show');
 
-// Reviews (public — accessed via token link)
-Route::get('/review/{token}', [StorefrontReviewController::class, 'show'])->name('review.submit');
-Route::post('/review/{token}', [StorefrontReviewController::class, 'store'])->name('review.store');
+// Review submission moved to the reviews extension
+// (extensions/reviews/routes/web.php).
 
 // Cart
 Route::get('/cart', [StorefrontCartController::class, 'index'])->middleware('noindex')->name('cart.index');
