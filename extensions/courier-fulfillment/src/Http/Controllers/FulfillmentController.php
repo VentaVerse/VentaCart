@@ -275,6 +275,19 @@ class FulfillmentController extends Controller
             ->values()
             ->all();
 
+        $pickupAddresses = PickupAddress::query()
+            ->orderByDesc('is_default')
+            ->orderBy('label')
+            ->get()
+            ->map(fn (PickupAddress $a) => [
+                'id'        => $a->id,
+                'label'     => $a->label,
+                'summary'   => $a->summary(),
+                'isDefault' => $a->is_default,
+            ])
+            ->values()
+            ->all();
+
         return view('courier-fulfillment::index', [
             'orders' => $orders,
             'couriers' => $couriers,
@@ -298,23 +311,19 @@ class FulfillmentController extends Controller
                 ->orderBy('sort_order')
                 ->get(['id', 'name']),
             'manualDefaultStatusId' => FulfillmentService::bookedStatus()?->id,
-            // Booking-time origin choice. A store with one address never sees
-            // a picker (the default is the only answer); with several, step 2
-            // offers them with the default pre-selected. Courier-agnostic:
-            // both adapters resolve the same way through
-            // PickupAddress::resolveFor().
-            'pickupAddresses' => PickupAddress::query()
-                ->orderByDesc('is_default')
-                ->orderBy('label')
-                ->get()
-                ->map(fn (PickupAddress $a) => [
-                    'id'        => $a->id,
-                    'label'     => $a->label,
-                    'summary'   => $a->summary(),
-                    'isDefault' => $a->is_default,
-                ])
-                ->values()
-                ->all(),
+            // Booking-time origin choice (owner ruling 2026-08-19): step 2
+            // ALWAYS names where the parcel leaves from, for every courier
+            // and however many addresses the store keeps. "Which address did
+            // the courier collect from" is the one booking fact an operator
+            // cannot recover from the waybill afterwards, so it is stated and
+            // chosen rather than resolved silently. Courier-agnostic: both
+            // adapters resolve the same way through
+            // PickupAddress::resolveFor(), which still falls back to the
+            // default for an absent or unknown id.
+            'pickupAddresses' => $pickupAddresses,
+            // Ordered is_default first, so the head of the list is what the
+            // server would have picked on its own.
+            'defaultPickupId' => $pickupAddresses[0]['id'] ?? null,
         ]);
     }
 

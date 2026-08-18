@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\AdminV2;
 
+use App\Models\Country;
 use App\Models\Order;
 use App\Models\OrderProduct;
 use App\Models\OrderStatus;
@@ -13,6 +14,7 @@ use App\Services\ExtensionManager;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\Couriers\Spx\SpxClient;
 use Extensions\CourierFulfillment\Jobs\ProcessCourierWebhookJob;
+use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\StatusMapper;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
@@ -947,6 +949,50 @@ class FulfillmentTest extends TestCase
             ->assertStatus(409)
             ->assertJsonPath('code', 'courier_unavailable');
         Http::assertNothingSent();
+    }
+
+    /**
+     * Owner ruling 2026-08-19: step 2 always names where the parcel leaves
+     * from, for every courier, even when the store keeps a single pickup
+     * address (it used to render only with two or more, so most stores
+     * never saw it). The option carries the address NAME; its street lines
+     * confirm underneath, driven by the pickupSummary getter.
+     */
+    public function test_the_booking_form_always_offers_the_pickup_address_by_name(): void
+    {
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        $this->actingAs(User::factory()->create());
+
+        $country = Country::firstOrCreate(
+            ['iso2' => 'PH'],
+            ['iso3' => 'PHL', 'name' => 'Philippines', 'phone_code' => '63', 'is_active' => true]
+        );
+        // ONE address on file: the case that used to render no picker.
+        PickupAddress::create([
+            'label' => 'Main warehouse',
+            'contact_name' => 'Warehouse Team',
+            'contact_phone' => '09171112222',
+            'address_1' => '456 Warehouse Ave',
+            'barangay' => 'Bel-Air',
+            'city' => 'Makati',
+            'state' => 'Metro Manila',
+            'postcode' => '1200',
+            'country_id' => $country->id,
+            'is_default' => true,
+        ]);
+
+        $this->makeBookableOrder();
+
+        $this->get($this->queueUrl())
+            ->assertOk()
+            ->assertSee('pickup_address_id', false)
+            ->assertSee('Ships from')
+            // The option is the name alone, not name-plus-address.
+            ->assertSee('>Main warehouse</option>', false)
+            // The street lines travel to Alpine for the line beneath.
+            ->assertSee('pickupSummary', false)
+            ->assertSee('456 Warehouse Ave', false);
     }
 
     public function test_erp_book_endpoint_is_idempotent_on_repeat_calls(): void

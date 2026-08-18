@@ -1202,21 +1202,39 @@
                                             </select>
                                         </x-admin.field>
 
-                                        {{-- Origin choice, courier-agnostic. Rendered ONLY when the
-                                             store keeps more than one pickup address: with one there
-                                             is no choice to make, and an absent field means "the
-                                             default" to PickupAddress::resolveFor() on the server.
-                                             @if, not x-if: whether a picker exists at all is a
-                                             property of the store, known at render time, not of the
-                                             courier chosen in step 1. --}}
-                                        @if (count($pickupAddresses ?? []) > 1)
+                                        {{-- Origin choice, courier-agnostic and always present
+                                             (owner ruling 2026-08-19): every courier's step 2
+                                             names where the parcel leaves from, even when the
+                                             store keeps a single address, because the operator
+                                             is committing to a collection point and should see
+                                             which one rather than trust a silent default.
+                                             The option carries the address's NAME; its street
+                                             lines confirm underneath, so the list stays
+                                             scannable and the choice stays checkable.
+                                             @if, not x-if: whether the store has any address at
+                                             all is known at render time, not per courier. --}}
+                                        @if (count($pickupAddresses ?? []) > 0)
                                             <x-admin.field name="pickup_address_id" label="Ships from" required>
-                                                <select name="pickup_address_id" class="v-control">
+                                                <select name="pickup_address_id" x-model="pickupId" class="v-control">
                                                     @foreach ($pickupAddresses as $pickup)
-                                                        <option value="{{ $pickup['id'] }}" @selected($pickup['isDefault'])>{{ $pickup['label'] }} - {{ $pickup['summary'] }}</option>
+                                                        <option value="{{ $pickup['id'] }}">{{ $pickup['label'] }}</option>
                                                     @endforeach
                                                 </select>
                                             </x-admin.field>
+                                            {{-- Outside the field: x-admin.field wraps its slot in
+                                                 the <label>, and a summary that changes with the
+                                                 selection would keep rewriting the accessible name
+                                                 of the control it describes. --}}
+                                            <p class="v-subnote v-cell-quiet" x-text="pickupSummary"></p>
+                                        @else
+                                            {{-- Nothing to collect from. The booking would fall
+                                                 through to a null default and be refused by the
+                                                 courier, so say so here where it can be fixed. --}}
+                                            <div class="v-well">
+                                                No pickup address on file.
+                                                <a class="v-link" href="{{ route('admin.fulfillment.pickup-addresses.index') }}">Add one</a>
+                                                so couriers know where to collect.
+                                            </div>
                                         @endif
 
                                         {{-- Task T4: SPX-only step-2 additions — rendered at all
@@ -1389,6 +1407,12 @@
                 // says why.
                 checkedCouriers: @js($checkedCourierNames),
                 options: @js($courierOptions),
+                // The store's collection points, and which one the server
+                // would choose unaided. Held here so step 2 can confirm the
+                // chosen address's street lines beneath the name.
+                pickups: @js($pickupAddresses),
+                defaultPickupId: @js($defaultPickupId),
+                pickupId: @js($defaultPickupId),
                 // Same tone -> badge map the rows render server-side, for
                 // the drawer's Alpine-driven terminal phase badge.
                 toneClasses: {
@@ -1400,6 +1424,12 @@
                 },
                 urlBase: '{{ url(config('admin.prefix', 'admin') . '/sales/fulfillment') }}',
                 get current() { return this.options[this.courier] ?? {name:'',services:[],parcels:[],payments:[]}; },
+                // The chosen origin's street lines. Compared as strings:
+                // a select's value is always one, the ids are integers.
+                get pickupSummary() {
+                    const p = this.pickups.find(x => String(x.id) === String(this.pickupId));
+                    return p ? p.summary : '';
+                },
                 get bookAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/book'; },
                 get manualAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/book-manual'; },
                 get trackAction() { return this.urlBase + '/' + (this.active ? this.active.id : '') + '/track'; },
@@ -1512,6 +1542,9 @@
                     this.manual = false;
                     this.step = 1;
                     this.bookOpen = true;
+                    // Each booking starts from the store's default origin,
+                    // never from whatever the previous order was sent from.
+                    this.pickupId = this.defaultPickupId;
                     this.resetSpxState();
                     this.loadServiceability();
                 },
