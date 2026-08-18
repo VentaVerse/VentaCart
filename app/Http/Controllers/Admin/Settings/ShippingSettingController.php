@@ -82,11 +82,15 @@ class ShippingSettingController extends Controller
         }
 
         $customerGroups = \App\Models\CustomerGroup::orderBy('name')->get(['id', 'name']);
+        // Guests resolve to the default group (CustomerGroup::effectiveId,
+        // OpenCart parity), so the tester offers only real groups with
+        // Default preselected — no phantom "no group" choice.
+        $defaultGroupId = \App\Models\CustomerGroup::defaultId();
         $addressProviders = app(\App\Services\AddressProviderRegistry::class)->toFrontendManifest();
 
         return view('admin.settings.shipping.index', compact(
             'chain', 'countries', 'defaultCountryId', 'noMethodEnabled',
-            'customerGroups', 'addressProviders'
+            'customerGroups', 'defaultGroupId', 'addressProviders'
         ));
     }
 

@@ -124,11 +124,12 @@
                             <input type="text" name="postcode" class="v3-control v3-mono"
                                    value="{{ old('postcode', $rateTest['input']['postcode'] ?? '') }}">
                         </x-admin3.field>
+                        {{-- Guests ARE the default group (effectiveId), so
+                             only real groups are offered, Default first. --}}
                         <x-admin3.field name="customer_group_id" label="Customer group">
                             <select name="customer_group_id" class="v3-control">
-                                <option value="">Guest / no group</option>
                                 @foreach ($customerGroups as $group)
-                                    <option value="{{ $group->id }}" @selected(old('customer_group_id', $rateTest['input']['customer_group_id'] ?? null) == $group->id)>{{ $group->name }}</option>
+                                    <option value="{{ $group->id }}" @selected(old('customer_group_id', $rateTest['input']['customer_group_id'] ?? $defaultGroupId) == $group->id)>{{ $group->name }}</option>
                                 @endforeach
                             </select>
                         </x-admin3.field>
