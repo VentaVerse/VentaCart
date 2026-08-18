@@ -1,8 +1,8 @@
-<x-admin3.settings-shell :title="$rule ? $rule->name : 'Add free shipping rule'" active="shipping">
+<x-admin3.shell :title="$rule ? $rule->name : 'Add free shipping rule'">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
-                <a href="{{ route('admin.shipping-settings.index') }}">Shipping</a>
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.free-shipping-rules.index') }}">Free Shipping</a>
                 <span aria-hidden="true">/</span>

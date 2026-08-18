@@ -1,8 +1,8 @@
-<x-admin3.settings-shell :title="'Edit ' . $bankAccount->bank_name" active="payments">
+<x-admin3.shell :title="'Edit ' . $bankAccount->bank_name">
     <div class="v3-head">
         <div class="v3-head__body">
             <div class="v3-head__trail">
-                <a href="{{ route('admin.payment-settings.index') }}">Payments</a>
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.payment-settings.show', 'bank_transfer') }}">Bank Transfer</a>
                 <span aria-hidden="true">/</span>
