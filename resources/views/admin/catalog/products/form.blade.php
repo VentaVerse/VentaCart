@@ -64,7 +64,7 @@
                                         <input type="hidden" name="brand_id" :value="selectedId">
                                         <span x-show="open && results.length > 0" x-cloak class="v-combo__menu">
                                             <template x-for="item in results" :key="item.id">
-                                                <button type="button" class="v-combo__opt" @click="select(item)" x-text="item.name"></button>
+                                                <button type="button" class="v-combo__opt" @click="select(item); touch()" x-text="item.name"></button>
                                             </template>
                                         </span>
                                         <span x-show="open && search.length > 0 && results.length === 0 && !loading" x-cloak class="v-combo__menu">
@@ -74,7 +74,7 @@
                                 </label>
                                 <span x-show="selectedName" class="v-actrow v-gap-sm">
                                     <span class="v-tone-act" x-text="selectedName"></span>
-                                    <button type="button" @click="clear()" class="v-row__x" :aria-label="'Clear ' + selectedName"><x-admin.icon name="x" /></button>
+                                    <button type="button" @click="clear(); touch()" class="v-row__x" :aria-label="'Clear ' + selectedName"><x-admin.icon name="x" /></button>
                                 </span>
                                 @error('brand_id') <span class="v-field__error">{{ $message }}</span> @enderror
                             </div>

@@ -39,10 +39,33 @@ export function registerV(Alpine) {
                 e.returnValue = '';
             };
             window.addEventListener('beforeunload', this._unload);
+
+            // Pickers write hidden inputs through :value bindings, which
+            // fire no input event; a picker whose author forgot touch()
+            // shipped a silent save bar more than once (the product
+            // form's brand search was the latest). The observer makes
+            // the doctrine notice every serialized mutation itself:
+            // attribute writes on the fields and rows added or removed
+            // by x-for. Coalesced to one check per frame.
+            this._mo = new MutationObserver(() => {
+                if (this._moQueued) return;
+                this._moQueued = true;
+                requestAnimationFrame(() => {
+                    this._moQueued = false;
+                    this.check();
+                });
+            });
+            this._mo.observe(formEl, {
+                subtree: true,
+                childList: true,
+                attributes: true,
+                attributeFilter: ['value'],
+            });
         },
 
         destroy() {
             window.removeEventListener('beforeunload', this._unload);
+            this._mo?.disconnect();
         },
 
         snapshot() {
