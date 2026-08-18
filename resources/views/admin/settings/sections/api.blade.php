@@ -4,6 +4,9 @@
             <h1 class="v3-head__title">API & Sync</h1>
             <p class="v3-head__standing">The token the ERP pushes with, and what gets logged when it does.</p>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="erp-sync" />
+        </div>
     </div>
 
     <div class="v3-settle">

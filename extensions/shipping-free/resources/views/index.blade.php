@@ -10,6 +10,7 @@
             <p class="v3-head__standing">The first matching rule applies; the ones below it are not evaluated.</p>
         </div>
         <div class="v3-head__actions">
+            <x-admin3.extension-switch name="shipping-free" />
             <a href="{{ route('admin.free-shipping-rules.create') }}" class="v3-btn v3-btn--primary"><x-admin3.icon name="plus" /> Add rule</a>
         </div>
     </div>

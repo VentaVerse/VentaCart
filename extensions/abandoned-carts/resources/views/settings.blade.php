@@ -10,6 +10,9 @@
             </div>
             <h1 class="v3-head__title">Abandoned Carts</h1>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="abandoned-carts" />
+        </div>
     </div>
 
     @include('abandoned-carts::partials.config-tabs')

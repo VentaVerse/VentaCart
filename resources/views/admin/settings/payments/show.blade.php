@@ -8,6 +8,9 @@
             </div>
             <h1 class="v3-head__title">{{ $name }}</h1>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch :name="$extension" />
+        </div>
     </div>
 
     <div x-data="{ tab: @js(request('tab', 'config')),

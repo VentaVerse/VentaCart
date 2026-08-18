@@ -54,8 +54,9 @@ class PaymentsPageTest extends TestCase
         $page->assertDontSee('Manage');
         $page->assertDontSee('Restricted');
 
+        // Lands back on the page the click came from (session previous).
         $this->post(route('admin.extensions.disable', 'payment-cod'))
-            ->assertRedirect(route('admin.extensions.index'));
+            ->assertRedirect(route('admin.payment-settings.index'));
 
         $this->assertDatabaseHas('extensions', ['name' => 'payment-cod', 'enabled' => false]);
 

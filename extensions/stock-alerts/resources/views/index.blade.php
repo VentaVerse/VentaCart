@@ -9,6 +9,9 @@
             <h1 class="v3-head__title">Stock Alerts</h1>
             <p class="v3-head__standing">Who is waiting for what, and the email they get when it returns.</p>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="stock-alerts" />
+        </div>
     </div>
 
     <div class="v3-stats v3-settle">

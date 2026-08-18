@@ -9,6 +9,7 @@
             <h1 class="v3-head__title">Flat Rate</h1>
         </div>
         <div class="v3-head__actions">
+            <x-admin3.extension-switch name="shipping-flat-rate" />
             <a href="{{ route('admin.flat-rates.create') }}" class="v3-btn v3-btn--primary"><x-admin3.icon name="plus" /> Add flat rate</a>
         </div>
     </div>

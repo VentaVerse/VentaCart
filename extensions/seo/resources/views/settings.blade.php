@@ -8,6 +8,9 @@
         <div class="v3-head__body">
             <h1 class="v3-head__title">Engine settings</h1>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="seo" />
+        </div>
     </div>
 
     <div class="v3-settle">

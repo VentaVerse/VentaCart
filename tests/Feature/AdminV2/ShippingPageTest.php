@@ -162,8 +162,9 @@ class ShippingPageTest extends TestCase
         }
         $page->assertDontSee('v3-toggle', false);
 
+        // Lands back on the page the click came from (session previous).
         $this->post(route('admin.extensions.disable', 'shipping-flat-rate'))
-            ->assertRedirect(route('admin.extensions.index'));
+            ->assertRedirect(route('admin.shipping-settings.index'));
 
         $this->assertDatabaseHas('extensions', ['name' => 'shipping-flat-rate', 'enabled' => false]);
 

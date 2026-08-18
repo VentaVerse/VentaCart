@@ -1,6 +1,11 @@
 <x-admin.shell title="Blog Posts">
     <x-admin.page title="Blog Posts">
         <x-slot:actions>
+            <form method="POST" action="{{ route('admin.extensions.disable', 'blog') }}" class="inline">
+                @csrf
+                <input type="hidden" name="_redirect" value="{{ route('admin.extensions.index') }}">
+                <x-admin.toggle name="_extension_enabled" :checked="true" label="Enabled" onchange="this.form.submit()" />
+            </form>
             <x-admin.button variant="secondary" href="{{ route('admin.blog-categories.index') }}">Categories</x-admin.button>
             <x-admin.button variant="primary" href="{{ route('admin.blog.create') }}">
                 <x-admin.icon name="plus" class="w-4 h-4" /> New Post

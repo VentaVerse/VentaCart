@@ -59,6 +59,12 @@
 .v3-btn--danger { color: var(--v3-bad); }
 .v3-btn--danger:hover:not(:disabled) { background: var(--v3-bad-wash); }
 
+/* The positive lifecycle action: green so a scan of any listing finds
+   what is switched off by where the green sits. Red stays reserved for
+   the one destructive action (Uninstall), so its warning never dilutes. */
+.v3-btn--good { border-color: var(--v3-good); color: var(--v3-good); background: var(--v3-surface); }
+.v3-btn--good:hover:not(:disabled) { background: color-mix(in srgb, var(--v3-good) 10%, var(--v3-surface)); }
+
 .v3-btn--sm { min-height: 30px; padding: 0 11px; font-size: 12.5px; border-radius: var(--v3-r-sm); }
 
 /* --- Form ----------------------------------------------------- */

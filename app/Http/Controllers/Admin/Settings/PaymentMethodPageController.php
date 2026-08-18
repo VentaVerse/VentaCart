@@ -44,6 +44,7 @@ class PaymentMethodPageController extends Controller
         return view('admin.settings.payments.show', [
             'method' => $method,
             'configView' => $meta['extension'] . '::config',
+            'extension' => $meta['extension'],
             'name' => $name,
             'defaultName' => $meta['default_name'],
             'description' => $meta['description'],

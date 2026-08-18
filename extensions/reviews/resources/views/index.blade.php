@@ -3,6 +3,9 @@
         <div class="v3-head__body">
             <h1 class="v3-head__title">Reviews</h1>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="reviews" />
+        </div>
     </div>
 
     <div class="v3-tabs" role="tablist" aria-label="Reviews">

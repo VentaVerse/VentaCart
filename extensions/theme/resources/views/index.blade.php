@@ -9,6 +9,9 @@
             <h1 class="v3-head__title">Theme</h1>
             <p class="v3-head__standing">How the storefront looks. One save commits every settings tab below.</p>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="theme" />
+        </div>
     </div>
 
     {{-- Every installed look: apply, export, delete, plus save-as and

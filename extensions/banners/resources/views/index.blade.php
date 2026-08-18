@@ -9,6 +9,7 @@
             <h1 class="v3-head__title">Banners</h1>
         </div>
         <div class="v3-head__actions">
+            <x-admin3.extension-switch name="banners" />
             <a href="{{ route('admin.banners.create') }}" class="v3-btn v3-btn--primary">New group</a>
         </div>
     </div>

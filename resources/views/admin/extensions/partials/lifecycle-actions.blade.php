@@ -10,7 +10,7 @@
     @if (in_array('enable', $module['actions'], true))
         <form method="POST" action="{{ route('admin.extensions.enable', $module['name']) }}">
             @csrf
-            <button type="submit" class="v3-btn v3-btn--secondary v3-btn--sm">Enable</button>
+            <button type="submit" class="v3-btn v3-btn--good v3-btn--sm">Enable</button>
         </form>
     @endif
     @if (in_array('disable', $module['actions'], true))

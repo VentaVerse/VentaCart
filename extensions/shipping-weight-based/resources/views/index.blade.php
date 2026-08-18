@@ -10,6 +10,7 @@
             <p class="v3-head__standing">Methods priced by cart weight. One save commits every method below.</p>
         </div>
         <div class="v3-head__actions">
+            <x-admin3.extension-switch name="shipping-weight-based" />
             <a href="{{ route('admin.weight-based-methods.create') }}" class="v3-btn v3-btn--primary"><x-admin3.icon name="plus" /> Add method</a>
         </div>
     </div>

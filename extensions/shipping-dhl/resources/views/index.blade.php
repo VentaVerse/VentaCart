@@ -8,6 +8,9 @@
             </div>
             <h1 class="v3-head__title">DHL Express</h1>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="shipping-dhl" />
+        </div>
     </div>
 
     <x-admin3.form :action="route('admin.settings.update')" class="v3-settle">

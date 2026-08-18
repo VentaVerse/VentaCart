@@ -12,6 +12,9 @@
             </div>
             <h1 class="v3-head__title">Fulfillment</h1>
         </div>
+        <div class="v3-head__actions">
+            <x-admin3.extension-switch name="courier-fulfillment" />
+        </div>
     </div>
 
     <div class="v3-settle">

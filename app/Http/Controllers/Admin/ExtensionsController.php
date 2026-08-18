@@ -142,7 +142,17 @@ class ExtensionsController extends Controller
             $message .= ' The compiled route cache was stale and has been automatically cleared, so its routes are live immediately.';
         }
 
-        return redirect()->route('admin.extensions.index')->with('success', $message);
+        // Land back where the click happened (owner ruling: the buttons
+        // live on several listings and the action must not teleport).
+        // An explicit _redirect wins - the in-page switch sends one,
+        // because disabling from inside an extension's own page leaves
+        // no page to go back to. Internal URLs only.
+        $explicit = request()->input('_redirect');
+        if (is_string($explicit) && str_starts_with($explicit, url('/'))) {
+            return redirect($explicit)->with('success', $message);
+        }
+
+        return redirect()->back(302, [], route('admin.extensions.index'))->with('success', $message);
     }
 
 }

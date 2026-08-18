@@ -51,6 +51,34 @@ class ModulesPageTest extends TestCase
     }
 
     /**
+     * Lifecycle actions land back where the click happened (owner
+     * ruling): the referring listing wins, an explicit internal
+     * _redirect wins over that, an external _redirect is ignored, and
+     * no referer at all falls back to the directory.
+     */
+    public function test_lifecycle_returns_to_the_page_the_click_came_from(): void
+    {
+        $this->actingAs(User::factory()->create());
+        app(\App\Services\ExtensionManager::class)->install('stock-alerts');
+
+        $shipping = route('admin.shipping-settings.index');
+
+        $this->from($shipping)
+            ->post(route('admin.extensions.disable', 'stock-alerts'))
+            ->assertRedirect($shipping);
+
+        $this->post(route('admin.extensions.enable', 'stock-alerts'), [
+            '_redirect' => route('admin.extensions.modules'),
+        ])->assertRedirect(route('admin.extensions.modules'));
+
+        $refused = $this->post(route('admin.extensions.disable', 'stock-alerts'), [
+            '_redirect' => 'https://evil.example/phish',
+        ]);
+        $this->assertStringStartsWith(url('/'), $refused->headers->get('Location'));
+        $this->assertStringNotContainsString('evil.example', $refused->headers->get('Location'));
+    }
+
+    /**
      * The rundown carries each row's category (owner ruling 2026-08-18):
      * Fulfillment reads Shipping, the residual features read Modules.
      */
