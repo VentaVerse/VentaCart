@@ -1,66 +1,72 @@
-<x-admin.shell title="Tags">
-    <x-admin.page title="Tags">
-        <x-slot:actions>
-            <x-admin.button variant="primary" href="{{ route('admin.tags.create') }}">
-                <x-admin.icon name="plus" class="w-4 h-4" /> Add Tag
-            </x-admin.button>
-        </x-slot:actions>
-
-        <div>
-            <x-admin.filters :action="route('admin.tags.index')">
-                <x-admin.field name="search" label="Search" class="v-field--grow">
-                    <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search tags..." />
-                </x-admin.field>
-                <x-admin.button type="submit" variant="secondary">Search</x-admin.button>
-                @if (request('search'))
-                    <a href="{{ route('admin.tags.index') }}" class="v-filters__reset">Clear</a>
-                @endif
-            </x-admin.filters>
-
-            <x-admin.table>
-                <x-slot:head>
-                    <x-admin.table.th>Tag</x-admin.table.th>
-                    <x-admin.table.th>Slug</x-admin.table.th>
-                    <x-admin.table.th align="right">Products</x-admin.table.th>
-                    <x-admin.table.th align="right">Blog Posts</x-admin.table.th>
-                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                </x-slot:head>
-                @forelse ($tags as $tag)
-                    <x-admin.table.row href="{{ route('admin.tags.edit', $tag) }}">
-                        <x-admin.table.cell>
-                            <span class="text-[13px] font-medium text-v-text">{{ $tag->name }}</span>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell mono>{{ $tag->slug }}</x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>{{ $tag->products_count }}</x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>{{ $tag->blog_posts_count }}</x-admin.table.cell>
-                        <x-admin.table.cell class="v-col-act">
-                            <div class="v-rowactions v-rowactions--end">
-                                <x-admin.button size="sm" variant="ghost" :href="route('admin.tags.edit', $tag)">Edit</x-admin.button>
-                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-tag-{{ $tag->id }}')">Delete</x-admin.button>
-                            </div>
-                        </x-admin.table.cell>
-                    </x-admin.table.row>
-                @empty
-                    <tr>
-                        <td colspan="5">
-                            <x-admin.empty-state title="No tags yet" :description="request('search') ? 'Try adjusting your search.' : null">
-                                <x-admin.button variant="primary" :href="route('admin.tags.create')">Create one</x-admin.button>
-                            </x-admin.empty-state>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($tags->hasPages())
-                    <x-slot:footer>
-                        {{ $tags->links() }}
-                    </x-slot:footer>
-                @endif
-            </x-admin.table>
+<x-admin3.shell title="Tags" active="catalog">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Tags</h1>
         </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.tags.create') }}" class="v3-btn v3-btn--primary">Add tag</a>
+        </div>
+    </div>
+
+    <div class="v3-settle">
+        <form method="GET" action="{{ route('admin.tags.index') }}" class="v3-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Tag name…"
+                   aria-label="Search tags" class="v3-control v3-filterbar__grow">
+            <button type="submit" class="v3-btn v3-btn--secondary">Search</button>
+            @if (request('search'))
+                <a href="{{ route('admin.tags.index') }}" class="v3-link">Clear</a>
+            @endif
+        </form>
+
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Tag</th>
+                            <th>Slug</th>
+                            <th class="v3-cell-num">Products</th>
+                            <th class="v3-cell-num">Blog posts</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($tags as $tag)
+                            <tr>
+                                <td><a href="{{ route('admin.tags.edit', $tag) }}" class="v3-rowlink">{{ $tag->name }}</a></td>
+                                <td class="v3-mono v3-cell-quiet">{{ $tag->slug }}</td>
+                                <td class="v3-cell-num v3-mono">{{ $tag->products_count }}</td>
+                                <td class="v3-cell-num v3-mono">{{ $tag->blog_posts_count }}</td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.tags.edit', $tag) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'delete-tag-{{ $tag->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No tags yet</p>
+                                        <p class="v3-empty__line">{{ request('search') ? 'Try adjusting the search.' : 'Tags group products and blog posts across the catalog.' }}</p>
+                                        @unless (request('search'))
+                                            <a href="{{ route('admin.tags.create') }}" class="v3-btn v3-btn--primary v3-btn--sm">Create one</a>
+                                        @endunless
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.pager :paginator="$tags" />
 
         @foreach ($tags as $tag)
-            <x-admin.confirm-dialog name="delete-tag-{{ $tag->id }}" title="Delete {{ $tag->name }}?"
+            <x-admin3.confirm name="delete-tag-{{ $tag->id }}" title="Delete {{ $tag->name }}?"
                 message="This removes the tag from all products and blog posts. This cannot be undone."
                 confirm="Delete" :action="route('admin.tags.destroy', $tag)" method="DELETE" />
         @endforeach
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>

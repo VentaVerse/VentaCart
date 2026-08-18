@@ -1,135 +1,125 @@
-<x-admin.shell title="Products">
-    <x-admin.page title="Products">
-        <x-slot:actions>
-            <x-admin.button type="button" variant="primary" @click="$dispatch('open-product-modal')">
-                <x-admin.icon name="plus" class="w-4 h-4" /> Add Product
-            </x-admin.button>
-        </x-slot:actions>
-
-        <div>
-            <x-admin.filters :action="route('admin.products.index')">
-                <x-admin.field name="search" label="Search" class="v-field--grow">
-                    <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search name, SKU..." />
-                </x-admin.field>
-                <x-admin.field name="category_id" label="Category" class="w-52">
-                    <x-admin.select name="category_id">
-                        <option value="">All Categories</option>
-                        @foreach ($categories as $category)
-                            <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
-                        @endforeach
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.field name="status" label="Status" class="w-44">
-                    <x-admin.select name="status">
-                        <option value="">All Status</option>
-                        <option value="active" @selected(request('status') === 'active')>Active</option>
-                        <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.field name="stock" label="Stock" class="w-44">
-                    <x-admin.select name="stock">
-                        <option value="">All stock</option>
-                        <option value="low" @selected(request('stock') === 'low')>Low stock</option>
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.button type="submit" variant="secondary">Filter</x-admin.button>
-                @if (request('search') || request('category_id') || request('status') || request('stock'))
-                    <a href="{{ route('admin.products.index') }}" class="v-filters__reset">Clear</a>
-                @endif
-            </x-admin.filters>
-
-            {{-- Products --}}
-            <x-admin.table>
-                <x-slot:head>
-                    <x-admin.table.th>Product</x-admin.table.th>
-                    <x-admin.table.th>SKU</x-admin.table.th>
-                    <x-admin.table.th align="right">Price</x-admin.table.th>
-                    <x-admin.table.th align="right">Stock</x-admin.table.th>
-                    <x-admin.table.th>Status</x-admin.table.th>
-                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                </x-slot:head>
-                @forelse ($products as $product)
-                    <x-admin.table.row href="{{ route('admin.products.edit', $product) }}">
-                        <x-admin.table.cell>
-                            <div class="flex items-center gap-3">
-                                <div class="h-10 w-10 shrink-0 overflow-hidden rounded-v-md bg-v-sunken">
-                                    @if ($product->image)
-                                        <img class="h-10 w-10 object-cover" src="{{ storage_url($product->image) }}" alt="{{ $product->name }}">
-                                    @else
-                                        <div class="flex h-10 w-10 items-center justify-center text-v-muted">
-                                            <x-admin.icon name="media" class="w-5 h-5" />
-                                        </div>
-                                    @endif
-                                </div>
-                                <div class="min-w-0">
-                                    <div class="truncate font-medium text-v-text">{{ $product->name }}</div>
-                                    @if ($product->has_variants)
-                                        <div class="text-xs text-v-accent">{{ $product->variants->count() }} variants</div>
-                                    @endif
-                                </div>
-                            </div>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell mono>{{ $product->sku ?? '-' }}</x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>
-                            @if ($product->has_variants)
-                                @php
-                                    $minPrice = $product->variants->min('price');
-                                    $maxPrice = $product->variants->max('price');
-                                @endphp
-                                @if ($minPrice == $maxPrice)
-                                    {{ number_format($minPrice, 2) }}
-                                @else
-                                    {{ number_format($minPrice, 2) }} - {{ number_format($maxPrice, 2) }}
-                                @endif
-                            @else
-                                {{ number_format($product->price, 2) }}
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>
-                            @if ($product->has_variants)
-                                {{ $product->variants->sum('quantity') }}
-                            @else
-                                {{ $product->quantity }}
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>
-                            <x-admin.badge :tone="$product->is_active ? 'success' : 'neutral'">
-                                {{ $product->is_active ? 'Active' : 'Inactive' }}
-                            </x-admin.badge>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell class="v-col-act">
-                            <div class="v-rowactions v-rowactions--end">
-                                <x-admin.button size="sm" variant="ghost" :href="route('admin.products.edit', $product)">Edit</x-admin.button>
-                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-product-{{ $product->id }}')">Delete</x-admin.button>
-                            </div>
-                        </x-admin.table.cell>
-                    </x-admin.table.row>
-                @empty
-                    <tr>
-                        <td colspan="6">
-                            <x-admin.empty-state title="No products found"
-                                :description="(request('search') || request('category_id') || request('status') || request('stock')) ? 'Try adjusting your filters.' : null">
-                                <x-admin.button variant="primary" :href="route('admin.products.create')">Create your first product</x-admin.button>
-                            </x-admin.empty-state>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($products->hasPages())
-                    <x-slot:footer>
-                        {{ $products->links() }}
-                    </x-slot:footer>
-                @endif
-            </x-admin.table>
+<x-admin3.shell title="Products" active="catalog">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Products</h1>
         </div>
+        <div class="v3-head__actions">
+            <button type="button" class="v3-btn v3-btn--primary" @click="$dispatch('open-product-modal')">Add product</button>
+        </div>
+    </div>
+
+    <div class="v3-settle">
+        <form method="GET" action="{{ route('admin.products.index') }}" class="v3-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Name or SKU…"
+                   aria-label="Search products" class="v3-control v3-filterbar__grow">
+            <select name="category_id" aria-label="Filter by category" class="v3-control v3-w-name">
+                <option value="">All categories</option>
+                @foreach ($categories as $category)
+                    <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                @endforeach
+            </select>
+            <select name="status" aria-label="Filter by status" class="v3-control v3-w-name">
+                <option value="">All statuses</option>
+                <option value="active" @selected(request('status') === 'active')>Active</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+            </select>
+            <select name="stock" aria-label="Filter by stock" class="v3-control v3-w-name">
+                <option value="">All stock</option>
+                <option value="low" @selected(request('stock') === 'low')>Low stock</option>
+            </select>
+            <button type="submit" class="v3-btn v3-btn--secondary">Filter</button>
+            @if (request('search') || request('category_id') || request('status') || request('stock'))
+                <a href="{{ route('admin.products.index') }}" class="v3-link">Clear</a>
+            @endif
+        </form>
+
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>SKU</th>
+                            <th class="v3-cell-num">Price</th>
+                            <th class="v3-cell-num">Stock</th>
+                            <th>Status</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($products as $product)
+                            <tr>
+                                <td>
+                                    <span class="v3-actrow">
+                                        @if ($product->image)
+                                            <img class="v3-thumb" src="{{ storage_url($product->image) }}" alt="">
+                                        @else
+                                            <span class="v3-thumb v3-thumb--blank"><x-admin3.icon name="image" /></span>
+                                        @endif
+                                        <span>
+                                            <a href="{{ route('admin.products.edit', $product) }}" class="v3-rowlink">{{ $product->name }}</a>
+                                            @if ($product->has_variants)
+                                                <span class="v3-cell-quiet v3-block">{{ $product->variants->count() }} variants</span>
+                                            @endif
+                                        </span>
+                                    </span>
+                                </td>
+                                <td class="v3-mono v3-cell-quiet">{{ $product->sku ?? '-' }}</td>
+                                <td class="v3-cell-num v3-mono">
+                                    @if ($product->has_variants)
+                                        @php
+                                            $minPrice = $product->variants->min('price');
+                                            $maxPrice = $product->variants->max('price');
+                                        @endphp
+                                        @if ($minPrice == $maxPrice)
+                                            {{ number_format($minPrice, 2) }}
+                                        @else
+                                            {{ number_format($minPrice, 2) }} to {{ number_format($maxPrice, 2) }}
+                                        @endif
+                                    @else
+                                        {{ number_format($product->price, 2) }}
+                                    @endif
+                                </td>
+                                <td class="v3-cell-num v3-mono">{{ $product->has_variants ? $product->variants->sum('quantity') : $product->quantity }}</td>
+                                <td>
+                                    <span class="v3-badge v3-badge--{{ $product->is_active ? 'good' : 'quiet' }}">
+                                        {{ $product->is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.products.edit', $product) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'delete-product-{{ $product->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No products found</p>
+                                        <p class="v3-empty__line">{{ (request('search') || request('category_id') || request('status') || request('stock')) ? 'Try adjusting the filters.' : 'The catalog starts here.' }}</p>
+                                        @unless (request('search') || request('category_id') || request('status') || request('stock'))
+                                            <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="$dispatch('open-product-modal')">Create your first product</button>
+                                        @endunless
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.pager :paginator="$products" />
 
         @foreach ($products as $product)
-            <x-admin.confirm-dialog name="delete-product-{{ $product->id }}" title="Delete {{ $product->name }}?"
+            <x-admin3.confirm name="delete-product-{{ $product->id }}" title="Delete {{ $product->name }}?"
                 message="This permanently removes the product, its images, variants, and pricing. This cannot be undone."
                 confirm="Delete" :action="route('admin.products.destroy', $product)" method="DELETE" />
         @endforeach
 
-        {{-- Quick Create Product Modal --}}
-        <div x-data="{
+        {{-- Quick create: brand + name, then straight into the edit page. --}}
+        <div class="v3-passthru" x-data="{
                 open: false, name: '', brandId: '', brandSearch: '', brandResults: [], saving: false, error: '',
                 async searchBrands() {
                     if (this.brandSearch.length < 1) { this.brandResults = []; return; }
@@ -143,55 +133,49 @@
                 }
              }"
              @open-product-modal.window="open = true; name = ''; brandId = ''; brandSearch = ''; error = ''"
-             x-show="open" x-cloak x-transition.opacity
-             class="fixed inset-0 z-[90] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/50" @click="open = false"></div>
-            <div class="v-modal relative w-full max-w-md rounded-v-lg border border-v-border bg-v-surface p-6"
-                 @click.outside="open = false" @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-label="New Product">
-                <h3 class="mb-4 text-[15px] font-semibold text-v-text">New Product</h3>
-                <div class="space-y-4">
-                    <div class="v-field">
-                        <label for="quick-product-brand" class="v-field__label v-label">Brand</label>
-                        <div class="relative">
-                            <input type="text" id="quick-product-brand" x-model="brandSearch" @input.debounce.300ms="searchBrands()" @keydown.enter.prevent
-                                class="v-control h-[var(--control-h)] w-full rounded-v-md border border-v-border bg-v-surface px-3 text-[13px] text-v-text placeholder:text-v-muted"
-                                placeholder="Search brand...">
-                            <div x-show="brandResults.length > 0" x-cloak class="v-menu absolute z-10 mt-1 max-h-40 w-full overflow-y-auto rounded-v-md border border-v-border bg-v-surface">
-                                <template x-for="brand in brandResults" :key="brand.id">
-                                    <button type="button" @click="selectBrand(brand)" class="block w-full px-3 py-2 text-left text-[13px] text-v-text hover:bg-v-hover" x-text="brand.name"></button>
-                                </template>
-                            </div>
+             @keydown.escape.window="open = false">
+            <template x-if="open">
+                <div class="v3-overlay" @click.self="open = false">
+                    <div class="v3-modal" role="dialog" aria-modal="true" aria-label="New product">
+                        <h2 class="v3-modal__title">New product</h2>
+                        <label class="v3-field v3-gap-sm">
+                            <span class="v3-field__label">Brand</span>
+                            <span class="v3-combo">
+                                <input type="text" x-model="brandSearch" @input.debounce.300ms="searchBrands()" @keydown.enter.prevent
+                                       class="v3-control" aria-label="Search brand">
+                                <span x-show="brandResults.length > 0" x-cloak class="v3-combo__menu">
+                                    <template x-for="brand in brandResults" :key="brand.id">
+                                        <button type="button" class="v3-combo__opt" @click="selectBrand(brand)" x-text="brand.name"></button>
+                                    </template>
+                                </span>
+                            </span>
+                        </label>
+                        <label class="v3-field v3-gap-sm">
+                            <span class="v3-field__label">Product name</span>
+                            <input type="text" x-model="name" class="v3-control">
+                        </label>
+                        <p x-show="error" x-cloak x-text="error" class="v3-field__error"></p>
+                        <div class="v3-modal__acts">
+                            <button type="button" class="v3-btn v3-btn--ghost" @click="open = false">Cancel</button>
+                            <button type="button" class="v3-btn v3-btn--primary"
+                                :disabled="saving || !name.trim() || !brandId"
+                                @click="
+                                    saving = true; error = '';
+                                    fetch('{{ route('admin.products.quick-create') }}', {
+                                        method: 'POST',
+                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                        body: JSON.stringify({ name: name.trim(), brand_id: brandId })
+                                    }).then(function(r) { return r.json(); }).then(function(d) {
+                                        if (d.success) { window.location.href = d.redirect; }
+                                        else { error = d.message || 'Failed to create product.'; saving = false; }
+                                    }).catch(function() { error = 'Network error.'; saving = false; });
+                                ">
+                                <span x-text="saving ? 'Creating…' : 'Create and edit'"></span>
+                            </button>
                         </div>
-                        <p x-show="brandId" x-cloak class="v-field__hint">Selected: <span x-text="brandSearch"></span></p>
                     </div>
-                    <div class="v-field">
-                        <label for="quick-product-name" class="v-field__label v-label">Product Name</label>
-                        <input type="text" id="quick-product-name" x-model="name"
-                            class="v-control h-[var(--control-h)] w-full rounded-v-md border border-v-border bg-v-surface px-3 text-[13px] text-v-text placeholder:text-v-muted"
-                            placeholder="e.g. Boss DS-1 Distortion Pedal">
-                    </div>
-                    <p x-show="error" x-cloak x-text="error" class="v-field__error"></p>
                 </div>
-                <div class="mt-6 flex justify-end gap-2">
-                    <x-admin.button type="button" variant="secondary" @click="open = false">Cancel</x-admin.button>
-                    <x-admin.button type="button" variant="primary"
-                        x-bind:disabled="saving || !name.trim() || !brandId"
-                        @click="
-                            saving = true; error = '';
-                            fetch('{{ route('admin.products.quick-create') }}', {
-                                method: 'POST',
-                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                                body: JSON.stringify({ name: name.trim(), brand_id: brandId })
-                            }).then(function(r) { return r.json(); }).then(function(d) {
-                                if (d.success) { window.location.href = d.redirect; }
-                                else { error = d.message || 'Failed to create product.'; saving = false; }
-                            }).catch(function() { error = 'Network error.'; saving = false; });
-                        ">
-                        <span x-show="!saving">Create &amp; Edit</span>
-                        <span x-show="saving" x-cloak>Creating...</span>
-                    </x-admin.button>
-                </div>
-            </div>
+            </template>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>

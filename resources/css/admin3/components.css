@@ -616,6 +616,8 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-dragrow--bare { background: none; border: 0; margin: 0; padding: 10px 0; }
 .v3-dragrow__grip { width: 16px; height: 16px; color: var(--v3-ink-3); cursor: grab; flex-shrink: 0; }
 .v3-dragrow__end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.v3-dragnest { margin-left: 30px; }
+
 .v3-dragcard {
     background: var(--v3-sunken);
     border: 1px solid var(--v3-line);
@@ -928,6 +930,97 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
     min-height: 200px;
 }
 
+/* --- Product image cards (sortable grid, JS-rendered) ---------- */
+
+.v3-imgcard {
+    position: relative;
+    border-radius: var(--v3-r-md);
+    overflow: hidden;
+    background: var(--v3-surface);
+    border: 1px solid var(--v3-line);
+    box-shadow: var(--v3-lift);
+    cursor: grab;
+}
+.v3-imgcard__art { aspect-ratio: 1; }
+.v3-imgcard__art img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; display: block; }
+.v3-imgcard__badge {
+    position: absolute;
+    top: 6px; left: 6px;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--v3-font-mono);
+    border-radius: var(--v3-r-sm);
+    background: var(--v3-slab);
+    color: var(--v3-slab-on);
+}
+.v3-imgcard__badge--main { background: var(--v3-act-fill); color: var(--v3-act-ink); }
+.v3-imgcard__x {
+    position: absolute;
+    top: 6px; right: 6px;
+    opacity: 0;
+    transition: opacity var(--v3-fast);
+    background: var(--v3-surface);
+    border-radius: var(--v3-r-sm);
+    box-shadow: var(--v3-lift);
+}
+.v3-imgcard:hover .v3-imgcard__x,
+.v3-imgcard__x:focus-visible { opacity: 1; }
+.v3-imgcard__ph {
+    border-radius: var(--v3-r-md);
+    border: 2px dashed var(--v3-act-fill);
+    background: var(--v3-act-wash);
+    aspect-ratio: 1;
+}
+
+/* Modal tile states: added to the product / picked this visit */
+.v3-mediatile { position: relative; }
+.v3-mediatile.is-added { outline: 2px solid var(--v3-act-fill); background: var(--v3-act-wash); opacity: .65; cursor: default; }
+.v3-mediatile.is-picked { outline: 2px solid var(--v3-good); background: var(--v3-good-wash); }
+.v3-tilemark {
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 20px; height: 20px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    box-shadow: var(--v3-lift);
+    background: var(--v3-act-fill);
+    color: var(--v3-act-ink);
+}
+.v3-tilemark--picked { background: var(--v3-good); color: var(--v3-surface); }
+.v3-tilemark svg { width: 12px; height: 12px; }
+
+.v3-tilewrap { position: relative; }
+.v3-tilewrap .v3-tileacts {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: none;
+    gap: 4px;
+    z-index: 2;
+}
+.v3-tilewrap:hover .v3-tileacts,
+.v3-tilewrap:focus-within .v3-tileacts { display: flex; }
+.v3-tileacts .v3-row__x { background: var(--v3-surface); border-radius: var(--v3-r-sm); box-shadow: var(--v3-lift); }
+
+.v3-dropwrap { position: relative; }
+.v3-dropzone {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    background: var(--v3-act-wash);
+    border: 2px dashed var(--v3-act-fill);
+    border-radius: var(--v3-r-md);
+    pointer-events: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--v3-act);
+}
+
 .v3-imgpreview {
     display: block;
     max-width: 220px;
@@ -1210,6 +1303,7 @@ select.v3-control { appearance: none; background-image: linear-gradient(45deg, t
 .v3-pickband__who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .v3-control--sm { height: 30px; padding: 0 8px; font-size: 12.5px; }
+.v3-control.is-invalid { border-color: var(--v3-bad); box-shadow: 0 0 0 1px var(--v3-bad); }
 .v3-control--bad { border-color: var(--v3-bad); }
 .v3-adorn > .v3-control { flex: 1; min-width: 0; }
 

@@ -1,194 +1,84 @@
-@php
-    $vLabel = 'v-field__label v-label mb-1';
-@endphp
-<x-admin.shell :title="$brand ? 'Edit Brand' : 'New Brand'">
-    <x-admin.page :title="$brand ? 'Edit Brand' : 'New Brand'">
-        <x-slot:actions>
-            <x-admin.button variant="ghost" href="{{ route('admin.brands.index') }}">Back to Brands</x-admin.button>
-        </x-slot:actions>
-
-        <form method="POST"
-              action="{{ $brand ? route('admin.brands.update', $brand) : route('admin.brands.store') }}"
-              data-v-form>
-            @csrf
-            @if ($brand) @method('PUT') @endif
-            <input type="hidden" name="store_id" value="1">
-
-            <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
-                {{-- Left: Main fields --}}
-                <div class="space-y-6">
-                    {{-- Name --}}
-                    <x-admin.card>
-                        <x-admin.field name="name" label="Brand Name" required>
-                            <x-admin.input type="text" name="name" required :value="$brand?->name" placeholder="e.g. Wampler, Boss, Friedman" />
-                        </x-admin.field>
-                    </x-admin.card>
-
-                    {{-- Image --}}
-                    <x-admin.card title="Logo / Image">
-                        @include('admin.partials.single_image_picker', [
-                            'fieldName' => 'image',
-                            'currentImage' => $brand?->image,
-                            'root' => 'brands',
-                            'defaultFolder' => 'Brands',
-                            'hint' => 'Recommended: transparent PNG, square or horizontal',
-                        ])
-                        @error('image') <p class="mt-1.5 text-[13px] text-v-danger">{{ $message }}</p> @enderror
-                    </x-admin.card>
-
-                    {{-- Description --}}
-                    <x-admin.card title="Description">
-                        <x-admin.textarea name="description" rows="4" :value="$brand?->description" placeholder="Brief description of the brand (shown on brand page)" />
-                        @error('description') <p class="mt-1.5 text-[13px] text-v-danger">{{ $message }}</p> @enderror
-                    </x-admin.card>
-
-                    {{-- SEO --}}
-                    <x-admin.card title="SEO">
-                        <div class="space-y-4">
-                            <x-admin.field name="slug" label="Slug" help="Leave blank to auto-generate from name">
-                                <div class="flex items-center gap-1">
-                                    <span class="text-xs text-v-muted">/brand/</span>
-                                    <x-admin.input type="text" name="slug" class="flex-1 font-mono" :value="$brand?->slug" placeholder="auto-generated-from-name" />
-                                </div>
-                            </x-admin.field>
-                            <x-admin.field name="meta_title" label="Meta Title" help="Recommended: 50-60 characters">
-                                <x-admin.input type="text" name="meta_title" :value="$brand?->meta_title" placeholder="Leave blank to use brand name" />
-                            </x-admin.field>
-                            <x-admin.field name="meta_description" label="Meta Description" help="Recommended: 120-160 characters">
-                                <x-admin.textarea name="meta_description" rows="2" :value="$brand?->meta_description" placeholder="Brief summary for search engine results" />
-                            </x-admin.field>
-                            <x-admin.field name="meta_keywords" label="Meta Keywords">
-                                <x-admin.input type="text" name="meta_keywords" :value="$brand?->meta_keywords" placeholder="guitar pedals, effects, accessories" />
-                            </x-admin.field>
-
-                            {{-- AI SEO Optimizer --}}
-                            <div x-data="{
-                                loading: false,
-                                suggestion: null,
-                                error: null,
-                                async optimize() {
-                                    this.loading = true;
-                                    this.error = null;
-                                    this.suggestion = null;
-                                    try {
-                                        const res = await fetch('{{ route("admin.extensions.seo.optimize") }}', {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                                            body: JSON.stringify({ entity_type: 'brand', entity_id: {{ $brand->id ?? 0 }} })
-                                        });
-                                        const data = await res.json();
-                                        if (data.ok) {
-                                            this.suggestion = data.suggestion;
-                                        } else {
-                                            this.error = data.message || 'Failed to generate suggestion.';
-                                        }
-                                    } catch (e) {
-                                        this.error = 'Request failed. Check your Claude API key in Extensions > SEO > Settings.';
-                                    }
-                                    this.loading = false;
-                                },
-                                apply() {
-                                    if (!this.suggestion) return;
-                                    const s = this.suggestion;
-                                    const mt = document.querySelector('[name=meta_title]');
-                                    const md = document.querySelector('[name=meta_description]');
-                                    if (mt && s.suggested_meta_title) mt.value = s.suggested_meta_title;
-                                    if (md && s.suggested_meta_description) md.value = s.suggested_meta_description;
-                                    this.suggestion = null;
-                                }
-                            }" class="mt-4 pt-4 border-t border-v-border">
-                                @if ($brand ?? false)
-                                    <x-admin.button type="button" variant="primary" @click="optimize()" x-bind:disabled="loading">
-                                        <template x-if="!loading">
-                                            <x-admin.icon name="sparkles" class="w-4 h-4" />
-                                        </template>
-                                        <template x-if="loading">
-                                            <x-admin.icon name="spinner" class="w-4 h-4 animate-spin" />
-                                        </template>
-                                        <span x-text="loading ? 'Optimizing...' : 'Optimize with AI'"></span>
-                                    </x-admin.button>
-                                @else
-                                    <p class="text-xs text-v-muted">Save the brand first to use AI optimization.</p>
-                                @endif
-
-                                <div x-show="error" x-cloak class="mt-3 rounded-v-md border border-v-danger bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] p-3 text-[13px] text-v-danger" x-text="error"></div>
-
-                                <div x-show="suggestion" x-cloak class="mt-3 rounded-v-md border border-v-border bg-v-accent-weak p-4">
-                                    <h4 class="mb-3 text-[13px] font-semibold text-v-text">AI Suggestion Preview</h4>
-                                    <div class="space-y-3">
-                                        <template x-for="field in ['meta_title', 'meta_description', 'og_title', 'og_description']" :key="field">
-                                            <div>
-                                                <label class="v-label" x-text="field.replace(/_/g, ' ')"></label>
-                                                <div class="mt-1 grid grid-cols-2 gap-2">
-                                                    <div class="rounded-v-sm bg-v-surface p-2 text-xs">
-                                                        <span class="mb-0.5 block text-v-muted">Current:</span>
-                                                        <span x-text="suggestion['current_' + field] || '(empty)'"></span>
-                                                    </div>
-                                                    <div class="rounded-v-sm border-l-2 border-v-accent bg-v-surface p-2 text-xs">
-                                                        <span class="mb-0.5 block text-v-accent">Suggested:</span>
-                                                        <span x-text="suggestion['suggested_' + field] || '(empty)'"></span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                    <div class="mt-4 flex gap-2">
-                                        <x-admin.button type="button" variant="primary" size="sm" @click="apply()">Apply to Form</x-admin.button>
-                                        <x-admin.button type="button" variant="secondary" size="sm" @click="suggestion = null">Dismiss</x-admin.button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </x-admin.card>
-                </div>
-
-                {{-- Right: Settings --}}
-                <div class="space-y-6">
-                    <x-admin.card title="Settings">
-                        <div class="space-y-4">
-                            {{-- Status --}}
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <x-admin.toggle name="is_active" :checked="$brand?->is_active ?? true" label="Active" />
-                                    <x-admin.hint label="About inactive brands">An inactive brand is hidden from the storefront.</x-admin.hint>
-                                </div>
-                            </div>
-
-                            <hr class="border-v-border">
-
-                            {{-- Sort Order --}}
-                            <x-admin.field name="sort_order" label="Sort Order" help="Lower numbers appear first">
-                                <x-admin.input type="number" name="sort_order" min="0" :value="$brand?->sort_order ?? 0" />
-                            </x-admin.field>
-                        </div>
-                    </x-admin.card>
-
-                    {{-- Stats (edit only) --}}
-                    @if ($brand)
-                        <x-admin.card title="Info">
-                            <dl class="space-y-2 text-[13px]">
-                                <div class="flex justify-between">
-                                    <dt class="text-v-muted">Products</dt>
-                                    <dd class="text-v-text font-medium">{{ $brand->products()->count() }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt class="text-v-muted">Slug</dt>
-                                    <dd class="text-v-text font-mono text-xs">{{ $brand->slug }}</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt class="text-v-muted">Created</dt>
-                                    <dd class="text-v-text">{{ $brand->created_at->format('M d, Y') }}</dd>
-                                </div>
-                            </dl>
-                        </x-admin.card>
-                    @endif
-
-                    {{-- Save --}}
-                    <x-admin.button type="submit" class="w-full justify-center">
-                        {{ $brand ? 'Update Brand' : 'Create Brand' }}
-                    </x-admin.button>
-                </div>
+<x-admin3.shell :title="$brand ? 'Edit Brand' : 'New Brand'" active="catalog">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.brands.index') }}">Brands</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $brand->name ?? 'New' }}</span>
             </div>
-        </form>
-    </x-admin.page>
-</x-admin.shell>
+            <h1 class="v3-head__title">{{ $brand ? $brand->name : 'New brand' }}</h1>
+        </div>
+    </div>
+
+    <x-admin3.form :action="$brand ? route('admin.brands.update', $brand) : route('admin.brands.store')"
+                   :method="$brand ? 'PUT' : 'POST'" class="v3-settle">
+        <input type="hidden" name="store_id" value="1">
+
+        <x-admin3.panel title="Brand">
+            <x-admin3.field name="name" label="Brand name" required>
+                <input type="text" name="name" required class="v3-control" value="{{ old('name', $brand?->name) }}">
+            </x-admin3.field>
+            <div class="v3-gap">
+                @include('admin.partials.v3_single_image_picker', [
+                    'fieldName' => 'image',
+                    'label' => 'Logo / image',
+                    'currentImage' => $brand?->image,
+                    'root' => 'brands',
+                    'defaultFolder' => 'Brands',
+                    'hint' => 'Recommended: transparent PNG, square or horizontal.',
+                ])
+                @error('image') <span class="v3-field__error">{{ $message }}</span> @enderror
+            </div>
+            <div class="v3-gap">
+                <x-admin3.field name="description" label="Description" hint="Shown on the storefront brand page.">
+                    <textarea name="description" rows="4" class="v3-control">{{ old('description', $brand?->description) }}</textarea>
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap v3-actrow">
+                <label class="v3-toggle">
+                    <input type="hidden" name="is_active" value="0">
+                    <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $brand?->is_active ?? true))>
+                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    <span>Active</span>
+                    <x-admin3.help text="An inactive brand is hidden from the storefront." />
+                </label>
+                <x-admin3.field name="sort_order" label="Sort order" hint="Lower numbers appear first.">
+                    <input type="number" name="sort_order" min="0" class="v3-control v3-mono v3-w-sort" value="{{ old('sort_order', $brand?->sort_order ?? 0) }}">
+                </x-admin3.field>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.panel title="SEO">
+            <x-admin3.field name="slug" label="Slug" hint="Leave blank to auto-generate from the name. Public URL: /brand/{slug}">
+                <input type="text" name="slug" class="v3-control v3-mono" value="{{ old('slug', $brand?->slug) }}">
+            </x-admin3.field>
+            <div class="v3-gap v3-grid v3-grid--2">
+                <x-admin3.field name="meta_title" label="Meta title" hint="Recommended: 50 to 60 characters.">
+                    <input type="text" name="meta_title" class="v3-control" value="{{ old('meta_title', $brand?->meta_title) }}">
+                </x-admin3.field>
+                <x-admin3.field name="meta_keywords" label="Meta keywords">
+                    <input type="text" name="meta_keywords" class="v3-control" value="{{ old('meta_keywords', $brand?->meta_keywords) }}">
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap">
+                <x-admin3.field name="meta_description" label="Meta description" hint="Recommended: 120 to 160 characters.">
+                    <textarea name="meta_description" rows="2" class="v3-control">{{ old('meta_description', $brand?->meta_description) }}</textarea>
+                </x-admin3.field>
+            </div>
+            @include('admin.partials.v3_seo_optimizer', ['entityType' => 'brand', 'entityId' => $brand?->id])
+        </x-admin3.panel>
+
+        @if ($brand)
+            <x-admin3.panel title="Info">
+                <dl class="v3-facts">
+                    <dt>Products</dt>
+                    <dd class="v3-mono">{{ $brand->products()->count() }}</dd>
+                    <dt>Slug</dt>
+                    <dd class="v3-mono">{{ $brand->slug }}</dd>
+                    <dt>Created</dt>
+                    <dd>{{ $brand->created_at->format('M d, Y') }}</dd>
+                </dl>
+            </x-admin3.panel>
+        @endif
+    </x-admin3.form>
+</x-admin3.shell>

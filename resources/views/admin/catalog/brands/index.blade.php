@@ -1,117 +1,123 @@
-<x-admin.shell title="Brands">
-    <x-admin.page title="Brands">
-        <x-slot:actions>
-            <x-admin.button type="button" variant="primary" @click="$dispatch('open-brand-modal')">
-                <x-admin.icon name="plus" class="w-4 h-4" /> Add Brand
-            </x-admin.button>
-        </x-slot:actions>
-
-        <div>
-            <x-admin.filters :action="route('admin.brands.index')">
-                <x-admin.field name="search" label="Search" class="v-field--grow">
-                    <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search brand..." />
-                </x-admin.field>
-                <x-admin.button type="submit" variant="secondary">Filter</x-admin.button>
-                @if (request('search'))
-                    <a href="{{ route('admin.brands.index') }}" class="v-filters__reset">Clear</a>
-                @endif
-            </x-admin.filters>
-
-            {{-- Brands Table --}}
-            <x-admin.table>
-                <x-slot:head>
-                    <x-admin.table.th>Brand</x-admin.table.th>
-                    <x-admin.table.th align="right">Products</x-admin.table.th>
-                    <x-admin.table.th align="right">Sort Order</x-admin.table.th>
-                    <x-admin.table.th>Status</x-admin.table.th>
-                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                </x-slot:head>
-                @forelse ($brands as $brand)
-                    <x-admin.table.row href="{{ route('admin.brands.edit', $brand) }}">
-                        <x-admin.table.cell>
-                            <div class="flex items-center gap-3">
-                                @if ($brand->image)
-                                    <img class="h-8 w-8 rounded-v-sm object-contain shrink-0" src="{{ storage_url($brand->image) }}" alt="{{ $brand->name }}">
-                                @endif
-                                <div class="min-w-0">
-                                    <div class="truncate text-[13px] font-medium text-v-text">{{ $brand->name }}</div>
-                                    <div class="text-xs text-v-muted">{{ $brand->slug }}</div>
-                                </div>
-                            </div>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>{{ $brand->products_count }}</x-admin.table.cell>
-                        <x-admin.table.cell align="right" mono>{{ $brand->sort_order }}</x-admin.table.cell>
-                        <x-admin.table.cell>
-                            <x-admin.badge :tone="$brand->is_active ? 'success' : 'neutral'">
-                                {{ $brand->is_active ? 'Active' : 'Inactive' }}
-                            </x-admin.badge>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell class="v-col-act">
-                            <div class="v-rowactions v-rowactions--end">
-                                <x-admin.button size="sm" variant="ghost" :href="route('admin.brands.edit', $brand)">Edit</x-admin.button>
-                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-brand-{{ $brand->id }}')">Delete</x-admin.button>
-                            </div>
-                        </x-admin.table.cell>
-                    </x-admin.table.row>
-                @empty
-                    <tr>
-                        <td colspan="5">
-                            <x-admin.empty-state title="No brands found" :description="request('search') ? 'Try adjusting your search.' : null">
-                                <x-admin.button variant="primary" :href="route('admin.brands.create')">Create your first brand</x-admin.button>
-                            </x-admin.empty-state>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($brands->hasPages())
-                    <x-slot:footer>
-                        {{ $brands->links() }}
-                    </x-slot:footer>
-                @endif
-            </x-admin.table>
+<x-admin3.shell title="Brands" active="catalog">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Brands</h1>
         </div>
+        <div class="v3-head__actions">
+            <button type="button" class="v3-btn v3-btn--primary" @click="$dispatch('open-brand-modal')">Add brand</button>
+        </div>
+    </div>
+
+    <div class="v3-settle">
+        <form method="GET" action="{{ route('admin.brands.index') }}" class="v3-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Brand name…"
+                   aria-label="Search brands" class="v3-control v3-filterbar__grow">
+            <button type="submit" class="v3-btn v3-btn--secondary">Filter</button>
+            @if (request('search'))
+                <a href="{{ route('admin.brands.index') }}" class="v3-link">Clear</a>
+            @endif
+        </form>
+
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Brand</th>
+                            <th class="v3-cell-num">Products</th>
+                            <th class="v3-cell-num">Sort</th>
+                            <th>Status</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($brands as $brand)
+                            <tr>
+                                <td>
+                                    <span class="v3-actrow">
+                                        @if ($brand->image)
+                                            <img class="v3-thumb" src="{{ storage_url($brand->image) }}" alt="">
+                                        @endif
+                                        <span>
+                                            <a href="{{ route('admin.brands.edit', $brand) }}" class="v3-rowlink">{{ $brand->name }}</a>
+                                            <span class="v3-cell-quiet v3-block v3-mono">{{ $brand->slug }}</span>
+                                        </span>
+                                    </span>
+                                </td>
+                                <td class="v3-cell-num v3-mono">{{ $brand->products_count }}</td>
+                                <td class="v3-cell-num v3-mono">{{ $brand->sort_order }}</td>
+                                <td>
+                                    <span class="v3-badge v3-badge--{{ $brand->is_active ? 'good' : 'quiet' }}">
+                                        {{ $brand->is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.brands.edit', $brand) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'delete-brand-{{ $brand->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No brands found</p>
+                                        <p class="v3-empty__line">{{ request('search') ? 'Try adjusting the search.' : 'Brands group the catalog by maker.' }}</p>
+                                        @unless (request('search'))
+                                            <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="$dispatch('open-brand-modal')">Create your first brand</button>
+                                        @endunless
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.pager :paginator="$brands" />
 
         @foreach ($brands as $brand)
-            <x-admin.confirm-dialog name="delete-brand-{{ $brand->id }}" title="Delete {{ $brand->name }}?"
+            <x-admin3.confirm name="delete-brand-{{ $brand->id }}" title="Delete {{ $brand->name }}?"
                 message="Products will keep their data but lose the brand link. This cannot be undone."
                 confirm="Delete" :action="route('admin.brands.destroy', $brand)" method="DELETE" />
         @endforeach
 
-        {{-- Quick Create Brand Modal --}}
-        <div x-data="{ open: false, name: '', saving: false, error: '' }"
-             @open-brand-modal.window="open = true; name = ''; error = ''"
-             x-show="open" x-cloak x-transition.opacity
-             class="fixed inset-0 z-[90] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-black/50" @click="open = false"></div>
-            <div class="v-modal relative w-full max-w-md rounded-v-lg border border-v-border bg-v-surface p-6"
-                 @click.outside="open = false" @keydown.escape.window="open = false" role="dialog" aria-modal="true" aria-label="New Brand">
-                <h3 class="mb-4 text-[15px] font-semibold text-v-text">New Brand</h3>
-                <div class="v-field mb-4">
-                    <label for="quick-brand-name" class="v-field__label v-label">Brand Name</label>
-                    <input type="text" id="quick-brand-name" x-model="name" @keydown.enter.prevent="$refs.saveBtn.click()" autofocus
-                        class="v-control h-[var(--control-h)] w-full rounded-v-md border border-v-border bg-v-surface px-3 text-[13px] text-v-text placeholder:text-v-muted"
-                        placeholder="e.g. Boss, Fender, Wampler">
-                    <p x-show="error" x-cloak x-text="error" class="v-field__error"></p>
+        {{-- Quick create: name only, then straight into the edit page. --}}
+        <div class="v3-passthru" x-data="{ open: false, name: '', saving: false, error: '' }"
+             @open-brand-modal.window="open = true; name = ''; error = ''; $nextTick(() => $refs.name.focus())"
+             @keydown.escape.window="open = false">
+            <template x-if="open">
+                <div class="v3-overlay" @click.self="open = false">
+                    <div class="v3-modal" role="dialog" aria-modal="true" aria-label="New brand">
+                        <h2 class="v3-modal__title">New brand</h2>
+                        <label class="v3-field v3-gap-sm">
+                            <span class="v3-field__label">Brand name</span>
+                            <input type="text" x-model="name" x-ref="name" class="v3-control"
+                                   @keydown.enter.prevent="$refs.saveBtn.click()">
+                        </label>
+                        <p x-show="error" x-cloak x-text="error" class="v3-field__error"></p>
+                        <div class="v3-modal__acts">
+                            <button type="button" class="v3-btn v3-btn--ghost" @click="open = false">Cancel</button>
+                            <button type="button" class="v3-btn v3-btn--primary" x-ref="saveBtn"
+                                :disabled="saving || !name.trim()"
+                                @click="
+                                    saving = true; error = '';
+                                    fetch('{{ route('admin.brands.quick-create') }}', {
+                                        method: 'POST',
+                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                        body: JSON.stringify({ name: name.trim() })
+                                    }).then(function(r) { return r.json(); }).then(function(d) {
+                                        if (d.success) { window.location.href = d.redirect; }
+                                        else { error = d.message || 'Failed to create brand.'; saving = false; }
+                                    }).catch(function() { error = 'Network error.'; saving = false; });
+                                ">
+                                <span x-text="saving ? 'Creating…' : 'Create and edit'"></span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex justify-end gap-2">
-                    <x-admin.button type="button" variant="secondary" @click="open = false">Cancel</x-admin.button>
-                    <x-admin.button type="button" variant="primary" x-ref="saveBtn"
-                        x-bind:disabled="saving || !name.trim()"
-                        @click="
-                            saving = true; error = '';
-                            fetch('{{ route('admin.brands.quick-create') }}', {
-                                method: 'POST',
-                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                                body: JSON.stringify({ name: name.trim() })
-                            }).then(function(r) { return r.json(); }).then(function(d) {
-                                if (d.success) { window.location.href = d.redirect; }
-                                else { error = d.message || 'Failed to create brand.'; saving = false; }
-                            }).catch(function() { error = 'Network error.'; saving = false; });
-                        ">
-                        <span x-show="!saving">Create &amp; Edit</span>
-                        <span x-show="saving" x-cloak>Creating...</span>
-                    </x-admin.button>
-                </div>
-            </div>
+            </template>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>
