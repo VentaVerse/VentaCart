@@ -6,7 +6,7 @@
     "provider": "Extensions\\AbandonedCarts\\AbandonedCartsServiceProvider",
     "icon": "cart",
     "type": "feature",
-    "configure_route": "admin.abandoned-carts.settings",
+    "configure_route": "admin.abandoned-carts.index",
     "admin_nav": [
         {
             "group": "Sales",

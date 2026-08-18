@@ -6,7 +6,7 @@
     "provider": "Extensions\\Seo\\SeoServiceProvider",
     "icon": "seo",
     "type": "feature",
-    "configure_route": "admin.extensions.seo.settings",
+    "configure_route": "admin.extensions.seo.dashboard",
     "admin_nav": [
         {
             "group": "Marketing",

@@ -13,6 +13,8 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/extensions/blog')
     ->name('admin.')
     ->group(function () {
+        // The module's bare home lands on its first page.
+        Route::get('/', fn () => redirect()->route('admin.blog.index'))->name('blog.home');
         Route::resource('posts', BlogPostController::class)->except(['show'])->parameters(['posts' => 'blog'])->names('blog');
         Route::resource('categories', BlogCategoryController::class)->except(['show'])->parameters(['categories' => 'blog_category'])->names('blog-categories');
     });
