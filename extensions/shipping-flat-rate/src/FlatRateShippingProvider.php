@@ -2,6 +2,7 @@
 
 namespace Extensions\ShippingFlatRate;
 
+use App\Services\Shipping\GeoZoneResolver;
 use App\Services\Shipping\ShippingProviderInterface;
 use App\Services\Shipping\ShippingQuoteService;
 use Extensions\ShippingFlatRate\Models\FlatShippingRate;

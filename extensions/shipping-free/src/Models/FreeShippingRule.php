@@ -2,6 +2,10 @@
 
 namespace Extensions\ShippingFree\Models;
 
+use App\Models\Brand;
+use App\Models\Category;
+use App\Models\CustomerGroup;
+use App\Models\GeoZone;
 use Illuminate\Database\Eloquent\Model;
 
 class FreeShippingRule extends Model

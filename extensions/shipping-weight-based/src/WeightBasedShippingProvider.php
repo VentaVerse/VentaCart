@@ -2,6 +2,7 @@
 
 namespace Extensions\ShippingWeightBased;
 
+use App\Services\Shipping\GeoZoneResolver;
 use App\Services\Shipping\ShippingProviderInterface;
 use App\Services\Shipping\ShippingQuoteService;
 use Extensions\ShippingWeightBased\Models\WeightBasedMethod;
