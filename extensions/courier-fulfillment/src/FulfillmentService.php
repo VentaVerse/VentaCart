@@ -502,6 +502,175 @@ class FulfillmentService
     }
 
     /**
+     * Cancel the courier BOOKING (never the order itself). The one shared
+     * implementation of the confirmed-cancel state transition — snapshot
+     * into courier_meta.booking_history, reset the live courier fields,
+     * move the order back to its pre-booking / To-Pack status — extracted
+     * from the admin controller so the ERP endpoint runs the exact same
+     * flow. See FulfillmentController::cancel()'s docblock for the full
+     * fulfillment-tabs-v3 Task 4 reasoning; the semantics are unchanged.
+     *
+     * @return array{success:bool, error?:string, message?:string, tracking?:string, order_status?:?string}
+     */
+    public static function cancelBooking(Order $order, ?int $actorUserId = null): array
+    {
+        $courier = CourierManager::get((string) $order->courier_provider);
+        if (!$courier || !$order->courier_tracking_number) {
+            return ['success' => false, 'error' => 'No active courier booking on this order.'];
+        }
+
+        $result = $courier->cancelShipment($order->courier_tracking_number);
+        if (!$result['success']) {
+            return ['success' => false, 'error' => 'Cancel failed: ' . ($result['error'] ?? 'unknown error')];
+        }
+
+        // The courier confirmed — only NOW does the reset happen.
+        $tracking = $order->courier_tracking_number;
+        $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+        $history = (isset($meta['booking_history']) && is_array($meta['booking_history']))
+            ? $meta['booking_history']
+            : [];
+        $preBookingStatusId = isset($meta['pre_booking_order_status_id'])
+            ? (int) $meta['pre_booking_order_status_id']
+            : null;
+        $history[] = [
+            'courier'         => (string) $order->courier_provider,
+            'tracking_number' => $tracking,
+            'status'          => $order->courier_status,
+            'timeline'        => $meta['timeline'] ?? [],
+            'meta'            => \Illuminate\Support\Arr::except($meta, ['booking_history']),
+            'previous_order_status_id' => $preBookingStatusId,
+            'admin_cancelled' => true,
+            'cancelled_at'    => now()->toIso8601String(),
+        ];
+
+        $fill = [
+            'courier_provider'        => null,
+            'courier_status'          => null,
+            'courier_tracking_number' => null,
+            // booking_history is the ONE key that persists through the reset.
+            'courier_meta'            => json_encode(['booking_history' => $history]),
+        ];
+        // Core snapshot columns: cleared IF they still point at the shipment
+        // just cancelled — a customer must never be shown a voided AWB.
+        if ((string) $order->tracking_number === (string) $tracking) {
+            $fill['tracking_number'] = null;
+            $fill['tracking_link']   = null;
+        }
+        $order->forceFill($fill)->save();
+
+        $target = static::unbookedStatus($preBookingStatusId);
+        $comment = 'Courier booking cancelled: ' . $tracking . ' (' . $courier->getName() . ').';
+
+        if ($target && (int) $order->order_status_id !== (int) $target->id) {
+            DB::transaction(function () use ($order, $target, $comment, $actorUserId) {
+                OrderStatusChanger::apply(
+                    $order,
+                    $target->id,
+                    $comment . ' Order status set to ' . $target->name . ', back under To Ship, To Pack.',
+                    false,
+                    $actorUserId,
+                );
+            });
+
+            return [
+                'success' => true,
+                'tracking' => $tracking,
+                'order_status' => $target->name,
+                'message' => "Cancelled booking {$tracking} for order #{$order->id}. The order is back in To Ship, To Pack as {$target->name}.",
+            ];
+        }
+
+        $currentName = $order->status?->name ?? 'its current status';
+        OrderHistory::create([
+            'order_id'        => $order->id,
+            'order_status_id' => $order->order_status_id,
+            'comment'         => $comment . ' Order status unchanged (' . $currentName . ').',
+            'notify_customer' => false,
+        ]);
+
+        return [
+            'success' => true,
+            'tracking' => $tracking,
+            'order_status' => $order->status?->name,
+            'message' => $target
+                ? "Cancelled booking {$tracking} for order #{$order->id}. The order stays on {$currentName}, in To Ship, To Pack."
+                : "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Extensions, Fulfillment, Status Mapping.",
+        ];
+    }
+
+    /**
+     * Live tracking pull + local refresh, extracted from the admin
+     * controller (same reasoning as cancelBooking() above): updates
+     * courier_status, timeline/links meta, the core tracking_link
+     * snapshot, and runs StatusMapper — then reports what came back.
+     *
+     * @return array{success:bool, error?:string, status?:?string, timeline?:array, links?:array}
+     */
+    public static function refreshTracking(Order $order): array
+    {
+        $courier = CourierManager::get((string) $order->courier_provider);
+        if (!$courier || !$order->courier_tracking_number) {
+            return ['success' => false, 'error' => 'No courier booking to track.'];
+        }
+
+        $result = $courier->getTracking($order->courier_tracking_number);
+        if (!$result['success']) {
+            return ['success' => false, 'error' => 'Tracking failed: ' . ($result['error'] ?? 'unknown error')];
+        }
+
+        $fill = [];
+        if (!empty($result['status'])) {
+            $fill['courier_status'] = $result['status'];
+        }
+
+        $links = $result['links'] ?? null;
+        $timeline = $result['timeline'] ?? null;
+        if (!empty($links) || !empty($timeline)) {
+            $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
+            if (!empty($links)) {
+                $meta['tracking_links'] = $links;
+            }
+            if (!empty($timeline)) {
+                $meta['timeline'] = $timeline;
+            }
+            $fill['courier_meta'] = json_encode($meta);
+        }
+
+        // Core tracking_link snapshot: prefer the delivery URL, then pickup.
+        // When this call returned no usable link, keep whatever core already
+        // has — never null out a previously stored link.
+        $trackingLink = null;
+        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
+            if (is_string($u) && str_starts_with($u, 'http')) {
+                $trackingLink = $u;
+                break;
+            }
+        }
+        // raw column, NOT the accessor — the accessor live-derives and would
+        // trigger relation queries / freeze derived URLs.
+        $trackingLink = $trackingLink ?? $order->getRawOriginal('tracking_link');
+        if ($trackingLink !== $order->getRawOriginal('tracking_link')) {
+            $fill['tracking_link'] = $trackingLink;
+        }
+
+        if (!empty($fill)) {
+            // courier_* columns aren't in core Order::$fillable — must forceFill.
+            $order->forceFill($fill)->save();
+        }
+        if (!empty($result['status'])) {
+            StatusMapper::apply($order, $result['status']);
+        }
+
+        return [
+            'success' => true,
+            'status' => $result['status'] ?? null,
+            'timeline' => $result['timeline'] ?? [],
+            'links' => $result['links'] ?? [],
+        ];
+    }
+
+    /**
      * @param array $opts courier, service, parcel, buyer_payment, shipping_payment
      * @return array{success:bool, already_booked?:bool, courier?:string, tracking_number?:?string, status?:?string, error?:string, code?:string}
      */
