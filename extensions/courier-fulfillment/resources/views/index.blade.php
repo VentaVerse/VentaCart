@@ -982,10 +982,17 @@
                      while the chosen courier's form is a column of fields and
                      reads worse stretched. Both widths are named in the
                      module's own stylesheet (never a class assembled in
-                     Alpine), and the sheet animates between them. --}}
+                     Alpine), and the sheet animates between them.
+
+                     The wide width is earned by the CARDS, not by the step:
+                     while we are still asking the couriers there is one
+                     sentence to show, and a 54rem sheet holding one line
+                     reads as a broken layout. So the sheet opens at its
+                     reading width and widens as the answers land, which is
+                     what the max-width transition was always for. --}}
                 <div x-show="bookOpen" x-transition.opacity
                      class="v-modal v-bookmodal"
-                     :class="step === 1 ? 'v-bookmodal--couriers' : ''"
+                     :class="step === 1 && !checking ? 'v-bookmodal--couriers' : ''"
                      tabindex="-1"
                      role="dialog" aria-modal="true" :aria-label="'Book order #' + (active ? active.id : '')">
                     <template x-if="active">
@@ -1020,7 +1027,7 @@
                                          The cards are drawn only once every courier has
                                          answered (owner ruling, 2026-08-12). --}}
                                     <div x-show="checking" class="v-choicewait">
-                                        <x-admin.icon name="spinner" class="v-spin" />
+                                        <span class="v-choicewait__mark" aria-hidden="true"></span>
                                         <span x-text="waitLine"></span>
                                     </div>
 

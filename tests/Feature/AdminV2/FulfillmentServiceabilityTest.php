@@ -567,6 +567,10 @@ class FulfillmentServiceabilityTest extends TestCase
         // (Both payloads below are Js::from output, so the quotes around
         // each value are hex-escaped on the wire.)
         $response->assertSee('v-choicewait', false)
+            // The quiet pulse, not a spinner icon: a v3->v port once swapped
+            // this for <x-admin.icon name="spinner">, which rendered unsized
+            // and read as a stall. Pinned so the mark survives the next port.
+            ->assertSee('v-choicewait__mark', false)
             ->assertSee('waitLine', false)
             ->assertSee('checkedCouriers', false)
             ->assertSee('QuadX', false)

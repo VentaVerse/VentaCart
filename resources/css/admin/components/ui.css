@@ -1359,6 +1359,9 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 .v-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 
 .v-loadline { display: flex; align-items: center; gap: 8px; min-height: var(--v-control-h); font-size: 13px; color: var(--v-ink-3); }
+/* The icon component ships no intrinsic size, and this spinner sits in
+   a bare span rather than a .v-btn, so nothing else would size it. */
+.v-loadline svg { width: 15px; height: 15px; flex-shrink: 0; }
 .v-spin { animation: v-spin .9s linear infinite; }
 @keyframes v-spin { to { transform: rotate(360deg); } }
 
@@ -1477,6 +1480,24 @@ button.v-choicecard:hover { border-color: var(--v-act); background: var(--v-hove
 .v-choicecard__msg { display: block; margin-top: 6px; font-size: 12px; color: var(--v-ink-3); }
 .v-choicecard__msg a { color: var(--v-act); }
 .v-choicewait { display: flex; align-items: center; gap: 10px; padding: 14px 2px; font-size: 13px; color: var(--v-ink-2); }
+/* The wait is NAMED, not spun at (see the markup's own note): a quiet
+   8px pulse marks that we are still listening, and the sentence beside
+   it says who is being asked and about where. The v3->v port briefly
+   swapped this for a spinner icon, which read as a system stall in a
+   sheet three times the size of its content. */
+.v-choicewait__mark {
+    width: 8px; height: 8px; flex: none;
+    border-radius: 50%;
+    background: var(--v-act-fill);
+    animation: v-choicewait 1.4s cubic-bezier(.2, .7, .3, 1) infinite;
+}
+@keyframes v-choicewait {
+    0%, 100% { opacity: .25; transform: scale(.7); }
+    45%      { opacity: 1;   transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .v-choicewait__mark { animation: none; opacity: 1; }
+}
 .v-choicenote { margin: 0 0 10px; font-size: 13px; color: var(--v-warn); }
 
 /* Quiet fact chip: how the parcel was arranged, not a system state */
