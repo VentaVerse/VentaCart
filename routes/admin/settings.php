@@ -132,6 +132,7 @@ Route::prefix('settings')->group(function () {
     Route::get('/modules', fn () => redirect(route('admin.extensions.index'), 301));
     Route::get('/stock-alerts', fn () => redirect(route('admin.stock-notifications.index'), 301));
     Route::get('/theme', fn () => redirect(route('admin.theme.index'), 301));
+    Route::get('/api', fn () => redirect(route('admin.erp-sync.settings'), 301));
 
     // single-segment wildcard that would otherwise swallow every literal
     // settings/* route registered above it (payments, shipping, etc).

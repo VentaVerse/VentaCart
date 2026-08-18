@@ -241,6 +241,34 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    // The nav remembers the last thing YOU did to it (OpenCart parity,
+    // owner ruling): expansion and highlight follow your last nav click,
+    // never the page the system took you to. The server's URL-derived
+    // state only seeds a session that has no memory yet. The pre-paint
+    // sync lives inline in the shell so the slab never flashes; this
+    // component keeps Alpine's reactive state agreeing with it and owns
+    // the click recording.
+    window.Alpine.data('vNav', (serverGroup) => ({
+        group: (() => {
+            try {
+                const m = JSON.parse(sessionStorage.getItem('v-nav') || 'null');
+                return m ? m.group : serverGroup;
+            } catch { return serverGroup; }
+        })(),
+        rememberGroup() {
+            this.persist(this.group, this.memory().path);
+        },
+        rememberLink(groupKey, el) {
+            this.persist(groupKey, new URL(el.href, window.location).pathname);
+        },
+        memory() {
+            try { return JSON.parse(sessionStorage.getItem('v-nav') || 'null') || {}; } catch { return {}; }
+        },
+        persist(group, path) {
+            try { sessionStorage.setItem('v-nav', JSON.stringify({ group: group ?? null, path: path ?? null })); } catch {}
+        },
+    }));
+
     window.Alpine.store('toasts', {
         items: [],
         counter: 0,

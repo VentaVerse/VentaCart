@@ -6,7 +6,7 @@
     "provider": "Extensions\\Reviews\\ReviewsServiceProvider",
     "icon": "reviews",
     "type": "feature",
-    "configure_route": "admin.reviews.index",
+    "configure_route": "admin.reviews.settings",
     "admin_nav": [
         {
             "group": "Sales",

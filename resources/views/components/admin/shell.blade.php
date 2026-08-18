@@ -103,13 +103,14 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto">
-                <nav class="v-nav" aria-label="Main" x-data="{ group: @js($vOpenGroup) }">
+                <nav class="v-nav" aria-label="Main" x-data="vNav(@js($vOpenGroup))">
                     @foreach ($vNavGroups as $i => $group)
                         @php $vKey = 'g' . $i; @endphp
                         @if ($group['label'] === null)
                             @foreach ($group['items'] as $item)
                                 @php $vOn = $vActive && $vActive['group'] === null && $vActive['item'] === $item['key']; @endphp
                                 <a href="{{ route($item['route']) }}" class="v-nav__item {{ $vOn ? 'is-on' : '' }}"
+                                   @click="rememberLink(null, $el)"
                                    @if ($vOn) aria-current="page" @endif>
                                     <x-admin.icon :name="$item['icon']" class="w-[17px] h-[17px] shrink-0" />
                                     <span class="v-nav__label">{{ $item['label'] }}</span>
@@ -125,7 +126,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         @else
                             <div class="v-nav__group">
                                 <button type="button"
-                                        @click="group = (group === '{{ $vKey }}' ? null : '{{ $vKey }}')"
+                                        @click="group = (group === '{{ $vKey }}' ? null : '{{ $vKey }}'); rememberGroup()"
                                         aria-expanded="{{ $vOpenGroup === $vKey ? 'true' : 'false' }}"
                                         :aria-expanded="group === '{{ $vKey }}' ? 'true' : 'false'"
                                         aria-controls="v-nav-{{ $vKey }}"
@@ -155,6 +156,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                                         @foreach ($group['items'] as $item)
                                             @php $vOn = $vActive && $vActive['group'] === $group['label'] && $vActive['item'] === $item['key']; @endphp
                                             <a href="{{ $item['url'] ?? route($item['route']) }}" class="v-nav__child {{ $vOn ? 'is-on' : '' }}"
+                                               @click="rememberLink('{{ $vKey }}', $el)"
                                                @if ($vOn) aria-current="page" @endif>
                                                 <span class="v-nav__label">{{ $item['label'] }}</span>
                                                 @if (($vBadge = ($navBadges ?? [])[$item['route']] ?? 0) > 0)
@@ -168,6 +170,38 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         @endif
                     @endforeach
                 </nav>
+                <script>
+                    // Pre-paint nav memory (see vNav in admin.js): applied
+                    // synchronously so the slab renders remembered state on
+                    // the first frame, before Alpine boots.
+                    (function () {
+                        try {
+                            var m = JSON.parse(sessionStorage.getItem('v-nav') || 'null');
+                            if (!m) return;
+                            var nav = document.currentScript.previousElementSibling;
+                            nav.querySelectorAll('.v-collapse').forEach(function (c) {
+                                var on = m.group && c.id === 'v-nav-' + m.group;
+                                c.classList.toggle('is-open', on);
+                                if (on) c.removeAttribute('inert'); else c.setAttribute('inert', '');
+                            });
+                            nav.querySelectorAll('.v-nav__toggle').forEach(function (t) {
+                                t.setAttribute('aria-expanded', String(m.group && t.getAttribute('aria-controls') === 'v-nav-' + m.group));
+                            });
+                            nav.querySelectorAll('.v-nav__item.is-on, .v-nav__child.is-on').forEach(function (a) {
+                                a.classList.remove('is-on');
+                                a.removeAttribute('aria-current');
+                            });
+                            if (m.path) {
+                                nav.querySelectorAll('.v-nav__item, .v-nav__child').forEach(function (a) {
+                                    if (new URL(a.href, window.location).pathname === m.path) {
+                                        a.classList.add('is-on');
+                                        a.setAttribute('aria-current', 'page');
+                                    }
+                                });
+                            }
+                        } catch (e) {}
+                    })();
+                </script>
             </div>
 
             <a href="{{ route('home') }}" target="_blank" rel="noopener" class="v-slab__foot">

@@ -70,7 +70,7 @@ class SettingsSectionTest extends TestCase
     public function test_every_section_renders(): void
     {
         $this->actingAs(User::factory()->create());
-        foreach (['general', 'mail', 'checkout', 'currencies', 'api', 'security', 'automations'] as $section) {
+        foreach (['general', 'mail', 'checkout', 'currencies', 'security', 'automations'] as $section) {
             $this->get(route('admin.settings.section', $section))->assertOk();
         }
     }
@@ -96,10 +96,16 @@ class SettingsSectionTest extends TestCase
 
     public function test_api_section_renders_new_erp_token_flash_with_copy_control(): void
     {
+        // The whole API section is ERP Sync configuration, so it lives at
+        // the extension's own page now (owner ruling: module config never
+        // in Settings); settings/api 301s there.
+        app(\App\Services\ExtensionManager::class)->install('erp-sync');
         $this->actingAs(User::factory()->create());
 
+        $this->get(route('admin.settings.section', 'api'))->assertStatus(301);
+
         $this->withSession(['new_erp_token' => 'plaintext-erp-token-abc123'])
-            ->get(route('admin.settings.section', 'api'))
+            ->get(route('admin.erp-sync.settings'))
             ->assertOk()
             ->assertSee('New token generated', false)
             ->assertSee('plaintext-erp-token-abc123', false)
@@ -115,9 +121,12 @@ class SettingsSectionTest extends TestCase
             ['value' => 'plaintext-erp-token-abc123']
         );
 
+        app(\App\Services\ExtensionManager::class)->install('erp-sync');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+
         $expectedMask = str_repeat('•', strlen('plaintext-erp-token-abc123') - 4).'c123';
 
-        $this->get(route('admin.settings.section', 'api'))
+        $this->get(route('admin.erp-sync.settings'))
             ->assertOk()
             ->assertSee($expectedMask, false); // masked fallback keeps the last 4 chars, not a bare bullet placeholder
     }

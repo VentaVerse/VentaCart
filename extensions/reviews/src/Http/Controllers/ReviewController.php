@@ -16,6 +16,13 @@ class ReviewController extends Controller
     public function index(Request $request)
     {
         $tab = $request->get('tab', 'pending');
+
+        // The old single-page shape kept settings as a ?tab; it is its own
+        // page behind the Extensions door now (ops/config split).
+        if ($tab === 'settings') {
+            return redirect()->route('admin.reviews.settings', [], 301);
+        }
+
         $search = $request->get('search');
 
         $query = Review::with('product')->whereNotNull('rating');
@@ -43,7 +50,11 @@ class ReviewController extends Controller
             'rejected' => Review::whereNotNull('rating')->rejected()->count(),
         ];
 
-        // Load settings + order statuses for the Settings tab
+        return view('reviews::index', compact('reviews', 'tab', 'search', 'counts'));
+    }
+
+    public function settings()
+    {
         $settings = [];
         foreach (Setting::all() as $s) {
             $settings[$s->group][$s->key] = $s->value;
@@ -55,7 +66,7 @@ class ReviewController extends Controller
         $customerGroups = \App\Models\CustomerGroup::orderBy('name')->get();
         $reviewEmailTemplates = \App\Models\EmailTemplate::where('slug', 'like', 'review%')->orWhere('type', 'customer')->get();
 
-        return view('reviews::index', compact('reviews', 'tab', 'search', 'counts', 'settings', 'orderStatuses', 'customerGroups', 'reviewEmailTemplates'));
+        return view('reviews::settings', compact('settings', 'orderStatuses', 'customerGroups', 'reviewEmailTemplates'));
     }
 
     public function show(Review $review)

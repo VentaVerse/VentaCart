@@ -18,6 +18,16 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::delete('/{review}', [ReviewController::class, 'destroy'])->name('destroy');
     });
 
+// Configuration, behind the Extensions door (owner ruling: ops and
+// config separate, config never in Settings). The form itself posts to
+// the core settings endpoint (group reviews) as before.
+Route::middleware(['web', 'auth', 'admin.session.cap'])
+    ->prefix($adminPrefix . '/extensions/reviews')
+    ->name('admin.reviews.')
+    ->group(function () {
+        Route::get('/settings', [ReviewController::class, 'settings'])->name('settings');
+    });
+
 // Storefront: the tokened submission page the request email links to
 // (public, token-guarded — same middleware posture as before the move).
 // URLs frozen; disabled extension = 404 and no emails go out anyway.

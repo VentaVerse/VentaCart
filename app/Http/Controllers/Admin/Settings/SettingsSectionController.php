@@ -17,7 +17,6 @@ class SettingsSectionController extends Controller
         'mail' => ['mail'],
         'checkout' => ['checkout', 'stock'],
         'currencies' => [],
-        'api' => ['api'],
         'security' => ['security'],
         'automations' => [],
     ];
@@ -40,16 +39,6 @@ class SettingsSectionController extends Controller
         if ($section === 'automations') {
             $data['automations'] = Automation::orderBy('id')->get();
         }
-        if ($section === 'api') {
-            $data['maskedKeys'] = $this->mask($settings['api'] ?? [], ['erp_token']);
-        }
-        if ($section === 'security') {
-            $data['maskedKeys'] = $this->mask($settings['security'] ?? [], ['turnstile_secret_key']);
-            // v3: the plaintext never rides in the rendered page; the
-            // secret field's View fetches it on demand through the
-            // allowlisted reveal endpoint.
-        }
-
         return view("admin.settings.sections.{$section}", $data);
     }
 

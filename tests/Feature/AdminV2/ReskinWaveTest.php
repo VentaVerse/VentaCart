@@ -336,7 +336,7 @@ class ReskinWaveTest extends TestCase
             route('admin.abandoned-carts.templates.create'),
             route('admin.abandoned-carts.templates.edit', $template),
             route('admin.reviews.index'),
-            route('admin.reviews.index', ['tab' => 'settings']),
+            route('admin.reviews.settings'),
             route('admin.reviews.show', $review),
         ];
 
@@ -1225,7 +1225,7 @@ class ReskinWaveTest extends TestCase
 
         // general/mail/checkout/security migrated to the v3 settings shell;
         // they render its marker instead of the v2 workspace column.
-        foreach (['general', 'mail', 'checkout', 'security', 'currencies', 'api'] as $section) {
+        foreach (['general', 'mail', 'checkout', 'security', 'currencies'] as $section) {
             $this->get(route('admin.settings.section', $section))
                 ->assertOk()
                 ->assertSee('v3-settings__main', false);

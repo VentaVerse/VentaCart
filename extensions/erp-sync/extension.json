@@ -6,6 +6,5 @@
     "provider": "Extensions\\ErpSync\\ErpSyncServiceProvider",
     "icon": "settings",
     "type": "feature",
-    "configure_route": "admin.settings.section",
-    "configure_params": {"section": "api"}
+    "configure_route": "admin.erp-sync.settings"
 }

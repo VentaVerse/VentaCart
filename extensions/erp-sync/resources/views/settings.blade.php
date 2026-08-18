@@ -1,7 +1,12 @@
-<x-admin3.settings-shell title="API & Sync" active="api">
+<x-admin3.shell title="ERP Sync">
     <div class="v3-head">
         <div class="v3-head__body">
-            <h1 class="v3-head__title">API & Sync</h1>
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                <span aria-hidden="true">/</span>
+                <span>ERP Sync</span>
+            </div>
+            <h1 class="v3-head__title">ERP Sync</h1>
             <p class="v3-head__standing">The token the ERP pushes with, and what gets logged when it does.</p>
         </div>
         <div class="v3-head__actions">
@@ -41,7 +46,7 @@
             confirm="Regenerate" :action="route('admin.settings.generate-erp-token')" method="POST" />
 
         <x-admin3.form :action="route('admin.settings.update')">
-            <input type="hidden" name="_redirect" value="{{ route('admin.settings.section', 'api') }}">
+            <input type="hidden" name="_redirect" value="{{ route('admin.erp-sync.settings') }}">
             <x-admin3.panel title="Sync logging">
                 <label class="v3-toggle">
                     <input type="hidden" name="groups[api][api_sync_log_enabled]" value="0">
@@ -56,4 +61,4 @@
             </x-admin3.panel>
         </x-admin3.form>
     </div>
-</x-admin3.settings-shell>
+</x-admin3.shell>
