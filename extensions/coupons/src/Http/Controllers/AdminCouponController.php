@@ -46,6 +46,20 @@ class AdminCouponController extends Controller
         return response()->json(['success' => false, 'message' => $result->message], 422);
     }
 
+    /**
+     * Configure lands here: the OC-style thin page for an Order Totals
+     * extension — enable switch (header) + checkout sort order. Coupon
+     * MANAGEMENT stays on index(), pointed at from Marketing.
+     */
+    public function settings()
+    {
+        return view('coupons::settings', [
+            // 400 = the provider-registered default (CouponsServiceProvider):
+            // before store credit, so the coupon shrinks the total first.
+            'sortOrder' => (int) (\App\Models\Setting::where('group', 'totals')->where('key', 'coupon_sort_order')->value('value') ?? 400),
+        ]);
+    }
+
     public function index(Request $request)
     {
         $query = Coupon::query();

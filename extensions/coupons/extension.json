@@ -6,7 +6,7 @@
     "provider": "Extensions\\Coupons\\CouponsServiceProvider",
     "icon": "coupons",
     "type": "total",
-    "configure_route": "admin.coupons.index",
+    "configure_route": "admin.coupons.settings",
     "admin_nav": [
         {
             "group": "Marketing",

@@ -14,6 +14,11 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/extensions/coupons')
     ->name('admin.coupons.')
     ->group(function () {
+        // Configure lands on the thin settings page (OC parity for Order
+        // Totals extensions); the coupon list below stays the Marketing
+        // work surface. Literal, registered before the {coupon} wildcard.
+        Route::get('/settings', [AdminCouponController::class, 'settings'])->name('settings');
+
         Route::get('/search/products', [AdminCouponController::class, 'searchProducts'])->name('search-products');
         Route::get('/search/categories', [AdminCouponController::class, 'searchCategories'])->name('search-categories');
         Route::get('/search/brands', [AdminCouponController::class, 'searchBrands'])->name('search-brands');

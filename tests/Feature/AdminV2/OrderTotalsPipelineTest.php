@@ -135,6 +135,20 @@ class OrderTotalsPipelineTest extends TestCase
         $this->assertNull($cart->fresh()->coupon_code);
     }
 
+    public function test_saved_sort_order_overrides_the_registered_sequence(): void
+    {
+        // Registered defaults: coupon 400, store_credit 700.
+        $keys = array_map(fn ($p) => $p->getKey(), OrderTotals::providers());
+        $this->assertSame(['coupon', 'store_credit'], $keys);
+
+        // OC parity: each Order Totals extension's settings page saves a
+        // sort order (group 'totals', '{key}_sort_order'); lower runs first.
+        \App\Models\Setting::create(['group' => 'totals', 'key' => 'store_credit_sort_order', 'value' => '100']);
+
+        $keys = array_map(fn ($p) => $p->getKey(), OrderTotals::providers());
+        $this->assertSame(['store_credit', 'coupon'], $keys);
+    }
+
     public function test_coupons_provider_is_on_the_sign_in_sheet_when_enabled(): void
     {
         $keys = array_map(fn ($p) => $p->getKey(), OrderTotals::providers());

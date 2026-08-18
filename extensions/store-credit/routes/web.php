@@ -5,13 +5,15 @@ use Illuminate\Support\Facades\Route;
 
 $adminPrefix = config('admin.prefix', 'admin');
 
-// One home: the ledger and its adjustment endpoint. No work-nav entry
-// (owner ruling: credit lives on the customer's page and at checkout;
-// the ledger is the extension's configure page).
+// One home. Configure lands on the thin settings page (OC parity for
+// Order Totals extensions: enable/disable + checkout sort order); the
+// ledger is the secondary page. Day-to-day granting lives on the
+// customer's own page. No work-nav entry (owner ruling).
 Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/extensions/store-credit')
     ->name('admin.store-credit.')
     ->group(function () {
-        Route::get('/', [StoreCreditController::class, 'index'])->name('index');
+        Route::get('/', [StoreCreditController::class, 'settings'])->name('index');
+        Route::get('/ledger', [StoreCreditController::class, 'ledger'])->name('ledger');
         Route::post('/adjust', [StoreCreditController::class, 'adjust'])->name('adjust');
     });

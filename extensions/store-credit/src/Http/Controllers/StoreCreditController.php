@@ -4,13 +4,32 @@ namespace Extensions\StoreCredit\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\Setting;
 use Extensions\StoreCredit\CreditService;
 use Extensions\StoreCredit\Models\CustomerTransaction;
 use Illuminate\Http\Request;
 
 class StoreCreditController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * The provider-registered default (StoreCreditServiceProvider): after
+     * coupons, so credit covers the coupon-discounted remainder.
+     */
+    private const DEFAULT_SORT_ORDER = 700;
+
+    /**
+     * Configure lands here: the OC-style thin page — the enable switch
+     * (page header) and the checkout sort order. Saved through the
+     * shared settings endpoint (group 'totals').
+     */
+    public function settings()
+    {
+        return view('store-credit::settings', [
+            'sortOrder' => (int) (Setting::where('group', 'totals')->where('key', 'store_credit_sort_order')->value('value') ?? self::DEFAULT_SORT_ORDER),
+        ]);
+    }
+
+    public function ledger(Request $request)
     {
         $query = CustomerTransaction::with(['customer', 'creator'])->latest('created_at')->latest('id');
 
@@ -25,11 +44,11 @@ class StoreCreditController extends Controller
 
         $transactions = $query->paginate(30)->withQueryString();
 
-        return view('store-credit::index', compact('transactions'));
+        return view('store-credit::ledger', compact('transactions'));
     }
 
     /**
-     * Manual adjustment from the ledger page or the customer panel.
+     * Manual adjustment from the customer panel (or the ledger page).
      * Signed: positive grants, negative deducts (a hand re-credit after
      * a cancelled order is just a positive entry).
      */

@@ -62,7 +62,7 @@
             </table>
         </div>
         <div class="mt-3">
-            <a class="text-sm text-v-muted underline" href="{{ route('admin.store-credit.index', ['search' => $customer->email]) }}">Full ledger</a>
+            <a class="text-sm text-v-muted underline" href="{{ route('admin.store-credit.ledger', ['search' => $customer->email]) }}">Full ledger</a>
         </div>
     @endif
 </x-admin.panel>

@@ -24,10 +24,38 @@ class OrderTotals
     /** @return OrderTotalProviderInterface[] in sequence order */
     public static function providers(): array
     {
-        $classes = self::$registered;
-        asort($classes);
+        $overrides = self::sortOverrides();
 
-        return array_map(fn (string $class) => new $class(), array_keys($classes));
+        $entries = [];
+        foreach (self::$registered as $class => $sequence) {
+            $provider = new $class();
+            $entries[] = [$provider, $overrides[$provider->getKey()] ?? $sequence];
+        }
+        usort($entries, fn (array $a, array $b) => $a[1] <=> $b[1]);
+
+        return array_map(fn (array $e) => $e[0], $entries);
+    }
+
+    /**
+     * Merchant sort-order overrides (OC parity: each Order Totals
+     * extension's settings page carries an editable "Sort order"; lower
+     * runs first). Stored as settings group 'totals', key
+     * '{provider key}_sort_order'; the provider-registered sequence is
+     * the default when no override is saved.
+     *
+     * @return array<string, int> provider key => sort order
+     */
+    private static function sortOverrides(): array
+    {
+        try {
+            return \App\Models\Setting::where('group', 'totals')->get()
+                ->filter(fn ($s) => str_ends_with($s->key, '_sort_order'))
+                ->mapWithKeys(fn ($s) => [substr($s->key, 0, -strlen('_sort_order')) => (int) $s->value])
+                ->all();
+        } catch (\Throwable) {
+            // No DB (early boot, some console contexts): registered order.
+            return [];
+        }
     }
 
     /** Run every provider over the context; returns the same context. */
