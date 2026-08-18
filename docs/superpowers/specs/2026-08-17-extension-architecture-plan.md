@@ -112,7 +112,7 @@ To convert from app/:
    (Blog, SEO, Reviews...) appear as directory rows only, their
    operations in the work nav. Settings goes back to being the
    website's core settings only. Crossings by labeled buttons both
-   ways. 'modules' is a reserved extension name (the category page's
+   ways. 'modules' and 'order-totals' are reserved extension names (the category pages'
    URL segment). ONE HOME (owner ruling 2026-08-19, supersedes the
    earlier ops/config split): with the click-memory nav in place,
    everything an extension owns, operations and configuration alike,

@@ -85,6 +85,9 @@ return [
             ['key' => 'modules', 'label' => 'Modules', 'route' => 'admin.extensions.modules', 'icon' => 'modules', 'permission' => null, 'keywords' => ['modules', 'features', 'banners', 'seo', 'stock alerts', 'abandoned carts']],
             ['key' => 'payments', 'label' => 'Payments', 'route' => 'admin.payment-settings.index', 'icon' => 'payments', 'permission' => null, 'keywords' => ['bank transfer', 'cod', 'hitpay', 'gateway', 'restrictions']],
             ['key' => 'shipping', 'label' => 'Shipping', 'route' => 'admin.shipping-settings.index', 'icon' => 'shipping', 'permission' => null, 'keywords' => ['rates', 'flat rate', 'weight', 'free shipping', 'dhl', 'couriers']],
+            // Themes (theme extension manifest, after: shipping) inserts
+            // itself above this one while enabled.
+            ['key' => 'order-totals', 'label' => 'Order Totals', 'route' => 'admin.extensions.order-totals', 'icon' => 'coupons', 'permission' => null, 'keywords' => ['coupons', 'store credit', 'discounts', 'rewards', 'checkout lines']],
         ],
     ],
     [

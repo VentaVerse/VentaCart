@@ -21,6 +21,12 @@ Route::prefix('extensions')->group(function () {
     // The Modules category (literal, so it must never collide with an
     // extension mount: 'modules' is a reserved extension name).
     Route::get('/modules', [ExtensionsController::class, 'modules'])->name('extensions.modules');
+    // The Order Totals category ('order-totals' is reserved the same way):
+    // the lines between subtotal and total — coupons, store credit,
+    // future rewards/fees. The mandatory arithmetic (subtotal, shipping,
+    // total) is core and deliberately NOT listed here: OpenCart let you
+    // uninstall Sub-Total and break every checkout; Venta does not.
+    Route::get('/order-totals', [ExtensionsController::class, 'orderTotals'])->name('extensions.order-totals');
     Route::post('/{name}/install', [ExtensionsController::class, 'install'])->name('extensions.install');
     Route::post('/{name}/enable', [ExtensionsController::class, 'enable'])->name('extensions.enable');
     Route::post('/{name}/disable', [ExtensionsController::class, 'disable'])->name('extensions.disable');

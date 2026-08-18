@@ -59,6 +59,21 @@ class ExtensionsController extends Controller
         ]);
     }
 
+    /**
+     * The Order Totals category: everything that adds a line between
+     * subtotal and total (coupons, store credit, future rewards/fees).
+     * The mandatory arithmetic itself is core, never a row here.
+     */
+    public function orderTotals()
+    {
+        return view('admin.extensions.index', [
+            'modules' => $this->cards()->filter(fn (array $m) => $m['category'] === 'Order Totals')->values(),
+            'heading' => 'Order Totals',
+            'standing' => 'The lines between subtotal and total at checkout, and their switches.',
+            'showCategory' => false,
+        ]);
+    }
+
     private function cards(): \Illuminate\Support\Collection
     {
         // One list: every packaged feature is an extension now (the last
