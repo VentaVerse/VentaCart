@@ -610,6 +610,11 @@
                                 <td>
                                     @if ($item)
                                         @php($itemImage = $item->image ?? $item->product?->image)
+                                        {{-- The SKU captured on the line already resolves to the
+                                             variant's own code when the buyer picked one, so one
+                                             field answers "which exact thing" for both cases. --}}
+                                        @php($itemSku = trim((string) $item->sku))
+                                        @php($itemVariant = trim((string) $item->variant_label))
                                         <span class="v-namerow v-fulfilitem">
                                             @if ($itemImage)
                                                 <img src="{{ storage_url($itemImage) }}" alt="" class="v-thumb">
@@ -618,13 +623,26 @@
                                             @endif
                                             <span>
                                                 {{ $item->name ?: 'Unnamed product' }}
-                                                @if (trim((string) $item->sku) !== '' || trim((string) $item->variant_label) !== '')
+                                                {{-- Identifier first, then the variation, each named
+                                                     rather than left to be inferred from its
+                                                     typeface. The rule between them only appears
+                                                     when there are two facts to separate. --}}
+                                                @if ($itemSku !== '' || $itemVariant !== '')
                                                     <span class="v-fulfilitem__meta">
-                                                        @if (trim((string) $item->variant_label) !== '')
-                                                            <span class="v-variant">{{ $item->variant_label }}</span>
+                                                        @if ($itemSku !== '')
+                                                            <span class="v-metafact">
+                                                                <span class="v-metakey">SKU:</span>
+                                                                <span class="v-mono v-cell-quiet">{{ $itemSku }}</span>
+                                                            </span>
                                                         @endif
-                                                        @if (trim((string) $item->sku) !== '')
-                                                            <span class="v-cell-quiet v-mono">{{ $item->sku }}</span>
+                                                        @if ($itemSku !== '' && $itemVariant !== '')
+                                                            <span class="v-metasep" aria-hidden="true">|</span>
+                                                        @endif
+                                                        @if ($itemVariant !== '')
+                                                            <span class="v-metafact">
+                                                                <span class="v-metakey">Variant:</span>
+                                                                <span class="v-variant">{{ $itemVariant }}</span>
+                                                            </span>
                                                         @endif
                                                     </span>
                                                 @endif

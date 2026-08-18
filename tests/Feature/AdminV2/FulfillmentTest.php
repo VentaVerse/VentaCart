@@ -952,6 +952,43 @@ class FulfillmentTest extends TestCase
     }
 
     /**
+     * Owner ruling 2026-08-19: the picking row names both facts behind
+     * their own keys, identifier first — "SKU: X | Variant: Y" — with the
+     * rule between them present only when there are two facts to separate.
+     */
+    public function test_the_picking_row_labels_the_sku_and_the_variation(): void
+    {
+        $this->installExtension();
+        $this->actingAs(User::factory()->create());
+
+        $order = $this->makeBookableOrder();
+        $product = Product::create(['store_id' => 1, 'name' => 'Patch Cable', 'slug' => 'patch-cable', 'price' => 500]);
+
+        OrderProduct::create([
+            'order_id' => $order->id, 'product_id' => $product->id,
+            'name' => 'Patch Cable', 'sku' => 'QB-SL-10', 'variant_label' => '10 Ft',
+            'price' => 500, 'quantity' => 1, 'total' => 500,
+        ]);
+        // A line with no variation must not render a dangling separator.
+        OrderProduct::create([
+            'order_id' => $order->id, 'product_id' => $product->id,
+            'name' => 'Plain Pedal', 'sku' => 'VALETON-GP5',
+            'price' => 500, 'quantity' => 1, 'total' => 500,
+        ]);
+
+        $html = $this->get($this->queueUrl())->assertOk()->getContent();
+
+        $this->assertStringContainsString('SKU:', $html);
+        $this->assertStringContainsString('Variant:', $html);
+        $this->assertStringContainsString('QB-SL-10', $html);
+        // The variation keeps its chip; the key sits beside it, not inside.
+        $this->assertStringContainsString('v-variant', $html);
+
+        // One separator for the one line that carries both facts.
+        $this->assertSame(1, substr_count($html, 'v-metasep'));
+    }
+
+    /**
      * Owner ruling 2026-08-19: step 2 always names where the parcel leaves
      * from, for every courier, even when the store keeps a single pickup
      * address (it used to render only with two or more, so most stores
