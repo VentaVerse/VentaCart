@@ -25,6 +25,7 @@ class ExtensionCard
         'shipping' => 'Shipping',
         'payment' => 'Payments',
         'theme' => 'Themes',
+        'total' => 'Order Totals',
     ];
 
     public static function for(array $manifest, ExtensionManager $manager): array

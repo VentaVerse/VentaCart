@@ -69,6 +69,7 @@ To convert from app/:
 | reviews | DONE: all three surfaces (admin, storefront token page, ERP push), review:send, v3 page rebuild folded in, guarded rating aggregates | 3 |
 | blog | DONE: admin + storefront, both nav items via manifest, SEO extension's blog arm guarded cross-extension | 3 |
 | erp-sync | DONE (wave 3 closes): the four push controllers + api/v1 group; DEVIATION: token, erp.auth, sync logs, shared traits stay core as shared API framework (reviews' endpoint rides it) | 3 |
+| coupons | DONE (order-totals wave): first 'total'-type extension. Core gained the OrderTotals pipeline (app/Services/OrderTotals: registry + TotalsContext + provider contract, orders.total_lines column); CheckoutService's inline coupon block replaced by the pipeline; provider validates WITHOUT shipping (fixes the free-shipping double discount) and confirm() burns usage + clears the cart code inside the placement transaction. Marketing nav is now entirely manifest-fed (coupons + seo pointers). Order-form validate endpoint moved with it (admin.orders.validate-coupon frozen, form box Route::has-guarded). | 4 |
 
 ## Wave 0: the mechanism (prerequisite for everything)
 

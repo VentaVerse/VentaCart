@@ -460,32 +460,9 @@ class OrderController extends Controller
             ->with('success', 'Tracking information updated.');
     }
 
-    public function validateCoupon(Request $request)
-    {
-        $request->validate(['code' => 'required|string', 'subtotal' => 'required|numeric']);
-
-        $code = $request->input('code');
-        $subtotal = (float) $request->input('subtotal');
-        $shippingCost = (float) $request->input('shipping_cost', 0);
-        $customerId = $request->input('customer_id');
-
-        $customer = $customerId ? Customer::find($customerId) : null;
-
-        $couponService = app(\App\Services\CouponService::class);
-        $result = $couponService->validate($code, $customer, collect(), $subtotal, $shippingCost);
-
-        if ($result->success) {
-            return response()->json([
-                'success' => true,
-                'coupon_code' => $result->coupon->code,
-                'discount' => $result->discount,
-                'free_shipping' => $result->freeShipping,
-                'message' => $result->message,
-            ]);
-        }
-
-        return response()->json(['success' => false, 'message' => $result->message], 422);
-    }
+    // validateCoupon moved to the coupons extension (route name
+    // admin.orders.validate-coupon frozen; the order form's coupon box
+    // renders only while that route exists).
 
     public function searchProducts(Request $request)
     {

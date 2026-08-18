@@ -67,9 +67,10 @@ return [
         'label' => 'Marketing',
         'icon' => 'coupons',
         'segment' => 'marketing',
-        'items' => [
-            ['key' => 'coupons', 'label' => 'Coupons', 'route' => 'admin.coupons.index', 'icon' => 'coupons', 'permission' => null, 'keywords' => ['discount', 'promo', 'voucher']],
-        ],
+        // Entirely manifest-fed: Coupons and SEO contribute pointers in
+        // via their extension.json admin_nav. groups() drops the group
+        // when nothing is enabled.
+        'items' => [],
     ],
     [
         'label' => 'Extensions',

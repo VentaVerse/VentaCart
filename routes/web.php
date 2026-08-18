@@ -12,7 +12,6 @@ use App\Http\Controllers\Storefront\AccountController;
 use App\Http\Controllers\Storefront\AccountAddressController;
 use App\Http\Controllers\Storefront\OrderHistoryController;
 use App\Http\Controllers\Storefront\CheckoutController as StorefrontCheckoutController;
-use App\Http\Controllers\Storefront\CouponController as StorefrontCouponController;
 use App\Http\Controllers\Storefront\AddressLookupController as StorefrontAddressLookupController;
 use App\Http\Controllers\Storefront\DeepAddressLookupController;
 use App\Http\Controllers\Storefront\BrandController as StorefrontBrandController;
@@ -55,8 +54,8 @@ Route::middleware(['customer.auth', 'noindex'])->group(function () {
     Route::post('/checkout/place', [StorefrontCheckoutController::class, 'placeOrder'])->name('checkout.place');
     Route::get('/checkout/confirmation/{order}', [StorefrontCheckoutController::class, 'confirmation'])->name('checkout.confirmation');
     Route::get('/checkout/hitpay/return', [StorefrontCheckoutController::class, 'hitpayReturn'])->name('checkout.hitpay.return');
-    Route::post('/checkout/coupon/apply', [StorefrontCouponController::class, 'apply'])->name('checkout.coupon.apply');
-    Route::delete('/checkout/coupon/remove', [StorefrontCouponController::class, 'remove'])->name('checkout.coupon.remove');
+    // Coupon apply/remove moved to the coupons extension
+    // (extensions/coupons/routes/web.php). URIs frozen.
 });
 
 // Customer Auth (public)

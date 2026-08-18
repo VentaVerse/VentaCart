@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Services;
+namespace Extensions\Coupons\Services;
 
 use App\Models\Cart;
-use App\Models\Coupon;
-use App\Models\CouponUsage;
+use Extensions\Coupons\Models\Coupon;
+use Extensions\Coupons\Models\CouponUsage;
 use App\Models\Customer;
 use App\Models\Order;
 use Illuminate\Support\Collection;

@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services;
+namespace Extensions\Coupons\Services;
 
-use App\Models\Coupon;
+use Extensions\Coupons\Models\Coupon;
 
 class CouponResult
 {

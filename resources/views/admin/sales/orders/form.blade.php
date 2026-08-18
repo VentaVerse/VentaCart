@@ -502,6 +502,11 @@
                                     </table>
                                 </div>
 
+                                {{-- Coupon entry renders only while the coupons extension
+                                     is enabled (its route carries the apply endpoint). An
+                                     existing order's stored discount still shows in the
+                                     summary below either way. --}}
+                                @if (Route::has('admin.orders.validate-coupon'))
                                 <div class="v3-well">
                                     <span class="v3-field__label">Coupon code</span>
                                     <input type="hidden" name="coupon_code" :value="couponCode">
@@ -524,6 +529,7 @@
                                         </span>
                                     </template>
                                 </div>
+                                @endif
 
                                 <div class="v3-sumbox">
                                     <dl class="v3-facts">
@@ -996,7 +1002,7 @@
                     this.couponError = '';
                     try {
                         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-                        const res = await fetch('{{ route("admin.orders.validate-coupon") }}', {
+                        const res = await fetch('{{ Route::has("admin.orders.validate-coupon") ? route("admin.orders.validate-coupon") : "" }}', {
                             method: 'POST',
                             headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json' },
                             body: JSON.stringify({

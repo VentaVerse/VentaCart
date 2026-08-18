@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Storefront;
+namespace Extensions\Coupons\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Services\CartService;
-use App\Services\CouponService;
+use Extensions\Coupons\Services\CouponService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class CouponController extends Controller
+class StorefrontCouponController extends Controller
 {
     public function __construct(
         private CartService $cartService,

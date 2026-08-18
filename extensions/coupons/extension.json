@@ -1,0 +1,20 @@
+{
+    "name": "coupons",
+    "title": "Coupons",
+    "version": "1.0.0",
+    "description": "Discount codes: percent, fixed, and free-shipping coupons with restrictions and usage limits.",
+    "provider": "Extensions\\Coupons\\CouponsServiceProvider",
+    "icon": "coupons",
+    "type": "total",
+    "configure_route": "admin.coupons.index",
+    "admin_nav": [
+        {
+            "group": "Marketing",
+            "key": "coupons",
+            "label": "Coupons",
+            "route": "admin.coupons.index",
+            "icon": "coupons",
+            "keywords": ["discount", "promo", "voucher"]
+        }
+    ]
+}

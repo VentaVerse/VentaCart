@@ -7,16 +7,15 @@ use App\Models\Country;
 use App\Models\CustomerAddress;
 use App\Services\CartService;
 use App\Services\CheckoutService;
-use App\Services\CouponService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 class CheckoutController extends Controller
 {
     public function __construct(
         private CartService $cartService,
         private CheckoutService $checkoutService,
-        private CouponService $couponService,
     ) {}
 
     public function index()
@@ -64,10 +63,13 @@ class CheckoutController extends Controller
         $couponFreeShipping = false;
         $couponError = null;
 
+        // Guarded seam into the coupons extension: the apply route only
+        // exists while it is installed and enabled, and a stored code is
+        // inert without it.
         $cart = $this->cartService->findCart();
-        if ($cart && $cart->coupon_code) {
+        if ($cart && $cart->coupon_code && Route::has('checkout.coupon.apply')) {
             $cartItems = $cart->items()->with(['product.categories', 'productVariant'])->get();
-            $couponResult = $this->couponService->validate(
+            $couponResult = app(\Extensions\Coupons\Services\CouponService::class)->validate(
                 $cart->coupon_code,
                 $customer,
                 $cartItems,
@@ -80,7 +82,7 @@ class CheckoutController extends Controller
                 $couponFreeShipping = $couponResult->freeShipping;
             } else {
                 // Coupon no longer valid — clear it from cart
-                $this->couponService->remove($cart);
+                $cart->update(['coupon_code' => null]);
                 $couponError = $couponResult->message;
             }
         }

@@ -9,7 +9,6 @@ Route::prefix('sales')->group(function () {
     Route::get('/orders/search-customers', [OrderController::class, 'searchCustomers'])->name('orders.search-customers');
     Route::post('/orders/available-shipping', [OrderController::class, 'availableShipping'])->name('orders.available-shipping');
     Route::post('/orders/available-payments', [OrderController::class, 'availablePayments'])->name('orders.available-payments');
-    Route::post('/orders/validate-coupon', [OrderController::class, 'validateCoupon'])->name('orders.validate-coupon');
     Route::post('/orders/{order}/history', [OrderController::class, 'addHistory'])->name('orders.history.store');
     Route::delete('/orders/{order}/history/{history}', [OrderController::class, 'deleteHistory'])->name('orders.history.destroy');
     Route::post('/orders/{order}/tracking', [OrderController::class, 'updateTracking'])->name('orders.update-tracking');

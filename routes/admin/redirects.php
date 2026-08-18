@@ -301,6 +301,7 @@ foreach ([
     'sales/reviews' => 'extensions/reviews',
     'sales/fulfillment' => 'extensions/courier-fulfillment',
     'marketing/seo' => 'extensions/seo',
+    'marketing/coupons' => 'extensions/coupons',
     'content/blog-categories' => 'extensions/blog/categories',
     'content/blog' => 'extensions/blog/posts',
 ] as $old => $new) {

@@ -1,7 +1,9 @@
 <?php
 
-namespace App\Models;
+namespace Extensions\Coupons\Models;
 
+use App\Models\Customer;
+use App\Models\Order;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

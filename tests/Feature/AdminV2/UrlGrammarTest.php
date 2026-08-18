@@ -67,11 +67,21 @@ class UrlGrammarTest extends TestCase
         $this->get('/'.$this->prefix().'/content/pages')->assertOk();
     }
 
-    public function test_marketing_page_is_ok_at_new_url(): void
+    public function test_marketing_page_moved_to_coupons_extension_home(): void
     {
+        // Coupons became a total-type extension (order-totals wave): its
+        // one home is extensions/coupons and the old marketing mount
+        // 301s in, path preserved.
         $this->actingAs(User::factory()->create());
 
-        $this->get('/'.$this->prefix().'/marketing/coupons')->assertOk();
+        $manager = app(\App\Services\ExtensionManager::class);
+        $manager->install('coupons');
+        $manager->bootEnabled();
+
+        $this->get('/'.$this->prefix().'/extensions/coupons')->assertOk();
+        $this->get('/'.$this->prefix().'/marketing/coupons')
+            ->assertStatus(301)
+            ->assertRedirectContains('/extensions/coupons');
     }
 
     public function test_settings_page_is_ok_at_new_url(): void

@@ -552,7 +552,8 @@
                         </template>
                     </div>
 
-                    {{-- Coupon --}}
+                    {{-- Coupon (renders only while the coupons extension is enabled) --}}
+                    @if (Illuminate\Support\Facades\Route::has('checkout.coupon.apply'))
                     <div class="mb-3">
                         @if (!empty($couponError))
                             <div class="text-xs text-[var(--color-danger-accent)] mb-2">{{ $couponError }}</div>
@@ -586,6 +587,7 @@
                             </div>
                         </template>
                     </div>
+                    @endif
 
                     <hr class="divider-glow my-4">
 

@@ -12,7 +12,6 @@ use App\Models\OrderStatus;
 use App\Services\PaymentMethods\PaymentMethodInterface;
 use App\Services\PaymentMethods\PaymentResult;
 use App\Services\ActivityLogger;
-use App\Services\CouponService;
 use App\Services\PaymentRestrictionService;
 use App\Mail\OrderConfirmationMail;
 use Illuminate\Support\Facades\DB;
@@ -173,39 +172,22 @@ class CheckoutService
         } else {
             throw new \InvalidArgumentException('Selected shipping method is no longer available. Please go back and select a shipping option.');
         }
-        // Coupon validation & discount
-        $couponDiscount = 0;
-        $couponCode = null;
-        $coupon = null;
-
-        if ($cart->coupon_code) {
-            $couponService = app(CouponService::class);
-            $cartItemsForCoupon = $cart->items()->with(['product.categories', 'productVariant'])->get();
-            $couponResult = $couponService->validate(
-                $cart->coupon_code,
-                $customer,
-                $cartItemsForCoupon,
-                $subtotal,
-                $shippingCost
-            );
-
-            if ($couponResult->success) {
-                $coupon = $couponResult->coupon;
-                $couponCode = $coupon->code;
-                $couponDiscount = $couponResult->discount;
-
-                // If coupon grants free shipping, override shipping cost
-                if ($couponResult->freeShipping) {
-                    $shippingCost = 0;
-                }
-            } else {
-                // Coupon no longer valid — clear silently, proceed without discount
-                $cart->update(['coupon_code' => null]);
-            }
-        }
-
-        $total = $subtotal + $shippingCost - $couponDiscount;
-        $total = max(0, $total);
+        // Order totals pipeline: every registered total extension
+        // (coupon, store credit, ...) contributes its lines against this
+        // context; a provider may also adjust the shipping cost (a
+        // free-shipping coupon zeroes it). The mandatory arithmetic —
+        // subtotal + shipping + lines, floored at zero — is
+        // TotalsContext::total(), core and not disableable.
+        $totalsCtx = \App\Services\OrderTotals\OrderTotals::collect(new \App\Services\OrderTotals\TotalsContext(
+            $customer,
+            $items,
+            $subtotal,
+            $shippingCost,
+            ['cart' => $cart],
+        ));
+        $shippingCost = $totalsCtx->shippingCost;
+        $total = $totalsCtx->total();
+        $couponLine = $totalsCtx->line('coupon');
 
         // Build shipping meta from the matched provider
         $shippingMeta = null;
@@ -236,7 +218,7 @@ class CheckoutService
         $order = DB::transaction(function () use (
             $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,
             $shippingMethod, $shippingMethodKey, $shippingMethodName, $shippingMeta, $items, $subtotal, $shippingCost, $total,
-            $comment, $cart, $coupon, $couponCode, $couponDiscount
+            $comment, $cart, $totalsCtx, $couponLine, $courierComment
         ) {
             $orderData = [
                 'store_id' => $this->storeId,
@@ -264,8 +246,9 @@ class CheckoutService
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'total' => $total,
-                'coupon_code' => $couponCode,
-                'coupon_discount' => $couponDiscount,
+                'total_lines' => $totalsCtx->lines,
+                'coupon_code' => $couponLine['extras']['code'] ?? null,
+                'coupon_discount' => $couponLine ? -$couponLine['amount'] : 0,
                 'comment' => $comment,
                 'courier_comment' => $courierComment,
             ];
@@ -303,18 +286,12 @@ class CheckoutService
                 ]);
             }
 
-            // Record coupon redemption
-            if ($coupon && $couponDiscount > 0) {
-                app(CouponService::class)->redeem($coupon, $customer, $order, $couponDiscount);
-            }
+            // Each contributed line's side effects (burn the coupon use,
+            // deduct the credit) run here, inside the transaction.
+            \App\Services\OrderTotals\OrderTotals::confirm($order, $totalsCtx->lines);
 
             return $order;
         });
-
-        // Clear coupon from cart after successful order creation
-        if ($couponCode) {
-            $cart->update(['coupon_code' => null]);
-        }
 
         $paymentResult = $paymentMethod->processPayment($order);
 

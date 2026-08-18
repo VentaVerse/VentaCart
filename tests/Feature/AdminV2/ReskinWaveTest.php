@@ -13,7 +13,7 @@ use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Category;
-use App\Models\Coupon;
+use Extensions\Coupons\Models\Coupon;
 use App\Models\Country;
 use App\Models\Customer;
 use App\Models\CustomerActivity;
@@ -627,7 +627,7 @@ class ReskinWaveTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
         $manager = app(\App\Services\ExtensionManager::class);
-        foreach (['shipping-flat-rate', 'shipping-weight-based', 'shipping-free', 'payment-bank-transfer', 'payment-hitpay', 'payment-cod'] as $name) {
+        foreach (['shipping-flat-rate', 'shipping-weight-based', 'shipping-free', 'payment-bank-transfer', 'payment-hitpay', 'payment-cod', 'coupons'] as $name) {
             $manager->install($name);
         }
         $manager->bootEnabled();
@@ -710,6 +710,9 @@ class ReskinWaveTest extends TestCase
     public function test_coupon_update_round_trip_syncs_restrictions_and_toggles(): void
     {
         $this->actingAs(User::factory()->create());
+        $manager = app(\App\Services\ExtensionManager::class);
+        $manager->install('coupons');
+        $manager->bootEnabled();
 
         $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);
         $product = Product::create(['store_id' => 1, 'name' => 'Distortion Pedal', 'slug' => 'distortion-pedal', 'price' => 1000]);

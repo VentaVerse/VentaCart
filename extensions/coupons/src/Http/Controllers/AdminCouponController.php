@@ -1,17 +1,51 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Marketing;
+namespace Extensions\Coupons\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Admin\CouponRequest;
-use App\Models\Coupon;
-use App\Models\CouponRestriction;
+use Extensions\Coupons\Http\Requests\CouponRequest;
+use Extensions\Coupons\Models\Coupon;
+use Extensions\Coupons\Models\CouponRestriction;
 use App\Models\CustomerGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class CouponController extends Controller
+class AdminCouponController extends Controller
 {
+    /**
+     * The admin order form's coupon check (moved here with the endpoint
+     * it serves; route name admin.orders.validate-coupon is frozen).
+     * Validated WITHOUT the shipping cost for the same reason as the
+     * storefront path: free shipping zeroes the shipping line, it is
+     * not part of the discount amount.
+     */
+    public function validateForOrder(Request $request)
+    {
+        $request->validate(['code' => 'required|string', 'subtotal' => 'required|numeric']);
+
+        $customerId = $request->input('customer_id');
+        $customer = $customerId ? \App\Models\Customer::find($customerId) : null;
+
+        $result = app(\Extensions\Coupons\Services\CouponService::class)->validate(
+            $request->input('code'),
+            $customer,
+            collect(),
+            (float) $request->input('subtotal')
+        );
+
+        if ($result->success) {
+            return response()->json([
+                'success' => true,
+                'coupon_code' => $result->coupon->code,
+                'discount' => $result->discount,
+                'free_shipping' => $result->freeShipping,
+                'message' => $result->message,
+            ]);
+        }
+
+        return response()->json(['success' => false, 'message' => $result->message], 422);
+    }
+
     public function index(Request $request)
     {
         $query = Coupon::query();
@@ -41,14 +75,14 @@ class CouponController extends Controller
 
         $coupons = $query->orderByDesc('created_at')->paginate(25)->withQueryString();
 
-        return view('admin.marketing.coupons.index', compact('coupons'));
+        return view('coupons::index', compact('coupons'));
     }
 
     public function create()
     {
         $customerGroups = CustomerGroup::orderBy('name')->get();
 
-        return view('admin.marketing.coupons.form', [
+        return view('coupons::form', [
             'coupon' => null,
             'customerGroups' => $customerGroups,
             'restrictions' => ['product' => [], 'category' => [], 'brand' => []],  // Arrays of {id, label} objects
@@ -90,7 +124,7 @@ class CouponController extends Controller
                 ->map(fn($b) => ['id' => $b->id, 'label' => $b->name])->values()->toArray(),
         ];
 
-        return view('admin.marketing.coupons.form', compact('coupon', 'customerGroups', 'restrictions'));
+        return view('coupons::form', compact('coupon', 'customerGroups', 'restrictions'));
     }
 
     public function update(CouponRequest $request, Coupon $coupon)
