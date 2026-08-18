@@ -17,7 +17,7 @@
     // list underneath carries only what the band did not.
     $work = $hasTraded ? ($workRemaining ?? []) : $workLines;
 @endphp
-<x-admin.shell title="Today">
+<x-admin3.shell title="Today">
     <x-admin.page class="v-day v-settle" :title="$sheetDate->format('l, j F Y')" :standing="$standing">
         <!--
 IMPECCABLE DIRECTION CONTRACT
@@ -501,4 +501,4 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             </div>
         @endif
     </x-admin.page>
-</x-admin.shell>
+</x-admin3.shell>

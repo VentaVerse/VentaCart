@@ -413,6 +413,30 @@ Tailwind view whose classes are dead in the admin3 shell. And
 a nowrap table action cell wraps its message (the queue's regression
 test pins this at the component level now).
 
-Every page inside Settings now renders on the v3 shell. Outside
-Settings, reviews, api-sync-logs, and profile edit still carry the
-v2 shell until their areas migrate.
+- Customers (index, groups, and the customer form as one doctrine
+  form spanning General / Addresses / Activity tabs; the address
+  cascades hydrate fully and rebaseline; the store-credit panel rides
+  along in v3 dress).
+- Content: Pages (TinyMCE wired to the doctrine), the blog extension
+  (posts, categories, the featured-image browser on the v3 media
+  modal), and the coupons work pages (list + form with v3-combo
+  restriction pickers).
+- Catalog, the closing wave: products index and the six-tab product
+  form as one doctrine form (brand combo, variant matrix and specials
+  as v3 tables that touch() the bar, combination rebuilds
+  rebaseline), categories as a nested v3-dragrow list whose reorder
+  toasts its verdict, brands, tags, and the media manager. The shared
+  image picker and the product image manager re-shipped as v3
+  partials (v3_single_image_picker, v3_image_manager) with new
+  tokens: v3-mediagrid, v3-imgpreview, v3-imgcard, v3-tilewrap /
+  v3-tileacts, v3-dropwrap / v3-dropzone, v3-dragnest, v3-tilemark,
+  and control-level is-invalid.
+- The day sheet (dashboard): its owner-approved composition kept
+  whole (it already speaks the Blotter identity) and mounted on the
+  v3 shell; the ui-kit specimen page likewise.
+
+The v2-to-v3 shell conversion is COMPLETE: no admin page renders
+x-admin.shell directly anymore. The classic chrome and the v2
+primitive layer (x-admin.page, figure, money, panel, table) survive
+as the shared chrome and the day sheet's vocabulary, both rendered
+inside the one v3 ground.

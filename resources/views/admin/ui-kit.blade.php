@@ -20,7 +20,7 @@
     $longCustomer = 'Ma. Cristina Bernadette Villanueva-Santos de los Reyes';
     $money = ['mark' => '₱', 'amount' => '148,392,207.55'];
 @endphp
-<x-admin.shell title="UI Kit">
+<x-admin3.shell title="UI Kit">
     {{-- The kit's own head IS the primitive: x-admin.page, with the trail
          it derives from the path, the title, the standing line and the
          action set. There is one page head in the admin and this is it,
@@ -400,7 +400,7 @@
                         <x-admin.radio-group name="demo_mode" :options="['sale' => 'Sale price (strikethrough)', 'override' => 'Override (clean replacement)']" value="sale" />
                         <x-admin.form-actions>
                             <x-admin.button variant="secondary">Cancel</x-admin.button>
-                            <x-admin.button variant="primary" type="submit">Save changes</x-admin.button>
+                            <x-admin.button variant="primary" type="submit">Save</x-admin.button>
                         </x-admin.form-actions>
                     </form>
                 </x-admin.panel>
@@ -1063,4 +1063,4 @@
             </div>
         </div>
     </x-admin.page>
-</x-admin.shell>
+</x-admin3.shell>

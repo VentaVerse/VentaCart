@@ -24,8 +24,10 @@ class PartialsDesignSystemTest extends TestCase
         $base = resource_path('views/admin');
 
         return [
-            'image_manager' => $base . '/catalog/products/partials/image_manager.blade.php',
-            'single_image_picker' => $base . '/partials/single_image_picker.blade.php',
+            // The catalog v3 wave replaced the v2 image partials wholesale;
+            // the same design-system rules now guard their v3 successors.
+            'image_manager' => $base . '/catalog/products/partials/v3_image_manager.blade.php',
+            'single_image_picker' => $base . '/partials/v3_single_image_picker.blade.php',
             'dual-listbox' => $base . '/partials/dual-listbox.blade.php',
             'availability' => $base . '/settings/payments/partials/availability.blade.php',
         ];
