@@ -1,9 +1,13 @@
-<x-admin.shell title="My Profile">
-    <x-admin.page title="My Profile" :breadcrumb="[['label' => 'My Profile']]">
-        <div class="max-w-2xl space-y-6">
-            @include('profile.partials.update-profile-information-form')
-            @include('profile.partials.update-password-form')
-            @include('profile.partials.delete-user-form')
+<x-admin3.shell title="My Profile">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">My Profile</h1>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+
+    <div class="v3-settle">
+        @include('profile.partials.update-profile-information-form')
+        @include('profile.partials.update-password-form')
+        @include('profile.partials.delete-user-form')
+    </div>
+</x-admin3.shell>

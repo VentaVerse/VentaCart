@@ -1,27 +1,16 @@
-<x-admin.card title="Profile Information">
-    <form method="post" action="{{ route('admin.profile.update') }}" data-v-form class="space-y-5">
-        @csrf
-        @method('patch')
-
-        <x-admin.field name="name" label="Name" required>
-            <x-admin.input name="name" :value="$user->name" required autofocus autocomplete="name" />
-        </x-admin.field>
-
-        <x-admin.field name="email" label="Email" required>
-            <x-admin.input name="email" type="email" :value="$user->email" required autocomplete="username" />
-        </x-admin.field>
-
-        <x-admin.form-actions>
-            @if (session('status') === 'profile-updated')
-                <p
-                    x-data="{ show: true }"
-                    x-show="show"
-                    x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
-                    class="text-[13px] text-v-muted"
-                >Saved.</p>
-            @endif
-            <x-admin.button type="submit">Save</x-admin.button>
-        </x-admin.form-actions>
-    </form>
-</x-admin.card>
+<x-admin3.form :action="route('admin.profile.update')" method="PATCH">
+    <x-admin3.panel title="Profile Information">
+        <div class="v3-grid v3-grid--2">
+            <x-admin3.field name="name" label="Name" required>
+                <input type="text" name="name" required autocomplete="name" class="v3-control" value="{{ old('name', $user->name) }}">
+            </x-admin3.field>
+            <x-admin3.field name="email" label="Email" required>
+                <input type="email" name="email" required autocomplete="username" class="v3-control" value="{{ old('email', $user->email) }}">
+            </x-admin3.field>
+        </div>
+        @if (session('status') === 'profile-updated')
+            <p class="v3-cell-quiet v3-gap-sm" x-data="{ show: true }" x-show="show" x-transition
+               x-init="setTimeout(() => show = false, 2000)" role="status">Saved.</p>
+        @endif
+    </x-admin3.panel>
+</x-admin3.form>

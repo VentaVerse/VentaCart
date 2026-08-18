@@ -1,87 +1,101 @@
-{{--
-    active="api" is an explicit override, not auto-derived: this page's own
-    URL segment is 'api-logs' (settings/api-logs), a sibling of — not nested
-    under — the 'API & Sync' settings-nav card (settings/api). URL-prefix
-    matching can't infer that relationship, so it's pinned here.
---}}
-<x-admin.settings-shell active="api" title="API Sync Logs">
-        <div class="mb-5">
-            <x-admin.filters method="GET">
-                <x-admin.field name="method" label="Method">
-                    <x-admin.select name="method">
-                        <option value="">All</option>
-                        @foreach (['GET', 'POST', 'PUT', 'DELETE'] as $m)
-                            <option value="{{ $m }}" {{ request('method') === $m ? 'selected' : '' }}>{{ $m }}</option>
-                        @endforeach
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.field name="status" label="Status">
-                    <x-admin.select name="status">
-                        <option value="">All</option>
-                        @foreach ([200, 201, 401, 404, 422, 500] as $s)
-                            <option value="{{ $s }}" {{ request('status') == $s ? 'selected' : '' }}>{{ $s }}</option>
-                        @endforeach
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.field name="search" label="Search">
-                    <x-admin.input name="search" :value="request('search')" placeholder="Endpoint or SKU..." class="w-48" />
-                </x-admin.field>
-                <x-admin.button type="submit" variant="secondary">Filter</x-admin.button>
-                @if (request()->hasAny(['method', 'status', 'search']))
-                    <a href="{{ route('admin.api-sync-logs.index') }}" class="v-filters__reset">Clear</a>
-                @endif
-                <x-admin.button variant="ghost" class="v-rowactions__danger ml-auto" type="button"
-                    @click="$dispatch('open-modal', 'destroy-all-logs')">Delete all logs</x-admin.button>
-            </x-admin.filters>
+{{-- No settings-nav item claims this page (Settings > API retired with
+     the erp-sync extension move; ERP Sync's own settings page links
+     here), so nothing in the rail is lit. --}}
+<x-admin3.settings-shell title="API Sync Logs">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.settings.index') }}">Settings</a>
+                <span aria-hidden="true">/</span>
+                <span>API Sync Logs</span>
+            </div>
+            <h1 class="v3-head__title">API Sync Logs</h1>
         </div>
+        <div class="v3-head__actions">
+            <button type="button" class="v3-btn v3-btn--danger" @click="$dispatch('v3-confirm', 'destroy-all-logs')">Delete all logs</button>
+        </div>
+    </div>
 
-        <x-admin.table>
-            <x-slot:head>
-                <x-admin.table.th>Method</x-admin.table.th>
-                <x-admin.table.th>Endpoint</x-admin.table.th>
-                <x-admin.table.th>SKU</x-admin.table.th>
-                <x-admin.table.th>Status</x-admin.table.th>
-                <x-admin.table.th>Time</x-admin.table.th>
-                <x-admin.table.th>IP</x-admin.table.th>
-                <x-admin.table.th>Date</x-admin.table.th>
-            </x-slot:head>
-            @forelse ($logs as $log)
-                @php
-                    $methodTone = match ($log->method) {
-                        'GET' => 'success',
-                        'POST' => 'info',
-                        'PUT' => 'warning',
-                        'DELETE' => 'danger',
-                        default => 'neutral',
-                    };
-                    $statusTone = match (true) {
-                        $log->status_code >= 500 => 'danger',
-                        $log->status_code >= 400 => 'warning',
-                        $log->status_code >= 200 && $log->status_code < 300 => 'success',
-                        default => 'neutral',
-                    };
-                @endphp
-                <x-admin.table.row>
-                    <x-admin.table.cell><x-admin.badge :tone="$methodTone">{{ $log->method }}</x-admin.badge></x-admin.table.cell>
-                    <x-admin.table.cell class="v-num text-xs text-v-text">{{ $log->endpoint }}</x-admin.table.cell>
-                    <x-admin.table.cell class="v-num text-xs text-v-secondary">{{ $log->sku ?? '-' }}</x-admin.table.cell>
-                    <x-admin.table.cell><x-admin.badge :tone="$statusTone">{{ $log->status_code }}</x-admin.badge></x-admin.table.cell>
-                    <x-admin.table.cell class="text-v-secondary">{{ $log->response_time_ms }}ms</x-admin.table.cell>
-                    <x-admin.table.cell class="v-num text-xs text-v-muted">{{ $log->ip_address }}</x-admin.table.cell>
-                    <x-admin.table.cell class="text-v-secondary whitespace-nowrap">{{ $log->created_at?->format('M d, Y H:i:s') }}</x-admin.table.cell>
-                </x-admin.table.row>
-            @empty
-                <tr><td colspan="7"><x-admin.empty-state title="No API logs found" /></td></tr>
-            @endforelse
+    <div class="v3-settle">
+        <form method="GET" action="{{ route('admin.api-sync-logs.index') }}" class="v3-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Endpoint or SKU…"
+                   aria-label="Search logs" class="v3-control v3-filterbar__grow">
+            <select name="method" aria-label="Filter by method" class="v3-control v3-w-name">
+                <option value="">All methods</option>
+                @foreach (['GET', 'POST', 'PUT', 'DELETE'] as $m)
+                    <option value="{{ $m }}" @selected(request('method') === $m)>{{ $m }}</option>
+                @endforeach
+            </select>
+            <select name="status" aria-label="Filter by status" class="v3-control v3-w-name">
+                <option value="">All statuses</option>
+                @foreach ([200, 201, 401, 404, 422, 500] as $s)
+                    <option value="{{ $s }}" @selected(request('status') == $s)>{{ $s }}</option>
+                @endforeach
+            </select>
+            <button type="submit" class="v3-btn v3-btn--secondary">Filter</button>
+            @if (request()->hasAny(['method', 'status', 'search']))
+                <a href="{{ route('admin.api-sync-logs.index') }}" class="v3-link">Clear</a>
+            @endif
+        </form>
 
-            <x-slot:footer>
-                @if ($logs->hasPages())
-                    {{ $logs->links() }}
-                @endif
-            </x-slot:footer>
-        </x-admin.table>
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>SKU</th>
+                            <th>Status</th>
+                            <th class="v3-cell-num">Time</th>
+                            <th>IP</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($logs as $log)
+                            @php
+                                $methodTone = match ($log->method) {
+                                    'GET' => 'good',
+                                    'POST' => 'info',
+                                    'PUT' => 'warn',
+                                    'DELETE' => 'bad',
+                                    default => 'quiet',
+                                };
+                                $statusTone = match (true) {
+                                    $log->status_code >= 500 => 'bad',
+                                    $log->status_code >= 400 => 'warn',
+                                    $log->status_code >= 200 && $log->status_code < 300 => 'good',
+                                    default => 'quiet',
+                                };
+                            @endphp
+                            <tr>
+                                <td><span class="v3-badge v3-badge--{{ $methodTone }}">{{ $log->method }}</span></td>
+                                <td class="v3-mono">{{ $log->endpoint }}</td>
+                                <td class="v3-mono v3-cell-quiet">{{ $log->sku ?? '-' }}</td>
+                                <td><span class="v3-badge v3-badge--{{ $statusTone }}">{{ $log->status_code }}</span></td>
+                                <td class="v3-cell-num v3-mono">{{ $log->response_time_ms }}ms</td>
+                                <td class="v3-mono v3-cell-quiet">{{ $log->ip_address }}</td>
+                                <td class="v3-cell-quiet">{{ $log->created_at?->format('M d, Y H:i:s') }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No API logs found</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
 
-        <x-admin.confirm-dialog name="destroy-all-logs" title="Delete all API sync logs?"
-            message="Delete ALL API sync logs? This cannot be undone." confirm="Delete All"
+        <x-admin3.pager :paginator="$logs" />
+
+        <x-admin3.confirm name="destroy-all-logs" title="Delete all API sync logs?"
+            message="Delete ALL API sync logs? This cannot be undone." confirm="Delete all"
             :action="route('admin.api-sync-logs.destroy-all')" method="DELETE" />
-</x-admin.settings-shell>
+    </div>
+</x-admin3.settings-shell>

@@ -1,40 +1,34 @@
-<x-admin.card title="Update Password">
-    <form method="post" action="{{ route('password.update') }}" data-v-form class="space-y-5">
-        @csrf
-        @method('put')
-
-        <x-admin.field name="current_password" label="Current Password" required>
-            <x-admin.input name="current_password" type="password" autocomplete="current-password" />
-            @error('current_password', 'updatePassword')
-                <p class="text-xs text-v-danger">{{ $message }}</p>
-            @enderror
-        </x-admin.field>
-
-        <x-admin.field name="password" label="New Password" required>
-            <x-admin.input name="password" type="password" autocomplete="new-password" />
-            @error('password', 'updatePassword')
-                <p class="text-xs text-v-danger">{{ $message }}</p>
-            @enderror
-        </x-admin.field>
-
-        <x-admin.field name="password_confirmation" label="Confirm Password" required>
-            <x-admin.input name="password_confirmation" type="password" autocomplete="new-password" />
-            @error('password_confirmation', 'updatePassword')
-                <p class="text-xs text-v-danger">{{ $message }}</p>
-            @enderror
-        </x-admin.field>
-
-        <x-admin.form-actions>
-            @if (session('status') === 'password-updated')
-                <p
-                    x-data="{ show: true }"
-                    x-show="show"
-                    x-transition
-                    x-init="setTimeout(() => show = false, 2000)"
-                    class="text-[13px] text-v-muted"
-                >Saved.</p>
-            @endif
-            <x-admin.button type="submit">Save</x-admin.button>
-        </x-admin.form-actions>
-    </form>
-</x-admin.card>
+<x-admin3.form :action="route('password.update')" method="PUT">
+    <x-admin3.panel title="Update Password">
+        <div class="v3-grid v3-grid--2">
+            {{-- Errors ride the updatePassword bag, so the spans are
+                 explicit rather than x-admin3.field's default-bag lookup. --}}
+            <label class="v3-field">
+                <span class="v3-field__label">Current password <span class="v3-req">Required</span></span>
+                <input type="password" name="current_password" autocomplete="current-password" class="v3-control">
+                @error('current_password', 'updatePassword')
+                    <span class="v3-field__error">{{ $message }}</span>
+                @enderror
+            </label>
+            <span></span>
+            <label class="v3-field">
+                <span class="v3-field__label">New password <span class="v3-req">Required</span></span>
+                <input type="password" name="password" autocomplete="new-password" class="v3-control">
+                @error('password', 'updatePassword')
+                    <span class="v3-field__error">{{ $message }}</span>
+                @enderror
+            </label>
+            <label class="v3-field">
+                <span class="v3-field__label">Confirm password <span class="v3-req">Required</span></span>
+                <input type="password" name="password_confirmation" autocomplete="new-password" class="v3-control">
+                @error('password_confirmation', 'updatePassword')
+                    <span class="v3-field__error">{{ $message }}</span>
+                @enderror
+            </label>
+        </div>
+        @if (session('status') === 'password-updated')
+            <p class="v3-cell-quiet v3-gap-sm" x-data="{ show: true }" x-show="show" x-transition
+               x-init="setTimeout(() => show = false, 2000)" role="status">Saved.</p>
+        @endif
+    </x-admin3.panel>
+</x-admin3.form>
