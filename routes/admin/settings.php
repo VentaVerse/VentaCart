@@ -97,6 +97,7 @@ Route::prefix('settings')->group(function () {
     // User Groups (OpenCart-style: each group carries its own
     // permission config; replaced the all-groups Permissions matrix)
     Route::resource('user-groups', UserGroupController::class)->except(['show']);
+    Route::post('user-groups/{user_group}/duplicate', [UserGroupController::class, 'duplicate'])->name('user-groups.duplicate');
 
     // Theme editor moved to the theme extension
     // (extensions/theme/routes/web.php). Site currencies stay core —

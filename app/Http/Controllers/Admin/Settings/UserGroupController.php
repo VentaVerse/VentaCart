@@ -11,6 +11,20 @@ use Illuminate\Support\Str;
 
 class UserGroupController extends Controller
 {
+    /**
+     * Permission groups arranged under the sidebar sections they gate,
+     * so the matrix reads like the nav. Unmapped groups (extensions
+     * registering their own permissions later) fall under Extensions.
+     */
+    private const SECTIONS = [
+        'Overview' => ['dashboard', 'reports'],
+        'Sales' => ['orders'],
+        'Catalog' => ['categories', 'products'],
+        'Customers' => ['customers'],
+        'Extensions' => [],
+        'System' => ['users', 'settings'],
+    ];
+
     public function index()
     {
         $groups = Role::withCount(['users', 'permissions'])->orderBy('name')->get();
@@ -23,7 +37,7 @@ class UserGroupController extends Controller
     {
         return view('admin.settings.users.groups.form', [
             'group' => null,
-            'permissionGroups' => $this->permissionGroups(),
+            'permissionSections' => $this->permissionSections(),
         ]);
     }
 
@@ -51,12 +65,30 @@ class UserGroupController extends Controller
 
     public function edit(Role $userGroup)
     {
-        $userGroup->load('permissions');
+        $userGroup->load('permissions')->loadCount('users');
 
         return view('admin.settings.users.groups.form', [
             'group' => $userGroup,
-            'permissionGroups' => $this->permissionGroups(),
+            'permissionSections' => $this->permissionSections(),
         ]);
+    }
+
+    public function duplicate(Role $userGroup)
+    {
+        $copy = DB::transaction(function () use ($userGroup) {
+            $name = $this->uniqueName($userGroup->name);
+            $copy = Role::create([
+                'name' => $name,
+                'slug' => $this->uniqueSlug($name),
+                'description' => $userGroup->description,
+            ]);
+            $copy->permissions()->sync($userGroup->permissions()->pluck('permissions.id'));
+
+            return $copy;
+        });
+
+        return redirect()->route('admin.user-groups.edit', $copy)
+            ->with('success', 'Group duplicated. This copy has no users yet.');
     }
 
     public function update(Request $request, Role $userGroup)
@@ -106,9 +138,44 @@ class UserGroupController extends Controller
         return redirect()->route('admin.user-groups.index')->with('success', 'User group deleted.');
     }
 
-    private function permissionGroups()
+    private function permissionSections(): array
     {
-        return Permission::orderBy('group')->orderBy('id')->get()->groupBy('group');
+        // toBase(): Eloquent's except() keys by model, this map keys by
+        // group name.
+        $byGroup = Permission::orderBy('id')->get()->groupBy('group')->toBase();
+        $mapped = collect(self::SECTIONS)->flatten()->all();
+
+        $sections = [];
+        foreach (self::SECTIONS as $section => $keys) {
+            $groups = collect($keys)
+                ->filter(fn ($key) => $byGroup->has($key))
+                ->mapWithKeys(fn ($key) => [$key => $byGroup->get($key)]);
+
+            if ($section === 'Extensions') {
+                // Extensions owns every group no section claims, so
+                // extension-registered permissions need no mapping here.
+                $groups = $groups->merge($byGroup->except($mapped)->sortKeys());
+            }
+
+            if ($groups->isNotEmpty()) {
+                $sections[$section] = $groups;
+            }
+        }
+
+        return $sections;
+    }
+
+    private function uniqueName(string $name): string
+    {
+        $base = $name . ' (copy)';
+        $candidate = $base;
+        $n = 2;
+
+        while (Role::where('name', $candidate)->exists()) {
+            $candidate = $base . ' ' . $n++;
+        }
+
+        return $candidate;
     }
 
     private function uniqueSlug(string $name): string

@@ -2,7 +2,13 @@
     <div class="v-head">
         <div class="v-head__body">
             <h1 class="v-head__title">Users</h1>
-            <p class="v-head__standing">Who can sign into this admin, and as what.</p>
+            <p class="v-head__standing">
+                @if ($groupFilter ?? null)
+                    In the {{ $groupFilter->name }} group. <a href="{{ route('admin.users.index') }}" class="v-link">Show everyone</a>
+                @else
+                    Who can sign into this admin, and as what.
+                @endif
+            </p>
         </div>
         <div class="v-head__actions">
             <a href="{{ route('admin.users.create') }}" class="v-btn v-btn--primary">

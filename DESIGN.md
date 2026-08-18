@@ -372,6 +372,20 @@ Still v2, waiting for its own wave: the reviews pages (Sales area).
   with a v edit page. HitPay credential hints show only the
   last-4 tail, with neutral wording when decryption fails.
 
+- User Groups: each group carries its own permission config
+  (OpenCart-style, replaced the all-groups matrix). Permission
+  fieldsets sit under headings that mirror the admin sidebar
+  (Overview / Sales / Catalog / Customers / Extensions / System) so
+  the matrix reads like the nav it gates; unmapped groups from
+  extensions land under Extensions automatically. Per-block All/None
+  plus panel-level Grant all/Clear all dispatch real change events so
+  the save bar arms. The edit head states who holds the access
+  (member-count link into the filtered Users directory); reducing
+  your OWN group's permissions passes a capture-phase confirm before
+  vForm sees the submit. Super Admin renders checked-and-disabled
+  (muted), server re-syncs it to all permissions on every save, and
+  old('permissions') only speaks after a real validation round-trip.
+
 - Localization: countries, zones, and geo zones under one tab bar.
   250 country rows stay plain HTML with ONE shared editor panel;
   per-row x-if edit templates at that scale stall Alpine's boot.

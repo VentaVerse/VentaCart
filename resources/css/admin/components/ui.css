@@ -645,25 +645,47 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 
 /* --- Permission blocks (user group form) ----------------------- */
 
+.v-permsection + .v-permsection { margin-top: 22px; }
+.v-permsection__title {
+    margin: 0 0 10px;
+    font-size: 11.5px;
+    font-weight: 640;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--v-ink-3);
+}
 .v-permgrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 14px 22px;
 }
 .v-permblock {
+    position: relative;
+    margin: 0;
+    min-width: 0;
     border: 1px solid var(--v-line-2);
     border-radius: var(--v-r-md);
     padding: 10px 14px 12px;
 }
-.v-permblock__head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 6px;
+/* A legend paints on the fieldset border by default; floating it
+   returns it to normal flow so the block reads label-then-checks. */
+.v-permblock__legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 6px;
 }
-.v-permblock__marks { display: inline-flex; gap: 10px; font-size: 12px; }
-.v-permblock__acts { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.v-permblock__marks {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    display: inline-flex;
+    gap: 10px;
+    font-size: 12px;
+}
+.v-permblock__acts { clear: both; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.v-permblock .v-check:has(input:disabled) { color: var(--v-ink-3); cursor: default; }
+.v-permblock .v-check input:disabled { opacity: .45; cursor: default; }
 
 /* --- Checklist (short bounded pick) ---------------------------- */
 

@@ -10,11 +10,18 @@ use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('role')->orderBy('name')->get();
+        $group = $request->integer('group') ?: null;
 
-        return view('admin.settings.users.index', compact('users'));
+        $users = User::with('role')
+            ->when($group, fn ($q) => $q->where('role_id', $group))
+            ->orderBy('name')
+            ->get();
+
+        $groupFilter = $group ? Role::find($group) : null;
+
+        return view('admin.settings.users.index', compact('users', 'groupFilter'));
     }
 
     public function create()

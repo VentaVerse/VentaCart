@@ -27,16 +27,26 @@
                                 <td>
                                     <a href="{{ route('admin.user-groups.edit', $group) }}" class="v-rowlink">{{ $group->name }}</a>
                                     @if ($group->slug === 'super-admin')
-                                        <span class="v-badge v-badge--bad">Full access</span>
+                                        <span class="v-badge v-badge--warn">Full access</span>
                                     @endif
                                     @if ($group->description)
                                         <span class="v-cell-quiet v-block">{{ Str::limit($group->description, 60) }}</span>
                                     @endif
                                 </td>
-                                <td class="v-cell-num v-mono">{{ $group->users_count }}</td>
+                                <td class="v-cell-num v-mono">
+                                    @if ($group->users_count > 0)
+                                        <a href="{{ route('admin.users.index', ['group' => $group->id]) }}" class="v-link" aria-label="Show the {{ $group->users_count }} {{ Str::plural('user', $group->users_count) }} in {{ $group->name }}">{{ $group->users_count }}</a>
+                                    @else
+                                        <span class="v-cell-quiet">0</span>
+                                    @endif
+                                </td>
                                 <td class="v-cell-num v-mono">{{ $group->permissions_count }} <span class="v-cell-quiet">/ {{ $permissionTotal }}</span></td>
                                 <td class="v-cell-act">
                                     <a href="{{ route('admin.user-groups.edit', $group) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
+                                    <form method="POST" action="{{ route('admin.user-groups.duplicate', $group) }}" class="v-inline">
+                                        @csrf
+                                        <button type="submit" class="v-btn v-btn--ghost v-btn--sm">Duplicate</button>
+                                    </form>
                                     @if ($group->slug !== 'super-admin' && $group->users_count === 0)
                                         <button type="button" class="v-btn v-btn--danger v-btn--sm"
                                                 @click="$dispatch('v-confirm', 'delete-group-{{ $group->id }}')">Delete</button>

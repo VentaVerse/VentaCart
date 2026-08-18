@@ -886,8 +886,23 @@ class ReskinWaveTest extends TestCase
         $this->delete(route('admin.user-groups.destroy', $staffed))->assertRedirect();
         $this->assertDatabaseHas('roles', ['id' => $staffed->id]);
 
+        // Duplicate: a copy carries the permission set, gets a fresh
+        // slug, and lands on its own edit page with no users.
+        $this->post(route('admin.user-groups.duplicate', $staffed))->assertRedirect();
+        $copy = Role::where('name', 'Staffed (copy)')->firstOrFail();
+        $this->assertNotEquals($staffed->slug, $copy->slug);
+        $this->assertEquals($staffed->permissions()->count(), $copy->permissions()->count());
+        $this->assertEquals(0, $copy->users()->count());
+
         $this->delete(route('admin.user-groups.destroy', $support))->assertRedirect(route('admin.user-groups.index'));
         $this->assertDatabaseMissing('roles', ['id' => $support->id]);
+
+        // The users directory narrows to one group via ?group=.
+        $inGroup = User::where('role_id', $staffed->id)->first();
+        $this->get(route('admin.users.index', ['group' => $staffed->id]))
+            ->assertOk()
+            ->assertSee($inGroup->name)
+            ->assertSee('In the Staffed group');
     }
 
     public function test_spokes_wave2_pages_render_in_new_shell(): void
