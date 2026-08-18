@@ -15,18 +15,36 @@
         @endif
     </div>
 
+    {{-- Tab state wraps the doctrine form AND the store-credit block:
+         the credit panel carries its own record-scoped form, so it must
+         stay a sibling of the doctrine form, never nest inside it. The
+         ?tab= sync keeps the credit tab in place across its Apply POST. --}}
+    @php
+        $hasCreditTab = isset($customer) && $customer->id
+            && Route::has('admin.store-credit.adjust')
+            && View::exists('store-credit::customer-panel');
+        $customerTabs = array_merge(
+            ['general', 'addresses'],
+            isset($customer) && $customer->id ? ['activity'] : [],
+            $hasCreditTab ? ['credit'] : [],
+        );
+        $initialTab = in_array(request('tab'), $customerTabs, true) ? request('tab') : 'general';
+    @endphp
+    <div x-data="customerForm()">
     <x-admin.form :action="$customer ? route('admin.customers.update', $customer) : route('admin.customers.store')"
                    :method="$customer ? 'PUT' : 'POST'" class="v-settle">
         <input type="hidden" name="store_id" value="1">
 
-        <div x-data="customerForm()">
             <div class="v-tabs" role="tablist">
-                <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'general' ? 'true' : 'false'" @click="activeTab = 'general'">General</button>
-                <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'addresses' ? 'true' : 'false'" @click="activeTab = 'addresses'">
+                <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'general' ? 'true' : 'false'" @click="pick('general')">General</button>
+                <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'addresses' ? 'true' : 'false'" @click="pick('addresses')">
                     Addresses <span class="v-tab__count" x-text="addresses.length"></span>
                 </button>
                 @if (isset($customer) && $customer->id)
-                    <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'activity' ? 'true' : 'false'" @click="activeTab = 'activity'">Activity</button>
+                    <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'activity' ? 'true' : 'false'" @click="pick('activity')">Activity</button>
+                @endif
+                @if ($hasCreditTab)
+                    <button type="button" class="v-tab" role="tab" :aria-selected="activeTab === 'credit' ? 'true' : 'false'" @click="pick('credit')">Store credit</button>
                 @endif
             </div>
 
@@ -238,16 +256,16 @@
                     </x-admin.panel>
                 </div>
             @endif
-        </div>
     </x-admin.form>
 
-    {{-- Store credit panel: a guarded seam into the store-credit
+    {{-- Store credit tab pane: a guarded seam into the store-credit
          extension; the route only exists while it is enabled. --}}
-    @if (isset($customer) && $customer->id && Route::has('admin.store-credit.adjust') && View::exists('store-credit::customer-panel'))
-        <div class="v-settle">
+    @if ($hasCreditTab)
+        <div x-show="activeTab === 'credit'" x-cloak class="v-settle">
             @include('store-credit::customer-panel', ['customer' => $customer])
         </div>
     @endif
+    </div>
 
     @if (isset($customer) && $customer->id)
         {{-- Impersonation is a GET crossing, so it hand-rolls the confirm
@@ -274,7 +292,13 @@
     <script>
         function customerForm() {
             return {
-                activeTab: 'general',
+                activeTab: @json($initialTab),
+                pick(t) {
+                    this.activeTab = t;
+                    const u = new URL(window.location);
+                    u.searchParams.set('tab', t);
+                    history.replaceState(null, '', u);
+                },
                 addresses: @json($customer?->addresses ?? []),
                 addrDropdowns: {},
                 phoneCodes: @json(\App\Models\Country::where('is_active', true)->pluck('phone_code', 'id')),
@@ -452,7 +476,11 @@
                         addr.country_id ? this.onAddrCountryChange(idx, false) : Promise.resolve()
                     ));
                     await this.$nextTick();
-                    this.$el.closest('form')?.dispatchEvent(new Event('v-rebaseline'));
+                    // The tab scope now wraps the doctrine form (the credit
+                    // pane's own form comes later in the tree), so the form
+                    // is found downward, not upward.
+                    (this.$el.closest('form') ?? this.$el.querySelector('form'))
+                        ?.dispatchEvent(new Event('v-rebaseline'));
                 }
             }
         }
