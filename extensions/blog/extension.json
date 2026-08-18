@@ -1,0 +1,30 @@
+{
+    "name": "blog",
+    "title": "Blog",
+    "version": "1.0.0",
+    "description": "Storefront blog: posts, categories, and the public blog pages.",
+    "provider": "Extensions\\Blog\\BlogServiceProvider",
+    "icon": "blog",
+    "type": "feature",
+    "configure_route": "admin.blog.index",
+    "admin_nav": [
+        {
+            "group": "Content",
+            "after": "pages",
+            "key": "blog",
+            "label": "Blog Posts",
+            "route": "admin.blog.index",
+            "icon": "blog",
+            "keywords": ["articles", "news"]
+        },
+        {
+            "group": "Content",
+            "after": "blog",
+            "key": "blog-categories",
+            "label": "Blog Categories",
+            "route": "admin.blog-categories.index",
+            "icon": "categories",
+            "keywords": []
+        }
+    ]
+}

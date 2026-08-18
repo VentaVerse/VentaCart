@@ -446,7 +446,7 @@ class UrlGrammarTest extends TestCase
 
         // Floor drops as conversions move controllers into extensions/
         // (their view references live in the extensions' own tests).
-        $this->assertGreaterThan(45, count($names), 'View-reference sweep matched suspiciously few names — regex likely broken.');
+        $this->assertGreaterThan(30, count($names), 'View-reference sweep matched suspiciously few names — regex likely broken.');
 
         $missing = [];
         foreach (array_keys($names) as $name) {

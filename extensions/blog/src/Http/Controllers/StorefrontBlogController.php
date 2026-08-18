@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers\Storefront;
+namespace Extensions\Blog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\BlogCategory;
-use App\Models\BlogPost;
+use Extensions\Blog\Models\BlogCategory;
+use Extensions\Blog\Models\BlogPost;
 use App\Models\Tag;
 use App\Services\ThemeService;
 use Illuminate\Http\Request;
 
-class BlogController extends Controller
+class StorefrontBlogController extends Controller
 {
     public function index(Request $request, ThemeService $theme)
     {

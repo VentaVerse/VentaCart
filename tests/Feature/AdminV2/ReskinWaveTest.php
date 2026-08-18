@@ -7,8 +7,8 @@ use Extensions\AbandonedCarts\Models\AbandonedCartRule;
 use App\Models\ApiSyncLog;
 use App\Models\Automation;
 use Extensions\PaymentBankTransfer\Models\BankAccount;
-use App\Models\BlogCategory;
-use App\Models\BlogPost;
+use Extensions\Blog\Models\BlogCategory;
+use Extensions\Blog\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Cart;
 use App\Models\CartItem;
@@ -450,6 +450,8 @@ class ReskinWaveTest extends TestCase
 
     public function test_customers_and_content_pages_render_in_new_shell(): void
     {
+        app(\App\Services\ExtensionManager::class)->install('blog');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 
         $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Retail', 'is_default' => true]);

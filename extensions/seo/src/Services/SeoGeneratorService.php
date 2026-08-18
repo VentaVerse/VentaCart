@@ -3,7 +3,7 @@
 namespace Extensions\Seo\Services;
 
 use App\Models\Brand;
-use App\Models\BlogPost;
+use Extensions\Blog\Models\BlogPost;
 use App\Models\Category;
 use App\Models\Page;
 use App\Models\Product;
@@ -238,7 +238,9 @@ class SeoGeneratorService
             'product' => Product::class,
             'category' => Category::class,
             'brand' => Brand::class,
-            'blog_post' => BlogPost::class,
+            'blog_post' => class_exists(BlogPost::class)
+                ? BlogPost::class
+                : throw new \InvalidArgumentException('The blog extension is not installed.'),
             'page' => Page::class,
             default => throw new \InvalidArgumentException("Unknown entity type: {$type}"),
         };

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
-use App\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Page;
@@ -28,10 +27,12 @@ class SitemapController extends Controller
             ->orderBy('title')
             ->get();
 
-        $blogPosts = BlogPost::where('is_published', true)
-            ->latest('published_at')
-            ->limit(50)
-            ->get();
+        $blogPosts = class_exists(\Extensions\Blog\Models\BlogPost::class)
+            ? \Extensions\Blog\Models\BlogPost::where('is_published', true)
+                ->latest('published_at')
+                ->limit(50)
+                ->get()
+            : collect();
 
         $productCount = Product::where('is_active', true)->count();
 

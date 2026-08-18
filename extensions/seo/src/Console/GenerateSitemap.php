@@ -2,7 +2,7 @@
 
 namespace Extensions\Seo\Console;
 
-use App\Models\BlogPost;
+use Extensions\Blog\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Page;
@@ -66,8 +66,10 @@ class GenerateSitemap extends Command
             ];
         }
 
-        // Blog Posts
-        $posts = BlogPost::where('is_published', true)->get(['slug', 'updated_at']);
+        // Blog Posts (only while the blog extension exists)
+        $posts = class_exists(BlogPost::class)
+            ? BlogPost::where('is_published', true)->get(['slug', 'updated_at'])
+            : collect();
         foreach ($posts as $post) {
             $urls[] = [
                 'loc' => $baseUrl . '/blog/' . $post->slug,

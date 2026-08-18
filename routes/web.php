@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Storefront\BlogController as StorefrontBlogController;
 use App\Http\Controllers\Storefront\CategoryController as StorefrontCategoryController;
 use App\Http\Controllers\Storefront\HomeController as StorefrontHomeController;
 use App\Http\Controllers\Storefront\CartController as StorefrontCartController;
@@ -31,8 +30,7 @@ Route::get('/brand', [StorefrontBrandController::class, 'index'])->name('brand.i
 Route::get('/brand/{brand:slug}', [StorefrontBrandController::class, 'show'])->name('brand.show');
 Route::get('/category/{category:slug}', [StorefrontCategoryController::class, 'show'])->name('category.show');
 Route::get('/product/{product:slug}', [StorefrontProductController::class, 'show'])->name('product.show');
-Route::get('/blog', [StorefrontBlogController::class, 'index'])->name('blog.index');
-Route::get('/blog/{post:slug}', [StorefrontBlogController::class, 'show'])->name('blog.show');
+// Storefront blog moved to the blog extension (extensions/blog/routes/web.php).
 
 // Review submission moved to the reviews extension
 // (extensions/reviews/routes/web.php).

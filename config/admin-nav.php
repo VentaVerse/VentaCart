@@ -61,8 +61,6 @@ return [
         'segment' => 'content',
         'items' => [
             ['key' => 'pages', 'label' => 'Pages', 'route' => 'admin.pages.index', 'icon' => 'pages', 'permission' => null, 'keywords' => ['cms', 'static']],
-            ['key' => 'blog', 'label' => 'Blog Posts', 'route' => 'admin.blog.index', 'icon' => 'blog', 'permission' => null, 'keywords' => ['articles', 'news']],
-            ['key' => 'blog-categories', 'label' => 'Blog Categories', 'route' => 'admin.blog-categories.index', 'icon' => 'categories', 'permission' => null, 'keywords' => []],
         ],
     ],
     [

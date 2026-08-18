@@ -4,7 +4,7 @@ namespace Extensions\Seo\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Automation;
-use App\Models\BlogPost;
+use Extensions\Blog\Models\BlogPost;
 use App\Models\Brand;
 use App\Models\Category;
 use Extensions\Seo\Models\NotFoundLog;
@@ -474,7 +474,7 @@ class SeoExtensionController extends Controller
             'product' => Product::class,
             'category' => Category::class,
             'brand' => Brand::class,
-            'blog_post' => BlogPost::class,
+            'blog_post' => class_exists(BlogPost::class) ? BlogPost::class : abort(404),
             'page' => Page::class,
             default => abort(404),
         };
@@ -709,13 +709,17 @@ class SeoExtensionController extends Controller
      */
     private function entityConfigs(): array
     {
-        return [
+        // The blog row exists only while the blog extension does; the SEO
+        // space simply has no Blog tab without it.
+        return array_filter([
             'products' => ['model' => Product::class, 'activeScope' => ['is_active', true], 'entityType' => 'product', 'editRoute' => 'admin.products.edit'],
             'categories' => ['model' => Category::class, 'activeScope' => ['is_active', true], 'entityType' => 'category', 'editRoute' => 'admin.categories.edit'],
             'brands' => ['model' => Brand::class, 'activeScope' => ['is_active', true], 'entityType' => 'brand', 'editRoute' => 'admin.brands.edit'],
-            'blog' => ['model' => BlogPost::class, 'activeScope' => ['is_published', true], 'entityType' => 'blog_post', 'editRoute' => 'admin.blog.edit'],
+            'blog' => class_exists(BlogPost::class)
+                ? ['model' => BlogPost::class, 'activeScope' => ['is_published', true], 'entityType' => 'blog_post', 'editRoute' => 'admin.blog.edit']
+                : null,
             'pages' => ['model' => Page::class, 'activeScope' => ['is_active', true], 'entityType' => 'page', 'editRoute' => 'admin.pages.edit'],
-        ];
+        ]);
     }
 
     /**

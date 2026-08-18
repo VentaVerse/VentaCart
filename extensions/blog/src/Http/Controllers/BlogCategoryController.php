@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Content;
+namespace Extensions\Blog\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\BlogCategory;
+use Extensions\Blog\Models\BlogCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -14,12 +14,12 @@ class BlogCategoryController extends Controller
     {
         $categories = BlogCategory::withCount('posts')->orderBy('sort_order')->get();
 
-        return view('admin.content.blog-categories.index', compact('categories'));
+        return view('blog::blog-categories.index', compact('categories'));
     }
 
     public function create()
     {
-        return view('admin.content.blog-categories.form', ['category' => null]);
+        return view('blog::blog-categories.form', ['category' => null]);
     }
 
     public function store(Request $request)
@@ -41,7 +41,7 @@ class BlogCategoryController extends Controller
 
     public function edit(BlogCategory $blogCategory)
     {
-        return view('admin.content.blog-categories.form', ['category' => $blogCategory]);
+        return view('blog::blog-categories.form', ['category' => $blogCategory]);
     }
 
     public function update(Request $request, BlogCategory $blogCategory)

@@ -34,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
             'product' => \App\Models\Product::class,
             'category' => \App\Models\Category::class,
             'brand' => \App\Models\Brand::class,
-            'blog_post' => \App\Models\BlogPost::class,
+            'blog_post' => \Extensions\Blog\Models\BlogPost::class,
             'page' => \App\Models\Page::class,
         ]);
 
