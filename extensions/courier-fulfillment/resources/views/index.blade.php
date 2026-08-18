@@ -1169,6 +1169,44 @@
                                                 Previous booking <span class="v-mono" x-text="active.trackingNumber"></span> was canceled. Booking again creates a new shipment.
                                             </div>
                                         </template>
+
+                                        {{-- Origin first (owner ruling 2026-08-19): where the
+                                             parcel leaves from is chosen before what carries it
+                                             and in what, because the origin is what the service
+                                             list and every quoted fee are measured from. It is
+                                             courier-agnostic and always present, even when the
+                                             store keeps a single address: the operator is
+                                             committing to a collection point and should see
+                                             which one rather than trust a silent default.
+                                             The option carries the address's NAME; its street
+                                             lines confirm underneath, so the list stays
+                                             scannable and the choice stays checkable.
+                                             @if, not x-if: whether the store has any address at
+                                             all is known at render time, not per courier. --}}
+                                        @if (count($pickupAddresses ?? []) > 0)
+                                            <x-admin.field name="pickup_address_id" label="Ships from" required>
+                                                <select name="pickup_address_id" x-model="pickupId" class="v-control">
+                                                    @foreach ($pickupAddresses as $pickup)
+                                                        <option value="{{ $pickup['id'] }}">{{ $pickup['label'] }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </x-admin.field>
+                                            {{-- Outside the field: x-admin.field wraps its slot in
+                                                 the <label>, and a summary that changes with the
+                                                 selection would keep rewriting the accessible name
+                                                 of the control it describes. --}}
+                                            <p class="v-subnote v-cell-quiet v-gap-sm" x-text="pickupSummary"></p>
+                                        @else
+                                            {{-- Nothing to collect from. The booking would fall
+                                                 through to a null default and be refused by the
+                                                 courier, so say so here where it can be fixed. --}}
+                                            <div class="v-well">
+                                                No pickup address on file.
+                                                <a class="v-link" href="{{ route('admin.fulfillment.pickup-addresses.index') }}">Add one</a>
+                                                so couriers know where to collect.
+                                            </div>
+                                        @endif
+
                                         <div class="v-grid v-grid--2">
                                             <x-admin.field name="service" label="Service" required>
                                                 <select name="service" class="v-control">
@@ -1201,41 +1239,6 @@
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                             </select>
                                         </x-admin.field>
-
-                                        {{-- Origin choice, courier-agnostic and always present
-                                             (owner ruling 2026-08-19): every courier's step 2
-                                             names where the parcel leaves from, even when the
-                                             store keeps a single address, because the operator
-                                             is committing to a collection point and should see
-                                             which one rather than trust a silent default.
-                                             The option carries the address's NAME; its street
-                                             lines confirm underneath, so the list stays
-                                             scannable and the choice stays checkable.
-                                             @if, not x-if: whether the store has any address at
-                                             all is known at render time, not per courier. --}}
-                                        @if (count($pickupAddresses ?? []) > 0)
-                                            <x-admin.field name="pickup_address_id" label="Ships from" required>
-                                                <select name="pickup_address_id" x-model="pickupId" class="v-control">
-                                                    @foreach ($pickupAddresses as $pickup)
-                                                        <option value="{{ $pickup['id'] }}">{{ $pickup['label'] }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </x-admin.field>
-                                            {{-- Outside the field: x-admin.field wraps its slot in
-                                                 the <label>, and a summary that changes with the
-                                                 selection would keep rewriting the accessible name
-                                                 of the control it describes. --}}
-                                            <p class="v-subnote v-cell-quiet" x-text="pickupSummary"></p>
-                                        @else
-                                            {{-- Nothing to collect from. The booking would fall
-                                                 through to a null default and be refused by the
-                                                 courier, so say so here where it can be fixed. --}}
-                                            <div class="v-well">
-                                                No pickup address on file.
-                                                <a class="v-link" href="{{ route('admin.fulfillment.pickup-addresses.index') }}">Add one</a>
-                                                so couriers know where to collect.
-                                            </div>
-                                        @endif
 
                                         {{-- Task T4: SPX-only step-2 additions — rendered at all
                                              only when SPX is actually an enabled courier. Uses
