@@ -54,7 +54,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
 
     private function queueUrl(): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     private function installExtension(): void
@@ -403,7 +403,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
             // Tracking and Print waybill, both keyed on this row's own data.
             ->assertSee('openDrawer(JSON.parse(', false)
             ->assertSee('Print waybill')
-            ->assertSee('/sales/fulfillment/' . $booked->id . '/label', false)
+            ->assertSee('/extensions/courier-fulfillment/' . $booked->id . '/label', false)
             // Booking is still a To Pack action, refused server-side here.
             ->assertDontSee('openBooking(JSON.parse(', false)
             // Cancel booking stays To Handover only.
@@ -415,7 +415,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
         // The parcel-less row on the same page keeps exactly its one action
         // and gains no courier affordance from its neighbour.
         $response->assertSee("cancel-order-{$plain->id}", false)
-            ->assertDontSee('/sales/fulfillment/' . $plain->id . '/label', false);
+            ->assertDontSee('/extensions/courier-fulfillment/' . $plain->id . '/label', false);
     }
 
     public function test_to_pack_row_offers_book_and_cancel_order_only(): void
@@ -568,8 +568,8 @@ class FulfillmentPlacementMembershipTest extends TestCase
             ->assertSee('Print waybill')
             // The live parcel is the one with a waybill; the cancelled
             // booking is not.
-            ->assertSee('/sales/fulfillment/' . $liveParcel->id . '/label', false)
-            ->assertDontSee('/sales/fulfillment/' . $cancelledBooking->id . '/label', false)
+            ->assertSee('/extensions/courier-fulfillment/' . $liveParcel->id . '/label', false)
+            ->assertDontSee('/extensions/courier-fulfillment/' . $cancelledBooking->id . '/label', false)
             ->assertDontSee('openBooking(JSON.parse(', false);
 
         foreach ([$cancelledBooking, $liveParcel] as $order) {

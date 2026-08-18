@@ -15,11 +15,7 @@
         </div>
     </div>
 
-    {{-- The one labeled crossing back to the worklist. --}}
-    <div class="v3-tabs" role="tablist" aria-label="Review settings">
-        <a class="v3-tab" role="tab" aria-selected="true" href="{{ route('admin.reviews.settings') }}">Settings</a>
-        <a class="v3-tabs__aside" href="{{ route('admin.reviews.index') }}">Reviews queue <x-admin3.icon name="chevron" /></a>
-    </div>
+    @include('reviews::partials.tabs')
 
         <x-admin3.form :action="route('admin.settings.update')">
             <input type="hidden" name="group" value="reviews">

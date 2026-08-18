@@ -295,7 +295,9 @@ class ExtensionLifecycleTest extends TestCase
         $card = substr($html, $titlePos, 1500);
 
         $this->assertStringContainsString(route('admin.fulfillment.settings'), $card);
-        $this->assertStringNotContainsString(route('admin.fulfillment.index'), $card);
+        // One home made the queue URL a PREFIX of the settings URL, so the
+        // negative pin closes the href quote to demand an exact match.
+        $this->assertStringNotContainsString(route('admin.fulfillment.index').'"', $card);
     }
 
     public function test_create_extensions_table_migration_seeds_banners_continuity_row_only_when_legacy_tables_exist(): void

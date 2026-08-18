@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Route;
 
 $adminPrefix = config('admin.prefix', 'admin');
 
-// Admin, in the Content work nav. Route names frozen
-// (admin.blog.*, admin.blog-categories.*).
+// One home (owner ruling 2026-08-19); the Content nav entries are
+// pointers in. Route names frozen (admin.blog.*, admin.blog-categories.*).
 Route::middleware(['web', 'auth', 'admin.session.cap'])
-    ->prefix($adminPrefix . '/content')
+    ->prefix($adminPrefix . '/extensions/blog')
     ->name('admin.')
     ->group(function () {
-        Route::resource('blog', BlogPostController::class)->except(['show']);
-        Route::resource('blog-categories', BlogCategoryController::class)->except(['show']);
+        Route::resource('posts', BlogPostController::class)->except(['show'])->parameters(['posts' => 'blog'])->names('blog');
+        Route::resource('categories', BlogCategoryController::class)->except(['show'])->parameters(['categories' => 'blog_category'])->names('blog-categories');
     });
 
 // Storefront blog. URLs frozen; disabled extension = 404, and the theme

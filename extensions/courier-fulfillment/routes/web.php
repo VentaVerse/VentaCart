@@ -10,14 +10,16 @@ use Illuminate\Support\Facades\Route;
 
 $adminPrefix = config('admin.prefix', 'admin');
 
-// Admin: the operational Fulfillment queue — lives under Sales in the URL
-// grammar. Route names are frozen at 'admin.fulfillment.*' (Task 1 already
-// shipped code depending on them); only the URI root moved. The
+// One home (owner ruling 2026-08-19): queue, returns, settings and
+// couriers together under the extension; the Sales nav entry is a
+// pointer in. Route names frozen at 'admin.fulfillment.*'. The queue's
+// {order} wildcards are numeric-constrained so they can never collide
+// with the settings half's {courier} slugs below. The
 // 'fulfillment_enabled' pause toggle is handled inside
 // FulfillmentController@index itself (renders an explanatory empty state),
 // not as route middleware — a redirect-away trap was rejected in review.
 Route::middleware(['web', 'auth', 'admin.session.cap'])
-    ->prefix($adminPrefix . '/sales/fulfillment')
+    ->prefix($adminPrefix . '/extensions/courier-fulfillment')
     ->name('admin.fulfillment.')
     ->group(function () {
         Route::get('/', [FulfillmentController::class, 'index'])->name('index');
@@ -29,42 +31,42 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // tab), listing orders whose spine phase is 'returning' or 'failed'.
         // Static segment, same reasoning as 'poll' above.
         Route::get('/returns', [FulfillmentController::class, 'returns'])->name('returns');
-        Route::post('/{order}/book', [FulfillmentController::class, 'book'])->name('book');
+        Route::post('/{order}/book', [FulfillmentController::class, 'book'])->name('book')->whereNumber('order');
         // The third way a parcel can leave: a courier we do not integrate
         // with, recorded by hand (no API call, no AWB, no polling). Writes
         // core's own shipping_courier_id / tracking_number / tracking_link and
         // leaves courier_provider null, which is what keeps courier:poll-status
         // from ever seeing it. clear-manual is its undo.
-        Route::post('/{order}/book-manual', [FulfillmentController::class, 'bookManual'])->name('book-manual');
-        Route::post('/{order}/clear-manual', [FulfillmentController::class, 'clearManual'])->name('clear-manual');
+        Route::post('/{order}/book-manual', [FulfillmentController::class, 'bookManual'])->name('book-manual')->whereNumber('order');
+        Route::post('/{order}/clear-manual', [FulfillmentController::class, 'clearManual'])->name('clear-manual')->whereNumber('order');
         // Task T4: lazy, per-order/per-selection AJAX endpoints the booking
         // modal's step 2 hits on demand (SPX's estimate button / pickup-slot
         // fetch on courier choice) — never called during the queue's own
         // page load. See FulfillmentController::estimate()/pickupSlots()'s
         // docblocks for why these are lazy rather than baked into
         // index()'s courierOptions payload.
-        Route::post('/{order}/estimate', [FulfillmentController::class, 'estimate'])->name('estimate');
-        Route::get('/{order}/pickup-slots', [FulfillmentController::class, 'pickupSlots'])->name('pickup-slots');
+        Route::post('/{order}/estimate', [FulfillmentController::class, 'estimate'])->name('estimate')->whereNumber('order');
+        Route::get('/{order}/pickup-slots', [FulfillmentController::class, 'pickupSlots'])->name('pickup-slots')->whereNumber('order');
         // Owner directive (2026-08-12, "the booking modal says who will
         // carry it before you choose"): every configured courier's answer to
         // "do you serve this address", asked when the booking modal opens.
         // Same laziness rule as the two endpoints above: never on page
         // load. GET because it asks and creates nothing.
-        Route::get('/{order}/serviceability', [FulfillmentController::class, 'serviceability'])->name('serviceability');
-        Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel');
+        Route::get('/{order}/serviceability', [FulfillmentController::class, 'serviceability'])->name('serviceability')->whereNumber('order');
+        Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel')->whereNumber('order');
         // fulfillment-tabs-v3 Task 4: the REAL order cancel (sets the core
         // order status to the module's configured cancel status through the
         // same history + stock path the order page uses) — distinct from
         // /cancel above, which cancels only the courier BOOKING.
-        Route::post('/{order}/cancel-order', [FulfillmentController::class, 'cancelOrder'])->name('cancel-order');
-        Route::get('/{order}/label', [FulfillmentController::class, 'label'])->name('label');
+        Route::post('/{order}/cancel-order', [FulfillmentController::class, 'cancelOrder'])->name('cancel-order')->whereNumber('order');
+        Route::get('/{order}/label', [FulfillmentController::class, 'label'])->name('label')->whereNumber('order');
         // Task T3: authenticated, in-app streaming route for a courier
         // (SPX) whose own label link is perishable — printLabel() downloads
         // + caches the PDF once, then hands this URL back instead of the
         // provider's own (30-minute, 10-open) link. Same auth as every
         // other route in this group; NOT a public/signed URL.
-        Route::get('/{order}/label-file', [FulfillmentController::class, 'labelFile'])->name('label-file');
-        Route::post('/{order}/track', [FulfillmentController::class, 'track'])->name('track');
+        Route::get('/{order}/label-file', [FulfillmentController::class, 'labelFile'])->name('label-file')->whereNumber('order');
+        Route::post('/{order}/track', [FulfillmentController::class, 'track'])->name('track')->whereNumber('order');
     });
 
 // Admin: courier settings — mounted under the kernel's Settings > Modules
@@ -78,8 +80,8 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->group(function () {
         // Hub (Task W3 split): module-level settings + one card per
         // registered courier. Name frozen at 'admin.fulfillment.settings'.
-        Route::get('/', [CourierSettingsController::class, 'index'])->name('settings');
-        Route::post('/', [CourierSettingsController::class, 'update'])->name('settings.update');
+        Route::get('/settings', [CourierSettingsController::class, 'index'])->name('settings');
+        Route::post('/settings', [CourierSettingsController::class, 'update'])->name('settings.update');
         // Status placement: which queue tab each core order status belongs to
         // (owner ruling, 2026-08-09 - the mapping is module data, so it is
         // edited here rather than on core's Order Statuses page). STATIC
@@ -103,7 +105,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // status mapping. Unknown {courier} keys 404 in the controller
         // (CourierManager::get() miss), so this wildcard can never render
         // a page for a courier that isn't registered.
-        Route::get('/{courier}', [CourierSettingsController::class, 'show'])->name('settings.courier');
+        Route::get('/{courier}', [CourierSettingsController::class, 'show'])->name('settings.courier')->where('courier', '[a-z][a-z0-9_-]*');
         Route::post('/{courier}', [CourierSettingsController::class, 'updateCourier'])->name('settings.courier.update');
         Route::post('/{courier}/test-connection', [CourierSettingsController::class, 'testConnection'])->name('test-connection');
         Route::post('/{courier}/refresh-statuses', [CourierSettingsController::class, 'refreshStatuses'])->name('settings.refresh-statuses');

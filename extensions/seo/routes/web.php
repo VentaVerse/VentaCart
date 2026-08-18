@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\Route;
 
 $adminPrefix = config('admin.prefix', 'admin');
 
-// Workspace (daily SEO work), in Marketing where the work is. Route
-// names keep the frozen 'admin.extensions.seo.' prefix even though the
-// workspace lives under marketing/seo.
+// One home (owner ruling 2026-08-19): the whole space, workspace and
+// engine settings alike, under the extension; the Marketing nav entry
+// is a pointer in. Route names frozen ('admin.extensions.seo.').
 Route::middleware(['web', 'auth', 'admin.session.cap'])
-    ->prefix($adminPrefix . '/marketing/seo')
+    ->prefix($adminPrefix . '/extensions/seo')
     ->name('admin.extensions.seo.')
     ->group(function () {
         Route::get('/', [SeoExtensionController::class, 'dashboard'])->name('dashboard');
@@ -40,7 +40,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::get('/{type}', [SeoExtensionController::class, 'entities'])->name('entities')->where('type', 'products|categories|brands|blog|pages');
     });
 
-// Engine configuration, behind the Extensions door. Route names frozen.
+// Engine configuration, same home. Route names frozen.
 Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/extensions/seo')
     ->name('admin.extensions.seo.')

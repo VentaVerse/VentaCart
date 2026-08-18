@@ -150,12 +150,12 @@ class FulfillmentServiceabilityTest extends TestCase
 
     private function serviceabilityUrl(Order $order): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment/' . $order->id . '/serviceability';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment/' . $order->id . '/serviceability';
     }
 
     private function queueUrl(): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     /** QuadX's rate endpoint, the one call behind both the fee and the coverage answer. */

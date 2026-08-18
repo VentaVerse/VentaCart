@@ -206,8 +206,8 @@ class Order extends Model
 
         if (str_starts_with($key, 'bank_transfer')) {
             $accountId = (int) preg_replace('/^bank_transfer_?/', '', $key);
-            if ($accountId) {
-                $bankName = BankAccount::where('id', $accountId)->value('bank_name');
+            if ($accountId && class_exists(\Extensions\PaymentBankTransfer\Models\BankAccount::class)) {
+                $bankName = \Extensions\PaymentBankTransfer\Models\BankAccount::where('id', $accountId)->value('bank_name');
                 return 'Bank Transfer' . ($bankName ? ': ' . $bankName : '');
             }
             return 'Bank Transfer';

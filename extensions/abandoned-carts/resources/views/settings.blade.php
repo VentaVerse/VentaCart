@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    @include('abandoned-carts::partials.config-tabs')
+    @include('abandoned-carts::partials.tabs')
 
     <x-admin3.form :action="route('admin.abandoned-carts.settings.update')">
         <div class="v3-settle">

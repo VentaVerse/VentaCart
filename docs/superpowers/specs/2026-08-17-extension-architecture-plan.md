@@ -112,7 +112,15 @@ To convert from app/:
    operations in the work nav. Settings goes back to being the
    website's core settings only. Crossings by labeled buttons both
    ways. 'modules' is a reserved extension name (the category page's
-   URL segment). The theme EDITOR is an extension (type theme, nav item
+   URL segment). ONE HOME (owner ruling 2026-08-19, supersedes the
+   earlier ops/config split): with the click-memory nav in place,
+   everything an extension owns, operations and configuration alike,
+   lives together under extensions/{name}/ with one tab bar; the work
+   navs (Sales, Marketing, Content) keep their entries as POINTERS into
+   that home (frozen route names make them follow automatically), and
+   the sidebar itself never reshuffles on navigation because its state
+   is the last nav click, not the URL (OpenCart parity, verified from
+   the legacy store's common.js). The theme EDITOR is an extension (type theme, nav item
    Themes, mounted at extensions/theme, ships installed on every store
    because a store needs its look on day one); the theme SYSTEM
    (ThemeService, rendering, the homepage/nav/footer tables) stays core

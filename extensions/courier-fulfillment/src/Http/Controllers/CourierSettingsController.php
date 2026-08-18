@@ -254,8 +254,8 @@ class CourierSettingsController extends Controller
                 $bankIds[] = (int) $m[1];
             }
         }
-        $bankNames = $bankIds
-            ? \App\Models\BankAccount::whereIn('id', $bankIds)->pluck('bank_name', 'id')
+        $bankNames = ($bankIds && class_exists(\Extensions\PaymentBankTransfer\Models\BankAccount::class))
+            ? \Extensions\PaymentBankTransfer\Models\BankAccount::whereIn('id', $bankIds)->pluck('bank_name', 'id')
             : collect();
 
         $paymentMethodOptions = [];

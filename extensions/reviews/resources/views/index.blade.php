@@ -5,15 +5,7 @@
         </div>
     </div>
 
-    <div class="v3-tabs" role="tablist" aria-label="Reviews">
-        @foreach (['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'] as $key => $label)
-            <a class="v3-tab" role="tab" aria-selected="{{ $tab === $key ? 'true' : 'false' }}" href="{{ route('admin.reviews.index', ['tab' => $key]) }}">
-                {{ $label }}
-                <span class="v3-tabs__count">{{ $counts[$key] }}</span>
-            </a>
-        @endforeach
-        <a class="v3-tabs__aside" href="{{ route('admin.reviews.settings') }}">Settings <x-admin3.icon name="chevron" /></a>
-    </div>
+    @include('reviews::partials.tabs')
 
         <div class="v3-settle">
             <form method="GET" action="{{ route('admin.reviews.index') }}" class="v3-filterbar">

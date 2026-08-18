@@ -56,7 +56,7 @@ class FulfillmentQueueTest extends TestCase
 
     private function queueUrl(): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     private function installExtension(): void

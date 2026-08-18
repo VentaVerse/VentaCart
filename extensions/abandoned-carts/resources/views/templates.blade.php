@@ -15,7 +15,7 @@
         </div>
     </div>
 
-    @include('abandoned-carts::partials.config-tabs')
+    @include('abandoned-carts::partials.tabs')
 
     <div class="v3-settle">
         <x-admin3.panel flush>

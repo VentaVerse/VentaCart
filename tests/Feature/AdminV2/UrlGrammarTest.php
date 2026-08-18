@@ -92,7 +92,7 @@ class UrlGrammarTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get('/'.$this->prefix().'/marketing/seo')->assertOk();
+        $this->get('/'.$this->prefix().'/extensions/seo')->assertOk();
     }
 
     public function test_settings_seo_engine_config_is_ok_at_new_url(): void
@@ -116,7 +116,7 @@ class UrlGrammarTest extends TestCase
         // Task 4: 'fulfillment_enabled' is opt-out (missing/NULL means active),
         // so no setting write is needed here — see FulfillmentController::index().
 
-        $this->get('/'.$this->prefix().'/sales/fulfillment')->assertOk();
+        $this->get('/'.$this->prefix().'/extensions/courier-fulfillment')->assertOk();
     }
 
     /** Task 2: courier-fulfillment's settings page, now under Settings > Modules. */
@@ -152,7 +152,7 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $this->get('/'.$this->prefix().'/sales/fulfillment/returns')->assertOk();
+        $this->get('/'.$this->prefix().'/extensions/courier-fulfillment/returns')->assertOk();
     }
 
     // ------------------------------------------------------------------
@@ -199,14 +199,18 @@ class UrlGrammarTest extends TestCase
         $response->assertRedirect(route('admin.settings.section', 'general'));
     }
 
-    public function test_old_extensions_seo_dashboard_redirects_to_marketing_seo(): void
+    public function test_extensions_seo_is_the_dashboard_itself(): void
     {
+        // One home (owner ruling 2026-08-19): the SEO workspace lives AT
+        // extensions/seo; the old marketing/seo mount 301s into it.
+        app(\App\Services\ExtensionManager::class)->install('seo');
         $this->actingAs(User::factory()->create());
 
-        $response = $this->get('/'.$this->prefix().'/extensions/seo');
+        $this->get('/'.$this->prefix().'/extensions/seo')->assertOk();
 
-        $response->assertStatus(301);
-        $response->assertRedirect(route('admin.extensions.seo.dashboard'));
+        $this->get('/'.$this->prefix().'/marketing/seo')
+            ->assertStatus(301)
+            ->assertRedirect('/'.$this->prefix().'/extensions/seo');
     }
 
     public function test_extensions_seo_settings_is_a_real_page_again(): void
@@ -242,7 +246,7 @@ class UrlGrammarTest extends TestCase
 
         $response->assertStatus(301);
         $response->assertRedirect(route('admin.abandoned-carts.index'));
-        $this->assertStringContainsString('/sales/abandoned-carts', $response->headers->get('Location'));
+        $this->assertStringContainsString('/extensions/abandoned-carts', $response->headers->get('Location'));
     }
 
     public function test_old_modules_url_redirects_to_settings_modules(): void
@@ -295,7 +299,7 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/fulfillment');
 
         $response->assertStatus(301);
-        $this->assertStringContainsString('/'.$this->prefix().'/sales/fulfillment', $response->headers->get('Location'));
+        $this->assertStringContainsString('/'.$this->prefix().'/extensions/courier-fulfillment', $response->headers->get('Location'));
     }
 
     public function test_old_fulfillment_settings_url_redirects_to_settings_modules_courier_fulfillment(): void
@@ -315,7 +319,7 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/fulfillment/456/label');
 
         $response->assertStatus(301);
-        $this->assertStringContainsString('/'.$this->prefix().'/sales/fulfillment/456/label', $response->headers->get('Location'));
+        $this->assertStringContainsString('/'.$this->prefix().'/extensions/courier-fulfillment/456/label', $response->headers->get('Location'));
     }
 
     public function test_old_admin_banners_literal_url_redirects_to_settings_modules_banners(): void
@@ -485,7 +489,7 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $response = $this->get('/'.$this->prefix().'/sales/fulfillment');
+        $response = $this->get('/'.$this->prefix().'/extensions/courier-fulfillment');
 
         $response->assertOk();
         $this->assertBreadcrumbTrail($response->getContent(), ['Sales', 'Fulfillment']);
@@ -503,11 +507,9 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $response = $this->get('/'.$this->prefix().'/extensions/courier-fulfillment');
+        $response = $this->get('/'.$this->prefix().'/extensions/courier-fulfillment/settings');
 
         $response->assertOk();
-        // v3 repin: the settings space IS Settings, so its trail starts at
-        // Modules like every other v3 settings page.
         $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Fulfillment']);
     }
 
@@ -538,7 +540,7 @@ class UrlGrammarTest extends TestCase
         $this->actingAs(User::factory()->create());
         app(ExtensionManager::class)->install('courier-fulfillment');
 
-        $response = $this->get('/'.$this->prefix().'/sales/fulfillment/returns');
+        $response = $this->get('/'.$this->prefix().'/extensions/courier-fulfillment/returns');
 
         $response->assertOk();
         $this->assertBreadcrumbTrail($response->getContent(), ['Sales', 'Fulfillment', 'Returns']);

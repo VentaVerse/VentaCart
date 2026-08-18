@@ -9,7 +9,7 @@
         </div>
     </div>
 
-    @include('abandoned-carts::partials.ops-tabs')
+    @include('abandoned-carts::partials.tabs')
 
     <div class="v3-settle">
         <div class="v3-stats">

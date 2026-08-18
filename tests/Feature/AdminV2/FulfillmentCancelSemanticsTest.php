@@ -56,12 +56,12 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
     private function queueUrl(): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     private function settingsUrl(): string
     {
-        return '/' . $this->prefix . '/extensions/courier-fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment/settings';
     }
 
     private function installExtension(): void
@@ -624,11 +624,11 @@ class FulfillmentCancelSemanticsTest extends TestCase
             // an empty actions cell.
             ->assertSee('Print waybill')
             ->assertSee('openDrawer(JSON.parse(', false)
-            ->assertSee('/sales/fulfillment/' . $unpaidHandover->id . '/label', false)
-            ->assertSee('/sales/fulfillment/' . $unpaidTransit->id . '/label', false)
+            ->assertSee('/extensions/courier-fulfillment/' . $unpaidHandover->id . '/label', false)
+            ->assertSee('/extensions/courier-fulfillment/' . $unpaidTransit->id . '/label', false)
             // The parcel-less row gains nothing from its neighbours, and no
             // row here offers Cancel booking (To Handover only).
-            ->assertDontSee('/sales/fulfillment/' . $plainUnpaid->id . '/label', false)
+            ->assertDontSee('/extensions/courier-fulfillment/' . $plainUnpaid->id . '/label', false)
             ->assertDontSee("cancel-fulfillment-{$unpaidHandover->id}", false)
             ->assertDontSee("cancel-fulfillment-{$unpaidTransit->id}", false);
 
@@ -825,9 +825,9 @@ class FulfillmentCancelSemanticsTest extends TestCase
         // A real parcel always carries its own buttons: only the live
         // booking gets a waybill link. The cancelled one, the mid-create one
         // and the courier-less one do not.
-        $response->assertSee('/sales/fulfillment/' . $liveBooking->id . '/label', false);
+        $response->assertSee('/extensions/courier-fulfillment/' . $liveBooking->id . '/label', false);
         foreach ([$creating, $courierCancelled, $noCourierState] as $order) {
-            $response->assertDontSee('/sales/fulfillment/' . $order->id . '/label', false);
+            $response->assertDontSee('/extensions/courier-fulfillment/' . $order->id . '/label', false);
         }
 
         // The row-level "book again" hint (co-actions__hint) was removed on
@@ -901,7 +901,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
             // (owner ruling, fix round) - nothing about it is bookable or
             // printable, so no Book and no waybill.
             ->assertSee('openDrawer(JSON.parse(', false)
-            ->assertDontSee('/sales/fulfillment/' . $order->id . '/label', false);
+            ->assertDontSee('/extensions/courier-fulfillment/' . $order->id . '/label', false);
     }
 
     // ------------------------------------------------------------------
@@ -985,7 +985,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
             // it; the booking is cancelled, so the waybill does not, and no
             // workflow action does either.
             ->assertSee('openDrawer(JSON.parse(', false)
-            ->assertDontSee('/sales/fulfillment/' . $order->id . '/label', false)
+            ->assertDontSee('/extensions/courier-fulfillment/' . $order->id . '/label', false)
             ->assertDontSee('openBooking(JSON.parse(', false)
             ->assertDontSee("cancel-fulfillment-{$order->id}", false);
 

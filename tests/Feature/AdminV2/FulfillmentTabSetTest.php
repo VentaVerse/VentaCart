@@ -49,12 +49,12 @@ class FulfillmentTabSetTest extends TestCase
 
     private function queueUrl(): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     private function settingsUrl(): string
     {
-        return '/' . $this->prefix . '/extensions/courier-fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment/settings';
     }
 
     private function installExtension(): void
@@ -234,11 +234,11 @@ class FulfillmentTabSetTest extends TestCase
         // Every parcel-carrying row keeps its own two buttons: the label
         // route is per order, so each one is asserted by its own URL.
         foreach ([$handover, $shipping, $lost] as $order) {
-            $response->assertSee('/sales/fulfillment/' . $order->id . '/label', false);
+            $response->assertSee('/extensions/courier-fulfillment/' . $order->id . '/label', false);
         }
         // ...and the Unpaid row never gets one, even though it is on the
         // same page as rows that do.
-        $response->assertDontSee('/sales/fulfillment/' . $unpaid->id . '/label', false);
+        $response->assertDontSee('/extensions/courier-fulfillment/' . $unpaid->id . '/label', false);
     }
 
     public function test_all_respects_search(): void

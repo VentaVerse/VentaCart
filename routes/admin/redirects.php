@@ -153,9 +153,9 @@ if (! function_exists('adminLegacyExtensionRedirect')) {
 // Ordered most-specific-first per house convention, though 'fulfillment/settings'
 // (2 segments), 'fulfillment/{order}/label' (3 segments), and bare
 // 'fulfillment' (1 segment) are different depths with no precedence hazard.
-adminLegacyExtensionRedirect('fulfillment/settings', 'extensions/courier-fulfillment');
-adminLegacyExtensionRedirect('fulfillment/{order}/label', 'sales/fulfillment/%s/label');
-adminLegacyExtensionRedirect('fulfillment', 'sales/fulfillment');
+adminLegacyExtensionRedirect('fulfillment/settings', 'extensions/courier-fulfillment/settings');
+adminLegacyExtensionRedirect('fulfillment/{order}/label', 'extensions/courier-fulfillment/%s/label');
+adminLegacyExtensionRedirect('fulfillment', 'extensions/courier-fulfillment');
 
 // Content
 adminLegacyRedirect('blog', 'admin.blog.index');
@@ -211,15 +211,8 @@ adminLegacyRedirect('email-templates/{emailTemplate}/edit', 'admin.email-templat
 
 // Marketing — SEO workspace, and Settings > Modules > SEO (engine config).
 // Literal siblings before the {type} entities wildcard.
-adminLegacyRedirect('extensions/seo/search-console', 'admin.extensions.seo.search-console');
-adminLegacyRedirect('extensions/seo/strategy', 'admin.extensions.seo.strategy');
-adminLegacyRedirect('extensions/seo/review', 'admin.extensions.seo.review');
-adminLegacyRedirect('extensions/seo/slugs', 'admin.extensions.seo.slugs');
 // ('extensions/seo/settings' is NOT redirected: since the wave-0 move it
 // is a real page again — the engine settings' own home.)
-adminLegacyRedirect('extensions/seo/redirects', 'admin.extensions.seo.redirects.index');
-adminLegacyRedirect('extensions/seo/not-found', 'admin.extensions.seo.not-found.index');
-adminLegacyRedirect('extensions/seo', 'admin.extensions.seo.dashboard');
 Route::get('extensions/seo/{type}', function (string $type) {
     $url = route('admin.extensions.seo.entities', ['type' => $type]);
 
@@ -299,3 +292,22 @@ Route::get('settings/theme/{path?}', function (?string $path = null) {
 
     return redirect($destination.($query ? '?'.$query : ''), 301);
 })->where('path', '.*')->name('legacy-theme-redirect');
+
+// One-home re-mount (owner ruling 2026-08-19): every split extension's
+// operational pages moved under its extensions/{name} home. Path- and
+// query-preserving, same shape as the settings/* family above.
+foreach ([
+    'sales/abandoned-carts' => 'extensions/abandoned-carts',
+    'sales/reviews' => 'extensions/reviews',
+    'sales/fulfillment' => 'extensions/courier-fulfillment',
+    'marketing/seo' => 'extensions/seo',
+    'content/blog-categories' => 'extensions/blog/categories',
+    'content/blog' => 'extensions/blog/posts',
+] as $old => $new) {
+    Route::get($old.'/{path?}', function (?string $path = null) use ($new) {
+        $destination = '/'.trim(config('admin.prefix', 'admin').'/'.$new.'/'.($path ?? ''), '/');
+        $query = request()->getQueryString();
+
+        return redirect($destination.($query ? '?'.$query : ''), 301);
+    })->where('path', '.*');
+}

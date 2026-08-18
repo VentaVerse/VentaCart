@@ -5,7 +5,7 @@
         </div>
     </div>
 
-    @include('abandoned-carts::partials.ops-tabs')
+    @include('abandoned-carts::partials.tabs')
 
     <div class="v3-settle">
         <form method="GET" action="{{ route('admin.abandoned-carts.notifications') }}" class="v3-filterbar">

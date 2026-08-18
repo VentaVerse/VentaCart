@@ -65,12 +65,12 @@ class FulfillmentBookedStatusTest extends TestCase
 
     private function queueUrl(): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     private function settingsUrl(): string
     {
-        return '/' . $this->prefix . '/extensions/courier-fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment/settings';
     }
 
     private function installExtension(): void

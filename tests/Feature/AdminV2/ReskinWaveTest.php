@@ -1161,46 +1161,40 @@ class ReskinWaveTest extends TestCase
      * these pages no longer carry those workspace-nav markers, while the
      * single, explicit crossing links (in both directions) still render.
      */
-    public function test_settings_context_seo_and_abandoned_cart_pages_do_not_leak_workspace_nav(): void
+    public function test_one_home_pages_share_one_tab_bar(): void
     {
-        $this->actingAs(User::factory()->create());
+        // One home (owner ruling 2026-08-19): ops and config pages are
+        // tabs of the same bar under the extension; no crossing links,
+        // no foreign workspace navs, no separate chrome.
         app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
+        app(\App\Services\ExtensionManager::class)->install('reviews');
+        app(\App\Services\ExtensionManager::class)->install('seo');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
-
-        $seoWorkspaceNavMarker = 'aria-label="SEO workspace"';
-        $acWorkspaceNavMarker = 'aria-label="Abandoned carts workspace"';
-
-        // Engine settings now lives IN the SEO space (the v3 dual menu):
-        // its space nav is the rail + SEO context nav, which never hands
-        // out a foreign workspace's main nav, so the original bug (every
-        // link out re-entering another workspace) cannot recur.
-        $this->get(route('admin.extensions.seo.settings'))
-            ->assertOk()
-            ->assertSee('v3-embed', false)
-            ->assertSee('aria-label="SEO"', false);
+        $this->actingAs(User::factory()->create());
 
         foreach ([
+            route('admin.abandoned-carts.index'),
             route('admin.abandoned-carts.settings'),
             route('admin.abandoned-carts.rules'),
-            route('admin.abandoned-carts.templates'),
         ] as $url) {
             $this->get($url)
                 ->assertOk()
-                ->assertDontSee($acWorkspaceNavMarker, false)
-                ->assertSee('Carts workspace'); // the one explicit crossing link back
+                ->assertSee('aria-label="Abandoned carts workspace"', false)
+                ->assertSee('Templates')
+                ->assertSee('Settings');
         }
 
-        // The reverse direction: the Sales-workspace pages keep their own
-        // nav, with exactly one explicit link into Settings — not the full
-        // Rules/Templates/Settings trio it used to carry.
-        $this->get(route('admin.abandoned-carts.index'))
-            ->assertOk()
-            ->assertSee($acWorkspaceNavMarker, false);
+        foreach ([route('admin.reviews.index'), route('admin.reviews.settings')] as $url) {
+            $this->get($url)
+                ->assertOk()
+                ->assertSee('aria-label="Reviews workspace"', false)
+                ->assertSee('Settings');
+        }
 
-        // The SEO space nav carries its Engine settings item.
-        $this->get(route('admin.extensions.seo.dashboard'))
+        // The SEO space keeps its own space nav, engine settings included.
+        $this->get(route('admin.extensions.seo.settings'))
             ->assertOk()
-            ->assertSee('Engine settings');
+            ->assertSee('aria-label="SEO"', false);
     }
 
     /**
@@ -1318,7 +1312,7 @@ class ReskinWaveTest extends TestCase
         // routes are only registered once BootExtensions middleware re-checks
         // on the next dispatched request (see install()'s $booted reset), so
         // raw prefix-based paths are used instead, same as UrlGrammarTest.
-        $base = '/' . config('admin.prefix', 'admin') . '/sales/fulfillment';
+        $base = '/' . config('admin.prefix', 'admin') . '/extensions/courier-fulfillment';
 
         // Default filter (to_pack) renders the shell and shows only the unbooked order.
         $this->get($base)

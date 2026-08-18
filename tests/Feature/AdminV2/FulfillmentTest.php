@@ -66,12 +66,14 @@ class FulfillmentTest extends TestCase
 
     private function settingsUrl(string $suffix = ''): string
     {
-        return '/' . $this->prefix . '/extensions/courier-fulfillment' . $suffix;
+        // One home: the hub itself sits at /settings; couriers and the
+        // other literals are root-level siblings.
+        return '/' . $this->prefix . '/extensions/courier-fulfillment' . ($suffix === '' ? '/settings' : $suffix);
     }
 
     private function queueUrl(): string
     {
-        return '/' . $this->prefix . '/sales/fulfillment';
+        return '/' . $this->prefix . '/extensions/courier-fulfillment';
     }
 
     /**

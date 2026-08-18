@@ -41,6 +41,11 @@ class ExtensionClassReferencesTest extends TestCase
         $files = glob(base_path('extensions/*/src/{,*/,*/*/,*/*/*/}*.php'), GLOB_BRACE);
         $this->assertNotEmpty($files, 'No extension sources found — glob broken?');
 
+        // Core scans too: a class that MOVED into an extension leaves the
+        // same latent break behind in app/ (Order::payment_method_label's
+        // BankAccount lookup shipped exactly that way).
+        $files = array_merge($files, glob(base_path('app/{,*/,*/*/,*/*/*/}*.php'), GLOB_BRACE));
+
         $bad = [];
         foreach ($files as $file) {
             foreach ($this->unresolvedReferences($file) as $ref) {
@@ -111,7 +116,8 @@ class ExtensionClassReferencesTest extends TestCase
                 }
             }
 
-            if ($t[0] === T_STRING && isset($tokens[$i + 1]) && is_array($tokens[$i + 1]) && $tokens[$i + 1][0] === T_DOUBLE_COLON) {
+            if (in_array($t[0], [T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED], true)
+                && isset($tokens[$i + 1]) && is_array($tokens[$i + 1]) && $tokens[$i + 1][0] === T_DOUBLE_COLON) {
                 $refs[] = $t[1];
             }
 
@@ -121,7 +127,7 @@ class ExtensionClassReferencesTest extends TestCase
                     if (is_array($tj) && $tj[0] === T_WHITESPACE) {
                         continue;
                     }
-                    if (is_array($tj) && $tj[0] === T_STRING) {
+                    if (is_array($tj) && in_array($tj[0], [T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED], true)) {
                         $refs[] = $tj[1];
                     }
                     break;
@@ -133,6 +139,31 @@ class ExtensionClassReferencesTest extends TestCase
         $bad = [];
         foreach (array_unique($refs) as $ref) {
             if (in_array(strtolower($ref), $builtins, true)) {
+                continue;
+            }
+            // Fully-qualified references resolve as themselves, nothing else.
+            if (str_starts_with($ref, '\\')) {
+                $fq = ltrim($ref, '\\');
+                if (! class_exists($fq) && ! interface_exists($fq) && ! trait_exists($fq) && ! enum_exists($fq) && ! function_exists($fq)) {
+                    $bad[] = "{$ref} (fully qualified, does not exist)";
+                }
+                continue;
+            }
+            // Qualified (Foo\Bar::) resolve via import of head segment or namespace.
+            if (str_contains($ref, '\\')) {
+                $head = strtok($ref, '\\');
+                $rest = substr($ref, strlen($head));
+                $candidates = array_filter([
+                    isset($uses[$head]) ? $uses[$head] . $rest : null,
+                    $namespace !== '' ? $namespace . '\\' . $ref : $ref,
+                    $ref,
+                ]);
+                foreach ($candidates as $candidate) {
+                    if (class_exists($candidate) || interface_exists($candidate) || trait_exists($candidate) || enum_exists($candidate)) {
+                        continue 2;
+                    }
+                }
+                $bad[] = "{$ref} (qualified, unresolvable)";
                 continue;
             }
             $viaImport = $uses[$ref] ?? null;

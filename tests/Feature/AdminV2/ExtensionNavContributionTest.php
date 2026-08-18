@@ -92,8 +92,12 @@ class ExtensionNavContributionTest extends TestCase
         $this->installAndBoot();
         $this->actingAs(User::factory()->create());
 
-        $active = AdminNav::activeItemKey(config('admin.prefix', 'admin') . '/sales/fulfillment');
+        // One home (owner ruling 2026-08-19): the queue lives under
+        // extensions/, so the URL-derived seed resolves to the Extensions
+        // group. The Sales entry still points in; which group the sidebar
+        // SHOWS is the click-memory nav's business, not this derivation's.
+        $active = AdminNav::activeItemKey(config('admin.prefix', 'admin') . '/extensions/courier-fulfillment/settings');
 
-        $this->assertSame(['group' => 'Sales', 'item' => 'fulfillment'], $active);
+        $this->assertSame(['group' => 'Extensions', 'item' => null], $active);
     }
 }

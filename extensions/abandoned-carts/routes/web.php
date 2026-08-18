@@ -5,10 +5,11 @@ use Illuminate\Support\Facades\Route;
 
 $adminPrefix = config('admin.prefix', 'admin');
 
-// Operations: the carts worklist, in the Sales work nav (owner ruling:
-// ops where the work is). Route names frozen.
+// One home (owner ruling 2026-08-19: with the click-memory nav, ops and
+// config live together under the extension; the Sales nav entry is a
+// pointer in). Route names frozen.
 Route::middleware(['web', 'auth', 'admin.session.cap'])
-    ->prefix($adminPrefix . '/sales/abandoned-carts')
+    ->prefix($adminPrefix . '/extensions/abandoned-carts')
     ->name('admin.abandoned-carts.')
     ->group(function () {
         Route::get('/', [AbandonedCartController::class, 'index'])->name('index');
@@ -17,12 +18,12 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::post('/mass-delete', [AbandonedCartController::class, 'massDelete'])->name('mass-delete');
         // Wildcards last: a single-segment {cart} would swallow the
         // literals above.
-        Route::get('/{cart}', [AbandonedCartController::class, 'show'])->name('show');
-        Route::delete('/{cart}', [AbandonedCartController::class, 'destroy'])->name('destroy');
+        Route::get('/{cart}', [AbandonedCartController::class, 'show'])->name('show')->whereNumber('cart');
+        Route::delete('/{cart}', [AbandonedCartController::class, 'destroy'])->name('destroy')->whereNumber('cart');
     });
 
-// Configuration: rules, templates, settings — behind the Extensions door
-// at the extensions/{name} convention. Route names frozen.
+// Configuration half, same home. Registered FIRST: its literals
+// (settings, rules, templates) must beat the ops half's {cart} wildcard.
 Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/extensions/abandoned-carts')
     ->name('admin.abandoned-carts.')
