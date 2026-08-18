@@ -952,6 +952,37 @@ class FulfillmentTest extends TestCase
     }
 
     /**
+     * Owner ruling 2026-08-19: hovering a picking row's photo holds it up
+     * at a size that can be checked against the parcel in hand. The panel
+     * is position:fixed because the table wrapper clips both axes.
+     */
+    public function test_picking_row_photos_carry_the_hover_preview(): void
+    {
+        $this->installExtension();
+        $this->actingAs(User::factory()->create());
+
+        $order = $this->makeBookableOrder();
+        $product = Product::create(['store_id' => 1, 'name' => 'Patch Cable', 'slug' => 'patch-cable', 'price' => 500]);
+
+        OrderProduct::create([
+            'order_id' => $order->id, 'product_id' => $product->id,
+            'name' => 'Patch Cable', 'sku' => 'QB-SL-10',
+            'image' => 'catalog/demo/cable.jpg',
+            'price' => 500, 'quantity' => 1, 'total' => 500,
+        ]);
+
+        $html = $this->get($this->queueUrl())->assertOk()->getContent();
+
+        // The photo asks to be hovered, and both ends of the interaction
+        // are wired.
+        $this->assertStringContainsString('v-zoomable', $html);
+        $this->assertStringContainsString('showZoom(', $html);
+        $this->assertStringContainsString('hideZoom()', $html);
+        // The panel it opens into exists once, outside the clipped table.
+        $this->assertSame(1, substr_count($html, 'class="v-zoom"'));
+    }
+
+    /**
      * Owner ruling 2026-08-19: the picking row names both facts behind
      * their own keys, identifier first — "SKU: X | Variant: Y" — with the
      * rule between them present only when there are two facts to separate.

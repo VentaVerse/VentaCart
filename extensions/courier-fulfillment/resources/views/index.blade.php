@@ -617,7 +617,9 @@
                                         @php($itemVariant = trim((string) $item->variant_label))
                                         <span class="v-namerow v-fulfilitem">
                                             @if ($itemImage)
-                                                <img src="{{ storage_url($itemImage) }}" alt="" class="v-thumb">
+                                                <img src="{{ storage_url($itemImage) }}" alt="" class="v-thumb v-zoomable"
+                                                     @mouseenter="showZoom($event.currentTarget)"
+                                                     @mouseleave="hideZoom()">
                                             @else
                                                 <span class="v-thumb v-thumb--blank"><x-admin.icon name="products" /></span>
                                             @endif
@@ -1387,6 +1389,19 @@
                 </div>
             </div>
         @endif
+
+        {{-- The picking row's image, held up to the light. position:fixed
+             because the table wrapper's overflow-x clips both axes, so an
+             absolutely-placed panel would be cut off at the row; fixed
+             escapes that, and escaping it is the only reason coordinates
+             are computed in script rather than declared in CSS.
+             pointer-events:none so the panel can never steal the hover
+             that summoned it, or a click meant for the row beneath. --}}
+        <div class="v-zoom" x-show="zoom.src" x-cloak aria-hidden="true"
+             x-transition.opacity.duration.120ms
+             :style="`left:${zoom.x}px; top:${zoom.y}px`">
+            <img :src="zoom.src" alt="">
+        </div>
     </div>
 
     @push('scripts')
@@ -1428,6 +1443,9 @@
                 // says why.
                 checkedCouriers: @js($checkedCourierNames),
                 options: @js($courierOptions),
+                // The hovered row image, held at a size a packer can
+                // actually check against the thing in their hands.
+                zoom: { src: null, x: 0, y: 0 },
                 // The store's collection points, and which one the server
                 // would choose unaided. Held here so step 2 can confirm the
                 // chosen address's street lines beneath the name.
@@ -1444,6 +1462,24 @@
                     info: 'v-badge v-badge--info',
                 },
                 urlBase: '{{ url(config('admin.prefix', 'admin') . '/sales/fulfillment') }}',
+                // Hover preview. Opens beside the thumb, flips to its other
+                // side rather than run off the viewport, and clamps so a row
+                // near the top or bottom still shows the whole image. Never
+                // on a touch or coarse pointer, where "hover" is a tap that
+                // would fight the row's own controls.
+                showZoom(el) {
+                    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+                    const size = 260, gap = 12, edge = 8;
+                    const r = el.getBoundingClientRect();
+                    let x = r.right + gap;
+                    if (x + size > window.innerWidth - edge) x = r.left - gap - size;
+                    const y = Math.max(edge, Math.min(
+                        r.top + (r.height / 2) - (size / 2),
+                        window.innerHeight - size - edge
+                    ));
+                    this.zoom = { src: el.currentSrc || el.src, x: Math.max(edge, x), y };
+                },
+                hideZoom() { this.zoom = { ...this.zoom, src: null }; },
                 get current() { return this.options[this.courier] ?? {name:'',services:[],parcels:[],payments:[]}; },
                 // The chosen origin's street lines. Compared as strings:
                 // a select's value is always one, the ids are integers.
