@@ -26,7 +26,10 @@ class AppServiceProvider extends ServiceProvider
         // The sidebar's work-waiting counts (Fulfillment to ship, Reviews
         // pending). Bound here so the shell never learns which entries
         // are special; it just looks its items up (see NavBadges).
-        View::composer('components.admin.shell', function ($view) {
+        // Composed onto chrome: the component that actually renders the
+        // nav (the v3->v rename split the old shell into shell + chrome,
+        // and component views do not inherit a parent view's variables).
+        View::composer('components.admin.chrome', function ($view) {
             $view->with('navBadges', \App\Support\NavBadges::counts());
         });
 

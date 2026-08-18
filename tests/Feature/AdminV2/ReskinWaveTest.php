@@ -832,6 +832,37 @@ class ReskinWaveTest extends TestCase
         }
     }
 
+    /**
+     * The sidebar's work-waiting badges are composed onto the chrome
+     * component (the one that renders the nav). Regression pin: the
+     * v3->v rename split shell/chrome and the composer kept pointing at
+     * the shell, so every badge silently vanished (found by the owner
+     * on 2026-08-19).
+     */
+    public function test_nav_badges_render_on_the_chrome_sidebar(): void
+    {
+        app(\App\Services\ExtensionManager::class)->install('reviews');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+        $this->actingAs(User::factory()->create());
+
+        $product = Product::create(['store_id' => 1, 'name' => 'Badge Pedal', 'slug' => 'badge-pedal', 'price' => 1000]);
+        Review::create([
+            'product_id' => $product->id,
+            'token' => Str::random(32),
+            'name' => 'Jane Doe',
+            'email' => 'jane@example.com',
+            'rating' => 5,
+            'title' => 'Great pedal',
+            'body' => 'Loved it.',
+            'status' => 'pending',
+        ]);
+        \Illuminate\Support\Facades\Cache::forget('admin.nav-badges');
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('v-nav__badge', false);
+    }
+
     public function test_user_group_crud_round_trip_owns_its_permission_config(): void
     {
         $this->actingAs(User::factory()->create());
