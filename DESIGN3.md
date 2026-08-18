@@ -1,5 +1,14 @@
 # Venta admin v3 design record
 
+> **On the name (owner ruling 2026-08-21, card #133):** "v3" is an
+> internal codename left over from the branch that built this system;
+> the product is Venta 2. The vocabulary (v3- classes, admin3
+> directories, x-admin3 components, v3Form-family JS) collapses to the
+> version-free v- prefix in one sweep once the legacy v- layer (classic
+> chrome + day sheet vocabulary) retires and frees it. That rename MUST
+> land before the third-party developer platform ships. Do not add new
+> version-indexed names anywhere.
+
 The system of record for the v3 admin rebuild, written from the built
 world. Scope: `resources/css/admin3/**`, `resources/js/admin3/**`,
 `resources/views/components/admin3/**`, and every page migrated to a
