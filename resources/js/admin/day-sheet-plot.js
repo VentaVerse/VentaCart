@@ -32,7 +32,7 @@ const RANGE_KEY = 'vSalesRange';
 
 /** Redraw every node the payload owns: paths, hit targets, key, axis. */
 function render(card, p) {
-    const svg = card.querySelector('.v-plot');
+    const svg = card.querySelector('.v3-plot');
 
     // A reading taken on the old series is a reading of nothing once the
     // series is gone, so the swap clears it rather than letting a stale
@@ -43,9 +43,9 @@ function render(card, p) {
     });
 
     svg.setAttribute('aria-label', p.aria);
-    card.querySelector('.v-plot__area').setAttribute('d', p.dArea || '');
-    card.querySelector('.v-plot__then').setAttribute('d', p.hasEarlier ? p.dThen : '');
-    card.querySelector('.v-plot__now').setAttribute('d', p.dNow || '');
+    card.querySelector('.v3-plot__area').setAttribute('d', p.dArea || '');
+    card.querySelector('.v3-plot__then').setAttribute('d', p.hasEarlier ? p.dThen : '');
+    card.querySelector('.v3-plot__now').setAttribute('d', p.dNow || '');
 
     const hits = svg.querySelector('[data-plot-hits]');
 
@@ -59,7 +59,7 @@ function render(card, p) {
     for (let i = 0; i < n; i++) {
         const rect = document.createElementNS(SVG_NS, 'rect');
 
-        rect.setAttribute('class', 'v-plot__hit');
+        rect.setAttribute('class', 'v3-plot__hit');
         rect.setAttribute('x', String(Math.max(0, p.x[i] - w / 2)));
         rect.setAttribute('y', '0');
         rect.setAttribute('width', String(w));
@@ -79,7 +79,7 @@ function render(card, p) {
     card.querySelector('[data-plot-thenpeak]').textContent = p.hasEarlier ? 'peak ' + p.peakThen : '';
     card.querySelector('[data-plot-nowread-label]').textContent = p.nowRead.label;
     card.querySelector('[data-plot-nowread-value]').textContent = p.nowRead.value;
-    card.querySelector('.v-plot__dot--then').hidden = !p.hasEarlier;
+    card.querySelector('.v3-plot__dot--then').hidden = !p.hasEarlier;
     card.querySelector('[data-plot-earlier-row]').hidden = !p.hasEarlier;
 
     const axis = card.querySelector('[data-plot-axis]');
@@ -108,7 +108,7 @@ function mount(card) {
         return;
     }
 
-    const svg = card.querySelector('.v-plot');
+    const svg = card.querySelector('.v3-plot');
     const guide = card.querySelector('[data-plot-guide]');
     const readout = card.querySelector('[data-plot-readout]');
 

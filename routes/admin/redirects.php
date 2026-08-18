@@ -65,9 +65,6 @@ if (! function_exists('adminLegacyRedirect')) {
 // Dashboard
 adminLegacyRedirect('/', 'admin.dashboard');
 adminLegacyRedirect('palette/search', 'admin.palette.search');
-if (app()->environment(['local', 'testing'])) {
-    adminLegacyRedirect('ui-kit', 'admin.ui-kit');
-}
 adminLegacyRedirect('address/countries', 'admin.address.countries');
 adminLegacyRedirect('address/zones', 'admin.address.zones');
 

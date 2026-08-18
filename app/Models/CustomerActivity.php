@@ -54,17 +54,17 @@ class CustomerActivity extends Model
     }
 
     /**
-     * v-* token classes (not raw Tailwind) — safe because both consumers
-     * (admin/dashboard.blade.php, admin/customers/form.blade.php) render
-     * inside the v-admin shell, where the token variables are in scope.
+     * A semantic tone key (act, info, warn, quiet) the day sheet's
+     * feed maps to its own classes. Utility strings retired with the
+     * v2 layer.
      */
     public function getColorAttribute(): string
     {
         return match ($this->type) {
-            'order_placed' => 'text-v-accent bg-v-accent-weak',
-            'login', 'registered' => 'text-v-info bg-[color-mix(in_srgb,var(--info)_12%,transparent)]',
-            'review_submitted' => 'text-v-warning bg-[color-mix(in_srgb,var(--warning)_12%,transparent)]',
-            default => 'text-v-secondary bg-v-sunken',
+            'order_placed' => 'act',
+            'login', 'registered' => 'info',
+            'review_submitted' => 'warn',
+            default => 'quiet',
         };
     }
 }

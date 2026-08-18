@@ -5,21 +5,21 @@
     answers. A feed capped to a glance, newest first; the customer's own
     page carries their full history.
 --}}
-<x-admin.panel title="Customer activity" id="v-sheet-activity" flush>
+<x-admin3.panel title="Customer activity" id="v-sheet-activity" flush>
     @if ($activities->isEmpty())
-        <p class="v-panel__blank">Nothing recorded yet.</p>
+        <p class="v3-blankline">Nothing recorded yet.</p>
     @else
-        <ul class="v-feed">
+        <ul class="v3-dayfeed">
             @foreach ($activities as $activity)
-                <x-admin.feed.entry
+                <x-admin3.dayfeed-entry
                     :icon="$activity->icon"
                     :tone="$activity->color"
                     :when="$activity->created_at->diffForHumans()"
                     :who="$activity->customer ? $activity->customer->first_name . ' ' . $activity->customer->last_name : 'A deleted customer'"
                     :who-href="$activity->customer ? route('admin.customers.edit', $activity->customer) : null">
                     {{ lcfirst($activity->description) }}
-                </x-admin.feed.entry>
+                </x-admin3.dayfeed-entry>
             @endforeach
         </ul>
     @endif
-</x-admin.panel>
+</x-admin3.panel>

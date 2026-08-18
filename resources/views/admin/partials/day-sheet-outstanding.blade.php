@@ -14,14 +14,14 @@
     has its own panel now, with the per-row detail a bare count could not
     hold.
 --}}
-<x-admin.panel title="Outstanding" id="v-sheet-standing" flush>
-    <ul class="v-lines">
+<x-admin3.panel title="Outstanding" id="v-sheet-standing" flush>
+    <ul class="v3-lines">
         @foreach ($standingLines as $line)
-            <x-admin.line
+            <x-admin3.line
                 :href="$line['url']"
                 :label="$line['label']"
                 :count="$line['count']"
                 :detail="$line['detail'] ?? null" />
         @endforeach
     </ul>
-</x-admin.panel>
+</x-admin3.panel>

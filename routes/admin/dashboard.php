@@ -12,9 +12,8 @@ Route::get('dashboard/palette-search', [PaletteController::class, 'search'])->na
 
 Route::get('dashboard/sales-series', [DashboardController::class, 'salesSeries'])->name('dashboard.sales-series');
 
-if (app()->environment(['local', 'testing'])) {
-    Route::view('dashboard/ui-kit', 'admin.ui-kit')->name('ui-kit');
-}
+// The ui-kit specimen retired with the v2 primitive layer it documented
+// (owner directive 2026-08-21: one UX variant, no dead weight).
 
 // Address Lookups — shared admin-wide utility consumed by orders, customers,
 // and localization forms via the named route (route() calls, never a
