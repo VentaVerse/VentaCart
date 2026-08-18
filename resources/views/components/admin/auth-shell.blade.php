@@ -17,7 +17,7 @@
         <link rel="icon" href="{{ $vFavicon }}">
     @endif
     <x-admin.theme-boot />
-    @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/css/admin3/admin3.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
     @stack('head')
 </head>
 <body class="v-admin min-h-screen flex items-center justify-center px-6 py-12">

@@ -683,12 +683,12 @@ class ReskinWaveTest extends TestCase
             route('admin.coupons.edit', $coupon),
         ];
 
-        // Bank account editor migrated to the v3 settings shell.
+        // Bank account editor migrated to the v settings shell.
         $this->get(route('admin.bank-accounts.edit', $bankAccount))
-            ->assertOk()->assertSee('v3-embed', false);
+            ->assertOk()->assertSee('v-embed', false);
 
-        // The shipping child forms migrated to the v3 settings shell.
-        $v3Routes = [
+        // The shipping child forms migrated to the v settings shell.
+        $vRoutes = [
             route('admin.flat-rates.create'),
             route('admin.flat-rates.edit', $flatRate),
             route('admin.weight-based-methods.create'),
@@ -698,8 +698,8 @@ class ReskinWaveTest extends TestCase
             route('admin.free-shipping-rules.edit', $freeShippingRule),
         ];
 
-        foreach ($v3Routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v3-embed', false);
+        foreach ($vRoutes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-embed', false);
         }
 
         foreach ($routes as $url) {
@@ -808,13 +808,13 @@ class ReskinWaveTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Geo zone edit migrated to the v3 shell (first v3 exemplar);
-        // it renders under the v3 marker, asserted separately below.
+        // Geo zone edit migrated to the v shell (first v exemplar);
+        // it renders under the v marker, asserted separately below.
         $this->get(route('admin.localization.edit-geo-zone', $geoZone))
-            ->assertOk()->assertSee('v3-embed', false);
+            ->assertOk()->assertSee('v-embed', false);
 
-        // Migrated to the v3 settings shell.
-        $v3Routes = [
+        // Migrated to the v settings shell.
+        $vRoutes = [
             route('admin.localization.index'),
             route('admin.localization.index', ['tab' => 'zones', 'country' => $country->id]),
             route('admin.localization.index', ['tab' => 'geo-zones']),
@@ -826,8 +826,8 @@ class ReskinWaveTest extends TestCase
             route('admin.email-templates.edit', $template),
         ];
 
-        foreach ($v3Routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v3-embed', false);
+        foreach ($vRoutes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-embed', false);
         }
     }
 
@@ -884,16 +884,16 @@ class ReskinWaveTest extends TestCase
         $this->get(route('admin.api-sync-logs.index'))
             ->assertOk()->assertSee('v-admin', false);
 
-        // Theme, Couriers, and Stock Alerts migrated to the v3 settings shell.
-        $v3Routes = [
+        // Theme, Couriers, and Stock Alerts migrated to the v settings shell.
+        $vRoutes = [
             route('admin.theme.index'),
             route('admin.shipping-couriers.index'),
             route('admin.stock-notifications.index'),
             route('admin.stock-notifications.index', ['tab' => 'template']),
         ];
 
-        foreach ($v3Routes as $url) {
-            $this->get($url)->assertOk()->assertSee('v3-embed', false);
+        foreach ($vRoutes as $url) {
+            $this->get($url)->assertOk()->assertSee('v-embed', false);
         }
 
         // Banners is an optional extension — only assert its routes when the
@@ -1110,11 +1110,11 @@ class ReskinWaveTest extends TestCase
         // Users index is a representative "external" Settings-hub destination
         // (not a registry section) — it must now carry the same persistent
         // sub-sidebar + "All Settings" back link as the 7 registry sections.
-        // Users migrated to the v3 settings shell: the persistent settings
-        // nav is now the v3 context nav, which still lists sibling sections.
+        // Users migrated to the v settings shell: the persistent settings
+        // nav is now the v context nav, which still lists sibling sections.
         $this->get(route('admin.users.index'))
             ->assertOk()
-            ->assertSee('v3-embed', false)
+            ->assertSee('v-embed', false)
             ->assertSee('Payments'); // context nav lists sibling sections
 
         // Standard rows (owner ruling 2026-08-18): the landing carries only
@@ -1122,7 +1122,7 @@ class ReskinWaveTest extends TestCase
         // the method page's own Availability tab, reached through Configure.
         $this->get(route('admin.payment-settings.index'))
             ->assertOk()
-            ->assertSee('v3-embed', false)
+            ->assertSee('v-embed', false)
             ->assertSee(route('admin.payment-settings.show', 'bank_transfer'), false);
 
         $this->get(route('admin.payment-settings.show', 'bank_transfer'))
@@ -1148,7 +1148,7 @@ class ReskinWaveTest extends TestCase
 
         $this->get(route('admin.settings.section', 'automations'))
             ->assertOk()
-            ->assertSee('v3-embed', false)
+            ->assertSee('v-embed', false)
             ->assertSee('Currency Exchange Rates')
             ->assertDontSee('bg-gray-50', false)
             ->assertDontSee('bg-indigo-600', false)
@@ -1168,7 +1168,7 @@ class ReskinWaveTest extends TestCase
     {
         // One home, side-pan menus (owner ruling 2026-08-19 evening,
         // superseding the tab bars of the same morning): ops and config
-        // pages share the module's own context nav, the same v3-snav the
+        // pages share the module's own context nav, the same v-snav the
         // Settings and SEO spaces wear.
         app(\App\Services\ExtensionManager::class)->install('abandoned-carts');
         app(\App\Services\ExtensionManager::class)->install('reviews');
@@ -1184,7 +1184,7 @@ class ReskinWaveTest extends TestCase
             $this->get($url)
                 ->assertOk()
                 ->assertSee('aria-label="Abandoned Carts"', false)
-                ->assertSee('v3-snav', false)
+                ->assertSee('v-snav', false)
                 ->assertSee('Templates')
                 ->assertSee('Settings');
         }
@@ -1193,7 +1193,7 @@ class ReskinWaveTest extends TestCase
             $this->get($url)
                 ->assertOk()
                 ->assertSee('aria-label="Reviews"', false)
-                ->assertSee('v3-snav', false)
+                ->assertSee('v-snav', false)
                 ->assertSee('Settings');
         }
 
@@ -1223,18 +1223,18 @@ class ReskinWaveTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        // general/mail/checkout/security migrated to the v3 settings shell;
+        // general/mail/checkout/security migrated to the v settings shell;
         // they render its marker instead of the v2 workspace column.
         foreach (['general', 'mail', 'checkout', 'security', 'currencies'] as $section) {
             $this->get(route('admin.settings.section', $section))
                 ->assertOk()
-                ->assertSee('v3-settings__main', false);
+                ->assertSee('v-settings__main', false);
         }
 
-        // Automations migrated to the v3 settings shell.
+        // Automations migrated to the v settings shell.
         $this->get(route('admin.settings.section', 'automations'))
             ->assertOk()
-            ->assertSee('v3-settings__main', false);
+            ->assertSee('v-settings__main', false);
 
         // The two settings screens outside the section controller, one a
         // table and one a column of fields: same column either way.
@@ -1354,7 +1354,7 @@ class ReskinWaveTest extends TestCase
             ->assertSee('name="filter" value="all"', false);
 
         // Courier settings route (mounted separately under Settings > Modules)
-        // renders in the v3 settings space since the savebar sweep.
+        // renders in the v settings space since the savebar sweep.
         $this->get('/' . config('admin.prefix', 'admin') . '/extensions/courier-fulfillment')
             ->assertOk()
             ->assertSee('v-admin', false);

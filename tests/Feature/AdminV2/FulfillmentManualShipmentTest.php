@@ -676,7 +676,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $response->assertOk();
         // Named plainly, with the quiet marker beside it.
         $response->assertSee('LBC Express');
-        $response->assertSee('class="v3-factchip">Manual<', false);
+        $response->assertSee('class="v-factchip">Manual<', false);
         // The tracking link stays clickable, built from the template.
         $response->assertSee('https://lbconline.lbcexpress.com/tracking/LBC-QUEUE-1', false);
         $response->assertSee('LBC-QUEUE-1');
@@ -711,7 +711,7 @@ class FulfillmentManualShipmentTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('LBC Express');
-        $response->assertSee('class="v3-factchip">Manual<', false);
+        $response->assertSee('class="v-factchip">Manual<', false);
         $response->assertSee('Clear shipment');
     }
 

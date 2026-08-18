@@ -145,7 +145,7 @@ class FulfillmentFinalFixesTest extends TestCase
     // offer, no cancel affordance, and the label route refusing server-side.
     //
     // fulfillment-placement Task 2 REWRITE: the original asserted this row
-    // landed in the Cancelled TAB (tabs-v3 courier-phase membership) with a
+    // landed in the Cancelled TAB (tabs-v courier-phase membership) with a
     // Rebook button. Membership now reads the core status's placement, so
     // the row stays under To Pack (nothing re-statused it), and Finding 1's
     // actual subject - that a 7001 booking is dead, so no live-booking
@@ -230,7 +230,7 @@ class FulfillmentFinalFixesTest extends TestCase
 
     /**
      * fulfillment-placement Task 2 REWRITE: the original asserted the
-     * creation_failed order counted under the Failed TAB (tabs-v3
+     * creation_failed order counted under the Failed TAB (tabs-v
      * courier-phase membership). Finding 2's real subject is that a
      * permanently failed async create must be VISIBLE and rebookable rather
      * than silently blending in: it now stays in its own tab (To Pack, since

@@ -328,7 +328,7 @@ class StoreIdentityAssetsTest extends TestCase
 
         $response = $this->get(route('admin.settings.section', 'general'));
 
-        // The v3 mark row binds the URL through Alpine's @js, which escapes
+        // The v mark row binds the URL through Alpine's @js, which escapes
         // slashes; assert the filename, which survives the encoding.
         $response->assertOk()
             ->assertSee('logo-x.png', false)

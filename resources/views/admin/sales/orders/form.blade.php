@@ -1,32 +1,32 @@
-<x-admin3.shell :title="$order ? 'Order #' . $order->id : 'Create order'" active="sales">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+<x-admin.shell :title="$order ? 'Order #' . $order->id : 'Create order'" active="sales">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.orders.index') }}">Orders</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $order ? '#' . $order->id : 'New order' }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $order ? 'Order #' . $order->id : 'Create order' }}</h1>
+            <h1 class="v-head__title">{{ $order ? 'Order #' . $order->id : 'Create order' }}</h1>
             @if ($order)
-                <p class="v3-head__standing">Placed {{ $order->created_at->format('M d, Y H:i') }}</p>
+                <p class="v-head__standing">Placed {{ $order->created_at->format('M d, Y H:i') }}</p>
             @endif
         </div>
-        <div class="v3-head__actions">
+        <div class="v-head__actions">
             @if ($order)
-                <a href="{{ route('admin.orders.show', $order) }}" class="v3-btn v3-btn--secondary">View order</a>
+                <a href="{{ route('admin.orders.show', $order) }}" class="v-btn v-btn--secondary">View order</a>
             @endif
         </div>
     </div>
 
-    <x-admin3.form :action="$order ? route('admin.orders.update', $order) : route('admin.orders.store')" :method="$order ? 'PUT' : 'POST'">
+    <x-admin.form :action="$order ? route('admin.orders.update', $order) : route('admin.orders.store')" :method="$order ? 'PUT' : 'POST'">
         <input type="hidden" name="store_id" value="1">
 
         <div x-data="orderForm()" x-init="init()">
-            <div class="v3-settle">
+            <div class="v-settle">
                 @if ($errors->any())
-                    <div class="v3-notice v3-notice--bad">
-                        <p class="v3-notice__title">Please fix the following</p>
-                        <ul class="v3-notice__list">
+                    <div class="v-notice v-notice--bad">
+                        <p class="v-notice__title">Please fix the following</p>
+                        <ul class="v-notice__list">
                             @foreach ($errors->all() as $error)
                                 <li>{{ $error }}</li>
                             @endforeach
@@ -36,36 +36,36 @@
 
                 <div x-data="{ tab: @js(request('tab', 'details')),
                         pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
-                    <div class="v3-tabs" role="tablist">
-                        <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'details' ? 'true' : 'false'" @click="pick('details')">Details</button>
-                        <button type="button" class="v3-tab" role="tab" :aria-selected="tab === 'products' ? 'true' : 'false'" @click="pick('products')">
+                    <div class="v-tabs" role="tablist">
+                        <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'details' ? 'true' : 'false'" @click="pick('details')">Details</button>
+                        <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'products' ? 'true' : 'false'" @click="pick('products')">
                             Products<span x-show="items.length > 0" x-text="' (' + items.length + ')'"></span>
                         </button>
                     </div>
 
                     {{-- ===================== DETAILS TAB ===================== --}}
-                    <div x-show="tab === 'details'" class="v3-settle">
+                    <div x-show="tab === 'details'" class="v-settle">
 
-                        <x-admin3.panel title="Customer">
-                            <div class="v3-settle">
+                        <x-admin.panel title="Customer">
+                            <div class="v-settle">
                                 <input type="hidden" name="customer_id" :value="customerId">
                                 <input type="hidden" name="is_new_customer" :value="isNewCustomer && !customerId ? '1' : '0'">
                                 <input type="hidden" name="phone" :value="customerPhone">
 
                                 <div x-show="!customerId">
-                                    <div class="v3-seg v3-gap-sm" role="group" aria-label="Customer source">
-                                        <button type="button" class="v3-seg__opt" :class="!isNewCustomer && 'is-on'" @click="isNewCustomer = false">Existing</button>
-                                        <button type="button" class="v3-seg__opt" :class="isNewCustomer && 'is-on'" @click="isNewCustomer = true">New customer</button>
+                                    <div class="v-seg v-gap-sm" role="group" aria-label="Customer source">
+                                        <button type="button" class="v-seg__opt" :class="!isNewCustomer && 'is-on'" @click="isNewCustomer = false">Existing</button>
+                                        <button type="button" class="v-seg__opt" :class="isNewCustomer && 'is-on'" @click="isNewCustomer = true">New customer</button>
                                     </div>
-                                    <div x-show="!isNewCustomer" class="v3-combo">
+                                    <div x-show="!isNewCustomer" class="v-combo">
                                         <input type="text" x-model="customerSearch" @input.debounce.300ms="searchCustomers()" @focus="customerDropdownOpen = true" @click.away="customerDropdownOpen = false"
-                                            placeholder="Search customers by name or email" autocomplete="off" aria-label="Search customers" class="v3-control">
-                                        <div x-show="customerDropdownOpen && customerResults.length > 0" x-cloak class="v3-combo__menu">
+                                            placeholder="Search customers by name or email" autocomplete="off" aria-label="Search customers" class="v-control">
+                                        <div x-show="customerDropdownOpen && customerResults.length > 0" x-cloak class="v-combo__menu">
                                             <template x-for="c in customerResults" :key="c.id">
-                                                <button type="button" class="v3-combo__opt" @click="selectCustomer(c)">
-                                                    <span class="v3-combo__main">
-                                                        <span><strong x-text="c.name"></strong> <span class="v3-cell-quiet" x-text="c.email"></span></span>
-                                                        <span x-show="c.customer_group_name" class="v3-badge v3-badge--quiet" x-text="c.customer_group_name"></span>
+                                                <button type="button" class="v-combo__opt" @click="selectCustomer(c)">
+                                                    <span class="v-combo__main">
+                                                        <span><strong x-text="c.name"></strong> <span class="v-cell-quiet" x-text="c.email"></span></span>
+                                                        <span x-show="c.customer_group_name" class="v-badge v-badge--quiet" x-text="c.customer_group_name"></span>
                                                     </span>
                                                 </button>
                                             </template>
@@ -73,109 +73,109 @@
                                     </div>
                                 </div>
 
-                                <div x-show="customerId || isNewCustomer" class="v3-settle">
-                                    <div x-show="customerId" class="v3-pickband">
-                                        <span class="v3-pickband__who">
+                                <div x-show="customerId || isNewCustomer" class="v-settle">
+                                    <div x-show="customerId" class="v-pickband">
+                                        <span class="v-pickband__who">
                                             <strong x-text="customerFirstName + ' ' + customerLastName + ' (' + customerEmail + ')'"></strong>
-                                            <span x-show="customerGroupName" class="v3-badge v3-badge--info" x-text="customerGroupName"></span>
+                                            <span x-show="customerGroupName" class="v-badge v-badge--info" x-text="customerGroupName"></span>
                                         </span>
-                                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="clearCustomer()">Change</button>
+                                        <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="clearCustomer()">Change</button>
                                     </div>
-                                    <div x-show="isNewCustomer && !customerId" class="v3-pickband v3-pickband--good">
+                                    <div x-show="isNewCustomer && !customerId" class="v-pickband v-pickband--good">
                                         <span>New customer: the account is created on save</span>
                                     </div>
-                                    <div class="v3-grid v3-grid--2">
-                                        <x-admin3.field name="first_name" label="First name" required>
-                                            <input type="text" name="first_name" required x-model="customerFirstName" class="v3-control">
-                                        </x-admin3.field>
-                                        <x-admin3.field name="last_name" label="Last name" required>
-                                            <input type="text" name="last_name" required x-model="customerLastName" class="v3-control">
-                                        </x-admin3.field>
-                                        <div class="v3-span2">
-                                            <x-admin3.field name="email" label="Email" required>
-                                                <input type="email" name="email" required x-model="customerEmail" class="v3-control">
-                                            </x-admin3.field>
+                                    <div class="v-grid v-grid--2">
+                                        <x-admin.field name="first_name" label="First name" required>
+                                            <input type="text" name="first_name" required x-model="customerFirstName" class="v-control">
+                                        </x-admin.field>
+                                        <x-admin.field name="last_name" label="Last name" required>
+                                            <input type="text" name="last_name" required x-model="customerLastName" class="v-control">
+                                        </x-admin.field>
+                                        <div class="v-span2">
+                                            <x-admin.field name="email" label="Email" required>
+                                                <input type="email" name="email" required x-model="customerEmail" class="v-control">
+                                            </x-admin.field>
                                         </div>
-                                        <div class="v3-span2" x-show="customerAddresses.length > 0">
-                                            <x-admin3.field name="customer_address" label="Delivery address">
-                                                <select @change="loadCustomerAddress($event.target.value)" class="v3-control">
+                                        <div class="v-span2" x-show="customerAddresses.length > 0">
+                                            <x-admin.field name="customer_address" label="Delivery address">
+                                                <select @change="loadCustomerAddress($event.target.value)" class="v-control">
                                                     <option value="">Select an address</option>
                                                     <template x-for="a in customerAddresses" :key="a.id">
                                                         <option :value="a.id" x-text="a.label"></option>
                                                     </template>
                                                 </select>
-                                            </x-admin3.field>
+                                            </x-admin.field>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </x-admin3.panel>
+                        </x-admin.panel>
 
-                        <x-admin3.panel title="Shipping address">
-                            <div class="v3-grid v3-grid--2">
-                                <x-admin3.field name="shipping_first_name" label="First name">
-                                    <input type="text" name="shipping_first_name" x-model="shipping.first_name" class="v3-control">
-                                </x-admin3.field>
-                                <x-admin3.field name="shipping_last_name" label="Last name">
-                                    <input type="text" name="shipping_last_name" x-model="shipping.last_name" class="v3-control">
-                                </x-admin3.field>
-                                <x-admin3.field name="shipping_country_id" label="Country">
-                                    <select name="shipping_country_id" x-model="shipping.country_id" @change="onShippingCountryChange()" class="v3-control">
+                        <x-admin.panel title="Shipping address">
+                            <div class="v-grid v-grid--2">
+                                <x-admin.field name="shipping_first_name" label="First name">
+                                    <input type="text" name="shipping_first_name" x-model="shipping.first_name" class="v-control">
+                                </x-admin.field>
+                                <x-admin.field name="shipping_last_name" label="Last name">
+                                    <input type="text" name="shipping_last_name" x-model="shipping.last_name" class="v-control">
+                                </x-admin.field>
+                                <x-admin.field name="shipping_country_id" label="Country">
+                                    <select name="shipping_country_id" x-model="shipping.country_id" @change="onShippingCountryChange()" class="v-control">
                                         <option value="">Select country</option>
                                         @foreach ($countries as $country)
                                             <option value="{{ $country->id }}">{{ $country->name }}</option>
                                         @endforeach
                                     </select>
-                                </x-admin3.field>
+                                </x-admin.field>
                                 {{-- Provider: Province --}}
                                 <div x-show="shippingDropdowns.hasProvider">
-                                    <x-admin3.field name="shipping_state" label="Province">
-                                        <select name="shipping_state" x-model="shipping.state" @change="onShippingProvinceChange()" class="v3-control">
+                                    <x-admin.field name="shipping_state" label="Province">
+                                        <select name="shipping_state" x-model="shipping.state" @change="onShippingProvinceChange()" class="v-control">
                                             <option value="">Select province</option>
                                             <template x-for="p in (shippingDropdowns.provinces || [])" :key="p.id">
                                                 <option :value="p.name" x-text="p.name"></option>
                                             </template>
                                         </select>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                 </div>
                                 {{-- Provider: City --}}
                                 <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.cities || []).length > 0">
-                                    <x-admin3.field name="shipping_city" label="City / Municipality">
-                                        <select name="shipping_city" x-model="shipping.city" @change="onShippingCityChange()" class="v3-control">
+                                    <x-admin.field name="shipping_city" label="City / Municipality">
+                                        <select name="shipping_city" x-model="shipping.city" @change="onShippingCityChange()" class="v-control">
                                             <option value="">Select city</option>
                                             <template x-for="c in (shippingDropdowns.cities || [])" :key="c.id">
                                                 <option :value="c.name" x-text="c.name"></option>
                                             </template>
                                         </select>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                 </div>
                                 {{-- Provider: District --}}
                                 <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.districts || []).length > 0">
-                                    <x-admin3.field name="shipping_district" label="District">
-                                        <select name="shipping_district" x-model="shipping.district" @change="onShippingDistrictChange()" class="v3-control">
+                                    <x-admin.field name="shipping_district" label="District">
+                                        <select name="shipping_district" x-model="shipping.district" @change="onShippingDistrictChange()" class="v-control">
                                             <option value="">Select district</option>
                                             <template x-for="d in (shippingDropdowns.districts || [])" :key="d.id">
                                                 <option :value="d.name" x-text="d.name"></option>
                                             </template>
                                         </select>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                 </div>
                                 {{-- Provider: Barangay --}}
                                 <div x-show="shippingDropdowns.hasProvider && (shippingDropdowns.barangays || []).length > 0">
-                                    <x-admin3.field name="shipping_barangay" label="Barangay">
-                                        <select name="shipping_barangay" x-model="shipping.barangay" class="v3-control">
+                                    <x-admin.field name="shipping_barangay" label="Barangay">
+                                        <select name="shipping_barangay" x-model="shipping.barangay" class="v-control">
                                             <option value="">Select barangay</option>
                                             <template x-for="b in (shippingDropdowns.barangays || [])" :key="b.id">
                                                 <option :value="b.name" x-text="b.name"></option>
                                             </template>
                                         </select>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                 </div>
                                 {{-- Core: State --}}
                                 <div x-show="!shippingDropdowns.hasProvider && shipping.country_id">
-                                    <x-admin3.field name="shipping_state" label="State / Province">
+                                    <x-admin.field name="shipping_state" label="State / Province">
                                         <template x-if="(shippingDropdowns.zones || []).length > 0">
-                                            <select name="shipping_state" x-model="shipping.state" @change="$nextTick(() => refreshMethods())" class="v3-control">
+                                            <select name="shipping_state" x-model="shipping.state" @change="$nextTick(() => refreshMethods())" class="v-control">
                                                 <option value="">Select state / province</option>
                                                 <template x-for="z in (shippingDropdowns.zones || [])" :key="z.id">
                                                     <option :value="z.name" x-text="z.name"></option>
@@ -183,104 +183,104 @@
                                             </select>
                                         </template>
                                         <template x-if="(shippingDropdowns.zones || []).length === 0">
-                                            <input type="text" name="shipping_state" x-model="shipping.state" @change="$nextTick(() => refreshMethods())" class="v3-control">
+                                            <input type="text" name="shipping_state" x-model="shipping.state" @change="$nextTick(() => refreshMethods())" class="v-control">
                                         </template>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                 </div>
                                 {{-- Core: City --}}
                                 <div x-show="!shippingDropdowns.hasProvider && shipping.country_id">
-                                    <x-admin3.field name="shipping_city" label="City">
-                                        <input type="text" name="shipping_city" x-model="shipping.city" class="v3-control">
-                                    </x-admin3.field>
+                                    <x-admin.field name="shipping_city" label="City">
+                                        <input type="text" name="shipping_city" x-model="shipping.city" class="v-control">
+                                    </x-admin.field>
                                 </div>
-                                <div class="v3-span2">
-                                    <x-admin3.field name="shipping_address_1" label="Address line 1">
-                                        <input type="text" name="shipping_address_1" x-model="shipping.address_1" class="v3-control">
-                                    </x-admin3.field>
+                                <div class="v-span2">
+                                    <x-admin.field name="shipping_address_1" label="Address line 1">
+                                        <input type="text" name="shipping_address_1" x-model="shipping.address_1" class="v-control">
+                                    </x-admin.field>
                                 </div>
-                                <x-admin3.field name="shipping_postcode" label="Postcode">
-                                    <input type="text" name="shipping_postcode" x-model="shipping.postcode" class="v3-control">
-                                </x-admin3.field>
-                                <x-admin3.field name="shipping_phone" label="Phone">
-                                    <span class="v3-adorn">
-                                        <span class="v3-adorn__fix" x-text="'+' + (phoneCode || '63')"></span>
-                                        <input type="text" name="shipping_phone" x-model="shipping.phone" placeholder="Phone number" class="v3-control">
+                                <x-admin.field name="shipping_postcode" label="Postcode">
+                                    <input type="text" name="shipping_postcode" x-model="shipping.postcode" class="v-control">
+                                </x-admin.field>
+                                <x-admin.field name="shipping_phone" label="Phone">
+                                    <span class="v-adorn">
+                                        <span class="v-adorn__fix" x-text="'+' + (phoneCode || '63')"></span>
+                                        <input type="text" name="shipping_phone" x-model="shipping.phone" placeholder="Phone number" class="v-control">
                                     </span>
-                                </x-admin3.field>
+                                </x-admin.field>
                             </div>
-                        </x-admin3.panel>
+                        </x-admin.panel>
 
-                        <x-admin3.panel title="Billing address">
-                            <div class="v3-settle">
-                                <label class="v3-check">
+                        <x-admin.panel title="Billing address">
+                            <div class="v-settle">
+                                <label class="v-check">
                                     <input type="checkbox" x-model="differentBilling">
                                     <span>Use a different billing address</span>
                                 </label>
 
-                                <div x-show="differentBilling" x-transition class="v3-grid v3-grid--2">
-                                    <x-admin3.field name="billing_first_name" label="First name">
-                                        <input type="text" name="billing_first_name" x-model="billing.first_name" class="v3-control">
-                                    </x-admin3.field>
-                                    <x-admin3.field name="billing_last_name" label="Last name">
-                                        <input type="text" name="billing_last_name" x-model="billing.last_name" class="v3-control">
-                                    </x-admin3.field>
-                                    <x-admin3.field name="billing_country_id" label="Country">
-                                        <select name="billing_country_id" x-model="billing.country_id" @change="onBillingCountryChange()" class="v3-control">
+                                <div x-show="differentBilling" x-transition class="v-grid v-grid--2">
+                                    <x-admin.field name="billing_first_name" label="First name">
+                                        <input type="text" name="billing_first_name" x-model="billing.first_name" class="v-control">
+                                    </x-admin.field>
+                                    <x-admin.field name="billing_last_name" label="Last name">
+                                        <input type="text" name="billing_last_name" x-model="billing.last_name" class="v-control">
+                                    </x-admin.field>
+                                    <x-admin.field name="billing_country_id" label="Country">
+                                        <select name="billing_country_id" x-model="billing.country_id" @change="onBillingCountryChange()" class="v-control">
                                             <option value="">Select country</option>
                                             @foreach ($countries as $country)
                                                 <option value="{{ $country->id }}">{{ $country->name }}</option>
                                             @endforeach
                                         </select>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                     {{-- Provider: Province --}}
                                     <div x-show="billingDropdowns.hasProvider">
-                                        <x-admin3.field name="billing_state" label="Province">
-                                            <select name="billing_state" x-model="billing.state" @change="onBillingProvinceChange()" class="v3-control">
+                                        <x-admin.field name="billing_state" label="Province">
+                                            <select name="billing_state" x-model="billing.state" @change="onBillingProvinceChange()" class="v-control">
                                                 <option value="">Select province</option>
                                                 <template x-for="p in (billingDropdowns.provinces || [])" :key="p.id">
                                                     <option :value="p.name" x-text="p.name"></option>
                                                 </template>
                                             </select>
-                                        </x-admin3.field>
+                                        </x-admin.field>
                                     </div>
                                     {{-- Provider: City --}}
                                     <div x-show="billingDropdowns.hasProvider && (billingDropdowns.cities || []).length > 0">
-                                        <x-admin3.field name="billing_city" label="City / Municipality">
-                                            <select name="billing_city" x-model="billing.city" @change="onBillingCityChange()" class="v3-control">
+                                        <x-admin.field name="billing_city" label="City / Municipality">
+                                            <select name="billing_city" x-model="billing.city" @change="onBillingCityChange()" class="v-control">
                                                 <option value="">Select city</option>
                                                 <template x-for="c in (billingDropdowns.cities || [])" :key="c.id">
                                                     <option :value="c.name" x-text="c.name"></option>
                                                 </template>
                                             </select>
-                                        </x-admin3.field>
+                                        </x-admin.field>
                                     </div>
                                     {{-- Provider: District --}}
                                     <div x-show="billingDropdowns.hasProvider && (billingDropdowns.districts || []).length > 0">
-                                        <x-admin3.field name="billing_district" label="District">
-                                            <select name="billing_district" x-model="billing.district" @change="onBillingDistrictChange()" class="v3-control">
+                                        <x-admin.field name="billing_district" label="District">
+                                            <select name="billing_district" x-model="billing.district" @change="onBillingDistrictChange()" class="v-control">
                                                 <option value="">Select district</option>
                                                 <template x-for="d in (billingDropdowns.districts || [])" :key="d.id">
                                                     <option :value="d.name" x-text="d.name"></option>
                                                 </template>
                                             </select>
-                                        </x-admin3.field>
+                                        </x-admin.field>
                                     </div>
                                     {{-- Provider: Barangay --}}
                                     <div x-show="billingDropdowns.hasProvider && (billingDropdowns.barangays || []).length > 0">
-                                        <x-admin3.field name="billing_barangay" label="Barangay">
-                                            <select name="billing_barangay" x-model="billing.barangay" class="v3-control">
+                                        <x-admin.field name="billing_barangay" label="Barangay">
+                                            <select name="billing_barangay" x-model="billing.barangay" class="v-control">
                                                 <option value="">Select barangay</option>
                                                 <template x-for="b in (billingDropdowns.barangays || [])" :key="b.id">
                                                     <option :value="b.name" x-text="b.name"></option>
                                                 </template>
                                             </select>
-                                        </x-admin3.field>
+                                        </x-admin.field>
                                     </div>
                                     {{-- Core: State --}}
                                     <div x-show="!billingDropdowns.hasProvider && billing.country_id">
-                                        <x-admin3.field name="billing_state" label="State / Province">
+                                        <x-admin.field name="billing_state" label="State / Province">
                                             <template x-if="(billingDropdowns.zones || []).length > 0">
-                                                <select name="billing_state" x-model="billing.state" class="v3-control">
+                                                <select name="billing_state" x-model="billing.state" class="v-control">
                                                     <option value="">Select state / province</option>
                                                     <template x-for="z in (billingDropdowns.zones || [])" :key="z.id">
                                                         <option :value="z.name" x-text="z.name"></option>
@@ -288,127 +288,127 @@
                                                 </select>
                                             </template>
                                             <template x-if="(billingDropdowns.zones || []).length === 0">
-                                                <input type="text" name="billing_state" x-model="billing.state" class="v3-control">
+                                                <input type="text" name="billing_state" x-model="billing.state" class="v-control">
                                             </template>
-                                        </x-admin3.field>
+                                        </x-admin.field>
                                     </div>
                                     {{-- Core: City --}}
                                     <div x-show="!billingDropdowns.hasProvider && billing.country_id">
-                                        <x-admin3.field name="billing_city" label="City">
-                                            <input type="text" name="billing_city" x-model="billing.city" class="v3-control">
-                                        </x-admin3.field>
+                                        <x-admin.field name="billing_city" label="City">
+                                            <input type="text" name="billing_city" x-model="billing.city" class="v-control">
+                                        </x-admin.field>
                                     </div>
-                                    <div class="v3-span2">
-                                        <x-admin3.field name="billing_address_1" label="Address line 1">
-                                            <input type="text" name="billing_address_1" x-model="billing.address_1" class="v3-control">
-                                        </x-admin3.field>
+                                    <div class="v-span2">
+                                        <x-admin.field name="billing_address_1" label="Address line 1">
+                                            <input type="text" name="billing_address_1" x-model="billing.address_1" class="v-control">
+                                        </x-admin.field>
                                     </div>
-                                    <x-admin3.field name="billing_postcode" label="Postcode">
-                                        <input type="text" name="billing_postcode" x-model="billing.postcode" class="v3-control">
-                                    </x-admin3.field>
-                                    <x-admin3.field name="billing_phone" label="Phone">
-                                        <span class="v3-adorn">
-                                            <span class="v3-adorn__fix" x-text="countriesPhoneCodes[billing.country_id] ? '+' + countriesPhoneCodes[billing.country_id] : '-'"></span>
+                                    <x-admin.field name="billing_postcode" label="Postcode">
+                                        <input type="text" name="billing_postcode" x-model="billing.postcode" class="v-control">
+                                    </x-admin.field>
+                                    <x-admin.field name="billing_phone" label="Phone">
+                                        <span class="v-adorn">
+                                            <span class="v-adorn__fix" x-text="countriesPhoneCodes[billing.country_id] ? '+' + countriesPhoneCodes[billing.country_id] : '-'"></span>
                                             <input type="tel" name="billing_phone" x-model="billing.phone" placeholder="Mobile number"
-                                                inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="v3-control">
+                                                inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" class="v-control">
                                         </span>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                 </div>
                             </div>
-                        </x-admin3.panel>
+                        </x-admin.panel>
 
-                        <x-admin3.panel title="Shipping">
-                            <div class="v3-grid v3-grid--2">
-                                <x-admin3.field name="shipping_method" label="Shipping method">
+                        <x-admin.panel title="Shipping">
+                            <div class="v-grid v-grid--2">
+                                <x-admin.field name="shipping_method" label="Shipping method">
                                     <input type="hidden" name="shipping_method" :value="shippingMethod === 'custom' ? shippingMethodCustom : shippingMethod">
-                                    <span x-show="loadingShipping" class="v3-loadline">
-                                        <x-admin3.icon name="spinner" class="v3-spin" />
+                                    <span x-show="loadingShipping" class="v-loadline">
+                                        <x-admin.icon name="spinner" class="v-spin" />
                                         Loading
                                     </span>
-                                    <select x-show="!loadingShipping" x-model="shippingMethod" @change="onShippingMethodChange()" class="v3-control">
+                                    <select x-show="!loadingShipping" x-model="shippingMethod" @change="onShippingMethodChange()" class="v-control">
                                         <option value="">Select</option>
                                         <template x-for="sm in availableShippingMethods" :key="sm.key">
                                             <option :value="sm.name" x-text="sm.name + ': ₱' + parseFloat(sm.cost).toFixed(2)"></option>
                                         </template>
                                         <option value="custom">Other (type below)</option>
                                     </select>
-                                    <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom" placeholder="Custom shipping method" class="v3-control v3-gap">
-                                    <span x-show="!loadingShipping && availableShippingMethods.length === 0 && items.length > 0 && shipping.country_id" class="v3-subnote v3-tone-warn">
+                                    <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom" placeholder="Custom shipping method" class="v-control v-gap">
+                                    <span x-show="!loadingShipping && availableShippingMethods.length === 0 && items.length > 0 && shipping.country_id" class="v-subnote v-tone-warn">
                                         No shipping methods reach this address. Use Other to set one manually.
                                     </span>
-                                </x-admin3.field>
-                                <x-admin3.field name="shipping_cost" label="Shipping cost">
-                                    <input type="number" name="shipping_cost" x-model.number="shippingCost" step="0.01" min="0" class="v3-control">
-                                </x-admin3.field>
+                                </x-admin.field>
+                                <x-admin.field name="shipping_cost" label="Shipping cost">
+                                    <input type="number" name="shipping_cost" x-model.number="shippingCost" step="0.01" min="0" class="v-control">
+                                </x-admin.field>
                             </div>
-                        </x-admin3.panel>
+                        </x-admin.panel>
 
-                        <x-admin3.panel title="Payment and status">
-                            <div class="v3-settle">
-                                <div class="v3-grid v3-grid--2">
-                                    <x-admin3.field name="payment_method" label="Payment method">
+                        <x-admin.panel title="Payment and status">
+                            <div class="v-settle">
+                                <div class="v-grid v-grid--2">
+                                    <x-admin.field name="payment_method" label="Payment method">
                                         <input type="hidden" name="payment_method" :value="paymentMethod === 'custom' ? paymentMethodCustom : paymentMethod">
-                                        <span x-show="loadingPayments" class="v3-loadline">
-                                            <x-admin3.icon name="spinner" class="v3-spin" />
+                                        <span x-show="loadingPayments" class="v-loadline">
+                                            <x-admin.icon name="spinner" class="v-spin" />
                                             Loading
                                         </span>
-                                        <select x-show="!loadingPayments" x-model="paymentMethod" class="v3-control">
+                                        <select x-show="!loadingPayments" x-model="paymentMethod" class="v-control">
                                             <option value="">Select</option>
                                             <template x-for="pm in availablePaymentMethods" :key="pm.key">
                                                 <option :value="pm.key" x-text="pm.name"></option>
                                             </template>
                                             <option value="custom">Other (type below)</option>
                                         </select>
-                                        <input x-show="paymentMethod === 'custom'" type="text" x-model="paymentMethodCustom" placeholder="Custom payment method" class="v3-control v3-gap">
-                                    </x-admin3.field>
-                                    <x-admin3.field name="order_status_id" label="Order status" required>
-                                        <select name="order_status_id" required class="v3-control">
+                                        <input x-show="paymentMethod === 'custom'" type="text" x-model="paymentMethodCustom" placeholder="Custom payment method" class="v-control v-gap">
+                                    </x-admin.field>
+                                    <x-admin.field name="order_status_id" label="Order status" required>
+                                        <select name="order_status_id" required class="v-control">
                                             @foreach ($statuses as $status)
                                                 <option value="{{ $status->id }}" @selected(old('order_status_id', $order?->order_status_id) == $status->id)>
                                                     {{ $status->name }}
                                                 </option>
                                             @endforeach
                                         </select>
-                                    </x-admin3.field>
+                                    </x-admin.field>
                                 </div>
-                                <x-admin3.field name="comment" label="Order comment">
-                                    <textarea name="comment" rows="2" class="v3-control">{{ old('comment', $order?->comment) }}</textarea>
-                                </x-admin3.field>
-                                <div class="v3-actrow">
-                                    <label class="v3-check">
+                                <x-admin.field name="comment" label="Order comment">
+                                    <textarea name="comment" rows="2" class="v-control">{{ old('comment', $order?->comment) }}</textarea>
+                                </x-admin.field>
+                                <div class="v-actrow">
+                                    <label class="v-check">
                                         <input type="checkbox" name="notify_customer" value="1">
                                         <span>Send order confirmation to customer</span>
                                     </label>
-                                    <label class="v3-check">
+                                    <label class="v-check">
                                         <input type="checkbox" name="notify_admin" value="1">
                                         <span>Send notification to admin</span>
                                     </label>
                                 </div>
                             </div>
-                        </x-admin3.panel>
+                        </x-admin.panel>
                     </div>
 
                     {{-- ===================== PRODUCTS TAB ===================== --}}
-                    <div x-show="tab === 'products'" x-cloak class="v3-settle">
-                        <x-admin3.panel title="Products">
-                            <div class="v3-settle">
-                                <div x-show="!customerId && !isNewCustomer" class="v3-notice">
-                                    <p class="v3-notice__text">Select or create a customer in the Details tab before adding products.</p>
+                    <div x-show="tab === 'products'" x-cloak class="v-settle">
+                        <x-admin.panel title="Products">
+                            <div class="v-settle">
+                                <div x-show="!customerId && !isNewCustomer" class="v-notice">
+                                    <p class="v-notice__text">Select or create a customer in the Details tab before adding products.</p>
                                 </div>
 
-                                <div x-show="customerId || isNewCustomer" class="v3-inline">
-                                    <div class="v3-combo">
+                                <div x-show="customerId || isNewCustomer" class="v-inline">
+                                    <div class="v-combo">
                                         <input type="text" x-model="productSearch" @input.debounce.300ms="searchProducts()" @focus="productDropdownOpen = true" @click.away="productDropdownOpen = false"
-                                            placeholder="Search products by name or SKU" autocomplete="off" aria-label="Search products" class="v3-control">
-                                        <div x-show="productDropdownOpen && productResults.length > 0" x-cloak class="v3-combo__menu">
+                                            placeholder="Search products by name or SKU" autocomplete="off" aria-label="Search products" class="v-control">
+                                        <div x-show="productDropdownOpen && productResults.length > 0" x-cloak class="v-combo__menu">
                                             <template x-for="p in productResults" :key="(p.product_id || '') + '-' + (p.product_variant_id || '')">
-                                                <button type="button" class="v3-combo__opt" @click="addProduct(p)">
-                                                    <span class="v3-combo__main">
+                                                <button type="button" class="v-combo__opt" @click="addProduct(p)">
+                                                    <span class="v-combo__main">
                                                         <strong x-text="p.name + (p.variant_label ? ' (' + p.variant_label + ')' : '')"></strong>
-                                                        <span x-show="p.stock <= 0" class="v3-badge v3-badge--bad">Out of stock</span>
-                                                        <span x-show="p.stock > 0 && p.stock <= 5" class="v3-badge v3-badge--warn" x-text="p.stock + ' left'"></span>
+                                                        <span x-show="p.stock <= 0" class="v-badge v-badge--bad">Out of stock</span>
+                                                        <span x-show="p.stock > 0 && p.stock <= 5" class="v-badge v-badge--warn" x-text="p.stock + ' left'"></span>
                                                     </span>
-                                                    <span class="v3-combo__meta">
+                                                    <span class="v-combo__meta">
                                                         <span x-show="p.sku" x-text="'SKU ' + p.sku"></span>
                                                         <span x-text="'₱' + parseFloat(p.price).toFixed(2)"></span>
                                                         <span x-text="'Stock ' + (p.stock ?? 0)"></span>
@@ -417,16 +417,16 @@
                                             </template>
                                         </div>
                                     </div>
-                                    <button type="button" class="v3-btn v3-btn--secondary" @click="addCustomItem()">Add custom item</button>
+                                    <button type="button" class="v-btn v-btn--secondary" @click="addCustomItem()">Add custom item</button>
                                 </div>
 
-                                <div x-show="items.length === 0" class="v3-empty">
-                                    <p class="v3-empty__title">No items yet</p>
-                                    <p class="v3-empty__line">Search the catalog above or add a custom line.</p>
+                                <div x-show="items.length === 0" class="v-empty">
+                                    <p class="v-empty__title">No items yet</p>
+                                    <p class="v-empty__line">Search the catalog above or add a custom line.</p>
                                 </div>
 
-                                <div x-show="items.length > 0" class="v3-tablewrap">
-                                    <table class="v3-table">
+                                <div x-show="items.length > 0" class="v-tablewrap">
+                                    <table class="v-table">
                                         <thead>
                                             <tr>
                                                 <th colspan="2">Product</th>
@@ -434,8 +434,8 @@
                                                 <th>Price</th>
                                                 <th>Customer price</th>
                                                 <th>Qty</th>
-                                                <th class="v3-cell-num">Total</th>
-                                                <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                                                <th class="v-cell-num">Total</th>
+                                                <th class="v-cell-act"><span class="v-sr">Actions</span></th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -443,20 +443,20 @@
                                                 <tr>
                                                     <td>
                                                         <template x-if="item.image">
-                                                            <img :src="item.image" :alt="item.name" class="v3-thumb">
+                                                            <img :src="item.image" :alt="item.name" class="v-thumb">
                                                         </template>
                                                         <template x-if="!item.image">
-                                                            <span class="v3-thumb v3-thumb--blank"><x-admin3.icon name="products" /></span>
+                                                            <span class="v-thumb v-thumb--blank"><x-admin.icon name="products" /></span>
                                                         </template>
                                                     </td>
                                                     <td>
                                                         <template x-if="item.is_custom">
-                                                            <input type="text" x-model="item.name" :name="'items['+iIndex+'][name]'" placeholder="Product name" class="v3-control v3-control--sm">
+                                                            <input type="text" x-model="item.name" :name="'items['+iIndex+'][name]'" placeholder="Product name" class="v-control v-control--sm">
                                                         </template>
                                                         <template x-if="!item.is_custom">
                                                             <span>
                                                                 <span x-text="item.name"></span>
-                                                                <span x-show="item.variant_label" class="v3-subnote v3-tone-act v3-block" x-text="item.variant_label"></span>
+                                                                <span x-show="item.variant_label" class="v-subnote v-tone-act v-block" x-text="item.variant_label"></span>
                                                                 <input type="hidden" :name="'items['+iIndex+'][name]'" :value="item.name">
                                                             </span>
                                                         </template>
@@ -466,35 +466,35 @@
                                                         <input type="hidden" :name="'items['+iIndex+'][is_custom]'" :value="item.is_custom ? '1' : '0'">
                                                     </td>
                                                     <td>
-                                                        <input type="text" x-model="item.sku" :name="'items['+iIndex+'][sku]'" class="v3-control v3-control--sm v3-w-rate" :readonly="!item.is_custom">
+                                                        <input type="text" x-model="item.sku" :name="'items['+iIndex+'][sku]'" class="v-control v-control--sm v-w-rate" :readonly="!item.is_custom">
                                                     </td>
                                                     <td>
-                                                        <input type="number" x-model="item.price" :name="'items['+iIndex+'][price]'" step="0.01" min="0" @input.debounce.500ms="refreshMethods()" class="v3-control v3-control--sm v3-w-rate">
+                                                        <input type="number" x-model="item.price" :name="'items['+iIndex+'][price]'" step="0.01" min="0" @input.debounce.500ms="refreshMethods()" class="v-control v-control--sm v-w-rate">
                                                     </td>
                                                     <td>
                                                         <template x-if="item.group_price_mode === 'sale'">
-                                                            <span class="v3-mono">
-                                                                <span class="v3-strike v3-cell-quiet" x-text="parseFloat(item.base_price || 0).toFixed(2)"></span>
-                                                                <span class="v3-tone-bad" x-text="parseFloat(item.group_price).toFixed(2)"></span>
+                                                            <span class="v-mono">
+                                                                <span class="v-strike v-cell-quiet" x-text="parseFloat(item.base_price || 0).toFixed(2)"></span>
+                                                                <span class="v-tone-bad" x-text="parseFloat(item.group_price).toFixed(2)"></span>
                                                             </span>
                                                         </template>
                                                         <template x-if="item.group_price_mode === 'override'">
-                                                            <span class="v3-mono v3-tone-act" x-text="parseFloat(item.group_price).toFixed(2)"></span>
+                                                            <span class="v-mono v-tone-act" x-text="parseFloat(item.group_price).toFixed(2)"></span>
                                                         </template>
                                                         <template x-if="!item.group_price_mode || item.group_price_mode === 'regular'">
-                                                            <span class="v3-mono v3-cell-quiet" x-text="parseFloat(item.group_price || item.base_price || 0).toFixed(2)"></span>
+                                                            <span class="v-mono v-cell-quiet" x-text="parseFloat(item.group_price || item.base_price || 0).toFixed(2)"></span>
                                                         </template>
                                                     </td>
                                                     <td>
                                                         <input type="number" x-model.number="item.quantity" :name="'items['+iIndex+'][quantity]'" min="1" @input.debounce.500ms="refreshMethods()"
-                                                            class="v3-control v3-control--sm v3-w-sort" :class="!item.is_custom && item.stock !== undefined && item.quantity > item.stock ? 'v3-control--bad' : ''">
+                                                            class="v-control v-control--sm v-w-sort" :class="!item.is_custom && item.stock !== undefined && item.quantity > item.stock ? 'v-control--bad' : ''">
                                                         <template x-if="!item.is_custom && item.stock !== undefined && item.quantity > item.stock">
-                                                            <span class="v3-subnote v3-tone-bad v3-block" x-text="'Only ' + item.stock + ' in stock'"></span>
+                                                            <span class="v-subnote v-tone-bad v-block" x-text="'Only ' + item.stock + ' in stock'"></span>
                                                         </template>
                                                     </td>
-                                                    <td class="v3-cell-num v3-mono" x-text="(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)"></td>
-                                                    <td class="v3-cell-act">
-                                                        <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())">Remove</button>
+                                                    <td class="v-cell-num v-mono" x-text="(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)"></td>
+                                                    <td class="v-cell-act">
+                                                        <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())">Remove</button>
                                                     </td>
                                                 </tr>
                                             </template>
@@ -507,53 +507,53 @@
                                      existing order's stored discount still shows in the
                                      summary below either way. --}}
                                 @if (Route::has('admin.orders.validate-coupon'))
-                                <div class="v3-well">
-                                    <span class="v3-field__label">Coupon code</span>
+                                <div class="v-well">
+                                    <span class="v-field__label">Coupon code</span>
                                     <input type="hidden" name="coupon_code" :value="couponCode">
                                     <input type="hidden" name="coupon_discount" :value="couponDiscount">
                                     <template x-if="!couponCode">
-                                        <span class="v3-block">
-                                            <span class="v3-inline">
-                                                <input type="text" x-model="couponInput" placeholder="Enter coupon code" @keydown.enter.prevent="applyCoupon()" aria-label="Coupon code" class="v3-control">
-                                                <button type="button" class="v3-btn v3-btn--secondary" @click="applyCoupon()" :disabled="couponLoading || !couponInput.trim()">
+                                        <span class="v-block">
+                                            <span class="v-inline">
+                                                <input type="text" x-model="couponInput" placeholder="Enter coupon code" @keydown.enter.prevent="applyCoupon()" aria-label="Coupon code" class="v-control">
+                                                <button type="button" class="v-btn v-btn--secondary" @click="applyCoupon()" :disabled="couponLoading || !couponInput.trim()">
                                                     <span x-text="couponLoading ? '…' : 'Apply'"></span>
                                                 </button>
                                             </span>
-                                            <span x-show="couponError" class="v3-subnote v3-tone-bad v3-block" x-text="couponError"></span>
+                                            <span x-show="couponError" class="v-subnote v-tone-bad v-block" x-text="couponError"></span>
                                         </span>
                                     </template>
                                     <template x-if="couponCode">
-                                        <span class="v3-between">
-                                            <span class="v3-mono"><strong x-text="couponCode"></strong> <span class="v3-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></span></span>
-                                            <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="removeCoupon()">Remove</button>
+                                        <span class="v-between">
+                                            <span class="v-mono"><strong x-text="couponCode"></strong> <span class="v-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></span></span>
+                                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="removeCoupon()">Remove</button>
                                         </span>
                                     </template>
                                 </div>
                                 @endif
 
-                                <div class="v3-sumbox">
-                                    <dl class="v3-facts">
+                                <div class="v-sumbox">
+                                    <dl class="v-facts">
                                         <dt>Subtotal</dt>
-                                        <dd class="v3-mono" x-text="subtotal.toFixed(2)"></dd>
+                                        <dd class="v-mono" x-text="subtotal.toFixed(2)"></dd>
                                         <dt>Shipping</dt>
-                                        <dd class="v3-mono" x-text="(shippingCost || 0).toFixed(2)"></dd>
+                                        <dd class="v-mono" x-text="(shippingCost || 0).toFixed(2)"></dd>
                                         <template x-if="couponDiscount > 0">
                                             <dt>Coupon (<span x-text="couponCode"></span>)</dt>
                                         </template>
                                         <template x-if="couponDiscount > 0">
-                                            <dd class="v3-mono v3-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></dd>
+                                            <dd class="v-mono v-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></dd>
                                         </template>
-                                        <dt class="v3-facts__sum">Total</dt>
-                                        <dd class="v3-facts__sum v3-mono" x-text="orderTotal.toFixed(2)"></dd>
+                                        <dt class="v-facts__sum">Total</dt>
+                                        <dd class="v-facts__sum v-mono" x-text="orderTotal.toFixed(2)"></dd>
                                     </dl>
                                 </div>
                             </div>
-                        </x-admin3.panel>
+                        </x-admin.panel>
                     </div>
                 </div>
             </div>
         </div>
-    </x-admin3.form>
+    </x-admin.form>
 
     @php
         $formItems = $existingItems ?? [];
@@ -1046,10 +1046,10 @@
                     }
                     await this.$nextTick();
                     await this.$nextTick();
-                    this.$el.dispatchEvent(new CustomEvent('v3-rebaseline', { bubbles: true }));
+                    this.$el.dispatchEvent(new CustomEvent('v-rebaseline', { bubbles: true }));
                 }
             }
         }
     </script>
     @endpush
-</x-admin3.shell>
+</x-admin.shell>

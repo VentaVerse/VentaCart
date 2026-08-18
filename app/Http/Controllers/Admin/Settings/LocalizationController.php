@@ -209,7 +209,7 @@ class LocalizationController extends Controller
     }
 
     /**
-     * One save commits the whole page (v3 doctrine): the zone's own
+     * One save commits the whole page (v doctrine): the zone's own
      * fields and, when the payload carries them, its entries, in one
      * transaction. The flash reports what was actually persisted;
      * rows with no country are dropped and said out loud, never

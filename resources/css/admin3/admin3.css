@@ -1,6 +1,0 @@
-/* Venta Admin v3 bundle. Order matters: tokens, ground, shells, primitives. */
-@import "./tokens.css";
-@import "./base.css";
-@import "./shell.css";
-@import "./components.css";
-@import "./day.css";

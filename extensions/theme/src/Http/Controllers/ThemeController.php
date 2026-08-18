@@ -50,7 +50,7 @@ class ThemeController extends Controller
 
     public function updateSettings(Request $request)
     {
-        // v3 doctrine: one save carries every settings tab at once
+        // v doctrine: one save carries every settings tab at once
         // (groups[colors][...], groups[fonts][...], ...). Per-theme
         // snapshots still happen at switch time, unchanged.
         if (is_array($request->input('groups'))) {

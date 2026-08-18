@@ -10,59 +10,59 @@
         ->limit(10)
         ->get();
 @endphp
-<x-admin3.panel title="Store Credit" note="Applies itself at checkout until the balance runs out.">
+<x-admin.panel title="Store Credit" note="Applies itself at checkout until the balance runs out.">
     <x-slot:acts>
-        <span class="v3-field__label">Balance</span>
-        <span class="v3-mono {{ $creditBalance < 0 ? 'v3-tone-bad' : '' }}">{{ number_format($creditBalance, 2) }}</span>
+        <span class="v-field__label">Balance</span>
+        <span class="v-mono {{ $creditBalance < 0 ? 'v-tone-bad' : '' }}">{{ number_format($creditBalance, 2) }}</span>
     </x-slot:acts>
 
-    <form method="POST" action="{{ route('admin.store-credit.adjust') }}" class="v3-inline">
+    <form method="POST" action="{{ route('admin.store-credit.adjust') }}" class="v-inline">
         @csrf
         <input type="hidden" name="customer_id" value="{{ $customer->id }}">
-        <label class="v3-field">
-            <span class="v3-field__label">Description</span>
-            <input type="text" name="description" required maxlength="255" class="v3-control">
+        <label class="v-field">
+            <span class="v-field__label">Description</span>
+            <input type="text" name="description" required maxlength="255" class="v-control">
         </label>
-        <label class="v3-field">
-            <span class="v3-field__label">
+        <label class="v-field">
+            <span class="v-field__label">
                 Amount
-                <x-admin3.help text="Signed: positive grants credit, negative deducts it." />
+                <x-admin.help text="Signed: positive grants credit, negative deducts it." />
             </span>
-            <input type="number" name="amount" step="0.01" required class="v3-control v3-mono v3-w-name">
+            <input type="number" name="amount" step="0.01" required class="v-control v-mono v-w-name">
         </label>
-        <button type="submit" class="v3-btn v3-btn--secondary">Apply</button>
+        <button type="submit" class="v-btn v-btn--secondary">Apply</button>
     </form>
 
     @if ($creditHistory->isNotEmpty())
-        <div class="v3-gap v3-tablewrap">
-            <table class="v3-table">
+        <div class="v-gap v-tablewrap">
+            <table class="v-table">
                 <thead>
                     <tr>
                         <th>Date</th>
                         <th>Description</th>
-                        <th class="v3-cell-num">Amount</th>
+                        <th class="v-cell-num">Amount</th>
                         <th>By</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($creditHistory as $tx)
                         <tr>
-                            <td class="v3-mono v3-cell-quiet">{{ $tx->created_at?->format('Y-m-d H:i') }}</td>
+                            <td class="v-mono v-cell-quiet">{{ $tx->created_at?->format('Y-m-d H:i') }}</td>
                             <td>
                                 {{ $tx->description }}
                                 @if ($tx->order_id)
-                                    <a class="v3-link" href="{{ route('admin.orders.show', $tx->order_id) }}">order</a>
+                                    <a class="v-link" href="{{ route('admin.orders.show', $tx->order_id) }}">order</a>
                                 @endif
                             </td>
-                            <td class="v3-cell-num v3-mono {{ $tx->amount < 0 ? 'v3-tone-bad' : 'v3-tone-act' }}">{{ $tx->amount < 0 ? '' : '+' }}{{ number_format($tx->amount, 2) }}</td>
-                            <td class="v3-cell-quiet">{{ $tx->creator?->name ?? ($tx->order_id ? 'Checkout' : 'System') }}</td>
+                            <td class="v-cell-num v-mono {{ $tx->amount < 0 ? 'v-tone-bad' : 'v-tone-act' }}">{{ $tx->amount < 0 ? '' : '+' }}{{ number_format($tx->amount, 2) }}</td>
+                            <td class="v-cell-quiet">{{ $tx->creator?->name ?? ($tx->order_id ? 'Checkout' : 'System') }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
-        <div class="v3-gap">
-            <a class="v3-link" href="{{ route('admin.store-credit.ledger', ['search' => $customer->email]) }}">Full ledger</a>
+        <div class="v-gap">
+            <a class="v-link" href="{{ route('admin.store-credit.ledger', ['search' => $customer->email]) }}">Full ledger</a>
         </div>
     @endif
-</x-admin3.panel>
+</x-admin.panel>

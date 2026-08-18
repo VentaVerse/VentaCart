@@ -1,0 +1,159 @@
+/* ============================================================
+   Venta Admin v , the two shells
+   ============================================================
+   Work shell: azure slab of work objects, hairline topbar, canvas.
+   Settings shell: the whole screen becomes Settings; its own left
+   nav, a back door to the admin, no work sidebar competing.
+   ============================================================ */
+
+/* The standalone v3 document shell (rail, its nav, its topbar)
+   retired with the one-chrome ruling; its rules left with it when the
+   rename would otherwise have collided them with the real chrome. */
+
+/* --- Main ---------------------------------------------------- */
+
+.v-head { margin-bottom: 22px; display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.v-head__body { flex: 1; min-width: 240px; }
+.v-head__title {
+    font-size: clamp(21px, 2.6vw, 26px);
+    font-weight: 660;
+    letter-spacing: -.02em;
+    text-wrap: balance;
+}
+.v-head__standing { margin-top: 4px; font-size: 13.5px; color: var(--v-ink-2); }
+.v-head__trail {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--v-ink-3);
+    margin-bottom: 6px;
+}
+.v-head__trail a { text-decoration: none; color: inherit; }
+.v-head__trail a:hover { color: var(--v-act); }
+.v-head__actions { display: flex; gap: 10px; align-items: center; }
+
+/* --- Settings shell ------------------------------------------ */
+
+.v-settings {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.v-settings__top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 54px;
+    padding: 0 var(--v-gutter);
+    background: var(--v-surface);
+    border-bottom: 1px solid var(--v-line);
+    position: sticky; top: 0; z-index: 30;
+}
+.v-settings__back {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 560;
+    color: var(--v-ink-2);
+    text-decoration: none;
+    min-height: 24px;
+}
+.v-settings__back:hover { color: var(--v-act); }
+.v-settings__name { font-size: 14.5px; font-weight: 640; }
+
+.v-settings__body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: var(--v-snav-w) minmax(0, 1fr);
+    gap: 0;
+    width: 100%;
+}
+
+.v-snav {
+    padding: 22px 14px 40px 18px;
+    border-right: 1px solid var(--v-line);
+    position: sticky;
+    top: 54px;
+    height: calc(100vh - 54px);
+    overflow-y: auto;
+}
+.v-snav__group { margin: 0 0 6px; padding: 14px 10px 4px; font-size: 11.5px; font-weight: 630; letter-spacing: .05em; color: var(--v-ink-3); }
+.v-snav__item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 10px;
+    min-height: 34px;
+    border-radius: var(--v-r-md);
+    font-size: 13.5px;
+    color: var(--v-ink-2);
+    text-decoration: none;
+    transition: background var(--v-fast), color var(--v-fast);
+}
+.v-snav__item:hover { background: var(--v-hover); color: var(--v-ink); }
+.v-snav__item[aria-current="page"] {
+    background: var(--v-act-wash);
+    color: var(--v-act);
+    font-weight: 600;
+}
+.v-snav__item svg { width: 17px; height: 17px; flex-shrink: 0; opacity: .8; }
+.v-snav__count { margin-left: auto; font-size: 11.5px; font-weight: 640; color: var(--v-ink-3); font-variant-numeric: tabular-nums; }
+.v-snav__item[aria-current="page"] .v-snav__count { color: inherit; }
+/* Client-side side pans (one-form pages: theme, method pages) reuse the
+   snav vocabulary with buttons; the grid is local because those pages
+   live in the plain shell, not a space. */
+button.v-snav__item { border: 0; background: none; width: 100%; text-align: left; cursor: pointer; font: inherit; }
+.v-modgrid { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start; }
+.v-modgrid > .v-snav { position: sticky; top: 18px; padding: 6px; background: var(--v-surface); border: 1px solid var(--v-line); border-radius: var(--v-r-lg); box-shadow: var(--v-lift); }
+@media (max-width: 1023px) {
+    .v-settings__body { grid-template-columns: minmax(0, 1fr); }
+    .v-snav { display: none; }
+    .v-snav__picker {
+        display: block;
+        width: 100%;
+        margin-bottom: 18px;
+    }
+    .v-settings__main { padding: 18px 16px 110px; }
+}
+
+/* .v-irail is retired (one chrome); __rule survives as a borrowed
+   divider in the theme preview. */
+.v-irail__rule { width: 26px; border: 0; border-top: 1px solid var(--v-slab-line); margin: 8px 0; }
+
+.v-settings-root { display: flex; }
+
+/* Above the breakpoint the icon rail carries the way home; the top
+   band's back arrow exists only where the rail is hidden. */
+.v-settings__back--mobile { display: none; }
+@media (max-width: 1023px) {
+    .v-settings__back--mobile { display: flex; }
+}
+
+/* The settings frame beside the rail */
+.v-settings__frame { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+@media (max-width: 1023px) {
+}
+
+
+/* --- Crossing in: the settings menu takes its seat --------------
+   Venta's own move, inside its own motion tokens. The rail and the
+   column's ground are furniture and appear seated; the menu's
+   groups slide in 12px and settle (230ms, staggered ~30ms), then
+   the brass wash ignites on the active item, a 130ms stamp landing
+   after the column is still. Transform and opacity only; applied
+   by the shell's head script when the previous page was outside
+   Settings. Within Settings nothing moves. */
+@media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    .v-cross .v-snav > * {
+        animation: v-seat .18s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .v-cross .v-snav > *:nth-child(2) { animation-delay: .025s; }
+    .v-cross .v-snav > *:nth-child(3) { animation-delay: .05s; }
+    .v-cross .v-snav > *:nth-child(4) { animation-delay: .075s; }
+    .v-cross .v-snav > *:nth-child(n+5) { animation-delay: .1s; }
+    .v-cross .v-snav__item[aria-current="page"] {
+        animation: v-seat-brass .13s ease-out .14s backwards;
+    }
+    @keyframes v-seat {
+        from { transform: translateX(-26px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes v-seat-brass {
+        from { background: transparent; color: inherit; }
+    }
+}

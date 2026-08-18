@@ -1,8 +1,7 @@
-/* The chrome stylesheet: what survives of the v2 layer after the one
-   UX variant ruling (owner directive 2026-08-21). Tokens and ground,
-   the shell (slab nav, topbar, palette), the auth door's sheet, and
-   the TinyMCE skin patch. Every page SURFACE is styled by the v3
-   bundle beside this one. */
+/* The one admin stylesheet. Chrome first (tokens, ground, shell,
+   palette), then the surface system every page is written in, then
+   the day sheet's own vocabulary. One bundle, one skin (owner
+   directive 2026-08-21). */
 
 @import "./tokens.css";
 @import "./base.css";
@@ -11,3 +10,6 @@
 @import "./components/palette.css";
 @import "./components/tinymce.css";
 @import "./layout/shell.css";
+@import "./layout/embed.css";
+@import "./components/ui.css";
+@import "./components/day.css";

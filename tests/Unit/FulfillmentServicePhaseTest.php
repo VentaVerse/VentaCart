@@ -15,7 +15,7 @@ use Tests\TestCase;
  * Task W1 (fulfillment-workflow-v2 plan): FulfillmentService::phaseFor()
  * is the courier-agnostic entry point the future queue tabs (Task W2) will
  * group orders by — it layers "no booking yet" (`to_pack`, renamed by
- * fulfillment-tabs-v3 Task 2 from its original bucket name) and "booked with
+ * fulfillment-tabs-v Task 2 from its original bucket name) and "booked with
  * an unregistered/unknown courier" on top of whatever the resolved
  * courier's own statusPhase() reports, so callers never need to special-
  * case CourierManager::get() returning null themselves.
@@ -145,7 +145,7 @@ class FulfillmentServicePhaseTest extends TestCase
     // ------------------------------------------------------------------
     // fulfillment-placement Task 2: FulfillmentService::tabBucket() is the
     // membership function, and it reads ONE thing - the placement the MODULE
-    // maps the core order status to. The tabs-v3 rules these tests used to assert
+    // maps the core order status to. The tabs-v rules these tests used to assert
     // (stage-vs-phase arbitration, the absolute cancelled arm, the unpaid
     // carve-out, the 'booking' collapse) no longer exist as concepts, so
     // each is replaced here by the equivalent assertion under the new rule:
@@ -216,7 +216,7 @@ class FulfillmentServicePhaseTest extends TestCase
     /**
      * The motivating defect, at unit level: a Delivered-placed order with no
      * courier data at all. phaseFor() answers 'to_pack' (never booked, which
-     * is true of every OpenCart-era order), and under tabs v3 that is what
+     * is true of every OpenCart-era order), and under tabs v that is what
      * decided the tab - which is why 24,620 delivered orders sat in To Pack.
      * Membership now reads the placement and puts it in Delivered.
      */

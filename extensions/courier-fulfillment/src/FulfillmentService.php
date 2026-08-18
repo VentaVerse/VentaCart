@@ -288,7 +288,7 @@ class FulfillmentService
      * placed there (fulfillment-placement Task 3), never because this method
      * peeked at courier_tracking_number.
      *
-     * This REPLACES the tabs-v3 blend (stage-vs-phase arbitration, the
+     * This REPLACES the tabs-v blend (stage-vs-phase arbitration, the
      * cancelled-arm union, the 'booking' collapse) - deleted, not extended.
      * phaseFor()/statusPhase() stay for what they are genuinely for (the
      * row badge, the drawer's 4-step stepper, timeline rendering, and
@@ -508,7 +508,7 @@ class FulfillmentService
      * move the order back to its pre-booking / To-Pack status — extracted
      * from the admin controller so the ERP endpoint runs the exact same
      * flow. See FulfillmentController::cancel()'s docblock for the full
-     * fulfillment-tabs-v3 Task 4 reasoning; the semantics are unchanged.
+     * fulfillment-tabs-v Task 4 reasoning; the semantics are unchanged.
      *
      * @return array{success:bool, error?:string, message?:string, tracking?:string, order_status?:?string}
      */
@@ -765,7 +765,7 @@ class FulfillmentService
         // 'courier_unavailable' only, so 'placement_blocked' answers 422
         // there.
         //
-        // Ordering is load-bearing (kept verbatim from tabs-v3's F3 fix):
+        // Ordering is load-bearing (kept verbatim from tabs-v's F3 fix):
         // checked BELOW the two idempotent branches above
         // (creation_in_progress + already_booked), never before them - the
         // gate blocks genuinely NEW bookings only. An ERP retry for an order
@@ -826,7 +826,7 @@ class FulfillmentService
         // booking can return the order to exactly where it came from rather
         // than to a generic fallback (see FulfillmentController::cancel()).
         $preBookingStatusId = (int) $order->order_status_id;
-        // fulfillment-tabs-v3 Task 4: an admin-initiated booking cancel
+        // fulfillment-tabs-v Task 4: an admin-initiated booking cancel
         // resets the courier fields but persists the audit trail under
         // courier_meta.booking_history (FulfillmentController::cancel()) —
         // carried forward here so a rebook's fresh meta never wipes it.

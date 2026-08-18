@@ -927,7 +927,7 @@ class FulfillmentTest extends TestCase
     }
 
     /**
-     * fulfillment-tabs-v3 Task 4 UPDATE (new cancel semantics, not a
+     * fulfillment-tabs-v Task 4 UPDATE (new cancel semantics, not a
      * weakening): the outbound QuadX calls are byte-identical (book, cancel,
      * rebook — Http::assertSentCount(3) still holds), but an ADMIN booking
      * cancel now RESETS the courier fields once QuadX confirms, snapshotting

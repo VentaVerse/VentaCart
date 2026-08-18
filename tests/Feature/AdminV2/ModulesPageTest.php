@@ -16,7 +16,7 @@ class ModulesPageTest extends TestCase
 
         $this->get(route('admin.extensions.index'))
             ->assertOk()
-            ->assertSee('v3-embed', false)   // v3 settings shell
+            ->assertSee('v-embed', false)   // v settings shell
             ->assertSee('Stock Alerts')->assertSee('Abandoned Carts')->assertSee('SEO')
             ->assertSee('Configure');
     }
@@ -88,7 +88,7 @@ class ModulesPageTest extends TestCase
 
         $this->get(route('admin.extensions.index'))
             ->assertOk()
-            ->assertSee('v3-dir__cat', false)
+            ->assertSee('v-dir__cat', false)
             ->assertSeeInOrder(['Fulfillment', 'Shipping'], false)
             ->assertSeeInOrder(['Stock Alerts', 'Modules'], false);
     }

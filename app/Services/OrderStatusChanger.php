@@ -8,7 +8,7 @@ use App\Models\OrderStatus;
 /**
  * The ONE place an order's status is changed with its bookkeeping: history
  * row + order_status_id update + StockService adjustment, in that order —
- * extracted (fulfillment-tabs-v3 Task 4 fix round) from
+ * extracted (fulfillment-tabs-v Task 4 fix round) from
  * OrderController::addHistory(), whose mechanics the fulfillment queue's
  * Cancel order action had duplicated. Both now call this for the core write;
  * everything layered on top (customer notification emails, courier/tracking

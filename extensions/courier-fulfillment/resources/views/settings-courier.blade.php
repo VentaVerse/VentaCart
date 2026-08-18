@@ -7,23 +7,23 @@
 --}}
 <x-courier-fulfillment::space :title="$courier->getName()" :active="$courier->getKey()">
 
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.fulfillment.settings') }}">Fulfillment</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $courier->getName() }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $courier->getName() }}</h1>
-            <p class="v3-head__standing">
-                <span class="v3-badge {{ $courierState['enabled'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $courierState['enabled'] ? 'Enabled' : 'Disabled' }}</span>
+            <h1 class="v-head__title">{{ $courier->getName() }}</h1>
+            <p class="v-head__standing">
+                <span class="v-badge {{ $courierState['enabled'] ? 'v-badge--good' : 'v-badge--quiet' }}">{{ $courierState['enabled'] ? 'Enabled' : 'Disabled' }}</span>
                 @if ($courierState['modeLabel'])
-                    <span class="v3-badge v3-badge--warn">{{ $courierState['modeLabel'] }}</span>
+                    <span class="v-badge v-badge--warn">{{ $courierState['modeLabel'] }}</span>
                 @endif
                 @if ($courierState['credentialHint'])
-                    <span class="v3-cell-quiet">{{ $courierState['credentialHint'] }}</span>
+                    <span class="v-cell-quiet">{{ $courierState['credentialHint'] }}</span>
                 @endif
             </p>
         </div>
@@ -31,25 +31,25 @@
 
 
     @if (!empty($webhookUrl))
-        <div class="v3-settle">
+        <div class="v-settle">
             {{-- This courier's webhook URL (owner ruling 2026-08-19: it
                  lives with its courier, not on the hub). Server-generated,
                  never editable; a courier with no push API renders none. --}}
-            <x-admin3.panel title="Webhook URL"
+            <x-admin.panel title="Webhook URL"
                 note="Unique to this store. A courier given the wrong one cannot push its status updates.">
-                <div class="v3-actrow"
+                <div class="v-actrow"
                      x-data="{ copied: false, async copy() {
-                         if (!await window.v3Copy($refs.hook.value)) return;
+                         if (!await window.vCopy($refs.hook.value)) return;
                          this.copied = true;
                          setTimeout(() => this.copied = false, 1500);
                      } }">
                     <input type="text" readonly value="{{ $webhookUrl }}" x-ref="hook"
-                           aria-label="{{ $courier->getName() }} webhook URL" class="v3-control v3-mono">
-                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="copy()">
+                           aria-label="{{ $courier->getName() }} webhook URL" class="v-control v-mono">
+                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="copy()">
                         <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied &check;</span>
                     </button>
                 </div>
-            </x-admin3.panel>
+            </x-admin.panel>
         </div>
     @endif
 
@@ -64,11 +64,11 @@
         </form>
     @endif
 
-    <x-admin3.form :action="route('admin.fulfillment.settings.courier.update', $courier->getKey())" class="v3-settle">
+    <x-admin.form :action="route('admin.fulfillment.settings.courier.update', $courier->getKey())" class="v-settle">
         {{-- The mode scope nests inside the doctrine form (the form tag
-             already carries v3Form's own x-data). --}}
+             already carries vForm's own x-data). --}}
         <div @if ($modeFieldKey) x-data="{ mode: '{{ $initialMode }}' }" @endif>
-            <x-admin3.panel :title="$courier->getName()">
+            <x-admin.panel :title="$courier->getName()">
 
                 @if ($courier->getKey() === 'spx')
                     {{-- UAT-mode note: SPX's UAT environment only accepts
@@ -77,9 +77,9 @@
                          repo's docs (not a public/servable path), so this
                          links nowhere — it names the file so whoever is
                          configuring UAT knows exactly where to look. --}}
-                    <div x-show="mode === 'uat'" x-cloak class="v3-notice v3-gap-sm">
-                        <p class="v3-notice__title">UAT mode: whitelisted test orders only</p>
-                        <p class="v3-notice__text">SPX's UAT environment only accepts bookings for the recipient details listed in <code class="v3-mono">docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf</code> in this codebase's repo. A real customer address will fail with an unrelated-looking SPX error. Switch to Production mode once SPX has approved this integration.</p>
+                    <div x-show="mode === 'uat'" x-cloak class="v-notice v-gap-sm">
+                        <p class="v-notice__title">UAT mode: whitelisted test orders only</p>
+                        <p class="v-notice__text">SPX's UAT environment only accepts bookings for the recipient details listed in <code class="v-mono">docs/spx/NSS OpenAPI UAT Order Creation Guide.pdf</code> in this codebase's repo. A real customer address will fail with an unrelated-looking SPX error. Switch to Production mode once SPX has approved this integration.</p>
                     </div>
 
                     {{-- Create shipper account: only meaningful before a User
@@ -87,10 +87,10 @@
                          the User ID / User Secret fields below are the way to
                          change it. --}}
                     @if (empty($settings['spx_user_id']))
-                        <div class="v3-actrow v3-gap-sm">
-                            <span class="v3-badge v3-badge--warn">No SPX shipper account yet</span>
-                            <button type="submit" form="create-account-form" class="v3-btn v3-btn--secondary v3-btn--sm">Create shipper account</button>
-                            <x-admin3.help text="Creates a User ID and User Secret through SPX using this store's pickup contact number, and saves both here." />
+                        <div class="v-actrow v-gap-sm">
+                            <span class="v-badge v-badge--warn">No SPX shipper account yet</span>
+                            <button type="submit" form="create-account-form" class="v-btn v-btn--secondary v-btn--sm">Create shipper account</button>
+                            <x-admin.help text="Creates a User ID and User Secret through SPX using this store's pickup contact number, and saves both here." />
                         </div>
                     @endif
                 @endif
@@ -126,26 +126,26 @@
                          text field posted. Row add/remove calls the doctrine
                          form's touch() so structural edits raise the save bar
                          even before any keystroke. --}}
-                    <div class="v3-gap" x-data="{ presets: {{ \Illuminate\Support\Js::from($pouchPresets) }} }">
-                        <div class="v3-label v3-gap-sm">
+                    <div class="v-gap" x-data="{ presets: {{ \Illuminate\Support\Js::from($pouchPresets) }} }">
+                        <div class="v-label v-gap-sm">
                             Pouch presets
-                            @if (!empty($pouchField['help']))<x-admin3.help :text="$pouchField['help']" />@endif
+                            @if (!empty($pouchField['help']))<x-admin.help :text="$pouchField['help']" />@endif
                         </div>
                         <template x-for="(p, idx) in presets" :key="idx">
-                            <div class="v3-grid v3-grid--pouch v3-gap-sm">
-                                <input type="text" x-model="p.label" :aria-label="'Preset ' + (idx + 1) + ' label'" placeholder="e.g. Medium" class="v3-control">
-                                <input type="number" step="0.1" min="0.1" x-model.number="p.length_cm" :aria-label="'Preset ' + (idx + 1) + ' length (cm)'" placeholder="L cm" class="v3-control v3-mono">
-                                <input type="number" step="0.1" min="0.1" x-model.number="p.width_cm" :aria-label="'Preset ' + (idx + 1) + ' width (cm)'" placeholder="W cm" class="v3-control v3-mono">
-                                <input type="number" step="0.1" min="0.1" x-model.number="p.height_cm" :aria-label="'Preset ' + (idx + 1) + ' height (cm)'" placeholder="H cm" class="v3-control v3-mono">
-                                <input type="number" step="0.1" min="0.1" x-model.number="p.max_weight_kg" :aria-label="'Preset ' + (idx + 1) + ' max kg'" placeholder="Max kg" class="v3-control v3-mono">
-                                <button type="button" class="v3-row__x" @click="presets.splice(idx, 1); $nextTick(() => touch())"
+                            <div class="v-grid v-grid--pouch v-gap-sm">
+                                <input type="text" x-model="p.label" :aria-label="'Preset ' + (idx + 1) + ' label'" placeholder="e.g. Medium" class="v-control">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.length_cm" :aria-label="'Preset ' + (idx + 1) + ' length (cm)'" placeholder="L cm" class="v-control v-mono">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.width_cm" :aria-label="'Preset ' + (idx + 1) + ' width (cm)'" placeholder="W cm" class="v-control v-mono">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.height_cm" :aria-label="'Preset ' + (idx + 1) + ' height (cm)'" placeholder="H cm" class="v-control v-mono">
+                                <input type="number" step="0.1" min="0.1" x-model.number="p.max_weight_kg" :aria-label="'Preset ' + (idx + 1) + ' max kg'" placeholder="Max kg" class="v-control v-mono">
+                                <button type="button" class="v-row__x" @click="presets.splice(idx, 1); $nextTick(() => touch())"
                                     :disabled="presets.length <= 1" :aria-label="'Remove preset ' + (idx + 1)">
-                                    <x-admin3.icon name="trash" />
+                                    <x-admin.icon name="trash" />
                                 </button>
                             </div>
                         </template>
-                        <div class="v3-gap-sm">
-                            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                        <div class="v-gap-sm">
+                            <button type="button" class="v-btn v-btn--secondary v-btn--sm"
                                 @click="presets.push({label:'', length_cm:null, width_cm:null, height_cm:null, max_weight_kg:null}); $nextTick(() => touch())">Add preset</button>
                         </div>
                         <input type="hidden" name="settings[spx_pouch_presets]" :value="JSON.stringify(presets)">
@@ -153,8 +153,8 @@
                 @endif
 
                 @foreach ($modeGroups as $modeValue => $fields)
-                    <div x-show="mode === '{{ $modeValue }}'" x-cloak class="v3-gap v3-modegroup">
-                        <div class="v3-label v3-gap-sm">{{ ucfirst($modeValue) }} credentials</div>
+                    <div x-show="mode === '{{ $modeValue }}'" x-cloak class="v-gap v-modegroup">
+                        <div class="v-label v-gap-sm">{{ ucfirst($modeValue) }} credentials</div>
                         @foreach ($fields as $field)
                             @include('courier-fulfillment::partials.schema-field', [
                                 'field' => $field,
@@ -169,19 +169,19 @@
 
                 {{-- Test Connection hits the live provider API with the saved
                      credentials, via CourierFulfillmentInterface::testConnection(). --}}
-                <div x-data="{ testing: false, result: null }" class="v3-gap">
-                    <span class="v3-actrow">
-                        <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm"
+                <div x-data="{ testing: false, result: null }" class="v-gap">
+                    <span class="v-actrow">
+                        <button type="button" class="v-btn v-btn--secondary v-btn--sm"
                             @click="testing = true; result = null;
                                 fetch('{{ route('admin.fulfillment.test-connection', $courier->getKey()) }}', {method:'POST', headers:{'X-CSRF-TOKEN':'{{ csrf_token() }}','Accept':'application/json'}})
                                 .then(r => r.json()).then(d => result = d).finally(() => testing = false)">
                             <span x-show="!testing">Test Connection</span><span x-show="testing" x-cloak>Testing&hellip;</span>
                         </button>
                         <span x-show="result" x-cloak x-text="result?.message"
-                              :class="result?.ok ? 'v3-badge v3-badge--good' : 'v3-badge v3-badge--bad'"></span>
+                              :class="result?.ok ? 'v-badge v-badge--good' : 'v-badge v-badge--bad'"></span>
                     </span>
                 </div>
-            </x-admin3.panel>
+            </x-admin.panel>
 
             {{-- Order status mapping: courier status -> Venta order status.
                  A courier that exposes no mappable vocabulary (LBC) gets no
@@ -189,14 +189,14 @@
                  nothing, and no "Refresh from" button for a list it cannot
                  fetch. --}}
             @if (!empty($courierStatuses))
-                <div class="v3-gap">
-                    <x-admin3.panel title="Order status mapping" flush
+                <div class="v-gap">
+                    <x-admin.panel title="Order status mapping" flush
                         note="A row left blank still tracks on the fulfillment page, it just never moves the order's own status.">
                         <x-slot:acts>
-                            <button type="submit" form="refresh-statuses-form" class="v3-btn v3-btn--secondary v3-btn--sm">Refresh from {{ $courier->getName() }}</button>
+                            <button type="submit" form="refresh-statuses-form" class="v-btn v-btn--secondary v-btn--sm">Refresh from {{ $courier->getName() }}</button>
                         </x-slot:acts>
-                        <div class="v3-tablewrap">
-                            <table class="v3-table">
+                        <div class="v-tablewrap">
+                            <table class="v-table">
                                 <thead>
                                     <tr>
                                         <th>{{ $courier->getName() }} status</th>
@@ -210,12 +210,12 @@
                                             <td>
                                                 {{ $label }}
                                                 @if ($label !== $statusKey)
-                                                    <span class="v3-cell-quiet v3-block v3-mono">{{ $statusKey }}</span>
+                                                    <span class="v-cell-quiet v-block v-mono">{{ $statusKey }}</span>
                                                 @endif
                                             </td>
                                             <td>
                                                 <select name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][order_status_id]"
-                                                        class="v3-control v3-w-name" aria-label="Order status for {{ $label }}">
+                                                        class="v-control v-w-name" aria-label="Order status for {{ $label }}">
                                                     <option value="">(none)</option>
                                                     @foreach ($orderStatuses as $id => $name)
                                                         <option value="{{ $id }}" {{ (string) ($statusMap[$statusKey]['order_status_id'] ?? '') === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
@@ -224,7 +224,7 @@
                                             </td>
                                             <td>
                                                 <input type="hidden" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="0">
-                                                <label class="v3-check">
+                                                <label class="v-check">
                                                     <input type="checkbox" name="settings[{{ $courier->getKey() }}_status_map][{{ $statusKey }}][notify]" value="1"
                                                         aria-label="Notify the customer on {{ $label }}"
                                                         {{ !empty($statusMap[$statusKey]['notify']) ? 'checked' : '' }}>
@@ -235,10 +235,10 @@
                                 </tbody>
                             </table>
                         </div>
-                    </x-admin3.panel>
+                    </x-admin.panel>
                 </div>
             @endif
         </div>
-    </x-admin3.form>
+    </x-admin.form>
 
 </x-courier-fulfillment::space>

@@ -1,104 +1,104 @@
-<x-admin3.shell title="Media Manager" active="catalog">
+<x-admin.shell title="Media Manager" active="catalog">
     <div x-data="mediaManager()">
-        <div class="v3-head">
-            <div class="v3-head__body">
-                <h1 class="v3-head__title">Media Manager</h1>
+        <div class="v-head">
+            <div class="v-head__body">
+                <h1 class="v-head__title">Media Manager</h1>
             </div>
         </div>
 
-        <div class="v3-settle">
-            <div class="v3-filterbar">
-                <nav class="v3-crumbrow" aria-label="Folder path">
-                    <button type="button" @click="browseDir('')" class="v3-link">Files</button>
+        <div class="v-settle">
+            <div class="v-filterbar">
+                <nav class="v-crumbrow" aria-label="Folder path">
+                    <button type="button" @click="browseDir('')" class="v-link">Files</button>
                     <template x-for="(crumb, i) in breadcrumbs" :key="i">
-                        <span class="v3-crumbrow">
+                        <span class="v-crumbrow">
                             <span aria-hidden="true">/</span>
-                            <button type="button" @click="browseDir(crumb.path)" class="v3-link" x-text="crumb.name"></button>
+                            <button type="button" @click="browseDir(crumb.path)" class="v-link" x-text="crumb.name"></button>
                         </span>
                     </template>
                 </nav>
-                <span class="v3-filterbar__grow"></span>
-                <span class="v3-cell-quiet v3-mono" x-show="files.length > 0" x-text="filteredFiles.length + ' files'"></span>
-                <input type="search" x-model="search" aria-label="Filter this folder" class="v3-control v3-narrowsearch" @keydown.enter.prevent>
-                <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" :aria-pressed="showUrlInput ? 'true' : 'false'"
+                <span class="v-filterbar__grow"></span>
+                <span class="v-cell-quiet v-mono" x-show="files.length > 0" x-text="filteredFiles.length + ' files'"></span>
+                <input type="search" x-model="search" aria-label="Filter this folder" class="v-control v-narrowsearch" @keydown.enter.prevent>
+                <button type="button" class="v-btn v-btn--ghost v-btn--sm" :aria-pressed="showUrlInput ? 'true' : 'false'"
                         aria-controls="media-url-bar" :aria-expanded="showUrlInput ? 'true' : 'false'"
                         @click="showUrlInput = !showUrlInput">URL</button>
-                <label class="v3-btn v3-btn--primary v3-btn--sm">
+                <label class="v-btn v-btn--primary v-btn--sm">
                     Upload here
-                    <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="uploadFiles($event)" class="v3-sr">
+                    <input type="file" multiple accept="image/jpeg,image/png,image/webp" @change="uploadFiles($event)" class="v-sr">
                 </label>
             </div>
 
-            <div id="media-url-bar" x-show="showUrlInput" x-cloak class="v3-namerow v3-gap-sm">
-                <input type="url" x-model="urlInput" aria-label="Image URL" class="v3-control" @keydown.enter.prevent="importFromUrl()">
-                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" :disabled="importingUrl" @click="importFromUrl()">
+            <div id="media-url-bar" x-show="showUrlInput" x-cloak class="v-namerow v-gap-sm">
+                <input type="url" x-model="urlInput" aria-label="Image URL" class="v-control" @keydown.enter.prevent="importFromUrl()">
+                <button type="button" class="v-btn v-btn--secondary v-btn--sm" :disabled="importingUrl" @click="importFromUrl()">
                     <span x-text="importingUrl ? 'Importing…' : 'Import'"></span>
                 </button>
             </div>
 
-            <x-admin3.panel>
-                <div class="v3-dropwrap"
+            <x-admin.panel>
+                <div class="v-dropwrap"
                      @dragover.prevent="dragover = true"
                      @dragleave.prevent="dragover = false"
                      @drop.prevent="dragover = false; handleDrop($event)">
 
-                    <div x-show="dragover" x-cloak class="v3-dropzone">Drop files to upload</div>
+                    <div x-show="dragover" x-cloak class="v-dropzone">Drop files to upload</div>
 
-                    <p x-show="uploading" x-cloak class="v3-cell-quiet" role="status" aria-live="polite" x-text="uploadStatus"></p>
+                    <p x-show="uploading" x-cloak class="v-cell-quiet" role="status" aria-live="polite" x-text="uploadStatus"></p>
 
-                    <div x-show="loading" class="v3-empty"><p class="v3-empty__title">Loading…</p></div>
+                    <div x-show="loading" class="v-empty"><p class="v-empty__title">Loading…</p></div>
 
-                    <div x-show="!loading" class="v3-mediagrid">
+                    <div x-show="!loading" class="v-mediagrid">
                         <template x-if="currentPath !== ''">
-                            <button type="button" @click="browseDir(parentPath)" class="v3-mediatile" aria-label="Up one folder">
-                                <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                            <button type="button" @click="browseDir(parentPath)" class="v-mediatile" aria-label="Up one folder">
+                                <x-admin.icon name="folder" class="v-mediatile__folder" />
                                 <span>..</span>
                             </button>
                         </template>
 
                         <template x-for="folder in filteredFolders" :key="folder.path">
-                            <button type="button" @click="browseDir(folder.path)" class="v3-mediatile">
-                                <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                            <button type="button" @click="browseDir(folder.path)" class="v-mediatile">
+                                <x-admin.icon name="folder" class="v-mediatile__folder" />
                                 <span x-text="folder.name"></span>
                             </button>
                         </template>
 
                         <template x-for="file in filteredFiles" :key="file.path">
-                            <div class="v3-tilewrap">
-                                <span class="v3-mediatile">
-                                    <span class="v3-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
+                            <div class="v-tilewrap">
+                                <span class="v-mediatile">
+                                    <span class="v-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
                                     <span x-text="file.name"></span>
                                 </span>
-                                <span class="v3-tileacts">
-                                    <button type="button" class="v3-row__x" @click="copyPath(file.path)" :aria-label="'Copy path to ' + file.name">
-                                        <x-admin3.icon name="link" />
+                                <span class="v-tileacts">
+                                    <button type="button" class="v-row__x" @click="copyPath(file.path)" :aria-label="'Copy path to ' + file.name">
+                                        <x-admin.icon name="link" />
                                     </button>
-                                    <button type="button" class="v3-row__x" @click="askDelete(file)" :aria-label="'Delete ' + file.name">
-                                        <x-admin3.icon name="trash" />
+                                    <button type="button" class="v-row__x" @click="askDelete(file)" :aria-label="'Delete ' + file.name">
+                                        <x-admin.icon name="trash" />
                                     </button>
                                 </span>
                             </div>
                         </template>
                     </div>
 
-                    <div x-show="!loading && folders.length === 0 && files.length === 0" class="v3-empty">
-                        <p class="v3-empty__title">Empty folder</p>
-                        <p class="v3-empty__line">Drop files here or use Upload above.</p>
+                    <div x-show="!loading && folders.length === 0 && files.length === 0" class="v-empty">
+                        <p class="v-empty__title">Empty folder</p>
+                        <p class="v-empty__line">Drop files here or use Upload above.</p>
                     </div>
                 </div>
-            </x-admin3.panel>
+            </x-admin.panel>
         </div>
 
         {{-- JS-callback confirm (automations precedent: the shared confirm
              component only wraps form actions). --}}
         <template x-if="pendingDelete">
-            <div class="v3-overlay" @click.self="pendingDelete = null" @keydown.escape.window="pendingDelete = null">
-                <div class="v3-modal" role="dialog" aria-modal="true" aria-label="Delete this file?">
-                    <h2 class="v3-modal__title">Delete this file?</h2>
-                    <p class="v3-modal__body" x-text="pendingDelete.name + ' is deleted from the server. Any product or page still pointing at it loses its image.'"></p>
-                    <div class="v3-modal__acts">
-                        <button type="button" class="v3-btn v3-btn--ghost" @click="pendingDelete = null">Cancel</button>
-                        <button type="button" class="v3-btn v3-btn--danger-fill" @click="deleteFile(pendingDelete); pendingDelete = null">Delete</button>
+            <div class="v-overlay" @click.self="pendingDelete = null" @keydown.escape.window="pendingDelete = null">
+                <div class="v-modal" role="dialog" aria-modal="true" aria-label="Delete this file?">
+                    <h2 class="v-modal__title">Delete this file?</h2>
+                    <p class="v-modal__body" x-text="pendingDelete.name + ' is deleted from the server. Any product or page still pointing at it loses its image.'"></p>
+                    <div class="v-modal__acts">
+                        <button type="button" class="v-btn v-btn--ghost" @click="pendingDelete = null">Cancel</button>
+                        <button type="button" class="v-btn v-btn--danger-fill" @click="deleteFile(pendingDelete); pendingDelete = null">Delete</button>
                     </div>
                 </div>
             </div>
@@ -269,4 +269,4 @@
     }
     </script>
     @endpush
-</x-admin3.shell>
+</x-admin.shell>

@@ -3,44 +3,44 @@
     $daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     $crontabLine = '* * * * * cd ' . base_path() . ' && php artisan schedule:run >> /dev/null 2>&1';
 @endphp
-<x-admin3.settings-shell title="Automations" active="automations">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <h1 class="v3-head__title">Automations</h1>
-            <p class="v3-head__standing">Scheduled jobs, their timetables, and manual runs. Times are in {{ $tz }}.</p>
+<x-admin.settings-shell title="Automations" active="automations">
+    <div class="v-head">
+        <div class="v-head__body">
+            <h1 class="v-head__title">Automations</h1>
+            <p class="v-head__standing">Scheduled jobs, their timetables, and manual runs. Times are in {{ $tz }}.</p>
         </div>
     </div>
 
-    <div class="v3-settle"
+    <div class="v-settle"
          x-data="automationsTab({
              updateUrlTemplate: @js(route('admin.automations.update', ['automation' => '__ID__'])),
              runUrlTemplate: @js(route('admin.automations.runNow', ['automation' => '__ID__'])),
          })">
         {{-- None of the schedules below fire at all unless this line is in
              the server's crontab. --}}
-        <div class="v3-notice"
+        <div class="v-notice"
              x-data="{ copied: false, async copy() {
-                 if (!await window.v3Copy($refs.crontab.value)) return;
+                 if (!await window.vCopy($refs.crontab.value)) return;
                  this.copied = true;
                  setTimeout(() => this.copied = false, 2000);
              } }">
-            <p class="v3-notice__title">Server crontab
-                <x-admin3.help text="The schedules below only fire while this line is installed on the server." /></p>
-            <div class="v3-noticerow">
+            <p class="v-notice__title">Server crontab
+                <x-admin.help text="The schedules below only fire while this line is installed on the server." /></p>
+            <div class="v-noticerow">
                 <input type="text" x-ref="crontab" readonly value="{{ $crontabLine }}" onclick="this.select()"
-                       aria-label="Crontab line" class="v3-control v3-mono">
-                <button type="button" class="v3-btn v3-btn--secondary" @click="copy()" x-text="copied ? 'Copied' : 'Copy'">Copy</button>
+                       aria-label="Crontab line" class="v-control v-mono">
+                <button type="button" class="v-btn v-btn--secondary" @click="copy()" x-text="copied ? 'Copied' : 'Copy'">Copy</button>
             </div>
         </div>
 
-        <x-admin3.form :action="route('admin.automations.update-all')" method="PUT">
-        <x-admin3.panel title="Automations" flush class="v3-gap">
-            <div class="v3-tablewrap">
-                <table class="v3-table">
+        <x-admin.form :action="route('admin.automations.update-all')" method="PUT">
+        <x-admin.panel title="Automations" flush class="v-gap">
+            <div class="v-tablewrap">
+                <table class="v-table">
                     <thead>
                         <tr>
                             <th>Automation</th><th>Command</th><th>Schedule</th><th>Enabled</th><th>Last run</th>
-                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                            <th class="v-cell-act"><span class="v-sr">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -58,43 +58,43 @@
                                     'cron_expression' => $automation->cron_expression,
                                 ];
                             @endphp
-                            <tr x-data="{ enabled: @js((bool) $automation->enabled), running: false }" :class="{ 'v3-row-dim': !enabled }">
+                            <tr x-data="{ enabled: @js((bool) $automation->enabled), running: false }" :class="{ 'v-row-dim': !enabled }">
                                 <td>
                                     {{ $automation->name }}
                                     @if ($automation->description)
-                                        <x-admin3.help :text="$automation->description" />
+                                        <x-admin.help :text="$automation->description" />
                                     @endif
                                 </td>
-                                <td><code class="v3-mono">{{ $automation->command }}</code></td>
+                                <td><code class="v-mono">{{ $automation->command }}</code></td>
                                 <td>
                                     <div>{{ $automation->schedule_description }}</div>
-                                    <code class="v3-mono v3-cell-quiet">{{ $automation->cron_expression }}</code>
+                                    <code class="v-mono v-cell-quiet">{{ $automation->cron_expression }}</code>
                                 </td>
                                 <td>
-                                    <label class="v3-toggle">
+                                    <label class="v-toggle">
                                         <input type="hidden" name="rows[{{ $automation->id }}][enabled]" value="0">
                                         <input type="checkbox" name="rows[{{ $automation->id }}][enabled]" value="1"
                                                x-model="enabled" aria-label="{{ $automation->name }} enabled">
-                                        <span class="v3-toggle__track" aria-hidden="true"></span>
+                                        <span class="v-toggle__track" aria-hidden="true"></span>
                                     </label>
                                 </td>
                                 <td>
                                     @if ($automation->last_run_status === 'success')
-                                        <span class="v3-badge v3-badge--good">Success</span>
+                                        <span class="v-badge v-badge--good">Success</span>
                                     @elseif ($automation->last_run_status === 'failed')
-                                        <span class="v3-badge v3-badge--bad">Failed</span>
+                                        <span class="v-badge v-badge--bad">Failed</span>
                                     @elseif ($automation->last_run_status === 'running')
-                                        <span class="v3-badge v3-badge--warn">Running</span>
+                                        <span class="v-badge v-badge--warn">Running</span>
                                     @else
-                                        <span class="v3-badge v3-badge--quiet">Never run</span>
+                                        <span class="v-badge v-badge--quiet">Never run</span>
                                     @endif
                                     @if ($automation->last_run_at)
-                                        <div class="v3-cell-quiet">{{ $automation->last_run_at->timezone($tz)->format('M j, Y H:i') }}</div>
+                                        <div class="v-cell-quiet">{{ $automation->last_run_at->timezone($tz)->format('M j, Y H:i') }}</div>
                                     @endif
                                 </td>
-                                <td class="v3-cell-act">
-                                    <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="openEditor(@js($editPayload))">Edit</button>
-                                    <button type="button" class="v3-btn v3-btn--primary v3-btn--sm"
+                                <td class="v-cell-act">
+                                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="openEditor(@js($editPayload))">Edit</button>
+                                    <button type="button" class="v-btn v-btn--primary v-btn--sm"
                                             :disabled="!enabled || running"
                                             :title="enabled ? '' : 'Enable this automation to run it manually'"
                                             @click="askRun({{ $automation->id }}, @js($automation->command), $event)"
@@ -104,99 +104,99 @@
                         @empty
                             <tr>
                                 <td colspan="6">
-                                    <div class="v3-empty"><p class="v3-empty__title">No automations configured</p></div>
+                                    <div class="v-empty"><p class="v-empty__title">No automations configured</p></div>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-        </x-admin3.panel>
-        </x-admin3.form>
+        </x-admin.panel>
+        </x-admin.form>
 
-        {{-- Schedule editor. Hand-rolled on the v3 modal primitives because
+        {{-- Schedule editor. Hand-rolled on the v modal primitives because
              its body reads automationsTab's own editor state. --}}
         <template x-if="editor.open">
-            <div class="v3-overlay" @click.self="closeEditor()" @keydown.escape.window="closeEditor()">
-                <div class="v3-modal" role="dialog" aria-modal="true" aria-labelledby="automation-editor-title">
-                    <h2 class="v3-modal__title" id="automation-editor-title" x-text="editor.name"></h2>
-                    <p class="v3-modal__body v3-mono" x-text="editor.command"></p>
+            <div class="v-overlay" @click.self="closeEditor()" @keydown.escape.window="closeEditor()">
+                <div class="v-modal" role="dialog" aria-modal="true" aria-labelledby="automation-editor-title">
+                    <h2 class="v-modal__title" id="automation-editor-title" x-text="editor.name"></h2>
+                    <p class="v-modal__body v-mono" x-text="editor.command"></p>
 
-                    <x-admin3.field name="schedule_preset" label="Frequency">
-                        <select class="v3-control" x-model="editor.preset" @change="onPresetChange()">
+                    <x-admin.field name="schedule_preset" label="Frequency">
+                        <select class="v-control" x-model="editor.preset" @change="onPresetChange()">
                             <option value="every_n_minutes">Every N minutes</option>
                             <option value="hourly">Hourly</option>
                             <option value="daily">Daily</option>
                             <option value="weekly">Weekly</option>
                             <option value="monthly">Monthly</option>
                         </select>
-                    </x-admin3.field>
+                    </x-admin.field>
 
-                    <div class="v3-gap" x-show="editor.preset === 'every_n_minutes'">
-                        <x-admin3.field name="every_n_minutes" label="Interval">
-                            <select class="v3-control" x-model.number="editor.params.minute">
+                    <div class="v-gap" x-show="editor.preset === 'every_n_minutes'">
+                        <x-admin.field name="every_n_minutes" label="Interval">
+                            <select class="v-control" x-model.number="editor.params.minute">
                                 <template x-for="n in [1, 5, 10, 15, 20, 30]" :key="n">
                                     <option :value="n" x-text="'Every ' + n + ' minute' + (n === 1 ? '' : 's')"></option>
                                 </template>
                             </select>
-                        </x-admin3.field>
-                        <p class="v3-field__hint" x-show="editor.params.minute === 1" x-cloak>
+                        </x-admin.field>
+                        <p class="v-field__hint" x-show="editor.params.minute === 1" x-cloak>
                             Fires every minute and puts steady load on the server. Only for time-sensitive tasks.
                         </p>
                     </div>
 
-                    <div class="v3-gap" x-show="editor.preset === 'hourly'" x-cloak>
-                        <x-admin3.field name="hourly_minute" label="Minute of the hour (0-59)">
-                            <input type="number" min="0" max="59" step="1" class="v3-control v3-mono" x-model.number="editor.params.minute">
-                        </x-admin3.field>
+                    <div class="v-gap" x-show="editor.preset === 'hourly'" x-cloak>
+                        <x-admin.field name="hourly_minute" label="Minute of the hour (0-59)">
+                            <input type="number" min="0" max="59" step="1" class="v-control v-mono" x-model.number="editor.params.minute">
+                        </x-admin.field>
                     </div>
 
-                    <div class="v3-gap" x-show="editor.preset === 'daily'" x-cloak>
-                        <x-admin3.field name="daily_time" label="Time of day">
-                            <input type="time" class="v3-control v3-mono" :value="formatTime(editor.params.hour, editor.params.minute)"
+                    <div class="v-gap" x-show="editor.preset === 'daily'" x-cloak>
+                        <x-admin.field name="daily_time" label="Time of day">
+                            <input type="time" class="v-control v-mono" :value="formatTime(editor.params.hour, editor.params.minute)"
                                    @input="setTimeFromEvent($event)">
-                        </x-admin3.field>
+                        </x-admin.field>
                     </div>
 
-                    <div class="v3-gap v3-grid v3-grid--2" x-show="editor.preset === 'weekly'" x-cloak>
-                        <x-admin3.field name="weekly_day" label="Day">
-                            <select class="v3-control" x-model.number="editor.params.day_of_week">
+                    <div class="v-gap v-grid v-grid--2" x-show="editor.preset === 'weekly'" x-cloak>
+                        <x-admin.field name="weekly_day" label="Day">
+                            <select class="v-control" x-model.number="editor.params.day_of_week">
                                 @foreach ($daysOfWeek as $i => $day)
                                     <option value="{{ $i }}">{{ $day }}</option>
                                 @endforeach
                             </select>
-                        </x-admin3.field>
-                        <x-admin3.field name="weekly_time" label="Time">
-                            <input type="time" class="v3-control v3-mono" :value="formatTime(editor.params.hour, editor.params.minute)"
+                        </x-admin.field>
+                        <x-admin.field name="weekly_time" label="Time">
+                            <input type="time" class="v-control v-mono" :value="formatTime(editor.params.hour, editor.params.minute)"
                                    @input="setTimeFromEvent($event)">
-                        </x-admin3.field>
+                        </x-admin.field>
                     </div>
 
-                    <div class="v3-gap v3-grid v3-grid--2" x-show="editor.preset === 'monthly'" x-cloak>
-                        <x-admin3.field name="monthly_day" label="Day of month" hint="Capped at 28 to avoid month-end gaps.">
-                            <select class="v3-control" x-model.number="editor.params.day_of_month">
+                    <div class="v-gap v-grid v-grid--2" x-show="editor.preset === 'monthly'" x-cloak>
+                        <x-admin.field name="monthly_day" label="Day of month" hint="Capped at 28 to avoid month-end gaps.">
+                            <select class="v-control" x-model.number="editor.params.day_of_month">
                                 <template x-for="d in 28" :key="d">
                                     <option :value="d" x-text="d"></option>
                                 </template>
                             </select>
-                        </x-admin3.field>
-                        <x-admin3.field name="monthly_time" label="Time">
-                            <input type="time" class="v3-control v3-mono" :value="formatTime(editor.params.hour, editor.params.minute)"
+                        </x-admin.field>
+                        <x-admin.field name="monthly_time" label="Time">
+                            <input type="time" class="v-control v-mono" :value="formatTime(editor.params.hour, editor.params.minute)"
                                    @input="setTimeFromEvent($event)">
-                        </x-admin3.field>
+                        </x-admin.field>
                     </div>
 
-                    <div class="v3-well v3-gap">
-                        <div class="v3-label">Preview</div>
+                    <div class="v-well v-gap">
+                        <div class="v-label">Preview</div>
                         <div x-text="previewText()"></div>
-                        <code class="v3-mono v3-cell-quiet" x-text="previewCron()"></code>
+                        <code class="v-mono v-cell-quiet" x-text="previewCron()"></code>
                     </div>
 
-                    <p class="v3-field__error" x-show="editor.error" x-cloak x-text="editor.error"></p>
+                    <p class="v-field__error" x-show="editor.error" x-cloak x-text="editor.error"></p>
 
-                    <div class="v3-modal__acts">
-                        <button type="button" class="v3-btn v3-btn--ghost" @click="closeEditor()">Cancel</button>
-                        <button type="button" class="v3-btn v3-btn--primary" @click="saveEditor()" :disabled="editor.saving"
+                    <div class="v-modal__acts">
+                        <button type="button" class="v-btn v-btn--ghost" @click="closeEditor()">Cancel</button>
+                        <button type="button" class="v-btn v-btn--primary" @click="saveEditor()" :disabled="editor.saving"
                                 x-text="editor.saving ? 'Saving…' : 'Save schedule'">Save schedule</button>
                     </div>
                 </div>
@@ -206,17 +206,17 @@
         {{-- Run-now confirm. Hand-rolled because Confirm resolves in JS
              (runNow) rather than a form action. --}}
         <template x-if="pendingRun">
-            <div class="v3-overlay" @click.self="pendingRun = null" @keydown.escape.window="pendingRun = null">
-                <div class="v3-modal" role="dialog" aria-modal="true" aria-labelledby="run-automation-title">
-                    <h2 class="v3-modal__title" id="run-automation-title">Run this automation now?</h2>
-                    <p class="v3-modal__body">
-                        <span class="v3-mono" x-text="pendingRun.command"></span>
+            <div class="v-overlay" @click.self="pendingRun = null" @keydown.escape.window="pendingRun = null">
+                <div class="v-modal" role="dialog" aria-modal="true" aria-labelledby="run-automation-title">
+                    <h2 class="v-modal__title" id="run-automation-title">Run this automation now?</h2>
+                    <p class="v-modal__body">
+                        <span class="v-mono" x-text="pendingRun.command"></span>
                         runs immediately, on top of its schedule. It can take up to five minutes and does everything
                         a scheduled run does, including sending any email it sends.
                     </p>
-                    <div class="v3-modal__acts">
-                        <button type="button" class="v3-btn v3-btn--ghost" x-ref="cancelRun" @click="pendingRun = null">Cancel</button>
-                        <button type="button" class="v3-btn v3-btn--primary" @click="runNow()">Run now</button>
+                    <div class="v-modal__acts">
+                        <button type="button" class="v-btn v-btn--ghost" x-ref="cancelRun" @click="pendingRun = null">Cancel</button>
+                        <button type="button" class="v-btn v-btn--primary" @click="runNow()">Run now</button>
                     </div>
                 </div>
             </div>
@@ -424,4 +424,4 @@
         };
     </script>
     @endpush
-</x-admin3.settings-shell>
+</x-admin.settings-shell>

@@ -45,7 +45,7 @@ class StoreIdentityController extends Controller
             }
         }
 
-        // v3 doctrine: the General page saves identity AND its plain
+        // v doctrine: the General page saves identity AND its plain
         // setting groups in the same submit (groups[general][...]).
         // Allowlisted to the one group this page owns: anything else
         // must go through SettingController::updateGroups and its
@@ -76,7 +76,7 @@ class StoreIdentityController extends Controller
         $this->deleteFile($this->currentPath($asset));
         $this->write($asset, null);
 
-        // v3 removes in place: answer JSON so the page never navigates
+        // v removes in place: answer JSON so the page never navigates
         // and typed edits elsewhere on it survive the removal.
         if ($request->wantsJson()) {
             app(ThemeService::class)->clearCache();

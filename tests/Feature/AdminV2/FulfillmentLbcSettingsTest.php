@@ -489,7 +489,7 @@ class FulfillmentLbcSettingsTest extends TestCase
             'value' => Crypt::encryptString('abcdefgh1234'),
         ]);
 
-        // v3 repin: the stored key is never rendered, not even masked; the
+        // v repin: the stored key is never rendered, not even masked; the
         // field's help mark names the identifying tail and the keep-on-blank
         // contract instead.
         $this->get($this->settingsUrl('/lbc'))

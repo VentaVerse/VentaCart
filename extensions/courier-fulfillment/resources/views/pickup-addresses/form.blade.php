@@ -22,57 +22,57 @@
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
 
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.fulfillment.settings') }}">Fulfillment</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.fulfillment.pickup-addresses.index') }}">Pickup addresses</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $editing ? $address->label : 'Add' }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $editing ? $address->label : 'Add pickup address' }}</h1>
+            <h1 class="v-head__title">{{ $editing ? $address->label : 'Add pickup address' }}</h1>
         </div>
     </div>
 
     @if (!$country)
-        <x-admin3.panel title="Nothing can be saved" role="status">
+        <x-admin.panel title="Nothing can be saved" role="status">
             <x-slot:acts>
-                <a href="{{ route('admin.localization.index') }}" class="v3-btn v3-btn--primary v3-btn--sm">Localization</a>
+                <a href="{{ route('admin.localization.index') }}" class="v-btn v-btn--primary v-btn--sm">Localization</a>
             </x-slot:acts>
-            <span class="v3-badge v3-badge--warn">{{ $countryMissingMessage }}</span>
-        </x-admin3.panel>
+            <span class="v-badge v-badge--warn">{{ $countryMissingMessage }}</span>
+        </x-admin.panel>
     @else
-        <x-admin3.form :action="$action" :method="$editing ? 'PUT' : 'POST'" class="v3-settle">
+        <x-admin.form :action="$action" :method="$editing ? 'PUT' : 'POST'" class="v-settle">
 
             {{-- The cascade is a child scope inside the doctrine form: it can
                  reach the form's rebaseline() through Alpine's scope chain
                  once its async restore settles. --}}
             <div x-data="pickupAddressCascade(@js($cascade))">
-            <x-admin3.panel title="Address">
-                <div class="v3-grid v3-grid--2">
-                    <x-admin3.field name="label" label="Name" required>
+            <x-admin.panel title="Address">
+                <div class="v-grid v-grid--2">
+                    <x-admin.field name="label" label="Name" required>
                         <input type="text" name="label" value="{{ old('label', $address->label) }}" required maxlength="100"
-                               placeholder="e.g. Main warehouse" class="v3-control">
-                    </x-admin3.field>
+                               placeholder="e.g. Main warehouse" class="v-control">
+                    </x-admin.field>
 
                     {{-- Fixed, and a real foreign key underneath: every courier
                          this module books with collects in one country, so the
                          field states the answer instead of asking. Nothing is
                          posted from here; the country is stamped server-side
                          from the ISO lookup. --}}
-                    <x-admin3.field name="country_display" label="Country"
+                    <x-admin.field name="country_display" label="Country"
                         :hint="'Every courier this module books with collects in ' . $country->name . '.'">
-                        <p id="country_display" class="v3-mono">{{ $country->name }}</p>
-                    </x-admin3.field>
+                        <p id="country_display" class="v-mono">{{ $country->name }}</p>
+                    </x-admin.field>
                 </div>
 
-                <div class="v3-gap">
-                    <div class="v3-grid v3-grid--2">
+                <div class="v-gap">
+                    <div class="v-grid v-grid--2">
                         @foreach ($levels as $level)
-                            <x-admin3.field :name="$level['key']" :label="$level['label']" :required="$level['required']"
+                            <x-admin.field :name="$level['key']" :label="$level['label']" :required="$level['required']"
                                 x-show="isVisible('{{ $level['key'] }}')">
-                                <select name="{{ $level['key'] }}" class="v3-control"
+                                <select name="{{ $level['key'] }}" class="v-control"
                                     x-model="values.{{ $level['key'] }}"
                                     x-on:change="onFieldChange('{{ $level['key'] }}')"
                                     x-bind:disabled="loading['{{ $level['key'] }}']">
@@ -81,56 +81,56 @@
                                         <option :value="option.name" x-text="option.name"></option>
                                     </template>
                                 </select>
-                            </x-admin3.field>
+                            </x-admin.field>
                         @endforeach
                     </div>
                 </div>
 
-                <div class="v3-gap">
-                    <x-admin3.field name="address_1" label="Address" required>
+                <div class="v-gap">
+                    <x-admin.field name="address_1" label="Address" required>
                         <input type="text" name="address_1" value="{{ old('address_1', $address->address_1) }}" required maxlength="500"
-                               placeholder="Unit / street / building" class="v3-control">
-                    </x-admin3.field>
+                               placeholder="Unit / street / building" class="v-control">
+                    </x-admin.field>
                 </div>
 
-                <div class="v3-gap">
-                    <x-admin3.field name="postcode" label="Postal code" required>
+                <div class="v-gap">
+                    <x-admin.field name="postcode" label="Postal code" required>
                         <input type="text" name="postcode" value="{{ old('postcode', $address->postcode) }}" required maxlength="32"
-                               inputmode="numeric" class="v3-control v3-mono v3-w-sort">
-                    </x-admin3.field>
+                               inputmode="numeric" class="v-control v-mono v-w-sort">
+                    </x-admin.field>
                 </div>
-            </x-admin3.panel>
+            </x-admin.panel>
             </div>
 
-            <x-admin3.panel title="Contact">
-                <div class="v3-grid v3-grid--2">
-                    <x-admin3.field name="contact_name" label="Contact name" required>
-                        <input type="text" name="contact_name" value="{{ old('contact_name', $address->contact_name) }}" required maxlength="150" class="v3-control">
-                    </x-admin3.field>
+            <x-admin.panel title="Contact">
+                <div class="v-grid v-grid--2">
+                    <x-admin.field name="contact_name" label="Contact name" required>
+                        <input type="text" name="contact_name" value="{{ old('contact_name', $address->contact_name) }}" required maxlength="150" class="v-control">
+                    </x-admin.field>
 
-                    <x-admin3.field name="contact_phone" label="Mobile number" required>
+                    <x-admin.field name="contact_phone" label="Mobile number" required>
                         <input type="text" name="contact_phone" value="{{ old('contact_phone', $address->contact_phone) }}" required maxlength="30"
-                               inputmode="tel" placeholder="09171234567" class="v3-control v3-mono">
-                    </x-admin3.field>
+                               inputmode="tel" placeholder="09171234567" class="v-control v-mono">
+                    </x-admin.field>
                 </div>
-            </x-admin3.panel>
+            </x-admin.panel>
 
-            <x-admin3.panel title="Default">
+            <x-admin.panel title="Default">
                 {{-- With one address on file there is no choice to offer: it
                      holds the flag either way, so the state is stated rather
                      than asked as a control that cannot change anything. --}}
                 @if ($defaultLocked)
-                    <span class="v3-badge v3-badge--good">Parcels leave from here</span>
+                    <span class="v-badge v-badge--good">Parcels leave from here</span>
                 @else
-                    <label class="v3-toggle">
+                    <label class="v-toggle">
                         <input type="hidden" name="is_default" value="0">
                         <input type="checkbox" name="is_default" value="1" @checked(old('is_default', $address->is_default))>
-                        <span class="v3-toggle__track" aria-hidden="true"></span>
+                        <span class="v-toggle__track" aria-hidden="true"></span>
                         Parcels leave from here unless another address is picked at booking
                     </label>
                 @endif
-            </x-admin3.panel>
-        </x-admin3.form>
+            </x-admin.panel>
+        </x-admin.form>
     @endif
 
     @push('scripts')
@@ -166,7 +166,7 @@
                     const root = this.levels.find((level) => !level.paramFrom);
                     if (root) {
                         this.loadLevel(root, true).then(() => this.$nextTick(() => {
-                            this.$el.dispatchEvent(new CustomEvent('v3-rebaseline', { bubbles: true }));
+                            this.$el.dispatchEvent(new CustomEvent('v-rebaseline', { bubbles: true }));
                         }));
                     }
                 },

@@ -11,6 +11,6 @@
         ]],
     ];
 @endphp
-<x-admin3.space-shell :title="$title" space="Reviews" :groups="$groups" :active="$active">
+<x-admin.space-shell :title="$title" space="Reviews" :groups="$groups" :active="$active">
     {{ $slot }}
-</x-admin3.space-shell>
+</x-admin.space-shell>

@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * fulfillment-tabs-v3 Task 4: the spec's three cancel semantics.
+ * fulfillment-tabs-v Task 4: the spec's three cancel semantics.
  *
  *  (a) CANCEL ORDER - the real cancel. A new POST route sets the CORE order
  *      status to the module setting `cancel_order_status_id` (default: the
@@ -157,7 +157,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         // Exactly one cancel-order opener on the page (one row, one button).
         $this->assertSame(
             1,
-            substr_count($response->getContent(), "\$dispatch('v3-confirm', 'cancel-order-{$order->id}')")
+            substr_count($response->getContent(), "\$dispatch('v-confirm', 'cancel-order-{$order->id}')")
         );
     }
 
@@ -509,7 +509,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
     /**
      * fulfillment-placement Task 2 REWRITE (was: "...lands in cancelled with
-     * rebook and tracking"). The old premise was the tabs-v3 rule that a
+     * rebook and tracking"). The old premise was the tabs-v rule that a
      * courier-side cancel status put the order in the Cancelled TAB by
      * itself. It no longer does: the ingest keeps its real job (record the
      * courier state, apply the store's status map), and the tab follows the
@@ -564,7 +564,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
     // ------------------------------------------------------------------
     // fulfillment-placement Task 2 REWRITE (was: "actively booked unpaid
-    // order buckets by courier phase not unpaid", the tabs-v3 owner ruling
+    // order buckets by courier phase not unpaid", the tabs-v owner ruling
     // on stage-vs-phase precedence). There is no precedence any more,
     // because there is no second input: an Unpaid-placed order is under
     // Unpaid, booked or not, and the tally and the per-row rule agree
@@ -756,7 +756,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         Http::assertNothingSent();
     }
     // ------------------------------------------------------------------
-    // fulfillment-placement Task 2 REWRITE (was: the tabs-v3 F1 "coherent
+    // fulfillment-placement Task 2 REWRITE (was: the tabs-v F1 "coherent
     // rule" block, four tests asserting that a stage-claimed row KEEPS its
     // courier-appropriate actions - a per-row action matrix driven by
     // courier state). Actions are hardcoded per TAB now: Cancelled offers
@@ -874,7 +874,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
         $order = $this->makeOrder($this->statusWithStage('unpaid', 'Unpaid'));
         // A permanently failed async create on an unpaid-placed order. Under
-        // tabs v3 the 'failed' courier phase pulled it into the Failed tab;
+        // tabs v the 'failed' courier phase pulled it into the Failed tab;
         // now its status keeps it under Unpaid, whose single action works
         // (nothing is booked, so cancelOrder() accepts it).
         $order->forceFill([

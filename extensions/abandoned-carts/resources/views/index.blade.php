@@ -1,45 +1,45 @@
 <x-abandoned-carts::space title="Abandoned Carts" active="carts">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <h1 class="v3-head__title">Abandoned Carts</h1>
+    <div class="v-head">
+        <div class="v-head__body">
+            <h1 class="v-head__title">Abandoned Carts</h1>
         </div>
-        <div class="v3-head__actions">
-            <button type="button" class="v3-btn v3-btn--secondary" @click="$dispatch('v3-confirm', 'mass-delete-guests')">Delete all guests</button>
-            <button type="button" class="v3-btn v3-btn--danger" @click="$dispatch('v3-confirm', 'mass-delete-all')">Delete all</button>
+        <div class="v-head__actions">
+            <button type="button" class="v-btn v-btn--secondary" @click="$dispatch('v-confirm', 'mass-delete-guests')">Delete all guests</button>
+            <button type="button" class="v-btn v-btn--danger" @click="$dispatch('v-confirm', 'mass-delete-all')">Delete all</button>
         </div>
     </div>
 
 
-    <div class="v3-settle">
-        <div class="v3-stats">
-            <div class="v3-stat"><div class="v3-stat__label">Abandoned</div><div class="v3-stat__value">{{ number_format($totalAbandoned) }}</div></div>
-            <div class="v3-stat"><div class="v3-stat__label">Value sitting in them</div><div class="v3-stat__value">₱{{ number_format($totalValue, 2) }}</div></div>
+    <div class="v-settle">
+        <div class="v-stats">
+            <div class="v-stat"><div class="v-stat__label">Abandoned</div><div class="v-stat__value">{{ number_format($totalAbandoned) }}</div></div>
+            <div class="v-stat"><div class="v-stat__label">Value sitting in them</div><div class="v-stat__value">₱{{ number_format($totalValue, 2) }}</div></div>
         </div>
 
-        <form method="GET" action="{{ route('admin.abandoned-carts.index') }}" class="v3-filterbar">
+        <form method="GET" action="{{ route('admin.abandoned-carts.index') }}" class="v-filterbar">
             <input type="search" name="search" value="{{ request('search') }}" placeholder="Customer name, email…"
-                   aria-label="Search carts" class="v3-control v3-filterbar__grow">
-            <select name="type" aria-label="Cart type" class="v3-control v3-w-name">
+                   aria-label="Search carts" class="v-control v-filterbar__grow">
+            <select name="type" aria-label="Cart type" class="v-control v-w-name">
                 <option value="">All types</option>
                 <option value="registered" @selected(request('type') === 'registered')>Registered</option>
                 <option value="guest" @selected(request('type') === 'guest')>Guest</option>
             </select>
-            <button type="submit" class="v3-btn v3-btn--secondary">Filter</button>
+            <button type="submit" class="v-btn v-btn--secondary">Filter</button>
             @if (request('search') || request('type'))
-                <a class="v3-link" href="{{ route('admin.abandoned-carts.index') }}">Clear</a>
+                <a class="v-link" href="{{ route('admin.abandoned-carts.index') }}">Clear</a>
             @endif
         </form>
 
-        <x-admin3.panel flush>
-            <div class="v3-tablewrap">
-                <table class="v3-table">
+        <x-admin.panel flush>
+            <div class="v-tablewrap">
+                <table class="v-table">
                     <thead>
                         <tr>
                             <th>Customer</th>
-                            <th class="v3-cell-num">Items</th>
-                            <th class="v3-cell-num">Total</th>
+                            <th class="v-cell-num">Items</th>
+                            <th class="v-cell-num">Total</th>
                             <th>Abandoned</th>
-                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                            <th class="v-cell-act"><span class="v-sr">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -47,45 +47,45 @@
                             <tr>
                                 <td>
                                     @if ($cart->customer)
-                                        <a href="{{ route('admin.abandoned-carts.show', $cart) }}" class="v3-rowlink">{{ $cart->customer->first_name }} {{ $cart->customer->last_name }}</a>
-                                        <span class="v3-cell-quiet v3-block">{{ $cart->customer->email }}</span>
+                                        <a href="{{ route('admin.abandoned-carts.show', $cart) }}" class="v-rowlink">{{ $cart->customer->first_name }} {{ $cart->customer->last_name }}</a>
+                                        <span class="v-cell-quiet v-block">{{ $cart->customer->email }}</span>
                                     @else
-                                        <a href="{{ route('admin.abandoned-carts.show', $cart) }}" class="v3-rowlink">Guest</a>
+                                        <a href="{{ route('admin.abandoned-carts.show', $cart) }}" class="v-rowlink">Guest</a>
                                     @endif
                                 </td>
-                                <td class="v3-cell-num v3-mono">{{ $cart->items->count() }}</td>
-                                <td class="v3-cell-num v3-mono">{{ number_format($cart->total, 2) }}</td>
-                                <td class="v3-cell-quiet">{{ $cart->updated_at->diffForHumans() }}</td>
-                                <td class="v3-cell-act">
-                                    <a href="{{ route('admin.abandoned-carts.show', $cart) }}" class="v3-btn v3-btn--ghost v3-btn--sm">View</a>
-                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm" @click="$dispatch('v3-confirm', 'delete-cart-{{ $cart->id }}')">Delete</button>
+                                <td class="v-cell-num v-mono">{{ $cart->items->count() }}</td>
+                                <td class="v-cell-num v-mono">{{ number_format($cart->total, 2) }}</td>
+                                <td class="v-cell-quiet">{{ $cart->updated_at->diffForHumans() }}</td>
+                                <td class="v-cell-act">
+                                    <a href="{{ route('admin.abandoned-carts.show', $cart) }}" class="v-btn v-btn--ghost v-btn--sm">View</a>
+                                    <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="$dispatch('v-confirm', 'delete-cart-{{ $cart->id }}')">Delete</button>
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5"><div class="v3-empty"><p class="v3-empty__title">No abandoned carts found</p></div></td></tr>
+                            <tr><td colspan="5"><div class="v-empty"><p class="v-empty__title">No abandoned carts found</p></div></td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.pager :paginator="$carts" />
+        <x-admin.pager :paginator="$carts" />
 
         @foreach ($carts as $cart)
-            <x-admin3.confirm name="delete-cart-{{ $cart->id }}" title="Delete abandoned cart?"
+            <x-admin.confirm name="delete-cart-{{ $cart->id }}" title="Delete abandoned cart?"
                 message="Delete this cart? This cannot be undone." confirm="Delete"
                 :action="route('admin.abandoned-carts.destroy', $cart)" method="DELETE" />
         @endforeach
 
-        <x-admin3.confirm name="mass-delete-guests" title="Delete all guest carts?"
+        <x-admin.confirm name="mass-delete-guests" title="Delete all guest carts?"
             message="Every guest cart is deleted. This cannot be undone." confirm="Delete all guests"
             :action="route('admin.abandoned-carts.mass-delete')" method="POST">
             <input type="hidden" name="type" value="guest">
-        </x-admin3.confirm>
-        <x-admin3.confirm name="mass-delete-all" title="Delete all abandoned carts?"
+        </x-admin.confirm>
+        <x-admin.confirm name="mass-delete-all" title="Delete all abandoned carts?"
             message="Every abandoned cart is deleted. This cannot be undone." confirm="Delete all"
             :action="route('admin.abandoned-carts.mass-delete')" method="POST">
             <input type="hidden" name="type" value="all">
-        </x-admin3.confirm>
+        </x-admin.confirm>
     </div>
 </x-abandoned-carts::space>

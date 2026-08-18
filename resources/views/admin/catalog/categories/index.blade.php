@@ -1,13 +1,13 @@
-<x-admin3.shell title="Categories" active="catalog">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <h1 class="v3-head__title">
+<x-admin.shell title="Categories" active="catalog">
+    <div class="v-head">
+        <div class="v-head__body">
+            <h1 class="v-head__title">
                 Categories
-                <x-admin3.help text="Drag rows to reorder. Subcategories are sorted within their parent." />
+                <x-admin.help text="Drag rows to reorder. Subcategories are sorted within their parent." />
             </h1>
         </div>
-        <div class="v3-head__actions">
-            <a href="{{ route('admin.categories.create') }}" class="v3-btn v3-btn--primary">Add category</a>
+        <div class="v-head__actions">
+            <a href="{{ route('admin.categories.create') }}" class="v-btn v-btn--primary">Add category</a>
         </div>
     </div>
 
@@ -16,47 +16,47 @@
         $children = $categories->whereNotNull('parent_id')->groupBy('parent_id');
     @endphp
 
-    <div class="v3-settle">
-        <x-admin3.panel>
+    <div class="v-settle">
+        <x-admin.panel>
             <div x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
                 @forelse ($parents as $parent)
                     <div data-id="{{ $parent->id }}" draggable="true">
-                        <div class="v3-dragrow">
-                            <span class="v3-dragrow__grip drag-handle" aria-hidden="true"><x-admin3.icon name="menu" /></span>
+                        <div class="v-dragrow">
+                            <span class="v-dragrow__grip drag-handle" aria-hidden="true"><x-admin.icon name="menu" /></span>
                             @if ($parent->image)
-                                <img class="v3-thumb" src="{{ storage_url($parent->image) }}" alt="">
+                                <img class="v-thumb" src="{{ storage_url($parent->image) }}" alt="">
                             @endif
                             <span>
-                                <a href="{{ route('admin.categories.edit', $parent) }}" class="v3-rowlink">{{ $parent->name }}</a>
-                                <span class="v3-cell-quiet v3-block v3-mono">/{{ $parent->slug }}</span>
+                                <a href="{{ route('admin.categories.edit', $parent) }}" class="v-rowlink">{{ $parent->name }}</a>
+                                <span class="v-cell-quiet v-block v-mono">/{{ $parent->slug }}</span>
                             </span>
-                            <span class="v3-dragrow__end">
-                                <span class="v3-cell-quiet v3-mono">{{ $parent->products_count }} products</span>
-                                <span class="v3-badge v3-badge--{{ $parent->is_active ? 'good' : 'quiet' }}">{{ $parent->is_active ? 'Active' : 'Inactive' }}</span>
-                                <a href="{{ route('admin.categories.edit', $parent) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
-                                <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
-                                        @click="$dispatch('v3-confirm', 'delete-category-{{ $parent->id }}')">Delete</button>
+                            <span class="v-dragrow__end">
+                                <span class="v-cell-quiet v-mono">{{ $parent->products_count }} products</span>
+                                <span class="v-badge v-badge--{{ $parent->is_active ? 'good' : 'quiet' }}">{{ $parent->is_active ? 'Active' : 'Inactive' }}</span>
+                                <a href="{{ route('admin.categories.edit', $parent) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
+                                <button type="button" class="v-btn v-btn--danger v-btn--sm"
+                                        @click="$dispatch('v-confirm', 'delete-category-{{ $parent->id }}')">Delete</button>
                             </span>
                         </div>
 
                         @if (isset($children[$parent->id]) && $children[$parent->id]->isNotEmpty())
-                            <div class="v3-dragnest" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
+                            <div class="v-dragnest" x-init="initSortable($el, '{{ route('admin.categories.reorder') }}')">
                                 @foreach ($children[$parent->id]->sortBy('sort_order') as $child)
-                                    <div data-id="{{ $child->id }}" draggable="true" class="v3-dragrow">
-                                        <span class="v3-dragrow__grip drag-handle" aria-hidden="true"><x-admin3.icon name="menu" /></span>
+                                    <div data-id="{{ $child->id }}" draggable="true" class="v-dragrow">
+                                        <span class="v-dragrow__grip drag-handle" aria-hidden="true"><x-admin.icon name="menu" /></span>
                                         @if ($child->image)
-                                            <img class="v3-thumb" src="{{ storage_url($child->image) }}" alt="">
+                                            <img class="v-thumb" src="{{ storage_url($child->image) }}" alt="">
                                         @endif
                                         <span>
-                                            <a href="{{ route('admin.categories.edit', $child) }}" class="v3-rowlink">{{ $child->name }}</a>
-                                            <span class="v3-cell-quiet v3-block v3-mono">/{{ $child->slug }}</span>
+                                            <a href="{{ route('admin.categories.edit', $child) }}" class="v-rowlink">{{ $child->name }}</a>
+                                            <span class="v-cell-quiet v-block v-mono">/{{ $child->slug }}</span>
                                         </span>
-                                        <span class="v3-dragrow__end">
-                                            <span class="v3-cell-quiet v3-mono">{{ $child->products_count }}</span>
-                                            <span class="v3-badge v3-badge--{{ $child->is_active ? 'good' : 'quiet' }}">{{ $child->is_active ? 'Active' : 'Inactive' }}</span>
-                                            <a href="{{ route('admin.categories.edit', $child) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
-                                            <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
-                                                    @click="$dispatch('v3-confirm', 'delete-category-{{ $child->id }}')">Delete</button>
+                                        <span class="v-dragrow__end">
+                                            <span class="v-cell-quiet v-mono">{{ $child->products_count }}</span>
+                                            <span class="v-badge v-badge--{{ $child->is_active ? 'good' : 'quiet' }}">{{ $child->is_active ? 'Active' : 'Inactive' }}</span>
+                                            <a href="{{ route('admin.categories.edit', $child) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
+                                            <button type="button" class="v-btn v-btn--danger v-btn--sm"
+                                                    @click="$dispatch('v-confirm', 'delete-category-{{ $child->id }}')">Delete</button>
                                         </span>
                                     </div>
                                 @endforeach
@@ -64,16 +64,16 @@
                         @endif
                     </div>
                 @empty
-                    <div class="v3-empty">
-                        <p class="v3-empty__title">No categories found</p>
-                        <a href="{{ route('admin.categories.create') }}" class="v3-btn v3-btn--primary v3-btn--sm">Create your first category</a>
+                    <div class="v-empty">
+                        <p class="v-empty__title">No categories found</p>
+                        <a href="{{ route('admin.categories.create') }}" class="v-btn v-btn--primary v-btn--sm">Create your first category</a>
                     </div>
                 @endforelse
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
         @foreach ($categories as $category)
-            <x-admin3.confirm name="delete-category-{{ $category->id }}" title="Delete {{ $category->name }}?"
+            <x-admin.confirm name="delete-category-{{ $category->id }}" title="Delete {{ $category->name }}?"
                 :message="isset($children[$category->id]) && $children[$category->id]->isNotEmpty() ? 'Subcategories will move up to top-level. This cannot be undone.' : 'This cannot be undone.'"
                 confirm="Delete" :action="route('admin.categories.destroy', $category)" method="DELETE" />
         @endforeach
@@ -137,4 +137,4 @@
         }
     </script>
     @endpush
-</x-admin3.shell>
+</x-admin.shell>

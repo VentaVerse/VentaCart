@@ -124,13 +124,13 @@ function vFocusable(root) {
         .filter((el) => el.tabIndex >= 0 && !el.closest('[inert]') && vIsVisible(el));
 }
 
-import { registerV3 } from '../admin3/register';
+import { registerV } from '../admin/register';
 
 document.addEventListener('alpine:init', () => {
-    // The migrated v3 pages now render inside this classic shell (owner
+    // The migrated v pages now render inside this classic shell (owner
     // ruling 2026-08-17: one admin, one chrome), so their save-doctrine
     // components register on the same Alpine this bundle boots.
-    registerV3(window.Alpine);
+    registerV(window.Alpine);
 
     window.Alpine.directive('dialog', (el, { expression }, { effect, evaluateLater, cleanup }) => {
         const readOpen = evaluateLater(expression || 'true');
@@ -273,7 +273,7 @@ document.addEventListener('alpine:init', () => {
         items: [],
         counter: 0,
         push(message, tone = 'success') {
-            // The migrated v3 pages speak good/bad; one store, one map.
+            // The migrated v pages speak good/bad; one store, one map.
             tone = { good: 'success', bad: 'danger' }[tone] ?? tone;
             const id = ++this.counter;
             this.items.push({ id, message, tone });

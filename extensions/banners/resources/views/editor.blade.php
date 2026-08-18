@@ -1,24 +1,24 @@
-<x-admin3.shell :title="$banner ? 'Edit Slide: ' . ($banner->name ?: '#'.$banner->id) : 'New Slide'">
+<x-admin.shell :title="$banner ? 'Edit Slide: ' . ($banner->name ?: '#'.$banner->id) : 'New Slide'">
     @push('head')
         @vite('extensions/banners/resources/css/banners.css')
     @endpush
 
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.banners.index') }}">Banner groups</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.banners.slides', $group) }}">{{ $group->name }}</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $banner ? ($banner->name ?: 'Slide #'.$banner->id) : 'New slide' }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $banner ? ($banner->name ?: 'Slide #'.$banner->id) : 'New slide' }}</h1>
+            <h1 class="v-head__title">{{ $banner ? ($banner->name ?: 'Slide #'.$banner->id) : 'New slide' }}</h1>
         </div>
     </div>
 
-    <x-admin3.form
+    <x-admin.form
         :action="$banner ? route('admin.banners.slides.update', [$group, $banner]) : route('admin.banners.slides.store', $group)"
-        :method="$banner ? 'PUT' : 'POST'" class="v3-settle">
+        :method="$banner ? 'PUT' : 'POST'" class="v-settle">
         {{-- The whole canvas lives in one editor scope nested inside the
              doctrine form. Structural edits that only move Alpine state
              (drag, layer add/remove, image picks) call touch(), because
@@ -31,11 +31,11 @@
             <input type="hidden" name="bg_image_mobile" :value="bgImageMobile">
 
             {{-- ============ PREVIEW ============ --}}
-            <x-admin3.panel title="Preview" flush>
+            <x-admin.panel title="Preview" flush>
                 <x-slot:acts>
-                    <span class="v3-cell-quiet v3-mono" x-text="previewWidth + '×' + height + 'px'"></span>
-                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="playAnimations()">
-                        <x-admin3.icon name="play" class="v3-ico-sm" /> Play
+                    <span class="v-cell-quiet v-mono" x-text="previewWidth + '×' + height + 'px'"></span>
+                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="playAnimations()">
+                        <x-admin.icon name="play" class="v-ico-sm" /> Play
                     </button>
                 </x-slot:acts>
                 <div class="banner-stage">
@@ -76,161 +76,161 @@
                         </div>
                     </div>
                 </div>
-            </x-admin3.panel>
+            </x-admin.panel>
 
             {{-- ============ TWO COLUMNS: settings left, layers right ============ --}}
-            <div class="v3-gap v3-editcols">
-                <div class="v3-settle">
+            <div class="v-gap v-editcols">
+                <div class="v-settle">
                     {{-- Background --}}
-                    <x-admin3.panel title="Background">
-                        <div class="v3-grid v3-grid--2">
-                            <x-admin3.field name="bg_image" label="Desktop image" hint="1920x600 recommended.">
-                                <span class="v3-mediafield">
+                    <x-admin.panel title="Background">
+                        <div class="v-grid v-grid--2">
+                            <x-admin.field name="bg_image" label="Desktop image" hint="1920x600 recommended.">
+                                <span class="v-mediafield">
                                     <template x-if="bgImage">
-                                        <img :src="'/storage/' + bgImage" alt="" class="v3-thumb">
+                                        <img :src="'/storage/' + bgImage" alt="" class="v-thumb">
                                     </template>
-                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openBrowser('bg')">Browse</button>
-                                    <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" x-show="bgImage" @click="bgImage = ''; $nextTick(() => touch())">Clear</button>
+                                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="openBrowser('bg')">Browse</button>
+                                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" x-show="bgImage" @click="bgImage = ''; $nextTick(() => touch())">Clear</button>
                                 </span>
-                            </x-admin3.field>
-                            <x-admin3.field name="bg_image_mobile" label="Mobile image" hint="768x600 recommended. Blank falls back to the desktop image.">
-                                <span class="v3-mediafield">
+                            </x-admin.field>
+                            <x-admin.field name="bg_image_mobile" label="Mobile image" hint="768x600 recommended. Blank falls back to the desktop image.">
+                                <span class="v-mediafield">
                                     <template x-if="bgImageMobile">
-                                        <img :src="'/storage/' + bgImageMobile" alt="" class="v3-thumb">
+                                        <img :src="'/storage/' + bgImageMobile" alt="" class="v-thumb">
                                     </template>
-                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openBrowser('bg_mobile')">Browse</button>
-                                    <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" x-show="bgImageMobile" @click="bgImageMobile = ''; $nextTick(() => touch())">Clear</button>
+                                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="openBrowser('bg_mobile')">Browse</button>
+                                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" x-show="bgImageMobile" @click="bgImageMobile = ''; $nextTick(() => touch())">Clear</button>
                                 </span>
-                            </x-admin3.field>
+                            </x-admin.field>
                         </div>
-                        <div class="v3-gap v3-actrow">
-                            <x-admin3.field name="bg_color" label="Color">
-                                <input type="color" name="bg_color" x-model="bgColor" class="v3-swatch v3-swatch--lg">
-                            </x-admin3.field>
-                            <x-admin3.field name="bg_size" label="Image fit">
-                                <select name="bg_size" x-model="bgSize" class="v3-control v3-w-name">
+                        <div class="v-gap v-actrow">
+                            <x-admin.field name="bg_color" label="Color">
+                                <input type="color" name="bg_color" x-model="bgColor" class="v-swatch v-swatch--lg">
+                            </x-admin.field>
+                            <x-admin.field name="bg_size" label="Image fit">
+                                <select name="bg_size" x-model="bgSize" class="v-control v-w-name">
                                     <option value="cover">Cover</option>
                                     <option value="contain">Contain</option>
                                     <option value="auto">Auto</option>
                                     <option value="100% 100%">Stretch</option>
                                 </select>
-                            </x-admin3.field>
-                            <x-admin3.field name="heights" label="Heights">
-                                <span class="v3-cell-quiet v3-mono">{{ $group->height }}px / {{ $group->height_mobile }}px mobile
-                                    <a href="{{ route('admin.banners.edit', $group) }}" class="v3-link">Group settings</a>
+                            </x-admin.field>
+                            <x-admin.field name="heights" label="Heights">
+                                <span class="v-cell-quiet v-mono">{{ $group->height }}px / {{ $group->height_mobile }}px mobile
+                                    <a href="{{ route('admin.banners.edit', $group) }}" class="v-link">Group settings</a>
                                 </span>
-                            </x-admin3.field>
+                            </x-admin.field>
                         </div>
-                    </x-admin3.panel>
+                    </x-admin.panel>
 
                     {{-- Slide settings --}}
-                    <x-admin3.panel title="Slide">
-                        <div class="v3-grid v3-grid--2">
-                            <x-admin3.field name="name" label="Name">
-                                <input type="text" name="name" value="{{ old('name', $banner?->name) }}" placeholder="e.g. Summer Sale" class="v3-control">
-                            </x-admin3.field>
-                            <x-admin3.field name="link" label="Link URL">
-                                <input type="text" name="link" value="{{ old('link', $banner?->link) }}" placeholder="/category/…" class="v3-control v3-mono">
-                            </x-admin3.field>
+                    <x-admin.panel title="Slide">
+                        <div class="v-grid v-grid--2">
+                            <x-admin.field name="name" label="Name">
+                                <input type="text" name="name" value="{{ old('name', $banner?->name) }}" placeholder="e.g. Summer Sale" class="v-control">
+                            </x-admin.field>
+                            <x-admin.field name="link" label="Link URL">
+                                <input type="text" name="link" value="{{ old('link', $banner?->link) }}" placeholder="/category/…" class="v-control v-mono">
+                            </x-admin.field>
                         </div>
-                        <div class="v3-grid v3-grid--2 v3-gap">
-                            <x-admin3.field name="starts_at" label="Visible from">
-                                <input type="date" name="starts_at" value="{{ old('starts_at', $banner?->starts_at?->format('Y-m-d')) }}" class="v3-control v3-mono">
-                            </x-admin3.field>
-                            <x-admin3.field name="ends_at" label="Visible until">
-                                <input type="date" name="ends_at" value="{{ old('ends_at', $banner?->ends_at?->format('Y-m-d')) }}" class="v3-control v3-mono">
-                            </x-admin3.field>
+                        <div class="v-grid v-grid--2 v-gap">
+                            <x-admin.field name="starts_at" label="Visible from">
+                                <input type="date" name="starts_at" value="{{ old('starts_at', $banner?->starts_at?->format('Y-m-d')) }}" class="v-control v-mono">
+                            </x-admin.field>
+                            <x-admin.field name="ends_at" label="Visible until">
+                                <input type="date" name="ends_at" value="{{ old('ends_at', $banner?->ends_at?->format('Y-m-d')) }}" class="v-control v-mono">
+                            </x-admin.field>
                         </div>
-                        <div class="v3-gap v3-actrow">
-                            <label class="v3-toggle">
+                        <div class="v-gap v-actrow">
+                            <label class="v-toggle">
                                 <input type="hidden" name="is_active" value="0">
                                 <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $banner?->is_active ?? true))>
-                                <span class="v3-toggle__track" aria-hidden="true"></span>
+                                <span class="v-toggle__track" aria-hidden="true"></span>
                                 Active
                             </label>
-                            <label class="v3-check">
+                            <label class="v-check">
                                 <input type="hidden" name="link_new_tab" value="0">
                                 <input type="checkbox" name="link_new_tab" value="1" @checked(old('link_new_tab', $banner?->link_new_tab))>
                                 Open link in a new tab
                             </label>
-                            <x-admin3.field name="sort_order" label="Sort">
-                                <input type="number" name="sort_order" value="{{ old('sort_order', $banner?->sort_order ?? 0) }}" min="0" class="v3-control v3-mono v3-w-sort">
-                            </x-admin3.field>
+                            <x-admin.field name="sort_order" label="Sort">
+                                <input type="number" name="sort_order" value="{{ old('sort_order', $banner?->sort_order ?? 0) }}" min="0" class="v-control v-mono v-w-sort">
+                            </x-admin.field>
                         </div>
-                    </x-admin3.panel>
+                    </x-admin.panel>
                 </div>
 
-                <div class="v3-settle">
+                <div class="v-settle">
                     {{-- Layers --}}
-                    <x-admin3.panel title="Layers" flush>
+                    <x-admin.panel title="Layers" flush>
                         <x-slot:acts>
-                            <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="addLayer('text')"><x-admin3.icon name="text" class="v3-ico-sm" /> Text</button>
-                            <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="addLayer('image')"><x-admin3.icon name="image" class="v3-ico-sm" /> Image</button>
-                            <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="addLayer('button')"><x-admin3.icon name="link" class="v3-ico-sm" /> Button</button>
+                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="addLayer('text')"><x-admin.icon name="text" class="v-ico-sm" /> Text</button>
+                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="addLayer('image')"><x-admin.icon name="image" class="v-ico-sm" /> Image</button>
+                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="addLayer('button')"><x-admin.icon name="link" class="v-ico-sm" /> Button</button>
                         </x-slot:acts>
-                        <div class="v3-layerlist">
+                        <div class="v-layerlist">
                             <template x-if="layers.length === 0">
-                                <div class="v3-empty"><p class="v3-empty__title">No layers yet</p></div>
+                                <div class="v-empty"><p class="v-empty__title">No layers yet</p></div>
                             </template>
                             <template x-for="(layer, i) in layers" :key="i">
-                                <div @click="selectedLayer = i" class="v3-layerrow" :class="selectedLayer === i && 'is-on'">
-                                    <span class="v3-badge v3-badge--quiet" x-text="layer.type"></span>
-                                    <span class="v3-layerrow__name" x-text="layer.content || layer.src?.split('/').pop() || '(empty)'"></span>
-                                    <button type="button" @click.stop="removeLayer(i)" class="v3-row__x" :aria-label="'Remove layer ' + (i + 1)">
-                                        <x-admin3.icon name="x" />
+                                <div @click="selectedLayer = i" class="v-layerrow" :class="selectedLayer === i && 'is-on'">
+                                    <span class="v-badge v-badge--quiet" x-text="layer.type"></span>
+                                    <span class="v-layerrow__name" x-text="layer.content || layer.src?.split('/').pop() || '(empty)'"></span>
+                                    <button type="button" @click.stop="removeLayer(i)" class="v-row__x" :aria-label="'Remove layer ' + (i + 1)">
+                                        <x-admin.icon name="x" />
                                     </button>
                                 </div>
                             </template>
                         </div>
-                    </x-admin3.panel>
+                    </x-admin.panel>
 
                     {{-- Selected layer properties --}}
                     <template x-if="selectedLayer !== null && layers[selectedLayer]">
                         <div>
-                        <x-admin3.panel title="Layer">
+                        <x-admin.panel title="Layer">
                             <x-slot:acts>
-                                <span class="v3-badge v3-badge--quiet" x-text="currentLayer?.type"></span>
-                                <span class="v3-cell-quiet v3-mono" x-text="'#' + (selectedLayer + 1)"></span>
+                                <span class="v-badge v-badge--quiet" x-text="currentLayer?.type"></span>
+                                <span class="v-cell-quiet v-mono" x-text="'#' + (selectedLayer + 1)"></span>
                             </x-slot:acts>
 
                             <div x-show="currentLayer?.type === 'text' || currentLayer?.type === 'button'">
-                                <x-admin3.field name="layer_content" label="Content">
-                                    <input type="text" x-model="currentLayer.content" aria-label="Layer content" placeholder="Enter text…" class="v3-control">
-                                </x-admin3.field>
+                                <x-admin.field name="layer_content" label="Content">
+                                    <input type="text" x-model="currentLayer.content" aria-label="Layer content" placeholder="Enter text…" class="v-control">
+                                </x-admin.field>
                             </div>
 
                             <div x-show="currentLayer?.type === 'image'">
-                                <div class="v3-label v3-gap-sm">Image</div>
-                                <span class="v3-mediafield">
+                                <div class="v-label v-gap-sm">Image</div>
+                                <span class="v-mediafield">
                                     <template x-if="currentLayer?.src">
-                                        <img :src="'/storage/' + currentLayer.src" alt="" class="v3-thumb">
+                                        <img :src="'/storage/' + currentLayer.src" alt="" class="v-thumb">
                                     </template>
-                                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openBrowser('layer')">Browse</button>
-                                    <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" x-show="currentLayer?.src" @click="currentLayer.src = ''; $nextTick(() => touch())">Clear</button>
+                                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="openBrowser('layer')">Browse</button>
+                                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" x-show="currentLayer?.src" @click="currentLayer.src = ''; $nextTick(() => touch())">Clear</button>
                                 </span>
                             </div>
 
-                            <div class="v3-gap">
-                                <div class="v3-label v3-gap-sm">Position</div>
-                                <div class="v3-grid v3-grid--2">
-                                    <input type="text" x-model="currentLayer.x" aria-label="Layer X position" placeholder="X" class="v3-control v3-mono">
-                                    <input type="text" x-model="currentLayer.y" aria-label="Layer Y position" placeholder="Y" class="v3-control v3-mono">
+                            <div class="v-gap">
+                                <div class="v-label v-gap-sm">Position</div>
+                                <div class="v-grid v-grid--2">
+                                    <input type="text" x-model="currentLayer.x" aria-label="Layer X position" placeholder="X" class="v-control v-mono">
+                                    <input type="text" x-model="currentLayer.y" aria-label="Layer Y position" placeholder="Y" class="v-control v-mono">
                                 </div>
                             </div>
 
-                            <div class="v3-gap" x-show="currentLayer?.type === 'image'">
-                                <div class="v3-label v3-gap-sm">Size (px)</div>
-                                <div class="v3-grid v3-grid--2">
-                                    <input type="number" x-model.number="currentLayer.width" aria-label="Layer width" placeholder="Width" class="v3-control v3-mono">
-                                    <input type="number" x-model.number="currentLayer.height" aria-label="Layer height" placeholder="Height (auto)" class="v3-control v3-mono">
+                            <div class="v-gap" x-show="currentLayer?.type === 'image'">
+                                <div class="v-label v-gap-sm">Size (px)</div>
+                                <div class="v-grid v-grid--2">
+                                    <input type="number" x-model.number="currentLayer.width" aria-label="Layer width" placeholder="Width" class="v-control v-mono">
+                                    <input type="number" x-model.number="currentLayer.height" aria-label="Layer height" placeholder="Height (auto)" class="v-control v-mono">
                                 </div>
                             </div>
 
-                            <div class="v3-gap" x-show="currentLayer?.type === 'text' || currentLayer?.type === 'button'">
-                                <div class="v3-label v3-gap-sm">Typography</div>
-                                <div class="v3-grid v3-grid--3">
-                                    <input type="number" x-model.number="currentLayer.fontSize" aria-label="Font size" placeholder="Size" class="v3-control v3-mono">
-                                    <select x-model="currentLayer.fontWeight" aria-label="Font weight" class="v3-control">
+                            <div class="v-gap" x-show="currentLayer?.type === 'text' || currentLayer?.type === 'button'">
+                                <div class="v-label v-gap-sm">Typography</div>
+                                <div class="v-grid v-grid--3">
+                                    <input type="number" x-model.number="currentLayer.fontSize" aria-label="Font size" placeholder="Size" class="v-control v-mono">
+                                    <select x-model="currentLayer.fontWeight" aria-label="Font weight" class="v-control">
                                         <option value="300">Light</option>
                                         <option value="400">Regular</option>
                                         <option value="500">Medium</option>
@@ -238,11 +238,11 @@
                                         <option value="700">Bold</option>
                                         <option value="900">Black</option>
                                     </select>
-                                    <input type="color" x-model="currentLayer.color" aria-label="Text color" class="v3-swatch">
+                                    <input type="color" x-model="currentLayer.color" aria-label="Text color" class="v-swatch">
                                 </div>
-                                <div class="v3-grid v3-grid--2 v3-gap-sm">
-                                    <input type="number" x-model.number="currentLayer.letterSpacing" aria-label="Letter spacing" placeholder="Tracking" class="v3-control v3-mono">
-                                    <select x-model="currentLayer.textTransform" aria-label="Text case" class="v3-control">
+                                <div class="v-grid v-grid--2 v-gap-sm">
+                                    <input type="number" x-model.number="currentLayer.letterSpacing" aria-label="Letter spacing" placeholder="Tracking" class="v-control v-mono">
+                                    <select x-model="currentLayer.textTransform" aria-label="Text case" class="v-control">
                                         <option value="none">Normal</option>
                                         <option value="uppercase">UPPERCASE</option>
                                         <option value="capitalize">Capitalize</option>
@@ -250,18 +250,18 @@
                                 </div>
                             </div>
 
-                            <div class="v3-gap" x-show="currentLayer?.type === 'button'">
-                                <div class="v3-label v3-gap-sm">Button</div>
-                                <div class="v3-grid v3-grid--3">
-                                    <input type="color" x-model="currentLayer.bgColor" aria-label="Button background" class="v3-swatch">
-                                    <input type="number" x-model.number="currentLayer.borderRadius" aria-label="Corner radius" placeholder="Radius" class="v3-control v3-mono">
-                                    <input type="text" x-model="currentLayer.url" aria-label="Button URL" placeholder="/shop" class="v3-control v3-mono">
+                            <div class="v-gap" x-show="currentLayer?.type === 'button'">
+                                <div class="v-label v-gap-sm">Button</div>
+                                <div class="v-grid v-grid--3">
+                                    <input type="color" x-model="currentLayer.bgColor" aria-label="Button background" class="v-swatch">
+                                    <input type="number" x-model.number="currentLayer.borderRadius" aria-label="Corner radius" placeholder="Radius" class="v-control v-mono">
+                                    <input type="text" x-model="currentLayer.url" aria-label="Button URL" placeholder="/shop" class="v-control v-mono">
                                 </div>
                             </div>
 
-                            <div class="v3-gap">
-                                <div class="v3-label v3-gap-sm">Animation</div>
-                                <select x-model="currentLayer.animation" aria-label="Animation" class="v3-control">
+                            <div class="v-gap">
+                                <div class="v-label v-gap-sm">Animation</div>
+                                <select x-model="currentLayer.animation" aria-label="Animation" class="v-control">
                                     <optgroup label="None"><option value="none">None</option></optgroup>
                                     <optgroup label="Fade">
                                         <option value="fade-in">Fade In</option>
@@ -290,77 +290,77 @@
                                         <option value="flip-y">Flip Y</option>
                                     </optgroup>
                                 </select>
-                                <div class="v3-grid v3-grid--3 v3-gap-sm">
-                                    <input type="number" x-model.number="currentLayer.delay" step="100" min="0" aria-label="Delay in ms" placeholder="Delay ms" class="v3-control v3-mono">
-                                    <input type="number" x-model.number="currentLayer.duration" step="100" min="100" aria-label="Duration in ms" placeholder="Duration ms" class="v3-control v3-mono">
-                                    <input type="number" x-model.number="currentLayer.distance" step="10" min="0" aria-label="Travel distance in px" placeholder="Distance px" class="v3-control v3-mono">
+                                <div class="v-grid v-grid--3 v-gap-sm">
+                                    <input type="number" x-model.number="currentLayer.delay" step="100" min="0" aria-label="Delay in ms" placeholder="Delay ms" class="v-control v-mono">
+                                    <input type="number" x-model.number="currentLayer.duration" step="100" min="100" aria-label="Duration in ms" placeholder="Duration ms" class="v-control v-mono">
+                                    <input type="number" x-model.number="currentLayer.distance" step="10" min="0" aria-label="Travel distance in px" placeholder="Distance px" class="v-control v-mono">
                                 </div>
                             </div>
 
-                            <div class="v3-gap v3-actrow">
-                                <div class="v3-label">Opacity</div>
-                                <input type="range" x-model.number="currentLayer.opacity" min="0" max="100" step="5" aria-label="Layer opacity" class="v3-range">
-                                <span class="v3-cell-quiet v3-mono" x-text="(currentLayer.opacity ?? 100) + '%'"></span>
+                            <div class="v-gap v-actrow">
+                                <div class="v-label">Opacity</div>
+                                <input type="range" x-model.number="currentLayer.opacity" min="0" max="100" step="5" aria-label="Layer opacity" class="v-range">
+                                <span class="v-cell-quiet v-mono" x-text="(currentLayer.opacity ?? 100) + '%'"></span>
                             </div>
-                        </x-admin3.panel>
+                        </x-admin.panel>
                         </div>
                     </template>
                 </div>
             </div>
 
             {{-- ============ IMAGE BROWSER ============ --}}
-            <div x-show="browserOpen" x-transition.opacity x-cloak class="v3-overlay"
+            <div x-show="browserOpen" x-transition.opacity x-cloak class="v-overlay"
                  @keydown.escape.window="browserOpen = false" @click.self="browserOpen = false">
-                <div class="v3-modal v3-modal--media" role="dialog" aria-modal="true" aria-label="Image browser">
-                    <div class="v3-namerow">
+                <div class="v-modal v-modal--media" role="dialog" aria-modal="true" aria-label="Image browser">
+                    <div class="v-namerow">
                         <strong>Pick an image</strong>
-                        <nav class="v3-crumbrow" aria-label="Folder path">
-                            <button type="button" @click="browseDir('')" class="v3-link">catalog</button>
+                        <nav class="v-crumbrow" aria-label="Folder path">
+                            <button type="button" @click="browseDir('')" class="v-link">catalog</button>
                             <template x-for="(crumb, ci) in breadcrumbs" :key="ci">
                                 <span>
-                                    <span class="v3-cell-quiet">/</span>
-                                    <button type="button" @click="browseDir(crumb.path)" class="v3-link" x-text="crumb.name"></button>
+                                    <span class="v-cell-quiet">/</span>
+                                    <button type="button" @click="browseDir(crumb.path)" class="v-link" x-text="crumb.name"></button>
                                 </span>
                             </template>
                         </nav>
-                        <span class="v3-namerow__end">
-                            <input type="text" x-model="browserSearch" aria-label="Search images" placeholder="Search…" class="v3-control v3-control--sm v3-w-name">
-                            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="$refs.mediaUpload.click()">Upload</button>
+                        <span class="v-namerow__end">
+                            <input type="text" x-model="browserSearch" aria-label="Search images" placeholder="Search…" class="v-control v-control--sm v-w-name">
+                            <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="$refs.mediaUpload.click()">Upload</button>
                             <input type="file" x-ref="mediaUpload" accept="image/*" hidden aria-label="Upload image" @change="uploadToBrowser($event)">
-                            <button type="button" @click="browserOpen = false" class="v3-row__x" aria-label="Close image browser"><x-admin3.icon name="x" /></button>
+                            <button type="button" @click="browserOpen = false" class="v-row__x" aria-label="Close image browser"><x-admin.icon name="x" /></button>
                         </span>
                     </div>
 
-                    <div class="v3-mediagrid-wrap">
-                        <div x-show="browserLoading" class="v3-empty"><p class="v3-empty__title">Loading…</p></div>
+                    <div class="v-mediagrid-wrap">
+                        <div x-show="browserLoading" class="v-empty"><p class="v-empty__title">Loading…</p></div>
                         <div x-show="!browserLoading" class="banner-picker-grid">
                             <template x-if="browserPath !== ''">
-                                <button type="button" @click="browseDir(browserParent)" class="v3-mediatile">
-                                    <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                                <button type="button" @click="browseDir(browserParent)" class="v-mediatile">
+                                    <x-admin.icon name="folder" class="v-mediatile__folder" />
                                     <span>..</span>
                                 </button>
                             </template>
                             <template x-for="folder in browserFolders" :key="folder.path">
-                                <button type="button" @click="browseDir(folder.path)" class="v3-mediatile">
-                                    <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                                <button type="button" @click="browseDir(folder.path)" class="v-mediatile">
+                                    <x-admin.icon name="folder" class="v-mediatile__folder" />
                                     <span x-text="folder.name"></span>
                                 </button>
                             </template>
                             <template x-for="file in filteredBrowserFiles" :key="file.path">
-                                <button type="button" @click="selectImage(file)" class="v3-mediatile">
-                                    <span class="v3-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
+                                <button type="button" @click="selectImage(file)" class="v-mediatile">
+                                    <span class="v-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
                                     <span x-text="file.name"></span>
                                 </button>
                             </template>
                         </div>
-                        <div x-show="!browserLoading && browserFolders.length === 0 && browserFiles.length === 0" class="v3-empty">
-                            <p class="v3-empty__title">Empty folder</p>
+                        <div x-show="!browserLoading && browserFolders.length === 0 && browserFiles.length === 0" class="v-empty">
+                            <p class="v-empty__title">Empty folder</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </x-admin3.form>
+    </x-admin.form>
 
     @push('scripts')
     <script>
@@ -615,4 +615,4 @@
         }
     </script>
     @endpush
-</x-admin3.shell>
+</x-admin.shell>

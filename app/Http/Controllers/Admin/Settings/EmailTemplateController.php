@@ -116,7 +116,7 @@ class EmailTemplateController extends Controller
             ? "Test email sent to {$user->email}."
             : 'Failed to send the test email. Check the logs for details.';
 
-        // v3 pages test in place and never navigate.
+        // v pages test in place and never navigate.
         if (request()->wantsJson()) {
             return response()->json(['ok' => $result, 'message' => $message]);
         }

@@ -137,7 +137,7 @@ class StockAlertsController extends Controller
             $message = 'Failed to send: ' . $e->getMessage();
         }
 
-        // v3 pages test in place and never navigate.
+        // v pages test in place and never navigate.
         if ($request->wantsJson()) {
             return response()->json(['ok' => $ok, 'message' => $message]);
         }

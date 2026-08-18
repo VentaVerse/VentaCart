@@ -87,30 +87,30 @@
     }
 }">
     <div class="flex items-center gap-1.5 mb-1">
-        <span class="v3-field__label" id="{{ $dlbId }}-label">{{ $label }}</span>
+        <span class="v-field__label" id="{{ $dlbId }}-label">{{ $label }}</span>
         @if ($hint)
-            <x-admin3.help :text="$hint" />
+            <x-admin.help :text="$hint" />
         @endif
     </div>
 
     {{-- Toggle --}}
-    <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" id="{{ $dlbId }}-toggle"
+    <button type="button" class="v-btn v-btn--ghost v-btn--sm" id="{{ $dlbId }}-toggle"
         aria-controls="{{ $dlbId }}-panel"
         :aria-expanded="showList ? 'true' : 'false'"
         @click="showList = !showList">
-        <x-admin3.icon name="chevron" class="v3-dlb-ic" ::class="showList && 'v3-picker-rot'" />
+        <x-admin.icon name="chevron" class="v-dlb-ic" ::class="showList && 'v-picker-rot'" />
         <span x-text="selectedIds.length > 0 ? selectedIds.length + ' selected' : 'Select items'"></span>
     </button>
 
     {{-- Selected tags when collapsed --}}
-    <div class="v3-gap-sm" x-show="selectedIds.length > 0 && !showList">
+    <div class="v-gap-sm" x-show="selectedIds.length > 0 && !showList">
         <template x-for="item in selectedItems" :key="'tag-' + item.id">
-            <span class="v3-badge v3-badge--info v3-chip--inline">
+            <span class="v-badge v-badge--info v-chip--inline">
                 <span x-text="item.name"></span>
-                <button type="button" class="v3-row__x"
+                <button type="button" class="v-row__x"
                     :aria-label="'Remove ' + item.name"
                     @click="selectedIds = selectedIds.filter(i => i !== item.id)">
-                    <x-admin3.icon name="x" />
+                    <x-admin.icon name="x" />
                 </button>
             </span>
         </template>
@@ -118,26 +118,26 @@
 
     {{-- The picker: two bounded lists and the traffic between them. --}}
     <div id="{{ $dlbId }}-panel" x-show="showList" x-transition
-        class="v3-picker">
+        class="v-picker">
 
         {{-- Available --}}
-        <div class="v3-picker__pane v3-picker__pane--in">
-            <div class="v3-picker__head">
-                <span class="v3-field__label">Available</span>
+        <div class="v-picker__pane v-picker__pane--in">
+            <div class="v-picker__head">
+                <span class="v-field__label">Available</span>
                 <input type="search" x-model="search"
                     aria-label="Search available {{ $label }}"
-                    class="v3-control v3-control--sm">
+                    class="v-control v-control--sm">
             </div>
-            <div class="v3-picker__list">
+            <div class="v-picker__list">
                 <div role="listbox" aria-multiselectable="true" aria-label="Available {{ $label }}">
                     <template x-for="item in available" :key="item.id">
-                        <button type="button" class="v3-picker__opt" role="option"
+                        <button type="button" class="v-picker__opt" role="option"
                             :aria-selected="highlightedAvailable.includes(item.id) ? 'true' : 'false'"
                             @click="toggleHighlightAvailable(item.id, $event)"
                             x-text="item.name"></button>
                     </template>
                 </div>
-                <p x-show="available.length === 0" class="v3-picker__none">
+                <p x-show="available.length === 0" class="v-picker__none">
                     <span x-show="search">No matches</span>
                     <span x-show="!search">All items selected</span>
                 </p>
@@ -145,39 +145,39 @@
         </div>
 
         {{-- The traffic --}}
-        <div class="v3-picker__mid">
-            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" aria-label="Add all {{ $label }}" @click="addAll()">
-                <x-admin3.icon name="chevron" class="v3-dlb-ic" /><x-admin3.icon name="chevron" class="v3-dlb-ic" />
+        <div class="v-picker__mid">
+            <button type="button" class="v-btn v-btn--secondary v-btn--sm" aria-label="Add all {{ $label }}" @click="addAll()">
+                <x-admin.icon name="chevron" class="v-dlb-ic" /><x-admin.icon name="chevron" class="v-dlb-ic" />
             </button>
-            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" aria-label="Add highlighted {{ $label }}"
+            <button type="button" class="v-btn v-btn--secondary v-btn--sm" aria-label="Add highlighted {{ $label }}"
                 :disabled="highlightedAvailable.length === 0" @click="addHighlighted()">
-                <x-admin3.icon name="chevron" class="v3-dlb-ic" />
+                <x-admin.icon name="chevron" class="v-dlb-ic" />
             </button>
-            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" aria-label="Remove highlighted {{ $label }}"
+            <button type="button" class="v-btn v-btn--secondary v-btn--sm" aria-label="Remove highlighted {{ $label }}"
                 :disabled="highlightedSelected.length === 0" @click="removeHighlighted()">
-                <x-admin3.icon name="back" class="v3-dlb-ic" />
+                <x-admin.icon name="back" class="v-dlb-ic" />
             </button>
-            <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" aria-label="Remove all {{ $label }}"
+            <button type="button" class="v-btn v-btn--secondary v-btn--sm" aria-label="Remove all {{ $label }}"
                 x-show="selectedIds.length > 0" @click="removeAll()">
-                <x-admin3.icon name="back" class="v3-dlb-ic" /><x-admin3.icon name="back" class="v3-dlb-ic" />
+                <x-admin.icon name="back" class="v-dlb-ic" /><x-admin.icon name="back" class="v-dlb-ic" />
             </button>
         </div>
 
         {{-- Selected --}}
-        <div class="v3-picker__pane v3-picker__pane--out">
-            <div class="v3-picker__head">
-                <span class="v3-field__label">Selected <span class="v3-tone-act" x-text="'(' + selectedIds.length + ')'"></span></span>
+        <div class="v-picker__pane v-picker__pane--out">
+            <div class="v-picker__head">
+                <span class="v-field__label">Selected <span class="v-tone-act" x-text="'(' + selectedIds.length + ')'"></span></span>
             </div>
-            <div class="v3-picker__list">
+            <div class="v-picker__list">
                 <div role="listbox" aria-multiselectable="true" aria-label="Selected {{ $label }}">
                     <template x-for="item in selectedItems" :key="item.id">
-                        <button type="button" class="v3-picker__opt" role="option"
+                        <button type="button" class="v-picker__opt" role="option"
                             :aria-selected="highlightedSelected.includes(item.id) ? 'true' : 'false'"
                             @click="toggleHighlightSelected(item.id, $event)"
                             x-text="item.name"></button>
                     </template>
                 </div>
-                <p x-show="selectedIds.length === 0" class="v3-picker__none">None selected</p>
+                <p x-show="selectedIds.length === 0" class="v-picker__none">None selected</p>
             </div>
         </div>
     </div>

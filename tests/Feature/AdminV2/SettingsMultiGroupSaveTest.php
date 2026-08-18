@@ -8,7 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * The v3 save doctrine's server half: one submit may carry several
+ * The v save doctrine's server half: one submit may carry several
  * setting groups, and a secret submitted blank keeps its stored value.
  */
 class SettingsMultiGroupSaveTest extends TestCase

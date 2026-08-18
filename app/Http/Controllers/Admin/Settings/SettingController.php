@@ -34,7 +34,7 @@ class SettingController extends Controller
 
     public function update(Request $request)
     {
-        // v3 doctrine: one save may carry several setting groups at once
+        // v doctrine: one save may carry several setting groups at once
         // (groups[checkout][...], groups[stock][...]) because one page is
         // one save scope. Each group runs the same per-key pipeline.
         if (is_array($request->input('groups'))) {
@@ -152,7 +152,7 @@ class SettingController extends Controller
                     $value = Crypt::encryptString($value);
                 }
                 // A secret field submitted blank means "keep what is
-                // stored", never "clear it" (the x-admin3.secret contract).
+                // stored", never "clear it" (the x-admin.secret contract).
                 if ($value === null && str_contains($key, 'password')) {
                     continue;
                 }
@@ -191,7 +191,7 @@ class SettingController extends Controller
     {
         $request->validate(['to' => 'required|email']);
 
-        // v3: a test button tests the values currently typed, never the
+        // v: a test button tests the values currently typed, never the
         // stale saved ones. Overrides apply to this request's mailer only;
         // nothing is persisted. A blank password falls back to the stored
         // one so testing does not require retyping a saved secret.

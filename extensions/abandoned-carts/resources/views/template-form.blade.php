@@ -1,52 +1,52 @@
 <x-abandoned-carts::space :title="$emailTemplate ? 'Edit Template' : 'Create Template'" active="templates">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.abandoned-carts.templates') }}">Abandoned Carts</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $emailTemplate ? $emailTemplate->name : 'New template' }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $emailTemplate ? $emailTemplate->name : 'Create Template' }}</h1>
+            <h1 class="v-head__title">{{ $emailTemplate ? $emailTemplate->name : 'Create Template' }}</h1>
         </div>
     </div>
 
-    <div class="v3-split v3-settle">
-        <x-admin3.form :action="$emailTemplate ? route('admin.abandoned-carts.templates.update', $emailTemplate) : route('admin.abandoned-carts.templates.store')"
-                       :method="$emailTemplate ? 'PUT' : 'POST'" id="v3-ac-template-form">
-            <x-admin3.panel title="Content">
-                <x-admin3.field name="name" label="Name" required>
-                    <input type="text" name="name" required class="v3-control" value="{{ old('name', $emailTemplate?->name) }}">
-                </x-admin3.field>
+    <div class="v-split v-settle">
+        <x-admin.form :action="$emailTemplate ? route('admin.abandoned-carts.templates.update', $emailTemplate) : route('admin.abandoned-carts.templates.store')"
+                       :method="$emailTemplate ? 'PUT' : 'POST'" id="v-ac-template-form">
+            <x-admin.panel title="Content">
+                <x-admin.field name="name" label="Name" required>
+                    <input type="text" name="name" required class="v-control" value="{{ old('name', $emailTemplate?->name) }}">
+                </x-admin.field>
                 @if (! $emailTemplate)
-                    <div class="v3-gap">
-                        <x-admin3.field name="slug" label="Slug" required hint="Starts with abandoned_cart_, lowercase and underscores.">
-                            <input type="text" name="slug" required class="v3-control v3-mono" value="{{ old('slug', 'abandoned_cart_') }}">
-                        </x-admin3.field>
+                    <div class="v-gap">
+                        <x-admin.field name="slug" label="Slug" required hint="Starts with abandoned_cart_, lowercase and underscores.">
+                            <input type="text" name="slug" required class="v-control v-mono" value="{{ old('slug', 'abandoned_cart_') }}">
+                        </x-admin.field>
                     </div>
                 @endif
-                <div class="v3-gap">
-                    <x-admin3.field name="subject" label="Subject" required>
-                        <input type="text" name="subject" required class="v3-control" value="{{ old('subject', $emailTemplate?->subject) }}">
-                    </x-admin3.field>
+                <div class="v-gap">
+                    <x-admin.field name="subject" label="Subject" required>
+                        <input type="text" name="subject" required class="v-control" value="{{ old('subject', $emailTemplate?->subject) }}">
+                    </x-admin.field>
                 </div>
-                <div class="v3-gap">
-                    <x-admin3.field name="body" label="Body" required>
-                        <textarea name="body" id="v3-ac-template-body" class="v3-control">{{ old('body', $emailTemplate?->body) }}</textarea>
-                    </x-admin3.field>
+                <div class="v-gap">
+                    <x-admin.field name="body" label="Body" required>
+                        <textarea name="body" id="v-ac-template-body" class="v-control">{{ old('body', $emailTemplate?->body) }}</textarea>
+                    </x-admin.field>
                 </div>
-            </x-admin3.panel>
-        </x-admin3.form>
+            </x-admin.panel>
+        </x-admin.form>
 
         <div>
             @if (! empty($placeholders))
-                <x-admin3.panel title="Placeholders">
+                <x-admin.panel title="Placeholders">
                     @foreach ($placeholders as $placeholder)
-                        <button type="button" class="v3-chip"
-                                @click="v3Copy(@js('{' . $placeholder . '}')).then(ok => { if (!ok) return; const s = $el; const t = s.textContent; s.textContent = 'Copied'; setTimeout(() => s.textContent = t, 1500); })">{{ '{' . $placeholder . '}' }}</button>
+                        <button type="button" class="v-chip"
+                                @click="vCopy(@js('{' . $placeholder . '}')).then(ok => { if (!ok) return; const s = $el; const t = s.textContent; s.textContent = 'Copied'; setTimeout(() => s.textContent = t, 1500); })">{{ '{' . $placeholder . '}' }}</button>
                     @endforeach
-                </x-admin3.panel>
+                </x-admin.panel>
             @endif
         </div>
     </div>
@@ -55,7 +55,7 @@
     <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
     <script>
         tinymce.init({
-            selector: '#v3-ac-template-body',
+            selector: '#v-ac-template-body',
             height: 450,
             menubar: false,
             plugins: 'lists link autolink code table',
@@ -71,7 +71,7 @@
                 // edit, so the save bar and leave guard see TinyMCE changes.
                 editor.on('input change undo redo', function () {
                     editor.save();
-                    var form = document.getElementById('v3-ac-template-form');
+                    var form = document.getElementById('v-ac-template-form');
                     if (form) form.dispatchEvent(new Event('input'));
                 });
             },

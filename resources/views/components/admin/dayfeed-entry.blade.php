@@ -1,0 +1,25 @@
+{{-- One line of a feed: a mark naming the kind of act, one line of
+     fact, and when. Ported from the v2 layer; `tone` is now a
+     semantic key (act, info, warn, quiet) rather than utility
+     strings. --}}
+@props(['icon', 'when', 'tone' => 'quiet', 'who' => null, 'whoHref' => null])
+<li>
+    <div {{ $attributes->merge(['class' => 'v-dayfeed__row']) }}>
+        <span class="v-dayfeed__ic v-dayfeed__ic--{{ $tone }}">
+            <x-admin.icon :name="$icon" />
+        </span>
+        <span class="v-dayfeed__body">
+            <span class="v-dayfeed__what">
+                @if ($who && $whoHref)
+                    <a href="{{ $whoHref }}" class="v-dayfeed__who v-quietlink">{{ $who }}</a>
+                @elseif ($who)
+                    <span class="v-dayfeed__gone">{{ $who }}</span>
+                @endif
+                {{ $slot }}
+            </span>
+            @isset($note)<span class="v-dayfeed__note">{{ $note }}</span>@endisset
+            <span class="v-dayfeed__when">{{ $when }}</span>
+        </span>
+        @isset($action)<span class="v-dayfeed__act">{{ $action }}</span>@endisset
+    </div>
+</li>

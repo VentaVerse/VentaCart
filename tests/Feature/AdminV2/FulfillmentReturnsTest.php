@@ -161,7 +161,7 @@ class FulfillmentReturnsTest extends TestCase
     // ------------------------------------------------------------------
     // fulfillment-placement Task 2 REWRITE (was: "a cancelled-stage order
     // does not appear even in a returning or failed courier phase", the
-    // tabs-v3 stage-first rule applied to this page too). This page is not
+    // tabs-v stage-first rule applied to this page too). This page is not
     // a tab and deliberately does not follow the tab rule: it answers
     // "which parcels are coming back at me", which is a fact about the
     // SHIPMENT, so it reads live courier state and ignores placement
@@ -262,7 +262,7 @@ class FulfillmentReturnsTest extends TestCase
     /** Asserts each label appears, in order, inside the rendered breadcrumb <nav> (mirrors UrlGrammarTest's helper). */
     private function assertBreadcrumbTrail(string $html, array $expectedLabels): void
     {
-        $found = preg_match('/<(nav|div)[^>]*class="[^"]*(?:v-day__trail|v3-head__trail)[^"]*"[^>]*>(.*?)<\/\1>/s', $html, $matches);
+        $found = preg_match('/<(nav|div)[^>]*class="[^"]*(?:v-day__trail|v-head__trail)[^"]*"[^>]*>(.*?)<\/\1>/s', $html, $matches);
         $this->assertSame(1, $found, 'Breadcrumb <nav> not found in response HTML.');
 
         $trailText = trim(preg_replace('/\s+/', ' ', strip_tags($matches[2])));

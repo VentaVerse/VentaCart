@@ -384,3 +384,144 @@
 @media (max-width: 700px) {
     .v-admin { --bl-page-gutter: 16px; }
 }
+/* ============================================================
+   Venta Admin v , tokens
+   ============================================================
+   Re-derived from zero for the v rebuild. Identity carried from
+   the ERP cousinship, everything else fresh:
+     - the azure slab family (ERP sibling, lighter than its near-black)
+     - brass as the one action color
+     - Archivo for interface, JetBrains Mono rationed to identifiers
+   Two themes. Light is the canonical statement; dark restates the
+   same roles. Every value here was chosen against the AA floor:
+   text >= 4.5:1 on its ground, control edges and focus >= 3:1.
+   ============================================================ */
+
+@font-face {
+    font-family: "Archivo3";
+    font-style: normal;
+    font-weight: 400 700;
+    font-stretch: 62% 125%;
+    font-display: swap;
+    src: url("../../fonts/Archivo-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+2013-2014, U+2018-201A, U+201C-201E, U+20B1, U+2212;
+}
+
+@font-face {
+    font-family: "JetBrains Mono 3";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("../../fonts/JetBrainsMono.woff2") format("woff2");
+}
+
+:root {
+    /* --- Ink ------------------------------------------------- */
+    --v-ink:        #16202E;   /* body */
+    --v-ink-2:      #46536B;   /* supporting */
+    --v-ink-3:      #5A6781;   /* labels, trails; 4.7:1 on canvas */
+
+    /* --- Ground ---------------------------------------------- */
+    --v-canvas:     #EDF1F7;   /* tinted paper the page sits on */
+    --v-surface:    #FFFFFF;   /* a raised sheet */
+    --v-sunken:     #F4F7FB;   /* a well inside a sheet */
+    --v-hover:      #EFF3F9;   /* row and item hover */
+
+    /* --- Lines ----------------------------------------------- */
+    --v-line:       #E4E9F1;   /* divider between visible things */
+    --v-line-2:     #CDD6E3;   /* louder rule */
+    --v-edge:       #75839C;   /* the edge of a control; 3.1:1+ everywhere */
+
+    /* --- Brass (action) -------------------------------------- */
+    --v-act:        #8A5F1F;   /* every brass word; 4.6:1 on white */
+    --v-act-fill:   #C0873A;   /* the filled control */
+    --v-act-fill-2: #A9762F;   /* its hover */
+    --v-act-ink:    #241703;   /* text on a brass fill */
+    --v-act-wash:   rgba(192, 135, 58, .10);
+
+    /* --- Slab (the ERP cousinship) ---------------------------- */
+    --v-slab:       #1B3D5F;
+    --v-slab-2:     #234B73;   /* hover */
+    --v-slab-ink:   #A6C1DC;   /* resting nav text; 6.5:1 on slab */
+    --v-slab-ink-2: #7E9CBC;   /* group words */
+    --v-slab-on:    #FFFFFF;   /* active nav text */
+    --v-slab-line:  rgba(255, 255, 255, .09);
+
+    /* --- State ------------------------------------------------ */
+    --v-good:       #1D7A45;
+    --v-good-wash:  rgba(29, 122, 69, .10);
+    --v-warn:       #8F5B0D;
+    --v-warn-wash:  rgba(191, 128, 24, .12);
+    --v-bad:        #B4232C;
+    --v-bad-wash:   rgba(180, 35, 44, .08);
+    --v-focus:      #2E6FBF;   /* ring only; 3.2:1 on canvas and surface */
+    --v-plate:      #FFFFFF;   /* logo plate; deliberately white in both themes */
+
+    /* --- Material --------------------------------------------- */
+    --v-r-sm:  6px;            /* a mark */
+    --v-r-md:  10px;           /* a control */
+    --v-r-lg:  14px;           /* a sheet */
+    --v-lift:   0 1px 2px rgba(22, 32, 46, .05), 0 4px 14px rgba(22, 32, 46, .05);
+    --v-lift-2: 0 2px 6px rgba(22, 32, 46, .09), 0 12px 32px rgba(22, 32, 46, .13);
+
+    --v-control-h: 36px;
+    --v-row-h:     40px;
+    --v-rail-w:    232px;      /* the work sidebar */
+    --v-snav-w:    248px;      /* the settings area nav */
+    --v-gutter:    28px;
+    --v-pad:       20px;
+
+    --v-fast: 130ms cubic-bezier(.2, .7, .3, 1);
+    --v-base: 230ms cubic-bezier(.2, .7, .3, 1);
+
+    /* --- Type ------------------------------------------------- */
+    --v-font:      "Archivo3", system-ui, sans-serif;
+    --v-font-mono: "JetBrains Mono 3", ui-monospace, monospace;
+}
+
+/* Dark restates the same roles. Brass fills bring their own ground
+   and do not flip. */
+:root:not([data-theme="light"]) {
+    color-scheme: light;
+}
+
+[data-theme="dark"] {
+    --v-ink:      #E9EEF6;
+    --v-ink-2:    #A9B4C8;
+    --v-ink-3:    #8C97AC;
+
+    --v-canvas:   #0B1017;
+    --v-surface:  #121A26;
+    --v-sunken:   #0E1520;
+    --v-hover:    #1A2534;
+
+    --v-line:     #202D40;
+    --v-line-2:   #31415A;
+    --v-edge:     #64738E;
+
+    --v-act:      #D9A45C;    /* brass word on dark; 6.5:1 */
+    --v-act-wash: rgba(192, 135, 58, .14);
+
+    --v-slab:     #10273C;
+    --v-slab-2:   #17324C;
+
+    --v-good:     #4CC07E;
+    --v-good-wash: rgba(76, 192, 126, .12);
+    --v-warn:     #D9A245;
+    --v-warn-wash: rgba(217, 162, 69, .13);
+    --v-bad:      #E4606A;
+    --v-bad-wash: rgba(228, 96, 106, .12);
+    --v-focus:    #6FA3E0;
+
+    --v-lift:   0 1px 2px rgba(0, 0, 0, .35), 0 4px 14px rgba(0, 0, 0, .30);
+    --v-lift-2: 0 2px 6px rgba(0, 0, 0, .45), 0 14px 36px rgba(0, 0, 0, .50);
+
+    color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --v-fast: 1ms linear;
+        --v-base: 1ms linear;
+    }
+}

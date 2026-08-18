@@ -1,117 +1,117 @@
-<x-admin3.shell :title="$post ? 'Edit Post' : 'New Post'">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+<x-admin.shell :title="$post ? 'Edit Post' : 'New Post'">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.blog.index') }}">Blog</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $post->title ?? 'New' }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $post ? $post->title : 'New post' }}</h1>
+            <h1 class="v-head__title">{{ $post ? $post->title : 'New post' }}</h1>
         </div>
     </div>
 
-    <x-admin3.form id="v3-post-form" :action="$post ? route('admin.blog.update', $post) : route('admin.blog.store')"
-                   :method="$post ? 'PUT' : 'POST'" class="v3-settle"
+    <x-admin.form id="v-post-form" :action="$post ? route('admin.blog.update', $post) : route('admin.blog.store')"
+                   :method="$post ? 'PUT' : 'POST'" class="v-settle"
                    onsubmit="if (typeof tinymce !== 'undefined') tinymce.triggerSave();">
-        <x-admin3.panel title="Post">
-            <x-admin3.field name="title" label="Title" required>
-                <input type="text" name="title" required class="v3-control" value="{{ old('title', $post?->title) }}">
-            </x-admin3.field>
-            <div class="v3-gap">
-                <x-admin3.field name="slug" label="Slug" hint="Leave blank to auto-generate from the title.">
-                    <input type="text" name="slug" class="v3-control v3-mono" value="{{ old('slug', $post?->slug) }}">
-                </x-admin3.field>
+        <x-admin.panel title="Post">
+            <x-admin.field name="title" label="Title" required>
+                <input type="text" name="title" required class="v-control" value="{{ old('title', $post?->title) }}">
+            </x-admin.field>
+            <div class="v-gap">
+                <x-admin.field name="slug" label="Slug" hint="Leave blank to auto-generate from the title.">
+                    <input type="text" name="slug" class="v-control v-mono" value="{{ old('slug', $post?->slug) }}">
+                </x-admin.field>
             </div>
-            <div class="v3-gap">
-                <x-admin3.field name="content" label="Content" required>
-                    <textarea name="content" id="v3-post-content" rows="16" class="v3-control">{{ old('content', $post?->content) }}</textarea>
-                </x-admin3.field>
+            <div class="v-gap">
+                <x-admin.field name="content" label="Content" required>
+                    <textarea name="content" id="v-post-content" rows="16" class="v-control">{{ old('content', $post?->content) }}</textarea>
+                </x-admin.field>
             </div>
-            <div class="v3-gap">
-                <x-admin3.field name="excerpt" label="Excerpt">
-                    <textarea name="excerpt" rows="3" class="v3-control">{{ old('excerpt', $post?->excerpt) }}</textarea>
-                </x-admin3.field>
+            <div class="v-gap">
+                <x-admin.field name="excerpt" label="Excerpt">
+                    <textarea name="excerpt" rows="3" class="v-control">{{ old('excerpt', $post?->excerpt) }}</textarea>
+                </x-admin.field>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.panel title="Publish">
-            <div class="v3-grid v3-grid--2">
-                <x-admin3.field name="blog_category_id" label="Category">
-                    <select name="blog_category_id" class="v3-control">
+        <x-admin.panel title="Publish">
+            <div class="v-grid v-grid--2">
+                <x-admin.field name="blog_category_id" label="Category">
+                    <select name="blog_category_id" class="v-control">
                         <option value="">(None)</option>
                         @foreach ($categories as $cat)
                             <option value="{{ $cat->id }}" @selected(old('blog_category_id', $post?->blog_category_id) == $cat->id)>{{ $cat->name }}</option>
                         @endforeach
                     </select>
-                </x-admin3.field>
-                <x-admin3.field name="published_at" label="Published date">
-                    <input type="datetime-local" name="published_at" class="v3-control v3-mono" value="{{ old('published_at', $post?->published_at?->format('Y-m-d\TH:i')) }}">
-                </x-admin3.field>
+                </x-admin.field>
+                <x-admin.field name="published_at" label="Published date">
+                    <input type="datetime-local" name="published_at" class="v-control v-mono" value="{{ old('published_at', $post?->published_at?->format('Y-m-d\TH:i')) }}">
+                </x-admin.field>
             </div>
-            <div class="v3-gap v3-actrow">
-                <label class="v3-toggle">
+            <div class="v-gap v-actrow">
+                <label class="v-toggle">
                     <input type="hidden" name="is_published" value="0">
                     <input type="checkbox" name="is_published" value="1" @checked(old('is_published', $post?->is_published ?? false))>
-                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    <span class="v-toggle__track" aria-hidden="true"></span>
                     <span>Published</span>
                 </label>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.panel title="Featured image">
+        <x-admin.panel title="Featured image">
             <div x-data="featuredImagePicker()">
                 <input type="hidden" name="featured_image" :value="selectedPath">
 
-                <div x-show="selectedPath" class="v3-gap-sm">
-                    <img :src="previewUrl" class="v3-imgpreview" alt="Featured image">
+                <div x-show="selectedPath" class="v-gap-sm">
+                    <img :src="previewUrl" class="v-imgpreview" alt="Featured image">
                 </div>
 
-                <div class="v3-actrow">
-                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="openBrowser()">
+                <div class="v-actrow">
+                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="openBrowser()">
                         <span x-text="selectedPath ? 'Change image' : 'Choose image'"></span>
                     </button>
                     <template x-if="selectedPath">
-                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="selectedPath = ''; touch()">Remove</button>
+                        <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="selectedPath = ''; touch()">Remove</button>
                     </template>
                 </div>
 
                 {{-- Browser modal --}}
-                <div x-show="browserOpen" x-cloak class="v3-overlay"
+                <div x-show="browserOpen" x-cloak class="v-overlay"
                      @keydown.escape.window="browserOpen = false" @click.self="browserOpen = false">
-                    <div class="v3-modal v3-modal--media" role="dialog" aria-modal="true" aria-label="Choose featured image">
-                        <div class="v3-between">
-                            <nav class="v3-crumbrow" aria-label="Folders">
-                                <button type="button" @click="browseDir(root)" class="v3-link">blog</button>
+                    <div class="v-modal v-modal--media" role="dialog" aria-modal="true" aria-label="Choose featured image">
+                        <div class="v-between">
+                            <nav class="v-crumbrow" aria-label="Folders">
+                                <button type="button" @click="browseDir(root)" class="v-link">blog</button>
                                 <template x-for="(crumb, i) in breadcrumbs" :key="i">
-                                    <span class="v3-crumbrow">
+                                    <span class="v-crumbrow">
                                         <span aria-hidden="true">/</span>
-                                        <button type="button" @click="browseDir(crumb.path)" class="v3-link" x-text="crumb.name"></button>
+                                        <button type="button" @click="browseDir(crumb.path)" class="v-link" x-text="crumb.name"></button>
                                     </span>
                                 </template>
                             </nav>
-                            <button type="button" @click="browserOpen = false" class="v3-row__x" aria-label="Close image browser"><x-admin3.icon name="x" /></button>
+                            <button type="button" @click="browserOpen = false" class="v-row__x" aria-label="Close image browser"><x-admin.icon name="x" /></button>
                         </div>
-                        <div class="v3-mediagrid-wrap">
-                            <div x-show="loading" class="v3-empty"><p class="v3-empty__title">Loading…</p></div>
-                            <div x-show="!loading" class="v3-mediagrid">
+                        <div class="v-mediagrid-wrap">
+                            <div x-show="loading" class="v-empty"><p class="v-empty__title">Loading…</p></div>
+                            <div x-show="!loading" class="v-mediagrid">
                                 <template x-if="currentPath !== ''">
-                                    <button type="button" @click="browseDir(parentPath)" class="v3-mediatile">
-                                        <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                                    <button type="button" @click="browseDir(parentPath)" class="v-mediatile">
+                                        <x-admin.icon name="folder" class="v-mediatile__folder" />
                                         <span>..</span>
                                     </button>
                                 </template>
                                 <template x-for="folder in folders" :key="folder.path">
-                                    <button type="button" @click="browseDir(folder.path)" class="v3-mediatile">
-                                        <x-admin3.icon name="folder" class="v3-mediatile__folder" />
+                                    <button type="button" @click="browseDir(folder.path)" class="v-mediatile">
+                                        <x-admin.icon name="folder" class="v-mediatile__folder" />
                                         <span x-text="folder.name"></span>
                                     </button>
                                 </template>
                                 <template x-for="file in files" :key="file.path">
-                                    <button type="button" @click="selectFile(file); touch()" class="v3-mediatile"
+                                    <button type="button" @click="selectFile(file); touch()" class="v-mediatile"
                                             :aria-pressed="selectedPath === file.path ? 'true' : 'false'">
-                                        <span class="v3-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
+                                        <span class="v-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
                                         <span x-text="file.name"></span>
                                     </button>
                                 </template>
@@ -120,31 +120,31 @@
                     </div>
                 </div>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.panel title="Tags">
+        <x-admin.panel title="Tags">
             @if ($tags->isEmpty())
-                <p class="v3-empty__line">No tags created yet.</p>
+                <p class="v-empty__line">No tags created yet.</p>
             @else
-                <x-admin3.picklist name="tags" label="Tags"
+                <x-admin.picklist name="tags" label="Tags"
                     :items="$tags->map(fn ($t) => ['id' => $t->id, 'name' => $t->name])->all()"
                     :selected="old('tags', $post?->tags?->pluck('id')->toArray() ?? [])" />
             @endif
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.panel title="SEO">
-            <div class="v3-grid v3-grid--2">
-                <x-admin3.field name="meta_title" label="Meta title">
-                    <input type="text" name="meta_title" class="v3-control" value="{{ old('meta_title', $post?->meta_title) }}">
-                </x-admin3.field>
-                <x-admin3.field name="meta_description" label="Meta description">
-                    <textarea name="meta_description" rows="2" class="v3-control">{{ old('meta_description', $post?->meta_description) }}</textarea>
-                </x-admin3.field>
+        <x-admin.panel title="SEO">
+            <div class="v-grid v-grid--2">
+                <x-admin.field name="meta_title" label="Meta title">
+                    <input type="text" name="meta_title" class="v-control" value="{{ old('meta_title', $post?->meta_title) }}">
+                </x-admin.field>
+                <x-admin.field name="meta_description" label="Meta description">
+                    <textarea name="meta_description" rows="2" class="v-control">{{ old('meta_description', $post?->meta_description) }}</textarea>
+                </x-admin.field>
             </div>
 
             {{-- AI SEO Optimizer (SEO extension's endpoint; the button only
                  renders for a saved post) --}}
-            <div class="v3-gap" x-data="{
+            <div class="v-gap" x-data="{
                 loading: false,
                 suggestion: null,
                 error: null,
@@ -180,43 +180,43 @@
                 }
             }">
                 @if ($post ?? false)
-                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="optimize()" :disabled="loading">
+                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="optimize()" :disabled="loading">
                         <span x-text="loading ? 'Optimizing…' : 'Optimize with AI'"></span>
                     </button>
                 @endif
 
-                <p x-show="error" x-cloak class="v3-field__error v3-gap-sm" x-text="error"></p>
+                <p x-show="error" x-cloak class="v-field__error v-gap-sm" x-text="error"></p>
 
-                <div x-show="suggestion" x-cloak class="v3-well v3-gap">
+                <div x-show="suggestion" x-cloak class="v-well v-gap">
                     <template x-for="field in ['meta_title', 'meta_description', 'og_title', 'og_description']" :key="field">
-                        <div class="v3-gap-sm">
-                            <span class="v3-field__label" x-text="field.replace(/_/g, ' ')"></span>
-                            <div class="v3-grid v3-grid--2">
+                        <div class="v-gap-sm">
+                            <span class="v-field__label" x-text="field.replace(/_/g, ' ')"></span>
+                            <div class="v-grid v-grid--2">
                                 <div>
-                                    <span class="v3-cell-quiet v3-block">Current</span>
+                                    <span class="v-cell-quiet v-block">Current</span>
                                     <span x-text="suggestion?.['current_' + field] || '(empty)'"></span>
                                 </div>
                                 <div>
-                                    <span class="v3-tone-act v3-block">Suggested</span>
+                                    <span class="v-tone-act v-block">Suggested</span>
                                     <span x-text="suggestion?.['suggested_' + field] || '(empty)'"></span>
                                 </div>
                             </div>
                         </div>
                     </template>
-                    <div class="v3-gap v3-actrow">
-                        <button type="button" class="v3-btn v3-btn--primary v3-btn--sm" @click="apply(); touch()">Apply to form</button>
-                        <button type="button" class="v3-btn v3-btn--ghost v3-btn--sm" @click="suggestion = null">Dismiss</button>
+                    <div class="v-gap v-actrow">
+                        <button type="button" class="v-btn v-btn--primary v-btn--sm" @click="apply(); touch()">Apply to form</button>
+                        <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="suggestion = null">Dismiss</button>
                     </div>
                 </div>
             </div>
-        </x-admin3.panel>
-    </x-admin3.form>
+        </x-admin.panel>
+    </x-admin.form>
 
     @push('scripts')
     <script src="{{ asset('vendor/tinymce/tinymce.min.js') }}"></script>
     <script>
         tinymce.init({
-            selector: '#v3-post-content',
+            selector: '#v-post-content',
             height: 600,
             menubar: 'file edit view insert format table',
             plugins: 'lists link autolink code table media image fullscreen',
@@ -239,7 +239,7 @@
                 // edit, so the save bar and leave guard see TinyMCE changes.
                 editor.on('input change undo redo', function () {
                     editor.save();
-                    var form = document.getElementById('v3-post-form');
+                    var form = document.getElementById('v-post-form');
                     if (form) form.dispatchEvent(new Event('input'));
                 });
             },
@@ -315,4 +315,4 @@
         }
     </script>
     @endpush
-</x-admin3.shell>
+</x-admin.shell>

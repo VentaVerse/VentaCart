@@ -237,7 +237,7 @@ class FulfillmentQueueTest extends TestCase
     //
     // fulfillment-placement Task 2 REWRITE: this test used to seed one
     // order per COURIER PHASE and assert the phase decided the tab (plus
-    // the tabs-v3 unpaid carve-out and the 'booking' collapse). Membership
+    // the tabs-v unpaid carve-out and the 'booking' collapse). Membership
     // now reads the core status's placement and nothing else, so the same
     // scenario is expressed the way it now works: statuses are placed, and
     // the courier states carried along prove they change no count.
@@ -256,7 +256,7 @@ class FulfillmentQueueTest extends TestCase
         $failedStatus = $this->statusWithStage('failed', 'Failed Delivery');
 
         // Two Unpaid-placed orders, one of them carrying a live in-transit
-        // booking: under tabs v3 the booking pulled it into Shipping, now
+        // booking: under tabs v the booking pulled it into Shipping, now
         // its status keeps it under Unpaid (and Task 3 is what will move the
         // status when a booking is made).
         $this->makeOrder(status: $unpaidStatus);
@@ -437,7 +437,7 @@ class FulfillmentQueueTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Code-review fix (Critical): phaseTally() (fulfillment-tabs-v3 Task 2)
+    // Code-review fix (Critical): phaseTally() (fulfillment-tabs-v Task 2)
     // clones $base and joins order_statuses for the stage-first tally — a
     // table that ALSO has an 'id' column. The numeric-search branch below
     // used to write a bare 'id' into that SAME shared $base closure, so
@@ -571,7 +571,7 @@ class FulfillmentQueueTest extends TestCase
             // handler, and still nothing that says whether the courier is
             // configured (a prior draft added `data-courier-configured="true"`
             // here, which this exact-tag assertion caught).
-            ->assertSee('<button type="button" class="v3-choicecard" data-courier-card="quadx" data-courier-state="serviceable" x-show="verdict(\'quadx\') === \'serviceable\'" @click="chooseCourier(\'quadx\')">', false);
+            ->assertSee('<button type="button" class="v-choicecard" data-courier-card="quadx" data-courier-state="serviceable" x-show="verdict(\'quadx\') === \'serviceable\'" @click="chooseCourier(\'quadx\')">', false);
     }
 
     /**
@@ -689,7 +689,7 @@ class FulfillmentQueueTest extends TestCase
     // ------------------------------------------------------------------
     // fulfillment-placement Task 2 REWRITE (was: "cancelled booking rows
     // keep drawer access via a tracking button"). That test's premise was
-    // the tabs-v3 rule that a courier-cancelled BOOKING pulled the order
+    // the tabs-v rule that a courier-cancelled BOOKING pulled the order
     // into the Cancelled TAB, where it was offered Rebook plus a drawer.
     // A cancelled booking is not a cancelled order, and it no longer moves
     // the order anywhere: the row stays in the tab its core status is
@@ -1164,7 +1164,7 @@ class FulfillmentQueueTest extends TestCase
 
     // ------------------------------------------------------------------
     // fulfillment-placement Task 2 REWRITE (was: "creating spx order counts
-    // and lists under the to handover sub tab"). The tabs-v3 'booking'
+    // and lists under the to handover sub tab"). The tabs-v 'booking'
     // collapse - a mid-async-create order counting under To Handover
     // whatever its status said - is exactly the courier-state membership
     // this task removes. The honest replacement: an in-flight create shows
@@ -1270,15 +1270,15 @@ class FulfillmentQueueTest extends TestCase
         // pass then added x-dialog/tabindex between x-transition and class on
         // the same element, so the pattern tolerates attributes in between
         // rather than pinning their absence.
-        // v3 repin: the wrap-inside-nowrap fix now lives at the shared
-        // component level — .v3-modal carries `white-space: normal` in
+        // v repin: the wrap-inside-nowrap fix now lives at the shared
+        // component level — .v-modal carries `white-space: normal` in
         // admin3/components.css, so every confirm rendered inside the
         // nowrap action cell self-heals. The markup assertion pins the
         // card class the rule binds to.
         $this->assertMatchesRegularExpression(
-            '/<div class="v3-modal" role="dialog"/',
+            '/<div class="v-modal" role="dialog"/',
             $content,
-            'Expected the confirm dialog to render the shared .v3-modal card (whose CSS carries white-space: normal).'
+            'Expected the confirm dialog to render the shared .v-modal card (whose CSS carries white-space: normal).'
         );
     }
 

@@ -54,7 +54,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // load. GET because it asks and creates nothing.
         Route::get('/{order}/serviceability', [FulfillmentController::class, 'serviceability'])->name('serviceability')->whereNumber('order');
         Route::post('/{order}/cancel', [FulfillmentController::class, 'cancel'])->name('cancel')->whereNumber('order');
-        // fulfillment-tabs-v3 Task 4: the REAL order cancel (sets the core
+        // fulfillment-tabs-v Task 4: the REAL order cancel (sets the core
         // order status to the module's configured cancel status through the
         // same history + stock path the order page uses) — distinct from
         // /cancel above, which cancels only the courier BOOKING.

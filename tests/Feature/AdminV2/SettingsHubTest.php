@@ -16,7 +16,7 @@ class SettingsHubTest extends TestCase
 
         $this->get(route('admin.settings.index'))
             ->assertOk()
-            // v3 settings area grouping: general is general, a module's
+            // v settings area grouping: general is general, a module's
             // settings live with the module (SEO settings moved to the SEO
             // module space, so the hub no longer lists it).
             ->assertSeeInOrder(['Store', 'Commerce', 'Communication', 'System'])

@@ -1,566 +1,448 @@
-# Venta admin design system
-
-> **Superseded for migrated pages.** The v3 rebuild (branch
-> `venta-v3`) replaces this system area by area; pages on a v3 shell
-> answer to `DESIGN3.md`. This file remains the record for every page
-> still rendering the v2 shell.
-
-The written system of record for `/admin`. Its absence is why three
-foundations grew that shared no vocabulary, so read it before adding a screen
-and update it when you add a primitive.
-
-Everything below describes what is **built**, not what was intended. Class
-names, token names and measured figures are copied from the running system.
-Where the code and this file disagree, the code is the bug or this file is
-stale; fix one of them in the same commit.
-
-Scope: `resources/views/admin/**`, `resources/views/components/admin/**`,
-`resources/css/admin/**`, and the admin views of every extension under
-`extensions/*/resources/views/`. The storefront and its three themes are a
-different system and are not covered here.
-
----
-
-## 1. Where things live
-
-| | Path |
-|---|---|
-| Tokens | `resources/css/admin/tokens.css` |
-| Ground and helpers | `resources/css/admin/base.css` |
-| Primitives | `resources/css/admin/components/*.css` |
-| Shell chrome | `resources/css/admin/layout/shell.css` |
-| Page residue | `resources/css/admin/components/day-sheet.css` |
-| Import order | `resources/css/admin/admin.css` |
-| Blade components | `resources/views/components/admin/**` |
-| The enforcement surface | `resources/views/admin/ui-kit.blade.php` at `/admin/dashboard/ui-kit` |
-
-An extension keeps its own residue in its own stylesheet, pushed with
-`@vite` from its view, and picked up by `getThemeEntries()` in
-`vite.config.js`. It uses the shared primitives and invents none of its own:
-`extensions/courier-fulfillment/resources/css/fulfillment.css` is 140 lines and
-`extensions/banners/resources/css/banners.css` is 104.
-
-### Two rules the whole layer depends on
-
-1. **Everything is stated at one class.** No selector in the layer nests
-   under `.v-admin` to buy weight. `.v-admin` means one thing only: the ground
-   the `<body>` wears and the scope `tokens.css` and `base.css` hang off. A
-   rule that must win over a primitive wins on **document order**, never on
-   specificity. Adding `.v-admin .v-thing` to make something stick is the
-   defect, not the fix.
-2. **`admin.css` is linked after `app.css`.** A one-class primitive therefore
-   outranks a Tailwind utility of the same weight. This is why
-   `<input class="v-control border-v-strong">` still resolves to
-   `var(--border-control)`, and why `.v-switch--split` can override
-   `inline-flex`. Do not reorder the two bundles.
-
-The trap this pair replaces: a de-nested primitive at one class silently
-losing to an older `.v-admin`-nested rule on the same element. The tell is a
-1px type change nobody sees in review.
-
----
-
-## 2. Tokens
-
-Two layers, both in `tokens.css`. `--bl-*` is the Blotter vocabulary carried
-verbatim from VentaSync so the two products read alike. Below it is Venta's
-own bridge (`--surface`, `--accent`, `--border`, ...), which
-`tailwind.config.js` maps to the `v-*` utility classes every view writes
-(`bg-v-surface`, `text-v-accent`, `border-v-border`, `rounded-v-lg`).
-
-**Bridge names are frozen. Only values move.** Repointing a bridge value
-re-dresses every screen with no markup churn; renaming one breaks 105 views.
-
-### Surfaces
-
-| Bridge | Light | Dark | What it is |
-|---|---|---|---|
-| `--canvas` | `#EEF2F8` | `#0A0F17` | the tinted ground the page sits on |
-| `--surface` | `#FFFFFF` | `#111823` | a raised sheet |
-| `--surface-sunken` | `#F5F8FC` | `#0D131C` | a well inside a sheet |
-| `--surface-hover` | `#F0F4FA` | `#1A2432` | the row and tile hover |
-| `--border` | `#EAEEF5` | `#1E2836` | a divider |
-| `--border-strong` | `#DFE5EE` | `#2C3850` | a louder divider, the panel head rule |
-| `--border-control` | `#7F8A9F` | `#606F8B` | the edge of a control, and only that |
-| `--text` | `#141B26` | `#EDF1F7` | body |
-| `--text-secondary` | `#4A5468` | `#A7B2C4` | supporting |
-| `--text-muted` | `#5F6B85` | `#8B96A9` | labels, notes, trails |
-
-The ground is tinted so a white sheet reads as raised. There are exactly
-**two elevations**: `--bl-lift` for a resting sheet, `--bl-lift-2` for
-something deliberately louder or genuinely floating (menu, modal, filled
-figure). A view does not get to invent a third.
-
-`--border` and `--border-strong` are **dividers**: they separate two things
-that are each visible on their own, so 1.16:1 and 1.27:1 are correct for them
-and WCAG 1.4.11 does not apply. `--border-control` is the **component**: an
-empty text field has no other evidence it exists, so its edge clears 3:1 on
-every ground the admin has (light 3.10 to 3.48, dark 3.09 to 3.79).
-
-### Colour has two jobs, and they never mix
-
-**State: what something is doing.** `--warning` amber, `--danger` red,
-`--info` blue, plus `--bl-good` green. State appears as a word plus a square
-mark (`x-admin.badge`), as a wash (`--bl-attn-wash`), and never as a metric
-block fill.
-
-**Identity: which measure you are reading.** Six accents, cyan, violet,
-amber, green, rose, indigo. A figure keeps its hue whether the news is good or
-bad. Nothing goes red because it is low. The six are exposed as
-`.v-stat--{name}`, `.v-slice-{0..5}` and `.v-stroke-{0..5}`.
-
-Two accents carry a third stop each because one colour cannot do two jobs:
-`--bl-a-amber-mark` for amber as a ring arc or swatch on a white sheet, and
-the `--bl-a-*-fill` set for a filled block carrying white text. The fill stops
-deliberately **do not flip** between themes: a saturated block brings its own
-ground.
-
-Brass is action. `--accent` (`--bl-brand-deep`) is every brass **word**;
-`--accent-mark` (`--bl-brand`) is the mark, the fill and the active edge;
-`--focus` is the ring alone, because the mark stop is only 2.76:1 on the
-tinted ground and a focus indicator must clear 3:1 against what surrounds it.
-
-### Material
-
-```
---radius-sm   4px    the square dot
---radius-md   11px   a control
---radius-lg   16px   a panel
---radius-pill 999px
-
---row-h        34px  a table row
---control-h    32px  a control
---control-h-sm 28px  a small control, and the floor for a row action
---sidebar-w    216px the slab
-
---bl-page-gutter 30px (16px at <=700px)
---bl-pad         20px a panel's own padding
---bl-col-pad     20px a column's inset from a divider
---v-bleed        published BY `.v-panel__body` as its own inline
-                 padding (20px, 16px at <=719px) and read by anything
-                 inside the body that has to reach the sheet's inside
-                 edge. Defaults to 0, which is right for a bar with no
-                 sheet to reach the edge of.
-
---motion-fast 120ms cubic-bezier(.2,.7,.3,1)
---motion-base 220ms cubic-bezier(.2,.7,.3,1)
-```
-
-`prefers-reduced-motion` collapses both motion tokens to 1ms at the token
-level, so a component gets it for free.
-
-### Type
-
-Archivo for interface, self-hosted, variable across weight 400 to 700 and
-**width 62 to 125%**, which is what lets a column label run condensed and body
-text run normal from one file. JetBrains Mono is **rationed** to identifiers
-and measurements: SKUs, order references, tracking numbers, money, counts.
-Monospace as a costume for "technical" is a refusal.
-
-| Role | Size | Weight | Class |
-|---|---|---|---|
-| Page title | `clamp(25px, 3.4vw, 33px)`, `-0.025em`, balanced | 640 | `.v-day__title` |
-| Standing line | 14px | 400 | `.v-day__standing` |
-| Trail | 12px | 400 | `.v-day__trail` |
-| Panel title | 13px | 650 | `.v-subhead` |
-| Rail group heading | 12.5px | 650 | `.v-sidenav__label` |
-| Body | 13px | 400 | default |
-| Supporting | 12.5px | 400 | |
-| Column label | 11.5px, `0.005em`, sentence case | 500 | `.v-label` |
-| Figure value | 28px | 680 | `.v-stat__v` + `.v-num` |
-
-Labels are **sentence case at normal width**. The wide-tracked uppercase
-micro-cap was the single most dating detail in the build this replaced; the
-only survivor is `.v-req` ("Required"), where the shout is the point.
-
----
-
-## 3. The two shells
-
-Every admin page renders inside `x-admin.shell` (or `x-admin.auth-shell` for
-sign-in) and reaches `x-admin.page` for its head. Two workspace shells sit
-between them and are **correct composition, not a bypass**:
-
-- **`x-admin.settings-shell`** wraps `x-admin.workspace` over
-  `App\Support\SettingsNav`, then `x-admin.page`. It takes no width
-  prop: settings is one workspace, and every screen in it renders the
-  same work column. The opt-in `wide` it used to take was applied by
-  27 of 34 callers, so the seven that missed it sat 229px narrower than
-  the screen the reader had just come from.
-- **`x-admin.seo-shell`** does the same over the SEO registry.
-
-Both normalise their own registry into the `groups` array
-`x-admin.workspace` takes, which is what lets one component serve two
-registries that disagree about how a destination names itself.
-
-`x-admin.workspace` renders `.v-workspace` (rail plus work column, one flex,
-one breakpoint), `.v-sidenav` (the rail, active state on
-`aria-current="page"`), `.v-sidenav__back` and, below the breakpoint,
-`.v-sidenav__picker` (the same list as a `<select>`).
-`.v-workspace__main--narrow` caps the work column at a measure, which a column
-of fields wants and a table does not.
-
-### The page head
-
-One primitive, `page-head.css`, rendered by one component, `x-admin.page`.
-
-| Part | Class | What it is |
-|---|---|---|
-| Band | `.v-day__head` | the head, on the paper rather than inside a sheet |
-| Trail | `.v-day__trail` | ancestors only, 12px, spanning both columns |
-| Title | `.v-day__title` | the page's own name |
-| Standing | `.v-day__standing` | one optional line, a **reading**, never an instruction |
-| Actions | `.v-day__actions` | the page's action set, aligned with the title |
-| Column | `.v-day` | the flow column, opt-in |
-
-The head is a grid, `minmax(0,1fr) auto`, with the trail on its own row
-spanning both columns, so the actions align with the **title** on every page
-whether or not it has a trail. Below 640 the actions take their own row.
-
-The trail is derived from the request path by `App\Support\Breadcrumbs` and
-prints **ancestors only**; the page names itself in the `<h1>` underneath.
-A chevron sits between ancestors and never after the last one. Pass
-`:breadcrumb="[...]"` only for a trail a URL cannot encode, and
-`:breadcrumb="[]"` to suppress it.
-
-**Known gap:** `Breadcrumbs::forPath` returns nothing for a page mounted under
-a registry section that is also a root-level item (`/dashboard/ui-kit`). Such
-a page passes its own `:breadcrumb`.
-
-`.v-day` is **not** applied automatically. A page that composes its own
-vertical rhythm (the fulfillment queue) omits it and still gets the head's
-16px clearance, because `.v-day__head` carries its own `margin-bottom` and
-`.v-day > .v-day__head` zeroes it.
-
-`.v-settle` staggers the first four children of whatever carries it. It is the
-page's **one authored moment**; do not add a second entrance elsewhere.
-
----
-
-## 4. The primitives
-
-Every family below is one CSS file and, where it has a Blade face, one
-component. All of them render in the UI kit.
-
-### Container
-
-| Class | Component | Notes |
-|---|---|---|
-| `.v-sheet` | | the material: `--surface`, `--border`, `--radius-lg`, `--bl-lift`. Says nothing about content |
-| `.v-panel` | `x-admin.panel` | a sheet that knows what it holds. Clips, so a row hover is cut by its own corner |
-| `.v-panel__head` | | 15/20/12 padding, a `.v-subhead` title, and a 1px `--border-strong` rule struck in from the left |
-| `.v-panel__body` | | the gutter. `flush` drops it, for a table, list or feed reaching the edge |
-| `.v-panel__foot`, `.v-panel__note`, `.v-panel__link`, `.v-panel__blank` | | |
-| `.v-panel--open` | `x-admin.card` | does not clip, because a card holds fields and a field's hint bubble opens below it |
-
-`x-admin.card` is the v2.0 prop API (`title`, `description`, `headerActions`,
-`footer`) rendering the same panel. **No caller needs editing**; new work
-should reach for `x-admin.panel`, which adds `note`, `link` and `flush`.
-
-**A surface inside a surface is stripped in the layer.** A `.v-sheet` or
-`.v-panel` with a `.v-sheet` or `.v-panel` ancestor drops its background,
-its border, its radius and its elevation, because the plane it needed to
-read as raised is already gone and all that is left is the doubled edge.
-`x-admin.table` still has `bare` and it still means the same thing; it is
-simply no longer the only thing standing between a page and a doubled
-border, which is what sixteen settings routes proved it was. These four
-selectors are the layer's only descendant rules, and they are context
-rather than weight: a sheet cannot know from its own class list whether
-something already painted the ground under it.
-
-**Elevation comes from the primitives alone.** There are two lifts and five
-things that may take one: `.v-sheet` and `.v-panel` rest at `--bl-lift`
-(stated in `panel.css`, beside the rest of their material), `.v-modal` and
-`.v-palette` float at `--bl-lift-2`, and `.v-menu` takes the resting lift
-because it opens onto a page that is still fully lit. Nothing else is
-raised. A view that wants a raised container says `v-sheet` or `v-panel`;
-it does not assemble one out of utilities.
-
-There used to be a shim in `base.css` that granted the resting lift to any
-element carrying `bg-v-surface` and `rounded-v-lg` together. **It is
-retired and must not be reintroduced.** It failed twice over. Two class
-names could invent a third elevation, with no way for a view that pairs a
-surface colour with the panel radius to say "and do not raise this". And
-at `(0,3,0)` an attribute pair outranked the layer's own nesting: it beat
-`.v-panel .v-sheet` at `(0,2,0)`, so a table inside a panel correctly lost
-its ground, border and radius to the rule above and then kept its shadow
-anyway, leaving a drop shadow under nothing that read as a second sheet
-floating in front of the first. It also beat `.v-admin .v-modal`, quietly
-demoting every modal in the admin to the resting lift.
-
-The same rule applies to the elevation utilities: `shadow-v-lift` and
-`shadow-v-lift-2` belong on the small floating idioms that have no
-primitive (a chip over an image, a toast, an autocomplete list, the
-primary button). A container that is a card, a dialog or a drawer takes
-the class that says so.
-
-`id` on a panel names the heading and points the `<section>` at it with
-`aria-labelledby`, so a panel is announced by its own title.
-
-### Measure
-
-| Class | Component | Notes |
-|---|---|---|
-| `.v-stat`, `.v-stat--{accent}` | `x-admin.figure` | the filled measure block. `accent` is **identity**, guarded against unknown values |
-| `.v-money`, `.v-money--zero` | `x-admin.money` | the mark travels with its digits, set smaller |
-| `.v-band`, `.v-band--pulse`, `.v-bandblock` | | the comparison band |
-| `.v-fig`, `.v-fig--head`, `.v-fig__name/__cell/__when/__plain` | | one row of the band |
-| `.v-change--ahead/--behind/--level` | | the change word, with an arrow on the two directions and never colour alone |
-| `.v-facts`, `.v-usual` | | readings as a strip and as one sentence |
-
-There is no `x-admin.stat`. It was deleted: its `tone` prop was state where
-the figure's `accent` is identity.
-
-### Table
-
-One implementation, `x-admin.table`, four density props, all default false.
-
-| Prop | What it does |
-|---|---|
-| `ruled` | divides rows with a cell border instead of `divide-y`; **required** for rowspans |
-| `roomy` | verification density, for rows carrying an image someone looks at |
-| `tiered` | the two-tier grammar: `.v-tier` band above `.v-subrow` line items |
-| `bare` | drops the sheet, for a table already inside a panel |
-
-The table always sits in `.v-table-wrap` with `overflow-x: auto` carrying the
-sheet's radius. **Tables never clip; they scroll.** A raw `<th>` inside
-`.v-table` gets the column-label treatment for free; alignment and colour are
-stated through `:where()` so `align="right"` and a colour utility still win.
-
-Cell idioms: `.v-cellstack` (facts stacked), `.v-lead` and `.v-sub` (the lead
-line and the identifier under it), `.v-ref` (an identifier that links),
-`.v-qty`, `.v-amount` / `.v-amount__sub`, `.v-none` (a missing value),
-`.v-quietlink`, and the column widths `.v-col-qty`, `.v-col-amount`,
-`.v-col-act`.
-
-Row actions go in `.v-rowactions` inside a `.v-col-act` cell, which drops its
-own padding so 28px of button lands inside a 34px row. `.v-rowactions__danger`
-recolours a ghost button. Measured floor across the admin: **28px high,
-43.7px wide**.
-
-### Navigation and control
-
-| Class | Component | Notes |
-|---|---|---|
-| `.v-segbar`, `.v-segment`, `.v-segment__item`, `.v-segment__count` | `x-admin.segment`, `x-admin.segment.item` | the trough. State on `aria-selected` |
-| | `x-admin.tabs` | the Alpine tab set, rendered on the segment bar, `?tab=` preserved |
-| `.v-toolbar`, `.v-toolbar__row/__actions` | `x-admin.toolbar` | the command bar every index needs |
-| `.v-filters`, `.v-filters__*` | `x-admin.filters` | |
-| `.v-tally`, `.v-tally__item` | | a count strip |
-| `.v-pager`, `.v-pager__count/__nav/__page` | `x-admin.pager` | stepped and numbered, one component |
-| `.v-sidenav*` | `x-admin.workspace` | above |
-
-Every selection control in the system keys its state on an **attribute**, not
-a class, so the CSS and the assistive technology read the same thing:
-`aria-selected` on segments, tabs and picker options, `aria-current="page"` on
-the rail, `aria-checked` on a button-driven switch, `aria-pressed` on a tile.
-
-### Form
-
-`x-admin.field` is label, control, one prose line, error, in that order,
-directly under the control the message belongs to. Never a summary at the top
-of a form. The association contract is one convention: the control takes
-`id="{name}"`, the prose is `{name}-hint`, the error is `{key}-error`, and the
-controls point `aria-describedby` at them through `@aware`.
-
-| Class | Component |
-|---|---|
-| `.v-control` (input, select, textarea) | `x-admin.input`, `x-admin.select`, `x-admin.textarea` |
-| `.v-field__label`, `.v-field__hint`, `.v-field__error`, `.v-req` | `x-admin.field` |
-| `.v-toggle`, `.v-toggle__track/__knob` | `x-admin.toggle` |
-| `.v-switch`, `.v-switch__text`, `.v-switch--lead`, `.v-switch--top` | `x-admin.toggle label="..."` |
-| `.v-toggle--btn` | `x-admin.switch` (a toggle that posts or submits) |
-| `.v-secret`, `.v-secret__row/__box/__acts` | `x-admin.secret`; a stored key, masked and read only at rest, revealed by View, editable by Edit, and never printed outside the box that owns it |
-| `.v-checklist` | a bounded scroll box of checkboxes |
-| `.v-check`, `.v-check--bare` | `x-admin.checkbox`; the 24px target around a 16px box, square when no words widen it |
-| `.v-picker`, `.v-picker__opt/__mid` | `admin/partials/dual-listbox` |
-| `.v-form-actions` | `x-admin.form-actions`; stated in the layer, and it bleeds by `--v-bleed` rather than by a fixed number |
-| `.v-nospin` | strips number-input spinners in a numeric grid |
-
-**Every discrete control clears 24px, and the mark inside it does not
-have to.** A checkbox stays 16px inside a 24px `.v-check`; the switch
-stays a 36x20 pill inside a 24px label; the hint keeps a 16px ring and
-a transparent 24px pad; a chip's remove cross keeps 12px and takes the
-same pad. Growing the mark instead is the wrong repair: a 24px
-checkbox in a 34px row shouts over the row it belongs to.
-
-**Never wrap `x-admin.toggle` in your own `<label>`.** The component renders
-its own, so an outer one nests two labels, which is invalid. Pass `label` and
-the words carry their own `for`, making the two labels siblings pointing at
-one input. One `.v-form-actions` per page: two sticky bars pinned to the same
-edge read as one control that moved.
-
-### Everything else
-
-| Class | Component | Notes |
-|---|---|---|
-| `.v-btn` + `--primary/--secondary/--ghost/--danger`, `data-loading`, `:disabled` | `x-admin.button` | |
-| `.v-badge` + six tones, `.v-badge__dot`, `.v-badge__label` | `x-admin.badge` | a square mark and a coloured word on an uncoloured background. `dot="false"` drops the mark, never the word |
-| `.v-hint`, `.v-hint__btn`, `.v-hint__bubble`, `.v-hint--end` | `x-admin.hint` | the tooltip. 16px mark, 24px target, described by `aria-describedby` at all times |
-| `.v-empty*` | `x-admin.empty-state` | stands **in place of** what is missing |
-| `.v-notice*` | `x-admin.empty-state variant="notice"` | the blocking setup band, above what it blocks, carrying its own way out |
-| `.v-flash*` | | something good already happened |
-| `.v-slate*` | `x-admin.slate` | a record card: mark, name, state, one line, controls. `href` makes the whole card the target; a slate carrying controls renders as a `<section>`. `.v-slate__link` is a line inside one that is itself a destination |
-| `.v-badgebtn`, `.v-badge__x` | | a badge that is the control flipping it, and a chip's remove control. Both keep their mark and take the 24px target |
-| `.v-choice*` | `x-admin.choice`, `x-admin.choice.card` | any pick-one set, down or (with `cols`) up to four across. Four states, each carrying its own **word**: available, and three the `state` prop names. Two of those are inert `<div>`s; the third, "could not check", is greyed and **still a real button**, because something we could not reach has refused nothing. A card across is **1:1** and gives the mark every pixel its words have not claimed (198 square with four across at 1440, a 233x164 plate); one column drops to 4:3 so three options still fit a 390 screen without scrolling. `.v-choice__mark` is the plate a card wears: a logo bound to it by whoever owns the artwork, or `--drawn` (holding a `.v-choice__glyph`) for an option nobody ships one for. The plate states its own inset in percent, so a binding states artwork and ground and never a size. Decorative, so it is `aria-hidden`, and drained in all three unavailable states so a full-colour logo never reads as the pickable card. The words sit **under** the plate, never over it: text on the artwork needs a scrim, and a scrim heavy enough to carry the amber state word measured 2.49:1 on it in the light theme and erased the bottom third of the mark it sat on |
-| `.v-line*`, `.v-item*`, `.v-auto*` | `x-admin.line`, `x-admin.item` | list-row idioms |
-| `.v-feed`, `.v-entry*` | `x-admin.feed.entry` | activity and history |
-| `.v-tiles`, `.v-tile*`, `.v-tray`, `.v-drop` | | a grid of things you look at rather than read. A tile carries no border and no elevation at rest |
-| `.v-plot*`, `.v-plotcard` | `admin/partials/pulse-plot` | inline SVG on the tokens: no canvas, no library, no request, both themes free |
-| `.v-ring*`, `.v-breakdown*`, `.v-rank*`, `.v-mix*`, `.v-chan*`, `.v-split*`, `.v-tsw` | | data displays |
-| `.v-menu*`, `.v-drop*` | | |
-| `.v-modal*` | `x-admin.modal`, `x-admin.confirm-dialog` | |
-| `.v-palette*` | `x-admin.command-palette` | |
-| `.v-label`, `.v-subhead`, `.v-mono`, `.v-num`, `.v-scroll`, `.v-sr` | | `base.css` helpers, also at one class |
-
-Icons come from `x-admin.icon`: one 24 grid, 1.75 stroke, one path per name.
-Add a name to the component rather than drawing an SVG in a view. No unicode
-glyph ever stands in for an icon.
-
----
-
-## 5. The accessibility floor
-
-WCAG AA, held in **both themes**, verified by reading computed values in a
-browser and never by sampling a screenshot.
-
-**Text: 4.5:1.** Worst measured cases across the dashboard, the UI kit, an
-index, a form, an order detail and a settings screen:
-
-| | Light | Dark |
-|---|---:|---:|
-| Trail link | **4.76** | 6.43 |
-| Column label (`.v-label`) | **4.76** | 5.97 |
-| Notice title | 5.09 | 7.72 |
-| Badge, danger | 5.20 | 6.10 |
-| Field hint, chip sub, hint button | 5.35 | 5.97 |
-| Badge, success | 5.35 | 8.05 |
-| Standing line | 6.77 | 8.97 |
-| Panel title, switch text | 17.29 | 15.72 |
-| Page title | 15.39 | 16.94 |
-
-Worst text case in the system: **4.76:1 light, 5.97:1 dark**.
-
-**Non-text: 3:1.** Control edges 3.10 to 3.48 light and 3.09 to 3.79 dark; the
-focus ring 3.29 to 3.70 light and higher in dark, and white on the slab at
-10.20. The `--border`/`--border-strong` dividers sit at 1.16 and 1.27 and are
-exempt: they reinforce a separation the layout already states.
-
-**Colour never carries meaning alone.** A badge always prints its word beside
-its mark. A change is a direction word plus an arrow. A ring segment has its
-label and figure in the table beside it. A picker highlight is named by the
-pane it sits in and by the arrow buttons.
-
-**Target size: 24x24 minimum** for a discrete control. Row actions measure 28
-high; the hint button keeps a 16px mark with a transparent 24px pad; the rail
-back link carries `min-height: 24px`. Inline links inside a sentence or a
-breadcrumb trail are the documented exception.
-
-Plus: one `<h1>` per page (the page head's title), panels announced by
-`aria-labelledby`, `role="dialog"` with `aria-modal` and a focus contract on
-every overlay, no native `confirm()` or `alert()`, and `.v-sr` for text that
-only assistive technology needs.
-
----
-
-## 6. Conventions a contributor must follow
-
-1. **No CSS in a Blade file.** No `<style>` block, and no static `style=`
-   attribute. An Alpine `:style` binding carrying a record's own data (a
-   layer's position, a slide's colour) is the one exception, because that
-   value is data and cannot be named in a stylesheet.
-2. **Block-form `@php` only.** An inline `@php(...)` placed before any
-   `@php ... @endphp` block in the same file silently swallows the markup
-   between them and 500s the page. `view:cache` does not catch it. If a file
-   needs both, the block comes first.
-3. **A Blade directive inside an attribute passed to a COMPONENT is
-   never compiled.** `<x-admin.slate x-show="@js($x)">` reaches the
-   browser as the literal source text and Alpine throws a SyntaxError
-   on it; the settings hub shipped 21 of them and its search filtered
-   nothing. Build the expression in PHP and bind it (`:x-show="..."`).
-   A valueless directive has the same problem in reverse: `@click.stop`
-   on a component renders as `@click.stop="@click.stop"`, so write
-   `@click.stop=""`.
-4. **No em dashes.** Interface copy, documentation, commit messages.
-5. **No instructional interface text.** No help card, no paragraph under a
-   control explaining the control. Name the control well. A genuinely
-   non-obvious consequence goes in `x-admin.hint`; a single short line of
-   consequence may go in `x-admin.field`'s `help`, which renders as visible
-   prose, so keep it to one line. An empty state's `description` and a
-   `.v-panel__blank` line are sanctioned: they say what is not there.
-6. **Every copy button goes through `window.vCopy(text)`**
-   (`resources/js/admin/admin.js`), which returns a promise for a
-   boolean. `navigator.clipboard` exists only in a secure context and
-   the admin is browsed over plain http on a LAN address as often as
-   over https, so a bare `navigator.clipboard.writeText(...)` throws
-   before it copies and Alpine swallows the error: six copy buttons
-   shipped that way and every one of them did nothing, silently, on
-   the owner's own machine. The helper tries the async API, falls back
-   to a selection and `execCommand`, and when neither works says so in
-   a toast. Flip a "Copied" label only on a true return; a button that
-   could not copy must not claim it did.
-7. **Colour never alone**, tables scroll, icons from the component.
-8. **Both themes and 390 to 1440**, every time. Open the UI kit in both.
-9. **Real data.** The kit's fixtures are the longest real NGD product title
-   (103 characters), the longest real customer name (53), a nine-digit peso
-   total, a zero and a 27,709. A primitive that has not met them is untested:
-   the figure band's 390 layout collapsed under exactly that nine-digit
-   figure and nothing else caught it.
-10. **Any new primitive lands in the UI kit in the same commit**, in its real
-    states, and gains a class-name assertion in `tests/Feature/AdminV2/UiKitTest.php`.
-
----
-
-## 7. The gates
-
-Run all four before committing anything that touches a view or the layer.
-
-**Compiled-view lint.** The only thing that catches the `@php` fatal above:
-
-```bash
-php artisan view:clear && php artisan view:cache
-for f in storage/framework/views/*.php; do
-    php -l "$f" >/dev/null 2>&1 || echo "PARSE ERROR: $(tail -1 "$f")"
-done
-```
-
-Silence is a pass. It compiles all 285 views.
-
-**Build.** `npm run build` clean, then `php artisan view:clear`.
-
-**Tests.** `php artisan test --testsuite=Feature --filter=AdminV2` is green
-(569 passing). The full suite lands at 862 passed / 23 failed, which is the
-pre-existing storefront-auth baseline. A test pinning a class name or a token
-value gets **updated deliberately, never weakened**.
-
-**Eyes.** The UI kit at 1440 light, 1440 dark and 390, plus the screen you
-changed. Captures live in `.superpowers/design/shots/`.
-
----
-
-## 8. Known exceptions
-
-Each is deliberate, each is small, and each should shrink rather than grow.
-
-- `resources/css/admin/components/day-sheet.css` (105 lines) holds what is
-  genuinely only the dashboard's: its pulse-band titles, one money-alignment
-  exception, the ledger's "Bought" clamp, and which ledger column that page
-  can afford to drop when narrow.
-- `extensions/courier-fulfillment/resources/css/fulfillment.css` (140 lines) is
-  measurements of this module's own content and bindings to its own couriers:
-  four column widths, the two widths its booking sheet takes, the marker on a
-  manually arranged parcel, one inert field, and which artwork each courier's
-  `.v-choice__mark` plate carries. "Courier" and "status" are the module's
-  vocabulary, 170px is not a measurement this system has an opinion about, and
-  neither is whose logo is whose. The tile those logos sit on, its size, its
-  radius and how it greys are the layer's.
-- `tinymce.css` overrides a third-party skin and needs `!important` to reach
-  it.
-- The automations edit modal is hand-rolled rather than `x-admin.modal`,
-  because its body reads its own Alpine editor state. It carries `x-dialog`,
-  so it has the same focus contract every modal has.
-- `resources/views/auth/register.blade.php` and
-  `resources/views/auth/verify-email.blade.php` are Breeze scaffolding on
-  `<x-guest-layout>` with raw Tailwind greys and **no route reaches them**.
-  They are not part of this system. Delete them with their controllers, or
-  route and convert them; either is a decision.
+# Venta admin design record
+
+> **On the name (owner ruling 2026-08-21, card #133, LANDED):** the
+> system was built under the internal codename "v"; the product is
+> Venta 2, so on 2026-08-21 the whole vocabulary collapsed to the
+> version-free `v-` prefix and the `admin` directories, the legacy v2
+> layer was deleted, and this file replaced the old DESIGN.md as the
+> one record. Never add version-indexed names anywhere.
+
+The system of record for the v admin rebuild, written from the built
+world. Scope: `resources/css/admin/**`, `resources/js/admin/**`,
+`resources/views/components/admin/**`, and every page migrated to a
+v shell. The v2 layer is deleted; every page answers to this record. Where this file and the code disagree, one of them is
+fixed in the same commit.
+
+## The world
+
+ERP cousin, restated from zero. Identity carried: the azure slab
+(`--v-slab #1B3D5F`), brass as the only action color (`--v-act-fill
+#C0873A`, word stop `#8A5F1F`), Archivo for interface and JetBrains
+Mono rationed to identifiers and measurements. Everything else is
+v's own: tinted paper `#EDF1F7` under white sheets, two lifts, radii
+6/10/14, 36px controls, 130/230ms motion, light and dark themes both
+stated in `tokens.css` with AA-checked stops.
+
+## The two shells
+
+- `x-admin.shell`: no longer chrome of its own. Owner ruling
+  2026-08-17, sharpened twice in one day: first the lean object nav
+  was rejected for the classic grouped structure, then the deeper
+  verdict landed, that TWO chrome templates for one admin (different
+  slab widths, a topbar without the palette search, the account not
+  clickable, no theme switch) is "redundant, unnecessary, useless
+  and WRONG". The component is now a thin wrapper that renders the
+  classic `x-admin.shell` (one slab template, one topbar with
+  palette, theme switch and account, one toast layer, one command
+  palette) around a `.v .v-embed` ground div carrying the v
+  stylesheet. The v Alpine pieces (vForm, vSecret) live in
+  `resources/js/admin/register.js` and are registered by BOTH
+  bundles (`registerV()`), so the save doctrine runs on whichever
+  Alpine the page booted and no page ever loads two. The v dark
+  tokens flip with the classic theme switch. The classic sidebar carries work-waiting counts
+  (App\Support\NavBadges, cached 60s: Fulfillment to-ship, Reviews
+  pending) through the shell's existing badge lookup, adopted from
+  the v nav evaluation as its one surviving benefit; the
+  slab-to-strip structure itself was declined for work areas.
+- `x-admin.settings-shell` / `x-admin.seo-shell` (via
+  `space-shell`): conformed to the one chrome (owner ruling
+  2026-08-17). A space keeps what makes it a space, its grouped
+  context nav (248px, from `admin-settings-nav` / `admin-seo-nav`),
+  as a second column beside the classic sidebar, inside the classic
+  shell. The icon strip, the separate top band, and the seat-crossing
+  animation are gone with the separate document that needed them.
+  Below 1024px the context nav becomes the select picker. General is
+  general; a module's settings live with the module.
+
+## The save doctrine (the reason v exists)
+
+One page is one save scope. `x-admin.form` renders the form, CSRF,
+method spoof, and the save bar; a page cannot opt out.
+
+- `vForm` (admin.js) snapshots the form's serialized fields on
+  load, flips `dirty` on any input/change, and un-dirties when edits
+  revert to the baseline.
+- The save bar (`.v-savebar`) is a slab-colored band that descends
+  from the top edge when dirty: brass dot, "Unsaved changes"
+  (role="status"), quiet Discard, brass Save. Inert while hidden.
+- `beforeunload` guards navigation while dirty. Submit releases the
+  guard; Discard reloads, because the server's truth is the only
+  clean state worth restoring.
+- Dynamic editors (rows added/removed outside input events) call the
+  parent's `touch()` from markup expressions. Inside `vForm`, the
+  form element lives in a closure, never `this.$el`: a method invoked
+  through a child scope chain sees the child's element.
+- Flash messages state persisted facts only: real counts, dropped
+  rows named. A toast never lies.
+- Validation failures round-trip the merchant's edits: dynamic
+  editors seed from `old(...)` before falling back to the database.
+
+## Layout law: the measure centers
+
+Content lives in a 1080px measure, sized for the standard laptop and
+1080p majority, and it CENTERS in whatever space the nav columns
+leave. No v surface anchors content off-center; slack on an
+ultrawide splits evenly and is the normal cost of a bounded measure,
+never a reason to stretch or hug. One measure everywhere, tables and
+forms alike (owner-directed 2026-08-16).
+
+## Spaces (the context nav, kept; the chrome, unified)
+
+`x-admin.space-shell` no longer owns a document. It renders the
+classic shell with the space's grouped context nav as a second
+column beside the main sidebar; Settings and SEO wear it through
+thin wrappers (`settings-shell`, `seo-shell`) that only resolve
+their registries (`admin-settings-nav`, `admin-seo-nav`). The
+condensed icon rail, the space top band, and the seat-crossing
+animation retired with the separate chrome (owner ruling
+2026-08-17: one admin, one chrome; the crossing had nothing left to
+cross). A space never subtracts from the main sidebar; its parent
+stays visible and lit (SEO under Marketing). Trap to remember:
+Blade directives (@js) never compile inside COMPONENT-TAG
+attributes; use {{ }} interpolation there (this bug shipped and was
+caught in verification).
+
+## Nav components
+
+- `x-admin.rail`: deleted entirely. The full rendition went with
+  the one-nav ruling; the condensed icon strip went when the spaces
+  conformed to the one chrome and stopped needing a stand-in for the
+  main menu. One nav template remains: the classic slab.
+  `config/admin3-nav.php` was deleted with the rail.
+- Motion architecture, final form: NO view transitions anywhere.
+  The opt-in was tried as a frame-hold against the white inter-page
+  flash and measurably EXTENDED the blank gap instead (owner saw it
+  worse than main; screencast frame analysis confirmed the document
+  swap gap shrank from 244ms to 176ms when the opt-in was removed).
+  Two defenses replace it: (1) theme-boot paints the html element
+  with the app's own SILHOUETTE pre-CSS (azure nav band + paper,
+  per theme; shells override --boot-band, settings uses 56px), so
+  any between-pages frame wears the app's frame, never white;
+  (2) Alpine starts one frame after first paint (double rAF in
+  app.js/admin.js) so script work never delays the first frame
+  past the browser's native paint holding. Do not reintroduce
+  @view-transition.
+- The crossing move is Venta's own, named "taking a seat", built
+  inside the world's motion tokens (130/230ms), not any reference
+  product's. Furniture never travels: the rail, the slab, and both
+  grounds appear seated instantly. What animates is the menu
+  contents. Entering Settings the menu's children slide in 26px and
+  settle over 180ms (cubic-bezier(0.16,1,0.3,1)) with a 25ms
+  cascade capped at 100ms (owner correction round: more pronounced
+  and faster than the first 12px/230ms cut), then the brass wash
+  IGNITES on the active item, a 130ms stamp delayed 140ms (the one
+  branded moment; plays only when a section is active, so the hub
+  stays quiet). Leaving, the slab's brand and nav take their seat
+  as one piece, same clock. The icon rail's labels are INSTANT
+  PILLS (.v-irail__tip): a slab-colored pill beside the hovered or
+  focused icon, 60ms reveal, replacing the browser's slow native
+  title tooltips (removed from the rail; aria-labels stay). Scoped
+  to the rail by owner choice. The
+  shells' pre-paint head scripts decide it (`v-cross`/`v-cross`)
+  from navigation.activation against window.__vSettingsRoot.
+  Transform and opacity only: deterministic in every browser, never
+  freezes input. Within Settings and between work pages NOTHING
+  moves. Desktop only; reduced motion collapses everything. In the
+  main menu Settings is a flat door item, not a dropdown;
+  `AdminNav::sidebarGroups()` (the old dropdown expansion) is gone.
+- `x-admin.context-nav`: any second menu column beside the rail
+  (settings today, a module's sections tomorrow). Caller passes
+  resolved groups with urls; the component lists them and knows
+  nothing else.
+- The shells compose these; nav markup lives nowhere else.
+
+## Rules the layer depends on
+
+1. Everything at one class (`v-` prefix). Element resets in
+   `base.css` sit at `:where()` zero specificity so primitives always
+   outrank them on document order. No Tailwind in v markup.
+2. No CSS in Blade files, including `style=` attributes. Structural
+   spacing uses the layer's spacers (`v-gap`, `v-gap-lg`,
+   `v-span2`, `v-narrow`, `v-block`).
+3. Icons come from `x-admin.icon`: one 24 grid, 1.75 stroke, one
+   path per name. Adjacent nav items never share a glyph.
+4. Browser surfaces are themed: selection, caret, scrollbars, one
+   focus grammar (`--v-focus` ring at 3:1+).
+5. Content arrives settled: no per-page entrance animation
+   (`.v-settle` is a plain wrapper; its fade was retired 2026-08-16
+   after it read as "the content animates, the nav does not"). The
+   NAV owns arrival motion: the rail morph on view-transition
+   crossings, and the `.v-arrive` slide-in entrance when no
+   transition ran (hard entry, refresh, bookmark, or a browser
+   without cross-document view transitions, e.g. Firefox); a
+   settings-to-settings referrer replays nothing. Reduced motion
+   collapses all of it.
+6. No em dashes anywhere, comments included.
+6b. No instructional text prints on a page. A field's explanation
+   lives behind `x-admin.help`, the question mark beside the label
+   (hover or focus reveals it); `x-admin.field` routes its `hint`
+   prop there automatically, and `x-admin.panel` routes its `note`
+   prop the same way. Inputs carry NO example placeholders ("e.g.
+   ..." belongs in a hint when the format genuinely needs showing,
+   otherwise nowhere); placeholders that show live state (the
+   current default, the signed-in email) are state, not instruction,
+   and stay. Inside a toggle's label the mark guards against
+   activating the control. Validation errors, dynamic tails, and
+   conditional warnings stay inline; only instruction hides.
+7. Both themes, 390 to 1440, every page; the v2 gates (compiled-view
+   lint, build, suite) still apply.
+8. A list page's rows are plain server HTML, visible before any
+   JavaScript. Per-row x-if edit templates hide the data until
+   Alpine boots (owner-reported blank courier list on slow loads)
+   and stall boot at scale (250-row localization). x-if stays for
+   modals and interaction-gated editors only.
+8b. Editing a record navigates to a DEDICATED page with its own
+   doctrine form (couriers set the pattern, owner ruling: the
+   populate-a-panel-above shared editor was near-invisible
+   feedback). Localization's shared editors are the remaining users
+   of the old idiom, pending the same treatment.
+8c. Control vocabulary: the SWITCH (label.v-toggle with track) is
+   the only boolean-state control, everywhere; a bare checkbox
+   (v-check) means multi-selection (picklists, bulk select, the
+   permissions matrix); a radio means one-of-many (default status).
+   The hidden-0 companion input always rides the switch.
+
+## Doctrine mechanics added in round two
+
+- One submit may carry several setting groups
+  (`groups[checkout][...]` + `groups[stock][...]`);
+  `SettingController::updateGroups` validates everything before the
+  first write.
+- `window.vPost(url, data)`: every in-page action button (test
+  sends, generators) POSTs JSON, never navigates, and toasts the
+  server's own verdict.
+- Test buttons test the values as typed: `testMail` accepts an
+  `override` block applied to this request's mailer only, with a 10s
+  transport cap so a dead host answers fast.
+- `x-admin.secret` (logic in `Alpine.data('vSecret')`): a stored
+  key rendered as twelve bullets plus its last-4 tail (passwords:
+  bullets only), read-only at rest. View fetches the plaintext on
+  demand through the hard-allowlisted `settings.reveal-secret`
+  endpoint; nothing decrypted ever rides in a rendered page. Edit
+  replaces; blank on submit means keep. Cancel re-checks the form on
+  the next tick so a clean form never shows the save bar.
+- Destructive in-page actions (mark removal) run in place through
+  `vPost` behind a two-step arm-confirm button (4s disarm), so
+  typed edits elsewhere on the page survive them.
+
+## Save-scope law (owner ruling, 2026-08-16)
+
+ONE saving process everywhere (owner ruling, same day, superseding
+the earlier directory exception): every STATE control on a page,
+toggles included, rides that page's doctrine form and save bar.
+Nothing auto-saves. Payments and shipping directories, the payment
+method pages' header toggles, email templates, automations, and
+localization's three tabs all converted; bulk row endpoints
+(update-all) carry tables, and the shared settings.update endpoint
+carries grouped keys. Only true one-shot ACTIONS stay instant:
+Run now, Delete, Set default, Regenerate, test sends; each is a
+verb with its own confirm or toast, never a switch. Record editors
+opened by an explicit Edit still save per record (their Save is an
+action on that record). The test: a switch or checkbox NEVER talks
+to the server by itself.
+
+## Savebar standardization sweep (owner directive, 2026-08-17)
+
+Every form whose fields are typeable without pressing Edit first wears
+x-admin.form, no exceptions and no inline Save buttons. Swept in this
+round: the payment availability rule (was a plain form with Save rule),
+and the theme page's per-section, footer bulk, and theme-options forms.
+Still legitimately OUTSIDE the bar: Add-row create forms (verbs), the
+automations schedule modal, slug/redirect/localization editors gated
+behind an Edit press, and module Install/Enable verbs.
+
+Multiple doctrine forms per page each carry their own fixed savebar;
+only a dirty form's bar shows, and editing two at once overlaps them,
+which is accepted (payments index set the precedent).
+
+Mechanics added: `.v-passthru` (display: contents) on the confirm
+component's root so hidden confirm wrappers never eat a settle-owl slot;
+tab content wrappers on tabbed pages carry `.v-settle` themselves
+(payments show was missing it, cards sat too close). Record creation
+gets dedicated pages: bank accounts now have create + edit pages, and
+the populate-above Add panel is gone.
+
+## Extension sweep (owner directive, 2026-08-17, second round)
+
+The courier-fulfillment admin surfaces now wear v: the module hub,
+status placement, per-courier pages (schema-field partial rewritten in
+v vocabulary), and pickup addresses (index + form). The banners GROUP
+form is v and is the first consumer of the full-rail x-admin.shell.
+Pickup addresses were also DECOUPLED from core Shipping (owner: core
+shipping is the manual process; the module hub owns the link), and
+ShippingPageTest now guards the decoupling.
+
+New doctrine mechanic: vForm.rebaseline() — an async widget that
+hydrates field values after load (the pickup address cascade restoring
+saved dropdowns) calls it when hydration settles, so restored state is
+clean state, not a phantom edit. Dynamic editors that mutate hidden
+serialized inputs (the SPX pouch-preset rows) call touch() on add and
+remove, because Alpine :value bindings fire no input events.
+
+Secrets on v courier pages are never rendered, even masked: the field
+shows a password box whose help mark names the identifying tail; blank
+keeps the stored value (persist() already skips empty encrypted keys).
+
+Still v2, waiting for its own wave: the reviews pages (Sales area).
+
+## Migrated so far
+
+- Settings landing (`admin/settings/hub.blade.php`): grouped
+  reading-density rows with search and a zero-match empty state.
+- Geo zone editor (`admin/settings/localization/geo-zone-edit`): the
+  doctrine's proof page; one form saves zone and entries in one
+  transaction (`LocalizationController::updateGeoZone`).
+- General (`sections/general`): identity, marks, and defaults in one
+  save (`StoreIdentityController::update` carries the groups payload).
+- Notifications (`sections/mail`): server + sender in one save, the
+  password masked, and a test that never navigates.
+- Checkout & Stock (`sections/checkout`): two setting groups, one save.
+- Security (`sections/security`): admin path + Turnstile in one save,
+  the secret key masked.
+
+- Currencies, API & Sync (sections): row-record saves through the
+  id'd-form idiom, reveal-safe token notice, confirm dialogs.
+- Orders (statuses), Couriers & Tracking: editable row tables with
+  per-record saves and add panels.
+- Email Templates (index + editor): submit-toggle in the list;
+  TinyMCE wired into the dirty doctrine (editor edits summon the
+  save bar); test send in place via vPost; copyable placeholders.
+- Users (index + form), Permissions: CRUD table, doctrine form, and
+  the role matrix under one save.
+
+- Stock Alerts: stat figures, tab bar (?tab= preserved), bulk
+  select with a live-count confirm, and the alert template under
+  the doctrine with TinyMCE wired in.
+
+- Abandoned Carts (extension, all nine views): ops worklist in Sales
+  (stats, filterbar, pager, confirm dialogs) with the tab trio and one
+  labeled Settings crossing; config trio (settings, rules, templates)
+  behind Extensions with its own tab bar and Carts-workspace crossing;
+  the settings toggles, rule form, and template form (TinyMCE) all
+  under the doctrine savebar.
+
+- Extensions (wave 0, complete): a top-level area beside Settings,
+  never inside it. The sidebar's Extensions group (between Marketing
+  and Settings) holds its three children per the blessed draft: All
+  Extensions (the directory at /extensions), Payments (the
+  payment-methods category, re-homed from Settings with bank
+  accounts and restrictions), and Shipping (the numbered rate chain,
+  the rate tester, and the Couriers section — owner ruling: couriers
+  are part of shipping). Every extension's settings mount at
+  extensions/{name}; path-preserving 301s cover the old
+  settings/modules, settings/payments, and settings/shipping trees.
+  Settings is core-only again (Store / Operations / Access groups).
+  The guardrail: disabling the last payment or shipping method is
+  allowed but the category page says loudly that the storefront
+  cannot check out. ONE directory list, no Uninstall button. An
+  extension's own gates read its own manifest, never a core registry
+  (the fulfillment configure gate is the precedent).
+  Rows sort alphabetically; the filesystem difference shows only in
+  a row's actions: extensions/ modules offer Install/Update (their
+  migrations) + Enable/Disable via ExtensionManager, app/ features
+  offer the master switch (App\Support\CoreFeatures, settings group
+  `features`, opt-out defaults like fulfillment's): off hides the
+  nav entry (admin-nav `enabled_setting`) and no-ops the scheduled
+  commands, while Configure stays reachable. The uninstall lifecycle
+  survives in ExtensionManager (and its routes) for third-party
+  extensions that arrive from outside the repo.
+
+- Theme: the critique's worst multi-save offender rebuilt as ONE
+  doctrine form spanning seven settings tabs (colors, fonts, header,
+  product page, category page + filters, badges, blog); record tabs
+  (navigation, homepage sections, footer columns, theme options) are
+  sibling panels with record-scoped forms; the storefront switch and
+  the colors-and-fonts revert both confirm first; drag reorder toasts
+  its verdict.
+
+- Shipping: numbered provider chain, rate tester posting via vPost,
+  pickup address card; DHL, flat rate, free shipping (+ rules with
+  picklist conditions), and weight-based (bulk one-save with
+  expandable drag cards) each carry their own doctrine form.
+
+- Payments: directory rows with enable toggles and restriction
+  summaries; per-method pages tab Configuration / Availability.
+  Enable toggles submit through hidden sibling forms (the
+  form="" attribute idiom) so they never nest inside the doctrine
+  form. The availability rule is a record-scoped editor whose
+  summary resolves ids to names; bank accounts are row records
+  with a v edit page. HitPay credential hints show only the
+  last-4 tail, with neutral wording when decryption fails.
+
+- Localization: countries, zones, and geo zones under one tab bar.
+  250 country rows stay plain HTML with ONE shared editor panel;
+  per-row x-if edit templates at that scale stall Alpine's boot.
+  Toggles post through vPost with optimistic flip and rollback.
+
+- Automations: crontab notice with copy, schedule table with
+  optimistic toggles and dimmed disabled rows, a hand-rolled v
+  modal for the schedule editor (live preview text + cron), and a
+  JS-resolving run-now confirm. The x-admin.confirm component only
+  fits form-action confirms; JS-callback confirms hand-roll the
+  same v-overlay/v-modal structure.
+
+- Banners: groups index, slides list (bg colour as an SVG rect
+  presentation attribute), and the slide editor as a doctrine form
+  around an inner-div Alpine canvas; layer JSON and image picks
+  signal dirty through bubbled change events.
+
+- Orders: index with a GET filter bar and tone-mapped status badges;
+  order view as v-editcols (facts, addresses, products + ledger,
+  tracking left; the Update-order verb form and the history feed
+  right); order create/edit as ONE doctrine form spanning Details /
+  Products tabs. The customer and product pickers are v-combo
+  menus, Existing/New customer is a v-seg switch, and line items
+  are editable rows in a v-table with a v-facts totals box. The
+  async hydration chain (address cascades, then method fetches)
+  awaits fully and then dispatches v-rebaseline, so a restored
+  order loads clean. Naming: `.v-facts` is the generic label/value
+  dl; the flush totals strip under a products table is `.v-ledger`
+  (one class, one shape — the earlier double definition broke both).
+
+- Fulfillment queue + returns: the flagship work surface. Counted
+  tab bar as v-tabs anchors (data-count-for hooks preserved for the
+  tab-set tests), the To Ship sub-bar, the handover tally, the
+  two-tier table (v-tier band + item rows + rowspanned fact cells),
+  the detail drawer (v-drawer: stepper, event list, kv summaries),
+  and the booking modal (v-choicecard verdict cards with courier
+  marks, the courier form, the manual record form). All actions are
+  verbs — no doctrine form on the page. Confirm dialogs moved to
+  x-admin.confirm ($dispatch('v-confirm', name)). The module's
+  fulfillment.css retokened to v vars; only widths, marks, and the
+  pickup-page floors stay page-specific.
+
+New shared piece: x-admin.pager — the stepped "N to M of T" pager
+(range left, Previous/Next right, hrefs echoed exactly once). Every
+v index page now uses it; a bare {{ links() }} renders the stock
+Tailwind view whose classes are dead in the admin shell. And
+.v-modal carries white-space: normal, so a confirm rendered inside
+a nowrap table action cell wraps its message (the queue's regression
+test pins this at the component level now).
+
+- Customers (index, groups, and the customer form as one doctrine
+  form spanning General / Addresses / Activity tabs; the address
+  cascades hydrate fully and rebaseline; the store-credit panel rides
+  along in v dress).
+- Content: Pages (TinyMCE wired to the doctrine), the blog extension
+  (posts, categories, the featured-image browser on the v media
+  modal), and the coupons work pages (list + form with v-combo
+  restriction pickers).
+- Catalog, the closing wave: products index and the six-tab product
+  form as one doctrine form (brand combo, variant matrix and specials
+  as v tables that touch() the bar, combination rebuilds
+  rebaseline), categories as a nested v-dragrow list whose reorder
+  toasts its verdict, brands, tags, and the media manager. The shared
+  image picker and the product image manager re-shipped as v
+  partials (single_image_picker, image_manager) with new
+  tokens: v-mediagrid, v-imgpreview, v-imgcard, v-tilewrap /
+  v-tileacts, v-dropwrap / v-dropzone, v-dragnest, v-tilemark,
+  and control-level is-invalid.
+- The day sheet (dashboard): its owner-approved composition kept
+  whole (it already speaks the Blotter identity) and mounted on the
+  v shell; the ui-kit specimen page likewise.
+
+The v2-to-v shell conversion is COMPLETE: no admin page renders
+x-admin.shell directly anymore. The classic chrome and the v2
+primitive layer (x-admin.page, figure, money, panel, table) survive
+as the shared chrome and the day sheet's vocabulary, both rendered
+inside the one v ground.

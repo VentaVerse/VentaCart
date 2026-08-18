@@ -23,6 +23,6 @@ class ShellTest extends TestCase
         $this->assertStringContainsString('$store.toasts', $html);
     }
 
-    // The x-admin.page primitive retired with the v2 layer; the v3
-    // pages carry their own head band (v3-head / v3-day__head).
+    // The x-admin.page primitive retired with the v2 layer; the v
+    // pages carry their own head band (v-head / v-day__head).
 }

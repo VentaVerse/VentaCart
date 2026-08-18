@@ -9,11 +9,11 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * Task W1 (fulfillment-workflow-v2 plan) + fulfillment-tabs-v3 Task 2: the
+ * Task W1 (fulfillment-workflow-v2 plan) + fulfillment-tabs-v Task 2: the
  * common fulfillment status spine's tone map. Table from
  * docs/superpowers/specs/2026-08-08-fulfillment-workflow-v2-design.md Part 1
  * (the original bucket name was renamed to `to_pack` by Task 2, per
- * docs/superpowers/specs/2026-08-08-fulfillment-tabs-v3-design.md) — success
+ * docs/superpowers/specs/2026-08-08-fulfillment-tabs-v-design.md) — success
  * spent ONLY on to_pack, delivered is neutral (not green), failed/cancelled
  * are danger, returning/unpaid are warning (both "chaseable" per the ERP
  * tone philosophy), everything else (the courier has it, or is creating the
@@ -75,7 +75,7 @@ class PhaseToneTest extends TestCase
     }
 
     /**
-     * Rename totality (fulfillment-tabs-v3 Task 2): the spine's exact
+     * Rename totality (fulfillment-tabs-v Task 2): the spine's exact
      * membership, byte-for-byte — proves the pre-Task-2 bucket name is gone
      * (an exact-list assertSame() catches an extra/leftover entry that a
      * mere assertContains() on the replacement wouldn't), `to_pack` is its

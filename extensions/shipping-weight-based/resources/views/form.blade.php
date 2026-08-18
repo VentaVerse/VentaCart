@@ -1,14 +1,14 @@
-<x-admin3.shell :title="$method ? 'Edit weight-based method' : 'Add weight-based method'">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+<x-admin.shell :title="$method ? 'Edit weight-based method' : 'Add weight-based method'">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.shipping-settings.index') }}">Shipping</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.shipping-settings.weight-based') }}">Weight Based</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $method?->admin_name ?: ($method?->name ?? 'New') }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $method ? ($method->admin_name ?: $method->name) : 'Add weight-based method' }}</h1>
+            <h1 class="v-head__title">{{ $method ? ($method->admin_name ?: $method->name) : 'Add weight-based method' }}</h1>
         </div>
     </div>
 
@@ -19,8 +19,8 @@
         }
     @endphp
 
-    <x-admin3.form :action="$method ? route('admin.weight-based-methods.update', $method) : route('admin.weight-based-methods.store')"
-                   :method="$method ? 'PUT' : 'POST'" class="v3-settle">
+    <x-admin.form :action="$method ? route('admin.weight-based-methods.update', $method) : route('admin.weight-based-methods.store')"
+                   :method="$method ? 'PUT' : 'POST'" class="v-settle">
       <div x-data="{
             rates: @js($ratesData),
             addRate() {
@@ -32,83 +32,83 @@
                 });
             },
         }">
-        <x-admin3.panel title="Method">
-            <div class="v3-grid v3-grid--2">
-                <x-admin3.field name="admin_name" label="Admin name" hint="Never shown to customers. Blank copies the checkout name.">
-                    <input type="text" name="admin_name" class="v3-control"
+        <x-admin.panel title="Method">
+            <div class="v-grid v-grid--2">
+                <x-admin.field name="admin_name" label="Admin name" hint="Never shown to customers. Blank copies the checkout name.">
+                    <input type="text" name="admin_name" class="v-control"
                            value="{{ old('admin_name', $method?->admin_name) }}">
-                </x-admin3.field>
-                <x-admin3.field name="name" label="Checkout name" required>
-                    <input type="text" name="name" required class="v3-control"
+                </x-admin.field>
+                <x-admin.field name="name" label="Checkout name" required>
+                    <input type="text" name="name" required class="v-control"
                            value="{{ old('name', $method?->name) }}">
-                </x-admin3.field>
+                </x-admin.field>
             </div>
-            <div class="v3-gap v3-actrow">
-                <x-admin3.field name="sort_order" label="Sort order">
-                    <input type="number" name="sort_order" class="v3-control v3-mono v3-w-sort" value="{{ old('sort_order', $method?->sort_order ?? 0) }}">
-                </x-admin3.field>
-                <label class="v3-toggle">
+            <div class="v-gap v-actrow">
+                <x-admin.field name="sort_order" label="Sort order">
+                    <input type="number" name="sort_order" class="v-control v-mono v-w-sort" value="{{ old('sort_order', $method?->sort_order ?? 0) }}">
+                </x-admin.field>
+                <label class="v-toggle">
                     <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $method?->is_active ?? true))>
-                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    <span class="v-toggle__track" aria-hidden="true"></span>
                     Active
                 </label>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.panel title="Weight tiers">
+        <x-admin.panel title="Weight tiers">
             <x-slot:acts>
-                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="addRate(); touch()">
-                    <x-admin3.icon name="plus" /> Add tier
+                <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="addRate(); touch()">
+                    <x-admin.icon name="plus" /> Add tier
                 </button>
             </x-slot:acts>
             <template x-if="rates.length > 0">
                 <div>
                     <template x-for="(rate, i) in rates" :key="i">
-                        <div class="v3-row">
-                            <input type="number" :name="'rates['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0" aria-label="Weight from (kg)" class="v3-control v3-mono">
-                            <input type="number" :name="'rates['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0" aria-label="Weight to (kg)" class="v3-control v3-mono">
-                            <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" aria-label="Cost (₱)" class="v3-control v3-mono">
-                            <button type="button" class="v3-row__x" @click="rates.splice(i, 1); touch()" aria-label="Remove tier"><x-admin3.icon name="x" /></button>
+                        <div class="v-row">
+                            <input type="number" :name="'rates['+i+'][weight_from]'" x-model="rate.weight_from" step="0.001" min="0" aria-label="Weight from (kg)" class="v-control v-mono">
+                            <input type="number" :name="'rates['+i+'][weight_to]'" x-model="rate.weight_to" step="0.001" min="0" aria-label="Weight to (kg)" class="v-control v-mono">
+                            <input type="number" :name="'rates['+i+'][cost]'" x-model="rate.cost" step="0.01" min="0" aria-label="Cost (₱)" class="v-control v-mono">
+                            <button type="button" class="v-row__x" @click="rates.splice(i, 1); touch()" aria-label="Remove tier"><x-admin.icon name="x" /></button>
                         </div>
                     </template>
                 </div>
             </template>
             <template x-if="rates.length === 0">
-                <div class="v3-empty">
-                    <p class="v3-empty__title">No weight tiers yet</p>
-                    <p class="v3-empty__line">The method quotes nothing until a tier covers the cart's weight.</p>
+                <div class="v-empty">
+                    <p class="v-empty__title">No weight tiers yet</p>
+                    <p class="v-empty__line">The method quotes nothing until a tier covers the cart's weight.</p>
                 </div>
             </template>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <div class="v3-grid v3-grid--2 v3-gap">
-            <x-admin3.panel title="Geo zones" note="None checked quotes for every zone.">
+        <div class="v-grid v-grid--2 v-gap">
+            <x-admin.panel title="Geo zones" note="None checked quotes for every zone.">
                 @php $selectedGeoZones = collect(old('geo_zone_ids', $method?->geoZones?->pluck('id')->toArray() ?? []))->map(fn ($v) => (int) $v)->all(); @endphp
-                <div class="v3-checklist">
+                <div class="v-checklist">
                     @foreach ($geoZones as $zone)
-                        <label class="v3-check">
+                        <label class="v-check">
                             <input type="checkbox" name="geo_zone_ids[]" value="{{ $zone->id }}" @checked(in_array($zone->id, $selectedGeoZones, true))>
                             {{ $zone->name }}
                         </label>
                     @endforeach
                     @if ($geoZones->isEmpty())
-                        <p class="v3-cell-quiet">No geo zones configured.</p>
+                        <p class="v-cell-quiet">No geo zones configured.</p>
                     @endif
                 </div>
-            </x-admin3.panel>
-            <x-admin3.panel title="Customer groups" note="None checked quotes for every customer.">
+            </x-admin.panel>
+            <x-admin.panel title="Customer groups" note="None checked quotes for every customer.">
                 @php $selectedGroups = collect(old('customer_group_ids', $method?->customerGroups?->pluck('id')->toArray() ?? []))->map(fn ($v) => (int) $v)->all(); @endphp
-                <div class="v3-checklist">
+                <div class="v-checklist">
                     @foreach ($customerGroups as $group)
-                        <label class="v3-check">
+                        <label class="v-check">
                             <input type="checkbox" name="customer_group_ids[]" value="{{ $group->id }}" @checked(in_array($group->id, $selectedGroups, true))>
                             {{ $group->name }}
                         </label>
                     @endforeach
                 </div>
-            </x-admin3.panel>
+            </x-admin.panel>
         </div>
       </div>
-    </x-admin3.form>
-</x-admin3.shell>
+    </x-admin.form>
+</x-admin.shell>

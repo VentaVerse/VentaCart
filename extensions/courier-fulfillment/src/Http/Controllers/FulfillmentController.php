@@ -61,7 +61,7 @@ class FulfillmentController extends Controller
 
     public function index(Request $request)
     {
-        // fulfillment-tabs-v3 Task 3: legacy alias, resolved BEFORE anything
+        // fulfillment-tabs-v Task 3: legacy alias, resolved BEFORE anything
         // else (no settings lookup, no query) — a bookmarked old link must
         // redirect even while the queue is paused. Every OTHER query param
         // (search, per_page, page) rides along unchanged via except(); only
@@ -846,7 +846,7 @@ class FulfillmentController extends Controller
 
     /**
      * Cancel the courier BOOKING (never the order itself — that's
-     * cancelOrder() below). fulfillment-tabs-v3 Task 4 semantics: once the
+     * cancelOrder() below). fulfillment-tabs-v Task 4 semantics: once the
      * courier CONFIRMS the cancel (the outbound call itself is unchanged —
      * QuadX/SPX's own cancelShipment() contracts are frozen by their tests),
      * the previous booking is snapshotted into courier_meta.booking_history
@@ -875,7 +875,7 @@ class FulfillmentController extends Controller
     }
 
     /**
-     * fulfillment-tabs-v3 Task 4: the REAL order cancel — sets the core
+     * fulfillment-tabs-v Task 4: the REAL order cancel — sets the core
      * order status to the module setting `cancel_order_status_id` (default:
      * the status named "Canceled"; configurable on the fulfillment settings
      * hub) through the SAME status-change path the admin order page uses

@@ -1,4 +1,4 @@
-<x-admin3.shell title="Returns" active="fulfillment">
+<x-admin.shell title="Returns" active="fulfillment">
     @push('head')
         @vite('extensions/courier-fulfillment/resources/css/fulfillment.css')
     @endpush
@@ -6,20 +6,20 @@
          failed. Booking, cancelling, and the drawer stay on the main
          queue; the full customer-initiated RMA process (refunds,
          restock) is a distinct product feature, tracked separately. --}}
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <span>Sales</span>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.fulfillment.index') }}">Fulfillment</a>
                 <span aria-hidden="true">/</span>
                 <span>Returns</span>
             </div>
-            <h1 class="v3-head__title">Returns</h1>
-            <p class="v3-head__standing">On their way back, or stuck in a failed courier state</p>
+            <h1 class="v-head__title">Returns</h1>
+            <p class="v-head__standing">On their way back, or stuck in a failed courier state</p>
         </div>
-        <div class="v3-head__actions">
-            <a href="{{ route('admin.fulfillment.index') }}" class="v3-btn v3-btn--secondary">All shipments</a>
+        <div class="v-head__actions">
+            <a href="{{ route('admin.fulfillment.index') }}" class="v-btn v-btn--secondary">All shipments</a>
         </div>
     </div>
 
@@ -39,22 +39,22 @@
             return $statusLabelsByProvider[$provider][$status] ?? ucwords(str_replace('_', ' ', $status));
         };
 
-        // The queue's shared tone words mapped onto the v3 badge vocabulary.
+        // The queue's shared tone words mapped onto the v badge vocabulary.
         $badgeTone = fn (string $tone) => [
             'neutral' => 'quiet', 'success' => 'good', 'warning' => 'warn',
             'danger' => 'bad', 'info' => 'info',
         ][$tone] ?? 'quiet';
     @endphp
 
-    <div class="v3-settle">
-        <x-admin3.panel flush>
-            <div class="v3-tablewrap">
-                <table class="v3-table">
+    <div class="v-settle">
+        <x-admin.panel flush>
+            <div class="v-tablewrap">
+                <table class="v-table">
                     <thead>
                         <tr>
                             <th>Order</th>
-                            <th class="v3-w-courier">Courier</th>
-                            <th class="v3-w-status">Status</th>
+                            <th class="v-w-courier">Courier</th>
+                            <th class="v-w-status">Status</th>
                             <th>Last event</th>
                             <th>Created</th>
                         </tr>
@@ -88,38 +88,38 @@
                         @endphp
                         <tr>
                             <td>
-                                <a class="v3-rowlink v3-mono" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
+                                <a class="v-rowlink v-mono" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
                             </td>
-                            <td class="v3-w-courier">
-                                <span class="v3-lead">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
+                            <td class="v-w-courier">
+                                <span class="v-lead">{{ $orderCourier?->getName() ?? (strtoupper((string) $order->courier_provider) ?: '-') }}</span>
                                 @if ($order->courier_tracking_number)
-                                    <span class="v3-cell-quiet v3-mono v3-block">{{ $order->courier_tracking_number }}</span>
+                                    <span class="v-cell-quiet v-mono v-block">{{ $order->courier_tracking_number }}</span>
                                 @endif
                             </td>
-                            <td class="v3-w-status">
-                                <div class="v3-cellstack">
-                                    <span class="v3-badge v3-badge--{{ $badgeTone($spineTone) }}">{{ $spineLabel }}</span>
+                            <td class="v-w-status">
+                                <div class="v-cellstack">
+                                    <span class="v-badge v-badge--{{ $badgeTone($spineTone) }}">{{ $spineLabel }}</span>
                                     @if ($order->courier_status)
-                                        <span class="v3-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
+                                        <span class="v-cellstack__note">{{ $humanizeStatus((string) $order->courier_status, $order->courier_provider) }}</span>
                                     @endif
                                 </div>
                             </td>
                             <td>
                                 @if ($lastEvent)
                                     {{ $humanizeStatus((string) $lastEvent['status'], $order->courier_provider) }}
-                                    <span class="v3-cell-quiet v3-block">{{ \Carbon\Carbon::createFromTimestamp($lastEvent['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia') }}</span>
+                                    <span class="v-cell-quiet v-block">{{ \Carbon\Carbon::createFromTimestamp($lastEvent['at'])->timezone(config('app.timezone'))->format('M j, Y g:ia') }}</span>
                                 @else
-                                    <span class="v3-cell-quiet">-</span>
+                                    <span class="v-cell-quiet">-</span>
                                 @endif
                             </td>
-                            <td class="v3-cell-quiet">{{ optional($order->created_at)->format('M d, Y g:ia') }}</td>
+                            <td class="v-cell-quiet">{{ optional($order->created_at)->format('M d, Y g:ia') }}</td>
                         </tr>
                     @empty
                         <tr>
                             <td colspan="5">
-                                <div class="v3-empty">
-                                    <p class="v3-empty__title">Nothing coming back</p>
-                                    <p class="v3-empty__line">No orders are currently returning to you or stuck in a failed courier state.</p>
+                                <div class="v-empty">
+                                    <p class="v-empty__title">Nothing coming back</p>
+                                    <p class="v-empty__line">No orders are currently returning to you or stuck in a failed courier state.</p>
                                 </div>
                             </td>
                         </tr>
@@ -127,8 +127,8 @@
                     </tbody>
                 </table>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.pager :paginator="$orders" />
+        <x-admin.pager :paginator="$orders" />
     </div>
-</x-admin3.shell>
+</x-admin.shell>

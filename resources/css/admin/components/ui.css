@@ -1,0 +1,1539 @@
+/* ============================================================
+   Venta Admin v , foundation primitives
+   ============================================================
+   Everything at one class. A rule that must win over a primitive
+   wins on document order, never specificity. Split this file per
+   family once the area migrations grow it past its welcome.
+   ============================================================ */
+
+/* --- Sheet and panel ---------------------------------------- */
+
+.v-panel {
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-lg);
+    box-shadow: var(--v-lift);
+}
+.v-panel + .v-panel { margin-top: 18px; }
+.v-panel__head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px var(--v-pad) 0;
+}
+.v-panel__title { font-size: 14px; font-weight: 640; }
+.v-panel__note { font-size: 12.5px; color: var(--v-ink-3); margin-top: 2px; }
+.v-panel__acts { margin-left: auto; display: flex; gap: 8px; }
+.v-panel__body { padding: 14px var(--v-pad) var(--v-pad); }
+.v-panel__body--flush { padding: 12px 0 0; }
+
+/* --- Buttons -------------------------------------------------- */
+
+.v-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: var(--v-control-h);
+    padding: 0 16px;
+    border-radius: var(--v-r-md);
+    font-size: 13.5px;
+    font-weight: 590;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background var(--v-fast), border-color var(--v-fast), color var(--v-fast);
+    white-space: nowrap;
+}
+.v-btn svg { width: 16px; height: 16px; }
+.v-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.v-btn--primary { background: var(--v-act-fill); color: var(--v-act-ink); box-shadow: var(--v-lift); }
+.v-btn--primary:hover:not(:disabled) { background: var(--v-act-fill-2); }
+
+.v-btn--secondary { background: var(--v-surface); border-color: var(--v-edge); color: var(--v-ink); }
+.v-btn--secondary:hover:not(:disabled) { background: var(--v-hover); }
+
+.v-btn--ghost { color: var(--v-ink-2); }
+.v-btn--ghost:hover:not(:disabled) { background: var(--v-hover); color: var(--v-ink); }
+
+.v-btn--danger { color: var(--v-bad); }
+.v-btn--danger:hover:not(:disabled) { background: var(--v-bad-wash); }
+
+/* The positive lifecycle action: green so a scan of any listing finds
+   what is switched off by where the green sits. Red stays reserved for
+   the one destructive action (Uninstall), so its warning never dilutes. */
+.v-btn--good { border-color: var(--v-good); color: var(--v-good); background: var(--v-surface); }
+.v-btn--good:hover:not(:disabled) { background: color-mix(in srgb, var(--v-good) 10%, var(--v-surface)); }
+
+.v-btn--sm { min-height: 30px; padding: 0 11px; font-size: 12.5px; border-radius: var(--v-r-sm); }
+
+/* --- Form ----------------------------------------------------- */
+
+.v-field { display: block; }
+.v-field + .v-field { margin-top: 16px; }
+.v-grid > .v-field { margin-top: 0; } /* the grid's gap owns spacing; the sibling rule must not stack on it */
+/* The settle column spaces its stacked blocks itself, so a page
+   cannot forget the gap between panels (zero-height confirm roots
+   collapse through in block flow and add nothing). */
+.v-settle > * + * { margin-top: 18px; }
+/* NEVER give the save bar layout margins: it is fixed-position, so a
+   margin offsets it from its parked top and a sliver of Save shows
+   at rest (this exact bug has now happened twice via well-meant
+   global rules on settle children). */
+.v-settle > .v-savebar, .v-settle .v-savebar { margin-top: 0; }
+
+.v-grid { display: grid; gap: 16px; }
+.v-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.v-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 719px) {
+    .v-grid--2, .v-grid--3 { grid-template-columns: minmax(0, 1fr); }
+}
+
+.v-field__label {
+    display: flex; align-items: baseline; gap: 6px;
+    font-size: 12.5px; font-weight: 580;
+    color: var(--v-ink-2);
+    margin-bottom: 6px;
+}
+.v-req { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; color: var(--v-warn); }
+.v-field__hint { font-size: 12.5px; color: var(--v-ink-3); margin-top: 5px; }
+.v-field__error { font-size: 12.5px; color: var(--v-bad); margin-top: 5px; }
+
+.v-control {
+    width: 100%;
+    min-height: var(--v-control-h);
+    padding: 0 12px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-edge);
+    border-radius: var(--v-r-md);
+    color: var(--v-ink);
+    font: inherit;
+    transition: border-color var(--v-fast);
+}
+.v-control:hover { border-color: var(--v-ink-3); }
+.v-control::placeholder { color: var(--v-ink-3); }
+textarea.v-control { padding: 9px 12px; min-height: 88px; resize: vertical; }
+select.v-control { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--v-ink-3) 50%), linear-gradient(135deg, var(--v-ink-3) 50%, transparent 50%); background-position: calc(100% - 17px) 55%, calc(100% - 12px) 55%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+
+/* --- Toggle --------------------------------------------------- */
+
+.v-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; min-height: 24px; font-size: 13.5px; }
+.v-toggle input { position: absolute; opacity: 0; width: 24px; height: 24px; margin: 0; cursor: pointer; }
+.v-toggle__track {
+    width: 38px; height: 22px;
+    border-radius: 999px;
+    background: var(--v-line-2);
+    position: relative;
+    transition: background var(--v-fast);
+    flex-shrink: 0;
+}
+.v-toggle__track::after {
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    border-radius: 999px;
+    background: var(--v-surface);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    transition: transform var(--v-fast);
+}
+.v-toggle input:checked ~ .v-toggle__track { background: var(--v-act-fill); }
+.v-toggle input:checked ~ .v-toggle__track::after { transform: translateX(16px); }
+.v-toggle input:focus-visible ~ .v-toggle__track { outline: 2px solid var(--v-focus); outline-offset: 2px; }
+
+/* --- The save bar --------------------------------------------
+   The doctrine made visible. Hidden until the page goes dirty,
+   then pinned to the top edge over everything, naming the state
+   plainly. One per page, because one page is one save scope. */
+
+.v-savebar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 52px;
+    padding: 0 var(--v-gutter);
+    padding-top: env(safe-area-inset-top);
+    background: var(--v-slab);
+    color: var(--v-slab-on);
+    box-shadow: var(--v-lift-2);
+    transform: translateY(-100%);
+    transition: transform var(--v-base);
+}
+.v-savebar.is-on { transform: translateY(0); }
+.v-savebar__word { font-size: 13.5px; font-weight: 590; display: flex; align-items: center; gap: 9px; }
+.v-savebar__dot { width: 8px; height: 8px; border-radius: 999px; background: var(--v-act-fill); }
+.v-savebar__acts { margin-left: auto; display: flex; gap: 10px; }
+.v-savebar .v-btn--ghost { color: var(--v-slab-ink); }
+.v-savebar .v-btn--ghost:hover { background: var(--v-slab-2); color: var(--v-slab-on); }
+
+/* --- Badge ---------------------------------------------------- */
+
+.v-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 590;
+}
+.v-badge::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: currentColor; }
+.v-badge--good { color: var(--v-good); }
+.v-badge--warn { color: var(--v-warn); }
+.v-badge--bad { color: var(--v-bad); }
+.v-badge--quiet { color: var(--v-ink-3); }
+
+/* --- Rows (a list of editable things) ------------------------- */
+
+.v-rows { display: flex; flex-direction: column; }
+.v-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: var(--v-row-h);
+    padding: 6px 0;
+}
+.v-row + .v-row { border-top: 1px solid var(--v-line); }
+@media (max-width: 719px) {
+    .v-row { flex-direction: column; align-items: stretch; padding: 12px 0; }
+    .v-row__x { align-self: flex-end; }
+}
+.v-row__x {
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border-radius: var(--v-r-sm);
+    color: var(--v-ink-3);
+    flex-shrink: 0;
+}
+.v-row__x:hover { background: var(--v-bad-wash); color: var(--v-bad); }
+.v-row__x svg { width: 15px; height: 15px; }
+
+/* --- Empty state ---------------------------------------------- */
+
+.v-empty {
+    padding: 30px 20px;
+    text-align: center;
+    border: 1px dashed var(--v-line-2);
+    border-radius: var(--v-r-md);
+}
+.v-empty__title { font-size: 13.5px; font-weight: 620; }
+.v-empty__line { font-size: 12.5px; color: var(--v-ink-3); margin-top: 3px; }
+
+/* --- Toasts --------------------------------------------------- */
+
+.v-toasts {
+    position: fixed;
+    top: 14px; right: 14px;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: min(320px, calc(100vw - 28px));
+}
+.v-toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 13px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift-2);
+    font-size: 13px;
+}
+.v-toast__mark { width: 8px; height: 8px; border-radius: 2px; margin-top: 5px; flex-shrink: 0; }
+.v-toast--good .v-toast__mark { background: var(--v-good); }
+.v-toast--bad .v-toast__mark { background: var(--v-bad); }
+.v-toast__x { margin-left: auto; color: var(--v-ink-3); flex-shrink: 0; min-width: 24px; min-height: 24px; display: grid; place-items: center; }
+.v-toast__x:hover { color: var(--v-ink); }
+.v-toast__x svg { width: 13px; height: 13px; }
+
+/* --- Settings directory (the area landing) --------------------
+   Rows inside one sheet per group, not a card grid: the left nav
+   already lists the taxonomy, so the landing's job is the line of
+   description and the search, at reading density. */
+
+.v-dir {
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-lg);
+    box-shadow: var(--v-lift);
+    overflow: hidden;
+}
+.v-dir__card {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 11px 16px;
+    text-decoration: none;
+    transition: background var(--v-fast);
+}
+.v-dir__card + .v-dir__card { border-top: 1px solid var(--v-line); }
+.v-dir__card:hover { background: var(--v-hover); }
+.v-dir__ico {
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    background: var(--v-act-wash);
+    color: var(--v-act);
+    border-radius: var(--v-r-md);
+    flex-shrink: 0;
+}
+.v-dir__ico svg { width: 17px; height: 17px; }
+.v-dir__name { font-size: 13.5px; font-weight: 620; }
+.v-dir__line { font-size: 12.5px; color: var(--v-ink-3); margin-top: 1px; }
+.v-dir__go { margin-left: auto; color: var(--v-ink-3); flex-shrink: 0; }
+.v-dir__go svg { width: 15px; height: 15px; }
+
+/* Structural spacers, so a view never writes a style attribute. */
+.v-span2 { grid-column: span 2; }
+@media (max-width: 719px) { .v-span2 { grid-column: auto; } }
+.v-gap { margin-top: 16px; }
+.v-gap-lg { margin-top: 26px; }
+.v-gap-sm { margin-bottom: 10px; }
+.v-narrow { max-width: 380px; }
+
+/* Retired entrance: .v-settle stays in markup as a plain wrapper.
+   Content arrives settled; the crossing (the nav) owns arrival
+   motion. A per-page content fade on every navigation read as
+   "the content animates, the nav does not" (owner report). */
+
+/* --- Secret (masked stored key) ------------------------------- */
+
+.v-secret__row { display: flex; align-items: center; gap: 8px; }
+.v-secret__value {
+    flex: 1;
+    min-height: var(--v-control-h);
+    display: flex; align-items: center;
+    padding: 0 12px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    color: var(--v-ink-2);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* --- File input ------------------------------------------------ */
+
+.v-file { font-size: 12.5px; color: var(--v-ink-2); width: 100%; cursor: pointer; }
+.v-file::file-selector-button {
+    margin-right: 10px;
+    min-height: 30px;
+    padding: 0 11px;
+    border: 1px solid var(--v-edge);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    color: var(--v-ink);
+    font: inherit;
+    font-weight: 570;
+    cursor: pointer;
+}
+.v-file::file-selector-button:hover { background: var(--v-hover); }
+
+/* --- Identity mark preview ------------------------------------ */
+
+.v-markbox {
+    height: 56px;
+    display: grid; place-items: center;
+    padding: 6px 10px;
+    background: var(--v-plate);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+}
+.v-markbox--empty { background: var(--v-sunken); color: var(--v-ink-3); font-size: 11.5px; }
+.v-markbox img { height: 42px; width: auto; max-width: 128px; object-fit: contain; }
+.v-markrow { display: flex; align-items: center; gap: 12px; }
+
+/* --- Inline action row (a field beside its action) ------------- */
+
+.v-inline { display: flex; align-items: flex-end; gap: 10px; }
+.v-inline > :first-child { flex: 1; }
+
+/* --- Adorned control (a fixed prefix before an input) ---------- */
+
+.v-adorn { display: flex; align-items: center; gap: 6px; }
+.v-adorn__fix { color: var(--v-ink-3); font-family: var(--v-font-mono); font-size: 13px; }
+
+/* --- Table ----------------------------------------------------
+   Tables never clip; they scroll inside their own wrap. A raw th
+   gets the label treatment. Row-edit forms use the id'd-form +
+   form="" idiom because a form cannot legally wrap a tr. */
+
+.v-tablewrap { overflow-x: auto; }
+.v-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.v-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 560;
+    color: var(--v-ink-3);
+    border-bottom: 1px solid var(--v-line-2);
+    white-space: nowrap;
+}
+.v-table td { padding: 8px 12px; border-bottom: 1px solid var(--v-line); vertical-align: middle; }
+.v-table tr:last-child td { border-bottom: 0; }
+.v-table tbody tr:hover { background: var(--v-hover); }
+.v-table .v-control { min-height: 32px; }
+.v-cell-act { text-align: right; white-space: nowrap; }
+.v-cell-act .v-btn { vertical-align: middle; }
+.v-cell-act form { display: inline-block; }
+.v-cell-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.v-row-dim { opacity: .6; }
+.v-badgebtn { border: 0; background: none; padding: 0; cursor: pointer; font: inherit; }
+
+/* --- Modal ---------------------------------------------------- */
+
+.v-overlay {
+    position: fixed; inset: 0; z-index: 80;
+    display: grid; place-items: center;
+    padding: 20px;
+    background: rgba(10, 16, 24, .55);
+}
+.v-modal {
+    width: min(440px, 100%);
+    background: var(--v-surface);
+    border-radius: var(--v-r-lg);
+    box-shadow: var(--v-lift-2);
+    padding: 20px;
+}
+.v-modal__title { font-size: 15px; font-weight: 650; }
+.v-modal__body { margin-top: 8px; font-size: 13.5px; color: var(--v-ink-2); }
+.v-modal__acts { margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px; }
+.v-btn--danger-fill { background: var(--v-bad); color: #fff; }
+.v-btn--danger-fill:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* --- Notice (something needs the merchant's attention now) ----- */
+
+.v-notice {
+    border: 1px solid var(--v-warn);
+    background: var(--v-warn-wash);
+    border-radius: var(--v-r-md);
+    padding: 13px 15px;
+}
+.v-notice__title { font-size: 13.5px; font-weight: 630; }
+.v-notice__text { font-size: 12.5px; color: var(--v-ink-2); margin-top: 2px; }
+.v-noticerow { display: flex; gap: 8px; margin-top: 10px; }
+.v-noticerow .v-control { flex: 1; }
+
+/* --- Small width and case helpers ----------------------------- */
+
+.v-w-sym { max-width: 72px; text-align: center; }
+.v-w-rate { max-width: 140px; }
+.v-upper { text-transform: uppercase; }
+
+/* --- Add row (a create form laid out inline) ------------------ */
+
+.v-addrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 14px; align-items: end; }
+.v-addrow .v-field { margin: 0; }
+@media (max-width: 719px) {
+    .v-addrow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .v-addrow > .v-btn { grid-column: span 2; }
+}
+
+/* --- Checkbox -------------------------------------------------- */
+
+.v-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 24px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.v-check input {
+    width: 16px; height: 16px;
+    accent-color: var(--v-act-fill);
+    cursor: pointer;
+}
+
+/* --- Row-edit and add-row extensions --------------------------- */
+
+.v-cell-name { min-width: 15rem; }
+.v-namerow { display: flex; align-items: center; gap: 8px; }
+.v-w-sort { max-width: 84px; }
+.v-w-name { max-width: 200px; }
+.v-cell-url { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--v-ink-2); }
+.v-rowedit { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }
+.v-rowedit__line { display: flex; align-items: center; gap: 10px; }
+.v-rowedit__line .v-control:not(.v-w-name):not(.v-w-sort) { flex: 1; }
+.v-addrow--3 { grid-template-columns: minmax(0, 1.2fr) minmax(0, .5fr) auto; }
+.v-addrow__opts { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-height: var(--v-control-h); }
+@media (max-width: 719px) {
+    .v-addrow--3 { grid-template-columns: minmax(0, 1fr); }
+    .v-addrow--3 > .v-btn, .v-addrow__opts { grid-column: auto; }
+}
+
+/* --- Submit toggle (a toggle that IS its form's submit) -------- */
+
+.v-toggle--btn { border: 0; background: none; padding: 0; cursor: pointer; }
+.v-toggle--btn[aria-checked="true"] .v-toggle__track { background: var(--v-act-fill); }
+.v-toggle--btn[aria-checked="true"] .v-toggle__track::after { transform: translateX(16px); }
+
+/* --- Table tier (a group band inside a table) ------------------ */
+
+.v-table .v-tier td {
+    background: var(--v-sunken);
+    font-size: 12px;
+    font-weight: 630;
+    letter-spacing: .04em;
+    color: var(--v-ink-2);
+    padding: 6px 12px;
+}
+.v-cell-link { color: inherit; text-decoration: none; font-weight: 590; }
+.v-cell-link:hover { color: var(--v-act); }
+.v-ava {
+    width: 30px; height: 30px;
+    display: inline-grid; place-items: center;
+    border-radius: 999px;
+    background: var(--v-act-wash);
+    color: var(--v-act);
+    font-size: 12px; font-weight: 650;
+    vertical-align: middle;
+    margin-right: 9px;
+}
+.v-cell-quiet { color: var(--v-ink-2); }
+.v-cell-pad { padding-left: 28px; }
+
+/* --- Split (main column + side rail) --------------------------- */
+
+.v-split { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 18px; align-items: start; }
+@media (max-width: 1023px) { .v-split { grid-template-columns: minmax(0, 1fr); } }
+
+/* --- Facts (label and value pairs) ----------------------------- */
+
+.v-facts { display: grid; grid-template-columns: auto 1fr; gap: 7px 14px; margin: 0; font-size: 13px; }
+.v-facts dt { color: var(--v-ink-3); font-size: 12px; }
+.v-facts dd { margin: 0; }
+
+/* --- Copy chip (a placeholder the merchant copies) ------------- */
+
+.v-chip {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 7px 11px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    font-family: var(--v-font-mono);
+    font-size: 12px;
+    color: var(--v-act);
+    transition: background var(--v-fast);
+}
+.v-chip:hover { background: var(--v-hover); }
+.v-chip + .v-chip { margin-top: 6px; }
+
+.v-actrow { display: inline-flex; align-items: center; gap: 10px; }
+
+/* --- Tabs ------------------------------------------------------ */
+
+.v-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--v-line-2); margin-bottom: 18px; }
+.v-tab {
+    text-decoration: none;
+    padding: 9px 14px;
+    font-size: 13.5px;
+    font-weight: 560;
+    color: var(--v-ink-2);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+.v-tab:hover { color: var(--v-ink); }
+.v-tab[aria-selected="true"] { color: var(--v-act); border-bottom-color: var(--v-act-fill); font-weight: 620; }
+
+/* --- Stat figures ---------------------------------------------- */
+
+.v-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 18px; }
+.v-stat {
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-lg);
+    box-shadow: var(--v-lift);
+    padding: 13px 16px;
+}
+.v-stat__label { font-size: 12px; color: var(--v-ink-3); }
+.v-stat__value { font-family: var(--v-font-mono); font-size: 24px; font-weight: 640; margin-top: 2px; }
+
+.v-chip--inline { display: inline-block; width: auto; margin: 0 6px 6px 0; }
+.v-narrowsearch { max-width: 260px; min-height: 30px; font-size: 12.5px; }
+.v-pager { padding: 12px 16px; border-top: 1px solid var(--v-line); font-size: 13px; }
+
+/* Directory rows that carry state and actions (modules) */
+.v-dir__card--static { cursor: default; }
+.v-dir__card--static:hover { background: var(--v-surface); }
+.v-dir__body { flex: 1; min-width: 0; }
+.v-dir__state { flex-shrink: 0; margin-right: 6px; }
+.v-dir__cat { flex-shrink: 0; margin-right: 14px; font-size: 11px; font-weight: 620; color: var(--v-ink-3); text-transform: uppercase; letter-spacing: .05em; }
+@media (max-width: 719px) {
+    /* Name takes the first line whole; category, state, and actions
+       settle onto their own line instead of colliding with it. */
+    .v-dir__card--static { flex-wrap: wrap; }
+    .v-dir__card--static .v-dir__body { flex-basis: calc(100% - 49px); }
+    .v-dir__card--static .v-actrow { margin-left: auto; }
+}
+
+/* --- Theme page: color wells, swatches, drag rows -------------- */
+
+.v-tabs--wrap { flex-wrap: wrap; }
+.v-wells { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.v-well {
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    padding: 14px;
+}
+.v-colorrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; }
+.v-colorrow__label { font-size: 13px; color: var(--v-ink-2); min-width: 0; }
+.v-colorrow__pair { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.v-swatch {
+    width: 40px; height: 30px;
+    padding: 2px;
+    border: 1px solid var(--v-edge);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    cursor: pointer;
+}
+.v-swatch--lg { width: 56px; height: 36px; }
+.v-w-hex { max-width: 96px; min-height: 30px; font-size: 12px; }
+
+.v-preview-h { font-size: 28px; font-weight: 700; }
+.v-preview-sub { font-size: 19px; font-weight: 600; color: var(--v-ink-2); margin-top: 4px; }
+.v-preview-price { font-size: 17px; font-weight: 700; color: var(--v-act); margin-top: 4px; }
+.v-preview-rule { width: 100%; margin: 12px 0; border-color: var(--v-line-2); }
+.v-preview-body { font-size: 13.5px; }
+.v-preview-copy { font-size: 13.5px; color: var(--v-ink-2); margin-top: 6px; line-height: 1.55; }
+.v-preview-hint { font-size: 12px; color: var(--v-ink-3); margin-top: 6px; }
+
+.v-dragrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    padding: 10px 14px;
+    margin-bottom: 8px;
+}
+.v-dragrow--bare { background: none; border: 0; margin: 0; padding: 10px 0; }
+.v-dragrow__grip { width: 16px; height: 16px; color: var(--v-ink-3); cursor: grab; flex-shrink: 0; }
+.v-dragrow__end { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.v-dragnest { margin-left: 30px; }
+
+.v-dragcard {
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    padding: 2px 14px;
+    margin-bottom: 8px;
+}
+.v-dragcard__body { border-top: 1px solid var(--v-line-2); padding: 14px 0; }
+.is-dragging { opacity: .4; }
+.v-payicon { height: 24px; border-radius: var(--v-r-sm); }
+
+/* --- Picklist (searchable multi-pick over a long list) --------- */
+
+.v-picklist { border: 1px solid var(--v-edge); border-radius: var(--v-r-md); overflow: hidden; }
+.v-picklist__top {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    background: var(--v-sunken);
+    border-bottom: 1px solid var(--v-line);
+}
+.v-picklist__top .v-control { min-height: 30px; font-size: 12.5px; border-color: var(--v-line-2); }
+.v-picklist__count { flex-shrink: 0; font-size: 12px; color: var(--v-ink-3); font-family: var(--v-font-mono); }
+.v-picklist__scroll { max-height: 200px; overflow-y: auto; padding: 6px 10px; }
+.v-picklist__item { display: flex; width: 100%; padding: 3px 0; }
+
+/* --- Checklist (short bounded pick) ---------------------------- */
+
+.v-checklist {
+    max-height: 180px; overflow-y: auto;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-md);
+    padding: 8px 12px;
+}
+.v-checklist .v-check { display: flex; padding: 3px 0; }
+
+.v-qr { height: 32px; width: 32px; object-fit: contain; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); background: var(--v-plate); }
+.v-qr--lg { height: 96px; width: 96px; }
+.v-rulelist { margin: 0; padding-left: 18px; font-size: 13px; }
+.v-rulelist li + li { margin-top: 5px; }
+.v-dir__sub { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+
+.v-w-search { max-width: 240px; }
+
+
+/* --- Help (the question mark) ---------------------------------- */
+
+.v-help {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px; height: 15px;
+    margin-left: 2px;
+    border: 1px solid var(--v-line-2);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 650;
+    color: var(--v-ink-3);
+    cursor: help;
+    vertical-align: text-bottom;
+    user-select: none;
+}
+.v-help:hover, .v-help:focus-visible { color: var(--v-act); border-color: var(--v-act); }
+.v-help__tip {
+    position: absolute;
+    bottom: calc(100% + 7px);
+    left: -8px;
+    z-index: 30;
+    width: max-content;
+    max-width: 260px;
+    padding: 7px 10px;
+    background: var(--v-surface);
+    color: var(--v-ink-2);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    box-shadow: 0 6px 18px rgba(15, 25, 40, .14);
+    font-size: 12.5px;
+    font-weight: 430;
+    line-height: 1.45;
+    white-space: normal;
+    display: none; /* an invisible-but-laid-out tip widened the page (390px overflow) */
+    opacity: 0;
+    transform: translateY(3px);
+    pointer-events: none;
+    transition: opacity var(--v-fast), transform var(--v-fast), display var(--v-fast) allow-discrete;
+}
+.v-help:hover .v-help__tip,
+.v-help:focus-visible .v-help__tip {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    @starting-style {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+}
+/* Inside a scrolling table wrapper the clip eats anything above the
+   header, so the bubble opens downward over the rows instead. */
+.v-tablewrap .v-help__tip {
+    bottom: auto;
+    top: calc(100% + 7px);
+}
+
+/* --- Bulk action bar (follows a selection down the page) -------- */
+
+.v-bulkbar {
+    position: sticky;
+    bottom: 16px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 16px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    box-shadow: 0 10px 30px rgba(10, 20, 34, .18);
+}
+
+/* --- Diff wells (current vs suggested) -------------------------- */
+
+.v-diff { background: var(--v-act-wash); border-radius: var(--v-r-md); padding: 10px 12px; }
+.v-diff + .v-diff, .v-diff + .v-well, .v-well + .v-well { margin-top: 10px; }
+.v-diff__cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 6px; }
+@media (max-width: 719px) { .v-diff__cols { grid-template-columns: minmax(0, 1fr); } }
+.v-diff__from { color: var(--v-ink-2); }
+.v-diff__to { color: var(--v-ink); font-weight: 560; }
+
+/* --- Entity list extras (SEO space) ----------------------------- */
+
+.v-thumb {
+    width: 40px; height: 40px;
+    border-radius: var(--v-r-sm);
+    border: 1px solid var(--v-line);
+    object-fit: cover;
+    background: var(--v-plate);
+}
+.v-thumb--blank { display: grid; place-items: center; color: var(--v-ink-3); }
+.v-thumb--blank svg { width: 18px; height: 18px; }
+.v-row-click { cursor: pointer; }
+.v-cell-open { background: var(--v-plate); }
+.v-tabs--sub { margin: 0 0 0 0; border-bottom: 0; }
+.v-pager { padding: 12px 16px; border-top: 1px solid var(--v-line-2); }
+
+/* A wrapper that exists only for Alpine state: no box, so the settle
+   owl never counts it as a card. */
+.v-passthru {
+    display: contents;
+}
+
+/* Courier settings: the SPX pouch-preset editor rows */
+.v-grid--pouch {
+    grid-template-columns: 2fr repeat(4, 1fr) auto;
+    align-items: center;
+}
+
+/* A mode-scoped credential group, held apart from the shared fields */
+.v-modegroup {
+    border-left: 2px solid var(--v-line);
+    padding-left: 16px;
+}
+
+/* Layout pickers: an arrangement chosen by seeing it */
+.v-laypick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.v-laypick__tile {
+    cursor: pointer;
+}
+
+.v-laypick__tile input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.v-laypick__card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 118px;
+    padding: 8px 8px 7px;
+    border: 1px solid var(--v-line);
+    border-radius: 8px;
+    background: var(--v-base);
+    transition: border-color var(--v-fast), box-shadow var(--v-fast);
+}
+
+.v-laypick__tile:hover .v-laypick__card {
+    border-color: var(--v-edge);
+}
+
+.v-laypick__tile input:checked + .v-laypick__card {
+    border-color: var(--v-act);
+    box-shadow: 0 0 0 1px var(--v-act);
+}
+
+.v-laypick__tile input:focus-visible + .v-laypick__card {
+    outline: 2px solid var(--v-focus);
+    outline-offset: 2px;
+}
+
+.v-laypick__art {
+    width: 100%;
+    height: auto;
+    color: var(--v-ink);
+    display: block;
+}
+
+.v-laypick__tile input:checked + .v-laypick__card .v-laypick__art {
+    color: var(--v-act);
+}
+
+.v-laypick__art--blank {
+    aspect-ratio: 64 / 44;
+    border: 1px dashed var(--v-line);
+    border-radius: 4px;
+}
+
+.v-laypick__name {
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--v-ink);
+}
+
+/* Preset palette chips: five colors that name a look at a glance */
+.v-palrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.v-palchip {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+
+/* The slide editor's working columns: settings lead, layers ride beside */
+.v-editcols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 18px;
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .v-editcols {
+        grid-template-columns: 1fr;
+    }
+}
+
+.v-mediafield {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.v-layerlist {
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.v-layerrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: background var(--v-fast);
+}
+
+.v-layerrow:hover {
+    background: var(--v-hover);
+}
+
+.v-layerrow.is-on {
+    background: var(--v-act-wash);
+    border-left-color: var(--v-act);
+}
+
+.v-layerrow__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--v-ink);
+}
+
+.v-modal--media {
+    width: min(960px, 100%);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+}
+
+.v-mediagrid-wrap {
+    margin-top: 14px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 200px;
+}
+
+/* --- Product image cards (sortable grid, JS-rendered) ---------- */
+
+.v-imgcard {
+    position: relative;
+    border-radius: var(--v-r-md);
+    overflow: hidden;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    box-shadow: var(--v-lift);
+    cursor: grab;
+}
+.v-imgcard__art { aspect-ratio: 1; }
+.v-imgcard__art img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; display: block; }
+.v-imgcard__badge {
+    position: absolute;
+    top: 6px; left: 6px;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--v-font-mono);
+    border-radius: var(--v-r-sm);
+    background: var(--v-slab);
+    color: var(--v-slab-on);
+}
+.v-imgcard__badge--main { background: var(--v-act-fill); color: var(--v-act-ink); }
+.v-imgcard__x {
+    position: absolute;
+    top: 6px; right: 6px;
+    opacity: 0;
+    transition: opacity var(--v-fast);
+    background: var(--v-surface);
+    border-radius: var(--v-r-sm);
+    box-shadow: var(--v-lift);
+}
+.v-imgcard:hover .v-imgcard__x,
+.v-imgcard__x:focus-visible { opacity: 1; }
+.v-imgcard__ph {
+    border-radius: var(--v-r-md);
+    border: 2px dashed var(--v-act-fill);
+    background: var(--v-act-wash);
+    aspect-ratio: 1;
+}
+
+/* Modal tile states: added to the product / picked this visit */
+.v-mediatile { position: relative; }
+.v-mediatile.is-added { outline: 2px solid var(--v-act-fill); background: var(--v-act-wash); opacity: .65; cursor: default; }
+.v-mediatile.is-picked { outline: 2px solid var(--v-good); background: var(--v-good-wash); }
+.v-tilemark {
+    position: absolute;
+    top: 8px; left: 8px;
+    width: 20px; height: 20px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    box-shadow: var(--v-lift);
+    background: var(--v-act-fill);
+    color: var(--v-act-ink);
+}
+.v-tilemark--picked { background: var(--v-good); color: var(--v-surface); }
+.v-tilemark svg { width: 12px; height: 12px; }
+
+.v-tilewrap { position: relative; }
+.v-tilewrap .v-tileacts {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: none;
+    gap: 4px;
+    z-index: 2;
+}
+.v-tilewrap:hover .v-tileacts,
+.v-tilewrap:focus-within .v-tileacts { display: flex; }
+.v-tileacts .v-row__x { background: var(--v-surface); border-radius: var(--v-r-sm); box-shadow: var(--v-lift); }
+
+.v-dropwrap { position: relative; }
+.v-dropzone {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    background: var(--v-act-wash);
+    border: 2px dashed var(--v-act-fill);
+    border-radius: var(--v-r-md);
+    pointer-events: none;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--v-act);
+}
+
+.v-imgpreview {
+    display: block;
+    max-width: 220px;
+    border-radius: 8px;
+    border: 1px solid var(--v-line);
+}
+
+.v-mediagrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.v-crumbrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 13px;
+    overflow-x: auto;
+}
+
+.v-link {
+    color: var(--v-act);
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.v-link:hover {
+    text-decoration: underline;
+}
+
+.v-mediatile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    border: none;
+    background: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--v-mut, var(--v-ink));
+    transition: background var(--v-fast);
+}
+
+.v-mediatile:hover {
+    background: var(--v-hover);
+}
+
+.v-mediatile > span:last-child {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.v-mediatile__folder {
+    width: 40px;
+    height: 40px;
+    color: var(--v-act);
+}
+
+.v-mediatile__frame {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--v-line);
+    background: var(--v-canvas);
+}
+
+.v-mediatile__frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.v-range {
+    flex: 1;
+    accent-color: var(--v-act);
+}
+
+/* Slide list: the frame's own color and image, peeked at row scale */
+.v-slidepeek {
+    position: relative;
+    display: inline-block;
+    width: 56px;
+    height: 28px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--v-line);
+    flex-shrink: 0;
+}
+
+.v-slidepeek svg,
+.v-slidepeek img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* A row's identity as its own link */
+.v-rowlink {
+    color: var(--v-ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.v-rowlink:hover {
+    color: var(--v-act);
+}
+
+/* Defensive rhythm: two cards touching is never right, settle wrapper or
+   not. Same 18px the settle owl uses, so the rules agree instead of
+   stacking; the passthru variants keep the beat across boxless confirm
+   wrappers sitting between cards. */
+:is(.v-panel, .v-passthru) + .v-panel,
+.v-panel + form:not([hidden]) {
+    margin-top: 18px;
+}
+
+/* Filter bar: the list's controls in one row above the sheet */
+.v-filterbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.v-filterbar__grow {
+    flex: 1;
+    min-width: 220px;
+}
+
+/* Working-state badge: in motion, neither done nor wrong */
+.v-badge--info {
+    background: var(--v-act-wash);
+    color: var(--v-act);
+}
+
+/* Order overview: the few facts that matter, in one row */
+.v-factrow {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+}
+
+.v-bigmoney {
+    font-size: 24px;
+    font-weight: 650;
+    color: var(--v-ink);
+}
+
+/* The totals ledger under a products table. Not .v-facts: that name
+   is the generic label/value dl and must keep its grid definition. */
+.v-ledger {
+    display: flex;
+    justify-content: flex-end;
+    padding: 14px 18px;
+    border-top: 1px solid var(--v-line);
+}
+
+.v-ledger dl {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: 6px 32px;
+    margin: 0;
+    min-width: 260px;
+}
+
+.v-ledger dt {
+    color: var(--v-mut, var(--v-ink));
+    font-size: 13px;
+}
+
+.v-ledger dd {
+    margin: 0;
+    text-align: right;
+    font-size: 13px;
+}
+
+.v-facts__sum {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--v-ink);
+    border-top: 1px solid var(--v-line);
+    padding-top: 6px;
+}
+
+.v-ledger__notes {
+    padding: 14px 18px;
+    border-top: 1px solid var(--v-line);
+}
+
+/* The order's timeline: newest first, quiet chrome */
+.v-feed {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.v-feed__entry {
+    padding: 12px 18px;
+}
+
+.v-feed__entry + .v-feed__entry {
+    border-top: 1px solid var(--v-line);
+}
+
+.v-feed__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.v-feed__x {
+    margin-left: auto;
+}
+
+.v-feed__note {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--v-ink);
+}
+
+.v-feed__when {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--v-mut, var(--v-ink));
+}
+
+/* --- Order form: segments, pickers, line items ----------------- */
+
+.v-notice--bad { border-color: var(--v-bad); background: var(--v-bad-wash); }
+.v-notice__list { margin: 6px 0 0; padding-left: 18px; font-size: 13px; }
+.v-notice__list li + li { margin-top: 4px; }
+
+/* Segmented switch: one choice, both options always visible */
+.v-seg { display: inline-flex; border: 1px solid var(--v-line); border-radius: var(--v-r-sm); overflow: hidden; }
+.v-seg__opt {
+    border: 0; background: var(--v-surface); color: var(--v-ink-2);
+    font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 12px; cursor: pointer;
+    transition: background var(--v-fast), color var(--v-fast);
+}
+.v-seg__opt + .v-seg__opt { border-left: 1px solid var(--v-line); }
+.v-seg__opt:hover { background: var(--v-hover); }
+.v-seg__opt.is-on { background: var(--v-act-fill); color: var(--v-act-ink); }
+
+/* Searchable picker: a control with a floating result menu */
+.v-combo { position: relative; }
+.v-combo__menu {
+    position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; right: 0;
+    max-height: 260px; overflow-y: auto;
+    background: var(--v-surface); border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md); box-shadow: var(--v-lift);
+}
+.v-combo__opt {
+    display: block; width: 100%; text-align: left; border: 0; background: none;
+    padding: 8px 12px; font: inherit; font-size: 13px; color: var(--v-ink); cursor: pointer;
+}
+.v-combo__opt:hover { background: var(--v-hover); }
+.v-combo__opt + .v-combo__opt { border-top: 1px solid var(--v-line-2); }
+.v-combo__main { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.v-combo__meta { margin-top: 2px; font-size: 12px; color: var(--v-ink-3); display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* The chosen-record band above a picker's fields */
+.v-pickband {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--v-act-wash); border-radius: var(--v-r-md); padding: 8px 12px; font-size: 13px;
+}
+.v-pickband--good { background: var(--v-good-wash); }
+.v-pickband__who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.v-pickband__who strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.v-control--sm { height: 30px; padding: 0 8px; font-size: 12.5px; }
+.v-control.is-invalid { border-color: var(--v-bad); box-shadow: 0 0 0 1px var(--v-bad); }
+.v-control--bad { border-color: var(--v-bad); }
+.v-adorn > .v-control { flex: 1; min-width: 0; }
+
+.v-subnote { margin-top: 4px; font-size: 12px; }
+.v-strike { text-decoration: line-through; }
+.v-tone-bad { color: var(--v-bad); }
+.v-tone-warn { color: var(--v-warn); }
+.v-tone-act { color: var(--v-act); }
+.v-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+
+.v-loadline { display: flex; align-items: center; gap: 8px; min-height: var(--v-control-h); font-size: 13px; color: var(--v-ink-3); }
+.v-spin { animation: v-spin .9s linear infinite; }
+@keyframes v-spin { to { transform: rotate(360deg); } }
+
+/* Totals block pinned to the panel's right edge */
+.v-sumbox { margin-left: auto; width: min(300px, 100%); }
+
+.v-sumbox .v-facts dd { text-align: right; }
+
+/* --- Work queue: counted tabs, tier bands, drawer, choices ----- */
+
+.v-tab__count { margin-left: 7px; font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-3); }
+.v-tab[aria-selected="true"] .v-tab__count { color: var(--v-act); }
+.v-tabs__aside {
+    margin-left: auto; align-self: center;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12.5px; font-weight: 590; color: var(--v-ink-2); text-decoration: none;
+}
+.v-tabs__aside:hover { color: var(--v-ink); }
+.v-tabs__aside svg { width: 12px; height: 12px; }
+
+.v-notice--good { border-color: var(--v-good); background: var(--v-good-wash); }
+.v-notice__act { font-weight: 620; color: var(--v-ink); }
+
+.v-tally { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; font-size: 13px; }
+.v-tally__label { color: var(--v-ink-3); font-size: 12px; }
+.v-tally__item { display: inline-flex; align-items: baseline; gap: 6px; }
+.v-tally__count { font-family: var(--v-font-mono); font-weight: 640; }
+
+/* The two-tier queue table: a band of order facts above its item rows */
+.v-tierrow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.v-tierrow__side { display: inline-flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.v-tierrow .v-tierlabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--v-ink-3); }
+.v-cellstack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.v-cellstack__note { font-size: 12px; color: var(--v-ink-3); }
+.v-cellstack__error { font-size: 12px; color: var(--v-bad); }
+.v-lead { display: block; font-weight: 590; }
+.v-actstack { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 122px; }
+.v-actstack .v-btn { justify-content: center; }
+
+/* Key/value reading rows (drawer summaries) */
+.v-kv { display: flex; justify-content: space-between; gap: 14px; font-size: 13px; }
+.v-kv > :first-child { color: var(--v-ink-3); flex-shrink: 0; }
+.v-kv > :last-child { font-weight: 560; text-align: right; overflow-wrap: anywhere; }
+.v-kvs { display: flex; flex-direction: column; gap: 8px; }
+
+/* Detail drawer: the queue's viewing surface */
+.v-drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 85;
+    width: min(420px, 100%);
+    background: var(--v-surface);
+    border-left: 1px solid var(--v-line);
+    box-shadow: var(--v-lift-2);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+}
+.v-drawer__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--v-line-2); }
+.v-drawer__title { font-size: 14px; font-weight: 640; }
+.v-drawer__when { font-size: 12px; color: var(--v-ink-3); margin-top: 2px; }
+.v-drawer__x { border: 0; background: none; color: var(--v-ink-3); cursor: pointer; padding: 2px; }
+.v-drawer__x:hover { color: var(--v-ink); }
+.v-drawer__sec { padding: 14px 18px; border-bottom: 1px solid var(--v-line-2); }
+.v-drawer__sec:last-child { border-bottom: 0; }
+.v-drawer__grow { flex: 1; }
+
+/* Shipment stepper: the happy path, with terminal states as badges */
+.v-steps { display: flex; align-items: flex-start; }
+.v-steps__stop { display: flex; flex-direction: column; align-items: center; flex: none; width: 52px; }
+.v-steps__dot {
+    width: 30px; height: 30px; border-radius: 999px;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 640;
+    background: var(--v-sunken); color: var(--v-ink-3);
+    border: 1px solid var(--v-line);
+}
+.v-steps__dot.is-on { background: var(--v-act-fill); color: var(--v-act-ink); border-color: transparent; }
+.v-steps__dot.is-bad { background: var(--v-bad); color: #fff; border-color: transparent; }
+.v-steps__name { margin-top: 5px; font-size: 10.5px; color: var(--v-ink-3); text-align: center; }
+.v-steps__link { flex: 1; height: 1px; background: var(--v-line); margin-top: 15px; }
+.v-steps__link.is-on { background: var(--v-act-fill); }
+
+/* Feed of dated events inside the drawer */
+.v-eventlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.v-eventlist li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 13px; }
+.v-eventlist li > :last-child { font-size: 12px; color: var(--v-ink-3); white-space: nowrap; }
+
+/* Choice cards: one large option per way a parcel can leave */
+.v-choicegrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); }
+.v-choicecard {
+    display: block; width: 100%; text-align: left;
+    border: 1px solid var(--v-line); border-radius: var(--v-r-md);
+    background: var(--v-surface); color: var(--v-ink);
+    padding: 13px 14px; font: inherit;
+}
+button.v-choicecard { cursor: pointer; transition: border-color var(--v-fast), background var(--v-fast); }
+button.v-choicecard:hover { border-color: var(--v-act); background: var(--v-hover); }
+.v-choicecard--off { background: var(--v-sunken); color: var(--v-ink-2); }
+.v-choicecard--caution { background: var(--v-sunken); }
+.v-choicecard__mark {
+    display: block; width: 100%; height: 44px;
+    border-radius: var(--v-r-sm);
+    background-size: contain; background-position: center; background-repeat: no-repeat;
+    background-origin: content-box; padding: 6px;
+    border: 1px solid var(--v-line-2);
+    margin-bottom: 10px;
+}
+.v-choicecard__mark--drawn { display: grid; place-items: center; color: var(--v-ink-3); background: var(--v-sunken); }
+.v-choicecard__mark--drawn svg { width: 20px; height: 20px; }
+.v-choicecard__name { display: block; font-size: 13.5px; font-weight: 620; }
+.v-choicecard__tags { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.v-choicecard__tag {
+    font-size: 10.5px; font-weight: 640; text-transform: uppercase; letter-spacing: .04em;
+    padding: 1px 6px; border-radius: var(--v-r-sm);
+    background: var(--v-sunken); border: 1px solid var(--v-line); color: var(--v-ink-2);
+}
+.v-choicecard__fee { display: block; margin-top: 6px; font-size: 12.5px; font-family: var(--v-font-mono); color: var(--v-ink-2); }
+.v-choicecard__msg { display: block; margin-top: 6px; font-size: 12px; color: var(--v-ink-3); }
+.v-choicecard__msg a { color: var(--v-act); }
+.v-choicewait { display: flex; align-items: center; gap: 10px; padding: 14px 2px; font-size: 13px; color: var(--v-ink-2); }
+.v-choicenote { margin: 0 0 10px; font-size: 13px; color: var(--v-warn); }
+
+/* Quiet fact chip: how the parcel was arranged, not a system state */
+.v-factchip {
+    display: inline-block; margin-block: 2px; padding: 1px 6px;
+    border-radius: var(--v-r-sm);
+    background: var(--v-sunken); border: 1px solid var(--v-line);
+    font-size: 10px; font-weight: 640; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--v-ink-3);
+}
+
+.v-drawerwrap { position: fixed; inset: 0; z-index: 84; }
+.v-drawerwrap__scrim { position: absolute; inset: 0; background: rgba(10, 16, 24, .45); }
+.v-actstack form { display: contents; }
+.v-actstack form .v-btn { width: 100%; }
+.v-actrow__grow { flex: 1; }
+
+/* The stepped pager as a standalone block (component x-admin.pager) */
+nav.v-pager {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 0; border-top: 0;
+}
+.v-pager__steps { display: flex; gap: 8px; }
+.v-pager [aria-disabled="true"] { opacity: .55; pointer-events: none; }
+.v-modal { white-space: normal; }
+
+/* --- Reviews (extension) --------------------------------------- */
+.v-stars { letter-spacing: 2px; font-size: 13px; color: var(--v-line); white-space: nowrap; }
+.v-stars__on { color: #d97706; }
+
+/* --- Dual listbox (ported from the v2 layer with its consumer) --- */
+.v-picker { display: flex; align-items: stretch; }
+.v-picker__pane {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+.v-picker__pane--in {
+    border-start-start-radius: var(--radius-md);
+    border-end-start-radius: var(--radius-md);
+}
+.v-picker__pane--out {
+    border-start-end-radius: var(--radius-md);
+    border-end-end-radius: var(--radius-md);
+}
+.v-picker__head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--border);
+}
+.v-picker__list {
+    height: 11rem;
+    overflow-y: auto;
+    background: var(--surface);
+}
+.v-picker__opt {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: left;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--motion-fast), color var(--motion-fast);
+}
+.v-picker__opt:hover { background: var(--surface-hover); }
+.v-picker__opt[aria-selected="true"] {
+    background: var(--accent-weak);
+    color: var(--accent);
+    font-weight: 500;
+}
+.v-picker__pane--out .v-picker__opt[aria-selected="true"] {
+    background: var(--bl-bad-wash);
+    color: var(--danger);
+}
+.v-picker__none {
+    padding: 24px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.v-picker__mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    gap: 8px;
+    padding: 0 8px;
+    background: var(--surface-sunken);
+    border-block: 1px solid var(--border);
+}
+.v-picker-rot { transform: rotate(90deg); }
+svg.v-dlb-ic { width: 14px; height: 14px; }
+
+/* --- Auth forms (the guest door speaks the one vocabulary) --------- */
+.v-authform { display: flex; flex-direction: column; gap: 18px; }
+.v-block-btn { width: 100%; justify-content: center; }

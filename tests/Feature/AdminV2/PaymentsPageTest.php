@@ -30,7 +30,7 @@ class PaymentsPageTest extends TestCase
 
         $this->get(route('admin.payment-settings.index'))
             ->assertOk()
-            ->assertSee('v3-embed', false)
+            ->assertSee('v-embed', false)
             ->assertSee('Bank Transfer')->assertSee('Cash on Delivery')->assertSee('HitPay')
             ->assertSee('Configure');
     }
@@ -50,7 +50,7 @@ class PaymentsPageTest extends TestCase
             $page->assertSee(route('admin.extensions.disable', $name), false);
             $page->assertSee(route('admin.extensions.uninstall', $name), false);
         }
-        $page->assertDontSee('v3-toggle', false);
+        $page->assertDontSee('v-toggle', false);
         $page->assertDontSee('Manage');
         $page->assertDontSee('Restricted');
 

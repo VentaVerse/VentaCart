@@ -1,69 +1,69 @@
-<x-admin3.settings-shell :title="'Edit geo zone: ' . $geoZone->name" active="localization">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+<x-admin.settings-shell :title="'Edit geo zone: ' . $geoZone->name" active="localization">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.localization.index') }}?tab=geo-zones">Localization</a>
                 <span aria-hidden="true">/</span>
                 <span>Geo zones</span>
             </div>
-            <h1 class="v3-head__title">{{ $geoZone->name }}</h1>
-            <p class="v3-head__standing">One save commits the whole page: the zone and its entries together.</p>
+            <h1 class="v-head__title">{{ $geoZone->name }}</h1>
+            <p class="v-head__standing">One save commits the whole page: the zone and its entries together.</p>
         </div>
     </div>
 
     {{-- ONE form. Editing the name and adding entries are the same piece
          of work; splitting them across two saves is how this page lost
          merchants' edits in v2. --}}
-    <x-admin3.form :action="route('admin.localization.update-geo-zone', $geoZone)" method="PUT" class="v3-settle-host">
-      <div x-data="v3GeoZone(@js(old('entries') !== null ? collect(old('entries'))->values() : $entries))" class="v3-settle">
+    <x-admin.form :action="route('admin.localization.update-geo-zone', $geoZone)" method="PUT" class="v-settle-host">
+      <div x-data="vGeoZone(@js(old('entries') !== null ? collect(old('entries'))->values() : $entries))" class="v-settle">
 
-        <x-admin3.panel title="Zone">
-            <div class="v3-grid v3-grid--3">
-                <div class="v3-span2">
-                    <x-admin3.field name="name" label="Name" required>
-                        <input type="text" name="name" required class="v3-control" value="{{ old('name', $geoZone->name) }}">
-                    </x-admin3.field>
+        <x-admin.panel title="Zone">
+            <div class="v-grid v-grid--3">
+                <div class="v-span2">
+                    <x-admin.field name="name" label="Name" required>
+                        <input type="text" name="name" required class="v-control" value="{{ old('name', $geoZone->name) }}">
+                    </x-admin.field>
                 </div>
-                <x-admin3.field name="sort_order" label="Sort order">
-                    <input type="number" name="sort_order" min="0" class="v3-control" value="{{ old('sort_order', $geoZone->sort_order) }}">
-                </x-admin3.field>
+                <x-admin.field name="sort_order" label="Sort order">
+                    <input type="number" name="sort_order" min="0" class="v-control" value="{{ old('sort_order', $geoZone->sort_order) }}">
+                </x-admin.field>
             </div>
-            <div class="v3-gap">
-                <x-admin3.field name="description" label="Description">
-                    <input type="text" name="description" class="v3-control" value="{{ old('description', $geoZone->description) }}">
-                </x-admin3.field>
+            <div class="v-gap">
+                <x-admin.field name="description" label="Description">
+                    <input type="text" name="description" class="v-control" value="{{ old('description', $geoZone->description) }}">
+                </x-admin.field>
             </div>
-            <div class="v3-gap">
-                <label class="v3-toggle">
+            <div class="v-gap">
+                <label class="v-toggle">
                     <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $geoZone->is_active))>
-                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    <span class="v-toggle__track" aria-hidden="true"></span>
                     Enabled
                 </label>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
 
-        <x-admin3.panel title="Entries" note="An entry is one country, optionally narrowed to one of its zones.">
+        <x-admin.panel title="Entries" note="An entry is one country, optionally narrowed to one of its zones.">
             <x-slot:acts>
-                <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="add(); touch()">
-                    <x-admin3.icon name="plus" /> Add entry
+                <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="add(); touch()">
+                    <x-admin.icon name="plus" /> Add entry
                 </button>
             </x-slot:acts>
 
-            <div class="v3-rows" x-show="entries.length > 0">
+            <div class="v-rows" x-show="entries.length > 0">
                 <template x-for="(entry, idx) in entries" :key="entry.uid">
-                    <div class="v3-row">
+                    <div class="v-row">
                         <input type="hidden" :name="'entries[' + idx + '][country_id]'" :value="entry.country_id || ''">
                         <input type="hidden" :name="'entries[' + idx + '][zone_id]'" :value="entry.zone_id || ''">
 
-                        <select class="v3-control" @change="setCountry(idx, $event.target.value); touch()" aria-label="Country">
+                        <select class="v-control" @change="setCountry(idx, $event.target.value); touch()" aria-label="Country">
                             <option value="">Select country…</option>
                             @foreach ($countries as $c)
                                 <option value="{{ $c->id }}" :selected="entry.country_id == {{ $c->id }}">{{ $c->name }}</option>
                             @endforeach
                         </select>
 
-                        <select class="v3-control" aria-label="Zone or state"
+                        <select class="v-control" aria-label="Zone or state"
                                 :disabled="!entry.zones || entry.zones.length === 0"
                                 @change="entry.zone_id = $event.target.value || null; touch()">
                             <option value="">All zones</option>
@@ -72,25 +72,25 @@
                             </template>
                         </select>
 
-                        <button type="button" class="v3-row__x" @click="remove(idx); touch()" aria-label="Remove entry">
-                            <x-admin3.icon name="trash" />
+                        <button type="button" class="v-row__x" @click="remove(idx); touch()" aria-label="Remove entry">
+                            <x-admin.icon name="trash" />
                         </button>
                     </div>
                 </template>
             </div>
 
-            <div class="v3-empty" x-show="entries.length === 0">
-                <p class="v3-empty__title">No entries yet</p>
-                <p class="v3-empty__line">This zone matches no address until an entry names a country.</p>
+            <div class="v-empty" x-show="entries.length === 0">
+                <p class="v-empty__title">No entries yet</p>
+                <p class="v-empty__line">This zone matches no address until an entry names a country.</p>
             </div>
-        </x-admin3.panel>
+        </x-admin.panel>
       </div>
-    </x-admin3.form>
+    </x-admin.form>
 
     @push('scripts')
     <script>
     document.addEventListener('alpine:init', () => {
-        Alpine.data('v3GeoZone', (initial) => ({
+        Alpine.data('vGeoZone', (initial) => ({
             entries: initial.map((e, i) => ({ ...e, uid: 'e' + i, zones: [] })),
             _uid: initial.length,
 
@@ -130,4 +130,4 @@
     });
     </script>
     @endpush
-</x-admin3.settings-shell>
+</x-admin.settings-shell>

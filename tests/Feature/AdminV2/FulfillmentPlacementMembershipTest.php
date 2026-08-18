@@ -247,7 +247,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
     /**
      * The motivating defect, at scale: OpenCart-era orders whose core status
      * is "Delivered" carry no courier data at all (they predate the courier
-     * integration). Under the tabs-v3 rule every one of them showed up in
+     * integration). Under the tabs-v rule every one of them showed up in
      * To Pack, because "no tracking number" meant "never booked, go pack
      * it". Placement membership puts them where their status says.
      */

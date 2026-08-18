@@ -45,7 +45,7 @@ class StockAlertsExtensionTest extends TestCase
         $this->get(route('admin.stock-notifications.index'))
             ->assertOk()
             ->assertSee('Stock Alerts')
-            ->assertSee('v3-embed', false);
+            ->assertSee('v-embed', false);
     }
 
     public function test_storefront_subscribe_endpoint_exists_while_enabled(): void

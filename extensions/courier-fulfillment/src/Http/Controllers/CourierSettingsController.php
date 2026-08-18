@@ -46,7 +46,7 @@ class CourierSettingsController extends Controller
      * by FulfillmentController::index() (opt-out pause toggle — missing/NULL
      * means active, only an explicit '0' pauses the queue), 'cod_payment_methods'
      * by FulfillmentService::isCodOrder(), 'cancel_order_status_id' by
-     * FulfillmentController::cancelOrder() (fulfillment-tabs-v3 Task 4: the
+     * FulfillmentController::cancelOrder() (fulfillment-tabs-v Task 4: the
      * core status a queue "Cancel order" sets; default is the status named
      * "Canceled"), 'booked_order_status_id' / 'unbooked_order_status_id' by
      * FulfillmentService::bookedStatus()/unbookedStatus()
@@ -291,7 +291,7 @@ class CourierSettingsController extends Controller
             $codMethods = array_values(array_filter(array_keys($paymentMethodOptions), fn ($m) => str_contains(strtolower($m), 'cod')));
         }
 
-        // fulfillment-tabs-v3 Task 4: the queue's "Cancel order" target
+        // fulfillment-tabs-v Task 4: the queue's "Cancel order" target
         // status. Null when unset — the view renders a "Use default"
         // placeholder for that case (fix-round minor: pre-selecting the
         // default status here made the first hub save silently PERSIST it,
@@ -518,7 +518,7 @@ class CourierSettingsController extends Controller
     /** Hub save: the module-level keys ONLY — never any courier's schema keys. */
     public function update(Request $request)
     {
-        // fulfillment-tabs-v3 Task 4: the cancel-status target must be a
+        // fulfillment-tabs-v Task 4: the cancel-status target must be a
         // real order status — an arbitrary id would send every queue
         // "Cancel order" into a silent fallback. FINAL-review fix (F5):
         // and a cancelled-STAGE one, matching the select's own scope -

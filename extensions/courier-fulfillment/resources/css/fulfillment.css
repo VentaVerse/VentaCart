@@ -1,34 +1,34 @@
 /* Courier Fulfillment: what only the queue has.
    -------------------------------------------------------------------
-   The queue's vocabulary lives in the admin's shared v3 layer: the
+   The queue's vocabulary lives in the admin's shared v layer: the
    counted tab bar, the two-tier table, the drawer, the stepper, the
    choice cards. This file carries only what is page-specific: two
    column widths, the booking sheet's two widths, whose logo is whose,
    and two pickup-page measurements. */
 
-.v3-w-courier { width: 170px; }
-.v3-w-status  { width: 170px; }
+.v-w-courier { width: 170px; }
+.v-w-status  { width: 170px; }
 
 /* The booking sheet holds two different shapes and needs two widths.
    The courier step lays its options out as columns (up to four wide);
    the chosen courier's form is a column of fields and reads worse
    stretched. */
-.v3-bookmodal {
+.v-bookmodal {
     width: 100%;
     max-width: 28rem;
-    transition: max-width var(--v3-base, .2s);
+    transition: max-width var(--v-base, .2s);
 }
-.v3-bookmodal--couriers { max-width: 54rem; }
+.v-bookmodal--couriers { max-width: 54rem; }
 
 /* The couriers' own marks. Referenced by url() from this stylesheet
    so Vite fingerprints both images and emits them beside it. Both
    plates state their own ground and do not flip with the theme: a
    mark brings the field it was drawn on. */
-.v3-choicecard__mark--spx {
+.v-choicecard__mark--spx {
     background-color: #EE4D2D;
     background-image: url('../images/spx.png');
 }
-.v3-choicecard__mark--quadx {
+.v-choicecard__mark--quadx {
     background-color: #FFFFFF;
     background-image: url('../images/gogo.png');
 }
@@ -44,16 +44,16 @@
 .v-fixedvalue {
     display: flex;
     align-items: center;
-    min-height: var(--v3-control-h);
+    min-height: var(--v-control-h);
     padding-inline: 0.625rem;
-    border-radius: var(--v3-r-md);
-    background: var(--v3-sunken);
-    color: var(--v3-ink-2);
+    border-radius: var(--v-r-md);
+    background: var(--v-sunken);
+    color: var(--v-ink-2);
     font-size: 13px;
     cursor: default;
 }
 
-.v3-bookmodal { max-height: calc(100vh - 40px); overflow-y: auto; }
+.v-bookmodal { max-height: calc(100vh - 40px); overflow-y: auto; }
 
 /* Column floor: the product cell scrolls rather than crushing at 390 */
-.v3-w-product { min-width: 16rem; }
+.v-w-product { min-width: 16rem; }

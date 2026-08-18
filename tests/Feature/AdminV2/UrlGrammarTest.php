@@ -488,8 +488,8 @@ class UrlGrammarTest extends TestCase
         $response = $this->get('/'.$this->prefix().'/extensions/banners');
 
         $response->assertOk();
-        // v3 repin: the settings space IS Settings, so the trail starts
-        // at Modules like every other v3 settings page.
+        // v repin: the settings space IS Settings, so the trail starts
+        // at Modules like every other v settings page.
         $this->assertBreadcrumbTrail($response->getContent(), ['Extensions', 'Banners']);
     }
 
@@ -608,8 +608,8 @@ class UrlGrammarTest extends TestCase
     private function assertBreadcrumbTrail(string $html, array $expectedLabels): void
     {
         // Two trail generations: the v2 shell's <nav class="v-day__trail">
-        // and the v3 head's <div class="v3-head__trail"> both count.
-        $found = preg_match('/<(nav|div)[^>]*class="[^"]*(?:v-day__trail|v3-head__trail)[^"]*"[^>]*>(.*?)<\/\1>/s', $html, $matches);
+        // and the v head's <div class="v-head__trail"> both count.
+        $found = preg_match('/<(nav|div)[^>]*class="[^"]*(?:v-day__trail|v-head__trail)[^"]*"[^>]*>(.*?)<\/\1>/s', $html, $matches);
         $this->assertSame(1, $found, 'Breadcrumb <nav> not found in response HTML.');
 
         $trailText = trim(preg_replace('/\s+/', ' ', strip_tags($matches[2])));

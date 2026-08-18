@@ -1,64 +1,64 @@
-<x-admin3.shell :title="'Edit ' . $bankAccount->bank_name">
-    <div class="v3-head">
-        <div class="v3-head__body">
-            <div class="v3-head__trail">
+<x-admin.shell :title="'Edit ' . $bankAccount->bank_name">
+    <div class="v-head">
+        <div class="v-head__body">
+            <div class="v-head__trail">
                 <a href="{{ route('admin.extensions.index') }}">Extensions</a>
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.payment-settings.show', 'bank_transfer') }}">Bank Transfer</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $bankAccount->bank_name }}</span>
             </div>
-            <h1 class="v3-head__title">{{ $bankAccount->bank_name }}</h1>
+            <h1 class="v-head__title">{{ $bankAccount->bank_name }}</h1>
         </div>
     </div>
 
-    <x-admin3.form :action="route('admin.bank-accounts.update', $bankAccount)" method="PUT" enctype="multipart/form-data" class="v3-settle">
-        <x-admin3.panel title="Account">
-            <div class="v3-grid v3-grid--2">
-                <x-admin3.field name="bank_name" label="Bank name" required>
-                    <input type="text" name="bank_name" required class="v3-control"
+    <x-admin.form :action="route('admin.bank-accounts.update', $bankAccount)" method="PUT" enctype="multipart/form-data" class="v-settle">
+        <x-admin.panel title="Account">
+            <div class="v-grid v-grid--2">
+                <x-admin.field name="bank_name" label="Bank name" required>
+                    <input type="text" name="bank_name" required class="v-control"
                            value="{{ old('bank_name', $bankAccount->bank_name) }}">
-                </x-admin3.field>
-                <x-admin3.field name="account_name" label="Account name" required>
-                    <input type="text" name="account_name" required class="v3-control"
+                </x-admin.field>
+                <x-admin.field name="account_name" label="Account name" required>
+                    <input type="text" name="account_name" required class="v-control"
                            value="{{ old('account_name', $bankAccount->account_name) }}">
-                </x-admin3.field>
-                <x-admin3.field name="account_number" label="Account number" required>
-                    <input type="text" name="account_number" required class="v3-control v3-mono"
+                </x-admin.field>
+                <x-admin.field name="account_number" label="Account number" required>
+                    <input type="text" name="account_number" required class="v-control v-mono"
                            value="{{ old('account_number', $bankAccount->account_number) }}">
-                </x-admin3.field>
-                <x-admin3.field name="sort_order" label="Sort order">
-                    <input type="number" name="sort_order" min="0" class="v3-control v3-mono v3-w-sort"
+                </x-admin.field>
+                <x-admin.field name="sort_order" label="Sort order">
+                    <input type="number" name="sort_order" min="0" class="v-control v-mono v-w-sort"
                            value="{{ old('sort_order', $bankAccount->sort_order) }}">
-                </x-admin3.field>
+                </x-admin.field>
             </div>
-            <div class="v3-gap">
-                <x-admin3.field name="qr_image" label="QR code image" hint="Max 2MB. Shown to the customer after order placement.">
+            <div class="v-gap">
+                <x-admin.field name="qr_image" label="QR code image" hint="Max 2MB. Shown to the customer after order placement.">
                     @if ($bankAccount->qr_image)
-                        <div class="v3-markrow v3-gap-sm">
-                            <img src="{{ storage_url($bankAccount->qr_image) }}" alt="QR code" class="v3-qr v3-qr--lg">
-                            <label class="v3-check">
+                        <div class="v-markrow v-gap-sm">
+                            <img src="{{ storage_url($bankAccount->qr_image) }}" alt="QR code" class="v-qr v-qr--lg">
+                            <label class="v-check">
                                 <input type="checkbox" name="remove_qr" value="1">
                                 Remove QR image
                             </label>
                         </div>
                     @endif
-                    <input type="file" name="qr_image" accept="image/*" class="v3-file">
-                </x-admin3.field>
+                    <input type="file" name="qr_image" accept="image/*" class="v-file">
+                </x-admin.field>
             </div>
-            <div class="v3-gap">
-                <x-admin3.field name="instructions" label="Instructions">
-                    <textarea name="instructions" rows="3" class="v3-control">{{ old('instructions', $bankAccount->instructions) }}</textarea>
-                </x-admin3.field>
+            <div class="v-gap">
+                <x-admin.field name="instructions" label="Instructions">
+                    <textarea name="instructions" rows="3" class="v-control">{{ old('instructions', $bankAccount->instructions) }}</textarea>
+                </x-admin.field>
             </div>
-            <div class="v3-gap">
-                <label class="v3-toggle">
+            <div class="v-gap">
+                <label class="v-toggle">
                     <input type="hidden" name="is_active" value="0">
                     <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $bankAccount->is_active))>
-                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    <span class="v-toggle__track" aria-hidden="true"></span>
                     Active
                 </label>
             </div>
-        </x-admin3.panel>
-    </x-admin3.form>
-</x-admin3.shell>
+        </x-admin.panel>
+    </x-admin.form>
+</x-admin.shell>

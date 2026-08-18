@@ -24,10 +24,10 @@ class PartialsDesignSystemTest extends TestCase
         $base = resource_path('views/admin');
 
         return [
-            // The catalog v3 wave replaced the v2 image partials wholesale;
-            // the same design-system rules now guard their v3 successors.
-            'image_manager' => $base . '/catalog/products/partials/v3_image_manager.blade.php',
-            'single_image_picker' => $base . '/partials/v3_single_image_picker.blade.php',
+            // The catalog v wave replaced the v2 image partials wholesale;
+            // the same design-system rules now guard their v successors.
+            'image_manager' => $base . '/catalog/products/partials/image_manager.blade.php',
+            'single_image_picker' => $base . '/partials/single_image_picker.blade.php',
             'dual-listbox' => $base . '/partials/dual-listbox.blade.php',
             'availability' => $base . '/settings/payments/partials/availability.blade.php',
         ];
@@ -101,13 +101,13 @@ class PartialsDesignSystemTest extends TestCase
         // with its own selectedKeys state. The shared partial preserves
         // non-numeric ids verbatim, so the copy was removable; pin that it
         // stays removed and that the submitted field name is unchanged.
-        // v3: the shared widget is now x-admin3.picklist; the submitted
+        // v: the shared widget is now x-admin.picklist; the submitted
         // field name is unchanged and no hand-copied state exists.
         $source = file_get_contents($this->partials()['availability']);
 
         $this->assertStringContainsString('name="shipping_method_keys"', $source);
         $this->assertStringNotContainsString('selectedKeys', $source);
         // 6 include conditions + 5 exclude conditions.
-        $this->assertSame(11, substr_count($source, '<x-admin3.picklist'));
+        $this->assertSame(11, substr_count($source, '<x-admin.picklist'));
     }
 }
