@@ -31,14 +31,16 @@ class NavBadges
                 }
             }
 
-            // The fulfillment queue's To Ship tally (to pack + to handover),
-            // through the same placement map the queue's own tabs count with.
+            // To Pack only (owner ruling 2026-08-19): the badge is a call
+            // to action, and packing is the store's move. To Handover is
+            // the courier's wait, so it stays off the badge and lives in
+            // the queue's own tab counts.
             if (Route::has('admin.fulfillment.index')
                 && class_exists(\Extensions\CourierFulfillment\PlacementMap::class)
                 && Schema::hasTable(\Extensions\CourierFulfillment\PlacementMap::TABLE)) {
                 $badges['admin.fulfillment.index'] = DB::table('orders')
                     ->join(\Extensions\CourierFulfillment\PlacementMap::TABLE . ' as cf_p', 'orders.order_status_id', '=', 'cf_p.order_status_id')
-                    ->whereIn('cf_p.placement', ['to_pack', 'to_handover'])
+                    ->where('cf_p.placement', 'to_pack')
                     ->count();
             }
 
