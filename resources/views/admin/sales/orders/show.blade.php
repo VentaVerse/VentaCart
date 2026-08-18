@@ -145,6 +145,14 @@
                             <dt>Coupon ({{ $order->coupon_code }})</dt>
                             <dd class="v3-mono">-{{ $currency }}{{ number_format($order->coupon_discount, 2) }}</dd>
                         @endif
+                        {{-- Other totals-pipeline lines (store credit, future
+                             fees). Coupon skipped: its columns render above. --}}
+                        @foreach (collect($order->total_lines ?? [])->where('code', '!=', 'coupon') as $line)
+                            @if (($line['amount'] ?? 0) != 0)
+                                <dt>{{ $line['label'] }}</dt>
+                                <dd class="v3-mono">{{ $line['amount'] < 0 ? '-' : '' }}{{ $currency }}{{ number_format(abs($line['amount']), 2) }}</dd>
+                            @endif
+                        @endforeach
                         <dt class="v3-facts__sum">Total</dt>
                         <dd class="v3-facts__sum v3-mono">{{ $currency }}{{ number_format($order->total, 2) }}</dd>
                     </dl>

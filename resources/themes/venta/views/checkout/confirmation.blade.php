@@ -53,6 +53,14 @@
                             @endif
                         </span>
                     </div>
+                    @foreach (collect($order->total_lines ?? []) as $line)
+                        @if (($line['amount'] ?? 0) != 0)
+                            <div class="flex justify-between">
+                                <span class="text-[var(--color-text-muted)]">{{ $line['label'] }}</span>
+                                <span class="font-heading {{ $line['amount'] < 0 ? 'text-emerald-400' : 'text-[var(--color-text-heading)]' }}">{{ $line['amount'] < 0 ? '-' : '' }}₱{{ number_format(abs($line['amount']), 2) }}</span>
+                            </div>
+                        @endif
+                    @endforeach
                 </div>
 
                 <hr class="divider-glow my-4">

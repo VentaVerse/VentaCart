@@ -30,7 +30,52 @@ class OrderTotalsPipelineTest extends TestCase
 
         $manager = app(ExtensionManager::class);
         $manager->install('coupons');
+        $manager->install('store-credit');
         $manager->bootEnabled();
+    }
+
+    public function test_store_credit_applies_after_the_coupon_and_never_exceeds_the_remainder(): void
+    {
+        Coupon::create([
+            'code' => 'TEN', 'name' => 'Ten percent', 'type' => 'percent',
+            'discount_value' => 10, 'customer_eligibility' => 'all', 'is_active' => true,
+        ]);
+        $cart = $this->cartWithItem(1000.0, 'TEN');
+        $customer = $cart->customer;
+        \Extensions\StoreCredit\CreditService::add($customer->id, 5000.0, 'Test grant');
+
+        $ctx = OrderTotals::collect(new TotalsContext($customer, collect(), 1000.0, 150.0, ['cart' => $cart]));
+
+        // Coupon first (-100), credit covers ALL of what remains (1050),
+        // capped by the remainder even though the balance is larger.
+        $this->assertSame(-100.0, $ctx->line('coupon')['amount']);
+        $this->assertSame(-1050.0, $ctx->line('store_credit')['amount']);
+        $this->assertSame(0.0, $ctx->total());
+    }
+
+    public function test_store_credit_confirm_writes_the_spend_into_the_ledger(): void
+    {
+        $cart = $this->cartWithItem(500.0, '');
+        $customer = $cart->customer;
+        \Extensions\StoreCredit\CreditService::add($customer->id, 200.0, 'Test grant');
+
+        $ctx = OrderTotals::collect(new TotalsContext($customer, collect(), 500.0, 0.0, ['cart' => $cart]));
+        $this->assertSame(-200.0, $ctx->line('store_credit')['amount']);
+
+        $order = \App\Models\Order::create([
+            'store_id' => 1, 'customer_id' => $customer->id,
+            'first_name' => 'Test', 'last_name' => 'Buyer', 'email' => $customer->email,
+            'shipping_first_name' => 'Test', 'shipping_last_name' => 'Buyer',
+            'shipping_address_1' => 'Street', 'shipping_city' => 'City',
+            'subtotal' => 500, 'shipping_cost' => 0, 'total' => 300,
+            'total_lines' => $ctx->lines,
+        ]);
+        OrderTotals::confirm($order, $ctx->lines);
+
+        $this->assertSame(0.0, \Extensions\StoreCredit\CreditService::balance($customer->id));
+        $spend = \Extensions\StoreCredit\Models\CustomerTransaction::where('order_id', $order->id)->first();
+        $this->assertNotNull($spend);
+        $this->assertSame(-200.0, (float) $spend->amount);
     }
 
     public function test_context_total_is_subtotal_plus_shipping_plus_lines_floored_at_zero(): void

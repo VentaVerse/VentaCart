@@ -761,6 +761,7 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
     couponInput: '',
     couponLoading: false,
     couponError: '',
+    creditBalance: 0,
     qrOpen: false,
     qrSrc: '',
     qrName: '',
@@ -791,6 +792,17 @@ Alpine.data('checkoutWizard', (addresses, defaultAddressId, items, subtotal, shi
 
     get total() {
         return Math.max(0, this.subtotal + this.effectiveShippingCost - this.couponDiscount);
+    },
+
+    // Store credit (set by the extension's composer when the signed-in
+    // customer holds a balance; stays 0 otherwise). Mirrors the server
+    // pipeline: credit covers what is left AFTER the coupon.
+    get creditApplied() {
+        return Math.min(this.creditBalance || 0, this.total);
+    },
+
+    get payableTotal() {
+        return Math.max(0, this.total - this.creditApplied);
     },
 
     goToStep(n) {

@@ -270,6 +270,12 @@
             </x-admin.form-actions>
         </form>
 
+        {{-- Store credit panel: a guarded seam into the store-credit
+             extension; the route only exists while it is enabled. --}}
+        @if (isset($customer) && $customer->id && Route::has('admin.store-credit.adjust') && View::exists('store-credit::customer-panel'))
+            @include('store-credit::customer-panel', ['customer' => $customer])
+        @endif
+
         @if (isset($customer) && $customer->id)
             <x-admin.confirm-dialog name="impersonate-customer" tone="primary"
                 title="Sign in as {{ $customer->first_name }} {{ $customer->last_name }}?"

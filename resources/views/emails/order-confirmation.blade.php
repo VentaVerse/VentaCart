@@ -245,6 +245,18 @@
                                         @endif
                                     </td>
                                 </tr>
+                                @foreach (collect($order->total_lines ?? []) as $line)
+                                    @if (($line['amount'] ?? 0) != 0)
+                                        <tr>
+                                            <td style="padding: 8px 12px; font-size: 14px; color: #999999; text-align: right;">
+                                                {{ $line['label'] }}:
+                                            </td>
+                                            <td style="padding: 8px 12px; font-size: 14px; color: {{ $line['amount'] < 0 ? '#4ade80' : '#e8e8e8' }}; text-align: right; width: 100px;">
+                                                {{ $line['amount'] < 0 ? '-' : '' }}{{ number_format(abs($line['amount']), 2) }}
+                                            </td>
+                                        </tr>
+                                    @endif
+                                @endforeach
                                 <tr>
                                     <td style="padding: 12px 12px 8px 12px; font-size: 18px; font-weight: 700; color: {{ $primaryColor }}; text-align: right; border-top: 2px solid #333333;">
                                         Total

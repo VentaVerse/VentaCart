@@ -32,7 +32,7 @@
             {{ $countriesJson }},
             { firstName: {{ json_encode($customer->first_name) }}, lastName: {{ json_encode($customer->last_name) }} }
          )"
-         x-init="couponCode = {{ $couponCodeJson }}; couponDiscount = {{ $couponDiscountVal }}; couponFreeShipping = {{ $couponFreeShippingJson }}">
+         x-init="couponCode = {{ $couponCodeJson }}; couponDiscount = {{ $couponDiscountVal }}; couponFreeShipping = {{ $couponFreeShippingJson }}; creditBalance = {{ (float) ($creditBalance ?? 0) }}">
 
         <h1 class="section-title reveal">CHECKOUT</h1>
 
@@ -591,10 +591,17 @@
 
                     <hr class="divider-glow my-4">
 
+                    <template x-if="creditApplied > 0">
+                        <div class="flex justify-between text-sm text-emerald-500 mb-2">
+                            <span>Store Credit</span>
+                            <span>-<span x-text="money(creditApplied)"></span></span>
+                        </div>
+                    </template>
+
                     {{-- Total --}}
                     <div class="flex justify-between">
                         <span class="text-[var(--color-text-heading)]" class="font-heading-wide">TOTAL</span>
-                        <span class="text-xl text-[var(--color-text-heading)]" class="font-heading"><span x-text="money(total)"></span></span>
+                        <span class="text-xl text-[var(--color-text-heading)]" class="font-heading"><span x-text="money(payableTotal)"></span></span>
                     </div>
 
                     @if ($activeCurrency && !$activeCurrency->is_default)
@@ -607,7 +614,7 @@
                     <div class="checkout-summary-actions" x-show="step === 2 || !showNewAddressForm">
                         <div class="checkout-sticky-total" aria-hidden="true">
                             <span>TOTAL</span>
-                            <span x-text="money(total)"></span>
+                            <span x-text="money(payableTotal)"></span>
                         </div>
                         <div class="checkout-actions-row" x-show="step === 1">
                             <a href="{{ route('cart.index') }}" class="account-btn-secondary">Cancel</a>
@@ -757,9 +764,15 @@
                             <span>-<span x-text="money(couponDiscount)"></span></span>
                         </div>
                     </template>
+                    <template x-if="creditApplied > 0">
+                        <div class="flex justify-between text-sm text-emerald-500">
+                            <span>Store Credit</span>
+                            <span>-<span x-text="money(creditApplied)"></span></span>
+                        </div>
+                    </template>
                     <div class="checkout-modal-total-line">
                         <span>Total</span>
-                        <span class="text-lg font-bold"><span x-text="money(total)"></span></span>
+                        <span class="text-lg font-bold"><span x-text="money(payableTotal)"></span></span>
                     </div>
                 </div>
 

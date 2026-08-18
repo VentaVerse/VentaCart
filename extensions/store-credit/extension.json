@@ -1,0 +1,10 @@
+{
+    "name": "store-credit",
+    "title": "Store Credit",
+    "version": "1.0.0",
+    "description": "Customer credit balances: a signed transaction ledger, auto-applied against the order total at checkout.",
+    "provider": "Extensions\\StoreCredit\\StoreCreditServiceProvider",
+    "icon": "coupons",
+    "type": "total",
+    "configure_route": "admin.store-credit.index"
+}
