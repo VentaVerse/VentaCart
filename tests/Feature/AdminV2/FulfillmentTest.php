@@ -890,6 +890,65 @@ class FulfillmentTest extends TestCase
         $this->assertSame('QX-DUP-001', $order->fresh()->courier_tracking_number);
     }
 
+    /**
+     * Owner directive 2026-08-19: a disabled courier is disabled for the
+     * ERP too — the API must refuse to book on it. The gate is
+     * FulfillmentService::book()'s isEnabled() check (shared with the
+     * admin queue); this pins it from the ERP side so it can never
+     * regress into an ERP-only bypass. Covers every booking-side
+     * endpoint: book, estimate, pickup-slots.
+     */
+    public function test_erp_cannot_book_estimate_or_fetch_slots_on_a_disabled_courier(): void
+    {
+        $this->installExtension();
+        $token = $this->makeErpToken();
+
+        // QuadX fully credentialed but its enable toggle OFF — the exact
+        // state the admin's courier settings switch produces.
+        Setting::create(['group' => 'courier', 'key' => 'quadx_enabled', 'value' => '0']);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'staging']);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_staging_api_key', 'value' => Crypt::encryptString('test-api-key')]);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_staging_secret_key', 'value' => Crypt::encryptString('test-secret-key')]);
+
+        Http::fake(); // any outbound call to the courier is a failure
+
+        $order = $this->makeBookableOrder();
+        $auth = fn () => $this->withHeader('Authorization', "Bearer {$token}");
+
+        $auth()->postJson("/api/v1/orders/{$order->id}/book-courier", ['courier' => 'quadx'])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'courier_unavailable');
+
+        $auth()->postJson("/api/v1/orders/{$order->id}/estimate", ['courier' => 'quadx'])
+            ->assertStatus(409);
+
+        $auth()->getJson("/api/v1/orders/{$order->id}/pickup-slots?courier=quadx")
+            ->assertStatus(409);
+
+        // Omitting the courier cannot sidestep the gate either: with no
+        // enabled courier, the default resolves to none.
+        $auth()->postJson("/api/v1/orders/{$order->id}/book-courier", [])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'courier_unavailable');
+
+        // Nothing left the building and the order carries no booking.
+        Http::assertNothingSent();
+        $order->refresh();
+        $this->assertNull($order->courier_tracking_number);
+        $this->assertNull($order->courier_provider);
+
+        // Flag ON but unconfigured (credentials removed) is equally
+        // refused — isEnabled()'s other half.
+        Setting::where('group', 'courier')->where('key', 'quadx_enabled')->update(['value' => '1']);
+        Setting::where('group', 'courier')->where('key', 'quadx_staging_api_key')->delete();
+        Setting::where('group', 'courier')->where('key', 'quadx_staging_secret_key')->delete();
+
+        $auth()->postJson("/api/v1/orders/{$order->id}/book-courier", ['courier' => 'quadx'])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'courier_unavailable');
+        Http::assertNothingSent();
+    }
+
     public function test_erp_book_endpoint_is_idempotent_on_repeat_calls(): void
     {
         // The ERP endpoint has NO controller-level pre-check (unlike the admin
