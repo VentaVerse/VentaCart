@@ -1,92 +1,95 @@
-<x-admin.shell title="Customers">
-    <x-admin.page title="Customers">
-        <x-slot:actions>
-            <x-admin.button variant="secondary" href="{{ route('admin.customer-groups.index') }}">Customer Groups</x-admin.button>
-            <x-admin.button variant="primary" href="{{ route('admin.customers.create') }}">
-                <x-admin.icon name="plus" class="w-4 h-4" /> Add Customer
-            </x-admin.button>
-        </x-slot:actions>
-
-        <div>
-            <x-admin.filters :action="route('admin.customers.index')">
-                <x-admin.field name="search" label="Search" class="v-field--grow">
-                    <x-admin.input type="text" name="search" :value="request('search')" placeholder="Search name, email, phone..." />
-                </x-admin.field>
-                <x-admin.field name="customer_group_id" label="Group" class="w-48">
-                    <x-admin.select name="customer_group_id">
-                        <option value="">All Groups</option>
-                        @foreach ($customerGroups as $group)
-                            <option value="{{ $group->id }}" {{ request('customer_group_id') == $group->id ? 'selected' : '' }}>{{ $group->name }}</option>
-                        @endforeach
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.field name="status" label="Status" class="w-40">
-                    <x-admin.select name="status">
-                        <option value="">All Status</option>
-                        <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                        <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                    </x-admin.select>
-                </x-admin.field>
-                <x-admin.button type="submit" variant="secondary">Filter</x-admin.button>
-                @if (request()->anyFilled(['search', 'customer_group_id', 'status']))
-                    <a href="{{ route('admin.customers.index') }}" class="v-filters__reset">Clear</a>
-                @endif
-            </x-admin.filters>
-
-            {{-- Table --}}
-            <x-admin.table>
-                <x-slot:head>
-                    <x-admin.table.th>Customer</x-admin.table.th>
-                    <x-admin.table.th>Email</x-admin.table.th>
-                    <x-admin.table.th>Group</x-admin.table.th>
-                    <x-admin.table.th>Status</x-admin.table.th>
-                    <x-admin.table.th>Joined</x-admin.table.th>
-                    <x-admin.table.th class="v-col-act">Actions</x-admin.table.th>
-                </x-slot:head>
-                @forelse ($customers as $customer)
-                    <x-admin.table.row href="{{ route('admin.customers.edit', $customer) }}">
-                        <x-admin.table.cell>
-                            <span class="v-lead">{{ $customer->full_name }}</span>
-                            @if ($customer->phone)
-                                <span class="v-sub">{{ $customer->phone }}</span>
-                            @endif
-                        </x-admin.table.cell>
-                        <x-admin.table.cell><span class="v-sub">{{ $customer->email }}</span></x-admin.table.cell>
-                        <x-admin.table.cell>{{ $customer->customerGroup?->name ?? '-' }}</x-admin.table.cell>
-                        <x-admin.table.cell>
-                            <x-admin.badge :tone="$customer->is_active ? 'success' : 'neutral'">
-                                {{ $customer->is_active ? 'Active' : 'Inactive' }}
-                            </x-admin.badge>
-                        </x-admin.table.cell>
-                        <x-admin.table.cell>{{ $customer->created_at->format('M d, Y') }}</x-admin.table.cell>
-                        <x-admin.table.cell class="v-col-act">
-                            <div class="v-rowactions v-rowactions--end">
-                                <x-admin.button size="sm" variant="ghost" :href="route('admin.customers.edit', $customer)">Edit</x-admin.button>
-                                <x-admin.button size="sm" variant="ghost" class="v-rowactions__danger" @click="$dispatch('open-modal', 'delete-customer-{{ $customer->id }}')">Delete</x-admin.button>
-                            </div>
-                        </x-admin.table.cell>
-                    </x-admin.table.row>
-                @empty
-                    <tr>
-                        <td colspan="6">
-                            <x-admin.empty-state title="No customers found" :description="request()->anyFilled(['search', 'customer_group_id', 'status']) ? 'Try adjusting your filters.' : null">
-                                <x-admin.button variant="primary" :href="route('admin.customers.create')">Add your first customer</x-admin.button>
-                            </x-admin.empty-state>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($customers->hasPages())
-                    <x-slot:footer>
-                        {{ $customers->links() }}
-                    </x-slot:footer>
-                @endif
-            </x-admin.table>
+<x-admin3.shell title="Customers" active="customers">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <h1 class="v3-head__title">Customers</h1>
         </div>
+        <div class="v3-head__actions">
+            <a href="{{ route('admin.customer-groups.index') }}" class="v3-btn v3-btn--secondary">Customer Groups</a>
+            <a href="{{ route('admin.customers.create') }}" class="v3-btn v3-btn--primary">Add customer</a>
+        </div>
+    </div>
+
+    <div class="v3-settle">
+        <form method="GET" action="{{ route('admin.customers.index') }}" class="v3-filterbar">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Name, email, phone…"
+                   aria-label="Search customers" class="v3-control v3-filterbar__grow">
+            <select name="customer_group_id" aria-label="Filter by group" class="v3-control v3-w-name">
+                <option value="">All groups</option>
+                @foreach ($customerGroups as $group)
+                    <option value="{{ $group->id }}" @selected((string) request('customer_group_id') === (string) $group->id)>{{ $group->name }}</option>
+                @endforeach
+            </select>
+            <select name="status" aria-label="Filter by status" class="v3-control v3-w-name">
+                <option value="">All statuses</option>
+                <option value="active" @selected(request('status') === 'active')>Active</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+            </select>
+            <button type="submit" class="v3-btn v3-btn--secondary">Filter</button>
+            @if (request()->anyFilled(['search', 'customer_group_id', 'status']))
+                <a href="{{ route('admin.customers.index') }}" class="v3-link">Clear</a>
+            @endif
+        </form>
+
+        <x-admin3.panel flush>
+            <div class="v3-tablewrap">
+                <table class="v3-table">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Email</th>
+                            <th>Group</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                            <th class="v3-cell-act"><span class="v3-sr">Actions</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($customers as $customer)
+                            <tr>
+                                <td>
+                                    <a href="{{ route('admin.customers.edit', $customer) }}" class="v3-rowlink">{{ $customer->full_name }}</a>
+                                    @if ($customer->phone)
+                                        <span class="v3-cell-quiet v3-block v3-mono">{{ $customer->phone }}</span>
+                                    @endif
+                                </td>
+                                <td class="v3-cell-quiet">{{ $customer->email }}</td>
+                                <td>{{ $customer->customerGroup?->name ?? '-' }}</td>
+                                <td>
+                                    <span class="v3-badge v3-badge--{{ $customer->is_active ? 'good' : 'quiet' }}">
+                                        {{ $customer->is_active ? 'Active' : 'Inactive' }}
+                                    </span>
+                                </td>
+                                <td class="v3-cell-quiet">{{ $customer->created_at->format('M d, Y') }}</td>
+                                <td class="v3-cell-act">
+                                    <a href="{{ route('admin.customers.edit', $customer) }}" class="v3-btn v3-btn--ghost v3-btn--sm">Edit</a>
+                                    <button type="button" class="v3-btn v3-btn--danger v3-btn--sm"
+                                            @click="$dispatch('v3-confirm', 'delete-customer-{{ $customer->id }}')">Delete</button>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="6">
+                                    <div class="v3-empty">
+                                        <p class="v3-empty__title">No customers found</p>
+                                        <p class="v3-empty__line">{{ request()->anyFilled(['search', 'customer_group_id', 'status']) ? 'Try adjusting the filters.' : 'Customers who register on the storefront appear here.' }}</p>
+                                        @unless (request()->anyFilled(['search', 'customer_group_id', 'status']))
+                                            <a href="{{ route('admin.customers.create') }}" class="v3-btn v3-btn--primary v3-btn--sm">Add your first customer</a>
+                                        @endunless
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin3.panel>
+
+        <x-admin3.pager :paginator="$customers" />
 
         @foreach ($customers as $customer)
-            <x-admin.confirm-dialog name="delete-customer-{{ $customer->id }}" title="Delete {{ $customer->full_name }}?"
+            <x-admin3.confirm name="delete-customer-{{ $customer->id }}" title="Delete {{ $customer->full_name }}?"
                 message="This permanently removes the customer, their addresses, and cart. This cannot be undone."
                 confirm="Delete" :action="route('admin.customers.destroy', $customer)" method="DELETE" />
         @endforeach
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+</x-admin3.shell>

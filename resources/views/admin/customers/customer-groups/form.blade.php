@@ -1,39 +1,38 @@
-<x-admin.shell :title="$group ? 'Edit Customer Group' : 'Create Customer Group'">
-    <x-admin.page :title="$group ? 'Edit Customer Group' : 'Create Customer Group'">
-        <x-slot:actions>
-            <x-admin.button variant="ghost" href="{{ route('admin.customer-groups.index') }}">Back to Groups</x-admin.button>
-        </x-slot:actions>
-
-        <div class="max-w-2xl">
-            <x-admin.card>
-                <form method="POST"
-                      action="{{ $group ? route('admin.customer-groups.update', $group) : route('admin.customer-groups.store') }}"
-                      data-v-form class="space-y-6">
-                    @csrf
-                    @if ($group)
-                        @method('PUT')
-                    @endif
-                    <input type="hidden" name="store_id" value="1">
-
-                    <x-admin.field name="name" label="Name" required>
-                        <x-admin.input type="text" name="name" required :value="$group?->name" />
-                    </x-admin.field>
-
-                    <x-admin.field name="description" label="Description">
-                        <x-admin.textarea name="description" rows="3" :value="$group?->description" />
-                    </x-admin.field>
-
-                    <div class="flex items-center gap-2">
-                        <x-admin.toggle name="is_default" :checked="$group?->is_default ?? false" label="Default group for new customers" />
-                        <x-admin.hint label="About the default group">Only one group can be the default. Setting this unsets the current one.</x-admin.hint>
-                    </div>
-
-                    <x-admin.form-actions>
-                        <x-admin.button variant="secondary" href="{{ route('admin.customer-groups.index') }}">Cancel</x-admin.button>
-                        <x-admin.button type="submit">{{ $group ? 'Update Group' : 'Create Group' }}</x-admin.button>
-                    </x-admin.form-actions>
-                </form>
-            </x-admin.card>
+<x-admin3.shell :title="$group ? 'Edit Customer Group' : 'Create Customer Group'" active="customers">
+    <div class="v3-head">
+        <div class="v3-head__body">
+            <div class="v3-head__trail">
+                <a href="{{ route('admin.customers.index') }}">Customers</a>
+                <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.customer-groups.index') }}">Groups</a>
+                <span aria-hidden="true">/</span>
+                <span>{{ $group->name ?? 'New' }}</span>
+            </div>
+            <h1 class="v3-head__title">{{ $group ? $group->name : 'Create group' }}</h1>
         </div>
-    </x-admin.page>
-</x-admin.shell>
+    </div>
+
+    <x-admin3.form :action="$group ? route('admin.customer-groups.update', $group) : route('admin.customer-groups.store')"
+                   :method="$group ? 'PUT' : 'POST'" class="v3-settle">
+        <input type="hidden" name="store_id" value="1">
+        <x-admin3.panel title="Group">
+            <x-admin3.field name="name" label="Name" required>
+                <input type="text" name="name" required class="v3-control" value="{{ old('name', $group->name ?? '') }}">
+            </x-admin3.field>
+            <div class="v3-gap">
+                <x-admin3.field name="description" label="Description">
+                    <textarea name="description" rows="3" class="v3-control">{{ old('description', $group->description ?? '') }}</textarea>
+                </x-admin3.field>
+            </div>
+            <div class="v3-gap">
+                <label class="v3-toggle">
+                    <input type="hidden" name="is_default" value="0">
+                    <input type="checkbox" name="is_default" value="1" @checked(old('is_default', $group->is_default ?? false))>
+                    <span class="v3-toggle__track" aria-hidden="true"></span>
+                    <span>Default group for new customers</span>
+                    <x-admin3.help text="Only one group can be the default. Setting this unsets the current one." />
+                </label>
+            </div>
+        </x-admin3.panel>
+    </x-admin3.form>
+</x-admin3.shell>
