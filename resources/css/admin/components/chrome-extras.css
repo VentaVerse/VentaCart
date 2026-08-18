@@ -1,0 +1,76 @@
+/* The handful of primitives the surviving chrome still draws on
+   (sheet, flash, menu rows, form states), extracted when the v2
+   component layer retired. */
+
+:where(.v-sheet, .v-panel) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+.v-sheet,
+.v-panel { box-shadow: var(--bl-lift); }
+.v-sheet .v-sheet,
+.v-sheet .v-panel,
+.v-panel .v-sheet,
+.v-panel .v-panel {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+.v-flash {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+    border-radius: var(--radius-md);
+}
+.v-flash__text {
+    font-size: 13px;
+    color: var(--text);
+}
+.v-flash__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: var(--control-h-sm);
+    padding: 0 14px;
+    background: var(--accent);
+    color: var(--accent-text);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity var(--motion-fast);
+}
+.v-flash__btn:hover { opacity: .9; }
+.v-menu__item {
+    display: block;
+    width: 100%;
+    padding: 6px 14px;
+    border: 0;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+.v-menu__item:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+.v-menu__item--danger:hover { color: var(--danger); }
+.v-menu__sep {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--border);
+}

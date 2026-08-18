@@ -1,22 +1,22 @@
 <x-admin.auth-shell title="Sign in">
-    <form method="POST" action="{{ route('login') }}" data-v-form class="space-y-5">
+    <form method="POST" action="{{ route('login') }}" data-v-form class="v3-authform">
         @csrf
 
-        <x-admin.field name="username" label="Username" required>
-            <x-admin.input type="text" name="username" :value="old('username')" required autofocus autocomplete="username" placeholder="Enter your username" />
-        </x-admin.field>
+        <x-admin3.field name="username" label="Username" required>
+            <input type="text" name="username" class="v3-control" value="{{ old('username') }}" required autofocus autocomplete="username" />
+        </x-admin3.field>
 
-        <x-admin.field name="password" label="Password" required>
-            <x-admin.input type="password" name="password" required autocomplete="current-password" placeholder="Enter password" />
-        </x-admin.field>
+        <x-admin3.field name="password" label="Password" required>
+            <input type="password" name="password" class="v3-control" required autocomplete="current-password" />
+        </x-admin3.field>
 
-        <div class="flex items-center justify-between">
-            <x-admin.checkbox name="remember" label="Remember me" />
+        <div class="v3-between">
+            <label class="v3-check"><input type="checkbox" name="remember" value="1"><span>Remember me</span></label>
             @if (Route::has('password.request'))
                 <a href="{{ route('password.request') }}" class="text-[13px] text-v-secondary hover:text-v-text">Forgot password?</a>
             @endif
         </div>
 
-        <x-admin.button type="submit" class="w-full">Sign in</x-admin.button>
+        <button type="submit" class="v3-btn v3-btn--primary v3-block-btn">Sign in</button>
     </form>
 </x-admin.auth-shell>

@@ -1462,3 +1462,78 @@ nav.v3-pager {
 /* --- Reviews (extension) --------------------------------------- */
 .v3-stars { letter-spacing: 2px; font-size: 13px; color: var(--v3-line); white-space: nowrap; }
 .v3-stars__on { color: #d97706; }
+
+/* --- Dual listbox (ported from the v2 layer with its consumer) --- */
+.v3-picker { display: flex; align-items: stretch; }
+.v3-picker__pane {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+.v3-picker__pane--in {
+    border-start-start-radius: var(--radius-md);
+    border-end-start-radius: var(--radius-md);
+}
+.v3-picker__pane--out {
+    border-start-end-radius: var(--radius-md);
+    border-end-end-radius: var(--radius-md);
+}
+.v3-picker__head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--border);
+}
+.v3-picker__list {
+    height: 11rem;
+    overflow-y: auto;
+    background: var(--surface);
+}
+.v3-picker__opt {
+    display: block;
+    width: 100%;
+    padding: 6px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: left;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--motion-fast), color var(--motion-fast);
+}
+.v3-picker__opt:hover { background: var(--surface-hover); }
+.v3-picker__opt[aria-selected="true"] {
+    background: var(--accent-weak);
+    color: var(--accent);
+    font-weight: 500;
+}
+.v3-picker__pane--out .v3-picker__opt[aria-selected="true"] {
+    background: var(--bl-bad-wash);
+    color: var(--danger);
+}
+.v3-picker__none {
+    padding: 24px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.v3-picker__mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    gap: 8px;
+    padding: 0 8px;
+    background: var(--surface-sunken);
+    border-block: 1px solid var(--border);
+}
+.v3-picker-rot { transform: rotate(90deg); }
+svg.v3-dlb-ic { width: 14px; height: 14px; }
+
+/* --- Auth forms (the guest door speaks the one vocabulary) --------- */
+.v3-authform { display: flex; flex-direction: column; gap: 18px; }
+.v3-block-btn { width: 100%; justify-content: center; }

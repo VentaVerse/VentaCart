@@ -17,7 +17,7 @@
         <link rel="icon" href="{{ $vFavicon }}">
     @endif
     <x-admin.theme-boot />
-    @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/admin/admin.css', 'resources/css/admin3/admin3.css', 'resources/js/admin/admin.js', 'resources/js/app.js'])
     @stack('head')
 </head>
 <body class="v-admin min-h-screen flex items-center justify-center px-6 py-12">
@@ -42,15 +42,19 @@
              the title on the paper, the sheet under it holding the form.
              The trail is suppressed because there is nothing above a
              sign-in page to walk back up to. --}}
-        <x-admin.page :title="$title" :standing="$subtitle" :breadcrumb="[]">
-            <div class="v-sheet p-7">
-                @if (session('status'))
-                    <div class="v-flash"><span class="v-flash__text">{{ session('status') }}</span></div>
-                @endif
-
-                {{ $slot }}
+        <header class="v-day__head">
+            <div class="v-day__headtext">
+                <h1 class="v-day__title">{{ $title }}</h1>
+                @if ($subtitle)<p class="v-day__standing">{{ $subtitle }}</p>@endif
             </div>
-        </x-admin.page>
+        </header>
+        <div class="v-sheet p-7">
+            @if (session('status'))
+                <div class="v-flash"><span class="v-flash__text">{{ session('status') }}</span></div>
+            @endif
+
+            {{ $slot }}
+        </div>
 
         <p class="mt-6 text-center text-xs text-v-muted">
             <a href="/" class="hover:text-v-secondary">{{ $vStoreName }}</a> &middot; &copy; {{ date('Y') }}

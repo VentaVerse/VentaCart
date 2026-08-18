@@ -1,12 +1,12 @@
 <x-admin.auth-shell title="Forgot password" subtitle="Enter your email address and we'll send you a link to reset your password.">
-    <form method="POST" action="{{ route('password.email') }}" data-v-form class="space-y-5">
+    <form method="POST" action="{{ route('password.email') }}" data-v-form class="v3-authform">
         @csrf
 
-        <x-admin.field name="email" label="Email" required>
-            <x-admin.input type="email" name="email" :value="old('email')" required autofocus autocomplete="username" placeholder="name@company.com" />
-        </x-admin.field>
+        <x-admin3.field name="email" label="Email" required>
+            <input type="email" name="email" class="v3-control" value="{{ old('email') }}" required autofocus autocomplete="username" />
+        </x-admin3.field>
 
-        <x-admin.button type="submit" class="w-full">Email password reset link</x-admin.button>
+        <button type="submit" class="v3-btn v3-btn--primary v3-block-btn">Email password reset link</button>
     </form>
 
     <p class="mt-6 text-center text-[13px] text-v-secondary">

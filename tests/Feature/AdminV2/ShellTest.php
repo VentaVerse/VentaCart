@@ -23,9 +23,6 @@ class ShellTest extends TestCase
         $this->assertStringContainsString('$store.toasts', $html);
     }
 
-    public function test_page_renders_title_breadcrumb_and_actions(): void
-    {
-        $this->blade('<x-admin.page title="Products" :breadcrumb="[[\'label\' => \'Catalog\']]">BODY<x-slot:actions>ACT</x-slot:actions></x-admin.page>')
-            ->assertSeeInOrder(['Catalog', 'Products', 'ACT', 'BODY']);
-    }
+    // The x-admin.page primitive retired with the v2 layer; the v3
+    // pages carry their own head band (v3-head / v3-day__head).
 }
