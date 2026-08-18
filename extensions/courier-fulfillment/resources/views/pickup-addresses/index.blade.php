@@ -19,6 +19,8 @@
         </div>
     </div>
 
+    @include('courier-fulfillment::partials.config-tabs')
+
     <div class="v3-settle">
 
         {{-- A state, not an instruction: without the country row nothing can

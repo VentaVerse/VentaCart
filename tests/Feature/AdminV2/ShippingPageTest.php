@@ -69,7 +69,7 @@ class ShippingPageTest extends TestCase
 
         $this->get(route('admin.fulfillment.settings'))
             ->assertOk()
-            ->assertSee('Pickup addresses')
+            ->assertSee('Pickup Addresses')
             ->assertSee(route('admin.fulfillment.pickup-addresses.index'), false);
     }
 

@@ -293,7 +293,7 @@ class FulfillmentBookedStatusTest extends TestCase
         $this->assertFalse($res['success']);
         $this->assertSame('no_booked_status', $res['code']);
         $this->assertStringContainsString('To Handover', $res['error']);
-        $this->assertStringContainsString('Status placement', $res['error']);
+        $this->assertStringContainsString('Status Mapping', $res['error']);
 
         Http::assertNothingSent();
         $order->refresh();

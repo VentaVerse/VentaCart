@@ -279,9 +279,9 @@ class ExtensionLifecycleTest extends TestCase
         $response->assertOk();
 
         // The Configure link (rendered per-card) must be the manifest's
-        // configure_route, which per owner ruling (2026-08-19) is the
-        // module's FIRST page — for courier-fulfillment, the queue at the
-        // module's home root. Scoped to the courier-fulfillment card's
+        // configure_route. Fulfillment is the owner's named exemption to
+        // the first-page default (ruling 2026-08-19, same day): its
+        // Configure opens the settings hub, not the queue. Scoped to the courier-fulfillment card's
         // own HTML: the sidebar (rendered earlier in the document, in
         // <aside>, well before <main>'s extension cards) legitimately links
         // to the queue route too, on every admin page including this one —
@@ -294,8 +294,8 @@ class ExtensionLifecycleTest extends TestCase
         $this->assertNotFalse($titlePos, 'Fulfillment card title not found on the Extensions page.');
         $card = substr($html, $titlePos, 1500);
 
-        $this->assertStringContainsString(route('admin.fulfillment.index').'"', $card);
-        $this->assertStringNotContainsString(route('admin.fulfillment.settings').'"', $card);
+        $this->assertStringContainsString(route('admin.fulfillment.settings').'"', $card);
+        $this->assertStringNotContainsString(route('admin.fulfillment.index').'"', $card);
     }
 
     public function test_create_extensions_table_migration_seeds_banners_continuity_row_only_when_legacy_tables_exist(): void

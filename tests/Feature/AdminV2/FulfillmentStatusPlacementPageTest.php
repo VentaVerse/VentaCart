@@ -196,10 +196,11 @@ class FulfillmentStatusPlacementPageTest extends TestCase
         $this->actingAs(User::factory()->create());
         $this->makeStatus('Processing', 1);
 
+        // The link is a menu tab now (owner ruling 2026-08-19), and the
+        // placed/unplaced summary lives on the mapping page itself.
         $this->get(route('admin.fulfillment.settings'))
             ->assertOk()
-            ->assertSee('Status placement')
-            ->assertSee($this->url(), false)
-            ->assertSee('1 not placed, All tab only');
+            ->assertSee('Status Mapping')
+            ->assertSee($this->url(), false);
     }
 }

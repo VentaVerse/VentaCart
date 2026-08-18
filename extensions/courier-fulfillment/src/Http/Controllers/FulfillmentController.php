@@ -968,7 +968,7 @@ class FulfillmentController extends Controller
 
         return $target
             ? back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. The order stays on {$currentName}, in To Ship, To Pack.")
-            : back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Settings, Modules, Courier Fulfillment, Status placement.");
+            : back()->with('success', "Cancelled booking {$tracking} for order #{$order->id}. No order status is placed under To Pack, so the order stays on {$currentName}. Place one under Extensions, Fulfillment, Status Mapping.");
     }
 
     /**

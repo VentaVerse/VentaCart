@@ -17,8 +17,42 @@
                 <span>{{ $courier->getName() }}</span>
             </div>
             <h1 class="v3-head__title">{{ $courier->getName() }}</h1>
+            <p class="v3-head__standing">
+                <span class="v3-badge {{ $courierState['enabled'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">{{ $courierState['enabled'] ? 'Enabled' : 'Disabled' }}</span>
+                @if ($courierState['modeLabel'])
+                    <span class="v3-badge v3-badge--warn">{{ $courierState['modeLabel'] }}</span>
+                @endif
+                @if ($courierState['credentialHint'])
+                    <span class="v3-cell-quiet">{{ $courierState['credentialHint'] }}</span>
+                @endif
+            </p>
         </div>
     </div>
+
+    @include('courier-fulfillment::partials.config-tabs', ['activeCourier' => $courier->getKey()])
+
+    @if (!empty($webhookUrl))
+        <div class="v3-settle">
+            {{-- This courier's webhook URL (owner ruling 2026-08-19: it
+                 lives with its courier, not on the hub). Server-generated,
+                 never editable; a courier with no push API renders none. --}}
+            <x-admin3.panel title="Webhook URL"
+                note="Unique to this store. A courier given the wrong one cannot push its status updates.">
+                <div class="v3-actrow"
+                     x-data="{ copied: false, async copy() {
+                         if (!await window.v3Copy($refs.hook.value)) return;
+                         this.copied = true;
+                         setTimeout(() => this.copied = false, 1500);
+                     } }">
+                    <input type="text" readonly value="{{ $webhookUrl }}" x-ref="hook"
+                           aria-label="{{ $courier->getName() }} webhook URL" class="v3-control v3-mono">
+                    <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="copy()">
+                        <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied &check;</span>
+                    </button>
+                </div>
+            </x-admin3.panel>
+        </div>
+    @endif
 
     {{-- Standalone forms for the page's verbs — HTML forms cannot nest, so
          these live outside the doctrine form; their buttons use form="…". --}}

@@ -97,6 +97,6 @@ class StatusPlacementController extends Controller
         }
 
         return redirect()->route('admin.fulfillment.settings.placement')
-            ->with('success', 'Status placement saved.');
+            ->with('success', 'Status Mapping saved.');
     }
 }

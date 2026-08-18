@@ -6,7 +6,7 @@
     "provider": "Extensions\\CourierFulfillment\\CourierFulfillmentServiceProvider",
     "icon": "fulfillment",
     "type": "courier",
-    "configure_route": "admin.fulfillment.index",
+    "configure_route": "admin.fulfillment.settings",
     "admin_nav": [
         {
             "group": "Sales",

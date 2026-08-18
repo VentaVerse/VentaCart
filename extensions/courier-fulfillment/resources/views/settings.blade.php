@@ -17,6 +17,8 @@
         </div>
     </div>
 
+    @include('courier-fulfillment::partials.config-tabs')
+
     <div class="v3-settle">
 
         {{-- Setup notice (owner ruling, 2026-08-09). The module places no
@@ -29,42 +31,11 @@
         @if (empty($handoverStatuses))
             <x-admin3.panel title="Booking is refused" role="status">
                 <x-slot:acts>
-                    <a href="{{ route('admin.fulfillment.settings.placement') }}" class="v3-btn v3-btn--primary v3-btn--sm">Status placement</a>
+                    <a href="{{ route('admin.fulfillment.settings.placement') }}" class="v3-btn v3-btn--primary v3-btn--sm">Status Mapping</a>
                 </x-slot:acts>
                 <span class="v3-badge v3-badge--warn">No order status is placed under To Handover</span>
             </x-admin3.panel>
         @endif
-
-        {{-- Status placement lives on its own page: every order status, the
-             queue tab it belongs to, and the live order count behind each. --}}
-        <x-admin3.panel title="Status placement">
-            <x-slot:acts>
-                <a href="{{ route('admin.fulfillment.settings.placement') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure</a>
-            </x-slot:acts>
-            <div class="v3-actrow">
-                <span class="v3-badge {{ $unplacedStatusCount > 0 ? 'v3-badge--warn' : 'v3-badge--good' }}">{{ $placedStatusCount }} placed</span>
-                @if ($unplacedStatusCount > 0)
-                    <span class="v3-cell-quiet">{{ $unplacedStatusCount }} not placed, All tab only</span>
-                @endif
-            </div>
-        </x-admin3.panel>
-
-        {{-- Where parcels leave from. Module-owned data (not a courier's own
-             schema), so it sits beside status placement rather than on any
-             one courier's page. --}}
-        <x-admin3.panel title="Pickup addresses">
-            <x-slot:acts>
-                <a href="{{ route('admin.fulfillment.pickup-addresses.index') }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure</a>
-            </x-slot:acts>
-            <div class="v3-actrow">
-                @if ($defaultPickupAddress)
-                    <span class="v3-badge v3-badge--good">Default</span>
-                    <span class="v3-cell-quiet">{{ $defaultPickupAddress }}</span>
-                @else
-                    <span class="v3-badge v3-badge--warn">None, so booking is refused</span>
-                @endif
-            </div>
-        </x-admin3.panel>
 
         {{-- Module-level settings: not owned by any one courier's schema. --}}
         <x-admin3.form :action="route('admin.fulfillment.settings.update')" id="fulfillment-settings-form">
@@ -143,56 +114,6 @@
                 </div>
             </x-admin3.panel>
         </x-admin3.form>
-
-        {{-- Webhook URLs: module-level plumbing (the tokens are
-             server-generated, never editable), one per registered courier. --}}
-        <x-admin3.panel title="Webhook URLs"
-            note="Each URL is unique to this store. A courier given the wrong one cannot push its status updates.">
-            {{-- A courier with no push API of its own (LBC) has no URL to be
-                 given, so it gets no row here rather than a box holding an
-                 address nobody will ever post to. --}}
-            @foreach (array_filter($courierCards, fn ($c) => filled($c['webhookUrl'])) as $key => $card)
-                <div class="{{ $loop->first ? '' : 'v3-gap' }}"
-                     x-data="{ copied: false, async copy() {
-                         if (!await window.v3Copy($refs.hook.value)) return;
-                         this.copied = true;
-                         setTimeout(() => this.copied = false, 1500);
-                     } }">
-                    <div class="v3-label v3-gap-sm">{{ $card['courier']->getName() }}</div>
-                    <div class="v3-actrow">
-                        <input type="text" readonly value="{{ $card['webhookUrl'] }}" x-ref="hook"
-                               aria-label="{{ $card['courier']->getName() }} webhook URL" class="v3-control v3-mono">
-                        <button type="button" class="v3-btn v3-btn--secondary v3-btn--sm" @click="copy()">
-                            <span x-show="!copied">Copy</span><span x-show="copied" x-cloak>Copied &check;</span>
-                        </button>
-                    </div>
-                </div>
-            @endforeach
-        </x-admin3.panel>
-
-        {{-- One panel per registered courier: name, enabled state, mode chip,
-             credential-completeness hint, linking to that courier's own
-             settings page (schema fields, actions, status mapping all live
-             there now). All derived from CourierFulfillmentInterface, so a
-             new courier gets its panel and page for free. --}}
-        @foreach ($courierCards as $key => $card)
-            <x-admin3.panel :title="$card['courier']->getName()">
-                <x-slot:acts>
-                    <a href="{{ $card['url'] }}" class="v3-btn v3-btn--secondary v3-btn--sm">Configure</a>
-                </x-slot:acts>
-                <div class="v3-actrow">
-                    <span class="v3-badge {{ $card['enabled'] ? 'v3-badge--good' : 'v3-badge--quiet' }}">
-                        {{ $card['enabled'] ? 'Enabled' : 'Disabled' }}
-                    </span>
-                    @if ($card['modeLabel'])
-                        <span class="v3-badge v3-badge--warn">{{ $card['modeLabel'] }}</span>
-                    @endif
-                    @if ($card['credentialHint'])
-                        <span class="v3-cell-quiet">{{ $card['credentialHint'] }}</span>
-                    @endif
-                </div>
-            </x-admin3.panel>
-        @endforeach
 
     </div>
 </x-admin3.shell>

@@ -366,6 +366,47 @@ class CourierSettingsController extends Controller
 
         $settings = Setting::where('group', 'courier')->pluck('value', 'key')->toArray();
         $key = $c->getKey();
+
+        // This courier's webhook URL (owner ruling 2026-08-19: it lives on
+        // the courier's own page). SPX gets no ?token= (signed-header auth);
+        // LBC has no push API, so null renders nothing.
+        $webhookUrl = $key === 'lbc' ? null : (
+            rtrim((string) config('app.url'), '/')
+            . '/webhooks/courier/' . $key
+            . ($key === 'spx' ? '' : ('?token=' . ($settings[$key . '_webhook_token'] ?? '')))
+        );
+
+        // The state chips the hub cards used to carry (owner ruling
+        // 2026-08-19: couriers are menu entries now, so each page shows
+        // its own state). Same derivation as before the move.
+        $modeFieldForState = self::modeField($schema ?? $c->settingsSchema());
+        $modeForState = $modeFieldForState
+            ? ($settings[$modeFieldForState['key']] ?? ($modeFieldForState['options'][0]['value'] ?? null))
+            : null;
+        $stateModeLabel = null;
+        if ($modeFieldForState && $modeForState !== null && !in_array($modeForState, self::LIVE_MODES, true)) {
+            $stateModeLabel = collect($modeFieldForState['options'] ?? [])
+                ->firstWhere('value', $modeForState)['label'] ?? ucfirst($modeForState);
+        }
+        $credFieldsForState = array_filter($c->settingsSchema(), function (array $field) use ($modeForState) {
+            $scope = $field['mode_scoped'] ?? null;
+
+            return !empty($field['encrypted']) && ($scope === null || $scope === $modeForState);
+        });
+        $credTotalForState = count($credFieldsForState);
+        $credMissingForState = count(array_filter(
+            $credFieldsForState,
+            fn (array $field) => empty($settings[$field['key']])
+        ));
+        $courierState = [
+            'enabled' => ($settings[$key . '_enabled'] ?? '0') === '1',
+            'modeLabel' => $stateModeLabel,
+            'credentialHint' => $credTotalForState === 0
+                ? null
+                : ($credMissingForState === 0
+                    ? 'Credentials set'
+                    : $credMissingForState . ' of ' . $credTotalForState . ' credentials missing'),
+        ];
         $schema = $c->settingsSchema();
 
         // Decrypted alongside the mask, for schema fields declared
@@ -457,6 +498,8 @@ class CourierSettingsController extends Controller
 
         return view('courier-fulfillment::settings-courier', [
             'courier'         => $c,
+            'webhookUrl'      => $webhookUrl,
+            'courierState'    => $courierState,
             'settings'        => $settings,
             'masked'          => $masked,
             'plain'           => $plain,

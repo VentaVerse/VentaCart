@@ -645,7 +645,7 @@ class FulfillmentService
             return [
                 'success' => false,
                 'code'    => 'no_booked_status',
-                'error'   => 'No order status is placed under To Handover, so a booked order would have nowhere to go. Place one under Settings, Modules, Courier Fulfillment, Status placement.',
+                'error'   => 'No order status is placed under To Handover, so a booked order would have nowhere to go. Place one under Extensions, Fulfillment, Status Mapping.',
             ];
         }
 
@@ -820,7 +820,7 @@ class FulfillmentService
             return [
                 'success' => false,
                 'code'    => 'no_booked_status',
-                'error'   => 'No order status is placed under To Handover, so a shipped order would have nowhere to go. Place one under Settings, Modules, Courier Fulfillment, Status placement.',
+                'error'   => 'No order status is placed under To Handover, so a shipped order would have nowhere to go. Place one under Extensions, Fulfillment, Status Mapping.',
             ];
         }
 

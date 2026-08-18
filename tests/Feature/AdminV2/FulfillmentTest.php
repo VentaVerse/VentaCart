@@ -735,13 +735,16 @@ class FulfillmentTest extends TestCase
         $this->installExtension();
         CourierManager::register(FakeCourierFulfillment::class);
 
-        // Webhook URL section renders per-courier on the HUB (module-level
-        // per the W3 split), generically, not just for QuadX.
+        // Webhook URL renders on the courier's OWN page (owner ruling
+        // 2026-08-19), generically, not just for QuadX; the hub's menu
+        // simply lists the courier.
         $this->get($this->settingsUrl())
             ->assertOk()
-            ->assertSee('/webhooks/courier/fake?token=', false);
+            ->assertSee($this->settingsUrl('/fake'), false)
+            ->assertDontSee('/webhooks/courier/fake?token=', false);
 
         $response = $this->get($this->settingsUrl('/fake'));
+        $response->assertSee('/webhooks/courier/fake?token=', false);
         $response->assertOk()
             // Status-mapping table renders FakeCourierFulfillment::mappableStatuses().
             ->assertSee('name="settings[fake_status_map][pending][order_status_id]"', false)

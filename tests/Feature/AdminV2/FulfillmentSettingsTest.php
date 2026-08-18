@@ -116,13 +116,23 @@ class FulfillmentSettingsTest extends TestCase
             ->assertDontSee('quadx_status_map', false);
     }
 
-    public function test_hub_courier_card_shows_enabled_state_mode_chip_and_credential_hint(): void
+    public function test_hub_menu_lists_each_courier_and_its_page_carries_state(): void
     {
+        // Owner ruling 2026-08-19: courier cards became menu entries; the
+        // hub carries the configuration menu, each courier page its own
+        // state.
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        // Unconfigured: disabled, staging mode (schema default), no creds.
         $this->get($this->settingsUrl())
+            ->assertOk()
+            ->assertSee('Status Mapping')
+            ->assertSee('Pickup Addresses')
+            ->assertSee($this->settingsUrl('/quadx'), false);
+
+        // Unconfigured: staging mode (schema default), creds missing on
+        // the courier's own page.
+        $this->get($this->settingsUrl('/quadx'))
             ->assertOk()
             ->assertSee('Disabled')
             ->assertSee('Staging')
@@ -133,24 +143,30 @@ class FulfillmentSettingsTest extends TestCase
         Setting::create(['group' => 'courier', 'key' => 'quadx_staging_api_key', 'value' => Crypt::encryptString('k')]);
         Setting::create(['group' => 'courier', 'key' => 'quadx_staging_secret_key', 'value' => Crypt::encryptString('s')]);
 
-        $this->get($this->settingsUrl())
+        $this->get($this->settingsUrl('/quadx'))
             ->assertOk()
             ->assertSee('Enabled')
             ->assertSee('Credentials set');
     }
 
-    public function test_webhook_urls_stay_on_the_hub_not_the_courier_page(): void
+    public function test_webhook_urls_live_on_their_couriers_own_page(): void
     {
+        // Owner ruling 2026-08-19: each webhook URL sits with its courier,
+        // not on the hub. LBC (no push API) renders none.
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
         $this->get($this->settingsUrl())
             ->assertOk()
-            ->assertSee('/webhooks/courier/quadx?token=', false);
+            ->assertDontSee('/webhooks/courier/quadx?token=', false);
 
         $this->get($this->settingsUrl('/quadx'))
             ->assertOk()
-            ->assertDontSee('/webhooks/courier/quadx?token=', false);
+            ->assertSee('/webhooks/courier/quadx?token=', false);
+
+        $this->get($this->settingsUrl('/lbc'))
+            ->assertOk()
+            ->assertDontSee('/webhooks/courier/', false);
     }
 
     // ------------------------------------------------------------------
