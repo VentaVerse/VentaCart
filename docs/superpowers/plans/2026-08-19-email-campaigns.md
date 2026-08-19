@@ -1916,7 +1916,9 @@ The `{unsubscribe_url}` token MUST appear in the toolbar. Its presence in the re
 
 - [ ] **Step 8: Create the stylesheet**
 
-`extensions/email-campaigns/resources/css/email-campaigns.css` for the token toolbar and the recipient-count readout. No CSS in Blade. Add the file to `vite.config.js` inputs if extension CSS is not auto-discovered.
+`extensions/email-campaigns/resources/css/email-campaigns.css` for the token toolbar and the recipient-count readout. No CSS in Blade.
+
+`vite.config.js` needs no change: it already globs `extensions/{slug}/resources/css/*.css` and compiles each as its own entry (see the comment at line 26 and the loop below it). Dropping the file in the folder is the whole wiring. `extensions/courier-fulfillment/resources/css/fulfillment.css` is the precedent.
 
 - [ ] **Step 9: Run tests to verify they pass**
 
@@ -1926,7 +1928,7 @@ Expected: PASS, 7 tests.
 - [ ] **Step 10: Commit**
 
 ```bash
-git add extensions/email-campaigns tests/Feature/EmailCampaigns/AdminScreensTest.php vite.config.js
+git add extensions/email-campaigns tests/Feature/EmailCampaigns/AdminScreensTest.php
 git commit -m "feat(email): compose, count who will actually get it, and send"
 ```
 
@@ -2157,4 +2159,4 @@ Checked against the spec on 2026-08-19.
 
 **Type consistency:** `CampaignRecipients::for()` returns `Builder` in Task 2 and is consumed as a query by `chunkById` in Task 5. `CampaignRenderer::render(string, Customer): string` is defined in Task 4 and called with that signature in Task 5. `SendCampaignJob::__construct(int $campaignId)` is defined in Task 5 and dispatched with an id in Task 6. `AudienceRegistry::all(): array<string,string>` is defined in Task 2 and consumed as `$audiences` and `$audienceLabels` in Task 6.
 
-**One known gap for the executor:** Task 6 Step 8 says to add the extension stylesheet to `vite.config.js` "if extension CSS is not auto-discovered". Check `getThemeEntries()` and the existing extension CSS handling in `vite.config.js` first; `extensions/courier-fulfillment/resources/css/fulfillment.css` is the precedent to copy.
+**Resolved during self-review:** an earlier draft left the Vite wiring conditional. It is not: `vite.config.js` already globs `extensions/{slug}/resources/css/*.css` and compiles each as its own entry, so the stylesheet needs no config change. Task 6 Step 8 now says so outright, and `vite.config.js` is dropped from that task's commit.
