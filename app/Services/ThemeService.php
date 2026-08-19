@@ -126,21 +126,28 @@ class ThemeService
      */
     public function getInstalledPresets(?string $theme = null): array
     {
-        $dir = $this->getThemePath($theme) . '/presets';
-        if (!is_dir($dir)) {
-            return [];
-        }
-
         $presets = [];
-        foreach (glob($dir . '/*.json') as $path) {
-            $meta = json_decode((string) file_get_contents($path), true);
-            if (!is_array($meta)) {
+
+        // Shipped first, then the merchant's, so a saved preset sharing a slug
+        // with a shipped one wins. That is what lets somebody customise
+        // "Stockroom" and keep the name, with the shipped copy still intact
+        // underneath and restored the moment theirs is deleted.
+        foreach ([$this->shippedPresetDir($theme), $this->userPresetDir($theme)] as $dir) {
+            if (!is_dir($dir)) {
                 continue;
             }
-            $slug = basename($path, '.json');
-            $meta['slug'] = $slug;
-            $presets[$slug] = $meta;
+
+            foreach (glob($dir . '/*.json') as $path) {
+                $meta = json_decode((string) file_get_contents($path), true);
+                if (!is_array($meta)) {
+                    continue;
+                }
+                $slug = basename($path, '.json');
+                $meta['slug'] = $slug;
+                $presets[$slug] = $meta;
+            }
         }
+
         ksort($presets);
 
         return $presets;
@@ -297,6 +304,10 @@ class ThemeService
             throw new \InvalidArgumentException('The active preset cannot be deleted. Switch to another look first.');
         }
 
+        if ($this->isShippedPreset($slug)) {
+            throw new \InvalidArgumentException("[{$slug}] is one of the looks Venta ships and cannot be deleted. Save your own version over it instead.");
+        }
+
         $path = $this->presetPath($slug);
         if (!file_exists($path)) {
             throw new \InvalidArgumentException("Unknown preset [{$slug}].");
@@ -345,18 +356,54 @@ class ThemeService
         return $slug;
     }
 
-    private function presetPath(string $slug): string
+    /**
+     * Where a preset the MERCHANT saved lives.
+     *
+     * storage, never resources. resources/themes/{theme}/presets is a tracked
+     * path and part of the deployment artifact: a preset written there would
+     * be published to everyone who downloads Venta if anyone ran `git add -A`,
+     * would be deleted by the next deploy because that folder is replaced from
+     * git, and on a hosted install would be one tenant writing into the shared
+     * image. storage is gitignored and persists, which is why the migrated
+     * catalogue images already live there.
+     *
+     * Every writer (save, import, delete) goes through here, so the rule holds
+     * in one place.
+     */
+    private function presetPath(string $slug, ?string $theme = null): string
+    {
+        $dir = $this->userPresetDir($theme);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        return $dir . '/' . $this->validPresetSlug($slug) . '.json';
+    }
+
+    private function userPresetDir(?string $theme = null): string
+    {
+        return storage_path('app/themes/' . ($theme ?? $this->getActiveTheme()) . '/presets');
+    }
+
+    /** Where the presets Venta SHIPS live. Product content, read only. */
+    private function shippedPresetDir(?string $theme = null): string
+    {
+        return $this->getThemePath($theme) . '/presets';
+    }
+
+    private function validPresetSlug(string $slug): string
     {
         if (!preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug)) {
             throw new \InvalidArgumentException('Preset names use letters, numbers, and dashes.');
         }
 
-        $dir = $this->getThemePath() . '/presets';
-        if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
-        }
+        return $slug;
+    }
 
-        return $dir . '/' . $slug . '.json';
+    /** True when the slug names a preset Venta ships rather than one the merchant saved. */
+    public function isShippedPreset(string $slug, ?string $theme = null): bool
+    {
+        return file_exists($this->shippedPresetDir($theme) . '/' . $this->validPresetSlug($slug) . '.json');
     }
 
     public function getThemeSettingsSchema(?string $theme = null): array
