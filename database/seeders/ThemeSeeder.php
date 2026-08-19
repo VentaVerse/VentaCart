@@ -99,9 +99,16 @@ class ThemeSeeder extends Seeder
             ],
         ];
 
+        // firstOrCreate, NOT updateOrCreate. These are DEFAULTS, and a store
+        // that has answered for itself owns that answer forever: seeders run
+        // again on every upgrade, so overwriting here would reset the site
+        // name, blank the logo and favicon, and throw away the palette every
+        // time somebody deployed. A key the store genuinely lacks is still
+        // filled, which is the whole job. Same contract the blocks below have
+        // always had, and the one AutomationSeeder documents.
         foreach ($settings as $group => $items) {
             foreach ($items as $key => $value) {
-                Setting::updateOrCreate(
+                Setting::firstOrCreate(
                     ['group' => $group, 'key' => $key],
                     ['value' => $value]
                 );

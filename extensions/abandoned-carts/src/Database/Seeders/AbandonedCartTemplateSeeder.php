@@ -66,7 +66,9 @@ class AbandonedCartTemplateSeeder extends Seeder
         ];
 
         foreach ($templates as $template) {
-            EmailTemplate::updateOrCreate(
+            // firstOrCreate: same contract as core's EmailTemplateSeeder. The
+            // store's own wording survives every upgrade.
+            EmailTemplate::firstOrCreate(
                 ['slug' => $template['slug']],
                 $template
             );

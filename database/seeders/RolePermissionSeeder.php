@@ -26,39 +26,42 @@ class RolePermissionSeeder extends Seeder
         $permissions = [];
         foreach ($groups as $group => $actions) {
             foreach ($actions as $action) {
-                $permissions[] = \App\Models\Permission::create([
-                    'name' => ucfirst($action) . ' ' . ucfirst($group),
-                    'slug' => "{$group}.{$action}",
-                    'group' => $group,
-                ]);
+                // firstOrCreate, not create: a permission the store already
+                // has is left exactly as it is (an admin may have renamed it),
+                // and one it is missing is added. Re-running must not duplicate
+                // the set or collide with the slug's unique index.
+                $permissions[] = \App\Models\Permission::firstOrCreate(
+                    ['slug' => "{$group}.{$action}"],
+                    [
+                        'name' => ucfirst($action) . ' ' . ucfirst($group),
+                        'group' => $group,
+                    ]
+                );
             }
         }
 
         // Super Admin - gets all permissions
-        $superAdmin = \App\Models\Role::create([
-            'name' => 'Super Admin',
-            'slug' => 'super-admin',
-            'description' => 'Full access to everything',
-        ]);
-        $superAdmin->permissions()->attach(collect($permissions)->pluck('id'));
+        $superAdmin = \App\Models\Role::firstOrCreate(
+            ['slug' => 'super-admin'],
+            ['name' => 'Super Admin', 'description' => 'Full access to everything']
+        );
+        $superAdmin->permissions()->syncWithoutDetaching(collect($permissions)->pluck('id'));
 
         // Store Manager - everything except user management and settings
-        $manager = \App\Models\Role::create([
-            'name' => 'Store Manager',
-            'slug' => 'store-manager',
-            'description' => 'Manage store operations',
-        ]);
-        $manager->permissions()->attach(
+        $manager = \App\Models\Role::firstOrCreate(
+            ['slug' => 'store-manager'],
+            ['name' => 'Store Manager', 'description' => 'Manage store operations']
+        );
+        $manager->permissions()->syncWithoutDetaching(
             collect($permissions)->whereNotIn('group', ['users', 'settings'])->pluck('id')
         );
 
         // Staff - view only + order management
-        $staff = \App\Models\Role::create([
-            'name' => 'Staff',
-            'slug' => 'staff',
-            'description' => 'Limited access for staff',
-        ]);
-        $staff->permissions()->attach(
+        $staff = \App\Models\Role::firstOrCreate(
+            ['slug' => 'staff'],
+            ['name' => 'Staff', 'description' => 'Limited access for staff']
+        );
+        $staff->permissions()->syncWithoutDetaching(
             collect($permissions)->filter(function ($p) {
                 return $p->slug === 'dashboard.view'
                     || str_starts_with($p->slug, 'orders.')

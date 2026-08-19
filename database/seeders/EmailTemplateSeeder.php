@@ -220,7 +220,10 @@ class EmailTemplateSeeder extends Seeder
         ];
 
         foreach ($templates as $template) {
-            EmailTemplate::updateOrCreate(
+            // firstOrCreate: subjects and bodies are edited in the admin,
+            // often in the store's own voice and language. A new template ships
+            // on upgrade; an existing one is never rewritten.
+            EmailTemplate::firstOrCreate(
                 ['slug' => $template['slug']],
                 $template
             );

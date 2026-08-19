@@ -37,7 +37,12 @@ class WorldGeographicSeeder extends Seeder
         try {
             foreach ($data as $entry) {
                 // Upsert country
-                $country = Country::updateOrCreate(
+                // firstOrCreate, then fill only what is genuinely blank — the
+                // same contract the zone block below has always used. A store
+                // that ships to one country switches the rest off and reorders
+                // the list; forcing is_active and sort_order here undid that on
+                // every upgrade. New countries still arrive.
+                $country = Country::firstOrCreate(
                     ['iso2' => $entry['iso2']],
                     [
                         'iso3' => $entry['iso3'],
@@ -50,6 +55,9 @@ class WorldGeographicSeeder extends Seeder
 
                 if ($country->wasRecentlyCreated) {
                     $countriesAdded++;
+                } elseif (! $country->phone_code && $entry['phone_code']) {
+                    // Reference data the row never had, not a decision anybody made.
+                    $country->update(['phone_code' => $entry['phone_code']]);
                 }
 
                 // Seed zones for this country
