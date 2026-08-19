@@ -100,11 +100,6 @@ button.v-snav__item { border: 0; background: none; width: 100%; text-align: left
 @media (max-width: 1023px) {
     .v-settings__body { grid-template-columns: minmax(0, 1fr); }
     .v-snav { display: none; }
-    .v-snav__picker {
-        display: block;
-        width: 100%;
-        margin-bottom: 18px;
-    }
     .v-settings__main { padding: 18px 16px 110px; }
 }
 
