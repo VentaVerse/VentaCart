@@ -1,0 +1,54 @@
+/* Email Campaigns: what only the composer has.
+   -------------------------------------------------------------------
+   The composer borrows the admin's shared v layer for everything a
+   page already has a word for (panels, fields, stats, buttons). This
+   file carries only the two things nothing else in the admin needed
+   yet: the placeholder toolbar that sits above the message body, and
+   the audience readout's "will receive" figure being visibly smaller
+   than the raw audience count when consent has trimmed it. */
+
+.v-tokenbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.v-token {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    font-size: 12px;
+    color: var(--v-ink-2);
+    cursor: pointer;
+    transition: border-color var(--v-fast), color var(--v-fast);
+}
+
+.v-token:hover {
+    border-color: var(--v-act-edge);
+    color: var(--v-act);
+}
+
+.v-token__key {
+    font-family: var(--v-font-mono);
+    color: var(--v-ink-3);
+}
+
+/* The audience readout: two stats side by side, the second one read
+   against the first. A gap between them that is materially smaller
+   than the audience total is the entire point of showing both, so it
+   is called out in colour rather than left for the admin to subtract
+   in their head. */
+.v-audiencegap {
+    font-size: 12px;
+    color: var(--v-warn);
+    margin-top: 4px;
+}
+
+.v-campaign-sent-notice {
+    margin-bottom: 16px;
+}
