@@ -1,4 +1,4 @@
-<x-admin.form :action="route('admin.settings.update')" id="pay-bt-form">
+<x-admin.form :header-save="false" :action="route('admin.settings.update')" id="pay-bt-form">
     <input type="hidden" name="group" value="payment">
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'bank_transfer') }}">
 

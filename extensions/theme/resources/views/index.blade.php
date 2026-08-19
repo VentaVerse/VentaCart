@@ -118,7 +118,7 @@
              Every settings tab lives in this form; the record tabs
              (navigation, homepage, footer, theme options) are sibling
              panels below with their own record-scoped forms. --}}
-        <x-admin.form :action="route('admin.theme.settings.update')" id="v-theme-form">
+        <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')" id="v-theme-form">
 
             {{-- ========== COLORS ========== --}}
             <div x-show="tab === 'colors'">
@@ -601,7 +601,7 @@
         <div x-show="tab === 'theme-settings'" x-cloak>
             <x-admin.panel title="Theme options" note="Settings this theme's own manifest declares.">
                 @if (count($themeSettingsSchema) > 0)
-                    <x-admin.form :action="route('admin.theme.update-theme-settings')">
+                    <x-admin.form :header-save="false" :action="route('admin.theme.update-theme-settings')">
                         <div class="v-narrow">
                             @foreach ($themeSettingsSchema as $key => $schema)
                                 <div class="{{ $loop->first ? '' : 'v-gap' }}">

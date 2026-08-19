@@ -76,11 +76,6 @@
    cannot forget the gap between panels (zero-height confirm roots
    collapse through in block flow and add nothing). */
 .v-settle > * + * { margin-top: 18px; }
-/* NEVER give the save bar layout margins: it is fixed-position, so a
-   margin offsets it from its parked top and a sliver of Save shows
-   at rest (this exact bug has now happened twice via well-meant
-   global rules on settle children). */
-.v-settle > .v-savebar, .v-settle .v-savebar { margin-top: 0; }
 
 .v-grid { display: grid; gap: 16px; }
 .v-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -141,33 +136,14 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 .v-toggle input:checked ~ .v-toggle__track::after { transform: translateX(16px); }
 .v-toggle input:focus-visible ~ .v-toggle__track { outline: 2px solid var(--v-focus); outline-offset: 2px; }
 
-/* --- The save bar --------------------------------------------
-   The doctrine made visible. Hidden until the page goes dirty,
-   then pinned to the top edge over everything, naming the state
-   plainly. One per page, because one page is one save scope. */
+/* --- Save controls -------------------------------------------
+   The doctrine made visible, sitting with the page's other actions
+   rather than over them (owner ruling 2026-08-19). The note appears
+   only while there are changes, so the button is constant and the
+   state is the thing that moves. */
 
-.v-savebar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 60;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    min-height: 52px;
-    padding: 0 var(--v-gutter);
-    padding-top: env(safe-area-inset-top);
-    background: var(--v-slab);
-    color: var(--v-slab-on);
-    box-shadow: var(--v-lift-2);
-    transform: translateY(-100%);
-    transition: transform var(--v-base);
-}
-.v-savebar.is-on { transform: translateY(0); }
-.v-savebar__word { font-size: 13.5px; font-weight: 590; display: flex; align-items: center; gap: 9px; }
-.v-savebar__dot { width: 8px; height: 8px; border-radius: 999px; background: var(--v-act-fill); }
-.v-savebar__acts { margin-left: auto; display: flex; gap: 10px; }
-.v-savebar .v-btn--ghost { color: var(--v-slab-ink); }
-.v-savebar .v-btn--ghost:hover { background: var(--v-slab-2); color: var(--v-slab-on); }
+.v-formacts { display: flex; align-items: center; gap: 10px; }
+.v-formacts__note { font-size: 12.5px; color: var(--v-ink-3); white-space: nowrap; }
 
 /* --- Badge ---------------------------------------------------- */
 

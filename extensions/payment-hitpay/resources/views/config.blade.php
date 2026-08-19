@@ -8,7 +8,7 @@
         return $tail !== '' ? "The current {$noun} ends in {$tail}. Blank keeps it." : "A {$noun} is saved. Blank keeps it.";
     };
 @endphp
-<x-admin.form :action="route('admin.settings.update')" id="pay-hitpay-form">
+<x-admin.form :header-save="false" :action="route('admin.settings.update')" id="pay-hitpay-form">
     <input type="hidden" name="group" value="payment">
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'hitpay') }}">
 

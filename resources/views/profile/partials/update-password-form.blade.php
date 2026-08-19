@@ -1,4 +1,4 @@
-<x-admin.form :action="route('password.update')" method="PUT">
+<x-admin.form :action="route('password.update')" method="PUT" :header-save="false">
     <x-admin.panel title="Update Password">
         <div class="v-grid v-grid--2">
             {{-- Errors ride the updatePassword bag, so the spans are

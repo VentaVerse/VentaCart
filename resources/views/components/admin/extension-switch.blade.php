@@ -16,7 +16,7 @@
     $isEnabled = $manager->state($name) === 'enabled';
 @endphp
 @if ($isEnabled)
-    <x-admin.form :action="route('admin.extensions.disable', $name)">
+    <x-admin.form :header-save="false" :save-only-when-dirty="true" :action="route('admin.extensions.disable', $name)">
         <input type="hidden" name="_redirect" value="{{ route('admin.extensions.index') }}">
         <label class="v-toggle">
             <input type="hidden" name="_extension_enabled" value="1">

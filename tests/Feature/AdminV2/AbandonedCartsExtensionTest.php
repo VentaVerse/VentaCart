@@ -47,7 +47,7 @@ class AbandonedCartsExtensionTest extends TestCase
 
         $this->get(route('admin.abandoned-carts.settings'))
             ->assertOk()
-            ->assertSee('v-savebar', false);
+            ->assertSee('v-formacts', false);
     }
 
     public function test_not_installed_means_no_routes_and_no_commands(): void

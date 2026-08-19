@@ -36,7 +36,7 @@
                 </form>
             </x-admin.panel>
 
-            <x-admin.form :action="route('admin.localization.update-all-countries')" method="PUT">
+            <x-admin.form :header-save="false" :action="route('admin.localization.update-all-countries')" method="PUT">
             <x-admin.panel title="Countries" flush>
                 <x-slot:acts>
                     <span class="v-cell-quiet"><span class="v-mono" x-text="enabled"></span> of {{ $countries->count() }} enabled</span>
@@ -107,7 +107,7 @@
                 </form>
             </x-admin.panel>
 
-            <x-admin.form :action="route('admin.localization.update-all-zones')" method="PUT">
+            <x-admin.form :header-save="false" :action="route('admin.localization.update-all-zones')" method="PUT">
             <input type="hidden" name="country" value="{{ $selectedCountry }}">
             <x-admin.panel :title="'Zones (' . $zones->count() . ')'" flush>
                 <x-slot:acts>
@@ -183,7 +183,7 @@
         </div>
 
         <div x-show="tab === 'geo-zones'" x-cloak class="v-settle">
-            <x-admin.form :action="route('admin.localization.update-all-geo-zones')" method="PUT">
+            <x-admin.form :header-save="false" :action="route('admin.localization.update-all-geo-zones')" method="PUT">
             <x-admin.panel title="Geo zones" flush>
                 <div class="v-tablewrap">
                     <table class="v-table">

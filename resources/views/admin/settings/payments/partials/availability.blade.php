@@ -54,7 +54,7 @@
 
 {{-- The rule's fields are typeable straight away, so the save bar
      owns this form like every other settings surface. --}}
-<x-admin.form :action="$restriction ? route('admin.payment-restrictions.update', $restriction) : route('admin.payment-restrictions.store')"
+<x-admin.form :header-save="false" :action="$restriction ? route('admin.payment-restrictions.update', $restriction) : route('admin.payment-restrictions.store')"
                :method="$restriction ? 'PUT' : 'POST'" id="pay-availability-form">
     @unless ($restriction)
         <input type="hidden" name="payment_method" value="{{ $method }}">

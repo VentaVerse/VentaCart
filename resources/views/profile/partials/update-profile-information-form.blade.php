@@ -1,4 +1,4 @@
-<x-admin.form :action="route('admin.profile.update')" method="PATCH">
+<x-admin.form :action="route('admin.profile.update')" method="PATCH" :header-save="false">
     <x-admin.panel title="Profile Information">
         <div class="v-grid v-grid--2">
             <x-admin.field name="name" label="Name" required>

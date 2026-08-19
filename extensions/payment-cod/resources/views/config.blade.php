@@ -1,4 +1,4 @@
-<x-admin.form :action="route('admin.settings.update')" id="pay-cod-form">
+<x-admin.form :header-save="false" :action="route('admin.settings.update')" id="pay-cod-form">
     <input type="hidden" name="group" value="payment">
     <input type="hidden" name="_redirect" value="{{ route('admin.payment-settings.show', 'cod') }}">
 
