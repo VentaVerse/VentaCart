@@ -59,5 +59,8 @@ countries-states-cities-database-3.1-export.2/
 /docs/SPX-*.xlsx
 
 # Verification screenshots taken while checking a change in the browser.
-# /Screenshot*.png above catches the desktop naming; these catch the rest.
+# Owner rule 2026-08-20: every screenshot Claude takes goes in docs/screenshots
+# and is never committed. /Screenshot*.png above catches the desktop naming;
+# these catch the rest, including anything that lands at the root by accident.
+/docs/screenshots/
 /*.png
