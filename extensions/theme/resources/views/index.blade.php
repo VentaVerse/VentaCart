@@ -164,7 +164,7 @@
                             'Status Messages' => ['danger_bg' => 'Error Panel Background', 'danger_border' => 'Error Panel Border', 'danger_text' => 'Error Panel Text', 'danger_accent' => 'Error Accents', 'success_bg' => 'Success Panel Background', 'success_text' => 'Success Panel Text', 'success_accent' => 'Success Accents'],
                             'Text' => ['text' => 'Paragraph Text', 'text_heading' => 'Titles & Headings', 'text_muted' => 'Hints & Small Descriptions', 'content_text' => 'Product Description Text'],
                             'Header' => ['nav_bg' => 'Background', 'nav_text' => 'Cart, Menu & Account Text', 'search_bg' => 'Search Bar', 'announcement_bg' => 'Announcement Background', 'announcement_text' => 'Announcement Text', 'logo_text' => 'Logo / Store Name'],
-                            'Footer' => ['footer_bg' => 'Background', 'footer_text' => 'Links & Text', 'footer_heading' => 'Section Titles'],
+                            'Footer' => ['footer_bg' => 'Background', 'footer_text' => 'Links & Text', 'footer_heading' => 'Section Titles', 'payment_badge_bg' => 'Payment Method Chips'],
                         ];
                     @endphp
                     <div class="v-wells">

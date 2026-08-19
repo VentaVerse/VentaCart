@@ -21,6 +21,7 @@
         "input_bg": "#FFFFFF",
         "input_border": "#C9C9CE",
         "breadcrumb_bg": "#F7F7F7",
+        "payment_badge_bg": "#F0F0F2",
         "search_bg": "#F0F0F2",
         "badge_new": "#0A0A0A",
         "badge_hot": "#FF5F00",

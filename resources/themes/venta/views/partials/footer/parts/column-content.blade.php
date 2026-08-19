@@ -30,11 +30,11 @@
                             <div class="payment-icons">
                                 @foreach ($column->config['icons'] ?? [] as $icon)
                                     @if (is_string($icon))
-                                        <span class="inline-block bg-[var(--color-search-bg)] border border-[var(--color-border)] rounded px-3 py-1.5 text-xs text-[var(--color-text-muted)]">{{ $icon }}</span>
+                                        <span class="inline-block bg-[var(--color-payment-badge-bg)] border border-[var(--color-border)] rounded px-3 py-1.5 text-xs text-[var(--color-text-muted)]">{{ $icon }}</span>
                                     @elseif (($icon['type'] ?? '') === 'image' && !empty($icon['value']))
                                         <img src="{{ storage_url($icon['value']) }}" alt="" class="h-7 rounded">
                                     @elseif (!empty($icon['value']))
-                                        <span class="inline-block bg-[var(--color-search-bg)] border border-[var(--color-border)] rounded px-3 py-1.5 text-xs text-[var(--color-text-muted)]">{{ $icon['value'] }}</span>
+                                        <span class="inline-block bg-[var(--color-payment-badge-bg)] border border-[var(--color-border)] rounded px-3 py-1.5 text-xs text-[var(--color-text-muted)]">{{ $icon['value'] }}</span>
                                     @endif
                                 @endforeach
                             </div>

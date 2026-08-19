@@ -34,6 +34,7 @@
         "primary": "#0E8A43",
         "review_bg": "#F6F7F5",
         "sale_price": "#D5291A",
+        "payment_badge_bg": "#F1F3EF",
         "search_bg": "#F1F3EF",
         "secondary": "#D5291A",
         "sidebar_bg": "#F6F7F5",
