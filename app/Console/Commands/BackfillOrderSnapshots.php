@@ -42,66 +42,9 @@ class BackfillOrderSnapshots extends Command
             $this->warn('Dry run: nothing will be written.');
         }
 
-        $prefix = DB::getTablePrefix();
-        $t = fn (string $table): string => $prefix . $table;
-
-        $totals = [];
-
-        $totals['orders.order_status_name'] = $this->fill(
-            'orders',
-            'order_status_name',
-            "(SELECT s.name FROM {$t('order_statuses')} s WHERE s.id = {$t('orders')}.order_status_id)",
-            $chunk,
-            $dryRun,
-        );
-
-        $totals['orders.customer_group_name'] = $this->fill(
-            'orders',
-            'customer_group_name',
-            "(SELECT g.name FROM {$t('customers')} c INNER JOIN {$t('customer_groups')} g ON g.id = c.customer_group_id WHERE c.id = {$t('orders')}.customer_id)",
-            $chunk,
-            $dryRun,
-        );
-
-        $totals['orders.shipping_courier_name'] = $this->fill(
-            'orders',
-            'shipping_courier_name',
-            "(SELECT sc.name FROM {$t('shipping_couriers')} sc WHERE sc.id = {$t('orders')}.shipping_courier_id)",
-            $chunk,
-            $dryRun,
-        );
-
-        $totals['orders.created_by_name'] = $this->fill(
-            'orders',
-            'created_by_name',
-            "(SELECT u.name FROM {$t('users')} u WHERE u.id = {$t('orders')}.created_by)",
-            $chunk,
-            $dryRun,
-        );
-
-        $totals['order_histories.order_status_name'] = $this->fill(
-            'order_histories',
-            'order_status_name',
-            "(SELECT s.name FROM {$t('order_statuses')} s WHERE s.id = {$t('order_histories')}.order_status_id)",
-            $chunk,
-            $dryRun,
-        );
-
-        $totals['order_histories.created_by_name'] = $this->fill(
-            'order_histories',
-            'created_by_name',
-            "(SELECT u.name FROM {$t('users')} u WHERE u.id = {$t('order_histories')}.created_by)",
-            $chunk,
-            $dryRun,
-        );
-
-        $totals['order_products.image'] = $this->fill(
-            'order_products',
-            'image',
-            "(SELECT p.image FROM {$t('products')} p WHERE p.id = {$t('order_products')}.product_id)",
-            $chunk,
-            $dryRun,
-        );
+        // One implementation, shared with the migration that adds these
+        // columns, so the automatic path and this repair tool can never drift.
+        $totals = \App\Support\OrderSnapshotBackfill::run($chunk, $dryRun);
 
         $this->newLine();
         $this->table(
