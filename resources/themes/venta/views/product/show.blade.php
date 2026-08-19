@@ -440,6 +440,12 @@
                     </div>
                 </template>
 
+                {{-- Back in stock alerts belong to the stock-alerts extension, and
+                     submitNotify() posts to its /notify-stock route. Without that
+                     extension the route does not exist, so this button opened a modal
+                     whose submit 404d. Core asks Route::has rather than naming the
+                     extension, the same way checkout asks about coupons. --}}
+                @if (\Illuminate\Support\Facades\Route::has('notify-stock.store'))
                 <template x-if="isOutOfStock">
                     <div class="mb-6">
                         <button class="product-notify-btn" @click="notifyModal = true">
@@ -448,6 +454,7 @@
                         </button>
                     </div>
                 </template>
+                @endif
 
                 {{-- ATC Message --}}
                 <div x-show="message" x-transition.opacity>
@@ -456,6 +463,7 @@
                          x-text="message"></div>
                 </div>
 
+                @if (\Illuminate\Support\Facades\Route::has('notify-stock.store'))
                 {{-- Notify Me Modal --}}
                 <div x-show="notifyModal" x-cloak class="checkout-modal-overlay" @click.self="notifyModal = false">
                     <div class="checkout-modal" @click.stop>
@@ -486,6 +494,7 @@
                         </div>
                     </div>
                 </div>
+                @endif
 
                 {{-- Tags --}}
                 @if ($product->tags->isNotEmpty())
@@ -510,10 +519,16 @@
                 <div class="product-description">
                     {!! $product->description !!}
                 </div>
-                <h2 class="text-lg font-bold mt-10 mb-4" style="font-family: var(--font-heading); letter-spacing: var(--track-heading, 0); color: var(--color-text-heading);">Reviews ({{ $reviewCount }})</h2>
-                <div x-data="{ reviewPage: 1, perPage: 20 }">
-                    @include('product.partials.reviews')
-                </div>
+                {{-- Reviews belong to the reviews extension. ProductController
+                     already gates the QUERY on the same helper; without this the
+                     markup still rendered "Reviews (0)" over an empty panel on a
+                     store that had switched the module off. --}}
+                @if (\App\Support\Reviews::enabled())
+                    <h2 class="text-lg font-bold mt-10 mb-4" style="font-family: var(--font-heading); letter-spacing: var(--track-heading, 0); color: var(--color-text-heading);">Reviews ({{ $reviewCount }})</h2>
+                    <div x-data="{ reviewPage: 1, perPage: 20 }">
+                        @include('product.partials.reviews')
+                    </div>
+                @endif
             </div>
         @else
             {{-- Description Tabs --}}
@@ -522,17 +537,21 @@
                     <button @click="tab = 'description'" :class="tab === 'description' ? 'active' : ''" class="product-tab-btn">
                         DESCRIPTION
                     </button>
-                    <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
-                        REVIEWS ({{ $reviewCount }})
-                    </button>
+                    @if (\App\Support\Reviews::enabled())
+                        <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
+                            REVIEWS ({{ $reviewCount }})
+                        </button>
+                    @endif
                 </div>
                 <div class="py-6">
                     <div x-show="tab === 'description'" class="product-description">
                         {!! $product->description !!}
                     </div>
-                    <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
-                        @include('product.partials.reviews')
-                    </div>
+                    @if (\App\Support\Reviews::enabled())
+                        <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
+                            @include('product.partials.reviews')
+                        </div>
+                    @endif
                 </div>
             </div>
         @endif
