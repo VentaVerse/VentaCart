@@ -48,6 +48,16 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\LogNotFound::class,
         ]);
 
+        // The active theme's view folder, re-checked per request. The provider
+        // already prepends it at boot; this only catches the case where that
+        // boot ran before the database was readable (tests, or a restart
+        // during a database blip), where it would otherwise stay unregistered
+        // for the life of the process. Idempotent and cheap. See the
+        // middleware's docblock, and BootExtensions for the same hazard.
+        $middleware->web(prepend: [
+            \App\Http\Middleware\RegisterThemeViews::class,
+        ]);
+
         $middleware->redirectGuestsTo(fn () => route('login'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
