@@ -97,17 +97,6 @@ class DashboardController extends Controller
         // Asked off an index and answered by the first matching row. It
         // decides the whole shape of the page, so it is asked first and
         // nothing expensive runs behind it on a store with no trade.
-        // Same rule the orders list uses: a genuine ghost carries neither the
-        // snapshot nor the foreign key. Asking only about the snapshot is what
-        // swapped this page to its new-store shape on live while 27,706 orders
-        // sat in the database (2026-08-20).
-        $hasTraded = Order::query()
-            ->where('store_id', $storeId)
-            ->where(function ($q) {
-                $q->whereNotNull('order_status_name')->orWhereNotNull('order_status_id');
-            })
-            ->exists();
-
         $fulfillment = $this->fulfillmentWork($storeId);
         $lowStockCount = LowStock::count();
 
@@ -128,20 +117,16 @@ class DashboardController extends Controller
         $shared = [
             'sheetDate'        => $today,
             'currency'         => $currency,
-            'hasTraded'        => $hasTraded,
             'workLines'        => $workLines,
             'standingLines'    => $standingLines,
             'automationHealth' => $automationHealth,
         ];
 
-        if (! $hasTraded) {
-            return view('admin.dashboard', array_merge($shared, [
-                'standing'     => 'No orders yet.',
-                'openingLines' => $this->openingLines($storeId),
-                'workNeeded'   => $this->anyCount($workLines),
-                'standingNeeded' => $this->anyCount($standingLines),
-            ]));
-        }
+        // One shape, always. A store with nothing to show reports zeros
+        // rather than swapping to a different page: when a deploy left every
+        // order's status snapshot NULL, the two-shape dashboard concluded the
+        // store had never traded and an outage looked identical to a wiped
+        // shop (owner ruling 2026-08-20).
 
         $pulse = Standing::for($storeId, $now);
 
@@ -181,7 +166,6 @@ class DashboardController extends Controller
             'workRemaining'    => array_slice($fulfillment['lines'], 1),
             'accounts'         => $accounts,
             'accountsLabel'    => 'Last ' . self::ACCOUNT_DAYS . ' days',
-            'mix'              => $accounts['payments'],
             'ring'             => $this->ring($accounts),
             'inventory'        => $inventory,
             'entries'          => $entries['rows'],

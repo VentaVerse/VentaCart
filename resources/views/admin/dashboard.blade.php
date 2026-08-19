@@ -15,7 +15,7 @@
 
     // The band takes the two work figures a merchant acts on first, so the
     // list underneath carries only what the band did not.
-    $work = $hasTraded ? ($workRemaining ?? []) : $workLines;
+    $work = $workRemaining ?? [];
 @endphp
 <x-admin.shell title="Today">
     <div class="v-day v-settle">
@@ -44,7 +44,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
             </div>
         </header>
 
-        @if ($hasTraded)
             {{-- 2. The band ---------------------------------------------
                  Colour here says WHICH measure, never how it is doing, and
                  the written label is beside it in every case. Every block
@@ -66,38 +65,6 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                         :href="$stat['url']" />
                 @endforeach
             </div>
-
-            {{-- 3. How the money arrives ---------------------------------
-                 The ERP's channel strip. A Venta store is one shop and has
-                 no marketplace channels, so the honest part-to-whole
-                 equivalent is the payment method: every order records one,
-                 they genuinely differ in what they cost to operate, and a
-                 store taking money one way collapses to a single chip
-                 rather than to an empty row. --}}
-            @if ($mix !== [])
-                <div class="v-chans">
-                    @foreach ($mix as $i => $method)
-                        @php $m = $money((float) $method['revenue']); @endphp
-                        <div class="v-chan">
-                            {{-- Drawn as SVG rather than a span carrying an
-                                 inline custom property: no CSS in Blade, and
-                                 fill is a presentation attribute. --}}
-                            <svg class="v-chan__ic" width="38" height="38" viewBox="0 0 38 38" aria-hidden="true" focusable="false">
-                                <rect class="v-slice-{{ $i % 6 }}" width="38" height="38" rx="12"></rect>
-                                <text class="v-chan__in" x="19" y="19" text-anchor="middle" dominant-baseline="central">{{ Str::upper(Str::substr($method['label'], 0, 1)) }}</text>
-                            </svg>
-                            <span class="v-chan__body">
-                                <span class="v-chan__n">{{ $method['label'] }}</span>
-                                <span class="v-chan__s">{{ number_format($method['orders']) }} {{ Str::plural('order', $method['orders']) }}</span>
-                            </span>
-                            <span class="v-chan__q">
-                                <x-admin.money :mark="$m['mark']" :amount="$m['amount']" class="v-chan__qv" />
-                                <span class="v-num v-chan__ql">{{ number_format($method['share'] * 100, 1) }}%</span>
-                            </span>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
 
             {{-- 4. The split ---------------------------------------------
                  Two thirds to the work and its history, one third to the
@@ -470,44 +437,5 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                     @include('admin.partials.day-sheet-activity')
                 </div>
             </div>
-        @else
-            {{-- 2. Before the first order -------------------------------
-                 A merchant's day one is all zeros, and five saturated
-                 blocks reading zero is a worse first impression than no
-                 band at all. The store that has never traded keeps its own
-                 composition. --}}
-            <div class="v-daysplit v-daysplit--solo">
-                <div class="v-daysplit__main v-settle v-settle">
-                    <x-admin.panel title="To open" id="v-sheet-open" flush>
-                        <x-slot:acts><a href="{{ route('admin.products.create') }}" class="v-link">Add a product</a></x-slot:acts>
-                        <ul class="v-lines">
-                            @foreach ($openingLines as $line)
-                                <x-admin.line :href="$line['url']" :label="$line['label']" :count="$line['count']" />
-                            @endforeach
-                        </ul>
-                    </x-admin.panel>
-
-                    @if ($workNeeded ?? false)
-                        <x-admin.panel title="Needs doing" id="v-sheet-work" flush>
-                            <ul class="v-lines">
-                                @foreach ($work as $line)
-                                    <x-admin.line :href="$line['url']" :label="$line['label']" :count="$line['count']" />
-                                @endforeach
-                            </ul>
-                        </x-admin.panel>
-                    @endif
-
-                    @if ($standingNeeded ?? false)
-                        @include('admin.partials.day-sheet-outstanding')
-                    @endif
-
-                    {{-- A store that has never traded has no feed to show,
-                         but a stalled automation is a fact on day one too. --}}
-                    @if ($automationHealth['unhealthy']->isNotEmpty())
-                        @include('admin.partials.day-sheet-automations')
-                    @endif
-                </div>
-            </div>
-        @endif
     </div>
 </x-admin.shell>

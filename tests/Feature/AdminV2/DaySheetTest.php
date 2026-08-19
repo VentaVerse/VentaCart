@@ -933,8 +933,13 @@ class DaySheetTest extends TestCase
         // the top of the page, which is the ERP's channel strip in Venta's
         // terms, so the assertion follows it there: the methods the store
         // actually used, named, with their shares.
-        $this->assertSame(['Carrier Pigeon', 'Barter'], array_column($response->viewData('mix'), 'label'));
-        $response->assertSee('Carrier Pigeon')->assertSee('Barter')->assertSee('75.0%');
+        // The figures still exist and are still neutral; the per-method CARDS
+        // were removed from the page (owner ruling 2026-08-20) because a store
+        // taking money four ways got four cards restating a share the revenue
+        // figures already gave.
+        $payments = $response->viewData('accounts')['payments'];
+        $this->assertSame(['Carrier Pigeon', 'Barter'], array_column($payments, 'label'));
+        $response->assertDontSee('v-chans', false);
     }
 
     public function test_orders_with_no_payment_method_are_named_rather_than_dropped(): void
@@ -1040,50 +1045,31 @@ class DaySheetTest extends TestCase
     // The brand new store, which is every merchant's first sight of this
     // ---------------------------------------------------------------
 
-    public function test_a_store_that_has_never_traded_gets_an_opening_movement_not_a_page_of_zeros(): void
-    {
-        $this->actingAs($this->admin());
-
-        $response = $this->get(route('admin.dashboard'))->assertOk();
-
-        $this->assertFalse($response->viewData('hasTraded'));
-
-        $response->assertSee('No orders yet.')
-            ->assertSee('To open')
-            ->assertSee('Products in the catalog')
-            ->assertSee('Add a product')
-            // None of the movements that would be a row of zeros.
-            ->assertDontSee('Last 12 months')
-            ->assertDontSee('Running accounts')
-            ->assertDontSee("Today&#039;s entries", false);
-    }
-
-    public function test_the_opening_movement_counts_the_catalog_and_the_methods_that_are_on(): void
-    {
-        $this->actingAs($this->admin());
-
-        Product::create(['store_id' => 1, 'name' => 'First Product', 'slug' => 'first-product', 'price' => 100]);
-
-        // A fresh install ships with its own defaults, so the store is put
-        // into a known state rather than added to.
-        Setting::whereIn('group', ['payment', 'shipping'])->delete();
-        Setting::create(['group' => 'payment', 'key' => 'cod_enabled', 'value' => '1']);
-        Setting::create(['group' => 'payment', 'key' => 'hitpay_enabled', 'value' => '0']);
-        Setting::create(['group' => 'shipping', 'key' => 'flat_rate_enabled', 'value' => '1']);
-
-        $lines = collect($this->get(route('admin.dashboard'))->assertOk()->viewData('openingLines'))
-            ->pluck('count', 'label');
-
-        $this->assertSame(1, $lines['Products in the catalog']);
-        $this->assertSame(1, $lines['Payment methods on']);
-        $this->assertSame(1, $lines['Shipping methods on']);
-    }
-
     /**
-     * A cart that reached the orders table and stopped is not trade, so it
-     * does not turn the opening movement off.
+     * Owner ruling 2026-08-20: one dashboard, always. These three tests used to
+     * pin the opposite, that a store which had never traded got its own day-one
+     * composition instead of a row of zeros. That shape is gone, and the reason
+     * is worth keeping: when a deploy left every order's status snapshot NULL,
+     * the dashboard concluded the store had never traded and showed the day-one
+     * page, so an outage hiding 27,706 orders looked exactly like a wiped shop.
+     * A page that reports zero says "your counts are wrong"; a page that changes
+     * shape says "your shop is gone".
      */
-    public function test_ghost_orders_alone_do_not_make_a_store_traded(): void
+    public function test_a_brand_new_store_gets_the_same_dashboard_reporting_zeros(): void
+    {
+        $this->actingAs($this->admin());
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            // The traded path has always had its own empty-day sentence, so
+            // nothing informative was lost by dropping the day-one branch.
+            ->assertSee('No orders yet today.')
+            ->assertSee('Running accounts')
+            ->assertDontSee('To open');
+    }
+
+    /** A ghost order is not trade, but it no longer changes the page either. */
+    public function test_ghost_orders_are_not_counted_as_revenue(): void
     {
         $this->actingAs($this->admin());
 
@@ -1099,7 +1085,10 @@ class DaySheetTest extends TestCase
         ]);
         $ghost->forceFill(['created_at' => Carbon::parse('2026-08-09 10:00:00')])->save();
 
-        $this->get(route('admin.dashboard'))->assertOk()->assertSee('To open');
+        $response = $this->get(route('admin.dashboard'))->assertOk();
+
+        $this->assertSame(0, $response->viewData('accounts')['orders']);
+        $response->assertSee('Running accounts')->assertDontSee('To open');
     }
 
     // ---------------------------------------------------------------
