@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\Setting;
+use App\Support\StoreIdentity;
 use Extensions\EmailCampaigns\Audiences\AudienceRegistry;
 use Extensions\EmailCampaigns\Http\Requests\EmailCampaignRequest;
 use Extensions\EmailCampaigns\Jobs\SendCampaignJob;
@@ -17,6 +18,7 @@ use Extensions\EmailCampaigns\Services\CampaignRenderer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 
 class AdminEmailCampaignController extends Controller
 {
@@ -34,12 +36,14 @@ class AdminEmailCampaignController extends Controller
             ? EmailCampaignTemplate::find($request->input('from_template'))
             : null;
 
+        $selectedIds = array_map('intval', (array) old('customer_ids', []));
+
         return view('email-campaigns::form', [
             'campaign' => null,
             'prefill' => $template,
             'audiences' => AudienceRegistry::all(),
             'groups' => CustomerGroup::orderBy('name')->get(),
-            'customers' => $this->customerPickerOptions(),
+            'customers' => $this->customerPickerOptions($selectedIds),
             'tokens' => CampaignRenderer::tokens(),
             'templates' => EmailCampaignTemplate::orderBy('name')->get(),
         ]);
@@ -69,12 +73,14 @@ class AdminEmailCampaignController extends Controller
 
     public function edit(EmailCampaign $campaign)
     {
+        $selectedIds = array_map('intval', (array) old('customer_ids', $campaign->audience_params['customer_ids'] ?? []));
+
         return view('email-campaigns::form', [
             'campaign' => $campaign,
             'prefill' => null,
             'audiences' => AudienceRegistry::all(),
             'groups' => CustomerGroup::orderBy('name')->get(),
-            'customers' => $this->customerPickerOptions(),
+            'customers' => $this->customerPickerOptions($selectedIds),
             'tokens' => CampaignRenderer::tokens(),
             'templates' => EmailCampaignTemplate::orderBy('name')->get(),
         ]);
@@ -112,9 +118,33 @@ class AdminEmailCampaignController extends Controller
         return redirect()->route('admin.email-campaigns.index')->with('success', 'Campaign deleted.');
     }
 
+    /**
+     * A fresh draft carrying the same subject, body and audience. Never a
+     * copy of what happened: status, recipients_total and sent_at are the
+     * record of a specific send and start clean on the duplicate.
+     */
+    public function duplicate(EmailCampaign $campaign)
+    {
+        $copy = $campaign->replicate(['status', 'recipients_total', 'sent_at']);
+        $copy->status = 'draft';
+        $copy->recipients_total = 0;
+        $copy->sent_at = null;
+        $copy->subject = 'Copy of ' . $campaign->subject;
+        $copy->save();
+
+        return redirect()->route('admin.email-campaigns.edit', $copy)->with('success', 'Campaign duplicated.');
+    }
+
     /** Live counts for the compose screen's audience picker. */
     public function recipientCount(Request $request)
     {
+        $request->validate([
+            'audience_type' => ['sometimes', Rule::in(array_keys(AudienceRegistry::all()))],
+            'group_id' => ['nullable', 'integer'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['integer'],
+        ]);
+
         $draft = new EmailCampaign([
             'audience_type' => $request->input('audience_type', 'all'),
             'audience_params' => match ($request->input('audience_type')) {
@@ -133,13 +163,19 @@ class AdminEmailCampaignController extends Controller
     /**
      * Mails the logged-in admin, who is not a customer and has no newsletter
      * flag to consult, so the consent filter does not apply here.
+     *
+     * A JSON response rather than a redirect: this form posts from the
+     * compose screen without saving the campaign first, so a redirect (even
+     * with withInput()) has nothing to carry the unsaved audience selection
+     * back with it. The page never navigates; window.vPost() toasts the
+     * verdict in place.
      */
     public function test(Request $request)
     {
         $request->validate(['subject' => ['required', 'string'], 'body' => ['nullable', 'string']]);
 
         $admin = Auth::user();
-        $storeName = Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name');
+        $storeName = StoreIdentity::name();
 
         $sample = [
             'first_name' => $admin->name,
@@ -158,7 +194,7 @@ class AdminEmailCampaignController extends Controller
             $logo ? storage_url($logo) : null,
         ));
 
-        return back()->with('success', 'Test sent to ' . $admin->email . '.');
+        return response()->json(['ok' => true, 'message' => 'Test sent to ' . $admin->email . '.']);
     }
 
     /**
@@ -166,12 +202,33 @@ class AdminEmailCampaignController extends Controller
      * brief's controller listing, but the compose screen's picklist (Step 7)
      * has nothing to render without it. Capped rather than unbounded: a
      * store-wide customer list is a checklist here, not a search index.
+     *
+     * A customer already targeted by a saved campaign is always included,
+     * cap or no cap: the picklist only renders a checkbox for the ids it is
+     * given, so leaving a selected id out of this list is how a saved
+     * recipient gets silently dropped the next time the campaign is saved.
+     *
+     * @param array<int, int> $selectedIds
      */
-    private function customerPickerOptions()
+    private function customerPickerOptions(array $selectedIds = [])
     {
-        return Customer::where('store_id', 1)
+        $selected = collect();
+
+        if (! empty($selectedIds)) {
+            $selected = Customer::where('store_id', 1)
+                ->whereIn('id', $selectedIds)
+                ->orderBy('first_name')->orderBy('last_name')
+                ->get(['id', 'first_name', 'last_name', 'email']);
+        }
+
+        $pool = Customer::where('store_id', 1)
+            ->when($selected->isNotEmpty(), fn ($q) => $q->whereNotIn('id', $selected->pluck('id')))
             ->orderBy('first_name')->orderBy('last_name')
             ->limit(1000)
             ->get(['id', 'first_name', 'last_name', 'email']);
+
+        return $selected->concat($pool)
+            ->sortBy([['first_name', 'asc'], ['last_name', 'asc']])
+            ->values();
     }
 }

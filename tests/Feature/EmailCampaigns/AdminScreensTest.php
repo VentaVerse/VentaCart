@@ -104,18 +104,51 @@ class AdminScreensTest extends TestCase
         $admin = User::factory()->create(['email' => 'admin@example.com']);
         $this->actingAs($admin);
 
-        $this->post(route('admin.email-campaigns.test'), [
+        $this->postJson(route('admin.email-campaigns.test'), [
             'subject' => 'Preview me',
             'body' => '<p>Hi {first_name}</p>',
-        ])->assertRedirect();
+        ])->assertOk()->assertJson(['ok' => true]);
 
         Mail::assertSent(\Extensions\EmailCampaigns\Mail\CampaignMail::class,
             fn ($m) => $m->hasTo('admin@example.com'));
+    }
+
+    /**
+     * F1: a test send used to end() in back(), which wiped the draft the
+     * admin was composing. It is a JSON endpoint now precisely so nothing
+     * ever navigates away from an unsaved compose screen; a validation
+     * failure must report as a normal 422, not a redirect either.
+     */
+    public function test_a_test_send_with_no_subject_reports_a_validation_error_without_redirecting(): void
+    {
+        $this->postJson(route('admin.email-campaigns.test'), ['body' => '<p>Hi</p>'])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['subject']);
     }
 
     public function test_a_campaign_requires_a_subject_and_an_audience(): void
     {
         $this->post(route('admin.email-campaigns.store'), ['body' => '<p>Hi</p>'])
             ->assertSessionHasErrors(['subject', 'audience_type']);
+    }
+
+    /**
+     * F4: an unknown audience_type must fail validation, not reach
+     * AudienceRegistry::for() and 500.
+     */
+    public function test_the_recipient_count_endpoint_rejects_an_unknown_audience_type(): void
+    {
+        $this->getJson(route('admin.email-campaigns.recipient-count', ['audience_type' => 'bogus']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['audience_type']);
+    }
+
+    public function test_the_recipient_count_endpoint_defaults_to_all_when_audience_type_is_omitted(): void
+    {
+        $this->customer('in@example.com');
+
+        $this->getJson(route('admin.email-campaigns.recipient-count'))
+            ->assertOk()
+            ->assertJson(['audience_total' => 1, 'will_receive' => 1]);
     }
 }

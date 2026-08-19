@@ -24,12 +24,24 @@ class AdminEmailCampaignTemplateController extends Controller
         ]);
     }
 
+    /**
+     * Also reached from the compose screen's "Save as template" action
+     * (Extensions\EmailCampaigns\Http\Controllers\AdminEmailCampaignController
+     * does not duplicate this: it posts here). That caller sends
+     * Accept: application/json and never navigates, because a redirect away
+     * from an unsaved compose screen would silently discard the campaign the
+     * admin is still writing, the same way a plain test-send once did.
+     */
     public function store(Request $request)
     {
         $data = $this->validated($request);
         $data['store_id'] = 1;
 
-        EmailCampaignTemplate::create($data);
+        $template = EmailCampaignTemplate::create($data);
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'message' => 'Saved as template "' . $template->name . '".']);
+        }
 
         return redirect()->route('admin.email-campaigns.templates.index')->with('success', 'Template saved.');
     }

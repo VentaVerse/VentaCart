@@ -3,7 +3,7 @@
 namespace Extensions\EmailCampaigns\Services;
 
 use App\Models\Customer;
-use App\Models\Setting;
+use App\Support\StoreIdentity;
 use Illuminate\Support\Facades\URL;
 
 /**
@@ -41,14 +41,21 @@ class CampaignRenderer
         return $text;
     }
 
-    /** @return array<string, string> token => value */
+    /**
+     * @return array<string, string> token => value
+     *
+     * store_name comes from StoreIdentity rather than a direct Setting
+     * query: StoreIdentity memoizes for the life of the process, so a send
+     * that calls render() twice per recipient (subject, then body) resolves
+     * the store's name once for the whole run instead of once per call.
+     */
     private static function valuesFor(Customer $customer): array
     {
         return [
             'first_name' => $customer->first_name,
             'last_name' => $customer->last_name,
             'email' => $customer->email,
-            'store_name' => Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name'),
+            'store_name' => StoreIdentity::name(),
             'unsubscribe_url' => URL::signedRoute('newsletter.unsubscribe', ['customer' => $customer->id]),
         ];
     }

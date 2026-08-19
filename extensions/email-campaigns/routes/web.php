@@ -31,6 +31,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::get('/{campaign}/edit', [AdminEmailCampaignController::class, 'edit'])->name('edit')->whereNumber('campaign');
         Route::put('/{campaign}', [AdminEmailCampaignController::class, 'update'])->name('update')->whereNumber('campaign');
         Route::delete('/{campaign}', [AdminEmailCampaignController::class, 'destroy'])->name('destroy')->whereNumber('campaign');
+        Route::post('/{campaign}/duplicate', [AdminEmailCampaignController::class, 'duplicate'])->name('duplicate')->whereNumber('campaign');
     });
 
 // Storefront, signed and public: the link inside a campaign. `signed`

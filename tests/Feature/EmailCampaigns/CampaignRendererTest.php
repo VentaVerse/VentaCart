@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\CustomerGroup;
 use App\Models\Setting;
 use App\Models\Store;
+use App\Support\StoreIdentity;
 use Extensions\EmailCampaigns\Services\CampaignRenderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -20,6 +21,10 @@ class CampaignRendererTest extends TestCase
         app(\App\Services\ExtensionManager::class)->install('email-campaigns');
         app(\App\Services\ExtensionManager::class)->bootEnabled();
         Store::firstOrCreate(['id' => 1], ['name' => 'Test', 'code' => 'test']);
+        // {store_name} is resolved through StoreIdentity, which memoizes for
+        // the life of the PHP process (not just this test): without a
+        // flush, a name resolved by an earlier test class would leak in.
+        StoreIdentity::flush();
     }
 
     private function customer(string $first, string $email): Customer
@@ -52,6 +57,8 @@ class CampaignRendererTest extends TestCase
     public function test_the_store_name_comes_from_settings(): void
     {
         Setting::updateOrCreate(['group' => 'identity', 'key' => 'site_name'], ['value' => 'New Gear Day']);
+        app(\App\Services\ThemeService::class)->clearCache();
+        StoreIdentity::flush();
 
         $this->assertStringContainsString(
             'New Gear Day',

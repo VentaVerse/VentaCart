@@ -83,7 +83,7 @@
                             <select name="audience_type" id="v-campaign-audience" class="v-control"
                                     x-model="audienceType" @change="fetchCounts()">
                                 @foreach ($audiences as $type => $label)
-                                    <option value="{{ $type }}">{{ $label }}</option>
+                                    <option value="{{ $type }}" @selected($type === $initialAudienceType)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </x-admin.field>
@@ -124,6 +124,8 @@
 
             @unless ($locked)
                 <div class="v-gap v-actrow">
+                    <button type="button" class="v-btn v-btn--secondary"
+                            @click="$dispatch('v-confirm', 'save-as-template')">Save as template</button>
                     <button type="submit" class="v-btn v-btn--secondary"
                             onclick="document.getElementById('v-campaign-action').value = 'draft'">Save draft</button>
                     <button type="button" class="v-btn v-btn--primary"
@@ -148,16 +150,26 @@
                 confirm="Send now" :danger="false"
                 :action="$campaign ? route('admin.email-campaigns.update', $campaign) : route('admin.email-campaigns.store')"
                 :method="$campaign ? 'PUT' : 'POST'" />
+
+            {{-- Like the send dialog above, this form never actually posts:
+                 saving as a template must not navigate away from an unsaved
+                 compose screen, so submitting it is intercepted below and
+                 sent with vPost() instead. The :action is a fallback for a
+                 script error, same as the send dialog. --}}
+            <x-admin.confirm name="save-as-template" title="Save as template"
+                message="Saves the subject and body as a reusable starting point. The audience and any saved recipients are not part of a template."
+                confirm="Save template" :danger="false"
+                :action="route('admin.email-campaigns.templates.store')" method="POST">
+                <x-admin.field name="name" label="Template name" required>
+                    <input type="text" name="name" id="v-save-template-name" class="v-control" required maxlength="128">
+                </x-admin.field>
+            </x-admin.confirm>
         @endunless
 
         <x-admin.panel title="Test send">
-            <form method="POST" action="{{ route('admin.email-campaigns.test') }}"
-                  onsubmit="return prepareCampaignTestSend()" class="v-actrow">
-                @csrf
-                <input type="hidden" name="subject" id="v-campaign-test-subject">
-                <input type="hidden" name="body" id="v-campaign-test-body">
-                <button type="submit" class="v-btn v-btn--secondary">Send test to me</button>
-            </form>
+            <div class="v-actrow">
+                <button type="button" class="v-btn v-btn--secondary" onclick="sendCampaignTest()">Send test to me</button>
+            </div>
         </x-admin.panel>
     </div>
 
@@ -208,28 +220,61 @@
         // instance on the page raised it.
         document.addEventListener('submit', function (e) {
             var modal = e.target.closest('.v-modal');
-            if (!modal || modal.getAttribute('aria-labelledby') !== 'vc-send-campaign') return;
+            if (!modal) return;
 
-            e.preventDefault();
-            var campaignForm = document.getElementById('v-campaign-form');
-            if (!campaignForm) return;
-            if (tinymce.get('v-campaign-body')) tinymce.triggerSave();
-            document.getElementById('v-campaign-action').value = 'send';
-            // requestSubmit(), not submit(): it still runs the browser's own
-            // required-field validation (a blank subject shows the native
-            // bubble instead of silently posting), which plain submit() skips.
-            if (campaignForm.requestSubmit) {
-                campaignForm.requestSubmit();
-            } else {
-                campaignForm.submit();
+            if (modal.getAttribute('aria-labelledby') === 'vc-send-campaign') {
+                e.preventDefault();
+                var campaignForm = document.getElementById('v-campaign-form');
+                if (!campaignForm) return;
+                if (tinymce.get('v-campaign-body')) tinymce.triggerSave();
+                document.getElementById('v-campaign-action').value = 'send';
+                // requestSubmit(), not submit(): it still runs the browser's own
+                // required-field validation (a blank subject shows the native
+                // bubble instead of silently posting), which plain submit() skips.
+                if (campaignForm.requestSubmit) {
+                    campaignForm.requestSubmit();
+                } else {
+                    campaignForm.submit();
+                }
+                return;
+            }
+
+            if (modal.getAttribute('aria-labelledby') === 'vc-save-as-template') {
+                e.preventDefault();
+                saveCampaignAsTemplate();
             }
         }, true);
 
-        function prepareCampaignTestSend() {
+        // Test sends and "save as template" both use vPost() (see admin.js):
+        // POST as JSON, never navigate, toast the server's own verdict. A
+        // full-page redirect here would wipe whatever the admin has typed
+        // and not yet saved, the same way an earlier bug once did.
+        function sendCampaignTest() {
             if (tinymce.get('v-campaign-body')) tinymce.triggerSave();
-            document.getElementById('v-campaign-test-subject').value = document.getElementById('v-campaign-subject').value;
-            document.getElementById('v-campaign-test-body').value = document.getElementById('v-campaign-body').value;
-            return true;
+            window.vPost('{{ route('admin.email-campaigns.test') }}', {
+                subject: document.getElementById('v-campaign-subject').value,
+                body: document.getElementById('v-campaign-body').value,
+            });
+        }
+
+        async function saveCampaignAsTemplate() {
+            if (tinymce.get('v-campaign-body')) tinymce.triggerSave();
+            var name = document.getElementById('v-save-template-name').value;
+            if (!name) {
+                document.getElementById('v-save-template-name').reportValidity();
+                return;
+            }
+
+            var result = await window.vPost('{{ route('admin.email-campaigns.templates.store') }}', {
+                name: name,
+                subject: document.getElementById('v-campaign-subject').value,
+                body: document.getElementById('v-campaign-body').value,
+            });
+
+            if (result.ok) {
+                document.getElementById('v-save-template-name').value = '';
+                window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            }
         }
 
         function campaignComposer(config) {

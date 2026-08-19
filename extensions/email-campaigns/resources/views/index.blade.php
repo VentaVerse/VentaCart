@@ -43,6 +43,10 @@
                             <td class="v-cell-quiet">{{ $campaign->sent_at?->format('M j, Y g:ia') ?? '-' }}</td>
                             <td class="v-cell-act">
                                 <a href="{{ route('admin.email-campaigns.edit', $campaign) }}" class="v-btn v-btn--ghost v-btn--sm">Open</a>
+                                <form method="POST" action="{{ route('admin.email-campaigns.duplicate', $campaign) }}" class="v-inline">
+                                    @csrf
+                                    <button type="submit" class="v-btn v-btn--ghost v-btn--sm">Duplicate</button>
+                                </form>
                                 @if ($campaign->status !== 'sent')
                                     <button type="button" class="v-btn v-btn--danger v-btn--sm"
                                             @click="$dispatch('v-confirm', 'delete-campaign-{{ $campaign->id }}')">Delete</button>

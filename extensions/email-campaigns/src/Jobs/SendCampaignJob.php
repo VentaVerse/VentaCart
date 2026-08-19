@@ -3,6 +3,7 @@
 namespace Extensions\EmailCampaigns\Jobs;
 
 use App\Models\Setting;
+use App\Support\StoreIdentity;
 use Extensions\EmailCampaigns\Mail\CampaignMail;
 use Extensions\EmailCampaigns\Models\EmailCampaign;
 use Extensions\EmailCampaigns\Services\CampaignRecipients;
@@ -41,7 +42,7 @@ class SendCampaignJob implements ShouldQueue
             return;
         }
 
-        $storeName = Setting::where('group', 'identity')->where('key', 'site_name')->value('value') ?? config('app.name');
+        $storeName = StoreIdentity::name();
         $logo = Setting::where('group', 'identity')->where('key', 'logo')->value('value');
         $logoUrl = $logo ? storage_url($logo) : null;
 
