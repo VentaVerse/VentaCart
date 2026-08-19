@@ -73,21 +73,6 @@ class SettingController extends Controller
             );
         }
 
-        // Also save per-theme copy when saving colors or fonts
-        if (in_array($group, ['colors', 'fonts'])) {
-            $activeTheme = app(ThemeService::class)->getActiveTheme();
-            if ($activeTheme) {
-                foreach ($data as $key => $value) {
-                    if (in_array($key, self::ENCRYPTED_KEYS) && empty($value)) continue;
-                    $val = is_array($value) ? json_encode($value) : $value;
-                    Setting::updateOrCreate(
-                        ['group' => "{$group}__{$activeTheme}", 'key' => $key],
-                        ['value' => $val]
-                    );
-                }
-            }
-        }
-
         app(ThemeService::class)->clearCache();
 
         // Redirect to new admin URL after prefix change

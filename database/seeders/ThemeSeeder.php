@@ -13,8 +13,9 @@ class ThemeSeeder extends Seeder
 {
     public function run(): void
     {
-        // Load colors and fonts from active theme's theme.json
-        $activeTheme = Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?? 'venta';
+        // Colors and fonts come from the one theme's theme.json. There is no
+        // theme choice to read: looks are presets over this contract.
+        $activeTheme = \App\Services\ThemeService::THEME;
         $themePath = resource_path("themes/{$activeTheme}/theme.json");
         $themeJson = file_exists($themePath) ? json_decode(file_get_contents($themePath), true) : [];
 

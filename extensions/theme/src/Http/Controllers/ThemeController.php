@@ -30,8 +30,6 @@ class ThemeController extends Controller
             ->orderBy('name')
             ->get();
 
-        $installedThemes = $theme->getInstalledThemes();
-        $activeTheme = $theme->getActiveTheme();
         $installedPresets = $theme->getInstalledPresets();
         $activePreset = $theme->getActivePreset();
         $themeSettingsSchema = $theme->getThemeSettingsSchema();
@@ -43,7 +41,7 @@ class ThemeController extends Controller
 
         return view('theme::index', compact(
             'settings', 'sections', 'navItems', 'footerColumns', 'currencies', 'categories',
-            'installedThemes', 'activeTheme', 'installedPresets', 'activePreset',
+            'installedPresets', 'activePreset',
             'themeSettingsSchema', 'themeSettingValues'
         ));
     }

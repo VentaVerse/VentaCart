@@ -22,22 +22,29 @@ class AdoptMasterTheme extends Command
 
     public function handle(ThemeService $theme): int
     {
-        $current = $theme->getActiveTheme();
+        // The RAW setting, not getActiveTheme(): that now always answers with
+        // the one theme, so asking it would report every store as already
+        // migrated and this command would never do its work.
+        $current = Setting::where('group', 'identity')->where('key', 'active_theme')->value('value')
+            ?? ThemeService::THEME;
 
-        if ($current === 'venta') {
+        if ($current === ThemeService::THEME) {
             $this->info('Already on the venta master theme. Nothing to do.');
 
             return self::SUCCESS;
         }
 
-        if (!file_exists(resource_path("themes/venta/presets/{$current}.json"))) {
+        if (!file_exists(resource_path('themes/' . ThemeService::THEME . "/presets/{$current}.json"))) {
             $this->error("No venta preset matches the active theme [{$current}]. Aborting.");
 
             return self::FAILURE;
         }
 
+        // Matched in PHP, not SQL. The previous LIKE '%\_%' relied on backslash
+        // being the escape character, which is true on MySQL and false on
+        // SQLite, so on any other driver it silently matched nothing and this
+        // command reported success having remapped no options at all.
         $optionRows = Setting::where('group', 'theme_settings')
-            ->where('key', 'like', '%\_%')
             ->get()
             ->filter(fn ($row) => preg_match('/^(stage-ready|clean-light|crimson-dusk)_/', $row->key));
 
@@ -55,7 +62,7 @@ class AdoptMasterTheme extends Command
         DB::transaction(function () use ($current, $optionRows) {
             Setting::updateOrCreate(
                 ['group' => 'identity', 'key' => 'active_theme'],
-                ['value' => 'venta']
+                ['value' => ThemeService::THEME]
             );
             Setting::updateOrCreate(
                 ['group' => 'identity', 'key' => 'active_preset'],

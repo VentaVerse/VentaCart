@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Cache;
 
 class ThemeService
 {
+    /** The only theme. Folder under resources/themes. */
+    public const THEME = 'venta';
+
     protected array $settings = [];
     protected const CACHE_KEY = 'theme_settings';
 
@@ -88,36 +91,25 @@ class ThemeService
         }
     }
 
+    /**
+     * Venta has one theme. Looks are presets over it, not separate folders.
+     *
+     * This deliberately ignores identity.active_theme. A store that predates
+     * the consolidation still carries a legacy value there, and honouring it
+     * would send view resolution at a folder this release deletes, which is a
+     * white storefront rather than a wrong colour. The setting survives only
+     * so venta:adopt-master-theme can see what a store used to run and map it
+     * to the matching preset; after that it is a historical note.
+     */
     public function getActiveTheme(): string
     {
-        return $this->get('identity.active_theme', 'venta');
+        return self::THEME;
     }
 
     public function getThemePath(?string $theme = null): string
     {
         $theme = $theme ?? $this->getActiveTheme();
         return resource_path("themes/{$theme}");
-    }
-
-    public function getInstalledThemes(): array
-    {
-        $themesPath = resource_path('themes');
-        if (!is_dir($themesPath)) {
-            return [];
-        }
-
-        $themes = [];
-        foreach (scandir($themesPath) as $dir) {
-            if ($dir === '.' || $dir === '..') continue;
-            $jsonPath = "{$themesPath}/{$dir}/theme.json";
-            if (file_exists($jsonPath)) {
-                $meta = json_decode(file_get_contents($jsonPath), true);
-                $meta['slug'] = $dir;
-                $themes[$dir] = $meta;
-            }
-        }
-
-        return $themes;
     }
 
     /**
