@@ -97,9 +97,15 @@ class DashboardController extends Controller
         // Asked off an index and answered by the first matching row. It
         // decides the whole shape of the page, so it is asked first and
         // nothing expensive runs behind it on a store with no trade.
+        // Same rule the orders list uses: a genuine ghost carries neither the
+        // snapshot nor the foreign key. Asking only about the snapshot is what
+        // swapped this page to its new-store shape on live while 27,706 orders
+        // sat in the database (2026-08-20).
         $hasTraded = Order::query()
             ->where('store_id', $storeId)
-            ->whereNotNull('order_status_name')
+            ->where(function ($q) {
+                $q->whereNotNull('order_status_name')->orWhereNotNull('order_status_id');
+            })
             ->exists();
 
         $fulfillment = $this->fulfillmentWork($storeId);

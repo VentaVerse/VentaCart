@@ -186,7 +186,18 @@ class Order extends Model
      */
     public function scopeVisibleToCustomer(Builder $query): Builder
     {
-        return $query->whereNotNull('order_status_name');
+        // BOTH must be absent. The snapshot alone was not enough: the
+        // migration that introduced order_status_name backfilled nothing, so
+        // on live every pre-existing order read as a ghost and each customer's
+        // order history went empty along with the admin list (2026-08-20).
+        // A genuine abandoned checkout never reached a status and so carries
+        // neither field; a real order carries the key even before its snapshot
+        // is written. Requiring both keeps the distinction this scope was
+        // written for (a deleted status row nulls the key but leaves the
+        // snapshot) without a missed backfill hiding somebody's real orders.
+        return $query->where(function (Builder $q): void {
+            $q->whereNotNull('order_status_name')->orWhereNotNull('order_status_id');
+        });
     }
 
     public function getFullNameAttribute(): string

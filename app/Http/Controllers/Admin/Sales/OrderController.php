@@ -28,16 +28,27 @@ class OrderController extends Controller
         }
 
         if ($request->input('order_status_id') === 'missing') {
-            // "Missing" means the order never reached a status, which only the
-            // owned column can say. order_status_id also goes NULL when a
-            // status row is deleted, which would file real orders as ghosts.
-            $query->whereNull('order_status_name');
+            // "Missing" means the order never reached a status at all, so it
+            // carries NEITHER the snapshot nor the foreign key.
+            //
+            // Testing the snapshot alone is what emptied this list on live
+            // (2026-08-20): the migration that added order_status_name
+            // backfilled nothing, so 27,706 real orders read as ghosts and
+            // vanished. A real order always has order_status_id even before
+            // its snapshot is written; a genuine ghost has neither. Requiring
+            // both keeps the original meaning (a deleted status row nulls the
+            // foreign key but leaves the snapshot, so real orders stay real)
+            // while making a missed backfill cosmetic instead of catastrophic.
+            $query->whereNull('order_status_name')->whereNull('order_status_id');
         } elseif ($request->filled('order_status_id')) {
             // Filtering BY a status is a live question about a status that
             // still exists, so it stays on the foreign key.
             $query->where('order_status_id', $request->input('order_status_id'));
         } else {
-            $query->whereNotNull('order_status_name');
+            // Everything that is not a genuine ghost. See the comment above.
+            $query->where(function ($q) {
+                $q->whereNotNull('order_status_name')->orWhereNotNull('order_status_id');
+            });
         }
 
         if ($request->filled('search')) {
