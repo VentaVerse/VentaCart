@@ -66,8 +66,8 @@
 
                         <div x-show="!resetSent">
                             <div class="text-center mb-4">
-                                <div class="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-3">
-                                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+                                <div class="w-12 h-12 rounded-full notice-icon-warning flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
                                 </div>
                                 <h2 class="text-lg font-semibold text-[var(--color-text-heading)]">Welcome to our new platform!</h2>
                                 <p class="text-sm text-[var(--color-text)] mt-2">We've upgraded our store to a brand new system. For your security, you'll need to set a new password.</p>

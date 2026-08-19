@@ -32,7 +32,7 @@
                     <div x-data="{ rating: 0, hover: 0 }" class="flex gap-1 mb-4">
                         @for ($i = 1; $i <= 5; $i++)
                             <button type="button" @click="rating = {{ $i }}" @mouseenter="hover = {{ $i }}" @mouseleave="hover = 0"
-                                :class="(hover || rating) >= {{ $i }} ? 'text-amber-400' : 'text-[var(--color-input-border)]'"
+                                :class="(hover || rating) >= {{ $i }} ? 'text-[var(--color-star-rating)]' : 'text-[var(--color-input-border)]'"
                                 class="text-3xl transition-colors">&#9733;</button>
                         @endfor
                         <input type="hidden" name="rating" :value="rating">

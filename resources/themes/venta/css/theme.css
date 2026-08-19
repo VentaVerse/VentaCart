@@ -41,6 +41,8 @@
  --color-review-bg: #F9FAFB;
  --color-success: #16a34a;
  --color-error: #dc2626;
+ --color-warning: #D97706;
+ --color-overlay-btn-bg: #FFFFFF;
  --size-logo: 32px;
  --size-section-title: 24px;
  --size-product-name: 14px;
@@ -733,7 +735,9 @@
  }
 
  .hero-slider .slider-arrow {
- @apply absolute top-1/2 -translate-y-1/2 z-10 bg-white/80 backdrop-blur-sm hover:bg-[var(--color-primary)] w-12 h-12 flex items-center justify-center transition-all duration-300 rounded shadow-md; color: var(--color-text);
+ @apply absolute top-1/2 -translate-y-1/2 z-10 backdrop-blur-sm hover:bg-[var(--color-primary)] w-12 h-12 flex items-center justify-center transition-all duration-300 rounded shadow-md;
+ background: color-mix(in srgb, var(--color-overlay-btn-bg) 80%, transparent);
+ color: var(--color-text);
  }
 
  .hero-slider .slider-arrow:hover {
@@ -1131,7 +1135,9 @@
  Wishlist Heart Button
  ============================================ */
  .wishlist-btn {
- @apply absolute top-3 right-3 z-20 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center transition-all duration-300 opacity-0 border border-transparent shadow-sm; color: var(--color-text-muted);
+ @apply absolute top-3 right-3 z-20 w-9 h-9 rounded-full backdrop-blur-sm flex items-center justify-center transition-all duration-300 opacity-0 border border-transparent shadow-sm;
+ background: color-mix(in srgb, var(--color-overlay-btn-bg) 80%, transparent);
+ color: var(--color-text-muted);
  }
 
  .product-card:hover .wishlist-btn {
@@ -1742,8 +1748,8 @@
  }
 
  .account-status-pending {
- background: rgba(245, 158, 11, 0.1);
- color: #D97706;
+ background: color-mix(in srgb, var(--color-warning) 10%, transparent);
+ color: var(--color-warning);
  }
 
  .account-status-processing {
@@ -2292,4 +2298,12 @@
  .footer-links--row a {
  display: inline-block;
  }
+}
+
+/* Circled icon on a storefront notice, e.g. the migrated-account prompt on
+   login. Its own rule rather than colour utilities on the element, so it
+   follows --color-warning instead of a fixed amber. */
+.notice-icon-warning {
+ background: color-mix(in srgb, var(--color-warning) 18%, transparent);
+ color: var(--color-warning);
 }

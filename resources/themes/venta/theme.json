@@ -48,7 +48,9 @@
         "success_bg": "#F0FDF4",
         "success_text": "#15803D",
         "success_accent": "#22C55E",
-        "brand_tile_bg": "transparent"
+        "brand_tile_bg": "transparent",
+        "warning": "#D97706",
+        "overlay_btn_bg": "#FFFFFF"
     },
     "fonts": {
         "heading": "Figtree",
