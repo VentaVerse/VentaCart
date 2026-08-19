@@ -952,7 +952,7 @@ git commit -m "feat(email): one click off the list, writing the same flag the pr
 
 **Interfaces:**
 - Consumes: `newsletter.unsubscribe` route from Task 3.
-- Produces: `CampaignRenderer::render(string $text, Customer $customer): string`, `CampaignRenderer::tokens(): array<string, string>` (token => human label, for the compose toolbar), `CampaignRenderer::previewTokens(): array<string, string>` (token => sample value, for the admin test-send).
+- Produces: `CampaignRenderer::render(string $text, Customer $customer): string`, `CampaignRenderer::renderWith(string $text, array $values): string` (substitute an explicit token map, so the admin test-send in Task 6 reuses this loop instead of copying it), `CampaignRenderer::tokens(): array<string, string>` (token => human label, for the compose toolbar).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1079,7 +1079,19 @@ class CampaignRenderer
 {
     public static function render(string $text, Customer $customer): string
     {
-        foreach (self::valuesFor($customer) as $token => $value) {
+        return self::renderWith($text, self::valuesFor($customer));
+    }
+
+    /**
+     * Substitute an explicit token map. The admin test-send has no Customer to
+     * render against (an admin is not a customer), so it supplies its own
+     * values and reuses this loop rather than copying it.
+     *
+     * @param array<string, string> $values
+     */
+    public static function renderWith(string $text, array $values): string
+    {
+        foreach ($values as $token => $value) {
             $text = str_replace('{' . $token . '}', (string) $value, $text);
         }
 
@@ -1815,19 +1827,11 @@ class AdminEmailCampaignController extends Controller
             'unsubscribe_url' => '#',
         ];
 
-        $render = function (string $text) use ($sample): string {
-            foreach ($sample as $token => $value) {
-                $text = str_replace('{' . $token . '}', (string) $value, $text);
-            }
-
-            return $text;
-        };
-
         $logo = Setting::where('group', 'identity')->where('key', 'logo')->value('value');
 
         Mail::to($admin->email)->send(new CampaignMail(
-            $render($request->input('subject')),
-            $render($request->input('body') ?? ''),
+            CampaignRenderer::renderWith($request->input('subject'), $sample),
+            CampaignRenderer::renderWith($request->input('body') ?? '', $sample),
             $storeName,
             $logo ? storage_url($logo) : null,
         ));
