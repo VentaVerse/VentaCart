@@ -37,6 +37,7 @@
               action="{{ $campaign ? route('admin.email-campaigns.update', $campaign) : route('admin.email-campaigns.store') }}">
             @csrf
             @if ($campaign) @method('PUT') @endif
+            <input type="hidden" name="action" id="v-campaign-action" value="draft">
 
             <fieldset @disabled($locked) class="v-settle">
                 <x-admin.panel title="Message">
@@ -108,13 +109,31 @@
 
             @unless ($locked)
                 <div class="v-gap v-actrow">
-                    <button type="submit" name="action" value="draft" class="v-btn v-btn--secondary">Save draft</button>
-                    <button type="submit" name="action" value="send" class="v-btn v-btn--primary"
-                            onclick="return confirm('Send this campaign now? This cannot be undone.')">Send now</button>
+                    <button type="submit" class="v-btn v-btn--secondary"
+                            onclick="document.getElementById('v-campaign-action').value = 'draft'">Save draft</button>
+                    <button type="button" class="v-btn v-btn--primary"
+                            @click="$dispatch('v-confirm', 'send-campaign')">Send now</button>
                     <a href="{{ route('admin.email-campaigns.index') }}" class="v-btn v-btn--ghost">Cancel</a>
                 </div>
             @endunless
         </form>
+
+        @unless ($locked)
+            {{-- The dialog's own form never actually posts: submitting it is
+                 intercepted below and redirected into #v-campaign-form with
+                 action=send, so the send carries the subject, body, and
+                 audience the admin was actually looking at, not a second
+                 copy of them. The :action given here is the real store/update
+                 route as a safety fallback in case that interception is ever
+                 unavailable (e.g. a script error) -- submitting it directly
+                 fails validation (no subject/body) rather than sending
+                 anything. --}}
+            <x-admin.confirm name="send-campaign" title="Send this campaign now?"
+                message="Every recipient who has not opted out of email gets this immediately. This cannot be undone."
+                confirm="Send now" :danger="false"
+                :action="$campaign ? route('admin.email-campaigns.update', $campaign) : route('admin.email-campaigns.store')"
+                :method="$campaign ? 'PUT' : 'POST'" />
+        @endunless
 
         <x-admin.panel title="Test send">
             <form method="POST" action="{{ route('admin.email-campaigns.test') }}"
@@ -165,6 +184,31 @@
                 editor.save();
             }
         }
+
+        // The "Send now" confirm dialog's own <form> is never meant to post
+        // anywhere: accepting it should submit the real campaign form with
+        // action=send, carrying whatever the admin has actually typed.
+        // Captured at the document so it fires before the dialog's own
+        // submission reaches the network, regardless of which x-admin.confirm
+        // instance on the page raised it.
+        document.addEventListener('submit', function (e) {
+            var modal = e.target.closest('.v-modal');
+            if (!modal || modal.getAttribute('aria-labelledby') !== 'vc-send-campaign') return;
+
+            e.preventDefault();
+            var campaignForm = document.getElementById('v-campaign-form');
+            if (!campaignForm) return;
+            if (tinymce.get('v-campaign-body')) tinymce.triggerSave();
+            document.getElementById('v-campaign-action').value = 'send';
+            // requestSubmit(), not submit(): it still runs the browser's own
+            // required-field validation (a blank subject shows the native
+            // bubble instead of silently posting), which plain submit() skips.
+            if (campaignForm.requestSubmit) {
+                campaignForm.requestSubmit();
+            } else {
+                campaignForm.submit();
+            }
+        }, true);
 
         function prepareCampaignTestSend() {
             if (tinymce.get('v-campaign-body')) tinymce.triggerSave();
