@@ -64,3 +64,8 @@ countries-states-cities-database-3.1-export.2/
 # these catch the rest, including anything that lands at the root by accident.
 /docs/screenshots/
 /*.png
+
+# The impeccable skill's working output: UI critiques and the screenshots it
+# takes to make them. Scratch for a review that already happened, and 2MB of
+# png. Kept on disk, never committed.
+/.impeccable/
