@@ -13,6 +13,7 @@
             <h1 class="v-head__title">Email</h1>
         </div>
         <div class="v-head__actions">
+            <a href="{{ route('admin.email-campaigns.templates.index') }}" class="v-btn v-btn--secondary">Templates</a>
             <a href="{{ route('admin.email-campaigns.create') }}" class="v-btn v-btn--primary">New campaign</a>
         </div>
     </div>

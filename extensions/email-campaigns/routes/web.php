@@ -1,6 +1,7 @@
 <?php
 
 use Extensions\EmailCampaigns\Http\Controllers\AdminEmailCampaignController;
+use Extensions\EmailCampaigns\Http\Controllers\AdminEmailCampaignTemplateController;
 use Extensions\EmailCampaigns\Http\Controllers\NewsletterSubscriptionController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,14 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // Literals before the {campaign} wildcard so it cannot swallow them.
         Route::get('/recipient-count', [AdminEmailCampaignController::class, 'recipientCount'])->name('recipient-count');
         Route::post('/test', [AdminEmailCampaignController::class, 'test'])->name('test');
+
+        // Templates before the {campaign} wildcard so it cannot swallow them.
+        Route::get('/templates', [AdminEmailCampaignTemplateController::class, 'index'])->name('templates.index');
+        Route::get('/templates/create', [AdminEmailCampaignTemplateController::class, 'create'])->name('templates.create');
+        Route::post('/templates', [AdminEmailCampaignTemplateController::class, 'store'])->name('templates.store');
+        Route::get('/templates/{template}/edit', [AdminEmailCampaignTemplateController::class, 'edit'])->name('templates.edit')->whereNumber('template');
+        Route::put('/templates/{template}', [AdminEmailCampaignTemplateController::class, 'update'])->name('templates.update')->whereNumber('template');
+        Route::delete('/templates/{template}', [AdminEmailCampaignTemplateController::class, 'destroy'])->name('templates.destroy')->whereNumber('template');
 
         Route::get('/', [AdminEmailCampaignController::class, 'index'])->name('index');
         Route::get('/create', [AdminEmailCampaignController::class, 'create'])->name('create');

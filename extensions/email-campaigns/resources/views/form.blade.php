@@ -40,6 +40,21 @@
             <input type="hidden" name="action" id="v-campaign-action" value="draft">
 
             <fieldset @disabled($locked) class="v-settle">
+                @if (!$campaign && $templates->isNotEmpty())
+                    <x-admin.panel title="Start from template">
+                        <x-admin.field name="from_template" label="Template">
+                            <select id="v-campaign-from-template" class="v-control"
+                                    onchange="if (this.value) { window.location = this.value; }">
+                                <option value="">Blank campaign</option>
+                                @foreach ($templates as $t)
+                                    <option value="{{ route('admin.email-campaigns.create', ['from_template' => $t->id]) }}"
+                                            @selected($prefill && $prefill->id === $t->id)>{{ $t->name }}</option>
+                                @endforeach
+                            </select>
+                        </x-admin.field>
+                    </x-admin.panel>
+                @endif
+
                 <x-admin.panel title="Message">
                     <x-admin.field name="subject" label="Subject" required>
                         <input type="text" id="v-campaign-subject" name="subject" required maxlength="255"
