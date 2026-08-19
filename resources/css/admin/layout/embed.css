@@ -98,6 +98,27 @@
    live in the plain shell, not a space. */
 button.v-snav__item { border: 0; background: none; width: 100%; text-align: left; cursor: pointer; font: inherit; }
 
+/* The side-pan grid those pages lay themselves out with. Consumers live
+   in EXTENSIONS, not resources/views (theme's editor and stock alerts),
+   so a sweep that greps only the app's own views will conclude these are
+   dead and delete them. That has happened once; the note is the guard. */
+.v-modgrid { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start; }
+.v-modgrid > .v-snav {
+    position: sticky; top: 18px; padding: 6px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-lg);
+    box-shadow: var(--v-lift);
+    /* The base .v-snav is the settings SPACE's column: a full-height
+       sticky rail (height: calc(100vh - 54px)) with a right border. A
+       side pan is a card that ends where its sections end, so it takes
+       its height back and only caps it if the list ever outgrows the
+       viewport. Without this the card stood 846px tall on a 900px
+       screen to hold 374px of buttons. */
+    height: auto;
+    max-height: calc(100vh - 36px);
+}
+
 /* The nav's narrow-width stand-in. Declared hidden HERE, at the width
    where the nav itself is visible and this would only duplicate it: a
    control that shows itself only inside a media query has no answer for
@@ -107,6 +128,28 @@ button.v-snav__item { border: 0; background: none; width: 100%; text-align: left
 @media (max-width: 1023px) {
     .v-settings__body { grid-template-columns: minmax(0, 1fr); }
     .v-snav { display: none; }
+
+    /* A side pan has no column to keep at this width. Collapsing the grid
+       matters more than it sounds: the rail's 210px track survived even
+       with the nav hidden inside it, leaving the work itself 126px wide.
+       The pan then returns as a scrolling strip above the work, because
+       these sections have no other route to each other (unlike a space,
+       which has its hub and its picker). */
+    .v-modgrid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .v-modgrid > .v-snav {
+        display: flex;
+        /* center, not the flex default of stretch: a strip's items are
+           label-height, and stretching made each one as tall as the whole
+           container (776px on a 844px screen). */
+        align-items: center;
+        position: static;
+        height: auto; max-height: none;
+        overflow-x: auto; overflow-y: hidden;
+        gap: 6px;
+        padding: 6px;
+    }
+    .v-modgrid > .v-snav .v-snav__item { width: auto; flex: none; white-space: nowrap; }
+
     /* The nav is hidden here, so its stand-in takes over. */
     .v-snav__picker {
         display: block;
