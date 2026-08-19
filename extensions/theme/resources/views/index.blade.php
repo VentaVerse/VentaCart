@@ -15,9 +15,26 @@
     </div>
 
 
-    <div x-data="{ tab: @js(session('tab', request('tab', 'presets'))),
-            pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }"
+    <div x-data="themeSections(@js(session('tab', request('tab', 'presets'))))"
+         @keydown.escape.window="leaving = null"
          class="v-gap-lg">
+
+        {{-- Asked at the switch, where the edits can still be saved, rather
+             than by the browser on the way out of some later navigation. --}}
+        <template x-if="leaving">
+            <div class="v-overlay" @click.self="leaving = null">
+                <div class="v-modal" role="dialog" aria-modal="true" aria-labelledby="v-theme-leave">
+                    <h2 class="v-modal__title" id="v-theme-leave">Save this section first?</h2>
+                    <p class="v-modal__body">This section has changes that have not been saved. Each section saves on its own, so moving on without saving loses them.</p>
+                    <div class="v-modal__acts">
+                        <button type="button" class="v-btn v-btn--ghost" @click="leaving = null">Stay here</button>
+                        <button type="button" class="v-btn v-btn--danger" @click="discardAndGo()">Discard and move on</button>
+                        <button type="button" class="v-btn v-btn--primary" @click="saveAndGo()">Save and move on</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
         <div class="v-modgrid">
         <nav class="v-snav" aria-label="Theme sections">
             @php
@@ -672,6 +689,68 @@
 
     @push('scripts')
     <script>
+        /**
+         * The section menu, and the one thing it has to protect against.
+         *
+         * Each section is its own save scope now, so leaving one with
+         * unsaved edits abandons them. Before the split that was
+         * impossible: seven sections shared a form, and one Save carried
+         * all of them. Now the browser would catch it, but only at the
+         * worst possible moment, as an unstyled "Leave site?" on the way
+         * out of an unrelated save. So the switch is what asks, in the
+         * app, while the edits are still recoverable.
+         */
+        function themeSections(initial) {
+            return {
+                tab: initial,
+                leaving: null,          // the section a dirty switch is headed for
+
+                // The visible section's form, if it has one (Presets and
+                // the record editors do not carry a doctrine form).
+                currentForm() {
+                    const pane = this.$el.querySelector('[x-show*="\'' + this.tab + '\'"]');
+                    return pane ? pane.querySelector('form[x-data]') : null;
+                },
+                isDirty() {
+                    const f = this.currentForm();
+                    try { return !!(f && Alpine.$data(f).dirty); } catch (e) { return false; }
+                },
+
+                pick(t) {
+                    if (t !== this.tab && this.isDirty()) { this.leaving = t; return; }
+                    this.go(t);
+                },
+                go(t) {
+                    this.leaving = null;
+                    this.tab = t;
+                    const u = new URL(window.location);
+                    u.searchParams.set('tab', t);
+                    history.replaceState(null, '', u);
+                },
+
+                // Save first, then land on the section that was asked for:
+                // the URL is rewritten BEFORE submitting so the server's
+                // back() returns to the new section rather than this one.
+                saveAndGo() {
+                    const f = this.currentForm();
+                    const t = this.leaving;
+                    const u = new URL(window.location);
+                    u.searchParams.set('tab', t);
+                    history.replaceState(null, '', u);
+                    this.leaving = null;
+                    f.requestSubmit();
+                },
+                // Discard reloads, for the same reason the save doctrine
+                // does: the server's copy is the only clean state worth
+                // restoring.
+                discardAndGo() {
+                    const u = new URL(window.location);
+                    u.searchParams.set('tab', this.leaving);
+                    window.location.href = u.toString();
+                },
+            };
+        }
+
         function initSortable(container, reorderUrl) {
             if (!container) return;
             let dragEl = null;
