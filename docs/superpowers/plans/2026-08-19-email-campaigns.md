@@ -773,8 +773,11 @@ class UnsubscribeTest extends TestCase
         $customer = $this->customer(true);
         $url = URL::signedRoute('newsletter.unsubscribe', ['customer' => $customer->id]);
 
-        // Same signature, different customer: exactly the attack the signing prevents.
-        $this->get(str_replace("customer={$customer->id}", 'customer=999', $url))
+        // Swap the customer in the PATH, keeping the signature: exactly the
+        // attack signing prevents. The id is a path segment, not a query
+        // parameter, so this edits ".../unsubscribe/1?signature=..." into
+        // ".../unsubscribe/999?signature=...".
+        $this->get(str_replace("/unsubscribe/{$customer->id}?", '/unsubscribe/999?', $url))
             ->assertForbidden();
 
         $this->assertTrue($customer->fresh()->newsletter);
@@ -1321,24 +1324,27 @@ namespace Extensions\EmailCampaigns\Mail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 class CampaignMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * The subject is passed to the parent's own subject() rather than promoted
+     * into a property. Illuminate\Mail\Mailable already declares an UNTYPED
+     * public $subject, and a promoted `public string $subject` here is a fatal
+     * error at class load: "Type of CampaignMail::$subject must be omitted to
+     * match the parent definition". Calling subject() also populates that
+     * inherited property, which is what Mail::assertSent can read back.
+     */
     public function __construct(
-        public string $subject,
+        string $subject,
         public string $body,
         public string $storeName,
         public ?string $logo = null,
     ) {
-    }
-
-    public function envelope(): Envelope
-    {
-        return new Envelope(subject: $this->subject);
+        $this->subject($subject);
     }
 
     public function content(): Content
