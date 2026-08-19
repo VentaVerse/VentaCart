@@ -22,12 +22,28 @@
             <x-admin.context-nav :groups="$groups" :active="$active" :label="$space" />
 
             <div class="v-settings__main">
-                {{-- Retired 2026-08-19 (owner ruling): the section jump was
-                     redundant beside the context nav that lists the same
-                     sections, and it only ever appeared on desktop through a
-                     missing base rule. Where the nav is hidden (narrow
-                     widths) the space's own hub carries the way between
-                     sections. --}}
+                {{-- The context nav, for the widths that cannot show it.
+                     Below 1023px the nav beside this column is hidden, and
+                     this select stands in for it; above that width it is
+                     redundant with the nav two inches to its left and must
+                     not render at all. It leaked onto desktop for months
+                     because it carried no base rule and only ever declared
+                     itself inside the narrow media query, so the stylesheet
+                     now states both halves of that intent. --}}
+                <label class="v-snav__picker">
+                    <span class="v-sr">{{ $space }} section</span>
+                    <select class="v-control" onchange="if (this.value) window.location.href = this.value">
+                        <option value="">Go to&hellip;</option>
+                        @foreach ($groups as $group)
+                            <optgroup label="{{ $group['label'] }}">
+                                @foreach ($group['items'] as $item)
+                                    <option value="{{ $item['url'] }}" @selected($active === $item['key'])>{{ $item['label'] }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endforeach
+                    </select>
+                </label>
+
                 <div class="v-settings__measure">
                     {{ $slot }}
                 </div>

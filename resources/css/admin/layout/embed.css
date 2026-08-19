@@ -97,9 +97,22 @@
    snav vocabulary with buttons; the grid is local because those pages
    live in the plain shell, not a space. */
 button.v-snav__item { border: 0; background: none; width: 100%; text-align: left; cursor: pointer; font: inherit; }
+
+/* The nav's narrow-width stand-in. Declared hidden HERE, at the width
+   where the nav itself is visible and this would only duplicate it: a
+   control that shows itself only inside a media query has no answer for
+   every width outside it, which is how this select spent months sitting
+   on top of desktop pages it was never meant to reach. */
+.v-snav__picker { display: none; }
 @media (max-width: 1023px) {
     .v-settings__body { grid-template-columns: minmax(0, 1fr); }
     .v-snav { display: none; }
+    /* The nav is hidden here, so its stand-in takes over. */
+    .v-snav__picker {
+        display: block;
+        width: 100%;
+        margin-bottom: 18px;
+    }
     .v-settings__main { padding: 18px 16px 110px; }
 }
 
