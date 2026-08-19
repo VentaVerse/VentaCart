@@ -15,7 +15,10 @@
             "label": "Blog Posts",
             "route": "admin.blog.index",
             "icon": "blog",
-            "keywords": ["articles", "news"]
+            "keywords": [
+                "articles",
+                "news"
+            ]
         },
         {
             "group": "Content",
@@ -26,5 +29,6 @@
             "icon": "categories",
             "keywords": []
         }
-    ]
+    ],
+    "default_enabled": true
 }

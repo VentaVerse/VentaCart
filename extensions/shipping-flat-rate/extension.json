@@ -8,5 +8,6 @@
     "type": "shipping",
     "chain_sequence": 30,
     "quote_key": "flat_rate",
-    "configure_route": "admin.shipping-settings.flat-rate"
+    "configure_route": "admin.shipping-settings.flat-rate",
+    "default_enabled": true
 }

@@ -33,13 +33,26 @@ class AppServiceProvider extends ServiceProvider
             $view->with('navBadges', \App\Support\NavBadges::counts());
         });
 
-        \Illuminate\Database\Eloquent\Relations\Relation::enforceMorphMap([
+        // Core's own morphable types. An extension's model is added only when
+        // that extension is actually present: Blog is optional and can be
+        // uninstalled, and a map entry pointing at a class that is not loaded
+        // fails at the moment something resolves the type, not at boot, so it
+        // surfaced as a 500 on unrelated admin pages rather than anything that
+        // named Blog. class_exists() is the check, not "is it enabled": rows
+        // already carrying a blog_post morph must still resolve on a store that
+        // has merely switched the module off.
+        $morphMap = [
             'product' => \App\Models\Product::class,
             'category' => \App\Models\Category::class,
             'brand' => \App\Models\Brand::class,
-            'blog_post' => \Extensions\Blog\Models\BlogPost::class,
             'page' => \App\Models\Page::class,
-        ]);
+        ];
+
+        if (class_exists(\Extensions\Blog\Models\BlogPost::class)) {
+            $morphMap['blog_post'] = \Extensions\Blog\Models\BlogPost::class;
+        }
+
+        \Illuminate\Database\Eloquent\Relations\Relation::enforceMorphMap($morphMap);
 
         $this->configureAppNameFromDatabase();
         $this->configureMailFromDatabase();

@@ -26,7 +26,9 @@
                             <th>Tag</th>
                             <th>Slug</th>
                             <th class="v-cell-num">Products</th>
-                            <th class="v-cell-num">Blog posts</th>
+                            @if ($showBlogPosts)
+                                <th class="v-cell-num">Blog posts</th>
+                            @endif
                             <th class="v-cell-act"><span class="v-sr">Actions</span></th>
                         </tr>
                     </thead>
@@ -36,7 +38,10 @@
                                 <td><a href="{{ route('admin.tags.edit', $tag) }}" class="v-rowlink">{{ $tag->name }}</a></td>
                                 <td class="v-mono v-cell-quiet">{{ $tag->slug }}</td>
                                 <td class="v-cell-num v-mono">{{ $tag->products_count }}</td>
-                                <td class="v-cell-num v-mono">{{ $tag->blog_posts_count }}</td>
+                                {{-- Present only while Blog is installed; the column header is guarded to match. --}}
+                                @if ($showBlogPosts)
+                                    <td class="v-cell-num v-mono">{{ $tag->blog_posts_count }}</td>
+                                @endif
                                 <td class="v-cell-act">
                                     <a href="{{ route('admin.tags.edit', $tag) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
                                     <button type="button" class="v-btn v-btn--danger v-btn--sm"

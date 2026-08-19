@@ -1189,6 +1189,12 @@ class ReskinWaveTest extends TestCase
             ->assertSee('v-embed', false)
             ->assertSee('Payments'); // context nav lists sibling sections
 
+        // Bank Transfer ships NOT installed (owner ruling 2026-08-19), so a
+        // test that asserts on its row installs it first, the same way the
+        // coupons and fulfillment tests do.
+        app(\App\Services\ExtensionManager::class)->install('payment-bank-transfer');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+
         // Standard rows (owner ruling 2026-08-18): the landing carries only
         // Enable/Disable + Configure; availability (restrictions) lives in
         // the method page's own Availability tab, reached through Configure.

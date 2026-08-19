@@ -142,6 +142,13 @@
                 </x-admin.field>
             </div>
 
+            {{-- The optimizer belongs to the SEO extension, which ships NOT
+                 installed (owner ruling 2026-08-19). Route::has is how one
+                 extension asks whether another is present without naming its
+                 class; without this the whole form 500s on a store that simply
+                 never installed SEO. Same guard core uses in
+                 admin/partials/seo_optimizer.blade.php. --}}
+            @if (Route::has('admin.extensions.seo.optimize'))
             {{-- AI SEO Optimizer (SEO extension's endpoint; the button only
                  renders for a saved post) --}}
             <div class="v-gap" x-data="{
@@ -209,6 +216,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </x-admin.panel>
     </x-admin.form>
 

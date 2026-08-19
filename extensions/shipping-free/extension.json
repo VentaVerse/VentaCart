@@ -8,5 +8,6 @@
     "type": "shipping",
     "chain_sequence": 10,
     "quote_key": "free_shipping",
-    "configure_route": "admin.shipping-settings.free-shipping"
+    "configure_route": "admin.shipping-settings.free-shipping",
+    "default_enabled": true
 }

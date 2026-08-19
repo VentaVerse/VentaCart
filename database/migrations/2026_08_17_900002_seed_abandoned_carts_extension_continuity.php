@@ -16,6 +16,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Continuity carries an EXISTING store's choices across. A fresh
+        // install has none to carry, and its defaults are ExtensionSeeder's
+        // job (owner ruling 2026-08-19). See InstallState for why the earlier
+        // hasTable() test could not tell the two apart.
+        if (\App\Support\InstallState::isFreshInstall()) {
+            return;
+        }
+
         if (! Schema::hasTable('extensions') || ! Schema::hasTable('abandoned_cart_rules')) {
             return;
         }

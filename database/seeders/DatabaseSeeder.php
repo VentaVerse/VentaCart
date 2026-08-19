@@ -23,6 +23,10 @@ class DatabaseSeeder extends Seeder
             ThemeSeeder::class,
             EmailTemplateSeeder::class,
             AutomationSeeder::class,
+            // Last of the core set: installing an extension runs its own
+            // migrations, so everything core owns should already be in place.
+            // A no-op on any store that has been set up before.
+            ExtensionSeeder::class,
         ]);
 
         // Run seeders registered by extensions (e.g. PH Address)

@@ -15,7 +15,17 @@
             "label": "Themes",
             "route": "admin.theme.index",
             "icon": "tags",
-            "keywords": ["storefront", "colors", "fonts", "homepage", "logo", "favicon", "presets", "looks"]
+            "keywords": [
+                "storefront",
+                "colors",
+                "fonts",
+                "homepage",
+                "logo",
+                "favicon",
+                "presets",
+                "looks"
+            ]
         }
-    ]
+    ],
+    "default_enabled": true
 }

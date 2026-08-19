@@ -101,6 +101,11 @@ class UrlGrammarTest extends TestCase
     public function test_marketing_seo_workspace_is_ok_at_new_url(): void
     {
         $this->actingAs(User::factory()->create());
+        // SEO ships NOT installed (owner ruling 2026-08-19), and its routes
+        // only exist once it is, so the test installs it exactly as the
+        // coupons and fulfillment tests above do.
+        app(\App\Services\ExtensionManager::class)->install('seo');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $this->get('/'.$this->prefix().'/extensions/seo')->assertOk();
     }
@@ -108,6 +113,11 @@ class UrlGrammarTest extends TestCase
     public function test_settings_seo_engine_config_is_ok_at_new_url(): void
     {
         $this->actingAs(User::factory()->create());
+        // SEO ships NOT installed (owner ruling 2026-08-19), and its routes
+        // only exist once it is, so the test installs it exactly as the
+        // coupons and fulfillment tests above do.
+        app(\App\Services\ExtensionManager::class)->install('seo');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $this->get('/'.$this->prefix().'/extensions/seo/settings')->assertOk();
     }
@@ -229,6 +239,11 @@ class UrlGrammarTest extends TestCase
         // now; the legacy redirect that used to occupy this URL is gone
         // (it would have shadowed the real route in the collection).
         $this->actingAs(User::factory()->create());
+        // SEO ships NOT installed (owner ruling 2026-08-19), and its routes
+        // only exist once it is, so the test installs it exactly as the
+        // coupons and fulfillment tests above do.
+        app(\App\Services\ExtensionManager::class)->install('seo');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         $this->get('/'.$this->prefix().'/extensions/seo/settings')->assertOk();
         $this->get('/'.$this->prefix().'/settings/modules/seo/settings')

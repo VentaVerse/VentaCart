@@ -8,5 +8,8 @@
     "type": "payment",
     "family": "cod",
     "configure_route": "admin.payment-settings.show",
-    "configure_params": {"method": "cod"}
+    "configure_params": {
+        "method": "cod"
+    },
+    "default_enabled": true
 }

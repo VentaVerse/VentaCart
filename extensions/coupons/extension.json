@@ -14,7 +14,12 @@
             "label": "Coupons",
             "route": "admin.coupons.index",
             "icon": "coupons",
-            "keywords": ["discount", "promo", "voucher"]
+            "keywords": [
+                "discount",
+                "promo",
+                "voucher"
+            ]
         }
-    ]
+    ],
+    "default_enabled": true
 }

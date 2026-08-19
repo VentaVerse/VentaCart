@@ -12,7 +12,17 @@ class TagController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Tag::withCount(['products', 'blogPosts']);
+        // Blog posts are counted only while the Blog extension is installed;
+        // it attaches the relation to Tag when it boots. isRelation() is how
+        // core asks without naming the extension.
+        $showBlogPosts = (new Tag)->isRelation('blogPosts');
+
+        $counts = ['products'];
+        if ($showBlogPosts) {
+            $counts[] = 'blogPosts';
+        }
+
+        $query = Tag::withCount($counts);
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->input('search') . '%');
@@ -20,7 +30,7 @@ class TagController extends Controller
 
         $tags = $query->orderBy('name')->paginate(50)->withQueryString();
 
-        return view('admin.catalog.tags.index', compact('tags'));
+        return view('admin.catalog.tags.index', compact('tags', 'showBlogPosts'));
     }
 
     public function create()
@@ -61,7 +71,9 @@ class TagController extends Controller
     public function destroy(Tag $tag)
     {
         $tag->products()->detach();
-        $tag->blogPosts()->detach();
+        if ($tag->isRelation('blogPosts')) {
+            $tag->blogPosts()->detach();
+        }
         $tag->delete();
 
         return redirect()->route('admin.tags.index')->with('success', 'Tag deleted.');

@@ -14,6 +14,13 @@ class ModulesPageTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
+        // A fresh install's real starting state (owner ruling 2026-08-19):
+        // ExtensionSeeder installs the essentials, everything else is
+        // Install-only. This used to happen by accident via the continuity
+        // migrations, which now correctly skip a fresh database.
+        $this->seed(\Database\Seeders\ExtensionSeeder::class);
+
+
         $this->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee('v-embed', false)   // v settings shell
@@ -30,10 +37,16 @@ class ModulesPageTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
+        // A fresh install's real starting state (owner ruling 2026-08-19):
+        // ExtensionSeeder installs the essentials, everything else is
+        // Install-only. This used to happen by accident via the continuity
+        // migrations, which now correctly skip a fresh database.
+        $this->seed(\Database\Seeders\ExtensionSeeder::class);
+
         // Not installed: the row is Install-only — no uninstall endpoint
-        // rendered for it. (Theme ships installed via its continuity
-        // migration, so the page as a whole legitimately carries that
-        // row's Uninstall; the pin is per-row.)
+        // rendered for it. (Theme is one of the fresh-install essentials, so
+        // the page as a whole legitimately carries that row's Uninstall; the
+        // pin is per-row.)
         $this->get(route('admin.extensions.index'))
             ->assertOk()
             ->assertSee(route('admin.extensions.install', 'stock-alerts'), false)

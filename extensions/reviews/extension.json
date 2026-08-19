@@ -15,7 +15,12 @@
             "label": "Reviews",
             "route": "admin.reviews.index",
             "icon": "reviews",
-            "keywords": ["ratings", "stars", "moderation"]
+            "keywords": [
+                "ratings",
+                "stars",
+                "moderation"
+            ]
         }
-    ]
+    ],
+    "default_enabled": true
 }
