@@ -57,6 +57,7 @@ class FreshInstallExtensionDefaultsTest extends TestCase
         'shipping-dhl',
         'stock-alerts',
         'store-credit',
+        'email-campaigns',
     ];
 
     /**

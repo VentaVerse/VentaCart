@@ -1,0 +1,21 @@
+{
+    "name": "email-campaigns",
+    "title": "Email",
+    "version": "1.0.0",
+    "description": "Write and send an email to a customer group, your newsletter subscribers, or a handful of people you pick.",
+    "provider": "Extensions\\EmailCampaigns\\EmailCampaignsServiceProvider",
+    "icon": "customers",
+    "type": "feature",
+    "configure_route": "admin.email-campaigns.index",
+    "admin_nav": [
+        {
+            "group": "Marketing",
+            "after": "coupons",
+            "key": "email",
+            "label": "Email",
+            "route": "admin.email-campaigns.index",
+            "icon": "customers",
+            "keywords": ["blast", "newsletter", "campaign", "mail", "marketing"]
+        }
+    ]
+}
