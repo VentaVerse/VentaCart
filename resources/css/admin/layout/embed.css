@@ -149,6 +149,9 @@ button.v-snav__item { border: 0; background: none; width: 100%; text-align: left
         padding: 6px;
     }
     .v-modgrid > .v-snav .v-snav__item { width: auto; flex: none; white-space: nowrap; }
+    /* Group headings belong to a column, not a strip: laid out inline they
+       sit between the buttons reading like sections you could tap. */
+    .v-modgrid > .v-snav .v-snav__group { display: none; }
 
     /* The nav is hidden here, so its stand-in takes over. */
     .v-snav__picker {

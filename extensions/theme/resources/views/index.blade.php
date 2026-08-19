@@ -7,121 +7,133 @@
                 <span>Theme</span>
             </div>
             <h1 class="v-head__title">Theme</h1>
-            <p class="v-head__standing">How the storefront looks. One save commits every settings tab below.</p>
+            <p class="v-head__standing">How the storefront looks. Each section saves on its own.</p>
         </div>
         <div class="v-head__actions">
             <x-admin.extension-switch name="theme" />
         </div>
     </div>
 
-    {{-- Every installed look: apply, export, delete, plus save-as and
-         import verbs. A preset is a JSON overlay, so a look travels between
-         stores as one small file. --}}
-    <div class="v-settle">
-    <x-admin.panel title="Looks" flush>
-        <x-slot:acts>
-            <button type="button" class="v-btn v-btn--secondary v-btn--sm"
-                    onclick="document.getElementById('preset-import-form').querySelector('input[type=file]').click()">Import preset</button>
-        </x-slot:acts>
-        <div class="v-tablewrap">
-            <table class="v-table">
-                <thead>
-                    <tr><th>Look</th><th>Palette</th><th class="v-cell-act"><span class="v-sr">Actions</span></th></tr>
-                </thead>
-                <tbody>
-                    @foreach ($installedPresets as $slug => $meta)
-                        <tr>
-                            <td>
-                                <span class="v-namerow">
-                                    <strong>{{ $meta['name'] ?? $slug }}</strong>
-                                    @if ($slug === $activePreset)
-                                        <span class="v-badge v-badge--good">Live</span>
-                                    @endif
-                                </span>
-                                <span class="v-cell-quiet v-block">{{ $meta['description'] ?? '' }}</span>
-                            </td>
-                            <td>
-                                <span class="v-palrow">
-                                    @foreach (['bg', 'primary', 'secondary', 'text_heading', 'card_bg'] as $chipKey)
-                                        @if (!empty($meta['colors'][$chipKey]))
-                                            {{-- The color is a record's own data, carried as an SVG
-                                                 presentation attribute rather than a stylesheet rule. --}}
-                                            <svg class="v-palchip" viewBox="0 0 10 10" role="img" aria-label="{{ $chipKey }} {{ $meta['colors'][$chipKey] }}"><title>{{ $chipKey }}: {{ $meta['colors'][$chipKey] }}</title><rect width="10" height="10" rx="3" fill="{{ $meta['colors'][$chipKey] }}"/></svg>
-                                        @endif
-                                    @endforeach
-                                </span>
-                            </td>
-                            <td class="v-cell-act">
-                                @if ($slug !== $activePreset)
-                                    <button type="button" class="v-btn v-btn--secondary v-btn--sm"
-                                            @click="$dispatch('v-confirm', 'apply-preset-{{ $slug }}')">Apply</button>
-                                @endif
-                                <a href="{{ route('admin.theme.presets.export', $slug) }}" class="v-btn v-btn--ghost v-btn--sm">Export</a>
-                                @if ($slug !== $activePreset)
-                                    <button type="button" class="v-btn v-btn--danger v-btn--sm"
-                                            @click="$dispatch('v-confirm', 'delete-preset-{{ $slug }}')">Delete</button>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-    </x-admin.panel>
 
-    @foreach ($installedPresets as $slug => $meta)
-        @if ($slug !== $activePreset)
-            <x-admin.confirm name="apply-preset-{{ $slug }}" title="Switch to {{ $meta['name'] ?? $slug }}?"
-                message="Shoppers see the new look immediately. Colors, fonts, and options saved for it are restored; the current look's are kept for switching back."
-                confirm="Switch look" :danger="false"
-                :action="route('admin.theme.switch')" method="POST">
-                <input type="hidden" name="preset" value="{{ $slug }}">
-            </x-admin.confirm>
-            <x-admin.confirm name="delete-preset-{{ $slug }}" title="Delete {{ $meta['name'] ?? $slug }}?"
-                message="The preset file and its saved edits are removed. The live look is untouched."
-                confirm="Delete"
-                :action="route('admin.theme.presets.destroy', $slug)" method="DELETE" />
-        @endif
-    @endforeach
-
-    {{-- Save the live look as a new preset --}}
-    <x-admin.panel title="Save the live look">
-        <form method="POST" action="{{ route('admin.theme.presets.store') }}" class="v-addrow v-addrow--3">
-            @csrf
-            <input type="text" name="name" required maxlength="60" placeholder="Preset name" aria-label="Preset name" class="v-control">
-            <input type="text" name="description" maxlength="200" placeholder="Description" aria-label="Preset description" class="v-control">
-            <button type="submit" class="v-btn v-btn--primary">Save as preset</button>
-        </form>
-    </x-admin.panel>
-
-    <form id="preset-import-form" method="POST" action="{{ route('admin.theme.presets.import') }}" enctype="multipart/form-data" hidden>
-        @csrf
-        <input type="file" name="preset_file" accept="application/json,.json" aria-label="Preset JSON file" onchange="this.form.submit()">
-    </form>
-    </div>
-
-    <div x-data="{ tab: @js(session('tab', request('tab', 'colors'))),
+    <div x-data="{ tab: @js(session('tab', request('tab', 'presets'))),
             pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }"
          class="v-gap-lg">
         <div class="v-modgrid">
         <nav class="v-snav" aria-label="Theme sections">
-            @foreach (['colors' => ['Colors', 'theme'], 'fonts' => ['Fonts', 'text'], 'header' => ['Header', 'menu'], 'navigation' => ['Navigation', 'link'], 'homepage' => ['Homepage', 'home'], 'product_page' => ['Product page', 'products'], 'category_page' => ['Category page', 'folder'], 'badges' => ['Badges', 'check'], 'footer' => ['Footer', 'layers'], 'blog' => ['Blog', 'content'], 'theme-settings' => ['Theme options', 'settings']] as $tid => [$tlabel, $ticon])
-                <button type="button" class="v-snav__item" :aria-current="tab === @js($tid) ? 'page' : false" @click="pick(@js($tid))">
-                    <x-admin.icon :name="$ticon" />
-                    {{ $tlabel }}
-                </button>
+            @php
+                // Grouped by subject, which only became honest once every
+                // section saves itself: Header used to sit apart from
+                // Navigation and Footer purely because it lived in a
+                // different form. Presets leads, ungrouped: it is a
+                // snapshot of everything below it, not a peer of it.
+                $vThemeNav = [
+                    '' => ['presets' => ['Presets', 'tags']],
+                    'Look' => ['colors' => ['Colors', 'theme'], 'fonts' => ['Fonts', 'text'], 'badges' => ['Badges', 'check']],
+                    'Layout' => ['header' => ['Header', 'menu'], 'navigation' => ['Navigation', 'link'], 'footer' => ['Footer', 'layers']],
+                    'Pages' => ['homepage' => ['Homepage', 'home'], 'product_page' => ['Product page', 'products'], 'category_page' => ['Category page', 'folder'], 'blog' => ['Blog', 'content']],
+                    'Advanced' => ['theme-settings' => ['Theme options', 'settings']],
+                ];
+            @endphp
+            @foreach ($vThemeNav as $vGroup => $vItems)
+                @if ($vGroup !== '')<div class="v-snav__group">{{ $vGroup }}</div>@endif
+                @foreach ($vItems as $tid => [$tlabel, $ticon])
+                    <button type="button" class="v-snav__item" :aria-current="tab === @js($tid) ? 'page' : false" @click="pick(@js($tid))">
+                        <x-admin.icon :name="$ticon" />
+                        {{ $tlabel }}
+                    </button>
+                @endforeach
             @endforeach
         </nav>
         <div class="v-modmain">
 
-        {{-- ============ THE ONE SETTINGS SAVE ============
-             Every settings tab lives in this form; the record tabs
-             (navigation, homepage, footer, theme options) are sibling
-             panels below with their own record-scoped forms. --}}
-        <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')" id="v-theme-form">
+        {{-- ========== PRESETS ========== --}}
+        <div x-show="tab === 'presets'" x-cloak>
+            <x-admin.panel title="Presets" flush>
+                <x-slot:acts>
+                    <button type="button" class="v-btn v-btn--secondary v-btn--sm"
+                            onclick="document.getElementById('preset-import-form').querySelector('input[type=file]').click()">Import preset</button>
+                </x-slot:acts>
+                <div class="v-tablewrap">
+                    <table class="v-table">
+                        <thead>
+                            <tr><th>Preset</th><th>Palette</th><th class="v-cell-act"><span class="v-sr">Actions</span></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($installedPresets as $slug => $meta)
+                                <tr>
+                                    <td>
+                                        <span class="v-namerow">
+                                            <strong>{{ $meta['name'] ?? $slug }}</strong>
+                                            @if ($slug === $activePreset)
+                                                <span class="v-badge v-badge--good">Live</span>
+                                            @endif
+                                        </span>
+                                        <span class="v-cell-quiet v-block">{{ $meta['description'] ?? '' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="v-palrow">
+                                            @foreach (['bg', 'primary', 'secondary', 'text_heading', 'card_bg'] as $chipKey)
+                                                @if (!empty($meta['colors'][$chipKey]))
+                                                    {{-- The color is a record's own data, carried as an SVG
+                                                         presentation attribute rather than a stylesheet rule. --}}
+                                                    <svg class="v-palchip" viewBox="0 0 10 10" role="img" aria-label="{{ $chipKey }} {{ $meta['colors'][$chipKey] }}"><title>{{ $chipKey }}: {{ $meta['colors'][$chipKey] }}</title><rect width="10" height="10" rx="3" fill="{{ $meta['colors'][$chipKey] }}"/></svg>
+                                                @endif
+                                            @endforeach
+                                        </span>
+                                    </td>
+                                    <td class="v-cell-act">
+                                        @if ($slug !== $activePreset)
+                                            <button type="button" class="v-btn v-btn--secondary v-btn--sm"
+                                                    @click="$dispatch('v-confirm', 'apply-preset-{{ $slug }}')">Apply</button>
+                                        @endif
+                                        <a href="{{ route('admin.theme.presets.export', $slug) }}" class="v-btn v-btn--ghost v-btn--sm">Export</a>
+                                        @if ($slug !== $activePreset)
+                                            <button type="button" class="v-btn v-btn--danger v-btn--sm"
+                                                    @click="$dispatch('v-confirm', 'delete-preset-{{ $slug }}')">Delete</button>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin.panel>
+
+            @foreach ($installedPresets as $slug => $meta)
+                @if ($slug !== $activePreset)
+                    <x-admin.confirm name="apply-preset-{{ $slug }}" title="Switch to {{ $meta['name'] ?? $slug }}?"
+                        message="Shoppers see the new look immediately. Colors, fonts, and options saved for it are restored; the current look's are kept for switching back."
+                        confirm="Switch look" :danger="false"
+                        :action="route('admin.theme.switch')" method="POST">
+                        <input type="hidden" name="preset" value="{{ $slug }}">
+                    </x-admin.confirm>
+                    <x-admin.confirm name="delete-preset-{{ $slug }}" title="Delete {{ $meta['name'] ?? $slug }}?"
+                        message="The preset file and its saved edits are removed. The live look is untouched."
+                        confirm="Delete"
+                        :action="route('admin.theme.presets.destroy', $slug)" method="DELETE" />
+                @endif
+            @endforeach
+
+            {{-- Capture the settings as they stand into a new named preset. --}}
+            <x-admin.panel title="New preset">
+                <form method="POST" action="{{ route('admin.theme.presets.store') }}" class="v-addrow v-addrow--3">
+                    @csrf
+                    <input type="text" name="name" required maxlength="60" placeholder="Preset name" aria-label="Preset name" class="v-control">
+                    <input type="text" name="description" maxlength="200" placeholder="Description" aria-label="Preset description" class="v-control">
+                    <button type="submit" class="v-btn v-btn--primary">Save as preset</button>
+                </form>
+            </x-admin.panel>
+
+            <form id="preset-import-form" method="POST" action="{{ route('admin.theme.presets.import') }}" enctype="multipart/form-data" hidden>
+                @csrf
+                <input type="file" name="preset_file" accept="application/json,.json" aria-label="Preset JSON file" onchange="this.form.submit()">
+            </form>
+        </div>
+
 
             {{-- ========== COLORS ========== --}}
             <div x-show="tab === 'colors'">
+            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Colors">
                     <x-slot:acts>
                         <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="$dispatch('v-confirm', 'revert-colors')">Revert colors &amp; fonts to defaults</button>
@@ -160,6 +172,7 @@
                         @endforeach
                     </div>
                 </x-admin.panel>
+            </x-admin.form>
             </div>
 
             {{-- ========== FONTS ========== --}}
@@ -177,6 +190,7 @@
                         }
                     }
                  }">
+            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Fonts">
                     @php
                         $fontOptions = ['Anton','Archivo','Barlow','Bebas Neue','Bitter','Bricolage Grotesque','Cormorant Garamond','DM Sans','DM Serif Display','Figtree','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Karla','Lato','Libre Baskerville','Libre Franklin','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Saira','Saira Condensed','Source Sans 3','Space Grotesk','Space Mono','Spline Sans','Spline Sans Mono','Ubuntu','Work Sans'];
@@ -252,10 +266,12 @@
                         </div>
                     </div>
                 </x-admin.panel>
+            </x-admin.form>
             </div>
 
             {{-- ========== HEADER ========== --}}
             <div x-show="tab === 'header'" x-cloak>
+            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Announcement bar">
                     <label class="v-toggle">
                         <input type="hidden" name="groups[header][announcement_enabled]" value="0">
@@ -293,10 +309,12 @@
                         <input type="hidden" name="groups[header][topbar_links]" :value="JSON.stringify(links)">
                     </div>
                 </x-admin.panel>
+            </x-admin.form>
             </div>
 
             {{-- ========== PRODUCT PAGE ========== --}}
             <div x-show="tab === 'product_page'" x-cloak>
+            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Product page">
                     @foreach (['show_ratings' => 'Show star ratings', 'show_stock' => 'Show stock and availability', 'show_brand' => 'Show the brand logo', 'show_badges' => 'Show product badges'] as $key => $label)
                         <div class="{{ $loop->first ? '' : 'v-gap' }}">
@@ -318,10 +336,12 @@
                         </x-admin.field>
                     </div>
                 </x-admin.panel>
+            </x-admin.form>
             </div>
 
             {{-- ========== CATEGORY PAGE ========== --}}
             <div x-show="tab === 'category_page'" x-cloak>
+            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Category page">
                     <div class="v-narrow">
                         <x-admin.field name="groups.category_page.products_per_page" label="Products per page">
@@ -363,10 +383,12 @@
                         </div>
                     @endforeach
                 </x-admin.panel>
+            </x-admin.form>
             </div>
 
             {{-- ========== BADGES ========== --}}
             <div x-show="tab === 'badges'" x-cloak>
+            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Badges">
                     <div class="v-narrow">
                         <x-admin.field name="groups.badges.new_count" label="NEW badge: last X products" hint="Products added most recently. 0 disables it.">
@@ -379,10 +401,12 @@
                         </div>
                     </div>
                 </x-admin.panel>
+            </x-admin.form>
             </div>
 
             {{-- ========== BLOG ========== --}}
             <div x-show="tab === 'blog'" x-cloak>
+            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Blog">
                     <div class="v-narrow">
                         <x-admin.field name="groups.blog.posts_per_page" label="Posts per page">
@@ -419,8 +443,8 @@
                         </div>
                     </div>
                 </x-admin.panel>
+            </x-admin.form>
             </div>
-        </x-admin.form>
 
         <x-admin.confirm name="revert-colors" title="Revert to theme defaults?"
             message="Reverts BOTH colors and fonts to this theme's defaults. Unsaved edits on those tabs are lost."
