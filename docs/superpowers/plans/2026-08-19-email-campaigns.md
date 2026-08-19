@@ -362,8 +362,8 @@ class AudienceTest extends TestCase
         app(\App\Services\ExtensionManager::class)->bootEnabled();
 
         Store::firstOrCreate(['id' => 1], ['name' => 'Test', 'code' => 'test']);
-        $this->default = CustomerGroup::create(['name' => 'Default']);
-        $this->resellers = CustomerGroup::create(['name' => 'Resellers']);
+        $this->default = CustomerGroup::create(['store_id' => 1, 'name' => 'Default']);
+        $this->resellers = CustomerGroup::create(['store_id' => 1, 'name' => 'Resellers']);
     }
 
     private function customer(string $email, CustomerGroup $group, bool $newsletter, bool $active = true): Customer
@@ -737,7 +737,7 @@ class UnsubscribeTest extends TestCase
     private function customer(bool $newsletter = true): Customer
     {
         Store::firstOrCreate(['id' => 1], ['name' => 'Test', 'code' => 'test']);
-        $group = CustomerGroup::create(['name' => 'Default']);
+        $group = CustomerGroup::create(['store_id' => 1, 'name' => 'Default']);
 
         return Customer::create([
             'store_id' => 1,
@@ -974,7 +974,7 @@ class CampaignRendererTest extends TestCase
 
     private function customer(string $first, string $email): Customer
     {
-        $group = CustomerGroup::firstOrCreate(['name' => 'Default']);
+        $group = CustomerGroup::firstOrCreate(['store_id' => 1, 'name' => 'Default']);
 
         return Customer::create([
             'store_id' => 1,
@@ -1200,7 +1200,7 @@ class SendCampaignTest extends TestCase
 
     private function customer(string $email, bool $newsletter = true): Customer
     {
-        $group = CustomerGroup::firstOrCreate(['name' => 'Default']);
+        $group = CustomerGroup::firstOrCreate(['store_id' => 1, 'name' => 'Default']);
 
         return Customer::create([
             'store_id' => 1,
@@ -1511,7 +1511,7 @@ class AdminScreensTest extends TestCase
 
     private function customer(string $email, bool $newsletter = true): Customer
     {
-        $group = CustomerGroup::firstOrCreate(['name' => 'Default']);
+        $group = CustomerGroup::firstOrCreate(['store_id' => 1, 'name' => 'Default']);
 
         return Customer::create([
             'store_id' => 1, 'customer_group_id' => $group->id,
