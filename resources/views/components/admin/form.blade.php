@@ -1,9 +1,11 @@
 @props(['action', 'method' => 'POST', 'headerSave' => true, 'saveOnlyWhenDirty' => false])
 @php
     $spoof = strtoupper($method) !== 'POST' && strtoupper($method) !== 'GET';
-    // Deterministic, so the header button can name its form across the DOM
-    // (form="") and so a test sees a stable id.
-    $formId = $attributes->get('id') ?: 'vform-' . substr(sha1($action . $method), 0, 8);
+    // Unique PER FORM, never per action: several forms on one page can
+    // post to the same route (the theme editor's seven sections all do),
+    // and a shared id makes every Save button's form="" resolve to the
+    // first one. That silently submitted the wrong section.
+    $formId = $attributes->get('id') ?: 'vform-' . \Illuminate\Support\Str::random(8);
 @endphp
 {{-- The save doctrine. Every v form gets dirty tracking, a Save, and the
      leave guard by existing; a page cannot opt out of honesty.
