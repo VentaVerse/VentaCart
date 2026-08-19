@@ -111,6 +111,17 @@ class FulfillmentManualShipmentTest extends TestCase
         );
     }
 
+    /**
+     * The status a manual record used to fall back to when the field was
+     * omitted. Card #135 made status required, mirroring the core order page's
+     * own "Update order" panel, so the posts below now say out loud what they
+     * always meant.
+     */
+    private function defaultStatusId(): int
+    {
+        return $this->statusWithStage('to_handover', 'Order Being Shipped')->id;
+    }
+
     private function statusWithStage(string $placement, string $name): OrderStatus
     {
         $status = OrderStatus::firstOrCreate(
@@ -184,9 +195,10 @@ class FulfillmentManualShipmentTest extends TestCase
         $order = $this->makeOrder();
 
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $lbc->id,
             'tracking_number'     => 'LBC123456789',
-            'note'                => 'Customer collects at LBC Cubao branch',
+            'comment'                => 'Customer collects at LBC Cubao branch',
         ])->assertRedirect();
 
         $order->refresh();
@@ -224,7 +236,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $lbc = $this->lbc();
         $order = $this->makeOrder();
 
-        $this->post($this->manualUrl($order), ['shipping_courier_id' => $lbc->id])
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId(), 'shipping_courier_id' => $lbc->id])
             ->assertRedirect()
             ->assertSessionHasNoErrors();
 
@@ -246,9 +258,10 @@ class FulfillmentManualShipmentTest extends TestCase
         $order = $this->makeOrder();
 
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => '   ',
-            'note'                => '  ',
+            'comment'                => '  ',
         ])->assertRedirect();
 
         $order->refresh();
@@ -269,14 +282,17 @@ class FulfillmentManualShipmentTest extends TestCase
         ]);
         $order = $this->makeOrder();
 
-        $this->post($this->manualUrl($order), ['shipping_courier_id' => $retired->id])
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId(), 'shipping_courier_id' => $retired->id])
             ->assertSessionHasErrors('shipping_courier_id');
 
-        $this->post($this->manualUrl($order), ['shipping_courier_id' => 999999])
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId(), 'shipping_courier_id' => 999999])
             ->assertSessionHasErrors('shipping_courier_id');
 
-        $this->post($this->manualUrl($order), [])
-            ->assertSessionHasErrors('shipping_courier_id');
+        // Omitting the courier is NOT an error since card #135: it is a plain
+        // status update. A courier id that was given but is not an active
+        // courier still is, because that is a wrong answer rather than none.
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId()])
+            ->assertSessionHasNoErrors();
 
         $this->assertNull($order->refresh()->shipping_courier_id);
     }
@@ -293,6 +309,7 @@ class FulfillmentManualShipmentTest extends TestCase
 
         $order = $this->makeOrder();
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC777',
         ])->assertRedirect();
@@ -330,6 +347,7 @@ class FulfillmentManualShipmentTest extends TestCase
 
         $order = $this->makeOrder();
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC888',
         ])->assertRedirect();
@@ -358,6 +376,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $this->assertSame('to_pack', FulfillmentService::tabBucket($order));
 
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC-TABS-1',
         ])->assertRedirect();
@@ -387,7 +406,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $delivered = $this->statusWithStage('delivered', 'Delivered');
         $order = $this->makeOrder($delivered);
 
-        $this->post($this->manualUrl($order), ['shipping_courier_id' => $this->lbc()->id])
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId(), 'shipping_courier_id' => $this->lbc()->id])
             ->assertRedirect()
             ->assertSessionHas('error');
 
@@ -411,7 +430,7 @@ class FulfillmentManualShipmentTest extends TestCase
             'courier_status'          => 'for_pickup',
         ])->save();
 
-        $this->post($this->manualUrl($order), ['shipping_courier_id' => $this->lbc()->id])
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId(), 'shipping_courier_id' => $this->lbc()->id])
             ->assertRedirect()
             ->assertSessionHas('error');
 
@@ -427,6 +446,7 @@ class FulfillmentManualShipmentTest extends TestCase
 
         $order = $this->makeOrder();
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC-HOLD-1',
         ])->assertRedirect();
@@ -457,11 +477,13 @@ class FulfillmentManualShipmentTest extends TestCase
 
         $order = $this->makeOrder();
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC-FIRST',
         ])->assertRedirect();
 
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->jt()->id,
             'tracking_number'     => 'JT-SECOND',
         ])->assertRedirect()->assertSessionHas('error');
@@ -484,6 +506,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $preStatusId = (int) $order->order_status_id;
 
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC-UNDO-1',
         ])->assertRedirect();
@@ -522,12 +545,14 @@ class FulfillmentManualShipmentTest extends TestCase
         $order = $this->makeOrder();
 
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC-WRONG',
         ])->assertRedirect();
         $this->post($this->clearUrl($order))->assertRedirect();
 
         $this->post($this->manualUrl($order->refresh()), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->jt()->id,
             'tracking_number'     => 'JT-RIGHT',
         ])->assertRedirect()->assertSessionHas('success');
@@ -551,7 +576,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $this->installExtension();
 
         $order = $this->makeOrder();
-        $this->post($this->manualUrl($order), ['shipping_courier_id' => $this->lbc()->id])->assertRedirect();
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId(), 'shipping_courier_id' => $this->lbc()->id])->assertRedirect();
         $this->post($this->clearUrl($order))->assertRedirect();
 
         CourierManager::register(StubSyncCourierFulfillment::class);
@@ -585,6 +610,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $delivered = $this->statusWithStage('delivered', 'Delivered');
         $order = $this->makeOrder();
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC-GONE',
         ])->assertRedirect();
@@ -666,6 +692,7 @@ class FulfillmentManualShipmentTest extends TestCase
 
         $order = $this->makeOrder();
         $this->post($this->manualUrl($order), [
+            'order_status_id' => $this->defaultStatusId(),
             'shipping_courier_id' => $this->lbc()->id,
             'tracking_number'     => 'LBC-QUEUE-1',
         ])->assertRedirect();
@@ -705,7 +732,7 @@ class FulfillmentManualShipmentTest extends TestCase
         $this->installExtension();
 
         $order = $this->makeOrder();
-        $this->post($this->manualUrl($order), ['shipping_courier_id' => $this->lbc()->id])->assertRedirect();
+        $this->post($this->manualUrl($order), ['order_status_id' => $this->defaultStatusId(), 'shipping_courier_id' => $this->lbc()->id])->assertRedirect();
 
         $response = $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover');
 
@@ -804,21 +831,26 @@ class FulfillmentManualShipmentTest extends TestCase
         $this->assertSame($shipping->id, (int) $meta['manual_shipment']['applied_order_status_id']);
     }
 
-    public function test_omitting_the_status_keeps_todays_behaviour_exactly(): void
+    /**
+     * Card #135 reversed this. The status used to be optional, and omitting it
+     * meant the module chose its own To-Handover-placed status. Now the form
+     * mirrors the core order page's "Update order" panel, where status is
+     * required, and that default cannot survive courier becoming optional: a
+     * submission naming neither would be a form that did nothing while
+     * reporting success.
+     */
+    public function test_the_status_is_required(): void
     {
         $this->actingAs(User::factory()->create());
         $this->installExtension();
 
-        $handover = $this->statusWithStage('to_handover', 'Order Being Shipped');
+        $this->statusWithStage('to_handover', 'Order Being Shipped');
         $order = $this->makeOrder();
 
         $this->post($this->manualUrl($order), ['shipping_courier_id' => $this->lbc()->id])
-            ->assertRedirect()->assertSessionHas('success');
+            ->assertSessionHasErrors('order_status_id');
 
-        $order->refresh();
-        $this->assertSame($handover->id, (int) $order->order_status_id);
-        $meta = json_decode((string) $order->courier_meta, true);
-        $this->assertNull($meta['manual_shipment']['applied_order_status_id']);
+        $this->assertNull($order->refresh()->shipping_courier_id);
     }
 
     public function test_a_status_that_is_not_a_real_order_status_is_refused(): void

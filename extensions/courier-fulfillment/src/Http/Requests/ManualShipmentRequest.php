@@ -38,24 +38,37 @@ class ManualShipmentRequest extends FormRequest
     public function rules(): array
     {
         return [
+            // Optional, and the select defaults to "Select courier..."
+            // (card #135). This form mirrors "Update order" on the core order
+            // page, so submitting with no courier is a plain status update:
+            // the order moves, tracking and comment are saved, nobody is
+            // recorded as carrying it. Requiring a courier meant an operator
+            // in the packing queue had to open the order page to do something
+            // as ordinary as moving a status.
             'shipping_courier_id' => [
-                'required',
+                'nullable',
                 'integer',
                 Rule::exists(ShippingCourier::class, 'id')->where('is_active', true),
             ],
             'tracking_number' => ['nullable', 'string', 'max:190'],
-            'note'            => ['nullable', 'string', 'max:500'],
+            'comment'         => ['nullable', 'string', 'max:500'],
+            'notify_customer' => ['sometimes', 'boolean'],
             // Owner directive (2026-08-12): "Add in manual booking the order
             // status change." Recording a manual shipment IS a status change
             // like any other, so the operator states which one rather than
-            // having the module decide for them. Nullable, and absent means
-            // the module's own To-Handover-placed status, so an operator who
-            // ignores the field gets exactly today's behaviour.
+            // having the module decide for them.
+            //
+            // Required since card #135, which mirrors this form on the core
+            // order page's "Update order" panel. It used to be nullable, with
+            // absence meaning the module's own To-Handover-placed status. That
+            // default cannot survive courier becoming optional: a submission
+            // with neither a courier nor a status would be a form that did
+            // nothing while reporting success.
             //
             // Gated the same way the order page's own status select is:
             // every status belonging to this store, no invented subset.
             'order_status_id' => [
-                'nullable',
+                'required',
                 'integer',
                 Rule::exists(OrderStatus::class, 'id')->where('store_id', (int) config('app.store_id', 1)),
             ],

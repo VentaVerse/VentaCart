@@ -1383,8 +1383,24 @@
                                             @csrf
                                             <p class="v-panel__note">Recording a shipment for order <span class="v-mono" x-text="'#' + active.id"></span></p>
 
-                                            <x-admin.field name="shipping_courier_id" label="Courier" required>
-                                                <select name="shipping_courier_id" required class="v-control">
+                                            {{-- Nothing is sent to a carrier here, so the
+                                                 operator says plainly what state the order
+                                                 is now in. The same statuses the order page
+                                                 offers, pre-selected to the one this module
+                                                 would have applied on its own. --}}
+                                            @if (!empty($orderStatuses) && count($orderStatuses) > 0)
+                                                <x-admin.field name="order_status_id" label="Status" required>
+                                                    <select name="order_status_id" required class="v-control">
+                                                        @foreach ($orderStatuses as $orderStatus)
+                                                            <option value="{{ $orderStatus->id }}" @selected($orderStatus->id === $manualDefaultStatusId)>{{ $orderStatus->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </x-admin.field>
+                                            @endif
+
+                                            <x-admin.field name="shipping_courier_id" label="Courier">
+                                                <select name="shipping_courier_id" class="v-control">
+                                                    <option value="">Select courier&hellip;</option>
                                                     @foreach ($manualCouriers as $manualCourier)
                                                         <option value="{{ $manualCourier['id'] }}">{{ $manualCourier['name'] }}</option>
                                                     @endforeach
@@ -1395,23 +1411,8 @@
                                                 <input name="tracking_number" autocomplete="off" maxlength="190" class="v-control">
                                             </x-admin.field>
 
-                                            {{-- Nothing is sent to a carrier here, so the
-                                                 operator says plainly what state the order
-                                                 is now in. The same statuses the order page
-                                                 offers, pre-selected to the one this module
-                                                 would have applied on its own. --}}
-                                            @if (!empty($orderStatuses) && count($orderStatuses) > 0)
-                                                <x-admin.field name="order_status_id" label="Order status" required>
-                                                    <select name="order_status_id" required class="v-control">
-                                                        @foreach ($orderStatuses as $orderStatus)
-                                                            <option value="{{ $orderStatus->id }}" @selected($orderStatus->id === $manualDefaultStatusId)>{{ $orderStatus->name }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </x-admin.field>
-                                            @endif
-
-                                            <x-admin.field name="note" label="Note">
-                                                <textarea name="note" rows="2" maxlength="500" class="v-control"></textarea>
+                                            <x-admin.field name="comment" label="Comment">
+                                                <input type="text" name="comment" maxlength="500" class="v-control">
                                             </x-admin.field>
 
                                             {{-- The tip carries the one consequence the
@@ -1420,7 +1421,11 @@
                                                  as a booked one would. --}}
                                             <div class="v-actrow">
                                                 <button type="button" class="v-btn v-btn--ghost" @click="backToCouriers()">Back</button>
-                                                <button type="submit" class="v-btn v-btn--primary v-actrow__grow">Record shipment</button>
+                                                <label class="v-check">
+                                                    <input type="checkbox" name="notify_customer" value="1">
+                                                    Notify customer
+                                                </label>
+                                                <button type="submit" class="v-btn v-btn--primary v-actrow__grow">Update</button>
                                                 <x-admin.help text="Venta contacts no courier and prints no waybill. The order moves to the status chosen above and advances by status from there." />
                                             </div>
                                         </form>

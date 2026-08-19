@@ -456,7 +456,7 @@ class FulfillmentService
      * note, not "Courier booking confirmed" — no courier was contacted.
      * Omitted by both integrated callers, whose rows are unchanged.
      */
-    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null, ?string $comment = null, ?OrderStatus $chosen = null): ?OrderStatus
+    public static function applyBookedStatus(Order $order, ?string $courierName = null, ?string $tracking = null, ?string $comment = null, ?OrderStatus $chosen = null, bool $notifyCustomer = false): ?OrderStatus
     {
         // $chosen is the manual path's operator-named status (owner
         // directive, 2026-08-12). Absent everywhere else, so an integrated
@@ -475,8 +475,8 @@ class FulfillmentService
 
         // History row + status update + stock adjustment either all land or
         // none do, same as every other status change in the app.
-        DB::transaction(function () use ($order, $status, $comment) {
-            OrderStatusChanger::apply($order, $status->id, $comment, false, Auth::id());
+        DB::transaction(function () use ($order, $status, $comment, $notifyCustomer) {
+            OrderStatusChanger::apply($order, $status->id, $comment, $notifyCustomer, Auth::id());
         });
 
         return $status;
@@ -993,18 +993,28 @@ class FulfillmentService
             ];
         }
 
-        $courier = ShippingCourier::where('is_active', true)->find((int) ($opts['shipping_courier_id'] ?? 0));
-        if (!$courier) {
+        // Optional since card #135. With none named this is a plain status
+        // update: the order moves, tracking and comment are saved, and no
+        // courier is recorded as carrying it. A courier id that was given but
+        // is not an active courier is still an error, since that is a wrong
+        // answer rather than no answer.
+        $courierId = (int) ($opts['shipping_courier_id'] ?? 0);
+        $courier = $courierId > 0
+            ? ShippingCourier::where('is_active', true)->find($courierId)
+            : null;
+
+        if ($courierId > 0 && !$courier) {
             return ['success' => false, 'code' => 'courier_unavailable', 'error' => 'That courier is not available. Choose an active courier under Sales, Couriers.'];
         }
 
         $tracking = trim((string) ($opts['tracking_number'] ?? '')) ?: null;
-        $note     = trim((string) ($opts['note'] ?? '')) ?: null;
+        $note     = trim((string) ($opts['comment'] ?? $opts['note'] ?? '')) ?: null;
+        $notify   = (bool) ($opts['notify_customer'] ?? false);
 
         // Built from the courier's own {tracking_number} template, and only
         // when there is a number to put in it — a link to a tracking page with
         // no consignment on it is worse than no link.
-        $trackingLink = $tracking ? $courier->getTrackingLink($tracking) : null;
+        $trackingLink = ($tracking && $courier) ? $courier->getTrackingLink($tracking) : null;
 
         $preBookingStatusId = (int) $order->order_status_id;
         $meta = $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : [];
@@ -1016,8 +1026,8 @@ class FulfillmentService
             'booking_history'             => (isset($meta['booking_history']) && is_array($meta['booking_history'])) ? $meta['booking_history'] : [],
             'pre_booking_order_status_id' => $preBookingStatusId,
             'manual_shipment'             => [
-                'shipping_courier_id' => $courier->id,
-                'courier_name'        => $courier->name,
+                'shipping_courier_id' => $courier?->id,
+                'courier_name'        => $courier?->name,
                 'tracking_number'     => $tracking,
                 'note'                => $note,
                 'recorded_at'         => now()->toIso8601String(),
@@ -1031,21 +1041,23 @@ class FulfillmentService
             unset($meta['booking_history']);
         }
 
-        $comment = 'Shipment recorded with ' . $courier->name
-            . ($tracking ? ' (' . $tracking . ')' : ', no tracking number')
+        $comment = ($courier
+                ? 'Shipment recorded with ' . $courier->name
+                    . ($tracking ? ' (' . $tracking . ')' : ', no tracking number')
+                : 'Updated from fulfillment' . ($tracking ? ' (' . $tracking . ')' : ''))
             . '.' . ($note ? ' Note: ' . $note : '');
 
         // The write and the status move either both land or neither does: an
         // order carrying a courier name while still sitting in To Pack would
         // offer to be booked again over a parcel that has already left.
         $applied = null;
-        DB::transaction(function () use ($order, $courier, $tracking, $trackingLink, $meta, $comment, $chosenStatus, &$applied) {
+        DB::transaction(function () use ($order, $courier, $tracking, $trackingLink, $meta, $comment, $chosenStatus, $notify, &$applied) {
             // forceFill for courier_meta / courier_booked_at only (extension-
             // owned, not in core Order::$fillable). The three columns that
             // matter here are core's own and long-standing; they are written
             // in the same call so the model saves once.
             $order->forceFill([
-                'shipping_courier_id' => $courier->id,
+                'shipping_courier_id' => $courier?->id,
                 'tracking_number'     => $tracking,
                 'tracking_link'       => $trackingLink,
                 'courier_meta'        => json_encode($meta),
@@ -1057,12 +1069,12 @@ class FulfillmentService
             // other order: same OrderStatusChanger call, same history row
             // shape, same stock rules, same notification behaviour. The only
             // difference is WHICH status, which the operator may name.
-            $applied = self::applyBookedStatus($order, $courier->name, $tracking, $comment, $chosenStatus);
+            $applied = self::applyBookedStatus($order, $courier?->name, $tracking, $comment, $chosenStatus, $notify);
         });
 
         return [
             'success'         => true,
-            'courier'         => $courier->name,
+            'courier'         => $courier?->name,
             'tracking_number' => $tracking,
             // Null when the order was already on that status, in which case
             // nothing moved and the flash has nothing to report.
