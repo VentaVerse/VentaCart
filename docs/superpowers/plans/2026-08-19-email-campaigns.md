@@ -850,8 +850,14 @@ use App\Models\Customer;
  */
 class NewsletterSubscriptionController extends Controller
 {
-    public function unsubscribe(Customer $customer)
+    // The customer arrives as an int and is loaded by hand, NOT as an implicit
+    // route-model binding. SubstituteBindings runs BEFORE the signed middleware,
+    // so a forged link naming an id that does not exist would 404 out of the
+    // binder before the signature was ever checked, leaking which ids exist and
+    // returning the wrong status for a tampered link.
+    public function unsubscribe(int $customer)
     {
+        $customer = Customer::findOrFail($customer);
         $customer->update(['newsletter' => false]);
 
         return view('email-campaigns::newsletter.result', [
@@ -860,8 +866,9 @@ class NewsletterSubscriptionController extends Controller
         ]);
     }
 
-    public function resubscribe(Customer $customer)
+    public function resubscribe(int $customer)
     {
+        $customer = Customer::findOrFail($customer);
         $customer->update(['newsletter' => true]);
 
         return view('email-campaigns::newsletter.result', [
@@ -900,10 +907,12 @@ use Extensions\EmailCampaigns\Http\Controllers\NewsletterSubscriptionController;
 
 `extensions/email-campaigns/resources/views/newsletter/result.blade.php`. It extends the active storefront layout so it carries the store's header and footer:
 
-```blade
-@extends('layouts.store')
+The theme uses slot-based layout components and has ZERO uses of `@extends`;
+`layouts.store` is reachable only as `<x-store-layout>`. Compare
+`resources/themes/venta/views/contact.blade.php`.
 
-@section('content')
+```blade
+<x-store-layout title="Newsletter">
     <div class="mx-auto max-w-xl px-4 py-16 text-center">
         @if ($subscribed)
             <h1 class="font-heading text-2xl text-[var(--color-text-heading)]">You are back on the list</h1>
@@ -917,7 +926,7 @@ use Extensions\EmailCampaigns\Http\Controllers\NewsletterSubscriptionController;
             </a>
         @endif
     </div>
-@endsection
+</x-store-layout>
 ```
 
 - [ ] **Step 6: Run tests to verify they pass**
