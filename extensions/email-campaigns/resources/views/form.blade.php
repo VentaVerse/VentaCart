@@ -23,7 +23,7 @@
     </div>
 
     <div class="v-settle"
-         x-data="campaignComposer(@json(['audienceType' => $initialAudienceType, 'groupId' => $initialGroupId, 'countsUrl' => route('admin.email-campaigns.recipient-count')]))"
+         x-data="campaignComposer(@js(['audienceType' => $initialAudienceType, 'groupId' => $initialGroupId, 'countsUrl' => route('admin.email-campaigns.recipient-count')]))"
          x-init="fetchCounts()">
 
         @if ($locked)
