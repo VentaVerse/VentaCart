@@ -224,9 +224,14 @@ class ErpFulfillmentController extends Controller
             'success' => true,
             'order_id' => $order->id,
             'courier' => $courierKey,
+            // `amount` is the shipping fee, unchanged. Insurance is reported
+            // beside it rather than folded into it, so an ERP reading this
+            // field keeps getting the figure it has always got.
             'amount' => $estimate->amount,
             'currency' => $estimate->currency,
             'label' => $estimate->label ?? ($estimate->currency . ' ' . number_format($estimate->amount, 2)),
+            'insurance' => $estimate->insurance ?? null,
+            'total' => $estimate->total ?? $estimate->amount,
         ]);
     }
 

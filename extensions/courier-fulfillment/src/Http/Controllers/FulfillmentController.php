@@ -792,6 +792,19 @@ class FulfillmentController extends Controller
             'amount'   => $estimate->amount,
             'currency' => $estimate->currency,
             'label'    => $estimate->label ?? ($estimate->currency . ' ' . number_format($estimate->amount, 2)),
+            // The total broken up, for couriers that quote the parts
+            // separately. Null (not zero) from a courier that only ever
+            // returns one figure, so the modal can tell "no breakdown offered"
+            // apart from "nothing charged".
+            'shipping'  => $estimate->shipping ?? null,
+            'insurance' => $estimate->insurance ?? null,
+            // What the operator settles. Falls back to `amount` for a courier
+            // that quotes one figure and nothing to add to it.
+            'total'     => $estimate->total ?? $estimate->amount,
+            // Every parcel priced for the origin this quote used, so the
+            // booking form's parcel labels can follow a changed pickup
+            // address. Null from a courier that prices only what it was asked.
+            'fees'      => $estimate->fees ?? null,
         ]);
     }
 

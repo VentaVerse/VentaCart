@@ -1180,7 +1180,7 @@
                                          additions to this form's own markup — both inert for
                                          submission. Every field name, value vocabulary, and the
                                          action URL stay byte-identical to the pre-T4 form. --}}
-                                    <form :action="bookAction" method="POST" class="v-settle" x-ref="bookForm">
+                                    <form :action="bookAction" method="POST" class="v-settle" x-ref="bookForm" @change="onBookFormChange($event)">
                                         @csrf
                                         <input type="hidden" name="courier" :value="courier">
                                         <p class="v-panel__note">Shipping with <strong x-text="current.name"></strong></p>
@@ -1249,16 +1249,59 @@
                                         <label class="v-toggle">
                                             <input type="checkbox" name="insure" value="1">
                                             <span class="v-toggle__track" aria-hidden="true"></span>
-                                            <span>Insure shipment (≈1% fee, declared at order total)</span>
+                                            <span>Insure shipment (declared at order total)</span>
                                         </label>
                                         <div class="v-well">
                                             <div class="v-kv"><span>Buyer pays for goods</span><span x-text="active.buyerPaymentLabel"></span></div>
                                         </div>
                                         <x-admin.field name="shipping_payment" label="You pay shipping" required>
-                                            <select name="shipping_payment" class="v-control">
+                                            <select name="shipping_payment" x-model="shippingPayment" class="v-control">
                                                 <template x-for="o in current.payments" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                             </select>
                                         </x-admin.field>
+
+                                        {{-- The money this shipment costs the store, put next to
+                                             the control that decides HOW it leaves: on cash/gcash
+                                             terms the figure is handed to the rider at pickup, and
+                                             on net-off the courier deducts it, so the heading names
+                                             whichever it is rather than making the operator work it
+                                             out from the select above.
+
+                                             Every figure is the courier's own, quoted for the exact
+                                             service, parcel, origin and insurance choice currently
+                                             on screen (estimateFee() -> POST
+                                             /orders/estimates/rates). Nothing here is derived from a
+                                             local rate table: a number QuadX never quoted, on a
+                                             screen an operator pays money from, would be a lie.
+
+                                             Shown only for couriers that quote on every change
+                                             (autoQuoteCouriers) — SPX's estimate is deliberately a
+                                             button, and it keeps its own. --}}
+                                        <div class="v-well v-ridertotal" x-show="autoQuoteCouriers.includes(courier)" x-cloak>
+                                            <div class="v-kv v-ridertotal__head">
+                                                <span x-text="riderTotalLabel"></span>
+                                                <span>
+                                                    <span class="v-mono v-ridertotal__sum" x-show="riderQuote && !riderLoading" x-text="riderQuote ? peso(riderQuote.total) : ''"></span>
+                                                    <span class="v-subnote v-cell-quiet" x-show="riderLoading" x-cloak>Checking&hellip;</span>
+                                                    <span class="v-subnote v-cell-quiet" x-show="!riderLoading && !riderQuote && !riderError" x-cloak>Choose a parcel</span>
+                                                </span>
+                                            </div>
+                                            {{-- The breakdown, so the total is checkable rather than
+                                                 trusted. Insurance appears only when it was actually
+                                                 charged: a zero line would suggest the courier priced
+                                                 it at nothing when it simply was not asked. --}}
+                                            <div class="v-ridertotal__parts" x-show="riderQuote && !riderLoading" x-cloak>
+                                                <div class="v-kv">
+                                                    <span x-text="'Shipping' + (parcelName ? ' (' + parcelName + ')' : '')"></span>
+                                                    <span class="v-mono" x-text="riderQuote ? peso(riderQuote.shipping) : ''"></span>
+                                                </div>
+                                                <div class="v-kv" x-show="riderQuote && riderQuote.insurance > 0">
+                                                    <span>Insurance</span>
+                                                    <span class="v-mono" x-text="riderQuote ? peso(riderQuote.insurance) : ''"></span>
+                                                </div>
+                                            </div>
+                                            <p class="v-subnote v-tone-bad" x-show="riderError" x-cloak x-text="riderError"></p>
+                                        </div>
 
                                         {{-- Task T4: SPX-only step-2 additions — rendered at all
                                              only when SPX is actually an enabled courier. Uses
@@ -1428,6 +1471,25 @@
                 spxEstimate: null,
                 spxEstimateError: null,
                 spxEstimateLoading: false,
+                // Owner directive, 2026-08-19: what this shipment costs the
+                // store, quoted live for the choices currently on screen.
+                // riderSeq is the staleness guard — the quote is debounced and
+                // re-fired on every change, so several can be in flight at
+                // once and only the newest may write its answer.
+                riderQuote: null,
+                riderError: null,
+                riderLoading: false,
+                riderTimer: null,
+                riderSeq: 0,
+                // Held in state (not read off the DOM) because the total's
+                // heading changes with it: net-off is deducted, never handed
+                // to anybody.
+                shippingPayment: '',
+                // Couriers whose rate call CREATES NOTHING and is cheap enough
+                // to repeat on every change. SPX is deliberately absent: its
+                // estimate is a button by design (see getSpxEstimate), and
+                // auto-firing it would undo that.
+                autoQuoteCouriers: ['quadx'],
                 // Serviceability (owner directive, 2026-08-12): every
                 // configured courier's answer to "do you deliver here",
                 // asked once when the modal opens and held for this
@@ -1461,7 +1523,14 @@
                     danger: 'v-badge v-badge--bad',
                     info: 'v-badge v-badge--info',
                 },
-                urlBase: '{{ url(config('admin.prefix', 'admin') . '/sales/fulfillment') }}',
+                // The module's OWN home, from the route rather than a written
+                // path. It was 'sales/fulfillment' until the one-home re-mount
+                // (2026-08-19) left that as a GET-only 301: every GET here
+                // still worked by following the redirect, so only the POSTs
+                // (book, book-manual, track, estimate) broke, and they broke
+                // silently with a 405. Naming the route is what stops the next
+                // move from doing it again.
+                urlBase: '{{ route('admin.fulfillment.index') }}',
                 // Hover preview. Opens beside the thumb, flips to its other
                 // side rather than run off the viewport, and clamps so a row
                 // near the top or bottom still shows the whole image. Never
@@ -1584,6 +1653,21 @@
                 peso(amount) {
                     return '₱' + Number(amount).toFixed(2);
                 },
+                // Cash and GCash are handed over at pickup; net-off never is.
+                // The courier is named from its own registry entry rather than
+                // written into the sentence, so a second net-off courier needs
+                // no change here.
+                get riderTotalLabel() {
+                    return this.shippingPayment === 'net_off'
+                        ? 'Total ' + (this.current.name || 'the courier') + ' will deduct'
+                        : 'Total to pay rider';
+                },
+                // The chosen parcel's human label, so the breakdown reads
+                // "Shipping (Box)" rather than "Shipping (box)".
+                get parcelName() {
+                    const found = (this.current.parcels || []).find(o => o.value === this.parcel);
+                    return found ? found.label : '';
+                },
                 openDrawer(order) {
                     this.active = order;
                     this.drawerOpen = true;
@@ -1603,6 +1687,7 @@
                     // never from whatever the previous order was sent from.
                     this.pickupId = this.defaultPickupId;
                     this.resetSpxState();
+                    this.resetRiderQuote();
                     this.loadServiceability();
                 },
                 // Asked on OPEN, and the cards wait for it (owner ruling,
@@ -1647,13 +1732,23 @@
                     this.manual = true;
                     this.step = 2;
                     this.resetSpxState();
+                    // Nothing is quoted for a shipment no integration owns.
+                    this.resetRiderQuote();
                 },
                 chooseCourier(key) {
                     this.courier = key;
                     this.manual = false;
                     this.step = 2;
-                    this.parcel = '';
                     this.resetSpxState();
+                    // Agree with the selects the browser is already showing.
+                    // x-model cannot do this itself: the options arrive from
+                    // x-for AFTER x-model has run, so the state would stay ''
+                    // while the control displays (and submits) its first
+                    // option. Seeding both from that same first option is what
+                    // keeps the total, the heading and the form in step.
+                    this.parcel = ((this.options[key] || {}).parcels || [{}])[0].value || '';
+                    this.shippingPayment = ((this.options[key] || {}).payments || [{}])[0].value || '';
+                    this.seedRiderQuote();
                     // Task T4: pickup slots are fetched HERE — the moment the
                     // admin actually picks SPX — never during the queue's
                     // own page load (see index()'s courierOptions comment).
@@ -1664,11 +1759,13 @@
                 backToCouriers() {
                     this.step = 1;
                     this.manual = false;
+                    this.resetRiderQuote();
                 },
                 closeBooking() {
                     this.bookOpen = false;
                     this.step = 1;
                     this.manual = false;
+                    this.resetRiderQuote();
                 },
                 resetSpxState() {
                     this.spxPickupSlots = [];
@@ -1710,6 +1807,93 @@
                         })
                         .catch(() => { this.spxEstimateError = 'Estimate request failed.'; })
                         .finally(() => { this.spxEstimateLoading = false; });
+                },
+                // Any control in the booking form may change the price, so the
+                // form itself is the listener and change events bubble to it.
+                // shipping_payment is the one exception: it decides how the
+                // money leaves, not how much, so it only relabels the total.
+                onBookFormChange(event) {
+                    if (event.target && event.target.name === 'shipping_payment') return;
+                    this.scheduleRiderQuote();
+                },
+                // Debounced: an operator stepping through parcel sizes with the
+                // keyboard would otherwise fire a courier call per keystroke.
+                scheduleRiderQuote() {
+                    clearTimeout(this.riderTimer);
+                    this.riderTimer = setTimeout(() => this.refreshRiderQuote(), 350);
+                },
+                // The opening total, taken from the quote the modal ALREADY
+                // holds rather than asked for again: step 1 priced every parcel
+                // for this address, the pickup address is still the default it
+                // was quoted from, and nothing is insured yet, so that figure
+                // describes this shipment exactly. Any change from here re-asks
+                // the courier.
+                seedRiderQuote() {
+                    const verdict = this.serviceability[this.courier];
+                    const fee = (verdict && verdict.fees) ? verdict.fees[this.parcel] : null;
+                    if (fee === null || fee === undefined) {
+                        this.resetRiderQuote();
+                        return;
+                    }
+                    this.riderSeq++;
+                    this.riderQuote = { total: fee, shipping: fee, insurance: 0 };
+                    this.riderError = null;
+                    this.riderLoading = false;
+                },
+                resetRiderQuote() {
+                    clearTimeout(this.riderTimer);
+                    this.riderSeq++;
+                    this.riderQuote = null;
+                    this.riderError = null;
+                    this.riderLoading = false;
+                },
+                // Reads the form's OWN values (via x-ref="bookForm"), the same
+                // way getSpxEstimate does, so the quote always describes the
+                // shipment the Book button would create right now — including
+                // the pickup address chosen in this modal rather than the
+                // store's default.
+                refreshRiderQuote() {
+                    if (!this.active || !this.$refs.bookForm) return;
+                    if (!this.autoQuoteCouriers.includes(this.courier) || !this.parcel) {
+                        this.resetRiderQuote();
+                        return;
+                    }
+                    const seq = ++this.riderSeq;
+                    this.riderLoading = true;
+                    this.riderError = null;
+                    fetch(this.estimateAction, {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                        body: new FormData(this.$refs.bookForm),
+                    })
+                        .then(r => r.json())
+                        .then(d => {
+                            // A later change has already been asked for: this
+                            // answer describes a shipment nobody is looking at.
+                            if (seq !== this.riderSeq) return;
+                            if (d && d.ok) {
+                                this.riderQuote = d;
+                                this.riderError = null;
+                            } else {
+                                this.riderQuote = null;
+                                this.riderError = (d && d.message) ? d.message : 'No quote available for this choice.';
+                            }
+                            this.riderLoading = false;
+                            // The quote just priced every parcel for the origin
+                            // actually selected, so the dropdown's own labels
+                            // follow it. Without this a store with more than one
+                            // pickup address shows a parcel priced from the
+                            // default origin beside a total priced from another.
+                            if (d && d.ok && d.fees && this.serviceability[this.courier]) {
+                                this.serviceability[this.courier].fees = d.fees;
+                            }
+                        })
+                        .catch(() => {
+                            if (seq !== this.riderSeq) return;
+                            this.riderQuote = null;
+                            this.riderError = 'Could not reach the courier for a price.';
+                            this.riderLoading = false;
+                        });
                 },
             };
         }

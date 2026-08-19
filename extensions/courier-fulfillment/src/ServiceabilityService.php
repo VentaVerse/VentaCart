@@ -53,7 +53,7 @@ class ServiceabilityService
      * prints the courier's words). Bump it whenever the stored shape changes,
      * which costs one extra call per address and nothing else.
      */
-    private const SESSION_KEY = 'courier_fulfillment.serviceability.v2';
+    private const SESSION_KEY = 'courier_fulfillment.serviceability.v3';
 
     /**
      * Bound on the session cache. A packing session works through tens of

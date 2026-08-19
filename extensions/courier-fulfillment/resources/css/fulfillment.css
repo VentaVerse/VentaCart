@@ -114,3 +114,38 @@
 
 /* Column floor: the product cell scrolls rather than crushing at 390 */
 .v-w-product { min-width: 16rem; }
+
+/* The booking total, sitting under "You pay shipping".
+
+   It is the only figure in the modal the operator settles in cash, so it
+   carries the weight of a sum rather than of another form row: the heading
+   line is the loud one, and the breakdown beneath it is deliberately quiet,
+   there to make the total checkable rather than to compete with it. The rule
+   between them is what separates a result from its parts. */
+.v-ridertotal__head {
+    align-items: baseline;
+    font-weight: 600;
+    color: var(--v-ink-1);
+}
+
+.v-ridertotal__sum {
+    font-size: 1.125rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.v-ridertotal__parts {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--v-line);
+    display: grid;
+    gap: 0.25rem;
+    font-size: 12px;
+    color: var(--v-ink-2);
+}
+
+/* Figures line up under each other so the parts visibly add to the sum. */
+.v-ridertotal__parts .v-mono,
+.v-ridertotal__sum {
+    font-variant-numeric: tabular-nums;
+}

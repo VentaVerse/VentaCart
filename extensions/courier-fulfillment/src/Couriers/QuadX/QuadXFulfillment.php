@@ -299,10 +299,28 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             return null;
         }
 
+        // `amount` and `label` keep meaning exactly what they always meant —
+        // the shipping fee for the chosen parcel — because the ERP's own
+        // estimate endpoint reads them and a silently widened figure would
+        // change numbers it stores. Everything the total needs is ADDED
+        // beside them, so both callers get what they ask for.
+        $shipping = (float) $amount;
+        $insurance = (float) $quote['insurance'];
+
         return (object) [
-            'amount'   => (float) $amount,
-            'currency' => 'PHP',
-            'label'    => '₱' . number_format((float) $amount, 2),
+            'amount'    => $shipping,
+            'currency'  => 'PHP',
+            'label'     => '₱' . number_format($shipping, 2),
+            'shipping'  => $shipping,
+            'insurance' => $insurance,
+            // What the operator actually settles: handed to the rider on
+            // cash/gcash terms, deducted by QuadX on net-off.
+            'total'     => $shipping + $insurance,
+            // Every parcel priced for THIS origin, not just the chosen one.
+            // The modal opened with a map quoted from the store's default
+            // pickup address; if the operator has since chosen another, the
+            // parcel labels must follow the total rather than contradict it.
+            'fees'      => $quote['fees'],
         ];
     }
 
@@ -381,20 +399,69 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'service_type'     => $service,
             'pickup_address'   => self::rateAddress($this->pickupAddress($opts)),
             'delivery_address' => self::rateAddress($this->deliveryAddress($order)),
+            // Sent on EVERY quote, exactly as buildPayload() sends it, because
+            // it is the only way QuadX will price insurance at all (an absent
+            // key yields no insurance_fee in the response) and because
+            // omitting it makes QuadX default it to the order total, which
+            // would quote an insured shipment for an operator who did not ask
+            // for one. 0 is the uninsured declaration, not a missing one.
+            'declared_value'   => self::declaredValue($order, $opts),
         ], $timeout);
 
         if (!$res['ok']) {
-            return ['ok' => false, 'status' => (int) $res['status'], 'fees' => [], 'error' => $res['error'] ?? null];
+            return ['ok' => false, 'status' => (int) $res['status'], 'fees' => [], 'insurance' => 0.0, 'error' => $res['error'] ?? null];
         }
 
-        $fees = $res['body']['data']['attributes']['shipping_fee'] ?? [];
+        $attributes = $res['body']['data']['attributes'] ?? [];
+        $fees = self::netFees($attributes);
+        $insurance = $attributes['insurance_fee'] ?? null;
 
         return [
-            'ok'     => true,
-            'status' => (int) $res['status'],
-            'fees'   => is_array($fees) ? array_filter($fees, 'is_numeric') : [],
-            'error'  => null,
+            'ok'        => true,
+            'status'    => (int) $res['status'],
+            'fees'      => $fees,
+            // Absent means QuadX did not price insurance for this quote, which
+            // is not the same as pricing it at zero, but both leave the
+            // operator with nothing to add, and a figure we invented here
+            // would be a number QuadX never quoted.
+            'insurance' => is_numeric($insurance) ? (float) $insurance : 0.0,
+            'error'     => null,
         ];
+    }
+
+    /**
+     * What QuadX will actually bill, which is NOT the first fee map in the
+     * response.
+     *
+     * The rate endpoint answers the fee question twice: `shipping_fee` is the
+     * list price, and `fees_adjustments.shipping_fee` is the same map after
+     * QuadX's own surcharges and campaigns have been applied (verified on
+     * staging 2026-08-19: a box to Cebu quotes 490 list against 450 net, from
+     * a fixed fuel surcharge and a percentage price drop). Billing follows the
+     * net map, so every figure Venta puts on screen follows it too.
+     *
+     * The list map is the fallback rather than the default: a store with no
+     * adjustments in force gets no `fees_adjustments` block at all, and there
+     * the one map it was sent IS the net one.
+     *
+     * @return array<string, float|int>
+     */
+    private static function netFees(array $attributes): array
+    {
+        $adjusted = $attributes['fees_adjustments']['shipping_fee'] ?? null;
+        $fees = is_array($adjusted) && $adjusted !== [] ? $adjusted : ($attributes['shipping_fee'] ?? []);
+
+        return is_array($fees) ? array_filter($fees, 'is_numeric') : [];
+    }
+
+    /**
+     * The insured value for this shipment, in one place because a quote that
+     * declared a different amount than the booking would be quoting a
+     * different shipment. Both rateQuote() and buildPayload() read it here.
+     */
+    private static function declaredValue(Order $order, array $opts): float
+    {
+        return (bool) ($opts['insure'] ?? false) ? (float) $order->total : 0.0;
     }
 
     /**
@@ -643,7 +710,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             // the order total — auto-insuring every booking with an unwanted fee.
             // We always send it explicitly: 0 = uninsured (default), order total
             // = insured (admin opt-in via the "Insure shipment" checkbox).
-            'declared_value'   => (bool) ($opts['insure'] ?? false) ? (float) $order->total : 0,
+            'declared_value'   => self::declaredValue($order, $opts),
             'async_address_validate' => false,
         ];
 
