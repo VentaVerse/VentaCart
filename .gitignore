@@ -49,3 +49,15 @@ countries-states-cities-database-3.1-export.2/
 /public/.htaccess
 
 .superpowers/
+
+# Courier vendor documentation: SPX and LBC PDFs, portal harvests and the
+# spreadsheets they ship. Kept on disk as working reference, never committed.
+# The adapters, their tests and our own design specs under docs/superpowers
+# stay tracked; only the vendors' material is ignored.
+/docs/spx/
+/docs/lbc/
+/docs/SPX-*.xlsx
+
+# Verification screenshots taken while checking a change in the browser.
+# /Screenshot*.png above catches the desktop naming; these catch the rest.
+/*.png
