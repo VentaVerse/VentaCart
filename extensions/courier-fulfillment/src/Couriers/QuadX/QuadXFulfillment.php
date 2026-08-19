@@ -69,17 +69,36 @@ class QuadXFulfillment implements CourierFulfillmentInterface
     }
 
     /**
-     * Real QuadX API capability: seller_payment_method = cash | gcash | null.
-     * The API does NOT distinguish GCash "Scan QR" vs "Wallet" (both are just
-     * gcash) — that split exists only in QuadX's own dashboard. "Receiver pays
-     * the fee" (COD shipping on top of item value) is a separate mechanism
-     * (a shipping line item added to the total) and isn't offered here yet.
+     * QuadX has ONE pay-at-pickup option, not two. Verified end to end against
+     * both their sandbox and the live account on 2026-08-20:
+     *
+     *   seller_payment_method = 'cash'  -> creates; QuadX then presents the fee
+     *                                     on its dashboard as "Paid via GCash,
+     *                                     Scan QR", because a QR is how the
+     *                                     rider collects it
+     *   seller_payment_method = 'gcash' -> ALWAYS rejected on create:
+     *                                     "The selected seller payment method
+     *                                     is invalid"
+     *   omitted                         -> net off against remittance
+     *
+     * Beware their two validators. POST /orders answers a partial payload with
+     * {"parameters": {...}} and that first pass accepts gcash, credit_card and
+     * debit_card. A payload complete enough to actually book reaches a second
+     * pass that answers {"errors": {"detail": {...}}}, and only there is gcash
+     * refused. Probing with an incomplete payload therefore reports capability
+     * QuadX does not have, which is how "GCash at pickup" shipped as an option
+     * that could never succeed.
+     *
+     * seller_payment_provider does not change this. It accepts gcash|quadx and
+     * pairing either one with method=gcash is still refused.
+     *
+     * "Receiver pays the fee" (COD shipping on top of item value) is a separate
+     * mechanism, a shipping line item added to the total, and isn't offered yet.
      */
     public function getShippingPaymentOptions(): array
     {
         return [
-            ['value' => 'cash',    'label' => "I'll shoulder it: Cash on pickup"],
-            ['value' => 'gcash',   'label' => "I'll shoulder it: GCash at pickup"],
+            ['value' => 'cash',    'label' => "I'll shoulder it: Pay the rider at pickup"],
             ['value' => 'net_off', 'label' => "I'll shoulder it: Deduct from my remittance / bill me"],
         ];
     }
@@ -715,9 +734,13 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         ];
 
         // Seller's shipping-fee payment. Omit entirely for net-off (deduct/bill).
+        // 'gcash' is still accepted from older clients and from the ERP, and is
+        // folded into 'cash' rather than passed through: both mean "I pay at
+        // pickup", QuadX collects either by QR, and sending 'gcash' would fail
+        // the booking outright. Anything else omits the field, which is net-off.
         $shippingPayment = $opts['shipping_payment'] ?? 'net_off';
         if (in_array($shippingPayment, ['cash', 'gcash'], true)) {
-            $payload['seller_payment_method'] = $shippingPayment;
+            $payload['seller_payment_method'] = 'cash';
         }
 
         return $payload;
