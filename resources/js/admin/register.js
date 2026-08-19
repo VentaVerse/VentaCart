@@ -81,6 +81,15 @@ export function registerV(Alpine) {
         },
 
         check() {
+            // Once the form is committing, nothing may re-arm the guard.
+            // The save bar lives INSIDE the form, so flipping `saving`
+            // swaps its button text ("Save" -> "Saving…") — a childList
+            // mutation the observer below dutifully reports, one frame
+            // after submit() cleared `dirty`. Re-arming there put the
+            // browser's "Leave Site?" dialog in front of every successful
+            // save, which is precisely the moment the guard exists to
+            // stay out of.
+            if (this.saving) return;
             this.dirty = this.snapshot() !== this.baseline;
         },
 
