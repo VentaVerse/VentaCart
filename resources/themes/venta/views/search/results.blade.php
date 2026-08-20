@@ -1,4 +1,5 @@
 <x-store-layout title="Search: {{ $query }}">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
     <div class="bg-[var(--color-card-bg)] border-b border-[var(--color-border)]">
         <div class="container-store py-3">
@@ -58,4 +59,5 @@
         @endif
     </div>
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>

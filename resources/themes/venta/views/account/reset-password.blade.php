@@ -1,4 +1,5 @@
 <x-store-layout title="Reset Password">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
     <div class="container-store py-16">
         <div class="account-auth-card">
@@ -39,4 +40,5 @@
         </div>
     </div>
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>

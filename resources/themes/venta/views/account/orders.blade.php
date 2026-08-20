@@ -1,4 +1,5 @@
 <x-store-layout title="My Orders">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
     <div class="container-store py-10">
         <h1 class="section-title reveal">MY ORDERS</h1>
@@ -54,4 +55,5 @@
         </div>
     </div>
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>

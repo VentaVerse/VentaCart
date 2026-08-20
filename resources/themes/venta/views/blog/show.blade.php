@@ -1,4 +1,5 @@
 <x-store-layout :title="$post->meta_title ?: $post->title" :meta-description="$post->meta_description">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
 
     {{-- Breadcrumbs --}}
@@ -91,4 +92,5 @@
         @endif
     </div>
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>

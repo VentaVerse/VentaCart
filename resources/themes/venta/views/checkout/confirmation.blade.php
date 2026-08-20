@@ -1,4 +1,5 @@
 <x-store-layout title="Order Confirmed">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
     <div class="container-store py-10">
 
@@ -148,4 +149,5 @@
 
     </div>
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>

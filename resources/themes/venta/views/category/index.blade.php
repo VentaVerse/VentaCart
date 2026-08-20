@@ -1,4 +1,5 @@
 <x-store-layout :title="$category->meta_title ?: $category->name" :meta-description="$category->meta_description">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
 
     {{-- Breadcrumbs --}}
@@ -104,4 +105,5 @@
     </script>
     @endpush
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>

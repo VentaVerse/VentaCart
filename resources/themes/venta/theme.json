@@ -147,6 +147,14 @@
         "content_top": {
             "label": "Above the content"
         },
+        "column_left": {
+            "label": "Left column",
+            "column": "left"
+        },
+        "column_right": {
+            "label": "Right column",
+            "column": "right"
+        },
         "content_bottom": {
             "label": "Below the content"
         },

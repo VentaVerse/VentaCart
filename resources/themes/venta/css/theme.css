@@ -2307,3 +2307,40 @@
  background: color-mix(in srgb, var(--color-warning) 18%, transparent);
  color: var(--color-warning);
 }
+
+/* ---------------------------------------------------------------------------
+   The layout row: left column, content, right column.
+
+   Eight columns, not twelve. Journal and OpenCart use a twelve grid and then
+   compute the content width from which sidebars happen to exist; here the
+   merchant sets each side and the content takes the remainder, so the widths
+   have to be expressible as spans rather than as three hardcoded cases.
+
+   Below the tablet breakpoint the row collapses and the side columns fall
+   under the content, because a 2/8 rail on a phone is a column of confetti.
+--------------------------------------------------------------------------- */
+
+.store-row {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.store-col--1 { grid-column: span 1; }
+.store-col--2 { grid-column: span 2; }
+.store-col--3 { grid-column: span 3; }
+.store-col--4 { grid-column: span 4; }
+.store-col--5 { grid-column: span 5; }
+.store-col--6 { grid-column: span 6; }
+.store-col--7 { grid-column: span 7; }
+.store-col--8 { grid-column: span 8; }
+
+.store-col { min-width: 0; }
+
+@media (max-width: 1023px) {
+    .store-row { grid-template-columns: minmax(0, 1fr); }
+    .store-col { grid-column: span 1 !important; }
+    /* Content first, rails after: the page is what the visitor came for. */
+    aside.store-col { order: 2; }
+}

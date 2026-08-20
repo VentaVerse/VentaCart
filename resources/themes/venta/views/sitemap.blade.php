@@ -1,4 +1,5 @@
 <x-store-layout title="Sitemap">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
     <div class="container-store py-10">
         <h1 class="text-3xl font-bold text-[var(--color-text-heading)] mb-8">Sitemap</h1>
@@ -66,4 +67,5 @@
         <p class="text-xs text-[var(--color-text)]">{{ $productCount }} products across {{ $categories->count() }} categories and {{ $brands->count() }} brands.</p>
     </div>
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>

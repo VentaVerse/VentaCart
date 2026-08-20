@@ -1,4 +1,5 @@
 <x-store-layout title="Shopping Cart">
+    <x-storefront.columns>
     <x-storefront.region name="content_top" />
     <div class="container-store py-10">
         <h1 class="section-title reveal">SHOPPING CART</h1>
@@ -363,4 +364,5 @@
     </script>
     @endPushOnce
     <x-storefront.region name="content_bottom" />
+    </x-storefront.columns>
 </x-store-layout>
