@@ -221,7 +221,11 @@ window.addEventListener('message', (e) => {
     if (!msg || msg.source !== 'venta-editor') return;
 
     switch (msg.type) {
-        case 'tokens': tokens = msg.tokens || []; announce(); break;
+        case 'tokens':
+            tokens = msg.tokens || [];
+            // Answered once, with a message that ends the exchange.
+            send('used', { used: usedTokens() });
+            break;
         case 'vars': applyVars(msg.vars); break;
         case 'pick': setPicking(msg.on); break;
     }
@@ -256,12 +260,21 @@ function usedTokens() {
     return tokens.filter((t) => painted.has(normalise(currentValue(t))));
 }
 
+/**
+ * Announce this page ONCE.
+ *
+ * `used` is deliberately not sent from here. It needs the token vocabulary,
+ * which only arrives in the editor's reply, and answering that reply with
+ * another `ready` is a feedback loop: ready, tokens, ready, tokens, forever,
+ * walking the whole document each turn. That shipped, and it ran eight round
+ * trips in three seconds on an idle page. The reply is a separate message the
+ * editor does not answer.
+ */
 function announce() {
     send('ready', {
         url: window.location.pathname + window.location.search,
         pageType: root.getAttribute('data-page-type') || null,
         title: document.title,
-        used: tokens.length ? usedTokens() : [],
     });
 }
 

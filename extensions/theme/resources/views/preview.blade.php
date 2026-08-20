@@ -121,6 +121,7 @@
                     picking: false,
                     onlyUsed: true,
                     used: [],
+                    touched: {},
                     hit: null,
 
                     init() {
@@ -150,12 +151,15 @@
                         if (m.type === 'ready') {
                             this.pageType = m.pageType;
                             this.url = m.url.replace(/[?&]__preview=1/, '') || '/';
-                            this.used = m.used || [];
-                            // The frame announces before it knows the vocabulary, then
-                            // again once told, so the second announcement carries `used`.
                             this.toFrame('tokens', { tokens: Object.keys(this.values) });
                             this.paint();
                             if (this.scope === 'page' && !this.pageType) this.scope = 'global';
+                        }
+
+                        // The frame's answer to `tokens`. Never answered back: that
+                        // exchange used to loop, re-walking the document each turn.
+                        if (m.type === 'used') {
+                            this.used = m.used || [];
                         }
 
                         if (m.type === 'picked') {
@@ -202,6 +206,13 @@
                             this.values[token] = value;
                         }
 
+                        // A control you have used never leaves the list. "On this
+                        // page" matches tokens by VALUE, so editing one can break
+                        // the coincidence that listed it: the free shipping badge
+                        // shared the announcement bar's green, and changing it made
+                        // the control vanish mid-edit.
+                        this.touched[token] = true;
+
                         this.markDirty();
                         this.paint();
                     },
@@ -209,6 +220,7 @@
                     unpin(token) {
                         if (!this.pageType) return;
                         delete this.overrides[this.pageType][token];
+                        this.touched[token] = true;
                         this.markDirty();
                         this.paint();
                     },
@@ -231,7 +243,7 @@
                         Object.entries(this.groups).forEach(([label, fields]) => {
                             const kept = {};
                             Object.entries(fields).forEach(([token, name]) => {
-                                if (!this.onlyUsed || this.used.includes(token) || this.hit === token) {
+                                if (!this.onlyUsed || this.used.includes(token) || this.hit === token || this.touched[token]) {
                                     kept[token] = name;
                                 }
                             });
