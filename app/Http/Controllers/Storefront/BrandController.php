@@ -13,9 +13,13 @@ class BrandController extends Controller
 {
     public function index()
     {
+        // whereHas, not HAVING. MySQL permits a HAVING clause on a query with no
+        // GROUP BY; SQLite rejects it outright with "HAVING clause on a
+        // non-aggregate query", so this page returned 500 on any SQLite install
+        // while passing on the MySQL the store happens to run.
         $brands = Brand::where('is_active', true)
-            ->withCount(['products' => fn($q) => $q->where('is_active', true)])
-            ->having('products_count', '>', 0)
+            ->withCount(['products' => fn ($q) => $q->where('is_active', true)])
+            ->whereHas('products', fn ($q) => $q->where('is_active', true))
             ->orderBy('name')
             ->get();
 
