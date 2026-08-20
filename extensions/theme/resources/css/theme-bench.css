@@ -1,22 +1,34 @@
 /**
  * The bench: the theme editor's live preview surface.
  *
- * The one place in the admin that breaks the 1080 centered measure, and it does
- * so on purpose. A storefront preview shown at 600px is permanently in its
- * tablet layout, so a merchant would spend the session styling a breakpoint
- * they never chose. Everything here is scoped to .v-bench so no other page
- * inherits the exception.
+ * Two deliberate departures from the admin record, and no others. It breaks the
+ * 1080 centered measure, because a storefront preview at 600px is permanently
+ * in its tablet layout and a merchant would spend the session styling a
+ * breakpoint they never chose. And it seats a browser stage inside an admin
+ * page. Everything else answers to the same tokens, the same 36px control
+ * height and the same 6/10/14 radii as the rest of the admin.
+ *
+ * It did not, at first. It shipped as a MINIATURE of the admin: 28px tools,
+ * 22px swatches, 10.5px labels, 4px radii, a palette-window look borrowed from
+ * design tools. That made the one surface a merchant sits inside for an hour
+ * the smallest type in the product, and it was an exception nobody argued for.
+ * Everything here is now system scale.
  */
 
 .v-bench {
-    /* Out of the measure, into the viewport. The shell centers its column; the
-       bench claims the width back rather than being handed it. */
+    /* Out of the measure, into the viewport. The panel is placed LEFT by the
+       grid while coming second in the DOM, because panel-first put about 115
+       colour inputs between a keyboard user and the picker. */
     width: 100%;
     display: grid;
-    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-columns: 360px minmax(0, 1fr);
+    grid-template-areas: "panel stage";
     gap: 16px;
     align-items: start;
 }
+
+.v-bench__stage { grid-area: stage; }
+.v-bench__panel { grid-area: panel; }
 
 /* ---------- the control column ---------- */
 
@@ -25,12 +37,32 @@
     border: 1px solid var(--v-line);
     border-radius: var(--v-r-md);
     box-shadow: var(--v-lift);
-    padding: 14px;
     position: sticky;
-    top: 16px;
-    max-height: calc(100vh - 120px);
+    /* The admin topbar occupies the first 56px; without it the panel overhung
+       the viewport and the last row sat permanently below the fold. */
+    top: 72px;
+    /* Sized for its UNSTUCK position, which sits below the page head at about
+       160px, not for the 72px it takes once stuck. Measuring from the stuck
+       offset left the last row 63px below the fold on first paint. */
+    max-height: calc(100vh - 184px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* The head never scrolls: it governs every edit in the list below it. */
+.v-bench__head {
+    flex: none;
+    padding: 12px 12px 10px;
+    border-bottom: 1px solid var(--v-line);
+}
+
+.v-bench__list {
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
+    padding: 10px 12px 14px;
 }
 
 .v-bench__scope {
@@ -39,20 +71,22 @@
     background: var(--v-sunken);
     border: 1px solid var(--v-line);
     border-radius: var(--v-r-sm);
-    padding: 2px;
-    margin-bottom: 12px;
+    padding: 3px;
+    margin-bottom: 10px;
 }
 
 .v-bench__scope button {
     flex: 1;
-    height: 30px;
+    min-height: 36px;
+    padding: 0 6px;
     border: 0;
-    border-radius: 4px;
+    border-radius: var(--v-r-sm);
     background: transparent;
     color: var(--v-ink-3);
     font: inherit;
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 600;
+    line-height: 1.2;
     cursor: pointer;
     transition: background var(--v-fast), color var(--v-fast);
 }
@@ -62,23 +96,67 @@
     color: var(--v-act-ink);
 }
 
-.v-bench__scope button:not([aria-pressed="true"]):hover {
-    color: var(--v-ink);
-}
+.v-bench__scope button:not([aria-pressed="true"]):hover { color: var(--v-ink); }
+.v-bench__scope button[disabled] { opacity: .45; cursor: not-allowed; }
 
-.v-bench__note {
-    font-size: 12px;
+/* find + filter */
+
+.v-bench__find {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    background: var(--v-sunken);
     color: var(--v-ink-3);
-    margin: 0 0 12px;
 }
 
-.v-bench__note b {
+.v-bench__find > svg { width: 16px; height: 16px; flex: none; }
+
+.v-bench__search {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    background: none;
+    color: var(--v-ink);
+    font: inherit;
+    font-size: 13px;
+}
+
+.v-bench__search:focus { outline: none; }
+.v-bench__find:focus-within { border-color: var(--v-edge); }
+
+.v-bench__filter {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: var(--v-r-sm);
+    background: transparent;
+    color: var(--v-ink-3);
+    cursor: pointer;
+}
+
+.v-bench__filter[aria-pressed="true"] { background: var(--v-act-wash); color: var(--v-act); }
+.v-bench__filter svg { width: 15px; height: 15px; }
+
+/* what the picker landed on */
+.v-bench__picked {
+    margin: 9px 0 0;
+    font-size: 12.5px;
     color: var(--v-ink-2);
-    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .v-bench__grouplabel {
-    font-size: 10.5px;
+    font-size: 11px;
     font-weight: 700;
     letter-spacing: .08em;
     text-transform: uppercase;
@@ -86,23 +164,19 @@
     margin: 16px 0 6px;
 }
 
-.v-bench__grouplabel:first-of-type {
-    margin-top: 0;
-}
+.v-bench__grouplabel:first-of-type { margin-top: 0; }
 
 .v-bench__row {
     display: flex;
     align-items: center;
     gap: 9px;
-    padding: 5px 7px;
+    min-height: 36px;
+    padding: 3px 7px;
     border-radius: var(--v-r-sm);
-    margin-bottom: 1px;
     transition: background var(--v-fast);
 }
 
-.v-bench__row:hover {
-    background: var(--v-hover);
-}
+.v-bench__row:hover { background: var(--v-hover); }
 
 .v-bench__row.is-hit {
     background: var(--v-act-wash);
@@ -112,22 +186,22 @@
 /* The swatch IS the colour input. A separate preview square beside a picker is
    two things saying one thing. */
 .v-bench__swatch {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     flex: none;
     padding: 0;
     border: 1px solid var(--v-line-2);
-    border-radius: 5px;
+    border-radius: var(--v-r-sm);
     background: none;
     cursor: pointer;
 }
 
 .v-bench__swatch::-webkit-color-swatch-wrapper { padding: 2px; }
-.v-bench__swatch::-webkit-color-swatch { border: 0; border-radius: 3px; }
-.v-bench__swatch::-moz-color-swatch { border: 0; border-radius: 3px; }
+.v-bench__swatch::-webkit-color-swatch { border: 0; border-radius: 4px; }
+.v-bench__swatch::-moz-color-swatch { border: 0; border-radius: 4px; }
 
 .v-bench__name {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--v-ink-2);
     min-width: 0;
     overflow: hidden;
@@ -135,37 +209,27 @@
     white-space: nowrap;
 }
 
-.v-bench__row.is-hit .v-bench__name {
-    color: var(--v-ink);
-    font-weight: 600;
-}
+.v-bench__row.is-hit .v-bench__name { color: var(--v-ink); font-weight: 600; }
 
 .v-bench__hex {
     margin-left: auto;
-    width: 76px;
-    height: 26px;
+    width: 84px;
+    height: 30px;
     flex: none;
     border: 1px solid var(--v-line);
-    border-radius: 5px;
+    border-radius: var(--v-r-sm);
     background: var(--v-sunken);
     color: var(--v-ink-2);
     font-family: var(--v-font-mono);
-    font-size: 11px;
-    padding: 0 6px;
+    font-size: 12px;
+    padding: 0 7px;
     text-transform: uppercase;
 }
 
-.v-bench__hex:focus {
-    outline: 2px solid var(--v-focus);
-    outline-offset: 1px;
-}
-
-/* The mark that says this page type differs from the store. Without it,
-   per-page overrides become a storefront that drifts apart with nobody able to
-   say where. */
+/* The mark that says this page type differs from the store. */
 .v-bench__pin {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     flex: none;
     border-radius: 50%;
     background: var(--v-act-fill);
@@ -173,23 +237,65 @@
 
 .v-bench__reset {
     flex: none;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
     border: 0;
     background: none;
-    padding: 2px 4px;
     color: var(--v-ink-3);
     cursor: pointer;
-    line-height: 0;
-    border-radius: 4px;
+    border-radius: var(--v-r-sm);
 }
 
-.v-bench__reset:hover { color: var(--v-bad); background: var(--v-bad-wash); }
-.v-bench__reset svg { width: 13px; height: 13px; }
+/* Reverting to the store colour is safe and reversible. It used to hover red,
+   which is a fear signal on a control that destroys nothing. */
+.v-bench__reset:hover { color: var(--v-ink); background: var(--v-hover); }
+.v-bench__reset svg { width: 15px; height: 15px; }
 
 .v-bench__empty {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--v-ink-3);
-    padding: 18px 4px;
+    padding: 20px 4px;
+    margin: 0;
     text-align: center;
+}
+
+/* ---------- the ledger ---------- */
+
+.v-bench__ledger {
+    flex: none;
+    border-top: 1px solid var(--v-line);
+    padding: 8px;
+    background: var(--v-sunken);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.v-bench__ledgerrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--v-act-edge);
+    border-radius: 100px;
+    background: var(--v-surface);
+    color: var(--v-ink-2);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background var(--v-fast), color var(--v-fast);
+}
+
+.v-bench__ledgerrow:hover { background: var(--v-act-wash); color: var(--v-ink); }
+
+.v-bench__count {
+    font-family: var(--v-font-mono);
+    font-size: 11px;
+    color: var(--v-act);
+    font-weight: 600;
 }
 
 /* ---------- the stage ---------- */
@@ -216,38 +322,48 @@
 
 .v-bench__url {
     flex: 1;
-    height: 28px;
+    height: 36px;
     min-width: 0;
     border: 1px solid var(--v-line);
     border-radius: 100px;
     background: var(--v-surface);
     color: var(--v-ink-2);
     font-family: var(--v-font-mono);
-    font-size: 11.5px;
-    padding: 0 12px;
+    font-size: 12.5px;
+    padding: 0 14px;
 }
 
-.v-bench__url:focus {
-    outline: 2px solid var(--v-focus);
-    outline-offset: 1px;
-}
-
-.v-bench__chip {
+/* Which page type the stage is showing. A readout, not a control: it used to
+   wear the same pill as the filter button beside it, so one label you cannot
+   press and one you must looked identical. */
+.v-bench__where {
     flex: none;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 9px;
-    border-radius: 100px;
-    background: var(--v-act-wash);
-    color: var(--v-act);
-    border: 1px solid var(--v-act-edge);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--v-ink-2);
+    padding: 0 4px;
     white-space: nowrap;
 }
 
+.v-bench__redirected {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 12px;
+    background: var(--v-warn-wash);
+    color: var(--v-warn);
+    font-size: 12.5px;
+    border-bottom: 1px solid var(--v-line);
+}
+
+.v-bench__redirected svg { width: 16px; height: 16px; flex: none; }
+.v-bench__redirected b { font-weight: 600; }
+
 .v-bench__tool {
     flex: none;
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     display: grid;
     place-items: center;
     border: 1px solid var(--v-line-2);
@@ -266,15 +382,23 @@
     color: var(--v-act-ink);
 }
 
-.v-bench__tool svg { width: 15px; height: 15px; }
+.v-bench__tool svg { width: 17px; height: 17px; }
 
 .v-bench__frame {
     width: 100%;
-    height: calc(100vh - 190px);
+    height: calc(100vh - 210px);
     min-height: 480px;
     border: 0;
     display: block;
     background: var(--v-surface);
+}
+
+/* One focus grammar, the admin's own. These used to re-declare a ring on
+   :focus rather than :focus-visible, so a mouse click drew an outline no other
+   admin control draws. */
+.v-bench :focus-visible {
+    outline: 2px solid var(--v-focus);
+    outline-offset: 1px;
 }
 
 /* ---------- narrow ---------- */
@@ -282,28 +406,47 @@
 @media (max-width: 1100px) {
     .v-bench {
         grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "stage" "panel";
+    }
+
+    /* The stage stays put while the controls scroll under it. It used to drop
+       off the top of the screen entirely, so a merchant on a tablet or phone
+       edited colours with no sight of the thing they were colouring. */
+    .v-bench__stage {
+        position: sticky;
+        top: 64px;
+        z-index: 2;
     }
 
     .v-bench__panel {
         position: static;
         max-height: none;
-        order: 2;
+        overflow: visible;
     }
 
-    .v-bench__stage { order: 1; }
-    .v-bench__frame { height: 60vh; }
+    .v-bench__list { overflow: visible; max-height: none; }
+    .v-bench__frame { height: 42vh; min-height: 300px; }
 }
 
-/* The filter chip is a control, not a label: pressing it widens the list back
-   to every colour the theme has. */
-.v-bench__chip--act {
-    cursor: pointer;
-    font: inherit;
-    font-size: 11px;
-    font-weight: 700;
+@media (max-width: 560px) {
+    /* The address gets its own row: sharing one with four controls squeezed it
+       to 85px, which shows about ten characters of a path. */
+    .v-bench__bar { flex-wrap: wrap; }
+    .v-bench__url { order: 3; flex: 1 0 100%; }
+    .v-bench__where { order: 2; margin-left: auto; }
 }
 
-.v-bench__chip--act:hover {
-    background: var(--v-act-fill);
-    color: var(--v-act-ink);
+/* A finger needs more than a mouse does. */
+@media (pointer: coarse) {
+    .v-bench__tool,
+    .v-bench__swatch,
+    .v-bench__reset,
+    .v-bench__filter {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .v-bench__scope button { min-height: 44px; }
+    .v-bench__row { min-height: 44px; }
+    .v-bench__hex { height: 36px; }
 }

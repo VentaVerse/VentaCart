@@ -260,6 +260,10 @@ class ThemeController extends Controller
             'values' => $values,
             'overrides' => $overrides,
             'pageTypes' => \App\Support\StorefrontPageType::TYPES,
+            // The ledger. Without it a merchant can only discover that a page
+            // type has drifted by standing on it, which is the drift the pin
+            // was meant to prevent.
+            'overrideCounts' => $theme->pageOverrideCounts(),
         ]);
     }
 
@@ -279,12 +283,17 @@ class ThemeController extends Controller
         $known = \Extensions\Theme\ColorGroups::tokens();
         $globals = array_intersect_key((array) ($data['global'] ?? []), array_flip($known));
 
-        $touched = 0;
-
         if ($globals !== []) {
             $theme->setMany('colors', $globals);
-            $touched += count($globals);
         }
+
+        // Counted separately, because a merchant needs to know WHICH of the two
+        // things happened. "14 colours saved" is what you write when you cannot
+        // describe the change; a store-wide edit and a change confined to the
+        // account pages are not the same event and must not read the same.
+        $pinned = 0;
+        $cleared = 0;
+        $pages = [];
 
         foreach ((array) ($data['pages'] ?? []) as $type => $set) {
             if (! \App\Support\StorefrontPageType::exists($type)) {
@@ -296,14 +305,41 @@ class ThemeController extends Controller
                 continue;
             }
 
+            $before = count($theme->pageOverrides($type, 'colors'));
             $theme->setPageOverrides($type, 'colors', $set);
-            $touched += count($set);
+            $after = count($theme->pageOverrides($type, 'colors'));
+
+            $pinned += max(0, $after - $before);
+            $cleared += max(0, $before - $after);
+
+            if ($after > 0) {
+                $pages[] = \App\Support\StorefrontPageType::label($type);
+            }
         }
 
         $theme->clearCache();
 
-        return back()->with('success', $touched === 0
-            ? 'Nothing changed.'
-            : $touched . ' colour' . ($touched === 1 ? '' : 's') . ' saved.');
+        return back()->with('success', $this->savedMessage(count($globals), $pinned, $cleared, $pages));
+    }
+
+    /** States what actually happened, in the merchant's own terms. */
+    private function savedMessage(int $store, int $pinned, int $cleared, array $pages): string
+    {
+        $parts = [];
+
+        if ($store > 0) {
+            $parts[] = $store . ' store ' . ($store === 1 ? 'colour' : 'colours');
+        }
+
+        if ($pinned > 0) {
+            $parts[] = $pinned . ' ' . ($pinned === 1 ? 'colour' : 'colours') . ' pinned to '
+                . (count($pages) === 1 ? $pages[0] : count($pages) . ' page types');
+        }
+
+        if ($cleared > 0) {
+            $parts[] = $cleared . ' page ' . ($cleared === 1 ? 'override' : 'overrides') . ' cleared';
+        }
+
+        return $parts === [] ? 'Nothing changed.' : ucfirst(implode(', ', $parts)) . ' saved.';
     }
 }

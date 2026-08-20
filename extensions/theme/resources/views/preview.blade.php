@@ -20,79 +20,114 @@
          Alpine canvas inside it (the idiom the banners slide editor set).
          Putting x-data on the component tag loses to the component's own. --}}
     <x-admin.form :action="route('admin.theme.preview.save')">
-      <div x-data="themeBench(window.__bench)">
+      <div x-data="themeBench(window.__bench)" @keydown.window.prevent.p="togglePick()">
         <input type="hidden" name="payload" :value="payload()">
 
+        {{-- The STAGE comes first in the DOM and is placed right by the grid.
+             Panel-first put ~115 colour inputs between a keyboard user and the
+             two controls they reach for most, the picker and the address. --}}
         <div class="v-bench">
 
-            {{-- ---------------- controls ---------------- --}}
-            <div class="v-bench__panel">
-                <div class="v-bench__scope" role="group" aria-label="What this change affects">
-                    <button type="button" :aria-pressed="scope === 'global'" @click="scope = 'global'">Whole store</button>
-                    <button type="button" :aria-pressed="scope === 'page'" @click="scope = 'page'"
-                            :disabled="! pageType" x-text="pageLabel()"></button>
-                </div>
-
-                <p class="v-bench__note" x-show="scope === 'page' && pageType">
-                    Changes here apply to <b x-text="pageLabel()"></b> only.
-                </p>
-                <p class="v-bench__note" x-show="scope === 'global'">
-                    Changes here apply everywhere a page has not overridden them.
-                </p>
-
-                <template x-for="(fields, label) in visibleGroups()" :key="label">
-                    <div>
-                        <div class="v-bench__grouplabel" x-text="label"></div>
-                        <template x-for="(name, token) in fields" :key="token">
-                            <div class="v-bench__row" :class="{ 'is-hit': hit === token }">
-                                <input type="color" class="v-bench__swatch"
-                                       :value="shown(token)"
-                                       @input="edit(token, $event.target.value)"
-                                       :aria-label="name">
-                                <span class="v-bench__name" x-text="name"></span>
-                                <span class="v-bench__pin" x-show="pinned(token)"
-                                      :title="pageLabel() + ' overrides this'"></span>
-                                <input type="text" class="v-bench__hex" maxlength="7"
-                                       :value="shown(token)"
-                                       @change="edit(token, $event.target.value)"
-                                       :aria-label="name + ' hex value'">
-                                <button type="button" class="v-bench__reset" x-show="pinned(token)"
-                                        @click="unpin(token)" :aria-label="'Reset ' + name + ' to the store colour'">
-                                    <x-admin.icon name="back" />
-                                </button>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-
-                <div class="v-bench__empty" x-show="Object.keys(visibleGroups()).length === 0">
-                    Nothing on this page uses a colour you can set.
-                </div>
-            </div>
-
-            {{-- ---------------- stage ---------------- --}}
             <div class="v-bench__stage">
                 <div class="v-bench__bar">
-                    <button type="button" class="v-bench__tool" @click="frame().contentWindow.history.back()"
-                            aria-label="Back">
+                    <button type="button" class="v-bench__tool" @click="back()" aria-label="Back">
                         <x-admin.icon name="chevron-left" />
                     </button>
                     <button type="button" class="v-bench__tool" :aria-pressed="picking" @click="togglePick()"
-                            aria-label="Pick an element">
+                            aria-label="Pick an element (P)" title="Pick an element (P)">
                         <x-admin.icon name="cursor" />
                     </button>
                     <input type="text" class="v-bench__url" x-model="url" @keydown.enter.prevent="go()"
-                           aria-label="Storefront address">
-                    <span class="v-bench__chip" x-show="pageType" x-text="pageLabel()"></span>
-                    <button type="button" class="v-bench__chip v-bench__chip--act" x-show="onlyUsed"
-                            @click="onlyUsed = false" title="Show every colour">On this page</button>
-                    <button type="button" class="v-bench__tool" x-show="! onlyUsed" @click="onlyUsed = true"
-                            aria-label="Show only colours this page uses">
-                        <x-admin.icon name="filter" />
-                    </button>
+                           aria-label="Storefront address" spellcheck="false">
+                    <span class="v-bench__where" x-show="pageType" x-text="pageLabel()"></span>
                 </div>
 
+                {{-- State, not instruction: the frame went somewhere other than
+                     where it was sent. It used to swap the page type in silence,
+                     so a merchant could pin colours to a page they never saw. --}}
+                <p class="v-bench__redirected" x-show="redirected" x-cloak>
+                    <x-admin.icon name="info" />
+                    <span>Sent to <b x-text="redirected"></b>, the storefront answered with <b x-text="url"></b>.</span>
+                </p>
+
                 <iframe class="v-bench__frame" x-ref="frame" :src="startSrc" title="Storefront preview"></iframe>
+            </div>
+
+            <div class="v-bench__panel">
+                {{-- Fixed head. The scope switch governs every edit below it and
+                     used to scroll out of sight the moment a picked row was
+                     centred, so a merchant edited without seeing whether they
+                     were painting one page type or the whole shop. --}}
+                <div class="v-bench__head">
+                    <div class="v-bench__scope" role="group" aria-label="What this change affects">
+                        <button type="button" :aria-pressed="scope === 'global'" @click="scope = 'global'">
+                            Whole store
+                        </button>
+                        <button type="button" :aria-pressed="scope === 'page'" @click="scope = 'page'"
+                                :disabled="! pageType" x-text="pageOnlyLabel()"></button>
+                    </div>
+
+                    <div class="v-bench__find">
+                        <x-admin.icon name="search" />
+                        <input type="search" class="v-bench__search" x-model="query"
+                               placeholder="Find a colour" aria-label="Find a colour">
+                        <button type="button" class="v-bench__filter" :aria-pressed="onlyUsed"
+                                @click="onlyUsed = ! onlyUsed"
+                                :aria-label="onlyUsed ? 'Showing colours this page uses. Show all.' : 'Showing all colours. Show only this page.'"
+                                :title="onlyUsed ? 'On this page' : 'All colours'">
+                            <x-admin.icon name="filter" />
+                        </button>
+                    </div>
+
+                    <p class="v-bench__picked" x-show="what" x-cloak>
+                        <span x-text="what"></span>
+                    </p>
+                </div>
+
+                <div class="v-bench__list">
+                    <template x-for="(fields, label) in visibleGroups()" :key="label">
+                        <div>
+                            <div class="v-bench__grouplabel" x-text="label"></div>
+                            <template x-for="(name, token) in fields" :key="token">
+                                <div class="v-bench__row" :class="{ 'is-hit': hit === token }">
+                                    <input type="color" class="v-bench__swatch"
+                                           :value="shown(token)"
+                                           @input="edit(token, $event.target.value)"
+                                           :aria-label="name">
+                                    <span class="v-bench__name" x-text="name"></span>
+                                    <span class="v-bench__pin" x-show="pinned(token)"
+                                          :title="pageLabel() + ' overrides this'"></span>
+                                    <input type="text" class="v-bench__hex" maxlength="7"
+                                           :value="shown(token)"
+                                           @change="edit(token, $event.target.value)"
+                                           :aria-label="name + ' hex value'">
+                                    <button type="button" class="v-bench__reset" x-show="pinned(token)"
+                                            @click="unpin(token)"
+                                            :aria-label="'Reset ' + name + ' to the store colour'"
+                                            :title="'Reset to the store colour'">
+                                        <x-admin.icon name="back" />
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <p class="v-bench__empty" x-show="! ready" x-cloak>Reading the page&hellip;</p>
+                    <p class="v-bench__empty" x-show="ready && noMatches()" x-cloak
+                       x-text="query ? 'No colour matches that name.' : 'Nothing on this page uses a colour you can set.'"></p>
+                </div>
+
+                {{-- The ledger. A pin only shows on the page type you are
+                     standing on, so without this a store drifts apart with
+                     nobody able to say where. --}}
+                <div class="v-bench__ledger" x-show="ledger().length" x-cloak>
+                    <template x-for="row in ledger()" :key="row.type">
+                        <button type="button" class="v-bench__ledgerrow" @click="visit(row.type)">
+                            <span x-text="row.label"></span>
+                            <span class="v-bench__count" x-text="row.count"></span>
+                        </button>
+                    </template>
+                </div>
             </div>
         </div>
       </div>
@@ -105,30 +140,48 @@
                 values: @js($values),
                 overrides: @js($overrides),
                 pageTypes: @js($pageTypes),
+                counts: @js($overrideCounts),
                 start: @js('/'),
+                homes: @js([
+                    'home' => '/', 'cart' => '/cart', 'checkout' => '/checkout',
+                    'account' => '/account', 'auth' => '/account/login', 'search' => '/search?q=a',
+                    'blog' => '/blog', 'brand' => '/brands',
+                ]),
             };
 
             function themeBench(seed) {
                 return {
                     groups: seed.groups,
                     values: seed.values,               // the store's own colours
-                    overrides: seed.overrides,         // pageType -> token -> value
+                    overrides: seed.overrides,         // pageType -> token -> value (null = clear it)
                     pageTypes: seed.pageTypes,
+                    counts: seed.counts,
+                    homes: seed.homes,
                     scope: 'global',
                     pageType: null,
                     url: seed.start,
                     startSrc: seed.start + '?__preview=1',
                     picking: false,
                     onlyUsed: true,
+                    query: '',
                     used: [],
                     touched: {},
                     hit: null,
+                    what: '',
+                    ready: false,
+                    redirected: '',
+                    sent: '',
 
                     init() {
                         window.addEventListener('message', (e) => this.fromFrame(e));
                     },
 
                     frame() { return this.$refs.frame; },
+
+                    accent() {
+                        return getComputedStyle(document.documentElement)
+                            .getPropertyValue('--v-act-fill').trim() || '#C0873A';
+                    },
 
                     toFrame(type, extra = {}) {
                         const w = this.frame()?.contentWindow;
@@ -151,22 +204,28 @@
                         if (m.type === 'ready') {
                             this.pageType = m.pageType;
                             this.url = m.url.replace(/[?&]__preview=1/, '') || '/';
-                            this.toFrame('tokens', { tokens: Object.keys(this.values) });
+                            this.redirected = (this.sent && this.sent !== this.url) ? this.sent : '';
+                            this.sent = '';
+                            this.toFrame('tokens', { tokens: Object.keys(this.values), accent: this.accent() });
                             this.paint();
                             if (this.scope === 'page' && !this.pageType) this.scope = 'global';
                         }
 
                         // The frame's answer to `tokens`. Never answered back: that
-                        // exchange used to loop, re-walking the document each turn.
+                        // exchange used to loop, re-sweeping the document each turn.
                         if (m.type === 'used') {
                             this.used = m.used || [];
+                            this.ready = true;
                         }
 
                         if (m.type === 'picked') {
                             const first = (m.found || [])[0];
+                            this.what = first
+                                ? m.what
+                                : 'No colour you can set paints "' + m.what + '".';
                             this.hit = first ? first.token : null;
                             if (first) {
-                                this.onlyUsed = false;
+                                this.query = '';
                                 this.$nextTick(() => this.revealHit());
                             }
                             this.picking = false;
@@ -182,19 +241,15 @@
                         return this.overrides[this.pageType];
                     },
 
-                    /**
-                     * What this token paints AS SEEN on the page in front of us.
-                     * Named `shown`, never `valueOf`: that one shadows
-                     * Object.prototype.valueOf on the component object and gets
-                     * called by any coercion, with no argument.
-                     */
+                    /** What this token paints AS SEEN on the page in front of us. */
                     shown(token) {
-                        const pinned = this.pageType && this.overrides[this.pageType]?.[token];
-                        return pinned || this.values[token] || '#000000';
+                        const set = this.pageType ? this.overrides[this.pageType] : null;
+                        return (set && set[token]) || this.values[token] || '#000000';
                     },
 
                     pinned(token) {
-                        return !!(this.pageType && this.overrides[this.pageType]?.[token]);
+                        const set = this.pageType ? this.overrides[this.pageType] : null;
+                        return !!(set && set[token]);
                     },
 
                     edit(token, value) {
@@ -206,20 +261,22 @@
                             this.values[token] = value;
                         }
 
-                        // A control you have used never leaves the list. "On this
-                        // page" matches tokens by VALUE, so editing one can break
-                        // the coincidence that listed it: the free shipping badge
-                        // shared the announcement bar's green, and changing it made
-                        // the control vanish mid-edit.
+                        // A control you have used never leaves the list.
                         this.touched[token] = true;
-
                         this.markDirty();
                         this.paint();
                     },
 
                     unpin(token) {
                         if (!this.pageType) return;
-                        delete this.overrides[this.pageType][token];
+
+                        // Marked null, NOT deleted. A key absent from the payload
+                        // reaches setPageOverrides() as "no instruction", and it
+                        // only ever writes the keys it is given, so an unpinned
+                        // override quietly survived every save: the control
+                        // confirmed an action it had not taken. null is the
+                        // instruction to delete, and the server honours it.
+                        this.pageOverrides()[token] = null;
                         this.touched[token] = true;
                         this.markDirty();
                         this.paint();
@@ -238,18 +295,48 @@
                         return this.pageType ? this.pageTypes[this.pageType] : 'This page';
                     },
 
+                    /** The scope button states its own blast radius, so no caption has to. */
+                    pageOnlyLabel() {
+                        return this.pageType ? this.pageTypes[this.pageType] + ' only' : 'This page only';
+                    },
+
                     visibleGroups() {
+                        const q = this.query.trim().toLowerCase();
                         const out = {};
+
                         Object.entries(this.groups).forEach(([label, fields]) => {
                             const kept = {};
                             Object.entries(fields).forEach(([token, name]) => {
-                                if (!this.onlyUsed || this.used.includes(token) || this.hit === token || this.touched[token]) {
-                                    kept[token] = name;
+                                if (q) {
+                                    if (!name.toLowerCase().includes(q) && !token.includes(q)) return;
+                                } else if (this.onlyUsed
+                                    && !this.used.includes(token)
+                                    && this.hit !== token
+                                    && !this.touched[token]) {
+                                    return;
                                 }
+                                kept[token] = name;
                             });
                             if (Object.keys(kept).length) out[label] = kept;
                         });
+
                         return out;
+                    },
+
+                    noMatches() {
+                        return Object.keys(this.visibleGroups()).length === 0;
+                    },
+
+                    /** Which page types carry overrides, most first. */
+                    ledger() {
+                        return Object.entries(this.counts)
+                            .map(([type, count]) => ({ type, count, label: this.pageTypes[type] || type }))
+                            .sort((a, b) => b.count - a.count);
+                    },
+
+                    visit(type) {
+                        const path = this.homes[type];
+                        if (path) { this.url = path; this.go(); }
                     },
 
                     togglePick() {
@@ -257,13 +344,32 @@
                         this.toFrame('pick', { on: this.picking });
                     },
 
+                    back() {
+                        try { this.frame().contentWindow.history.back(); } catch (e) { /* cross-origin */ }
+                    },
+
                     go() {
-                        const path = this.url.startsWith('/') ? this.url : '/' + this.url;
+                        // Same-origin only. A protocol-relative or absolute address
+                        // loads a third party in the stage, never announces itself,
+                        // and leaves the panel describing the page you just left.
+                        let path = this.url.trim();
+                        if (/^[a-z]+:/i.test(path) || path.startsWith('//')) {
+                            try { path = new URL(path, window.location.origin).pathname; }
+                            catch (e) { path = '/'; }
+                        }
+                        if (!path.startsWith('/')) path = '/' + path;
+
+                        this.url = path;
+                        this.sent = path;
+                        this.ready = false;
+                        this.used = [];      // never describe this page with the last one's tokens
+                        this.hit = null;
+                        this.what = '';
                         this.frame().src = path + (path.includes('?') ? '&' : '?') + '__preview=1';
                     },
 
                     /**
-                     * Bring the picked control into view WITHIN the panel.
+                     * Bring the picked control into view WITHIN the list.
                      *
                      * scrollIntoView scrolls every scrollable ancestor, which
                      * dragged the whole admin page and took the header and Save
@@ -271,31 +377,41 @@
                      * that keeps it.
                      */
                     revealHit() {
-                        const panel = this.$el.querySelector('.v-bench__panel');
+                        const list = this.$el.querySelector('.v-bench__list');
                         const row = this.$el.querySelector('.v-bench__row.is-hit');
-                        if (!panel || !row) return;
+                        if (!list || !row) return;
 
                         const delta = row.getBoundingClientRect().top
-                            - panel.getBoundingClientRect().top
-                            - panel.clientHeight / 2;
+                            - list.getBoundingClientRect().top
+                            - list.clientHeight / 2;
 
-                        panel.scrollTo({ top: panel.scrollTop + delta, behavior: 'smooth' });
+                        list.scrollTo({ top: list.scrollTop + delta, behavior: 'smooth' });
                     },
 
                     /**
-                     * Arm the save bar. touch() belongs to the parent vForm and is
-                     * reached through Alpine's scope chain; a colour input's edits
-                     * arrive through Alpine, not through events vForm watches.
+                     * Arm the save bar.
+                     *
+                     * vForm's touch() is NOT reachable through `this` from a plain
+                     * method: `this` is this component's own data object, not
+                     * Alpine's merged scope proxy, so the earlier guarded call was
+                     * a permanent no-op and dirty state survived only by vForm's
+                     * MutationObserver fallback. A bubbled change event is what
+                     * vForm actually listens for.
                      */
                     markDirty() {
-                        if (typeof this.touch === 'function') this.touch();
+                        this.$el.dispatchEvent(new Event('change', { bubbles: true }));
                     },
 
                     payload() {
                         const pages = {};
+
+                        // Every page type that carries anything, INCLUDING sets
+                        // that are now nothing but nulls: those nulls are the
+                        // removals, and dropping them is what made reset a lie.
                         Object.entries(this.overrides).forEach(([type, set]) => {
-                            if (Object.keys(set).length) pages[type] = set;
+                            if (set && Object.keys(set).length) pages[type] = set;
                         });
+
                         return JSON.stringify({ global: this.values, pages });
                     },
                 };

@@ -98,4 +98,63 @@ class ThemeBenchTest extends TestCase
 
         $this->assertSame('#0E8A43', Setting::where('group', 'colors')->where('key', 'primary')->value('value'));
     }
+
+    /**
+     * Reset was decorative. It reverted the preview, removed the pin, armed the
+     * save bar and reported success, and the override was still there after a
+     * reload, because the payload simply omitted the token and
+     * setPageOverrides() only ever writes the keys it is given. A control that
+     * confirms an action it did not take is worse than no control.
+     */
+    public function test_clearing_one_override_removes_it(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.theme.preview.save'), ['payload' => json_encode([
+            'pages' => ['account' => ['text_muted' => '#112233', 'primary' => '#445566']],
+        ])])->assertRedirect();
+
+        // The editor sends null for the one the merchant reset.
+        $this->post(route('admin.theme.preview.save'), ['payload' => json_encode([
+            'pages' => ['account' => ['text_muted' => null, 'primary' => '#445566']],
+        ])])->assertRedirect();
+
+        $theme = app(ThemeService::class);
+        $theme->clearCache();
+
+        $this->assertSame(['primary' => '#445566'], $theme->pageOverrides('account', 'colors'));
+    }
+
+    public function test_clearing_the_last_override_leaves_the_page_type_clean(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.theme.preview.save'), ['payload' => json_encode([
+            'pages' => ['cart' => ['primary' => '#445566']],
+        ])])->assertRedirect();
+
+        $this->post(route('admin.theme.preview.save'), ['payload' => json_encode([
+            'pages' => ['cart' => ['primary' => null]],
+        ])])->assertRedirect();
+
+        $theme = app(ThemeService::class);
+        $theme->clearCache();
+
+        $this->assertSame([], $theme->pageOverrides('cart', 'colors'));
+        $this->assertSame([], $theme->pageOverrideCounts());
+    }
+
+    /** The flash names what happened, not how many rows were posted. */
+    public function test_the_confirmation_says_which_scope_changed(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.theme.preview.save'), ['payload' => json_encode([
+            'pages' => ['account' => ['text_muted' => '#112233']],
+        ])])->assertSessionHas('success', fn ($m) => str_contains($m, 'Account pages'));
+
+        $this->post(route('admin.theme.preview.save'), ['payload' => json_encode([
+            'pages' => ['account' => ['text_muted' => null]],
+        ])])->assertSessionHas('success', fn ($m) => str_contains($m, 'cleared'));
+    }
 }
