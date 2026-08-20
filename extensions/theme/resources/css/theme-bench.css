@@ -15,6 +15,39 @@
  * Everything here is now system scale.
  */
 
+/* ---------- claiming the width ---------- */
+
+/*
+ * The shell centres a 1440 column and the slab holds 232px of it, so a page
+ * that merely "breaks the measure" still previews a storefront in about
+ * 1150px. For every other admin page that is correct. For this one it is the
+ * whole point missed: the stage is the product, and it was being handed the
+ * leftovers.
+ *
+ * Scoped with :has() so nothing else inherits it, and reversible from the
+ * screen: the WIDE toggle puts the menu back. The nav is not taken away
+ * silently, it is a control the merchant holds.
+ */
+body:has(.v-bench) #v-main.v-content {
+    max-width: none;
+    padding-left: 16px;
+    padding-right: 16px;
+}
+
+/* The shell is a grid whose first column is var(--sidebar-w). Collapsing the
+   slab's own width leaves that column standing and buys nothing, which is
+   exactly what happened the first time. The column is what has to yield. */
+body:has(.v-bench.is-wide) { --sidebar-w: 0px; }
+
+body:has(.v-bench.is-wide) .v-slab {
+    width: 0;
+    min-width: 0;
+    overflow: hidden;
+    border-right: 0;
+    opacity: 0;
+    transition: opacity var(--v-fast);
+}
+
 .v-bench {
     /* Out of the measure, into the viewport. The panel is placed LEFT by the
        grid while coming second in the DOM, because panel-first put about 115
@@ -449,4 +482,27 @@
     .v-bench__scope button { min-height: 44px; }
     .v-bench__row { min-height: 44px; }
     .v-bench__hex { height: 36px; }
+}
+
+/* The wide toggle sits with the stage's own controls. */
+.v-bench__wide[aria-pressed="true"] {
+    background: var(--v-act-fill);
+    border-color: var(--v-act-fill);
+    color: var(--v-act-ink);
+}
+
+/* How many places on this page the hovered control paints. */
+.v-bench__hits {
+    flex: none;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 100px;
+    background: var(--v-act-wash);
+    color: var(--v-act);
+    font-family: var(--v-font-mono);
+    font-size: 11px;
+    font-weight: 600;
 }

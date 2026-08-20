@@ -26,7 +26,7 @@
         {{-- The STAGE comes first in the DOM and is placed right by the grid.
              Panel-first put ~115 colour inputs between a keyboard user and the
              two controls they reach for most, the picker and the address. --}}
-        <div class="v-bench">
+        <div class="v-bench" :class="{ 'is-wide': wide }">
 
             <div class="v-bench__stage">
                 <div class="v-bench__bar">
@@ -40,6 +40,12 @@
                     <input type="text" class="v-bench__url" x-model="url" @keydown.enter.prevent="go()"
                            aria-label="Storefront address" spellcheck="false">
                     <span class="v-bench__where" x-show="pageType" x-text="pageLabel()"></span>
+                    <button type="button" class="v-bench__tool v-bench__wide" :aria-pressed="wide"
+                            @click="wide = ! wide"
+                            :aria-label="wide ? 'Show the admin menu' : 'Hide the admin menu for more width'"
+                            :title="wide ? 'Show menu' : 'More width'">
+                        <x-admin.icon name="monitor" />
+                    </button>
                 </div>
 
                 {{-- State, not instruction: the frame went somewhere other than
@@ -89,7 +95,9 @@
                         <div>
                             <div class="v-bench__grouplabel" x-text="label"></div>
                             <template x-for="(name, token) in fields" :key="token">
-                                <div class="v-bench__row" :class="{ 'is-hit': hit === token }">
+                                <div class="v-bench__row" :class="{ 'is-hit': hit === token }"
+                                     @mouseenter="reveal(token)" @mouseleave="reveal(null)"
+                                     @focusin="reveal(token)" @focusout="reveal(null)">
                                     <input type="color" class="v-bench__swatch"
                                            :value="shown(token)"
                                            @input="edit(token, $event.target.value)"
@@ -97,6 +105,8 @@
                                     <span class="v-bench__name" x-text="name"></span>
                                     <span class="v-bench__pin" x-show="pinned(token)"
                                           :title="pageLabel() + ' overrides this'"></span>
+                                    <span class="v-bench__hits" x-show="revealed === token && hits > 0" x-cloak
+                                          x-text="hits" :title="hits + ' places on this page'"></span>
                                     <input type="text" class="v-bench__hex" maxlength="7"
                                            :value="shown(token)"
                                            @change="edit(token, $event.target.value)"
@@ -171,6 +181,10 @@
                     ready: false,
                     redirected: '',
                     sent: '',
+                    wide: true,
+                    revealed: null,
+                    hits: 0,
+                    revealTimer: null,
 
                     init() {
                         window.addEventListener('message', (e) => this.fromFrame(e));
@@ -216,6 +230,10 @@
                         if (m.type === 'used') {
                             this.used = m.used || [];
                             this.ready = true;
+                        }
+
+                        if (m.type === 'revealed') {
+                            if (m.token === this.revealed) this.hits = m.count;
                         }
 
                         if (m.type === 'picked') {
@@ -337,6 +355,31 @@
                     visit(type) {
                         const path = this.homes[type];
                         if (path) { this.url = path; this.go(); }
+                    },
+
+                    /**
+                     * Show every place this control lands, and say how many.
+                     *
+                     * The picker answers "what owns this element". Reading down
+                     * the list you want the opposite: point at a control and see
+                     * where it goes. Debounced, because sweeping the mouse down
+                     * 19 rows would otherwise ask the frame 19 questions.
+                     */
+                    reveal(token) {
+                        clearTimeout(this.revealTimer);
+
+                        if (!token) {
+                            this.revealed = null;
+                            this.hits = 0;
+                            this.toFrame('reveal', { token: null });
+                            return;
+                        }
+
+                        this.revealTimer = setTimeout(() => {
+                            this.revealed = token;
+                            this.hits = 0;
+                            this.toFrame('reveal', { token });
+                        }, 120);
                     },
 
                     togglePick() {

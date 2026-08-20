@@ -153,6 +153,124 @@ function stainSweep() {
 }
 
 /* ------------------------------------------------------------------ */
+/* 2b. the sweep run backwards: where does ONE token land?             */
+/* ------------------------------------------------------------------ */
+
+/** How many places we will outline at once. A token like the page background
+ *  paints hundreds of nodes; outlining all of them is noise, not an answer. */
+const MARK_CAP = 60;
+
+let marks = [];
+let markTargets = [];
+let markFrame = 0;
+
+function clearMarks() {
+    marks.forEach((m) => m.remove());
+    marks = [];
+    markTargets = [];
+}
+
+/**
+ * Marks are fixed to screen coordinates, so they lie the moment the page
+ * moves. They used to be cleared on scroll, which meant revealing anything
+ * off-screen erased itself: scrollIntoView fires a scroll event, and the
+ * marks were wiped by the very scroll that went to fetch them. They follow
+ * their elements now.
+ */
+function positionMarks() {
+    for (let i = 0; i < marks.length; i++) {
+        const r = markTargets[i].getBoundingClientRect();
+        const m = marks[i];
+        m.style.top = r.top - 1 + 'px';
+        m.style.left = r.left - 1 + 'px';
+        m.style.width = r.width + 2 + 'px';
+        m.style.height = r.height + 2 + 'px';
+    }
+}
+
+function scheduleMarks() {
+    if (!marks.length || markFrame) return;
+    markFrame = requestAnimationFrame(() => { markFrame = 0; positionMarks(); });
+}
+
+/**
+ * Stain ONE token and collect every element it actually paints.
+ *
+ * Same experiment as stainSweep(), narrowed to a single token and keeping the
+ * elements rather than the token names. This is the picker's question asked in
+ * the other direction: not "what owns this element" but "where does this
+ * control land", which is what a merchant wants when reading down the list.
+ */
+function findPainted(token) {
+    const name = varName(token);
+    const had = root.style.getPropertyValue(name);
+    const stain = 'rgb(0, ' + STAIN_G + ', ' + STAIN_B + ')';
+
+    root.style.setProperty(name, stain);
+
+    const hits = [];
+    for (const el of paintedElements()) {
+        const c = getComputedStyle(el);
+        for (const [prop] of PROPS) {
+            if (STAIN_RE.test(c[prop])) { hits.push(el); break; }
+        }
+    }
+
+    if (had) root.style.setProperty(name, had);
+    else root.style.removeProperty(name);
+
+    return hits;
+}
+
+/**
+ * Outline everywhere a control lands, and bring the first one into view if the
+ * merchant cannot already see any of them. Scrolling when something is already
+ * on screen would yank the page out from under someone reading it.
+ */
+function revealToken(token) {
+    clearMarks();
+
+    if (!token) return { count: 0 };
+
+    const hits = findPainted(token);
+    if (!hits.length) return { count: 0 };
+
+    const inView = hits.some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.bottom > 0 && r.top < window.innerHeight;
+    });
+
+    if (!inView) {
+        hits[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+
+    hits.slice(0, MARK_CAP).forEach((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) return;
+
+        const m = document.createElement('div');
+        m.setAttribute('data-preview-halo', '');
+        Object.assign(m.style, {
+            position: 'fixed',
+            pointerEvents: 'none',
+            zIndex: '2147483646',
+            top: r.top - 1 + 'px',
+            left: r.left - 1 + 'px',
+            width: r.width + 2 + 'px',
+            height: r.height + 2 + 'px',
+            border: '1.5px solid ' + haloColor,
+            borderRadius: '2px',
+            boxShadow: '0 0 0 3px rgba(192, 135, 58, .18)',
+        });
+        document.body.appendChild(m);
+        marks.push(m);
+        markTargets.push(el);
+    });
+
+    return { count: hits.length };
+}
+
+/* ------------------------------------------------------------------ */
 /* 3. answering "which control owns this?"                             */
 /* ------------------------------------------------------------------ */
 
@@ -306,12 +424,15 @@ window.addEventListener('message', (e) => {
             break;
         case 'vars': applyVars(msg.vars); break;
         case 'pick': setPicking(msg.on); break;
+        case 'reveal': send('revealed', { token: msg.token, ...revealToken(msg.token) }); break;
     }
 });
 
 document.addEventListener('mousemove', onMove, true);
 document.addEventListener('click', onPick, true);
 window.addEventListener('scroll', hideHalo, true);
+window.addEventListener('scroll', scheduleMarks, true);
+window.addEventListener('resize', scheduleMarks);
 
 /**
  * Announce this page ONCE.
