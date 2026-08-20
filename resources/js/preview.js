@@ -163,11 +163,63 @@ const MARK_CAP = 60;
 let marks = [];
 let markTargets = [];
 let markFrame = 0;
+let rail = null;
 
 function clearMarks() {
     marks.forEach((m) => m.remove());
     marks = [];
     markTargets = [];
+    if (rail) { rail.remove(); rail = null; }
+}
+
+/**
+ * A tick for every place this control lands, positioned down the right edge by
+ * where it sits in the DOCUMENT rather than the viewport.
+ *
+ * Outlines only tell you about the part of the page you can see, and that is
+ * how a merchant gets surprised: reported by the owner, who revealed the muted
+ * text token, was scrolled to a review count, changed it, then scrolled up and
+ * found the search placeholder had changed too. The colour was doing exactly
+ * what it should. Nothing had said where else it reached.
+ *
+ * The ticks are the off-screen half of the answer: eight ticks spread down the
+ * rail say this control is all over the page before you touch it.
+ */
+function drawRail(hits) {
+    const docHeight = Math.max(document.documentElement.scrollHeight, 1);
+    const scrollY = window.scrollY || document.documentElement.scrollTop;
+
+    rail = document.createElement('div');
+    rail.setAttribute('data-preview-halo', '');
+    Object.assign(rail.style, {
+        position: 'fixed',
+        top: '0',
+        right: '0',
+        width: '12px',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '2147483647',
+        background: 'rgba(0, 0, 0, .04)',
+    });
+
+    hits.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const ratio = Math.min(1, Math.max(0, (r.top + scrollY) / docHeight));
+
+        const tick = document.createElement('div');
+        Object.assign(tick.style, {
+            position: 'absolute',
+            right: '2px',
+            top: 'calc(' + (ratio * 100).toFixed(2) + '% - 2px)',
+            width: '8px',
+            height: '4px',
+            borderRadius: '2px',
+            background: haloColor,
+        });
+        rail.appendChild(tick);
+    });
+
+    document.body.appendChild(rail);
 }
 
 /**
@@ -243,6 +295,10 @@ function revealToken(token) {
     if (!inView) {
         hits[0].scrollIntoView({ block: 'center', behavior: 'smooth' });
     }
+
+    // The rail carries EVERY hit, including the ones the cap will not outline
+    // and the ones nowhere near the viewport.
+    if (hits.length > 1) drawRail(hits);
 
     hits.slice(0, MARK_CAP).forEach((el) => {
         const r = el.getBoundingClientRect();

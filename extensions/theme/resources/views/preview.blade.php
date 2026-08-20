@@ -105,8 +105,12 @@
                                     <span class="v-bench__name" x-text="name"></span>
                                     <span class="v-bench__pin" x-show="pinned(token)"
                                           :title="pageLabel() + ' overrides this'"></span>
-                                    <span class="v-bench__hits" x-show="revealed === token && hits > 0" x-cloak
-                                          x-text="hits" :title="hits + ' places on this page'"></span>
+                                    <button type="button" class="v-bench__hits"
+                                            x-show="revealed === token && hits > 0" x-cloak
+                                            @click="release()"
+                                            :title="hits + ' places on this page. Click to stop marking them.'"
+                                            :aria-label="hits + ' places on this page'"
+                                            x-text="hits"></button>
                                     <input type="text" class="v-bench__hex" maxlength="7"
                                            :value="shown(token)"
                                            @change="edit(token, $event.target.value)"
@@ -185,6 +189,7 @@
                     revealed: null,
                     hits: 0,
                     revealTimer: null,
+                    holding: null,      // the control being edited: its reveal stays up
 
                     init() {
                         window.addEventListener('message', (e) => this.fromFrame(e));
@@ -246,6 +251,7 @@
                                 this.query = '';
                                 this.$nextTick(() => this.revealHit());
                             }
+                            this.holding = null;
                             this.picking = false;
                             this.toFrame('pick', { on: false });
                         }
@@ -281,6 +287,8 @@
 
                         // A control you have used never leaves the list.
                         this.touched[token] = true;
+                        this.holding = token;
+                        this.reveal(token);
                         this.markDirty();
                         this.paint();
                     },
@@ -368,6 +376,13 @@
                     reveal(token) {
                         clearTimeout(this.revealTimer);
 
+                        // Leaving a row does not put the marks away while that
+                        // control is the one being edited. They vanished on
+                        // mouseleave, which is the moment you reach for the
+                        // colour: you edited with no sight of what else it
+                        // touched, and found out by scrolling afterwards.
+                        if (!token) token = this.holding;
+
                         if (!token) {
                             this.revealed = null;
                             this.hits = 0;
@@ -380,6 +395,12 @@
                             this.hits = 0;
                             this.toFrame('reveal', { token });
                         }, 120);
+                    },
+
+                    /** Stop holding a control's marks up. */
+                    release() {
+                        this.holding = null;
+                        this.reveal(null);
                     },
 
                     togglePick() {
@@ -408,6 +429,9 @@
                         this.used = [];      // never describe this page with the last one's tokens
                         this.hit = null;
                         this.what = '';
+                        this.holding = null;
+                        this.revealed = null;
+                        this.hits = 0;
                         this.frame().src = path + (path.includes('?') ? '&' : '?') + '__preview=1';
                     },
 
