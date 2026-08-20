@@ -1,10 +1,11 @@
+<section>
 @php
-    $config = $section->config ?? [];
-    $groupSlug = $config['banner_group'] ?? '';
-    $groupData = ($bannerGroups[$groupSlug] ?? null);
-    $slides = $groupData['slides'] ?? [];
-    $autoplay = $groupData['autoplay'] ?? false;
-    $speed = $groupData['speed'] ?? 5000;
+    // $group is resolved by the banners module for THIS placement. It used to
+    // be looked up in a $bannerGroups array shared with the home view only,
+    // which is why a banner could not be placed anywhere else.
+    $slides = $group['slides'] ?? [];
+    $autoplay = $group['autoplay'] ?? false;
+    $speed = $group['speed'] ?? 5000;
 @endphp
 
 <div>
@@ -119,3 +120,4 @@
         </div>
     @endif
 </div>
+</section>

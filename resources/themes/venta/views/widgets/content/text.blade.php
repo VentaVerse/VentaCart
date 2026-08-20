@@ -1,5 +1,7 @@
+<section class="py-10 md:py-14">
+    <div class="container-store reveal">
 @php
-    $config = $section->config ?? [];
+    $config = $placement->config ?? [];
     $alignment = $config['alignment'] ?? 'center';
     $alignClass = match($alignment) {
         'left' => 'text-left',
@@ -9,8 +11,8 @@
 @endphp
 
 <div class="{{ $alignClass }}">
-    @if ($section->title)
-        <h2 class="section-title">{{ $section->title }}</h2>
+    @if ($placement->title)
+        <h2 class="section-title">{{ $placement->title }}</h2>
     @endif
     @if (!empty($config['content']))
         <div class="prose prose-invert max-w-none text-[var(--color-text-muted)]">
@@ -18,3 +20,5 @@
         </div>
     @endif
 </div>
+    </div>
+</section>

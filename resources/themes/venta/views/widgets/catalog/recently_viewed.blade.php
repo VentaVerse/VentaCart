@@ -1,7 +1,7 @@
-@php $config = $section->config ?? []; @endphp
+@php $config = $placement->config ?? []; @endphp
 
 <div x-data="recentlyViewed()" x-show="products.length > 0" x-cloak class="container-store py-10">
-    <h2 class="section-title reveal">{{ $section->title }}</h2>
+    <h2 class="section-title reveal">{{ $placement->title }}</h2>
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
         <template x-for="item in products" :key="item.id">
             <div class="product-card">

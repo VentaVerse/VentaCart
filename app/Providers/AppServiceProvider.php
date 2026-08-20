@@ -23,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // What can be placed in a theme's regions. Registered at boot, never
+        // per request: the registry is process-global, like the courier one.
+        \App\Storefront\Widgets\CoreWidgets::register();
+
         // The sidebar's work-waiting counts (Fulfillment to ship, Reviews
         // pending). Bound here so the shell never learns which entries
         // are special; it just looks its items up (see NavBadges).

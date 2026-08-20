@@ -1,9 +1,13 @@
+@if (($products ?? collect())->isNotEmpty())
+<section class="py-10 md:py-14">
+    <div class="container-store">
+        <h2 class="section-title reveal">{{ $placement->title }}</h2>
 @php
-    $config = $section->config ?? [];
+    $config = $placement->config ?? [];
     $colsMobile = $config['columns_mobile'] ?? 2;
     $colsTablet = $config['columns_tablet'] ?? 3;
     $colsDesktop = $config['columns_desktop'] ?? 4;
-    $gridId = 'section-grid-' . $section->id;
+    $gridId = 'section-grid-' . $placement->id;
 @endphp
 
 @if ($products->isNotEmpty())
@@ -22,4 +26,7 @@
     @endpush
 @else
     <p class="text-center text-[var(--color-text)] py-8" class="font-body">No products to display.</p>
+@endif
+    </div>
+</section>
 @endif

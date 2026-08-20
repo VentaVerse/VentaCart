@@ -1,5 +1,9 @@
+<section class="py-10 md:py-14">
+    <div class="container-store">
+        <h2 class="section-title reveal">{{ $placement->title }}</h2>
+        <div class="reveal">
 @php
-    $config = $section->config ?? [];
+    $config = $placement->config ?? [];
     $autoplay = $config['autoplay'] ?? false;
     $speed = $config['speed'] ?? 3000;
 @endphp
@@ -29,3 +33,6 @@
 @else
     <p class="text-center text-[var(--color-text)] py-4" class="font-body">No brands to display.</p>
 @endif
+        </div>
+    </div>
+</section>

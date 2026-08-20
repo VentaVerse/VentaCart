@@ -139,5 +139,19 @@
         "track_nav": "0",
         "track_heading": "0",
         "brand_tile_dim": "0.6"
+    },
+    "regions": {
+        "header_top": {
+            "label": "Above the header"
+        },
+        "content_top": {
+            "label": "Above the content"
+        },
+        "content_bottom": {
+            "label": "Below the content"
+        },
+        "footer_top": {
+            "label": "Above the footer"
+        }
     }
 }
