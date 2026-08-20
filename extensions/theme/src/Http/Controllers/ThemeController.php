@@ -226,4 +226,84 @@ class ThemeController extends Controller
 
         return back()->with('success', 'Theme settings updated.')->with('tab', 'theme-settings');
     }
+
+    /**
+     * The bench: the storefront in a frame, with the controls beside it.
+     *
+     * A dedicated full-width surface rather than a panel in the Colors tab.
+     * Two deliberate exceptions to the admin record are taken here and nowhere
+     * else: a second chrome, and the 1080 centered measure. A preview whose
+     * whole purpose is showing a real storefront cannot be shown at 600px, or
+     * the merchant spends the session styling a tablet breakpoint they never
+     * chose.
+     */
+    public function preview(ThemeService $theme)
+    {
+        $meta = json_decode((string) @file_get_contents($theme->getThemePath() . '/theme.json'), true) ?: [];
+        $defaults = $meta['colors'] ?? [];
+
+        $values = [];
+        foreach (\Extensions\Theme\ColorGroups::tokens() as $token) {
+            $values[$token] = $theme->get("colors.{$token}", $defaults[$token] ?? '#000000');
+        }
+
+        $overrides = [];
+        foreach (array_keys(\App\Support\StorefrontPageType::TYPES) as $type) {
+            $set = $theme->pageOverrides($type, 'colors');
+            if ($set !== []) {
+                $overrides[$type] = $set;
+            }
+        }
+
+        return view('theme::preview', [
+            'groups' => \Extensions\Theme\ColorGroups::all(),
+            'values' => $values,
+            'overrides' => $overrides,
+            'pageTypes' => \App\Support\StorefrontPageType::TYPES,
+        ]);
+    }
+
+    /**
+     * One save carries both scopes, because one editing session crosses them:
+     * a merchant fixes the store's muted grey, then pins the account cards.
+     * Splitting it into two submits would mean two save bars for one intent.
+     */
+    public function savePreview(Request $request, ThemeService $theme)
+    {
+        $data = json_decode((string) $request->input('payload'), true);
+
+        if (! is_array($data)) {
+            return back()->with('error', 'The editor sent nothing this save could apply.');
+        }
+
+        $known = \Extensions\Theme\ColorGroups::tokens();
+        $globals = array_intersect_key((array) ($data['global'] ?? []), array_flip($known));
+
+        $touched = 0;
+
+        if ($globals !== []) {
+            $theme->setMany('colors', $globals);
+            $touched += count($globals);
+        }
+
+        foreach ((array) ($data['pages'] ?? []) as $type => $set) {
+            if (! \App\Support\StorefrontPageType::exists($type)) {
+                continue;
+            }
+
+            $set = array_intersect_key((array) $set, array_flip($known));
+            if ($set === []) {
+                continue;
+            }
+
+            $theme->setPageOverrides($type, 'colors', $set);
+            $touched += count($set);
+        }
+
+        $theme->clearCache();
+
+        return back()->with('success', $touched === 0
+            ? 'Nothing changed.'
+            : $touched . ' colour' . ($touched === 1 ? '' : 's') . ' saved.');
+    }
 }

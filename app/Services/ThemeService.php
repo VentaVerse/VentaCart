@@ -56,6 +56,98 @@ class ThemeService
         return $this->settings[$group] ?? [];
     }
 
+    /**
+     * The settings group holding one page type's overrides for one family.
+     *
+     * Deliberately NOT the "{family}__{slug}" shape. That namespace already
+     * belongs to preset snapshots, and a page type sharing a name with a preset
+     * would silently write into it: a merchant customising the account pages
+     * would corrupt a preset they never opened, and the damage would only
+     * surface the next time they applied it.
+     */
+    public function pageOverrideGroup(string $type, string $family): string
+    {
+        return "page_override:{$type}:{$family}";
+    }
+
+    /** One page type's overrides for one family (colors, fonts, vars). */
+    public function pageOverrides(?string $type, string $family): array
+    {
+        if (! \App\Support\StorefrontPageType::exists($type)) {
+            return [];
+        }
+
+        return $this->getGroup($this->pageOverrideGroup($type, $family));
+    }
+
+    /** Every page type that overrides anything, as type => number of values. */
+    public function pageOverrideCounts(): array
+    {
+        $counts = [];
+
+        foreach (array_keys(\App\Support\StorefrontPageType::TYPES) as $type) {
+            $n = 0;
+            foreach (['colors', 'fonts', 'vars', 'theme_settings'] as $family) {
+                $n += count($this->getGroup($this->pageOverrideGroup($type, $family)));
+            }
+            if ($n > 0) {
+                $counts[$type] = $n;
+            }
+        }
+
+        return $counts;
+    }
+
+    /**
+     * Write one page type's overrides for one family.
+     *
+     * A value equal to the global one is DELETED rather than stored. An
+     * override that matches what it overrides is not a decision, it is noise:
+     * it would carry a "this page differs" mark that lies, and it would survive
+     * a later global edit as a silent pin.
+     */
+    public function setPageOverrides(string $type, string $family, array $values): void
+    {
+        if (! \App\Support\StorefrontPageType::exists($type)) {
+            throw new \InvalidArgumentException("Unknown page type [{$type}].");
+        }
+
+        $group = $this->pageOverrideGroup($type, $family);
+        // Read the global from the database, not the in-memory settings cache.
+        // A caller that saves the store's colours and a page's overrides in one
+        // request would otherwise compare against pre-save values and store an
+        // override identical to the global it was meant to differ from.
+        $global = Setting::where('group', $family)->pluck('value', 'key')->all();
+
+        foreach ($values as $key => $value) {
+            if ($value === null || $value === '' || (array_key_exists($key, $global) && (string) $global[$key] === (string) $value)) {
+                Setting::where('group', $group)->where('key', $key)->delete();
+                continue;
+            }
+
+            Setting::updateOrCreate(['group' => $group, 'key' => $key], ['value' => $value]);
+        }
+
+        $this->clearCache();
+    }
+
+    /** Drop every override a page type carries. Used when a preset is applied. */
+    public function clearPageOverrides(?string $type = null): int
+    {
+        $types = $type !== null ? [$type] : array_keys(\App\Support\StorefrontPageType::TYPES);
+        $deleted = 0;
+
+        foreach ($types as $t) {
+            foreach (['colors', 'fonts', 'vars', 'theme_settings'] as $family) {
+                $deleted += Setting::where('group', $this->pageOverrideGroup($t, $family))->delete();
+            }
+        }
+
+        $this->clearCache();
+
+        return $deleted;
+    }
+
     public function set(string $group, string $key, ?string $value): void
     {
         Setting::updateOrCreate(
@@ -248,6 +340,17 @@ class ThemeService
                 ['group' => 'identity', 'key' => 'active_preset'],
                 ['value' => $slug]
             );
+
+            // A preset is the whole look, so page-type overrides do not survive
+            // it (owner ruling 2026-08-20). The caller states which page types
+            // will lose their own colours BEFORE calling this; clearing
+            // deliberate work without naming it first is what would make
+            // per-page overrides untrustworthy.
+            foreach (array_keys(\App\Support\StorefrontPageType::TYPES) as $pageType) {
+                foreach (['colors', 'fonts', 'vars', 'theme_settings'] as $family) {
+                    Setting::where('group', $this->pageOverrideGroup($pageType, $family))->delete();
+                }
+            }
         });
 
         $this->clearCache();

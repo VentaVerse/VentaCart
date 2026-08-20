@@ -17,6 +17,9 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->name('admin.theme.')
     ->group(function () {
         Route::get('/', [ThemeController::class, 'index'])->name('index');
+        // The bench: storefront in a frame, controls beside it.
+        Route::get('/preview', [ThemeController::class, 'preview'])->name('preview');
+        Route::post('/preview', [ThemeController::class, 'savePreview'])->name('preview.save');
         Route::post('/settings', [ThemeController::class, 'updateSettings'])->name('settings.update');
         Route::post('/switch', [ThemeController::class, 'switchTheme'])->name('switch');
         Route::post('/revert-colors', [ThemeController::class, 'revertThemeColors'])->name('revert-colors');

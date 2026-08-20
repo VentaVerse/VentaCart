@@ -1,5 +1,11 @@
+@php
+    // Resolved before <html> because the tag carries the page type: the
+    // preview reads it from there to say which page it is looking at.
+    $vPageType = \App\Support\StorefrontPageType::current();
+    $vPreview = \App\Support\ThemePreview::active();
+@endphp
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"@if ($vPageType) data-page-type="{{ $vPageType }}"@endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -69,6 +75,11 @@
         // theme.json is the base contract: every token defaults from it, DB values override.
         $vThemeMeta = json_decode((string) @file_get_contents(resource_path("themes/{$activeTheme}/theme.json")), true) ?: [];
         $vBaseColors = $vThemeMeta['colors'] ?? [];
+        // Per-page-type overrides. Emitted AFTER the store's own values in
+        // the same :root block, so the cascade does the overriding and no
+        // token needs two sources of truth.
+        $vPageColors = $theme->pageOverrides($vPageType, 'colors');
+        $vPageVars = $theme->pageOverrides($vPageType, 'vars');
         $vOption = function (string $key, $fallback = null) use ($theme, $vThemeMeta) {
             return $theme->getThemeSetting($key, $vThemeMeta['settings'][$key]['default'] ?? $fallback);
         };
@@ -94,6 +105,9 @@
         'resources/themes/' . $activeTheme . '/css/theme.css',
         'resources/themes/' . $activeTheme . '/js/theme.js'
     ])
+    @if ($vPreview)
+        @vite('resources/js/preview.js')
+    @endif
 
     {{-- CSS Variables from Theme Settings (AFTER @vite so DB values override compiled defaults) --}}
     <style>
@@ -113,6 +127,12 @@
             --size-section-title: {{ $theme->get('fonts.size_section_title', '24') }}px;
             --size-product-name: {{ $theme->get('fonts.size_product_name', '14') }}px;
             --size-price: {{ $theme->get('fonts.size_price', '16') }}px;
+            @foreach ($vPageColors as $vKey => $vValue)
+                --color-{{ str_replace('_', '-', $vKey) }}: {{ $vValue }};
+            @endforeach
+            @foreach ($vPageVars as $vKey => $vValue)
+                --{{ str_replace('_', '-', $vKey) }}: {{ $vValue }};
+            @endforeach
             --size-body: {{ $theme->get('fonts.size_body', '14') }}px;
             --size-nav: {{ $theme->get('fonts.size_nav', '14') }}px;
         }

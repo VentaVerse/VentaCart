@@ -1,0 +1,309 @@
+/**
+ * The bench: the theme editor's live preview surface.
+ *
+ * The one place in the admin that breaks the 1080 centered measure, and it does
+ * so on purpose. A storefront preview shown at 600px is permanently in its
+ * tablet layout, so a merchant would spend the session styling a breakpoint
+ * they never chose. Everything here is scoped to .v-bench so no other page
+ * inherits the exception.
+ */
+
+.v-bench {
+    /* Out of the measure, into the viewport. The shell centers its column; the
+       bench claims the width back rather than being handed it. */
+    width: 100%;
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+}
+
+/* ---------- the control column ---------- */
+
+.v-bench__panel {
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift);
+    padding: 14px;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.v-bench__scope {
+    display: flex;
+    gap: 2px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-sm);
+    padding: 2px;
+    margin-bottom: 12px;
+}
+
+.v-bench__scope button {
+    flex: 1;
+    height: 30px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--v-ink-3);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--v-fast), color var(--v-fast);
+}
+
+.v-bench__scope button[aria-pressed="true"] {
+    background: var(--v-act-fill);
+    color: var(--v-act-ink);
+}
+
+.v-bench__scope button:not([aria-pressed="true"]):hover {
+    color: var(--v-ink);
+}
+
+.v-bench__note {
+    font-size: 12px;
+    color: var(--v-ink-3);
+    margin: 0 0 12px;
+}
+
+.v-bench__note b {
+    color: var(--v-ink-2);
+    font-weight: 600;
+}
+
+.v-bench__grouplabel {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--v-ink-3);
+    margin: 16px 0 6px;
+}
+
+.v-bench__grouplabel:first-of-type {
+    margin-top: 0;
+}
+
+.v-bench__row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 5px 7px;
+    border-radius: var(--v-r-sm);
+    margin-bottom: 1px;
+    transition: background var(--v-fast);
+}
+
+.v-bench__row:hover {
+    background: var(--v-hover);
+}
+
+.v-bench__row.is-hit {
+    background: var(--v-act-wash);
+    box-shadow: inset 0 0 0 1px var(--v-act-edge);
+}
+
+/* The swatch IS the colour input. A separate preview square beside a picker is
+   two things saying one thing. */
+.v-bench__swatch {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    padding: 0;
+    border: 1px solid var(--v-line-2);
+    border-radius: 5px;
+    background: none;
+    cursor: pointer;
+}
+
+.v-bench__swatch::-webkit-color-swatch-wrapper { padding: 2px; }
+.v-bench__swatch::-webkit-color-swatch { border: 0; border-radius: 3px; }
+.v-bench__swatch::-moz-color-swatch { border: 0; border-radius: 3px; }
+
+.v-bench__name {
+    font-size: 12.5px;
+    color: var(--v-ink-2);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.v-bench__row.is-hit .v-bench__name {
+    color: var(--v-ink);
+    font-weight: 600;
+}
+
+.v-bench__hex {
+    margin-left: auto;
+    width: 76px;
+    height: 26px;
+    flex: none;
+    border: 1px solid var(--v-line);
+    border-radius: 5px;
+    background: var(--v-sunken);
+    color: var(--v-ink-2);
+    font-family: var(--v-font-mono);
+    font-size: 11px;
+    padding: 0 6px;
+    text-transform: uppercase;
+}
+
+.v-bench__hex:focus {
+    outline: 2px solid var(--v-focus);
+    outline-offset: 1px;
+}
+
+/* The mark that says this page type differs from the store. Without it,
+   per-page overrides become a storefront that drifts apart with nobody able to
+   say where. */
+.v-bench__pin {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--v-act-fill);
+}
+
+.v-bench__reset {
+    flex: none;
+    border: 0;
+    background: none;
+    padding: 2px 4px;
+    color: var(--v-ink-3);
+    cursor: pointer;
+    line-height: 0;
+    border-radius: 4px;
+}
+
+.v-bench__reset:hover { color: var(--v-bad); background: var(--v-bad-wash); }
+.v-bench__reset svg { width: 13px; height: 13px; }
+
+.v-bench__empty {
+    font-size: 12.5px;
+    color: var(--v-ink-3);
+    padding: 18px 4px;
+    text-align: center;
+}
+
+/* ---------- the stage ---------- */
+
+.v-bench__stage {
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.v-bench__bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--v-line);
+    background: var(--v-sunken);
+}
+
+.v-bench__url {
+    flex: 1;
+    height: 28px;
+    min-width: 0;
+    border: 1px solid var(--v-line);
+    border-radius: 100px;
+    background: var(--v-surface);
+    color: var(--v-ink-2);
+    font-family: var(--v-font-mono);
+    font-size: 11.5px;
+    padding: 0 12px;
+}
+
+.v-bench__url:focus {
+    outline: 2px solid var(--v-focus);
+    outline-offset: 1px;
+}
+
+.v-bench__chip {
+    flex: none;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 9px;
+    border-radius: 100px;
+    background: var(--v-act-wash);
+    color: var(--v-act);
+    border: 1px solid var(--v-act-edge);
+    white-space: nowrap;
+}
+
+.v-bench__tool {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    color: var(--v-ink-2);
+    cursor: pointer;
+    transition: background var(--v-fast), color var(--v-fast), border-color var(--v-fast);
+}
+
+.v-bench__tool:hover { background: var(--v-hover); color: var(--v-ink); }
+
+.v-bench__tool[aria-pressed="true"] {
+    background: var(--v-act-fill);
+    border-color: var(--v-act-fill);
+    color: var(--v-act-ink);
+}
+
+.v-bench__tool svg { width: 15px; height: 15px; }
+
+.v-bench__frame {
+    width: 100%;
+    height: calc(100vh - 190px);
+    min-height: 480px;
+    border: 0;
+    display: block;
+    background: var(--v-surface);
+}
+
+/* ---------- narrow ---------- */
+
+@media (max-width: 1100px) {
+    .v-bench {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .v-bench__panel {
+        position: static;
+        max-height: none;
+        order: 2;
+    }
+
+    .v-bench__stage { order: 1; }
+    .v-bench__frame { height: 60vh; }
+}
+
+/* The filter chip is a control, not a label: pressing it widens the list back
+   to every colour the theme has. */
+.v-bench__chip--act {
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.v-bench__chip--act:hover {
+    background: var(--v-act-fill);
+    color: var(--v-act-ink);
+}

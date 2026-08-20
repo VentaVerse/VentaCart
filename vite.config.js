@@ -51,6 +51,9 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/css/admin/admin.css',
                 'resources/js/admin/admin.js',
+                // Theme editor live preview: loaded by the storefront ONLY when an
+                // authenticated admin frames it, never in a shopper's bundle.
+                'resources/js/preview.js',
                 // Contractual manifest keys: the shells preload these via
                 // Vite::asset(), which throws on a manifest miss.
                 'resources/fonts/Archivo-latin.woff2',

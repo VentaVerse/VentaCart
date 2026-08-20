@@ -10,6 +10,7 @@
             <p class="v-head__standing">How the storefront looks. Each section saves on its own.</p>
         </div>
         <div class="v-head__actions">
+            <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
             <x-admin.extension-switch name="theme" />
         </div>
     </div>
