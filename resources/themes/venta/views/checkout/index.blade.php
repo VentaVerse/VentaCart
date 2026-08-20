@@ -21,6 +21,7 @@
 @endphp
 
 <x-store-layout title="Checkout">
+    <x-storefront.region name="content_top" />
     <div class="container-store checkout-page py-10"
          x-data="checkoutWizard(
             {{ $addressesJson }},
@@ -797,4 +798,5 @@
             </div>
         </div>
     </div>
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

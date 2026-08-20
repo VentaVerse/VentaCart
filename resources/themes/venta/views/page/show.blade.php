@@ -1,4 +1,5 @@
 <x-store-layout :title="$page->meta_title ?: $page->title" :meta-description="$page->meta_description">
+    <x-storefront.region name="content_top" />
     <div class="container-store py-3">
         <nav class="flex items-center gap-2 text-xs" style="color: var(--color-text-muted);">
             <a href="{{ route('home') }}" class="hover:text-[var(--color-primary)]">Home</a>
@@ -16,4 +17,5 @@
             </div>
         </article>
     </div>
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

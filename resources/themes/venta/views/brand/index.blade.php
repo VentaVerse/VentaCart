@@ -1,4 +1,5 @@
 <x-store-layout title="Brands">
+    <x-storefront.region name="content_top" />
 
     {{-- Breadcrumbs --}}
     <div class="bg-[var(--color-card-bg)] border-b border-[var(--color-border)]">
@@ -40,4 +41,5 @@
         @endif
     </div>
 
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

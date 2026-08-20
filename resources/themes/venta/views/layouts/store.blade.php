@@ -248,10 +248,16 @@
         </div>
     </template>
 
+    {{-- Site-wide regions live HERE, not in each page: a slot that exists on
+         every page should not depend on 23 views each remembering to call it. --}}
+    <x-storefront.region name="header_top" />
+
     {{-- Page Content --}}
     <main class="relative z-[1]">
         {{ $slot }}
     </main>
+
+    <x-storefront.region name="footer_top" />
 
     {{-- Footer --}}
     @php

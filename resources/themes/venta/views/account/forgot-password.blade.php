@@ -1,4 +1,5 @@
 <x-store-layout title="Forgot Password">
+    <x-storefront.region name="content_top" />
     <div class="container-store py-16">
         <div class="account-auth-card">
             <h1 class="account-auth-title text-center">FORGOT PASSWORD</h1>
@@ -39,4 +40,5 @@
             </p>
         </div>
     </div>
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

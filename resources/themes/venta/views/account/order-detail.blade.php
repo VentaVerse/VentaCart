@@ -1,4 +1,5 @@
 <x-store-layout title="Order #{{ $order->id }}">
+    <x-storefront.region name="content_top" />
     <div class="container-store py-10">
         <h1 class="section-title reveal">ORDER #{{ $order->id }}</h1>
 
@@ -168,4 +169,5 @@
             </div>
         </div>
     </div>
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

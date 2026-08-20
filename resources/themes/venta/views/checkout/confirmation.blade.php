@@ -1,4 +1,5 @@
 <x-store-layout title="Order Confirmed">
+    <x-storefront.region name="content_top" />
     <div class="container-store py-10">
 
         {{-- Success Icon --}}
@@ -146,4 +147,5 @@
         </div>
 
     </div>
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

@@ -1,4 +1,5 @@
 <x-store-layout title="Sign In">
+    <x-storefront.region name="content_top" />
     <div class="container-store py-16">
         <div class="account-auth-card" x-data="loginForm()">
             <h1 class="account-auth-title text-center">SIGN IN</h1>
@@ -145,4 +146,5 @@
     }
     </script>
     @endpush
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

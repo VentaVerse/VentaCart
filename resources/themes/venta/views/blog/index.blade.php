@@ -1,4 +1,5 @@
 <x-store-layout title="Blog">
+    <x-storefront.region name="content_top" />
 
     {{-- Breadcrumbs --}}
     <div class="page-breadcrumbs">
@@ -98,4 +99,5 @@
             </aside>
         </div>
     </div>
+    <x-storefront.region name="content_bottom" />
 </x-store-layout>

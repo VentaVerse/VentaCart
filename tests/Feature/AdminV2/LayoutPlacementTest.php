@@ -163,4 +163,67 @@ class LayoutPlacementTest extends TestCase
         $this->assertTrue(Regions::orphans()->contains('id', $orphan->id));
         $this->assertDatabaseHas('layout_placements', ['id' => $orphan->id]);
     }
+
+    /* ---------------- every page carries regions ---------------- */
+
+    /**
+     * Site-wide regions live in the LAYOUT, not in 23 page views.
+     *
+     * A slot that exists on every page must not depend on every view
+     * remembering to call it: the one that forgets is the one a merchant
+     * discovers by placing something and finding it missing on one page.
+     */
+    public function test_the_site_wide_regions_come_from_the_layout(): void
+    {
+        LayoutPlacement::create([
+            'page_type' => LayoutPlacement::EVERYWHERE,
+            'region' => 'header_top',
+            'widget' => 'catalog.brands',
+            'title' => 'Everywhere Strip',
+            'sort_order' => 0,
+            'is_enabled' => true,
+        ]);
+
+        foreach (['/', '/cart', '/account/login', '/brand'] as $url) {
+            $this->get($url)->assertOk()->assertSee('Everywhere Strip', false);
+        }
+    }
+
+    /** Content regions reach pages that are not the home page. */
+    public function test_a_placement_reaches_the_cart_page(): void
+    {
+        LayoutPlacement::create([
+            'page_type' => 'cart',
+            'region' => 'content_bottom',
+            'widget' => 'catalog.brands',
+            'title' => 'Brands We Carry',
+            'sort_order' => 0,
+            'is_enabled' => true,
+        ]);
+
+        $this->get('/cart')->assertOk()->assertSee('Brands We Carry', false);
+        $this->get('/')->assertOk()->assertDontSee('Brands We Carry', false);
+    }
+
+    /**
+     * The whole point of the exercise, stated as a test: banners were locked to
+     * the home page because home.blade.php was the only view that rendered
+     * sections. Every storefront view calls its content regions now.
+     */
+    public function test_every_storefront_view_calls_its_content_regions(): void
+    {
+        $views = array_merge(
+            glob(resource_path('themes/venta/views/*.blade.php')),
+            glob(resource_path('themes/venta/views/{account,blog,brand,cart,category,checkout,page,product,search}/*.blade.php'), GLOB_BRACE)
+        );
+
+        $missing = [];
+        foreach ($views as $view) {
+            if (! str_contains(file_get_contents($view), 'name="content_top"')) {
+                $missing[] = basename(dirname($view)) . '/' . basename($view);
+            }
+        }
+
+        $this->assertSame([], $missing, 'These pages cannot host a placement: ' . implode(', ', $missing));
+    }
 }
