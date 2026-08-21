@@ -533,3 +533,87 @@
     .v-lay.is-inspecting { grid-template-columns: minmax(0, 1fr); }
     .v-lay__inspector { position: static; max-height: none; }
 }
+
+/* ---------- orphans ---------- */
+
+.v-lay__orphans {
+    margin-bottom: 12px;
+    padding: 12px 14px;
+    border-radius: var(--v-r-md);
+    background: var(--v-warn-wash);
+    color: var(--v-warn);
+}
+
+.v-lay__orphans > p { display: flex; gap: 9px; align-items: flex-start; margin: 0 0 10px; font-size: 13px; }
+.v-lay__orphans svg { width: 17px; height: 17px; flex: none; }
+
+.v-lay__orphan {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    margin-top: 6px;
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    color: var(--v-ink-2);
+    font-size: 12.5px;
+}
+
+.v-lay__orphan .mono { font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-3); }
+
+.v-lay__orphan button {
+    margin-left: auto;
+    border: 1px solid var(--v-line-2);
+    background: var(--v-surface);
+    color: var(--v-act);
+    border-radius: var(--v-r-sm);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 10px;
+    min-height: 28px;
+    cursor: pointer;
+}
+
+.v-lay__orphan button:hover { background: var(--v-act-wash); }
+
+/* ---------- the page picker ---------- */
+
+/* Desktop keeps the rail; the phone gets this instead, never both. */
+.v-lay__pagepick { display: none; }
+
+@media (max-width: 900px) {
+    .v-lay__rail { display: none; }
+
+    .v-lay__pagepick {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+        padding: 10px 12px;
+        background: var(--v-surface);
+        border: 1px solid var(--v-line);
+        border-radius: var(--v-r-md);
+    }
+
+    .v-lay__pagepick > span {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: var(--v-ink-3);
+    }
+
+    .v-lay__pagepick select {
+        flex: 1;
+        min-width: 0;
+        height: 44px;
+        padding: 0 10px;
+        border: 1px solid var(--v-line-2);
+        border-radius: var(--v-r-sm);
+        background: var(--v-surface);
+        color: var(--v-ink);
+        font: inherit;
+        font-size: 14px;
+    }
+}

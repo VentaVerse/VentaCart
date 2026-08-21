@@ -75,6 +75,17 @@ class LayoutController extends Controller
                     return $field;
                 }, Widgets::schema($key))])->all(),
             'pageSettings' => $this->pageSettings($pageType),
+            // Placements in regions this theme no longer declares. Computed
+            // since the layout system landed and never once rendered, so a
+            // theme update that drops a region hid a merchant's work silently.
+            'orphans' => Regions::orphans()->map(fn ($o) => [
+                'id' => $o->id,
+                'region' => $o->region,
+                'widget' => $o->widget,
+                'title' => $o->title,
+                'page' => $o->pageLabel(),
+                'page_type' => $o->page_type,
+            ])->values(),
         ]);
     }
 
@@ -256,5 +267,15 @@ class LayoutController extends Controller
             $out,
             fn ($f) => $f['pages'] === null || in_array($pageType, $f['pages'], true)
         ));
+    }
+
+    /** The widget settings forms, refetched when the merchant comes back. */
+    public function schemas()
+    {
+        return response()->json(
+            collect(Widgets::all())->keys()
+                ->mapWithKeys(fn ($key) => [$key => Widgets::schema($key)])
+                ->all()
+        );
     }
 }

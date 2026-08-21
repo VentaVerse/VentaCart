@@ -27,6 +27,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // editor: placements are store data that survive a theme switch.
         Route::get('/layout', [LayoutController::class, 'index'])->name('layout');
         Route::post('/layout', [LayoutController::class, 'update'])->name('layout.update');
+        Route::get('/layout/schemas', [LayoutController::class, 'schemas'])->name('layout.schemas');
         // The bench: storefront in a frame, controls beside it.
         Route::get('/preview', [ThemeController::class, 'preview'])->name('preview');
         Route::post('/preview', [ThemeController::class, 'savePreview'])->name('preview.save');

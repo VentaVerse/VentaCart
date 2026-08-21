@@ -27,6 +27,18 @@
       <div class="v-lay" :class="{ 'is-inspecting': editing }" x-data="layoutEditor(window.__layout)">
         <input type="hidden" name="payload" :value="payload()">
 
+        {{-- On a phone the 12-link rail filled the whole first viewport before
+             the editor was reachable, so there it collapses to one control. --}}
+        <label class="v-lay__pagepick">
+            <span>Page</span>
+            <select onchange="window.location = this.value">
+                <option value="{{ route('admin.theme.layout', ['page' => '*']) }}" @selected($pageType === '*')>All pages</option>
+                @foreach ($pageTypes as $vKey => $vLabel)
+                    <option value="{{ route('admin.theme.layout', ['page' => $vKey]) }}" @selected($pageType === $vKey)>{{ $vLabel }}</option>
+                @endforeach
+            </select>
+        </label>
+
         {{-- which page --}}
         <nav class="v-lay__rail" aria-label="Pages">
             <div class="v-lay__raillbl">Everywhere</div>
@@ -50,6 +62,24 @@
         <p class="v-lay__said" role="status" aria-live="polite" x-text="announcement" x-show="announcement" x-cloak></p>
 
         <div class="v-lay__stage">
+            {{-- Placements in positions this theme no longer has. Kept, never
+                 deleted, and now actually shown: they were computed since the
+                 layout system landed and no view ever drew them, so a theme
+                 update that dropped a region hid the work in silence. --}}
+            <div class="v-lay__orphans" x-show="orphans.length" x-cloak>
+                <p>
+                    <x-admin.icon name="warning" />
+                    <span x-text="orphans.length + (orphans.length === 1 ? ' widget sits' : ' widgets sit') + ' in a position this theme does not have. They render nothing until you move them.'"></span>
+                </p>
+                <template x-for="o in orphans" :key="o.id">
+                    <div class="v-lay__orphan">
+                        <span x-text="o.title || o.widget"></span>
+                        <span class="mono" x-text="o.page + ' / ' + o.region"></span>
+                        <button type="button" @click="rescue(o)">Move to Below the content</button>
+                    </div>
+                </template>
+            </div>
+
             <div class="v-lay__page">
                 {{-- top --}}
                 @if (isset($regions['header_top']))
@@ -231,6 +261,8 @@
                 widgets: @js($widgets),
                 schemas: @js($schemas),
                 pageSettings: @js($pageSettings),
+                orphans: @js($orphans),
+                schemasUrl: @js(route('admin.theme.layout.schemas')),
                 cols: @js($columns),
                 grid: @js($grid),
                 minContent: @js($minContent),
@@ -257,6 +289,7 @@
                     minContent: seed.minContent,
                     schemas: seed.schemas,
                     pageSettings: seed.pageSettings,
+                    orphans: seed.orphans,
                     adding: null,
                     editing: null,
                     dragging: null,
@@ -266,7 +299,10 @@
 
                     /** Named `placed`, never `in`: `in` is a JS operator and Alpine
                      *  could not parse the expression, so every slot threw. */
-                    init() { root = this.$root ?? this.$el; },
+                    init() {
+                        root = this.$root ?? this.$el;
+                        window.addEventListener('focus', () => this.refreshChoices());
+                    },
 
                     placed(region) { return this.rows[region] || []; },
 
@@ -438,6 +474,39 @@
                         this.say((widget.title || widget.label) + ' moved to ' + this.regionLabel(target));
                         this.moving = null;
                         this.touch();
+                    },
+
+                    /**
+                     * Bring a stranded placement back into a position that exists.
+                     * Only offered for the page being edited; an orphan on another
+                     * page is listed so it can be found, not silently moved.
+                     */
+                    rescue(orphan) {
+                        if (orphan.page_type !== this.pageType) {
+                            window.location = '{{ route('admin.theme.layout') }}?page=' + encodeURIComponent(orphan.page_type);
+                            return;
+                        }
+
+                        if (!this.rows.content_bottom) this.rows.content_bottom = [];
+                        this.rows.content_bottom.push({
+                            id: orphan.id, widget: orphan.widget, title: orphan.title,
+                            label: orphan.title || orphan.widget, enabled: true, available: true, config: {},
+                        });
+                        this.orphans = this.orphans.filter((o) => o.id !== orphan.id);
+                        this.rows = { ...this.rows };
+                        this.say((orphan.title || orphan.widget) + ' moved to Below the content');
+                        this.touch();
+                    },
+
+                    /**
+                     * A banner created in the other tab was invisible here until a
+                     * reload, because options are resolved server-side at render.
+                     */
+                    async refreshChoices() {
+                        try {
+                            const res = await fetch(this.schemasUrl, { headers: { Accept: 'application/json' } });
+                            if (res.ok) this.schemas = await res.json();
+                        } catch (e) { /* the merchant loses nothing if this fails */ }
                     },
 
                     /** Announced to a screen reader, and shown to everyone else. */

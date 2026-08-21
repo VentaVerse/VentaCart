@@ -222,4 +222,58 @@ class LayoutThemeScopeTest extends TestCase
             ->assertOk()
             ->assertSee('product-page-breadcrumbs', false);
     }
+
+    /* ---------------- the last three from the critique ---------------- */
+
+    /**
+     * Orphans were computed since the layout system landed and no view ever
+     * drew them, so a theme update that dropped a region hid a merchant's work
+     * in silence. The CSS to show them existed the whole time.
+     */
+    public function test_a_placement_in_a_missing_region_is_shown_not_hidden(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        LayoutPlacement::create([
+            'theme' => 'venta', 'page_type' => 'home', 'region' => 'faceplate',
+            'widget' => 'catalog.brands', 'title' => 'Stranded strip',
+            'sort_order' => 0, 'is_enabled' => true,
+        ]);
+
+        $this->get(route('admin.theme.layout', ['page' => 'home']))
+            ->assertOk()
+            ->assertSee('Stranded strip', false)
+            ->assertSee('faceplate', false);
+    }
+
+    /** Another theme's placements are not this theme's orphans. */
+    public function test_another_themes_layout_is_not_reported_as_orphaned(): void
+    {
+        LayoutPlacement::create([
+            'theme' => 'amplifier', 'page_type' => 'home', 'region' => 'faceplate',
+            'widget' => 'catalog.brands', 'title' => 'Theirs',
+            'sort_order' => 0, 'is_enabled' => true,
+        ]);
+
+        $this->assertCount(0, \App\Support\Regions::orphans());
+        $this->assertCount(1, \App\Support\Regions::orphans('amplifier'));
+    }
+
+    /**
+     * A banner created in another tab was invisible in the picker until a
+     * reload, because options resolve server-side at render.
+     */
+    public function test_the_editor_can_refetch_the_widget_choices(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->getJson(route('admin.theme.layout.schemas'))
+            ->assertOk()
+            ->assertJsonStructure(['catalog.products']);
+    }
+
+    public function test_the_choices_endpoint_is_behind_admin_auth(): void
+    {
+        $this->get(route('admin.theme.layout.schemas'))->assertRedirect();
+    }
 }

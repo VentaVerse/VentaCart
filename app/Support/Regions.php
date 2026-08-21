@@ -53,11 +53,17 @@ class Regions
      */
     public static function orphans(?string $theme = null)
     {
+        $theme = $theme ?: app(ThemeService::class)->getActiveTheme();
         $known = array_keys(static::all($theme));
 
+        // Scoped to the theme, like the layout itself. An unscoped query
+        // reported another theme's placements as orphans of this one, which is
+        // the opposite of true: they are fine, they are simply not here.
         return \App\Models\LayoutPlacement::query()
+            ->where('theme', $theme)
             ->when($known !== [], fn ($q) => $q->whereNotIn('region', $known))
             ->orderBy('page_type')
+            ->orderBy('sort_order')
             ->get();
     }
 
