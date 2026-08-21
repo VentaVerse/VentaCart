@@ -169,9 +169,31 @@ class LayoutController extends Controller
         }
 
         $rows = collect($data['placements'] ?? [])->values();
-        $kept = [];
 
-        DB::transaction(function () use ($data, $pageType, $rows, &$kept) {
+        // Written by this save, and counted in what the merchant is told.
+        $kept = [];
+        // Protected from the sweep, and deliberately NOT counted: telling a
+        // merchant "3 widgets placed" when one of them is a banner they cannot
+        // currently see is how a screen earns distrust.
+        $spared = [];
+
+        try {
+            DB::transaction(function () use ($data, $pageType, $rows, &$kept, &$spared) {
+            // Placements this screen can show but cannot send back: a widget
+            // whose module is switched off, and a region this theme no longer
+            // declares. The editor renders both (a Module off chip, the
+            // orphans block) and PROMISES both are kept. Without this they
+            // fell through the loop below, never reached $kept, and the sweep
+            // deleted them. A merchant who switched Banners off for an
+            // afternoon, tidied their homepage, and switched it back on had
+            // lost the placement and its config, under a success message.
+            $spared = LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
+                ->where('page_type', $pageType)
+                ->get()
+                ->filter(fn ($p) => ! Regions::exists($p->region) || ! Widgets::has($p->widget))
+                ->pluck('id')
+                ->all();
+
             LayoutColumns::updateOrCreate(
                 ['theme' => LayoutPlacement::scopeTheme(), 'page_type' => $pageType],
                 [
@@ -208,25 +230,44 @@ class LayoutController extends Controller
                 $kept[] = $placement->id;
             }
 
+            // A payload we could not read a single widget out of is not an
+            // instruction to empty the page, it is a payload we could not
+            // read. Refusing the whole save here is the difference between
+            // an error message and an error message arriving after the work
+            // was already destroyed. An empty placements list is a different
+            // thing entirely and still empties the page, below.
+            if ($kept === [] && $rows->isNotEmpty()) {
+                throw new RefusedSave();
+            }
+
             // Whatever this page type had and the editor did not send back was
             // removed on screen. Scoped to this page type, so nothing else moves.
+            //
+            // Always constrained, never conditionally. The old guard skipped
+            // whereNotIn when nothing was kept, so a save where every row was
+            // refused deleted the entire page type and then reported an error
+            // about a transaction that had already committed. An empty $kept
+            // now means exactly what it says: the merchant emptied the page.
             LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
                 ->where('page_type', $pageType)
-                ->when($kept !== [], fn ($q) => $q->whereNotIn('id', $kept))
+                ->whereNotIn('id', array_merge($kept, $spared))
                 ->delete();
-        });
+            });
+        } catch (RefusedSave $e) {
+            return back()->with('error', 'Nothing could be placed on '
+                . ($pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType))
+                . '. Nothing was changed.');
+        }
 
         $where = $pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType);
 
-        // Sent widgets and stored none means something was refused or lost.
-        // Reporting "0 widgets placed" in the success style is how a merchant
-        // learns to distrust every message this screen shows.
-        if ($kept === [] && $rows->isNotEmpty()) {
-            return back()->with('error', 'Nothing could be placed on ' . $where . '. The widgets sent were not recognised.');
-        }
-
         if ($kept === [] && $rows->isEmpty()) {
-            return back()->with('success', $where . ' is now empty.');
+            // Not empty if something is still standing that this save could
+            // not touch, so the message says what is actually there.
+            return back()->with('success', $spared === []
+                ? $where . ' is now empty.'
+                : $where . ' is now empty apart from ' . count($spared) . ' '
+                    . (count($spared) === 1 ? 'widget' : 'widgets') . ' waiting on a module.');
         }
 
         return back()->with('success', count($kept) . ' ' . (count($kept) === 1 ? 'widget' : 'widgets')
