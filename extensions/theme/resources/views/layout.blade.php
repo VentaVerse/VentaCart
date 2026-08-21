@@ -16,10 +16,15 @@
             </div>
             <h1 class="v-head__title">Layout</h1>
         </div>
+        <div class="v-head__actions">
+            {{-- The screen changes what every shopper sees and had no path to
+                 the storefront it edits. --}}
+            <a href="{{ url('/') }}" target="_blank" rel="noopener" class="v-btn v-btn--sm">View store</a>
+        </div>
     </div>
 
     <x-admin.form :action="route('admin.theme.layout.update')">
-      <div class="v-lay" x-data="layoutEditor(window.__layout)">
+      <div class="v-lay" :class="{ 'is-inspecting': editing }" x-data="layoutEditor(window.__layout)">
         <input type="hidden" name="payload" :value="payload()">
 
         {{-- which page --}}
@@ -42,6 +47,8 @@
         </nav>
 
         {{-- the page, drawn as a page --}}
+        <p class="v-lay__said" role="status" aria-live="polite" x-text="announcement" x-show="announcement" x-cloak></p>
+
         <div class="v-lay__stage">
             <div class="v-lay__page">
                 {{-- top --}}
@@ -56,6 +63,13 @@
                 {{-- the row --}}
                 <div class="v-lay__middle">
                     @if (isset($regions['column_left']))
+                        {{-- The right column had a stub and the left never did, so a
+                             filter rail, the commonest sidebar in commerce, could not
+                             be made from this screen at any width. --}}
+                        <template x-if="cols.left === 0">
+                            <button type="button" class="v-lay__stub" @click="addColumn('left')"
+                                    title="Add a left column" aria-label="Add a left column">+</button>
+                        </template>
                         <template x-if="cols.left > 0">
                             <div class="v-lay__col v-lay__col--side" :style="'width:' + (cols.left / grid * 100) + '%'">
                                 <x-theme::layout-slot region="column_left" label="Left column" side="true" />
@@ -64,6 +78,8 @@
                         <template x-if="cols.left > 0">
                             <div class="v-lay__handle" role="separator" tabindex="0"
                                  aria-label="Left column width"
+                                 :aria-valuenow="cols.left" aria-valuemin="0" :aria-valuemax="grid - minContent"
+                                 aria-orientation="vertical"
                                  @pointerdown="grab('left', $event)"
                                  @keydown.arrow-left.prevent="nudge('left', -1)"
                                  @keydown.arrow-right.prevent="nudge('left', 1)"></div>
@@ -75,10 +91,7 @@
                             <x-theme::layout-slot region="content_top" label="Above the content" />
                         @endif
 
-                        <div class="v-lay__pagebody">
-                            <b>The page itself</b>
-                            <span>rendered by the theme, not placed here</span>
-                        </div>
+                        <div class="v-lay__pagebody"><b>The page itself</b></div>
 
                         @if (isset($regions['content_bottom']))
                             <x-theme::layout-slot region="content_bottom" label="Below the content" />
@@ -89,6 +102,8 @@
                         <template x-if="cols.right > 0">
                             <div class="v-lay__handle" role="separator" tabindex="0"
                                  aria-label="Right column width"
+                                 :aria-valuenow="cols.right" aria-valuemin="0" :aria-valuemax="grid - minContent"
+                                 aria-orientation="vertical"
                                  @pointerdown="grab('right', $event)"
                                  @keydown.arrow-left.prevent="nudge('right', 1)"
                                  @keydown.arrow-right.prevent="nudge('right', -1)"></div>
@@ -117,15 +132,16 @@
                     <span>Columns</span>
                     <span class="mono" x-text="cols.left + ' / ' + (grid - cols.left - cols.right) + ' / ' + cols.right"></span>
                     <span class="v-lay__sp"></span>
-                    <span x-show="cols.left > 0" @click="cols.left = 0; touch()" class="v-lay__drop">Remove left column</span>
-                    <span x-show="cols.right > 0" @click="cols.right = 0; touch()" class="v-lay__drop">Remove right column</span>
-                    <span>Content never goes below {{ $minContent }}/{{ $grid }}</span>
+                    <button type="button" class="v-lay__drop" x-show="cols.left > 0" @click="dropColumn('left')"
+                            :aria-label="dropLabel('left')" x-text="dropLabel('left')"></button>
+                    <button type="button" class="v-lay__drop" x-show="cols.right > 0" @click="dropColumn('right')"
+                            :aria-label="dropLabel('right')" x-text="dropLabel('right')"></button>
                 </div>
             </div>
         </div>
 
         {{-- settings for the selected widget, from its own schema --}}
-        <div class="v-lay__pick v-lay__pick--wide" x-show="editing" x-cloak
+        <div class="v-lay__inspector" x-show="editing" x-cloak
              @keydown.escape.window="editing = null">
             <div class="v-lay__pickhead">
                 <b x-text="editing ? (editing.title || editing.label) : ''"></b>
@@ -171,7 +187,7 @@
             </template>
 
             <p class="v-lay__pickempty" x-show="schemaFor(editing?.widget).length === 0">
-                This widget has nothing to configure.
+                Nothing to configure
             </p>
         </div>
 
@@ -199,7 +215,7 @@
                 </button>
             </template>
             <p class="v-lay__pickempty" x-show="offerable(adding).length === 0">
-                Nothing can go here. Every widget declares which positions suit it.
+                No widget fits this position
             </p>
         </div>
       </div>
@@ -244,6 +260,9 @@
                     adding: null,
                     editing: null,
                     dragging: null,
+                    moving: null,
+                    announcement: '',
+                    sayTimer: null,
 
                     /** Named `placed`, never `in`: `in` is a JS operator and Alpine
                      *  could not parse the expression, so every slot threw. */
@@ -283,7 +302,19 @@
 
                     schemaFor(widget) { return widget ? (this.schemas[widget] || []) : []; },
 
-                    cfg(name) { return (this.editing?.config ?? {})[name] ?? ''; },
+                    /**
+                     * Falls back to the schema's declared default. A freshly added
+                     * Product grid showed Show and How many both blank while it
+                     * would in fact render the 12 newest, so the merchant had to
+                     * remember what the blank meant.
+                     */
+                    cfg(name) {
+                        const set = this.editing?.config ?? {};
+                        if (set[name] !== undefined && set[name] !== '') return set[name];
+
+                        const field = this.schemaFor(this.editing?.widget).find((f) => f.name === name);
+                        return field?.default ?? '';
+                    },
 
                     setCfg(name, value) {
                         if (!this.editing.config) this.editing.config = {};
@@ -316,7 +347,13 @@
                         // A widget that does not accept this position is refused,
                         // rather than accepted and then rendered wrong.
                         const spec = this.widgets.find((w) => w.key === widget.widget);
-                        if (spec && !spec.regions.includes(region)) return;
+
+                        // A silent return is indistinguishable from a bug: the card
+                        // simply sprang back and nothing said why.
+                        if (spec && !spec.regions.includes(region)) {
+                            this.say((widget.title || widget.label) + ' cannot go in ' + this.regionLabel(region));
+                            return;
+                        }
 
                         this.rows[d.region].splice(d.i, 1);
                         if (!this.rows[region]) this.rows[region] = [];
@@ -328,6 +365,87 @@
                     },
 
                     /* ---- widths ---- */
+
+                    /* ---- columns ---- */
+
+                    addColumn(side) { this.setWidth(side, 2); this.touch(); },
+
+                    dropLabel(side) {
+                        const n = this.placed(side === 'left' ? 'column_left' : 'column_right').length;
+                        return n === 0
+                            ? 'Remove ' + side + ' column'
+                            : 'Remove ' + side + ' column (' + n + ' inside)';
+                    },
+
+                    /**
+                     * Removing a column used to hide its widgets and keep saving
+                     * them: the slot stopped rendering, the cards vanished, and
+                     * the placements still went to the database where nothing
+                     * would ever draw them. They move to Below the content now,
+                     * and the merchant is told so.
+                     */
+                    dropColumn(side) {
+                        const region = side === 'left' ? 'column_left' : 'column_right';
+                        const stranded = this.placed(region);
+
+                        if (stranded.length) {
+                            if (!this.rows.content_bottom) this.rows.content_bottom = [];
+                            this.rows.content_bottom.push(...stranded);
+                            this.rows[region] = [];
+                            this.say(stranded.length + (stranded.length === 1 ? ' widget' : ' widgets') + ' moved to Below the content');
+                        }
+
+                        this.cols[side] = 0;
+                        this.rows = { ...this.rows };
+                        this.touch();
+                    },
+
+                    /* ---- moving without a mouse ---- */
+
+                    /** Reorder with buttons, so touch and keyboard both work. */
+                    nudgeCard(region, i, by) {
+                        const list = this.rows[region];
+                        const to = i + by;
+                        if (!list || to < 0 || to >= list.length) return;
+
+                        [list[i], list[to]] = [list[to], list[i]];
+                        this.rows = { ...this.rows };
+                        this.say((list[to].title || list[to].label) + ' moved ' + (by < 0 ? 'up' : 'down'));
+                        this.touch();
+                    },
+
+                    /** Where else this widget is allowed to go. */
+                    movesFor(widget) {
+                        const spec = this.widgets.find((w) => w.key === widget);
+                        const allowed = spec ? spec.regions : Object.keys(this.regions);
+                        return allowed.filter((r) => this.regionOpen(r));
+                    },
+
+                    regionOpen(region) {
+                        if (region === 'column_left') return this.cols.left > 0;
+                        if (region === 'column_right') return this.cols.right > 0;
+                        return true;
+                    },
+
+                    moveTo(region, i, target) {
+                        if (region === target) { this.moving = null; return; }
+
+                        const widget = this.rows[region][i];
+                        this.rows[region].splice(i, 1);
+                        if (!this.rows[target]) this.rows[target] = [];
+                        this.rows[target].push(widget);
+                        this.rows = { ...this.rows };
+                        this.say((widget.title || widget.label) + ' moved to ' + this.regionLabel(target));
+                        this.moving = null;
+                        this.touch();
+                    },
+
+                    /** Announced to a screen reader, and shown to everyone else. */
+                    say(message) {
+                        this.announcement = message;
+                        clearTimeout(this.sayTimer);
+                        this.sayTimer = setTimeout(() => { this.announcement = ''; }, 4000);
+                    },
 
                     grab(side, e) {
                         e.preventDefault();
