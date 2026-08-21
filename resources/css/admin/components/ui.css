@@ -560,14 +560,31 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 .v-colorrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 36px; }
 .v-colorrow__label { font-size: 13px; color: var(--v-ink-2); min-width: 0; }
 .v-colorrow__pair { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+/* The chip has to read as a colour on ANY ground, including its own.
+   In dark mode a near-black value (#101318 Titles, #23262B Paragraph) sat on a
+   near-black panel and disappeared: the one tool whose whole job is showing
+   colour, failing to show it. A checkerboard behind and a hairline between the
+   fill and the frame separate them without tinting the value. */
 .v-swatch {
     width: 40px; height: 30px;
     padding: 2px;
     border: 1px solid var(--v-edge);
     border-radius: var(--v-r-sm);
-    background: var(--v-surface);
+    background-color: var(--v-surface);
+    background-image:
+        linear-gradient(45deg, rgba(127, 127, 127, .22) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(127, 127, 127, .22) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(127, 127, 127, .22) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(127, 127, 127, .22) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0;
     cursor: pointer;
 }
+
+.v-swatch::-webkit-color-swatch-wrapper { padding: 0; }
+.v-swatch::-webkit-color-swatch { border: 1px solid rgba(127, 127, 127, .55); border-radius: 3px; }
+.v-swatch::-moz-color-swatch { border: 1px solid rgba(127, 127, 127, .55); border-radius: 3px; }
+
 .v-swatch--lg { width: 56px; height: 36px; }
 .v-w-hex { max-width: 96px; min-height: 30px; font-size: 12px; }
 
@@ -1594,3 +1611,27 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 /* --- Auth forms (the guest door speaks the one vocabulary) --------- */
 .v-authform { display: flex; flex-direction: column; gap: 18px; }
 .v-block-btn { width: 100%; justify-content: center; }
+
+/* Move a row without dragging. HTML5 drag does not fire on touch and cannot be
+   driven from a keyboard, so a grip on its own is an invitation to an
+   impossible action on a phone. */
+.v-dragrow__move { display: inline-flex; gap: 2px; flex: none; }
+
+.v-dragrow__move button {
+    min-width: 28px;
+    min-height: 28px;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    color: var(--v-ink-3);
+    font: inherit;
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.v-dragrow__move button:hover { background: var(--v-hover); color: var(--v-ink); }
+
+@media (pointer: coarse) {
+    .v-dragrow__move button { min-width: 44px; min-height: 44px; }
+}

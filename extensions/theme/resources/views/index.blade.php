@@ -21,9 +21,9 @@
         // with no active nav item, no message and no 404. That is what a stale
         // bookmark, a shared link or a rename produces.
         $vTabs = ['presets','colors','fonts','badges','header','navigation','footer',
-                  'homepage','product_page','category_page','blog','theme_settings'];
+                  'product_page','category_page','blog','theme_settings'];
         // The old kebab key, kept so existing links do not break.
-        $vAliases = ['theme-settings' => 'theme_settings', 'options' => 'theme_settings'];
+        $vAliases = ['theme-settings' => 'theme_settings', 'options' => 'theme_settings', 'homepage' => 'presets'];
         $vTab = session('tab', request('tab', 'presets'));
         $vTab = $vAliases[$vTab] ?? $vTab;
         $vTab = in_array($vTab, $vTabs, true) ? $vTab : 'presets';
@@ -43,9 +43,25 @@
                 $vThemeNav = [
                     '' => ['presets' => ['Presets', 'tags']],
                     'Look' => ['colors' => ['Colors', 'theme'], 'fonts' => ['Fonts', 'text'], 'badges' => ['Badges', 'check']],
-                    'Layout' => ['header' => ['Header', 'menu'], 'navigation' => ['Navigation', 'link'], 'footer' => ['Footer', 'layers']],
-                    'Pages' => ['homepage' => ['Homepage', 'home'], 'product_page' => ['Product page', 'products'], 'category_page' => ['Category page', 'folder'], 'blog' => ['Blog', 'content']],
+                    // "Structure", not "Layout": the layout editor is a
+                    // different thing one item below, and two menu entries a
+                    // group apart both called Layout is a trap.
+                    'Structure' => ['header' => ['Header', 'menu'], 'navigation' => ['Navigation', 'link'], 'footer' => ['Footer', 'layers']],
+                    // The Homepage tab is gone. It was a panel titled "Pages"
+                    // holding a sentence and eleven links: a redirect wearing a
+                    // tab's clothes. The redirect is now a link, in the menu,
+                    // where a link belongs.
+                    'Pages' => ['product_page' => ['Product page', 'products'], 'category_page' => ['Category page', 'folder'], 'blog' => ['Blog', 'content']],
                     'Advanced' => ['theme_settings' => ['Theme options', 'settings']],
+                ];
+
+                // Menu entries that leave this page. The Pages group used to
+                // promise eleven page types and deliver four, one of which was
+                // a redirect; the arranging of all eleven lives in Layout.
+                $vThemeLinks = [
+                    'Pages' => [
+                        ['label' => 'Arrange pages', 'icon' => 'layers', 'url' => route('admin.theme.layout')],
+                    ],
                 ];
             @endphp
             @foreach ($vThemeNav as $vGroup => $vItems)
@@ -55,6 +71,12 @@
                         <x-admin.icon :name="$ticon" />
                         {{ $tlabel }}
                     </button>
+                @endforeach
+                @foreach ($vThemeLinks[$vGroup] ?? [] as $vLink)
+                    <a class="v-snav__item v-snav__item--away" href="{{ $vLink['url'] }}">
+                        <x-admin.icon :name="$vLink['icon']" />
+                        {{ $vLink['label'] }}
+                    </a>
                 @endforeach
             @endforeach
         </nav>
@@ -468,6 +490,12 @@
                                     <span class="v-dir__name">{{ $item->label }}</span>
                                     <span class="v-dir__line v-block">{{ $item->type === 'category' ? 'Category: ' . ($item->category?->name ?? 'N/A') : 'Custom: ' . $item->url }}</span>
                                 </span>
+                                <span class="v-dragrow__move">
+                                    <button type="button" aria-label="Move {{ $item->label }} up" title="Move up"
+                                            onclick="nudgeRow(this, -1, '{{ route('admin.theme.nav.reorder') }}')">&uarr;</button>
+                                    <button type="button" aria-label="Move {{ $item->label }} down" title="Move down"
+                                            onclick="nudgeRow(this, 1, '{{ route('admin.theme.nav.reorder') }}')">&darr;</button>
+                                </span>
                                 <span class="v-badge {{ $item->is_enabled ? 'v-badge--good' : 'v-badge--quiet' }}">{{ $item->is_enabled ? 'Active' : 'Disabled' }}</span>
                                 <a href="{{ route('admin.theme.nav.edit', $item) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
                                 <button type="button" class="v-row__x" aria-label="Delete {{ $item->label }}" @click="$dispatch('v-confirm', 'delete-nav-{{ $item->id }}')">
@@ -527,23 +555,6 @@
         </div>
 
         {{-- ========== HOMEPAGE (records) ========== --}}
-        <div x-show="tab === 'homepage'" x-cloak>
-            {{-- The homepage is a LAYOUT now, and this tab used to edit
-                 homepage_sections, which nothing has rendered since the layout
-                 system landed. A merchant could reorder sections here all
-                 afternoon and the storefront would not change. --}}
-            <x-admin.panel title="Pages">
-                <p class="v-note">Each page is arranged in Layout: what sits above and below the content, and in the side columns.</p>
-                <div class="v-pagelinks">
-                    @foreach (\App\Support\StorefrontPageType::TYPES as $vKey => $vLabel)
-                        <a class="v-btn v-btn--sm" href="{{ route('admin.theme.layout', ['page' => $vKey]) }}">{{ $vLabel }}</a>
-                    @endforeach
-                    <a class="v-btn v-btn--sm" href="{{ route('admin.theme.layout', ['page' => '*']) }}">All pages</a>
-                </div>
-            </x-admin.panel>
-        </div>
-
-
         <div x-show="tab === 'footer'" x-cloak>
             <x-admin.panel title="Footer columns">
                 <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.footer.reorder')))">
@@ -551,6 +562,12 @@
                         @foreach ($footerColumns as $col)
                             <div class="v-dragrow" draggable="true" data-id="{{ $col->id }}">
                                 <x-admin.icon name="menu" class="v-dragrow__grip drag-handle" />
+                                <span class="v-dragrow__move">
+                                    <button type="button" aria-label="Move {{ $col->title }} up" title="Move up"
+                                            onclick="nudgeRow(this, -1, '{{ route('admin.theme.footer.reorder') }}')">&uarr;</button>
+                                    <button type="button" aria-label="Move {{ $col->title }} down" title="Move down"
+                                            onclick="nudgeRow(this, 1, '{{ route('admin.theme.footer.reorder') }}')">&darr;</button>
+                                </span>
                                 <span class="v-badge v-badge--quiet">{{ $col->type }}</span>
                                 <span class="v-dir__name">{{ $col->title }}</span>
                                 <span class="v-dragrow__end">
@@ -667,6 +684,41 @@
                     history.replaceState(null, '', u);
                 },
             };
+        }
+
+        /**
+         * Move a row without dragging.
+         *
+         * HTML5 drag does not fire on touch and cannot be driven from a
+         * keyboard, so the grip on these two lists was an invitation to an
+         * impossible action on a phone. The Layout editor grew up and down
+         * buttons; these lists did not, two clicks away. Same endpoint, same
+         * payload as the drag.
+         */
+        function nudgeRow(button, by, reorderUrl) {
+            const row = button.closest('[data-id]');
+            const container = row.parentElement;
+            const rows = [...container.querySelectorAll(':scope > [data-id]')];
+            const i = rows.indexOf(row);
+            const to = i + by;
+
+            if (to < 0 || to >= rows.length) return;
+
+            by < 0 ? container.insertBefore(row, rows[to]) : container.insertBefore(rows[to], row);
+
+            const order = [...container.querySelectorAll(':scope > [data-id]')]
+                .map((el, idx) => ({ id: parseInt(el.dataset.id), sort_order: idx }));
+
+            fetch(reorderUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                },
+                body: JSON.stringify({ order }),
+            }).then(() => window.vToast?.('Order saved.'));
+
+            button.focus();
         }
 
         function initSortable(container, reorderUrl) {
