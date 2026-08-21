@@ -59,9 +59,19 @@
         </nav>
 
         {{-- the page, drawn as a page --}}
-        <p class="v-lay__said" role="status" aria-live="polite" x-text="announcement" x-show="announcement" x-cloak></p>
-
         <div class="v-lay__stage">
+            {{-- Inside the stage, not beside it.
+
+                 It was a direct child of the .v-lay grid carrying
+                 grid-column: 1 / -1, so the moment it appeared it claimed a
+                 whole row, and the auto-placed stage below it fell into the
+                 rail's 176px column: the entire editor collapsed to a
+                 narrow strip on every announcement. Latent while the live
+                 region only spoke for moves and rescues, and immediate once
+                 adding a widget started announcing too. It belongs in here
+                 anyway, because everything it reports happened in here. --}}
+            <p class="v-lay__said" role="status" aria-live="polite" x-text="announcement" x-show="announcement" x-cloak></p>
+
             {{-- Placements in positions this theme no longer has. Kept, never
                  deleted, and now actually shown: they were computed since the
                  layout system landed and no view ever drew them, so a theme
