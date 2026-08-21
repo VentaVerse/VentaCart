@@ -27,7 +27,14 @@ class BannerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:banner_groups,slug',
+            // Derived from the name unless the merchant insists. Asking someone
+            // who wants a picture on a page to invent a URL slug first is where
+            // this flow lost people.
+            'slug' => 'nullable|string|max:255|unique:banner_groups,slug',
+            // The first image, uploaded here. Creating a group and then hunting
+            // for Slides was three pages of ceremony before anything appeared.
+            'image' => 'nullable|image|max:8192',
+            'link' => 'nullable|string|max:2000',
             'autoplay' => 'boolean',
             'speed' => 'required|integer|min:1000|max:30000',
             'height' => 'required|integer|min:100|max:2000',
@@ -39,11 +46,36 @@ class BannerController extends Controller
         $validated['autoplay'] = $request->boolean('autoplay');
         $validated['full_width'] = $request->boolean('full_width', true);
         $validated['is_active'] = $request->boolean('is_active');
-        $validated['slug'] = Str::slug($validated['slug']);
+        // ?? null, not just ?:. A nullable field the merchant left out never
+        // reaches $validated at all, so the key is missing rather than empty.
+        $validated['slug'] = Str::slug(($validated['slug'] ?? null) ?: $validated['name']);
 
-        BannerGroup::create($validated);
+        $image = $request->file('image');
+        $link = $validated['link'] ?? null;
+        unset($validated['image'], $validated['link']);
 
-        return redirect()->route('admin.banners.index')->with('success', 'Banner group created.');
+        $group = BannerGroup::create($validated);
+
+        // One image is one banner. The merchant leaves with something that
+        // renders, instead of an empty group and three more pages to visit.
+        if ($image) {
+            $path = $image->store('banners', 'public');
+
+            $group->slides()->create([
+                'name' => $validated['name'],
+                'bg_image' => $path,
+                'link' => $link,
+                'sort_order' => 0,
+                'is_active' => true,
+            ]);
+
+            return redirect()
+                ->route('admin.banners.slides', $group)
+                ->with('success', 'Banner created with its first image.');
+        }
+
+        return redirect()->route('admin.banners.slides', $group)
+            ->with('success', 'Banner group created. Add an image to it.');
     }
 
     public function editGroup(BannerGroup $group)

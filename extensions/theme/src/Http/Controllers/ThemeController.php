@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Currency;
 use App\Models\FooterColumn;
-use App\Models\HomepageSection;
 use App\Models\NavMenuItem;
 use App\Models\Setting;
 use App\Services\ThemeService;
@@ -21,7 +20,6 @@ class ThemeController extends Controller
             $settings[$s->group][$s->key] = $s->value;
         }
 
-        $sections = HomepageSection::orderBy('sort_order')->get();
         $navItems = NavMenuItem::orderBy('sort_order')->get();
         $footerColumns = FooterColumn::orderBy('sort_order')->get();
         $currencies = Currency::orderBy('is_default', 'desc')->orderBy('code')->get();
@@ -40,7 +38,7 @@ class ThemeController extends Controller
         }
 
         return view('theme::index', compact(
-            'settings', 'sections', 'navItems', 'footerColumns', 'currencies', 'categories',
+            'settings', 'navItems', 'footerColumns', 'currencies', 'categories',
             'installedPresets', 'activePreset',
             'themeSettingsSchema', 'themeSettingValues'
         ));

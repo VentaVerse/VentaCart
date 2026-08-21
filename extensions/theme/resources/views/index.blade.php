@@ -16,7 +16,21 @@
     </div>
 
 
-    <div x-data="themeSections(@js(session('tab', request('tab', 'presets'))))"
+    @php
+        // A tab the page does not have used to render NOTHING: every pane is
+        // x-show, so an unknown value hid all of them and left a white column
+        // with no active nav item, no message and no 404. That is what a stale
+        // bookmark, a shared link or a rename produces.
+        $vTabs = ['presets','colors','fonts','badges','header','navigation','footer',
+                  'homepage','product_page','category_page','blog','theme_settings'];
+        // The old kebab key, kept so existing links do not break.
+        $vAliases = ['theme-settings' => 'theme_settings', 'options' => 'theme_settings'];
+        $vTab = session('tab', request('tab', 'presets'));
+        $vTab = $vAliases[$vTab] ?? $vTab;
+        $vTab = in_array($vTab, $vTabs, true) ? $vTab : 'presets';
+    @endphp
+
+    <div x-data="themeSections(@js($vTab))"
          @keydown.escape.window="leaving = null"
          class="v-gap-lg">
 
@@ -49,7 +63,7 @@
                     'Look' => ['colors' => ['Colors', 'theme'], 'fonts' => ['Fonts', 'text'], 'badges' => ['Badges', 'check']],
                     'Layout' => ['header' => ['Header', 'menu'], 'navigation' => ['Navigation', 'link'], 'footer' => ['Footer', 'layers']],
                     'Pages' => ['homepage' => ['Homepage', 'home'], 'product_page' => ['Product page', 'products'], 'category_page' => ['Category page', 'folder'], 'blog' => ['Blog', 'content']],
-                    'Advanced' => ['theme-settings' => ['Theme options', 'settings']],
+                    'Advanced' => ['theme_settings' => ['Theme options', 'settings']],
                 ];
             @endphp
             @foreach ($vThemeNav as $vGroup => $vItems)
@@ -598,7 +612,7 @@
         </div>
 
         {{-- ========== THEME OPTIONS (per-theme schema) ========== --}}
-        <div x-show="tab === 'theme-settings'" x-cloak>
+        <div x-show="tab === 'theme_settings'" x-cloak>
             <x-admin.panel title="Theme options" note="Settings this theme's own manifest declares.">
                 @if (count($themeSettingsSchema) > 0)
                     <x-admin.form :header-save="false" :action="route('admin.theme.update-theme-settings')">

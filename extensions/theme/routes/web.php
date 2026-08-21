@@ -1,7 +1,6 @@
 <?php
 
 use Extensions\Theme\Http\Controllers\FooterColumnController;
-use Extensions\Theme\Http\Controllers\HomepageSectionController;
 use Extensions\Theme\Http\Controllers\LayoutController;
 use Extensions\Theme\Http\Controllers\NavMenuController;
 use Extensions\Theme\Http\Controllers\ThemeController;
@@ -38,13 +37,13 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::post('/presets/import', [ThemeController::class, 'importPreset'])->name('presets.import');
         Route::get('/presets/{slug}/export', [ThemeController::class, 'exportPreset'])->name('presets.export');
         Route::delete('/presets/{slug}', [ThemeController::class, 'destroyPreset'])->name('presets.destroy');
+        // The homepage-section editor is gone (2026-08-21). It edited
+        // homepage_sections, which no storefront view has rendered since the
+        // layout system landed: a working form with a Save that reported
+        // success and changed nothing. The data was carried across by
+        // layout:carry-homepage-sections; the model stays for that command.
         Route::post('/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('update-theme-settings');
 
-        Route::post('/sections', [HomepageSectionController::class, 'store'])->name('sections.store');
-        Route::get('/sections/{section}/edit', [HomepageSectionController::class, 'edit'])->name('sections.edit');
-        Route::put('/sections/{section}', [HomepageSectionController::class, 'update'])->name('sections.update');
-        Route::delete('/sections/{section}', [HomepageSectionController::class, 'destroy'])->name('sections.destroy');
-        Route::post('/sections/reorder', [HomepageSectionController::class, 'reorder'])->name('sections.reorder');
 
         Route::post('/nav', [NavMenuController::class, 'store'])->name('nav.store');
         Route::get('/nav/{item}/edit', [NavMenuController::class, 'edit'])->name('nav.edit');

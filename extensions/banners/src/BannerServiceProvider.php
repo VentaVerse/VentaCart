@@ -40,7 +40,7 @@ class BannerServiceProvider extends ServiceProvider
                     'options' => fn () => \Extensions\Banners\Models\BannerGroup::where('is_active', true)
                         ->orderBy('name')->pluck('name', 'slug')->all(),
                     'create_route' => 'admin.banners.create',
-                    'create_label' => 'New banner',
+                    'create_label' => 'New banner group',
                 ],
             ],
             // A banner group is a full-bleed slider. It has no narrow form.
