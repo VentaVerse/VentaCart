@@ -1,5 +1,10 @@
 @props(['title' => 'Admin'])
 @php
+    // Rendered inside another admin page (the layout editor's panel).
+    // Everything the framing page already shows is dropped; everything
+    // that makes this the admin (tokens, bundles, toasts, the save
+    // doctrine) stays, because it is the same document either way.
+    $vFramed = \App\Support\AdminFrame::embedded();
     // The store's own identity, resolved exactly as the storefront resolves
     // it: settings group 'identity', paths on the public disk. The slab shows
     // the merchant, never the platform, because the person logged in runs a
@@ -45,7 +50,7 @@
          boundary left to animate across. --}}
     @stack('head')
 </head>
-<body class="v-admin min-h-screen" x-data="vShell()" x-on:keydown.escape.window="closeNav()">
+<body class="v-admin min-h-screen {{ $vFramed ? 'v-framed' : '' }}" x-data="vShell()" x-on:keydown.escape.window="closeNav()">
 <!--
 IMPECCABLE DIRECTION CONTRACT
 THESIS: Venta's admin is the ERP's sibling, not its twin. It refuses the neutral grey admin chrome it inherited and the temptation to look like a different product family.
@@ -58,8 +63,11 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
     {{-- First stop in the tab order, so a keyboard user is never made to
          walk the slab's controls to reach the page. Visible only while
          focused; the recipe lives in shell.css. --}}
+    @unless ($vFramed)
     <a href="#v-main" class="v-skip">Skip to content</a>
-    <div class="lg:grid lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] min-h-screen">
+    @endunless
+    <div class="{{ $vFramed ? '' : 'lg:grid lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)]' }} min-h-screen">
+        @unless ($vFramed)
         {{-- Scrim, mobile only. --}}
         <div x-show="mobileNav" x-transition.opacity x-cloak @click="closeNav()"
              class="fixed inset-0 z-40 bg-black/45 lg:hidden" aria-hidden="true"></div>
@@ -212,8 +220,10 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                 <x-admin.icon name="external" class="v-slab__act w-3.5 h-3.5" />
             </a>
         </aside>
+        @endunless
 
         <div class="flex min-w-0 flex-col">
+            @unless ($vFramed)
             <header class="v-topbar sticky top-0 z-30">
                 {{-- Drawer-only, like the close above: hidden above lg by
                      shell.css rather than by a utility .v-tap outranks. --}}
@@ -264,6 +274,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
                     </div>
                 </div>
             </header>
+            @endunless
 
             <main id="v-main" class="v-content">
                 {{ $slot }}
@@ -271,7 +282,12 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
         </div>
     </div>
     <x-admin.toasts />
-    <x-admin.command-palette />
+    @unless ($vFramed)
+        <x-admin.command-palette />
+    @endunless
+    @if ($vFramed)
+        <x-admin.frame-bridge :title="$title" />
+    @endif
     @stack('scripts')
 </body>
 </html>

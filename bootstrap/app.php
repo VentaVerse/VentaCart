@@ -46,6 +46,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->web(append: [
             \App\Http\Middleware\LogNotFound::class,
+            // The admin is frameable by itself (the layout editor's panel)
+            // and by nobody else, and a framed page stays framed across its
+            // own redirects. Storefront responses are left alone.
+            \App\Http\Middleware\AdminFraming::class,
         ]);
 
         // The active theme's view folder, re-checked per request. The provider

@@ -209,3 +209,21 @@ button.v-snav__item { border: 0; background: none; width: 100%; text-align: left
         from { background: transparent; color: inherit; }
     }
 }
+
+/* --- A page rendered inside another page ---------------------------
+   The layout editor's panel opens a module's own editor in a frame.
+   Nothing here restyles that page: it drops the parts the framing page
+   is already showing (its own trail, its own ground) and gives the
+   content back the room the missing chrome was using. */
+
+.v-framed .v-content { padding: 18px 20px 24px; }
+
+/* The host's modal header already names where you are, so the page's
+   own breadcrumb would say it twice. */
+.v-framed .v-head__trail { display: none; }
+.v-framed .v-head { margin-bottom: 16px; }
+.v-framed .v-head__title { font-size: 19px; }
+
+/* The frame is the viewport here, so a page's own sticky offsets have
+   no chrome to clear. */
+.v-framed .v-content > .v-settle { padding-top: 0; }
