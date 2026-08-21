@@ -7,8 +7,7 @@
                 <span>Theme</span>
             </div>
             <h1 class="v-head__title">Theme</h1>
-            <p class="v-head__standing">How the storefront looks. Each section saves on its own.</p>
-        </div>
+                    </div>
         <div class="v-head__actions">
             <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
             <x-admin.extension-switch name="theme" />
@@ -31,24 +30,7 @@
     @endphp
 
     <div x-data="themeSections(@js($vTab))"
-         @keydown.escape.window="leaving = null"
          class="v-gap-lg">
-
-        {{-- Asked at the switch, where the edits can still be saved, rather
-             than by the browser on the way out of some later navigation. --}}
-        <template x-if="leaving">
-            <div class="v-overlay" @click.self="leaving = null">
-                <div class="v-modal" role="dialog" aria-modal="true" aria-labelledby="v-theme-leave">
-                    <h2 class="v-modal__title" id="v-theme-leave">Save this section first?</h2>
-                    <p class="v-modal__body">This section has changes that have not been saved. Each section saves on its own, so moving on without saving loses them.</p>
-                    <div class="v-modal__acts">
-                        <button type="button" class="v-btn v-btn--ghost" @click="leaving = null">Stay here</button>
-                        <button type="button" class="v-btn v-btn--danger" @click="discardAndGo()">Discard and move on</button>
-                        <button type="button" class="v-btn v-btn--primary" @click="saveAndGo()">Save and move on</button>
-                    </div>
-                </div>
-            </div>
-        </template>
 
         <div class="v-modgrid">
         <nav class="v-snav" aria-label="Theme sections">
@@ -163,9 +145,21 @@
         </div>
 
 
+        {{-- ONE form across every settings tab.
+
+             It was seven, each with its own Save at the bottom left of a
+             1830px page, while every sibling screen in this area puts Save
+             in the header. ThemeController::updateSettings() already carries
+             every group in a single request and says so in its own comment:
+             the split was only ever in the markup, and it needed a bespoke
+             leave-guard modal to survive itself.
+
+             One form also restores the house rule the area had lost: the Save
+             arms when something is dirty instead of standing permanently live
+             with nothing to save. --}}
+        <x-admin.form :action="route('admin.theme.settings.update')" :save-only-when-dirty="true">
             {{-- ========== COLORS ========== --}}
             <div x-show="tab === 'colors'">
-            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Colors">
                     <x-slot:acts>
                         <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="$dispatch('v-confirm', 'revert-colors')">Revert colors &amp; fonts to defaults</button>
@@ -195,7 +189,6 @@
                         @endforeach
                     </div>
                 </x-admin.panel>
-            </x-admin.form>
             </div>
 
             {{-- ========== FONTS ========== --}}
@@ -213,7 +206,6 @@
                         }
                     }
                  }">
-            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Fonts">
                     @php
                         $fontOptions = ['Anton','Archivo','Barlow','Bebas Neue','Bitter','Bricolage Grotesque','Cormorant Garamond','DM Sans','DM Serif Display','Figtree','Fira Sans','IBM Plex Sans','Inter','Josefin Sans','Karla','Lato','Libre Baskerville','Libre Franklin','Lora','Merriweather','Montserrat','Nunito','Nunito Sans','Open Sans','Oswald','Playfair Display','Poppins','PT Sans','PT Serif','Rajdhani','Raleway','Roboto','Roboto Slab','Rubik','Saira','Saira Condensed','Source Sans 3','Space Grotesk','Space Mono','Spline Sans','Spline Sans Mono','Ubuntu','Work Sans'];
@@ -289,12 +281,10 @@
                         </div>
                     </div>
                 </x-admin.panel>
-            </x-admin.form>
             </div>
 
             {{-- ========== HEADER ========== --}}
             <div x-show="tab === 'header'" x-cloak>
-            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Announcement bar">
                     <label class="v-toggle">
                         <input type="hidden" name="groups[header][announcement_enabled]" value="0">
@@ -332,12 +322,10 @@
                         <input type="hidden" name="groups[header][topbar_links]" :value="JSON.stringify(links)">
                     </div>
                 </x-admin.panel>
-            </x-admin.form>
             </div>
 
             {{-- ========== PRODUCT PAGE ========== --}}
             <div x-show="tab === 'product_page'" x-cloak>
-            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Product page">
                     @foreach (['show_ratings' => 'Show star ratings', 'show_stock' => 'Show stock and availability', 'show_brand' => 'Show the brand logo', 'show_badges' => 'Show product badges'] as $key => $label)
                         <div class="{{ $loop->first ? '' : 'v-gap' }}">
@@ -359,12 +347,10 @@
                         </x-admin.field>
                     </div>
                 </x-admin.panel>
-            </x-admin.form>
             </div>
 
             {{-- ========== CATEGORY PAGE ========== --}}
             <div x-show="tab === 'category_page'" x-cloak>
-            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Category page">
                     <div class="v-narrow">
                         <x-admin.field name="groups.category_page.products_per_page" label="Products per page">
@@ -406,12 +392,10 @@
                         </div>
                     @endforeach
                 </x-admin.panel>
-            </x-admin.form>
             </div>
 
             {{-- ========== BADGES ========== --}}
             <div x-show="tab === 'badges'" x-cloak>
-            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Badges">
                     <div class="v-narrow">
                         <x-admin.field name="groups.badges.new_count" label="NEW badge: last X products" hint="Products added most recently. 0 disables it.">
@@ -424,12 +408,10 @@
                         </div>
                     </div>
                 </x-admin.panel>
-            </x-admin.form>
             </div>
 
             {{-- ========== BLOG ========== --}}
             <div x-show="tab === 'blog'" x-cloak>
-            <x-admin.form :header-save="false" :action="route('admin.theme.settings.update')">
                 <x-admin.panel title="Blog">
                     <div class="v-narrow">
                         <x-admin.field name="groups.blog.posts_per_page" label="Posts per page">
@@ -466,8 +448,9 @@
                         </div>
                     </div>
                 </x-admin.panel>
-            </x-admin.form>
             </div>
+
+        </x-admin.form>
 
         <x-admin.confirm name="revert-colors" title="Revert to theme defaults?"
             message="Reverts BOTH colors and fonts to this theme's defaults. Unsaved edits on those tabs are lost."
@@ -663,63 +646,25 @@
     @push('scripts')
     <script>
         /**
-         * The section menu, and the one thing it has to protect against.
+         * The section menu.
          *
-         * Each section is its own save scope now, so leaving one with
-         * unsaved edits abandons them. Before the split that was
-         * impossible: seven sections shared a form, and one Save carried
-         * all of them. Now the browser would catch it, but only at the
-         * worst possible moment, as an unstyled "Leave site?" on the way
-         * out of an unrelated save. So the switch is what asks, in the
-         * app, while the edits are still recoverable.
+         * It used to guard a tab switch with a modal, because each section was
+         * its own save scope and moving on abandoned the edits. One form spans
+         * every settings section now, so a switch loses nothing: the form is
+         * still mounted, still dirty, still one Save away. The guard and its
+         * three buttons went with the split that needed them.
          */
         function themeSections(initial) {
             return {
                 tab: initial,
-                leaving: null,          // the section a dirty switch is headed for
 
-                // The visible section's form, if it has one (Presets and
-                // the record editors do not carry a doctrine form).
-                currentForm() {
-                    const pane = this.$el.querySelector('[x-show*="\'' + this.tab + '\'"]');
-                    return pane ? pane.querySelector('form[x-data]') : null;
-                },
-                isDirty() {
-                    const f = this.currentForm();
-                    try { return !!(f && Alpine.$data(f).dirty); } catch (e) { return false; }
-                },
+                pick(t) { this.go(t); },
 
-                pick(t) {
-                    if (t !== this.tab && this.isDirty()) { this.leaving = t; return; }
-                    this.go(t);
-                },
                 go(t) {
-                    this.leaving = null;
                     this.tab = t;
                     const u = new URL(window.location);
                     u.searchParams.set('tab', t);
                     history.replaceState(null, '', u);
-                },
-
-                // Save first, then land on the section that was asked for:
-                // the URL is rewritten BEFORE submitting so the server's
-                // back() returns to the new section rather than this one.
-                saveAndGo() {
-                    const f = this.currentForm();
-                    const t = this.leaving;
-                    const u = new URL(window.location);
-                    u.searchParams.set('tab', t);
-                    history.replaceState(null, '', u);
-                    this.leaving = null;
-                    f.requestSubmit();
-                },
-                // Discard reloads, for the same reason the save doctrine
-                // does: the server's copy is the only clean state worth
-                // restoring.
-                discardAndGo() {
-                    const u = new URL(window.location);
-                    u.searchParams.set('tab', this.leaving);
-                    window.location.href = u.toString();
                 },
             };
         }
