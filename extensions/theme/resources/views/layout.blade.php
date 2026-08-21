@@ -232,6 +232,90 @@
             </template>
         </div>
 
+        {{-- The widget's own subject, edited without leaving the layout.
+
+             Two levels, and they belong to different owners. The first is
+             ours: which record sits in this position is layout state, so
+             choosing one arms this page's Save and writes nothing. Below
+             that is the module's own page in a frame, saving itself the way
+             every record editor opened by an explicit Edit already does. The
+             two save scopes alternate by level and never overlap, which is
+             what makes the nesting safe. --}}
+        <div class="v-lay__panel" x-show="panel" x-cloak
+             x-dialog="!!panel"
+             @keydown.escape.window="closeSubject()"
+             role="dialog" aria-modal="true" aria-labelledby="v-panel-title">
+            {{-- The chooser is a short list and the editor is a whole page,
+                 so the sheet is sized for what it is holding rather than
+                 stretched to the tallest thing it might hold. --}}
+            <div class="v-lay__sheet" :class="{ 'is-framed': frameUrl }" @click.outside="closeSubject()">
+                <div class="v-lay__phead">
+                    <button type="button" class="v-lay__pback" x-show="frameUrl" x-cloak
+                            @click="panelBack()" aria-label="Back">&larr;</button>
+
+                    <div class="v-lay__ptrail">
+                        <template x-if="frameUrl">
+                            <button type="button" @click="frameUrl = null" x-text="panel?.field?.label"></button>
+                        </template>
+                        <span aria-hidden="true" x-show="frameUrl" x-cloak>/</span>
+                        <b id="v-panel-title" x-text="frameUrl ? (frameTitle || '&hellip;') : panel?.field?.label"></b>
+                        <span class="v-lay__powner" :class="{ 'is-module': frameUrl }"
+                              x-text="frameUrl ? ownerOf(panel?.row) : 'Layout'"></span>
+                    </div>
+
+                    <button type="button" class="v-lay__pclose" @click="closeSubject()"
+                            aria-label="Close" data-v-dialog-initial>&times;</button>
+                </div>
+
+                <div class="v-lay__pbody">
+                    {{-- level one: the choices, drawn from rows the module handed
+                         over. No module code renders here, so a widget pointing at
+                         a category gets this panel the day it declares one. --}}
+                    <div class="v-lay__browse" x-show="!frameUrl">
+                        <template x-for="choice in panel?.field?.browse ?? []" :key="choice.value">
+                            <div class="v-lay__choice" :class="{ 'is-on': choice.value === panelValue() }">
+                                <button type="button" class="v-lay__choicepick"
+                                        @click="chooseSubject(choice)"
+                                        :aria-pressed="choice.value === panelValue() ? 'true' : 'false'">
+                                    <span class="v-lay__thumbs" aria-hidden="true">
+                                        <template x-for="thumb in choice.thumbs" :key="thumb">
+                                            <img :src="thumb" alt="" loading="lazy">
+                                        </template>
+                                    </span>
+                                    <span class="v-lay__choicetxt">
+                                        <span class="v-lay__choicenm" x-text="choice.label"></span>
+                                        <span class="mono" x-text="choice.meta"></span>
+                                    </span>
+                                    <span class="v-tag" x-show="choice.value === panelValue()" x-cloak>In this position</span>
+                                </button>
+                                <button type="button" class="v-lay__choicego" x-show="choice.url"
+                                        @click="enterSubject(choice)"
+                                        :aria-label="'Open ' + choice.label">Open</button>
+                            </div>
+                        </template>
+
+                        <p class="v-lay__pickempty" x-show="(panel?.field?.browse ?? []).length === 0">
+                            Nothing saved yet
+                        </p>
+
+                        <a class="v-lay__pnew" x-show="panel?.field?.create_url" :href="panel?.field?.create_url"
+                           target="_blank" rel="noopener" x-text="panel?.field?.create_label ?? 'New'"></a>
+                    </div>
+
+                    {{-- level two and below: the module's own page, same admin,
+                         furniture off. Its Save is its own. --}}
+                    {{-- x-if, not x-show: a bound src with nothing in it is
+                         still a request, and an empty frame sat there asking
+                         the server for /undefined every time the panel opened.
+                         Interaction-gated, which is what x-if is still for. --}}
+                    <template x-if="frameUrl">
+                        <iframe class="v-lay__frame" :src="frameUrl"
+                                :title="panel?.field?.label" x-ref="frame"></iframe>
+                    </template>
+                </div>
+            </div>
+        </div>
+
         {{-- the picker --}}
         <div class="v-lay__pick" x-show="adding" x-cloak @keydown.escape.window="adding = null">
             <div class="v-lay__pickhead">
@@ -288,10 +372,26 @@
                     grid: seed.grid,
                     minContent: seed.minContent,
                     schemas: seed.schemas,
+                    // Never copied off the seed, so refreshChoices() has been
+                    // fetching the string "undefined" since it was written: a
+                    // 404 on every window focus, and the choices never once
+                    // refreshed. Found when the panel's own save started
+                    // calling it.
+                    schemasUrl: seed.schemasUrl,
                     pageSettings: seed.pageSettings,
                     orphans: seed.orphans,
                     adding: null,
                     editing: null,
+                    // The open subject panel: { row, field }. frameUrl null
+                    // means level one, the choices; anything else is the
+                    // module's own page inside the frame.
+                    panel: null,
+                    frameUrl: null,
+                    frameTitle: '',
+                    frameSteps: 0,
+                    // A back we asked for lands as another 'ready', which
+                    // would add back the step it just removed.
+                    frameGoingBack: false,
                     dragging: null,
                     moving: null,
                     announcement: '',
@@ -302,6 +402,7 @@
                     init() {
                         root = this.$root ?? this.$el;
                         window.addEventListener('focus', () => this.refreshChoices());
+                        window.addEventListener('message', (e) => this.hearFrame(e));
                     },
 
                     placed(region) { return this.rows[region] || []; },
@@ -356,6 +457,144 @@
                         if (!this.editing.config) this.editing.config = {};
                         this.editing.config[name] = value;
                         this.touch();
+                    },
+
+                    /* ---- the subject panel ---- */
+
+                    /**
+                     * The one schema field that points at a record, or null.
+                     *
+                     * A widget declares this by handing over browse rows; core
+                     * never lists the widgets that have a subject, so the day a
+                     * module adds one it appears here without a core edit.
+                     */
+                    subjectOf(row) {
+                        const field = this.schemaFor(row?.widget).find((f) => Array.isArray(f.browse));
+                        if (!field) return null;
+
+                        const value = row?.config?.[field.name] ?? field.default ?? '';
+
+                        return {
+                            field,
+                            browse_label: field.browse_label,
+                            chosen: field.browse.find((c) => c.value === value) || null,
+                        };
+                    },
+
+                    openSubject(row) {
+                        const subject = this.subjectOf(row);
+                        if (!subject) return;
+
+                        this.panel = { row, field: subject.field };
+                        this.frameUrl = null;
+                        this.frameTitle = '';
+                        this.frameSteps = 0;
+                    },
+
+                    closeSubject() {
+                        if (!this.panel) return;
+                        this.panel = null;
+                        this.frameUrl = null;
+                        this.frameTitle = '';
+                        this.frameSteps = 0;
+                    },
+
+                    /** What this placement currently points at. */
+                    panelValue() {
+                        const name = this.panel?.field?.name;
+                        if (!name) return '';
+
+                        return this.panel.row?.config?.[name] ?? this.panel.field.default ?? '';
+                    },
+
+                    /**
+                     * Choosing writes nothing. It is layout state, so it arms
+                     * this page's Save alongside every other arrangement change.
+                     */
+                    chooseSubject(choice) {
+                        const name = this.panel?.field?.name;
+                        if (!name || choice.value === this.panelValue()) return;
+
+                        if (!this.panel.row.config) this.panel.row.config = {};
+                        this.panel.row.config[name] = choice.value;
+                        this.rows = { ...this.rows };
+                        this.say(choice.label + ' placed. Save to keep it.');
+                        this.touch();
+                    },
+
+                    /** Whose Save the merchant is about to press. */
+                    ownerOf(row) {
+                        const spec = this.widgets.find((w) => w.key === row?.widget);
+
+                        return spec?.module || (row?.label ?? '');
+                    },
+
+                    enterSubject(choice) {
+                        if (!choice.url) return;
+                        this.frameTitle = choice.label;
+                        this.frameSteps = 0;
+                        this.frameUrl = choice.url;
+                    },
+
+                    /**
+                     * One level at a time. Inside the frame the module's own
+                     * links are ordinary navigation, so back there is the
+                     * frame's history; at the top of it, back is the choices.
+                     */
+                    panelBack() {
+                        if (this.frameSteps > 1) {
+                            this.frameSteps -= 1;
+                            this.frameGoingBack = true;
+                            // A same-document back sends no 'ready' at all, so
+                            // the flag clears itself rather than swallowing the
+                            // next step forward.
+                            setTimeout(() => { this.frameGoingBack = false; }, 2000);
+                            this.$refs.frame?.contentWindow?.postMessage(
+                                { v: 'venta-frame-host', type: 'back' }, window.location.origin
+                            );
+                            return;
+                        }
+
+                        this.frameUrl = null;
+                        this.frameTitle = '';
+                        this.frameSteps = 0;
+                    },
+
+                    /**
+                     * The framed page states what it is and when it saved. A
+                     * save down there can rename the very thing this card is
+                     * labelled with, so the choices are re-read and the card
+                     * relabels itself without a reload.
+                     */
+                    hearFrame(e) {
+                        if (e.origin !== window.location.origin) return;
+                        if (!e.data || e.data.v !== 'venta-frame') return;
+                        if (!this.panel) return;
+
+                        if (e.data.type === 'ready') {
+                            this.frameTitle = e.data.title || '';
+
+                            if (this.frameGoingBack) {
+                                this.frameGoingBack = false;
+                            } else {
+                                this.frameSteps += 1;
+                            }
+                        }
+
+                        if (e.data.type === 'saved') {
+                            this.refreshChoices().then(() => this.resyncPanel());
+                            if (e.data.message) this.say(e.data.message);
+                        }
+                    },
+
+                    /** The panel is holding a copy of a field that just changed. */
+                    resyncPanel() {
+                        if (!this.panel) return;
+
+                        const fresh = this.schemaFor(this.panel.row?.widget)
+                            .find((f) => f.name === this.panel.field.name);
+
+                        if (fresh) this.panel = { row: this.panel.row, field: fresh };
                     },
 
                     remove(region, i) {

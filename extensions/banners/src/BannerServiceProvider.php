@@ -41,6 +41,30 @@ class BannerServiceProvider extends ServiceProvider
                         ->orderBy('name')->pluck('name', 'slug')->all(),
                     'create_route' => 'admin.banners.create',
                     'create_label' => 'New banner group',
+
+                    // The same groups again, for the layout editor's panel:
+                    // enough to recognise one on sight, and the address of
+                    // the page that edits it. The route binds an id while
+                    // the placement stores a slug, so only this module can
+                    // resolve one to the other, which is exactly why the
+                    // module is the one asked.
+                    'browse' => fn () => BannerGroup::where('is_active', true)
+                        ->withCount('slides')
+                        ->with(['slides' => fn ($q) => $q->limit(3)])
+                        ->orderBy('name')->get()
+                        ->map(fn ($group) => [
+                            'value' => $group->slug,
+                            'label' => $group->name,
+                            'meta' => trans_choice(':count slide|:count slides', $group->slides_count,
+                                ['count' => $group->slides_count]),
+                            'thumbs' => $group->slides->take(3)
+                                ->map(fn ($slide) => $slide->bg_image_url)->all(),
+                            // The slides page, not the group's settings: the
+                            // reason to open a hero from the layout is almost
+                            // always the pictures in it.
+                            'url' => route('admin.banners.slides', $group),
+                        ])->all(),
+                    'browse_label' => 'Edit banner',
                 ],
             ],
             // A banner group is a full-bleed slider. It has no narrow form.

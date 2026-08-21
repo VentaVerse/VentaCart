@@ -121,10 +121,61 @@ class Widgets
                 }
             }
 
+            // The same choices again, with enough to recognise one on sight
+            // and the address of its own editor. This is what lets the layout
+            // editor open a banner group without knowing what one is: the
+            // module hands over rows, core renders rows.
+            if (isset($field['browse']) && is_callable($field['browse'])) {
+                try {
+                    $field['browse'] = self::rows((array) call_user_func($field['browse']));
+                } catch (\Throwable $e) {
+                    $field['browse'] = [];
+                    $field['unavailable'] = true;
+                }
+            }
+
             $field['name'] = $name;
             $field['type'] = $field['type'] ?? 'text';
             $field['label'] = $field['label'] ?? ucfirst(str_replace('_', ' ', $name));
             $out[] = $field;
+        }
+
+        return $out;
+    }
+
+    /**
+     * One browse row, normalised and framed.
+     *
+     * A module returns what it knows; this decides what the editor may
+     * rely on. The url is stamped with the embed flag HERE, so a module
+     * hands over the plain route it already has and never learns that the
+     * editor puts it in a panel.
+     *
+     * @param  array<int, array>  $rows
+     */
+    private static function rows(array $rows): array
+    {
+        $out = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row) || ($row['value'] ?? null) === null) {
+                continue;
+            }
+
+            $url = $row['url'] ?? null;
+
+            $out[] = [
+                'value' => (string) $row['value'],
+                'label' => (string) ($row['label'] ?? $row['value']),
+                'meta' => isset($row['meta']) ? (string) $row['meta'] : null,
+                // Thumbnails are decoration: a row without them still works,
+                // so a missing image never costs the merchant the row.
+                'thumbs' => array_values(array_filter(array_map(
+                    fn ($t) => is_string($t) && $t !== '' ? $t : null,
+                    (array) ($row['thumbs'] ?? [])
+                ))),
+                'url' => $url ? AdminFrame::url($url) : null,
+            ];
         }
 
         return $out;

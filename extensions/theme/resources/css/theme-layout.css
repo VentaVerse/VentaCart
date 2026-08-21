@@ -617,3 +617,225 @@
         font-size: 14px;
     }
 }
+
+/* ============================================================
+   The subject panel
+   ============================================================
+   A widget's own record, edited without leaving the layout.
+   Level one is ours (which record sits here); below it is the
+   module's own page in a frame. The two never share a Save.
+   ============================================================ */
+
+/* Scoped through .v-card__acts: the reset on `.v-card__acts button` is
+   one element more specific than a bare class and was flattening this
+   into plain text. */
+.v-card__acts .v-card__open {
+    border: 1px solid var(--v-act-edge);
+    background: var(--v-act-wash);
+    color: var(--v-act);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0 9px;
+    height: 26px;
+    border-radius: 5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.v-card__acts .v-card__open:hover { background: rgba(192, 135, 58, .2); color: var(--v-act); }
+
+.v-card__subj {
+    font-size: 11px;
+    color: var(--v-ink-3);
+    border-left: 1px solid var(--v-line-2);
+    padding-left: 8px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.v-lay__panel {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(10, 17, 25, .5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3vh 3vw;
+}
+
+.v-lay__sheet {
+    background: var(--v-surface);
+    border-radius: var(--v-r-lg);
+    box-shadow: var(--v-lift-2);
+    width: 100%;
+    max-width: 620px;
+    max-height: 94vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Going in opens the sheet out to a page's worth of room. The module's
+   own editor is a page, and a page in a 620px slot is a worse page. */
+.v-lay__sheet.is-framed {
+    max-width: 1120px;
+    height: 94vh;
+}
+
+.v-lay__phead {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--v-line);
+    background: var(--v-sunken);
+    flex: none;
+}
+
+.v-lay__pback,
+.v-lay__pclose {
+    border: 1px solid var(--v-line-2);
+    background: var(--v-surface);
+    color: var(--v-ink-2);
+    width: 28px;
+    height: 28px;
+    border-radius: 5px;
+    cursor: pointer;
+    line-height: 1;
+    flex: none;
+}
+
+.v-lay__pclose { margin-left: auto; border-color: transparent; background: none; font-size: 17px; }
+.v-lay__pback:hover, .v-lay__pclose:hover { background: var(--v-hover); color: var(--v-ink); }
+
+.v-lay__ptrail { display: flex; align-items: center; gap: 7px; min-width: 0; font-size: 12px; flex-wrap: wrap; }
+.v-lay__ptrail b { font-size: 13.5px; font-weight: 700; }
+.v-lay__ptrail span[aria-hidden] { color: var(--v-ink-3); opacity: .6; }
+
+.v-lay__ptrail button {
+    border: 0;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+    font: inherit;
+    color: var(--v-ink-3);
+}
+
+.v-lay__ptrail button:hover { color: var(--v-act); text-decoration: underline; }
+
+/* Which side of the seam you are on: the layout's own choices, or the
+   module's page. The merchant is about to press a Save, and this says
+   whose it is. */
+.v-lay__powner {
+    font-family: var(--v-font-mono);
+    font-size: 10.5px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--v-line-2);
+    color: var(--v-ink-3);
+    background: var(--v-surface);
+}
+
+.v-lay__powner.is-module {
+    border-color: var(--v-act-edge);
+    background: var(--v-act-wash);
+    color: var(--v-act);
+}
+
+.v-lay__pbody { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.v-lay__browse { padding: 14px; overflow: auto; }
+
+.v-lay__frame {
+    flex: 1 1 auto;
+    width: 100%;
+    border: 0;
+    display: block;
+    background: var(--v-canvas);
+}
+
+.v-lay__choice {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+
+.v-lay__choice.is-on { border-color: var(--v-act-fill); background: var(--v-act-wash); }
+
+.v-lay__choicepick {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 52px;
+    border: 0;
+    background: none;
+    color: var(--v-ink);
+    font-family: inherit;
+    text-align: left;
+    padding: 9px 11px;
+    cursor: pointer;
+    min-width: 0;
+}
+
+.v-lay__choicepick:hover { background: var(--v-hover); }
+.v-lay__choice.is-on .v-lay__choicepick:hover { background: transparent; }
+
+.v-lay__thumbs { display: flex; gap: 3px; flex: none; }
+
+.v-lay__thumbs img {
+    width: 44px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--v-line);
+    display: block;
+}
+
+.v-lay__choicetxt { display: flex; flex-direction: column; min-width: 0; }
+.v-lay__choicenm { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v-lay__choicetxt .mono { font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-3); }
+
+.v-lay__choicego {
+    flex: none;
+    border: 0;
+    border-left: 1px solid var(--v-line-2);
+    background: none;
+    color: var(--v-ink-2);
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 0 14px;
+    cursor: pointer;
+}
+
+.v-lay__choicego:hover { background: var(--v-act-wash); color: var(--v-act); }
+
+.v-lay__pnew {
+    display: block;
+    text-align: center;
+    border: 1.5px dashed var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-sunken);
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--v-ink-3);
+}
+
+.v-lay__pnew:hover { color: var(--v-act); border-color: var(--v-act-edge); }
+
+@media (max-width: 700px) {
+    .v-lay__panel { padding: 0; }
+    .v-lay__sheet { border-radius: 0; }
+    .v-card__subj { display: none; }
+}

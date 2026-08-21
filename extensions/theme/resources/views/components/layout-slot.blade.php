@@ -40,9 +40,22 @@
                  renamed are still tellable apart. --}}
             <span class="v-card__kind mono" x-text="row.label" x-show="row.title && row.title !== row.label"></span>
 
+            {{-- Which record it is showing. Two Banner group cards are
+                 otherwise the same card twice. --}}
+            <span class="v-card__subj" x-show="subjectOf(row)?.chosen" x-cloak
+                  x-text="subjectOf(row)?.chosen?.label"></span>
+
             <span class="v-tag v-tag--off" x-show="!row.available">Module off</span>
 
             <span class="v-card__acts">
+                {{-- Straight into what this card is showing. Only appears when
+                     the widget points at a record something else owns, so a
+                     Product grid never carries a control that leads nowhere. --}}
+                <button type="button" class="v-card__open" x-show="subjectOf(row)" x-cloak
+                        @click="openSubject(row)"
+                        :aria-label="'Edit ' + (subjectOf(row)?.chosen?.label || (row.title || row.label))"
+                        x-text="subjectOf(row)?.browse_label || 'Edit'"></button>
+
                 <button type="button" @click="nudgeCard('{{ $region }}', i, -1)"
                         :disabled="i === 0" aria-label="Move up" title="Move up">&uarr;</button>
                 <button type="button" @click="nudgeCard('{{ $region }}', i, 1)"
