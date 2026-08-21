@@ -34,6 +34,8 @@ class BannerServiceProvider extends ServiceProvider
                 // group_id here would have broken every section carried over.
                 'banner_group' => ['type' => 'select', 'label' => 'Which group'],
             ],
+            // A banner group is a full-bleed slider. It has no narrow form.
+            'regions' => ['header_top', 'content_top', 'content_bottom', 'footer_top'],
             'resolve' => fn (array $config) => [
                 'group' => BannerPayload::group($config['banner_group'] ?? null),
             ],

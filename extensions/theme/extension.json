@@ -25,6 +25,23 @@
                 "presets",
                 "looks"
             ]
+        },
+        {
+            "group": "Extensions",
+            "after": "themes",
+            "key": "layout",
+            "label": "Layout",
+            "route": "admin.theme.layout",
+            "icon": "layers",
+            "keywords": [
+                "positions",
+                "regions",
+                "modules",
+                "widgets",
+                "columns",
+                "sidebar",
+                "placement"
+            ]
         }
     ],
     "default_enabled": true

@@ -36,6 +36,9 @@ class CoreWidgets
             'title' => 'Brand strip',
             'module' => 'catalog',
             'view' => 'widgets.catalog.brands',
+            // Full width only. A carousel with side arrows in a 1/8 rail is
+            // not a smaller carousel, it is a broken one.
+            'regions' => ['header_top', 'content_top', 'content_bottom', 'footer_top'],
             'resolve' => fn () => ['brands' => Brand::where('is_active', true)
                 ->whereNotNull('image')->where('image', '!=', '')
                 ->orderBy('sort_order')->orderBy('name')->get()],
@@ -45,6 +48,9 @@ class CoreWidgets
             'title' => 'Category tabs',
             'module' => 'catalog',
             'view' => 'widgets.catalog.category_tabs',
+            // Full width only. A carousel with side arrows in a 1/8 rail is
+            // not a smaller carousel, it is a broken one.
+            'regions' => ['header_top', 'content_top', 'content_bottom', 'footer_top'],
         ]);
 
         Widgets::register('catalog.recently_viewed', [
