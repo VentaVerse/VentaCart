@@ -526,16 +526,8 @@ class ProductController extends Controller
             return;
         }
 
-        // What the merchant chose, keyed by the one thing that survives the
-        // rebuild below. This method deletes every variant and recreates it,
-        // so any field the form does not round-trip is destroyed on save. The
-        // photo is the one field a merchant picks by hand rather than types,
-        // and losing it silently to an unrelated edit is the same class of
-        // bug as the label re-key the matrix used to have.
-        $keptImages = $product->variants()->pluck('image', 'sku')->filter()->all();
-
-        // Delete old variant types and variants
-        $product->variants()->delete();
+        // The types and their values ARE rebuilt: nothing outside this product
+        // references them, and the pivot is re-attached below.
         $product->variantTypes()->delete();
 
         // Create variant types and their values
@@ -565,6 +557,8 @@ class ProductController extends Controller
         }
 
         // Create variant combinations
+        $keptIds = [];
+
         foreach ($variantsData as $variantData) {
             if (empty($variantData['sku'])) {
                 continue;
@@ -581,8 +575,7 @@ class ProductController extends Controller
             $modifier = round($sign * $amount, 2);
             $absolute = max(0, round((float) $product->price + $modifier, 2));
 
-            $variant = $product->variants()->create([
-                'sku' => $variantData['sku'],
+            $fields = [
                 'price' => $absolute,
                 'price_modifier' => $modifier,
                 'quantity' => $variantData['quantity'] ?? 0,
@@ -592,15 +585,34 @@ class ProductController extends Controller
                 // for a bare checkbox and would have read every switched-off
                 // variant as switched ON the moment the companion arrived.
                 'is_active' => (bool) ($variantData['is_active'] ?? false),
-                // Absent and empty are different answers. The matrix always
-                // posts the key, so an empty value is a merchant who pressed
-                // Remove and must be obeyed; a missing key is a caller that
-                // never knew about photos, and there the stored one stands.
-                // Collapsing the two with ?: made the photo unremovable.
-                'image' => array_key_exists('image', $variantData)
-                    ? ($variantData['image'] ?: null)
-                    : ($keptImages[$variantData['sku']] ?? null),
-            ]);
+            ];
+
+            // Absent and empty are different answers. The matrix always posts
+            // the key, so an empty value is a merchant who pressed Remove and
+            // must be obeyed; a missing key is a caller that never knew about
+            // photos, and there whatever is stored stands untouched.
+            if (array_key_exists('image', $variantData)) {
+                $fields['image'] = $variantData['image'] ?: null;
+            }
+
+            // Matched, not recreated.
+            //
+            // This method used to delete every variant and build them again,
+            // so a routine product edit churned every variant id. Order lines
+            // carry product_variant_id with ON DELETE SET NULL, which means
+            // each save quietly cut the link between an order and the exact
+            // colourway it sold: the denormalised sku and label on the line
+            // survived, the machine link did not. legacy_oc_id went the same
+            // way, and so did anything else the form does not round-trip.
+            //
+            // SKU is the identity: it is required, unique across the store,
+            // and it is what the ERP matches on too.
+            $variant = $product->variants()->updateOrCreate(
+                ['sku' => $variantData['sku']],
+                $fields
+            );
+
+            $keptIds[] = $variant->id;
 
             // Attach variant type values
             $valueIds = [];
@@ -609,8 +621,13 @@ class ProductController extends Controller
                     $valueIds[] = $typeValueMap[$key];
                 }
             }
-            $variant->values()->attach($valueIds);
+            // sync, not attach: the row may be one this save just updated
+            // rather than one it created, and attach would double it.
+            $variant->values()->sync($valueIds);
         }
+
+        // Only what the merchant actually removed on screen.
+        $product->variants()->whereNotIn('id', $keptIds)->delete();
 
         $product->update(['has_variants' => $product->variants()->count() > 0]);
     }

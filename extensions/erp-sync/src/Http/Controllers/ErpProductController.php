@@ -637,17 +637,19 @@ class ErpProductController extends Controller
      */
     private function syncVariantsFromErp(Product $product, array $variants): void
     {
-        // What the merchant set by hand, keyed by the one thing that survives
-        // a resync. This method rebuilds every variant from scratch, which is
-        // correct for the fields the ERP owns and wrong for the one it does
-        // not: a variant photo is merchandising, chosen in the admin, and it
-        // would be destroyed by every push that did not happen to mention it.
-        // Carried forward by SKU, and overridden the moment the ERP sends one.
+        // What the merchant set by hand, kept when the ERP says nothing about
+        // it. A variant photo is merchandising, chosen in the admin, so the
+        // ERP overrides it only when it actually sends one.
         $keptImages = $product->variants()->pluck('image', 'sku')->filter()->all();
 
-        // Delete existing variants and types
-        $product->variants()->delete();
+        // The types and their values are rebuilt; nothing outside this product
+        // references them and the pivot is re-synced below. The VARIANTS are
+        // matched by SKU rather than recreated: order lines carry
+        // product_variant_id with ON DELETE SET NULL, so recreating them cut
+        // an order's link to the exact colourway it sold on every push, and
+        // took legacy_oc_id with it.
         $product->variantTypes()->delete();
+        $keptIds = [];
 
         // Group by option_name to build variant types
         // e.g. "Color" => ["Red", "Blue"], "Size" => ["S", "M"]
@@ -683,23 +685,30 @@ class ErpProductController extends Controller
 
         // Create each variant and attach its type values
         foreach ($variants as $v) {
-            $variant = $product->variants()->create([
-                'sku' => $v['sku'],
-                'price' => $v['price'],
-                // product_variants.cost is NOT NULL DEFAULT 0, so an omitted
-                // cost has to land on the default rather than an explicit null.
-                'cost' => $v['cost'] ?? 0,
-                'quantity' => $v['quantity'] ?? 0,
-                'weight' => $v['weight'] ?? null,
-                'is_active' => $v['status'] ?? true,
-                'image' => $this->resolveVariantImage($v, $keptImages),
-            ]);
+            $variant = $product->variants()->updateOrCreate(
+                ['sku' => $v['sku']],
+                [
+                    'price' => $v['price'],
+                    // product_variants.cost is NOT NULL DEFAULT 0, so an omitted
+                    // cost has to land on the default rather than an explicit null.
+                    'cost' => $v['cost'] ?? 0,
+                    'quantity' => $v['quantity'] ?? 0,
+                    'weight' => $v['weight'] ?? null,
+                    'is_active' => $v['status'] ?? true,
+                    'image' => $this->resolveVariantImage($v, $keptImages),
+                ]
+            );
+
+            $keptIds[] = $variant->id;
 
             $valueKey = "{$v['option_name']}:{$v['name']}";
-            if (isset($valueIdMap[$valueKey])) {
-                $variant->values()->attach($valueIdMap[$valueKey]);
-            }
+            $variant->values()->sync(
+                isset($valueIdMap[$valueKey]) ? [$valueIdMap[$valueKey]] : []
+            );
         }
+
+        // Only what this push actually dropped.
+        $product->variants()->whereNotIn('id', $keptIds)->delete();
 
         // Sync product quantity and flag
         $product->update([

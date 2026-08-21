@@ -165,6 +165,45 @@ class ErpVariantContractTest extends TestCase
         $this->assertNull($variant->image);
     }
 
+    /**
+     * The ERP path had the same delete-and-recreate as the admin one, so a
+     * nightly stock sync churned every variant id and cut every order line's
+     * link to the colourway it sold.
+     */
+    public function test_a_push_keeps_the_variant_it_is_updating(): void
+    {
+        $this->push([$this->variant()])->assertStatus(201);
+
+        $before = ProductVariant::where('sku', 'EB-STRAP-BLUE')->first();
+        $before->update(['legacy_oc_id' => 991]);
+
+        $this->withToken('erp-test-token')
+            ->putJson('/api/v1/products/EB-STRAP', ['variants' => [$this->variant(['quantity' => 77])]])
+            ->assertOk();
+
+        $after = ProductVariant::where('sku', 'EB-STRAP-BLUE')->first();
+
+        $this->assertSame($before->id, $after->id);
+        $this->assertSame(991, $after->legacy_oc_id);
+        $this->assertSame(77, $after->quantity);
+        $this->assertSame(1, $after->values()->count(), 'the option value must not stack on every push');
+    }
+
+    public function test_a_variant_the_erp_stopped_sending_is_removed(): void
+    {
+        $this->push([
+            $this->variant(['sku' => 'EB-STRAP-BLUE', 'name' => 'Blue']),
+            $this->variant(['sku' => 'EB-STRAP-RED', 'name' => 'Red']),
+        ])->assertStatus(201);
+
+        $this->withToken('erp-test-token')
+            ->putJson('/api/v1/products/EB-STRAP', ['variants' => [$this->variant(['sku' => 'EB-STRAP-BLUE', 'name' => 'Blue'])]])
+            ->assertOk();
+
+        $this->assertNull(ProductVariant::where('sku', 'EB-STRAP-RED')->first());
+        $this->assertNotNull(ProductVariant::where('sku', 'EB-STRAP-BLUE')->first());
+    }
+
     public function test_handing_back_our_own_path_is_not_a_re_download(): void
     {
         $this->push([$this->variant(['image' => self::PHOTO])])->assertStatus(201);

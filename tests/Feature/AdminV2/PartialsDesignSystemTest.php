@@ -5,10 +5,14 @@ namespace Tests\Feature\AdminV2;
 use Tests\TestCase;
 
 /**
- * The four partials that were the last unconverted surface in the admin:
- * the media manager, the single image picker, the dual listbox and the
- * payment availability editor. Between them they held every raw Tailwind
- * palette utility and every non-token radius in the admin tree.
+ * The partials that were the last unconverted surface in the admin: the
+ * media manager, the image picker, the dual listbox and the payment
+ * availability editor. Between them they held every raw Tailwind palette
+ * utility and every non-token radius in the admin tree.
+ *
+ * single_image_picker is gone: five hand-rolled image browsers became one
+ * x-admin.media-picker, so the rules that guarded the partial now guard the
+ * component that replaced it.
  *
  * These are file-content assertions rather than rendered-page assertions
  * because two of the four paint themselves from JavaScript (the product
@@ -27,7 +31,8 @@ class PartialsDesignSystemTest extends TestCase
             // The catalog v wave replaced the v2 image partials wholesale;
             // the same design-system rules now guard their v successors.
             'image_manager' => $base . '/catalog/products/partials/image_manager.blade.php',
-            'single_image_picker' => $base . '/partials/single_image_picker.blade.php',
+            'media-picker' => resource_path('views/components/admin/media-picker.blade.php'),
+            'media-page' => $base . '/catalog/media/index.blade.php',
             'dual-listbox' => $base . '/partials/dual-listbox.blade.php',
             'availability' => $base . '/settings/payments/partials/availability.blade.php',
         ];
@@ -81,7 +86,15 @@ class PartialsDesignSystemTest extends TestCase
         foreach ($this->partials() as $label => $path) {
             preg_match_all('/<img\b[^>]*>/', file_get_contents($path), $tags);
             foreach ($tags[0] as $tag) {
-                $this->assertMatchesRegularExpression('/\salt=/', $tag, "{$label} has an <img> with no alt: {$tag}");
+                // A bound alt is an alt. The rule is that every image says
+                // what it is or says it is decorative, and :alt="file.name"
+                // does exactly that; the literal-only regex read a correct
+                // Alpine binding as a missing attribute.
+                $this->assertMatchesRegularExpression(
+                    '/\s(?::|x-bind:)?alt=/',
+                    $tag,
+                    "{$label} has an <img> with no alt: {$tag}"
+                );
             }
         }
     }
