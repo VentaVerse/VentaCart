@@ -39,6 +39,7 @@
     @endpush
 
     {{-- Breadcrumbs --}}
+    @if (\App\Support\PageSetting::on('show_breadcrumbs'))
     <div class="product-page-breadcrumbs">
         <div class="container-store py-3">
             <nav>
@@ -52,6 +53,7 @@
             </nav>
         </div>
     </div>
+    @endif
 
     @php
         $images = $product->images->sortBy('sort_order')->values();
@@ -525,7 +527,7 @@
                      already gates the QUERY on the same helper; without this the
                      markup still rendered "Reviews (0)" over an empty panel on a
                      store that had switched the module off. --}}
-                @if (\App\Support\Reviews::enabled())
+                @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
                     <h2 class="text-lg font-bold mt-10 mb-4" style="font-family: var(--font-heading); letter-spacing: var(--track-heading, 0); color: var(--color-text-heading);">Reviews ({{ $reviewCount }})</h2>
                     <div x-data="{ reviewPage: 1, perPage: 20 }">
                         @include('product.partials.reviews')
@@ -539,7 +541,7 @@
                     <button @click="tab = 'description'" :class="tab === 'description' ? 'active' : ''" class="product-tab-btn">
                         DESCRIPTION
                     </button>
-                    @if (\App\Support\Reviews::enabled())
+                    @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
                         <button @click="tab = 'reviews'" :class="tab === 'reviews' ? 'active' : ''" class="product-tab-btn">
                             REVIEWS ({{ $reviewCount }})
                         </button>
@@ -549,7 +551,7 @@
                     <div x-show="tab === 'description'" class="product-description">
                         {!! $product->description !!}
                     </div>
-                    @if (\App\Support\Reviews::enabled())
+                    @if (\App\Support\Reviews::enabled() && \App\Support\PageSetting::on('show_reviews'))
                         <div x-show="tab === 'reviews'" x-cloak x-data="{ reviewPage: 1, perPage: 20 }">
                             @include('product.partials.reviews')
                         </div>

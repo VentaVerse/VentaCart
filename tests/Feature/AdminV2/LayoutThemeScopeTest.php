@@ -144,4 +144,82 @@ class LayoutThemeScopeTest extends TestCase
         $this->assertSame('banner_group', $schema[0]['name']);
         $this->assertIsArray($schema[0]['options']);
     }
+
+    /* ---------------- the two P0s from the 2026-08-21 critique ---------------- */
+
+    /**
+     * A page type with no placements yet must still be able to receive one.
+     *
+     * placements() returned a PHP array, which serialises to [] and lands in
+     * the browser as a JS Array. Assigning a region key to an array is not
+     * reactive in Alpine, so the hidden payload input kept its load-time value:
+     * the merchant added widgets, the save bar never armed, Save was enabled
+     * anyway, and the write went through empty with a success flash reading
+     * "0 widgets placed". On a fresh install that was every page type.
+     */
+    public function test_the_editor_hands_the_browser_an_object_even_when_empty(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $html = $this->get(route('admin.theme.layout', ['page' => 'cart']))->assertOk()->getContent();
+
+        preg_match('/placements: (\{.*?\}|\[\]),\n/s', $html, $m);
+
+        $this->assertNotEmpty($m, 'Could not find the placements seed in the page.');
+        $this->assertSame('{}', $m[1], 'An empty page seeds a JS Array, which Alpine cannot react to.');
+    }
+
+    /** Saving nothing when widgets were sent is a failure, not a success. */
+    public function test_a_save_that_stores_nothing_reports_an_error(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->post(route('admin.theme.layout.update'), ['payload' => json_encode([
+            'page_type' => 'cart',
+            'columns' => ['left' => 0, 'right' => 0],
+            'placements' => [['id' => null, 'region' => 'content_top', 'widget' => 'nobody.home', 'title' => 'X', 'enabled' => true]],
+        ])])->assertSessionHas('error');
+    }
+
+    /**
+     * The "On this page" controls wrote to the database and no storefront view
+     * read them: a merchant could switch reviews off, be told it saved, and
+     * find them still there. Four controls that do nothing are worse than four
+     * controls that do not exist.
+     */
+    public function test_switching_a_page_part_off_actually_removes_it(): void
+    {
+        LayoutColumns::create([
+            'theme' => 'venta', 'page_type' => 'product',
+            'left_width' => 0, 'right_width' => 0,
+            'settings' => ['show_breadcrumbs' => false],
+        ]);
+
+        \App\Support\PageSetting::flush();
+
+        $product = \App\Models\Product::where('is_active', true)->first();
+
+        if (! $product) {
+            $this->markTestSkipped('No active product to render.');
+        }
+
+        $this->get('/product/' . $product->slug)
+            ->assertOk()
+            ->assertDontSee('product-page-breadcrumbs', false);
+    }
+
+    public function test_a_page_part_left_alone_still_renders(): void
+    {
+        \App\Support\PageSetting::flush();
+
+        $product = \App\Models\Product::where('is_active', true)->first();
+
+        if (! $product) {
+            $this->markTestSkipped('No active product to render.');
+        }
+
+        $this->get('/product/' . $product->slug)
+            ->assertOk()
+            ->assertSee('product-page-breadcrumbs', false);
+    }
 }

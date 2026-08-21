@@ -79,7 +79,7 @@ class LayoutController extends Controller
     }
 
     /** Everything placed on this page type, grouped by region. */
-    private function placements(string $pageType): array
+    private function placements(string $pageType): object
     {
         $rows = LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
             ->where('page_type', $pageType)
@@ -103,7 +103,12 @@ class LayoutController extends Controller
             ];
         }
 
-        return $out;
+        // An OBJECT, always. An empty PHP array serialises to [], which is a JS
+        // Array, and assigning a string key to it never triggers Alpine's
+        // reactivity: the hidden payload input kept its load-time value, so
+        // every save on a page with no placements yet wrote nothing and
+        // reported success. That was all 11 page types on a fresh install.
+        return (object) $out;
     }
 
     /**
@@ -200,8 +205,21 @@ class LayoutController extends Controller
                 ->delete();
         });
 
+        $where = $pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType);
+
+        // Sent widgets and stored none means something was refused or lost.
+        // Reporting "0 widgets placed" in the success style is how a merchant
+        // learns to distrust every message this screen shows.
+        if ($kept === [] && $rows->isNotEmpty()) {
+            return back()->with('error', 'Nothing could be placed on ' . $where . '. The widgets sent were not recognised.');
+        }
+
+        if ($kept === [] && $rows->isEmpty()) {
+            return back()->with('success', $where . ' is now empty.');
+        }
+
         return back()->with('success', count($kept) . ' ' . (count($kept) === 1 ? 'widget' : 'widgets')
-            . ' placed on ' . ($pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType)) . '.');
+            . ' placed on ' . $where . '.');
     }
 
     /**

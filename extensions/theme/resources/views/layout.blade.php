@@ -221,10 +221,19 @@
             };
 
             function layoutEditor(seed) {
+                // The form element, held in a closure. Inside an x-for scope
+                // $el is the control that fired, so touch() dispatched change
+                // on the checkbox that called it and re-entered itself:
+                // "Maximum call stack size exceeded" on every page-setting click.
+                let root = null;
+
                 return {
                     pageType: seed.pageType,
                     regions: seed.regions,
-                    rows: seed.placements,        // region -> [placement]
+                    // An OBJECT even when the server sent nothing. A JS Array with
+                    // string keys assigned to it is not reactive in Alpine, and
+                    // the payload input silently kept its load-time value.
+                    rows: Array.isArray(seed.placements) ? {} : seed.placements,
                     inherited: seed.inherited,
                     widgets: seed.widgets,
                     cols: { left: seed.cols.left, right: seed.cols.right },
@@ -238,6 +247,8 @@
 
                     /** Named `placed`, never `in`: `in` is a JS operator and Alpine
                      *  could not parse the expression, so every slot threw. */
+                    init() { root = this.$root ?? this.$el; },
+
                     placed(region) { return this.rows[region] || []; },
 
                     regionLabel(region) { return (this.regions[region] || {}).label || region; },
@@ -261,6 +272,7 @@
                             id: null, widget: w.key, title: w.title,
                             label: w.title, enabled: true, available: true, config: {},
                         });
+                        this.rows = { ...this.rows };
                         this.adding = null;
                         this.touch();
                     },
@@ -281,6 +293,7 @@
 
                     remove(region, i) {
                         this.rows[region].splice(i, 1);
+                        this.rows = { ...this.rows };
                         this.touch();
                     },
 
@@ -310,6 +323,7 @@
 
                         const target = at === null ? this.rows[region].length : at;
                         this.rows[region].splice(target, 0, widget);
+                        this.rows = { ...this.rows };
                         this.touch();
                     },
 
@@ -343,7 +357,9 @@
                         this.cols[side] = Math.max(0, Math.min(n, max));
                     },
 
-                    touch() { this.$el.dispatchEvent(new Event('change', { bubbles: true })); },
+                    touch() {
+                        (root ?? this.$root).dispatchEvent(new Event('change', { bubbles: true }));
+                    },
 
                     payload() {
                         const out = [];
