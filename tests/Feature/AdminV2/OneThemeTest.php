@@ -9,9 +9,13 @@ use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 /**
- * Owner ruling, 2026-08-20: the legacy theme switcher is retired. Venta has one
- * theme, and every look is a preset over it. stage-ready, clean-light and
- * crimson-dusk are no longer folders a store can be pointed at.
+ * Owner ruling 2026-08-20, revised 2026-08-21.
+ *
+ * The three legacy folders are still gone and still survive as presets: they
+ * were one skeleton in three palettes, which is why switching them only ever
+ * changed colour. What came back on 2026-08-21 is theme SELECTION, because a
+ * theme is a folder of views and CSS again, and a second theme is meant to
+ * look nothing like the first.
  *
  * The live hazard this pins down: a store that predates the consolidation still
  * has identity.active_theme = 'stage-ready' in its settings table. If view
@@ -32,13 +36,23 @@ class OneThemeTest extends TestCase
         $this->get('/')->assertOk();
     }
 
-    public function test_the_theme_is_fixed_and_no_longer_read_from_settings(): void
+    /** A setting naming a theme that is not installed cannot take the shop down. */
+    public function test_a_theme_that_is_not_installed_falls_back_to_the_default(): void
     {
         Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => 'crimson-dusk']);
         app(ThemeService::class)->clearCache();
 
         $this->assertSame(ThemeService::THEME, app(ThemeService::class)->getActiveTheme());
         $this->assertStringEndsWith('themes/' . ThemeService::THEME, app(ThemeService::class)->getThemePath());
+    }
+
+    public function test_an_installed_theme_named_in_settings_is_honoured(): void
+    {
+        Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_theme'], ['value' => ThemeService::THEME]);
+        app(ThemeService::class)->clearCache();
+
+        $this->assertSame(ThemeService::THEME, app(ThemeService::class)->getActiveTheme());
+        $this->assertArrayHasKey(ThemeService::THEME, app(ThemeService::class)->getInstalledThemes());
     }
 
     /** The looks survive the folders: each retired theme is still a preset. */
@@ -51,11 +65,13 @@ class OneThemeTest extends TestCase
         }
     }
 
-    public function test_only_one_theme_folder_ships(): void
+    /** The default theme is always installed; others may join it. */
+    public function test_the_default_theme_ships(): void
     {
         $dirs = array_map('basename', File::directories(resource_path('themes')));
 
-        $this->assertSame([ThemeService::THEME], $dirs);
+        $this->assertContains(ThemeService::THEME, $dirs);
+        $this->assertNotContains('stage-ready', $dirs);
     }
 
     /**

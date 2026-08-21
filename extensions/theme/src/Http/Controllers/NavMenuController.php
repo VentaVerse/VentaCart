@@ -60,7 +60,7 @@ class NavMenuController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.theme.index', ['tab' => 'navigation'])->with('success', 'Menu item updated.');
+        return redirect()->route('admin.theme.customise', ['tab' => 'navigation'])->with('success', 'Menu item updated.');
     }
 
     public function destroy(NavMenuItem $item)

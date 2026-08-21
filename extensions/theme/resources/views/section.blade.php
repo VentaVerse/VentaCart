@@ -6,7 +6,7 @@
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.theme.index') }}">Theme</a>
                 <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.theme.index', ['tab' => 'homepage']) }}">Homepage</a>
+                <a href="{{ route('admin.theme.customise', ['tab' => 'homepage']) }}">Homepage</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $section->title }}</span>
             </div>

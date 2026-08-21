@@ -50,7 +50,7 @@ class HomepageSectionController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.theme.index', ['tab' => 'homepage'])->with('success', 'Section updated.');
+        return redirect()->route('admin.theme.customise', ['tab' => 'homepage'])->with('success', 'Section updated.');
     }
 
     public function destroy(HomepageSection $section)

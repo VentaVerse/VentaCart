@@ -509,3 +509,49 @@ body:has(.v-bench.is-wide) .v-slab {
     font-size: 11px;
     font-weight: 600;
 }
+
+/* ---------- the theme directory ---------- */
+
+.v-themes { display: grid; gap: 12px; }
+
+.v-theme {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    box-shadow: var(--v-lift);
+}
+
+/* The running theme is stated, not merely implied by button order. */
+.v-theme.is-active { border-color: var(--v-act-edge); }
+
+.v-theme__body { flex: 1; min-width: 0; }
+
+.v-theme__title { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.v-theme__title h2 { margin: 0; font-size: 17px; letter-spacing: -.015em; }
+
+.v-theme__live {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 100px;
+    background: var(--v-act-fill);
+    color: var(--v-act-ink);
+}
+
+.v-theme__facts { display: flex; flex-wrap: wrap; gap: 0 26px; margin: 0; }
+.v-theme__facts div { display: flex; gap: 6px; align-items: baseline; }
+.v-theme__facts dt { color: var(--v-ink-3); font-size: 12px; }
+.v-theme__facts dd { margin: 0; font-family: var(--v-font-mono); font-size: 12px; color: var(--v-ink-2); }
+
+.v-theme__acts { flex: none; display: flex; gap: 8px; align-items: center; }
+
+@media (max-width: 700px) {
+    .v-theme { flex-direction: column; align-items: stretch; }
+    .v-theme__acts { justify-content: flex-start; }
+}

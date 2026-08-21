@@ -342,4 +342,52 @@ class ThemeController extends Controller
 
         return $parts === [] ? 'Nothing changed.' : ucfirst(implode(', ', $parts)) . ' saved.';
     }
+
+    /**
+     * The theme directory: what is installed, and which one the storefront runs.
+     *
+     * The extension's home, like every other extension page. Going straight
+     * into the editor made the platform look like it had one possible
+     * appearance, which is the opposite of what a theme system is for. With a
+     * single theme installed this is one card, and that is worth showing: it
+     * tells a merchant a second theme is a thing that can exist.
+     */
+    public function directory(ThemeService $theme)
+    {
+        return view('theme::directory', [
+            'themes' => $theme->getInstalledThemes(),
+            'active' => $theme->getActiveTheme(),
+        ]);
+    }
+
+    /**
+     * Point the storefront at another theme.
+     *
+     * Layout placements are NOT touched. They are store data keyed by page
+     * type, and they survive a theme switch by design; a region the new theme
+     * does not declare simply stops rendering and is reported as orphaned.
+     * Deleting a merchant's layout because they tried a theme is how you teach
+     * them never to try another one.
+     */
+    public function activate(Request $request, ThemeService $theme)
+    {
+        $slug = (string) $request->input('theme');
+
+        try {
+            $theme->activateTheme($slug);
+        } catch (\InvalidArgumentException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $orphans = \App\Support\Regions::orphans()->count();
+
+        return redirect()->route('admin.theme.index')->with(
+            'success',
+            'The storefront now runs ' . ($theme->getInstalledThemes()[$slug]['name'] ?? $slug) . '.'
+                . ($orphans > 0
+                    ? ' ' . $orphans . ' placement' . ($orphans === 1 ? '' : 's')
+                        . ' sit in regions this theme does not have, and are waiting in Layout.'
+                    : '')
+        );
+    }
 }

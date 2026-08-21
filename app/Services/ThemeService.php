@@ -184,18 +184,79 @@ class ThemeService
     }
 
     /**
-     * Venta has one theme. Looks are presets over it, not separate folders.
+     * Which theme the storefront runs.
      *
-     * This deliberately ignores identity.active_theme. A store that predates
-     * the consolidation still carries a legacy value there, and honouring it
-     * would send view resolution at a folder this release deletes, which is a
-     * white storefront rather than a wrong colour. The setting survives only
-     * so venta:adopt-master-theme can see what a store used to run and map it
-     * to the matching preset; after that it is a historical note.
+     * Read from settings again (owner ruling 2026-08-21), because a theme is
+     * a folder of views and CSS once more, not a palette. Between 2026-08-20
+     * and that ruling this returned a constant: the three legacy folders were
+     * near-copies of one skeleton, so switching them only ever changed colour.
+     *
+     * The guard that made hardcoding tempting stays, and matters more now that
+     * the value is honoured: a stored theme whose FOLDER IS GONE falls back to
+     * the default. Resolving views into a directory that does not exist is a
+     * white storefront, not a wrong colour, and an uninstalled theme must not
+     * be able to take the shop down.
      */
     public function getActiveTheme(): string
     {
-        return self::THEME;
+        $slug = (string) $this->get('identity.active_theme', self::THEME);
+
+        if ($slug === '' || ! is_file(resource_path("themes/{$slug}/theme.json"))) {
+            return self::THEME;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Every theme installed, by slug. A theme is a folder with a theme.json.
+     */
+    public function getInstalledThemes(): array
+    {
+        $dir = resource_path('themes');
+
+        if (! is_dir($dir)) {
+            return [];
+        }
+
+        $themes = [];
+
+        foreach (scandir($dir) as $slug) {
+            if ($slug === '.' || $slug === '..') {
+                continue;
+            }
+
+            $json = "{$dir}/{$slug}/theme.json";
+
+            if (! is_file($json)) {
+                continue;
+            }
+
+            $meta = json_decode((string) file_get_contents($json), true) ?: [];
+            $meta['slug'] = $slug;
+            $meta['name'] = $meta['name'] ?? ucfirst(str_replace('-', ' ', $slug));
+            $meta['is_default'] = $slug === self::THEME;
+            $themes[$slug] = $meta;
+        }
+
+        ksort($themes);
+
+        return $themes;
+    }
+
+    /** Point the storefront at another installed theme. */
+    public function activateTheme(string $slug): void
+    {
+        if (! isset($this->getInstalledThemes()[$slug])) {
+            throw new \InvalidArgumentException("Theme [{$slug}] is not installed.");
+        }
+
+        Setting::updateOrCreate(
+            ['group' => 'identity', 'key' => 'active_theme'],
+            ['value' => $slug]
+        );
+
+        $this->clearCache();
     }
 
     public function getThemePath(?string $theme = null): string

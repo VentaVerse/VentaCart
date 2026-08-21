@@ -129,7 +129,7 @@ class FooterColumnController extends Controller
 
         app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.theme.index', ['tab' => 'footer'])->with('success', 'Footer column updated.');
+        return redirect()->route('admin.theme.customise', ['tab' => 'footer'])->with('success', 'Footer column updated.');
     }
 
     public function destroy(FooterColumn $column)

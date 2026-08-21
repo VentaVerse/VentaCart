@@ -16,7 +16,12 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
     ->prefix($adminPrefix . '/extensions/theme')
     ->name('admin.theme.')
     ->group(function () {
-        Route::get('/', [ThemeController::class, 'index'])->name('index');
+        // The extension's home is the DIRECTORY, like every other extension
+        // page: which themes are installed, which one the storefront runs.
+        Route::get('/', [ThemeController::class, 'directory'])->name('index');
+        Route::post('/activate', [ThemeController::class, 'activate'])->name('activate');
+        // The editor for one theme, reached by choosing it.
+        Route::get('/customise', [ThemeController::class, 'index'])->name('customise');
         // The bench: storefront in a frame, controls beside it.
         Route::get('/preview', [ThemeController::class, 'preview'])->name('preview');
         Route::post('/preview', [ThemeController::class, 'savePreview'])->name('preview.save');
