@@ -61,65 +61,12 @@
         </x-admin.panel>
 
         <x-admin.panel title="Featured image">
-            <div x-data="featuredImagePicker()">
-                <input type="hidden" name="featured_image" :value="selectedPath">
-
-                <div x-show="selectedPath" class="v-gap-sm">
-                    <img :src="previewUrl" class="v-imgpreview" alt="Featured image">
-                </div>
-
-                <div class="v-actrow">
-                    <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="openBrowser()">
-                        <span x-text="selectedPath ? 'Change image' : 'Choose image'"></span>
-                    </button>
-                    <template x-if="selectedPath">
-                        <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="selectedPath = ''; touch()">Remove</button>
-                    </template>
-                </div>
-
-                {{-- Browser modal --}}
-                <div x-show="browserOpen" x-cloak class="v-overlay"
-                     @keydown.escape.window="browserOpen = false" @click.self="browserOpen = false">
-                    <div class="v-modal v-modal--media" role="dialog" aria-modal="true" aria-label="Choose featured image">
-                        <div class="v-between">
-                            <nav class="v-crumbrow" aria-label="Folders">
-                                <button type="button" @click="browseDir(root)" class="v-link">blog</button>
-                                <template x-for="(crumb, i) in breadcrumbs" :key="i">
-                                    <span class="v-crumbrow">
-                                        <span aria-hidden="true">/</span>
-                                        <button type="button" @click="browseDir(crumb.path)" class="v-link" x-text="crumb.name"></button>
-                                    </span>
-                                </template>
-                            </nav>
-                            <button type="button" @click="browserOpen = false" class="v-row__x" aria-label="Close image browser"><x-admin.icon name="x" /></button>
-                        </div>
-                        <div class="v-mediagrid-wrap">
-                            <div x-show="loading" class="v-empty"><p class="v-empty__title">Loading…</p></div>
-                            <div x-show="!loading" class="v-mediagrid">
-                                <template x-if="currentPath !== ''">
-                                    <button type="button" @click="browseDir(parentPath)" class="v-mediatile">
-                                        <x-admin.icon name="folder" class="v-mediatile__folder" />
-                                        <span>..</span>
-                                    </button>
-                                </template>
-                                <template x-for="folder in folders" :key="folder.path">
-                                    <button type="button" @click="browseDir(folder.path)" class="v-mediatile">
-                                        <x-admin.icon name="folder" class="v-mediatile__folder" />
-                                        <span x-text="folder.name"></span>
-                                    </button>
-                                </template>
-                                <template x-for="file in files" :key="file.path">
-                                    <button type="button" @click="selectFile(file); touch()" class="v-mediatile"
-                                            :aria-pressed="selectedPath === file.path ? 'true' : 'false'">
-                                        <span class="v-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
-                                        <span x-text="file.name"></span>
-                                    </button>
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {{-- Was its own hand-rolled browser: read-only, no upload, no
+                 search, no delete, and a root crumb labelled "blog" that
+                 rendered "blog / blog / blog / eamusic". --}}
+            <x-admin.media-picker name="featured_image"
+                                  :value="old('featured_image', $post?->featured_image)"
+                                  root="blog" label="Featured image" />
         </x-admin.panel>
 
         <x-admin.panel title="Tags">
@@ -253,74 +200,6 @@
             },
         });
 
-        function featuredImagePicker() {
-            return {
-                selectedPath: @json(old('featured_image', $post?->featured_image ?? '')),
-                browserOpen: false,
-                loading: false,
-                currentPath: '',
-                parentPath: '',
-                folders: [],
-                files: [],
-                lastBrowsedPath: null,
-                root: 'blog',
-
-                get previewUrl() {
-                    if (!this.selectedPath) return '';
-                    return '/storage/' + this.selectedPath.split('/').map(encodeURIComponent).join('/');
-                },
-
-                get breadcrumbs() {
-                    if (!this.currentPath) return [];
-                    return this.currentPath.split('/').map((part, i, arr) => ({
-                        name: part,
-                        path: arr.slice(0, i + 1).join('/'),
-                    }));
-                },
-
-                async openBrowser() {
-                    this.browserOpen = true;
-
-                    let startPath = '';
-
-                    if (this.lastBrowsedPath !== null) {
-                        startPath = this.lastBrowsedPath;
-                    } else if (this.selectedPath) {
-                        const lastSlash = this.selectedPath.lastIndexOf('/');
-                        if (lastSlash > 0) {
-                            // Navigate to the existing image's folder (full path).
-                            startPath = this.selectedPath.substring(0, lastSlash);
-                        }
-                    } else {
-                        startPath = this.root;
-                    }
-
-                    await this.browseDir(startPath);
-                },
-
-                async browseDir(path) {
-                    this.loading = true;
-                    const qs = new URLSearchParams();
-                    if (path) qs.set('path', path);
-                    qs.set('root', this.root);
-                    const res = await fetch(`{{ route('admin.products.images.browse') }}?${qs}`);
-                    const data = await res.json();
-                    if (data.ok) {
-                        this.currentPath = data.path;
-                        this.parentPath = data.parent ?? '';
-                        this.folders = data.folders;
-                        this.files = data.files;
-                        this.lastBrowsedPath = data.path;
-                    }
-                    this.loading = false;
-                },
-
-                selectFile(file) {
-                    this.selectedPath = file.path;
-                    this.browserOpen = false;
-                },
-            };
-        }
     </script>
     @endpush
 </x-admin.shell>

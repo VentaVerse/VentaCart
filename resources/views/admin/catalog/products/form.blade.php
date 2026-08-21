@@ -387,7 +387,7 @@
                                             <td class="v-cell-thumb">
                                                 <button type="button" class="v-vthumb"
                                                         :class="variant.image && 'is-set'"
-                                                        @click="openVariantImage(variant)"
+                                                        @click="pickFor(variant, $event)"
                                                         :aria-label="(variant.image ? 'Change' : 'Add') + ' photo for ' + variant.label">
                                                     <template x-if="variant.image">
                                                         <img :src="storageUrl(variant.image)" alt="" aria-hidden="true">
@@ -474,62 +474,20 @@
                         </div>
                     </x-admin.panel>
 
-                    {{-- ONE browser for the whole matrix, aimed at a row.
+                    {{-- The shared browser, aimed at a row.
 
-                         The obvious move was to include the single image picker
-                         per row, the way brands and blog do. That partial mints
-                         its own Alpine component and its own full modal per
-                         field, so a two-axis product would stack thirty-six
-                         modals in the document. One dialog with a target is the
-                         same shape the layout editor's subject panel uses. --}}
-                    <div class="v-overlay" x-show="picker.open" x-cloak
-                         @keydown.escape.window="closeVariantImage()" @click.self="closeVariantImage()">
-                        <div class="v-modal v-modal--media" role="dialog" aria-modal="true"
-                             :aria-label="'Photo for ' + (picker.target?.label ?? 'variant')">
-                            <div class="v-between">
-                                <nav class="v-crumbrow" aria-label="Folder path">
-                                    <button type="button" class="v-link" @click="browseVariantDir('')">Files</button>
-                                    <template x-for="(crumb, i) in variantCrumbs" :key="i">
-                                        <span class="v-crumbrow">
-                                            <span aria-hidden="true">/</span>
-                                            <button type="button" class="v-link" @click="browseVariantDir(crumb.path)" x-text="crumb.name"></button>
-                                        </span>
-                                    </template>
-                                </nav>
-                                <button type="button" class="v-modal__x" @click="closeVariantImage()" aria-label="Close">&times;</button>
-                            </div>
-
-                            <div class="v-actrow v-gap-sm">
-                                <input type="search" class="v-control v-control--sm" x-model="picker.search"
-                                       :aria-label="'Search this folder'" placeholder="Filter this folder">
-                                <label class="v-btn v-btn--secondary v-btn--sm">
-                                    <span x-text="picker.uploading ? 'Uploading…' : 'Upload'"></span>
-                                    <input type="file" accept="image/*" class="v-sr" @change="uploadVariantImage($event)">
-                                </label>
-                            </div>
-
-                            <div class="v-mediagrid" x-show="!picker.loading">
-                                <template x-for="folder in variantFolders" :key="folder.path">
-                                    <button type="button" class="v-tilewrap v-tilewrap--dir" @click="browseVariantDir(folder.path)">
-                                        <x-admin.icon name="folder" />
-                                        <span x-text="folder.name"></span>
-                                    </button>
-                                </template>
-                                <template x-for="file in variantFiles" :key="file.path">
-                                    <button type="button" class="v-tilewrap" @click="pickVariantImage(file)"
-                                            :aria-pressed="picker.target?.image === file.path ? 'true' : 'false'">
-                                        <img :src="storageUrl(file.path)" alt="" aria-hidden="true">
-                                        <span x-text="file.name"></span>
-                                    </button>
-                                </template>
-                            </div>
-
-                            <p class="v-empty__line" x-show="picker.loading">Loading…</p>
-                            <p class="v-empty__line" x-show="!picker.loading && variantFolders.length === 0 && variantFiles.length === 0">
-                                Nothing in this folder
-                            </p>
-                        </div>
-                    </div>
+                         This was hand-rolled this morning and reproduced every
+                         flaw of the four copies it was modelled on, plus three
+                         of its own: no up-tile, silent catch on both network
+                         calls, and folder glyphs rendered at 125px because the
+                         tile class was wrong. The diagnosis behind it was
+                         right, that including the per-field partial once per
+                         row would stack thirty-six modals; the conclusion was
+                         wrong. One component, bare, driven by the cell. --}}
+                    <x-admin.media-picker name="__variant_image" root="products"
+                                          mode="single" can="upload,url" bare
+                                          @media:picked="assignVariantImage($event.detail.paths[0] ?? '')"
+                                          @media:uploaded="assignVariantImage($event.detail.path)" />
                 </div>
 
                 {{-- ===================== PRICING ===================== --}}
@@ -829,93 +787,6 @@
                     });
                 },
 
-                /* ---- one browser, aimed at a row ---- */
-
-                picker: { open: false, target: null, path: '', folders: [], files: [], loading: false, search: '', uploading: false },
-
-                get variantCrumbs() {
-                    if (!this.picker.path) return [];
-                    const parts = this.picker.path.split('/');
-                    return parts.map((name, i) => ({ name, path: parts.slice(0, i + 1).join('/') }));
-                },
-
-                get variantFolders() {
-                    const q = this.picker.search.toLowerCase();
-                    return q ? this.picker.folders.filter(f => f.name.toLowerCase().includes(q)) : this.picker.folders;
-                },
-
-                get variantFiles() {
-                    const q = this.picker.search.toLowerCase();
-                    const files = q ? this.picker.files.filter(f => f.name.toLowerCase().includes(q)) : this.picker.files;
-                    return [...files].sort((a, b) => b.modified - a.modified);
-                },
-
-                openVariantImage(variant) {
-                    this.picker.target = variant;
-                    this.picker.open = true;
-                    this.picker.search = '';
-                    // Open where the answer probably is: the folder this
-                    // variant already points at, else where the merchant was
-                    // last, else the product root.
-                    const at = variant.image ? variant.image.slice(0, variant.image.lastIndexOf('/')) : this.picker.path;
-                    this.browseVariantDir(at || 'products');
-                },
-
-                closeVariantImage() {
-                    this.picker.open = false;
-                    this.picker.target = null;
-                },
-
-                async browseVariantDir(path) {
-                    this.picker.loading = true;
-                    const params = new URLSearchParams();
-                    if (path) params.set('path', path);
-                    try {
-                        const res = await fetch(`{{ route('admin.products.images.browse') }}?${params}`);
-                        const data = await res.json();
-                        if (data.ok) {
-                            this.picker.path = data.path;
-                            this.picker.folders = data.folders;
-                            this.picker.files = data.files;
-                        }
-                    } catch (e) { /* the merchant keeps the folder they were in */ }
-                    this.picker.loading = false;
-                },
-
-                pickVariantImage(file) {
-                    if (!this.picker.target) return;
-                    this.picker.target.image = file.path;
-                    this.closeVariantImage();
-                    this.touch();
-                },
-
-                async uploadVariantImage(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-                    event.target.value = '';
-
-                    this.picker.uploading = true;
-                    const body = new FormData();
-                    body.append('file', file);
-                    body.append('catalog_path', this.picker.path || 'products');
-
-                    try {
-                        const res = await fetch('{{ route('admin.products.images.upload-to-catalog') }}', {
-                            method: 'POST',
-                            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', Accept: 'application/json' },
-                            body,
-                        });
-                        const data = await res.json();
-                        if (data.ok) {
-                            this.picker.files.push({ name: data.name, path: data.path, modified: Date.now() / 1000 });
-                            // Straight onto the row that asked for it: the
-                            // merchant uploaded this photo FOR this colourway.
-                            this.pickVariantImage({ path: data.path });
-                        }
-                    } catch (e) { /* nothing is chosen, and the folder stands */ }
-                    this.picker.uploading = false;
-                },
-
                 /**
                  * Drop one combination without touching the values above.
                  *
@@ -930,8 +801,33 @@
                     this.touch();
                 },
 
+                // Two types with a dozen values each is 144 rows of six
+                // controls: a table nobody fills by hand.
                 maxCombinations: 60,
                 comboRefused: 0,
+
+                /* ---- the shared browser, aimed at a row ---- */
+
+                // Which row the panel is filling. The component owns the
+                // browsing; this owns only the aim.
+                pickingFor: null,
+
+                pickFor(variant, event) {
+                    this.pickingFor = variant;
+                    // By selector, not by $refs: the picker carries its own
+                    // x-data, so a ref on it does not resolve into this scope.
+                    this.$root.querySelector('[data-media-picker="__variant_image"]')
+                        ?.dispatchEvent(new CustomEvent('media:open', {
+                            detail: { from: event.currentTarget },
+                        }));
+                },
+
+                assignVariantImage(path) {
+                    if (!this.pickingFor || !path) return;
+                    this.pickingFor.image = path;
+                    this.pickingFor = null;
+                    this.touch();
+                },
 
                 cartesian(arrays) {
                     if (arrays.length === 0) return [];

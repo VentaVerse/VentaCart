@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\Catalog\BrandController;
 use App\Http\Controllers\Admin\Catalog\CategoryController;
 use App\Http\Controllers\Admin\Catalog\MediaController;
+use App\Http\Controllers\Admin\Catalog\MediaLibraryController;
 use App\Http\Controllers\Admin\Catalog\ProductController;
 use App\Http\Controllers\Admin\Catalog\ProductImageController;
 use App\Http\Controllers\Admin\Catalog\TagController;
@@ -30,15 +31,16 @@ Route::prefix('catalog')->group(function () {
     Route::resource('brands', BrandController::class)->except(['show']);
 
     // Media Manager
+    // One library, one namespace. The eight routes that used to sit here were
+    // reachable, authenticated, state-changing, and called by nothing: the
+    // Media page itself ran on the product image endpoints, and StoreMedia
+    // never held a row. They went with the controller.
     Route::get('/media', [MediaController::class, 'index'])->name('media.index');
-    Route::get('/media/folders', [MediaController::class, 'folders'])->name('media.folders');
-    Route::post('/media/folders', [MediaController::class, 'createFolder'])->name('media.folders.store');
-    Route::put('/media/folders/{folder}', [MediaController::class, 'updateFolder'])->name('media.folders.update');
-    Route::delete('/media/folders/{folder}', [MediaController::class, 'deleteFolder'])->name('media.folders.destroy');
-    Route::get('/media/list', [MediaController::class, 'list'])->name('media.list');
-    Route::post('/media/upload', [MediaController::class, 'store'])->name('media.upload');
-    Route::delete('/media/{medium}', [MediaController::class, 'destroy'])->name('media.destroy');
-    Route::post('/media/cleanup-temp', [MediaController::class, 'cleanupTemp'])->name('media.cleanup-temp');
+    Route::get('/media/browse', [MediaLibraryController::class, 'browse'])->name('media.browse');
+    Route::post('/media/upload', [MediaLibraryController::class, 'upload'])->name('media.upload');
+    Route::post('/media/import-url', [MediaLibraryController::class, 'importUrl'])->name('media.import-url');
+    Route::post('/media/delete', [MediaLibraryController::class, 'destroy'])->name('media.delete');
+    Route::post('/media/folder', [MediaLibraryController::class, 'folder'])->name('media.folder');
 
     // Tags
     Route::resource('tags', TagController::class)->except(['show']);

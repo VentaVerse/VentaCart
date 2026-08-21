@@ -335,7 +335,11 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
    gets the label treatment. Row-edit forms use the id'd-form +
    form="" idiom because a form cannot legally wrap a tr. */
 
-.v-tablewrap { overflow-x: auto; }
+/* overflow-x only clips against a constrained width, and a flex or grid
+   item defaults to min-width: auto, which is its CONTENT. So the wrap was
+   growing to the table instead of scrolling it, and a wide table pushed the
+   whole document sideways on a phone. */
+.v-tablewrap { overflow-x: auto; min-width: 0; max-width: 100%; }
 .v-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .v-table th {
     text-align: left;
@@ -375,7 +379,13 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 .v-modal__title { font-size: 15px; font-weight: 650; }
 .v-modal__body { margin-top: 8px; font-size: 13.5px; color: var(--v-ink-2); }
 .v-modal__acts { margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px; }
+/* White on the dark theme's lighter --v-bad measured 3.4:1. The ink follows
+   the ground instead of being assumed. */
 .v-btn--danger-fill { background: var(--v-bad); color: #fff; }
+[data-theme="dark"] .v-btn--danger-fill { color: #1A0507; font-weight: 650; }
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .v-btn--danger-fill { color: #1A0507; font-weight: 650; }
+}
 .v-btn--danger-fill:hover:not(:disabled) { filter: brightness(1.08); }
 
 /* --- Notice (something needs the merchant's attention now) ----- */
@@ -1084,6 +1094,10 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
     background: none;
     border: none;
     padding: 0;
+    /* A crumb is a thing people press, and it measured 20px tall. */
+    min-height: 24px;
+    display: inline-flex;
+    align-items: center;
     font: inherit;
     cursor: pointer;
 }
@@ -1791,3 +1805,163 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 .v-pagerow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .v-pagerow .v-pager { flex: 1 1 auto; }
 .v-perpage { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; }
+
+/* --- The one image browser ------------------------------------
+   Replaces five hand-rolled copies. Everything a caller used to
+   decide for itself (crumb label, empty wording, tile class, close
+   affordance, whether a count showed) is decided once, here. */
+
+.v-mpick { display: flex; flex-direction: column; gap: 8px; }
+.v-mpick--bare { display: contents; }
+
+.v-mpick__chosen { display: flex; flex-wrap: wrap; gap: 8px; }
+.v-mpick__one { position: relative; display: block; }
+
+.v-mpick__one img {
+    width: 78px;
+    height: 78px;
+    object-fit: cover;
+    border-radius: var(--v-r-sm);
+    border: 1px solid var(--v-line-2);
+    display: block;
+}
+
+.v-mpick__drop {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--v-slab);
+    color: #fff;
+    cursor: pointer;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+}
+
+/* The panel. Wraps rather than clipping: the old one kept a fixed
+   586px header row inside a viewport that would not scroll, so on a
+   phone Upload and Close sat permanently off-screen. */
+.v-modal--media .v-mpick__head,
+.v-mpick__bar,
+.v-mpick__foot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.v-mpick__head { padding-bottom: 10px; border-bottom: 1px solid var(--v-line); }
+.v-mpick__head .v-row__x { margin-left: auto; }
+.v-mpick__bar { padding: 10px 0; }
+.v-mpick__bar .v-control { min-width: 0; flex: 0 1 auto; }
+.v-mpick__acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.v-mpick__count { font-size: 11.5px; color: var(--v-ink-3); }
+
+.v-mpick__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    gap: 8px;
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    padding: 2px;
+}
+
+.v-mpick__note { margin: 14px 0; color: var(--v-ink-3); font-size: 13px; text-align: center; }
+
+.v-mpick__foot {
+    padding-top: 10px;
+    border-top: 1px solid var(--v-line);
+    justify-content: space-between;
+}
+
+.v-mpick__footacts { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+/* The tile carries state as a shape as well as a colour. */
+.v-mediatile.is-added { border-color: var(--v-act-fill); background: var(--v-act-wash); }
+.v-mediatile.is-picked { border-color: var(--v-good, #2F7D5B); }
+
+.v-tilemark {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: var(--v-act-fill);
+    color: var(--v-act-ink);
+    font-size: 11px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    line-height: 1;
+}
+
+.v-tilemark--pick { background: #2F7D5B; color: #fff; }
+
+/* What a file would cost to delete, before anyone reaches for it. */
+.v-tileused {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    font-size: 10.5px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--v-slab);
+    color: #fff;
+}
+
+.v-mediatile--up { color: var(--v-ink-3); }
+
+@media (max-width: 700px) {
+    .v-mpick__acts { margin-left: 0; width: 100%; }
+    .v-mpick__grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+}
+
+/* --- The library page ------------------------------------------ */
+
+.v-mediaroots { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+
+.v-mediaroot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    padding: 12px 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--v-ink);
+    text-align: left;
+}
+
+.v-mediaroot:hover { border-color: var(--v-act-fill); background: var(--v-act-wash); }
+.v-mediaroot svg { width: 18px; height: 18px; color: var(--v-ink-3); flex: none; }
+.v-mediaroot .mono { margin-left: auto; font-size: 11.5px; color: var(--v-ink-3); }
+
+/* The already-added tile: the wash carries the state, the label keeps the
+   page's ink. Brass text on a brass wash measured 2.66:1 in dark. */
+.v-mediatile.is-added { color: var(--v-ink); }
+.v-mediatile.is-added > span:last-of-type { color: var(--v-ink); }
+
+/* The caption truncates by NAME, not by position.
+   `.v-mediatile > span:last-child` was the rule, and a tile that appends a
+   state mark after its name puts the mark last, so the caption never got the
+   rule and 130-character filenames wrapped to five lines over the badge. */
+.v-mediatile__name {
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    line-height: 1.4;
+}

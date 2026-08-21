@@ -86,9 +86,10 @@ adminLegacyRedirect('brands/create', 'admin.brands.create');
 adminLegacyRedirect('brands/{brand}/edit', 'admin.brands.edit');
 
 // Catalog — Media
+// Only the page survives. media/folders and media/list were routes to a
+// database library that never held a row, and redirecting to a route name
+// that no longer exists is a 500, not a redirect.
 adminLegacyRedirect('media', 'admin.media.index');
-adminLegacyRedirect('media/folders', 'admin.media.folders');
-adminLegacyRedirect('media/list', 'admin.media.list');
 
 // Catalog — Tags
 adminLegacyRedirect('tags', 'admin.tags.index');

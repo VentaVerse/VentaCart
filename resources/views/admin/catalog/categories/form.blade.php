@@ -39,12 +39,8 @@
                 </x-admin.field>
             </div>
             <div class="v-gap">
-                @include('admin.partials.single_image_picker', [
-                    'fieldName' => 'image',
-                    'currentImage' => $category?->image,
-                    'root' => 'categories',
-                    'defaultFolder' => 'Categories',
-                ])
+                <x-admin.media-picker name="image" :value="$category?->image"
+                                      root="categories" label="Image" />
                 @error('image') <span class="v-field__error">{{ $message }}</span> @enderror
             </div>
             <div class="v-gap">

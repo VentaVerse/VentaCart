@@ -308,57 +308,15 @@
                 </div>
             </div>
 
-            {{-- ============ IMAGE BROWSER ============ --}}
-            <div x-show="browserOpen" x-transition.opacity x-cloak class="v-overlay"
-                 @keydown.escape.window="browserOpen = false" @click.self="browserOpen = false">
-                <div class="v-modal v-modal--media" role="dialog" aria-modal="true" aria-label="Image browser">
-                    <div class="v-namerow">
-                        <strong>Pick an image</strong>
-                        <nav class="v-crumbrow" aria-label="Folder path">
-                            <button type="button" @click="browseDir('')" class="v-link">catalog</button>
-                            <template x-for="(crumb, ci) in breadcrumbs" :key="ci">
-                                <span>
-                                    <span class="v-cell-quiet">/</span>
-                                    <button type="button" @click="browseDir(crumb.path)" class="v-link" x-text="crumb.name"></button>
-                                </span>
-                            </template>
-                        </nav>
-                        <span class="v-namerow__end">
-                            <input type="text" x-model="browserSearch" aria-label="Search images" placeholder="Search…" class="v-control v-control--sm v-w-name">
-                            <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="$refs.mediaUpload.click()">Upload</button>
-                            <input type="file" x-ref="mediaUpload" accept="image/*" hidden aria-label="Upload image" @change="uploadToBrowser($event)">
-                            <button type="button" @click="browserOpen = false" class="v-row__x" aria-label="Close image browser"><x-admin.icon name="x" /></button>
-                        </span>
-                    </div>
+            {{-- The shared browser. Was hand-rolled, opened at 'Banners'
+                 with a capital B which does not exist so every merchant met
+                 "Empty folder" first, and carried a root crumb labelled
+                 "catalog" that navigated to the storage root instead. --}}
+            <x-admin.media-picker name="__banner_image" root="banners"
+                                  mode="single" can="upload,url" bare
+                                  @media:picked="selectImage($event.detail.paths[0] ?? '')"
+                                  @media:uploaded="selectImage($event.detail.path)" />
 
-                    <div class="v-mediagrid-wrap">
-                        <div x-show="browserLoading" class="v-empty"><p class="v-empty__title">Loading…</p></div>
-                        <div x-show="!browserLoading" class="banner-picker-grid">
-                            <template x-if="browserPath !== ''">
-                                <button type="button" @click="browseDir(browserParent)" class="v-mediatile">
-                                    <x-admin.icon name="folder" class="v-mediatile__folder" />
-                                    <span>..</span>
-                                </button>
-                            </template>
-                            <template x-for="folder in browserFolders" :key="folder.path">
-                                <button type="button" @click="browseDir(folder.path)" class="v-mediatile">
-                                    <x-admin.icon name="folder" class="v-mediatile__folder" />
-                                    <span x-text="folder.name"></span>
-                                </button>
-                            </template>
-                            <template x-for="file in filteredBrowserFiles" :key="file.path">
-                                <button type="button" @click="selectImage(file)" class="v-mediatile">
-                                    <span class="v-mediatile__frame"><img :src="file.url" :alt="file.name" loading="lazy"></span>
-                                    <span x-text="file.name"></span>
-                                </button>
-                            </template>
-                        </div>
-                        <div x-show="!browserLoading && browserFolders.length === 0 && browserFiles.length === 0" class="v-empty">
-                            <p class="v-empty__title">Empty folder</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </x-admin.form>
 
@@ -382,15 +340,9 @@
                 moved: false,
                 animating: false,
 
-                browserOpen: false,
+                // Which of the three image slots the shared panel is filling.
+                // The panel keeps its own path, folders, files and search.
                 browserTarget: 'layer',
-                browserLoading: false,
-                browserPath: '',
-                browserParent: '',
-                browserFolders: [],
-                browserFiles: [],
-                browserSearch: '',
-                lastBrowsedPath: null,
 
                 init() {
                     this.previewWidth = this.$refs.previewCanvas?.offsetWidth || 900;
@@ -521,74 +473,32 @@
                     });
                 },
 
-                async openBrowser(target) {
+                openBrowser(target) {
                     this.browserTarget = target;
-                    this.browserOpen = true;
-                    await this.browseDir(this.lastBrowsedPath ?? 'Banners');
+                    // By selector: the picker owns its own Alpine scope, so a
+                    // ref on it does not resolve into this one.
+                    this.$root.querySelector('[data-media-picker="__banner_image"]')
+                        ?.dispatchEvent(new CustomEvent('media:open', {
+                            detail: { from: event?.currentTarget },
+                        }));
                 },
 
-                get breadcrumbs() {
-                    if (!this.browserPath) return [];
-                    const parts = this.browserPath.split('/');
-                    return parts.map((part, i) => ({ name: part, path: parts.slice(0, i + 1).join('/') }));
-                },
+                // The browser's state and its four methods left with the
+                // markup: browseDir, breadcrumbs, filteredBrowserFiles and
+                // uploadToBrowser are the shared component's job now.
 
-                get filteredBrowserFiles() {
-                    let files = [...this.browserFiles];
-                    if (this.browserSearch) {
-                        const q = this.browserSearch.toLowerCase();
-                        files = files.filter(f => f.name.toLowerCase().includes(q));
-                    }
-                    return files.sort((a, b) => b.modified - a.modified);
-                },
 
-                async browseDir(path) {
-                    this.browserLoading = true;
-                    const params = new URLSearchParams();
-                    if (path) params.set('path', path);
+                selectImage(path) {
+                    if (!path) return;
 
-                    const res = await fetch(`{{ route('admin.products.images.browse') }}?${params}`);
-                    const data = await res.json();
-                    if (data.ok) {
-                        this.browserPath = data.path;
-                        this.browserParent = data.parent ?? '';
-                        this.browserFolders = data.folders;
-                        this.browserFiles = data.files;
-                        this.lastBrowsedPath = data.path;
-                    }
-                    this.browserLoading = false;
-                },
-
-                async uploadToBrowser(event) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-                    const body = new FormData();
-                    body.append('file', file);
-                    body.append('catalog_path', this.browserPath);
-                    this.browserLoading = true;
-                    try {
-                        const res = await fetch('{{ route('admin.products.images.upload-to-catalog') }}', {
-                            method: 'POST',
-                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content, 'Accept': 'application/json' },
-                            body,
-                        });
-                        const data = await res.json();
-                        if (data.ok) await this.browseDir(this.browserPath);
-                    } finally {
-                        this.browserLoading = false;
-                        event.target.value = '';
-                    }
-                },
-
-                selectImage(file) {
                     if (this.browserTarget === 'bg') {
-                        this.bgImage = file.path;
+                        this.bgImage = path;
                     } else if (this.browserTarget === 'bg_mobile') {
-                        this.bgImageMobile = file.path;
+                        this.bgImageMobile = path;
                     } else if (this.currentLayer) {
-                        this.currentLayer.src = file.path;
+                        this.currentLayer.src = path;
                     }
-                    this.browserOpen = false;
+
                     this.markDirty();
                 },
 

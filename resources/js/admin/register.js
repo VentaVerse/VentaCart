@@ -2,7 +2,12 @@
 // One chrome for the whole admin (owner ruling 2026-08-17): the classic
 // bundle (admin/admin.js) is the one host, registering these on the one
 // Alpine that app.js boots. No page loads a second Alpine.
+import { registerMediaPicker } from './media-picker.js';
+
 export function registerV(Alpine) {
+    // The one image browser, replacing five hand-rolled copies.
+    registerMediaPicker(Alpine);
+
     // ------------------------------------------------------------------
     // The save doctrine. One page is one save scope: a vForm snapshots
     // its fields on load, flips dirty on any input/change (or an explicit

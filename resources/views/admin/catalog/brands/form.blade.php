@@ -19,14 +19,9 @@
                 <input type="text" name="name" required class="v-control" value="{{ old('name', $brand?->name) }}">
             </x-admin.field>
             <div class="v-gap">
-                @include('admin.partials.single_image_picker', [
-                    'fieldName' => 'image',
-                    'label' => 'Logo / image',
-                    'currentImage' => $brand?->image,
-                    'root' => 'brands',
-                    'defaultFolder' => 'Brands',
-                    'hint' => 'Recommended: transparent PNG, square or horizontal.',
-                ])
+                <x-admin.media-picker name="image" :value="$brand?->image"
+                                      root="brands" label="Logo / image"
+                                      help="Recommended: transparent PNG, square or horizontal." />
                 @error('image') <span class="v-field__error">{{ $message }}</span> @enderror
             </div>
             <div class="v-gap">
