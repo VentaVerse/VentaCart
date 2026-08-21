@@ -58,7 +58,8 @@ class LayoutEditorTest extends TestCase
         $this->assertDatabaseHas('layout_placements', [
             'page_type' => 'cart', 'region' => 'column_left', 'widget' => 'catalog.products', 'title' => 'Popular',
         ]);
-        $this->assertSame(['left' => 2, 'right' => 0, 'content' => 6], LayoutColumns::forPage('cart'));
+        $this->assertSame(['left' => 2, 'right' => 0, 'content' => 6],
+            collect(LayoutColumns::forPage('cart'))->except('settings')->all());
     }
 
     /** Order on screen is order in the payload, not whatever the ids were. */

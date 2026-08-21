@@ -10,6 +10,8 @@
                 <span aria-hidden="true">/</span>
                 <a href="{{ route('admin.theme.index') }}">Themes</a>
                 <span aria-hidden="true">/</span>
+                <a href="{{ route('admin.theme.customise') }}">{{ $theme }}</a>
+                <span aria-hidden="true">/</span>
                 <span>Layout</span>
             </div>
             <h1 class="v-head__title">Layout</h1>
@@ -41,14 +43,6 @@
 
         {{-- the page, drawn as a page --}}
         <div class="v-lay__stage">
-            @if ($orphans->isNotEmpty())
-                <p class="v-lay__orphans">
-                    <x-admin.icon name="warning" />
-                    <span>{{ $orphans->count() }} placement{{ $orphans->count() === 1 ? '' : 's' }}
-                        sit in regions <b>{{ $activeTheme }}</b> does not have. They render nothing until you move them.</span>
-                </p>
-            @endif
-
             <div class="v-lay__page">
                 {{-- top --}}
                 @if (isset($regions['header_top']))
@@ -130,6 +124,68 @@
             </div>
         </div>
 
+        {{-- settings for the selected widget, from its own schema --}}
+        <div class="v-lay__pick v-lay__pick--wide" x-show="editing" x-cloak
+             @keydown.escape.window="editing = null">
+            <div class="v-lay__pickhead">
+                <b x-text="editing ? (editing.title || editing.label) : ''"></b>
+                <button type="button" @click="editing = null" aria-label="Close">&times;</button>
+            </div>
+
+            <label class="v-lay__field">
+                <span>Heading shown on the page</span>
+                <input type="text" :value="editing?.title ?? ''"
+                       @input="editing.title = $event.target.value; touch()">
+            </label>
+
+            <template x-for="f in schemaFor(editing?.widget)" :key="f.name">
+                <label class="v-lay__field">
+                    <span x-text="f.label"></span>
+
+                    <template x-if="f.type === 'select'">
+                        <span class="v-lay__withnew">
+                            {{-- :selected on the option, not :value on the select.
+                                 A select's value cannot bind before x-for has
+                                 added its options, so the saved choice showed as
+                                 "Choose..." on every open. --}}
+                            <select @change="setCfg(f.name, $event.target.value)">
+                                <option value="">Choose&hellip;</option>
+                                <template x-for="(label, value) in f.options" :key="value">
+                                    <option :value="value" :selected="cfg(f.name) === value" x-text="label"></option>
+                                </template>
+                            </select>
+                            {{-- Creating the thing you are placing, without leaving --}}
+                            <a x-show="f.create_url" :href="f.create_url" target="_blank"
+                               class="v-lay__new" x-text="f.create_label ?? 'New'"></a>
+                        </span>
+                    </template>
+
+                    <template x-if="f.type === 'number'">
+                        <input type="number" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)">
+                    </template>
+
+                    <template x-if="f.type !== 'select' && f.type !== 'number'">
+                        <input type="text" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)">
+                    </template>
+                </label>
+            </template>
+
+            <p class="v-lay__pickempty" x-show="schemaFor(editing?.widget).length === 0">
+                This widget has nothing to configure.
+            </p>
+        </div>
+
+        {{-- what this theme lets you change on the page itself --}}
+        <div class="v-lay__page-settings" x-show="pageSettings.length" x-cloak>
+            <div class="v-lay__pslabel">On this page</div>
+            <template x-for="f in pageSettings" :key="f.name">
+                <label class="v-lay__ps">
+                    <input type="checkbox" :checked="f.value" @change="f.value = $event.target.checked; touch()">
+                    <span x-text="f.label"></span>
+                </label>
+            </template>
+        </div>
+
         {{-- the picker --}}
         <div class="v-lay__pick" x-show="adding" x-cloak @keydown.escape.window="adding = null">
             <div class="v-lay__pickhead">
@@ -157,6 +213,8 @@
                 placements: @js($placements),
                 inherited: @js($inherited),
                 widgets: @js($widgets),
+                schemas: @js($schemas),
+                pageSettings: @js($pageSettings),
                 cols: @js($columns),
                 grid: @js($grid),
                 minContent: @js($minContent),
@@ -172,7 +230,10 @@
                     cols: { left: seed.cols.left, right: seed.cols.right },
                     grid: seed.grid,
                     minContent: seed.minContent,
+                    schemas: seed.schemas,
+                    pageSettings: seed.pageSettings,
                     adding: null,
+                    editing: null,
                     dragging: null,
 
                     /** Named `placed`, never `in`: `in` is a JS operator and Alpine
@@ -201,6 +262,20 @@
                             label: w.title, enabled: true, available: true, config: {},
                         });
                         this.adding = null;
+                        this.touch();
+                    },
+
+                    /* ---- settings ---- */
+
+                    edit(region, i) { this.editing = this.rows[region][i]; },
+
+                    schemaFor(widget) { return widget ? (this.schemas[widget] || []) : []; },
+
+                    cfg(name) { return (this.editing?.config ?? {})[name] ?? ''; },
+
+                    setCfg(name, value) {
+                        if (!this.editing.config) this.editing.config = {};
+                        this.editing.config[name] = value;
                         this.touch();
                     },
 
@@ -278,9 +353,13 @@
                                 title: p.title, enabled: p.enabled, config: p.config,
                             }));
                         });
+                        const settings = {};
+                        this.pageSettings.forEach((f) => { settings[f.name] = f.value; });
+
                         return JSON.stringify({
                             page_type: this.pageType,
                             columns: this.cols,
+                            settings,
                             placements: out,
                         });
                     },

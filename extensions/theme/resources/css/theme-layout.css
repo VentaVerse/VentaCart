@@ -316,3 +316,68 @@
     .v-lay__handle, .v-lay__stub { display: none; }
     .v-lay__pick { left: 16px; right: 16px; width: auto; }
 }
+
+/* ---------- widget settings and page controls ---------- */
+
+.v-lay__pick--wide { width: 340px; }
+
+.v-lay__field { display: block; margin-bottom: 12px; }
+.v-lay__field > span { display: block; font-size: 12px; color: var(--v-ink-3); margin-bottom: 5px; }
+
+.v-lay__field input[type="text"],
+.v-lay__field input[type="number"],
+.v-lay__field select {
+    width: 100%;
+    height: 36px;
+    padding: 0 9px;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    color: var(--v-ink);
+    font: inherit;
+    font-size: 13px;
+}
+
+.v-lay__withnew { display: flex; gap: 8px; align-items: center; }
+.v-lay__withnew select { flex: 1; min-width: 0; }
+
+.v-lay__new {
+    flex: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--v-act);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.v-lay__new:hover { text-decoration: underline; }
+
+/* The page's own parts. Not a reduction layer: the page is not taken apart,
+   its parts simply have controls, and hiding is one of them. */
+.v-lay__page-settings {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+}
+
+.v-lay__pslabel {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--v-ink-3);
+    width: 100%;
+}
+
+.v-lay__ps { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--v-ink-2); cursor: pointer; }
+.v-lay__ps input { width: 16px; height: 16px; accent-color: var(--v-act-fill); }
+
+/* The Pages panel inside the theme editor: one door per page type. */
+.v-pagelinks { display: flex; flex-wrap: wrap; gap: 8px; }
+.v-note { margin: 0 0 12px; color: var(--v-ink-3); font-size: 13px; }

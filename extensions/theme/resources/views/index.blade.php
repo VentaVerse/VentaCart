@@ -531,55 +531,22 @@
 
         {{-- ========== HOMEPAGE (records) ========== --}}
         <div x-show="tab === 'homepage'" x-cloak>
-            <x-admin.panel title="Homepage sections">
-                <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.sections.reorder')))">
-                    <div data-sortable>
-                        @foreach ($sections as $section)
-                            <div class="v-dragrow" draggable="true" data-id="{{ $section->id }}">
-                                <x-admin.icon name="menu" class="v-dragrow__grip drag-handle" />
-                                <span class="v-badge v-badge--quiet">{{ $section->type }}</span>
-                                <span class="v-dir__name">{{ $section->title }}</span>
-                                <span class="v-dragrow__end">
-                                    <span class="v-badge {{ $section->is_enabled ? 'v-badge--good' : 'v-badge--quiet' }}">{{ $section->is_enabled ? 'Active' : 'Disabled' }}</span>
-                                    <a href="{{ route('admin.theme.sections.edit', $section) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
-                                    <button type="button" class="v-row__x" aria-label="Delete {{ $section->title }}" @click="$dispatch('v-confirm', 'delete-section-{{ $section->id }}')">
-                                        <x-admin.icon name="trash" />
-                                    </button>
-                                </span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <div class="v-gap-lg">
-                    <div class="v-label v-gap-sm">Add section</div>
-                    <form method="POST" action="{{ route('admin.theme.sections.store') }}" class="v-addrow v-addrow--3">
-                        @csrf
-                        <x-admin.field name="type" label="Type" required>
-                            <select name="type" class="v-control">
-                                @foreach (['banner' => 'Banner/Slider', 'products' => 'Products Carousel', 'brands' => 'Brands Carousel', 'recently_viewed' => 'Recently Viewed', 'category_tabs' => 'Category Tabs', 'text_block' => 'Text Block', 'blog_posts' => 'Blog Posts'] as $v => $label)
-                                    <option value="{{ $v }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </x-admin.field>
-                        <x-admin.field name="title" label="Title" required>
-                            <input type="text" name="title" required placeholder="Section title" class="v-control">
-                        </x-admin.field>
-                        <div class="v-addrow__opts">
-                            <button type="submit" class="v-btn v-btn--primary">Add section</button>
-                        </div>
-                    </form>
+            {{-- The homepage is a LAYOUT now, and this tab used to edit
+                 homepage_sections, which nothing has rendered since the layout
+                 system landed. A merchant could reorder sections here all
+                 afternoon and the storefront would not change. --}}
+            <x-admin.panel title="Pages">
+                <p class="v-note">Each page is arranged in Layout: what sits above and below the content, and in the side columns.</p>
+                <div class="v-pagelinks">
+                    @foreach (\App\Support\StorefrontPageType::TYPES as $vKey => $vLabel)
+                        <a class="v-btn v-btn--sm" href="{{ route('admin.theme.layout', ['page' => $vKey]) }}">{{ $vLabel }}</a>
+                    @endforeach
+                    <a class="v-btn v-btn--sm" href="{{ route('admin.theme.layout', ['page' => '*']) }}">All pages</a>
                 </div>
             </x-admin.panel>
-
-            @foreach ($sections as $section)
-                <x-admin.confirm name="delete-section-{{ $section->id }}" title="Delete {{ $section->title }}?"
-                    message="The section leaves the homepage immediately."
-                    confirm="Delete" :action="route('admin.theme.sections.destroy', $section)" method="DELETE" />
-            @endforeach
         </div>
 
-        {{-- ========== FOOTER (records, bulk) ========== --}}
+
         <div x-show="tab === 'footer'" x-cloak>
             <x-admin.panel title="Footer columns">
                 <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.footer.reorder')))">

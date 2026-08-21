@@ -31,14 +31,16 @@ class LayoutColumnsTest extends TestCase
 
     public function test_a_page_with_no_columns_gets_the_whole_row(): void
     {
-        $this->assertSame(['left' => 0, 'right' => 0, 'content' => 8], LayoutColumns::forPage('home'));
+        $this->assertSame(['left' => 0, 'right' => 0, 'content' => 8],
+            collect(LayoutColumns::forPage('home'))->except('settings')->all());
     }
 
     public function test_the_content_takes_whatever_the_sides_leave(): void
     {
         LayoutColumns::create(['page_type' => 'category', 'left_width' => 2, 'right_width' => 1]);
 
-        $this->assertSame(['left' => 2, 'right' => 1, 'content' => 5], LayoutColumns::forPage('category'));
+        $this->assertSame(['left' => 2, 'right' => 1, 'content' => 5],
+            collect(LayoutColumns::forPage('category'))->except('settings')->all());
     }
 
     /** A stored row must never be able to render a content column of zero. */

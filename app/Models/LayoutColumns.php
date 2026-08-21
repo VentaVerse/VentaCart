@@ -14,11 +14,12 @@ class LayoutColumns extends Model
 
     protected $table = 'layout_columns';
 
-    protected $fillable = ['page_type', 'left_width', 'right_width'];
+    protected $fillable = ['theme', 'page_type', 'left_width', 'right_width', 'settings'];
 
     protected $casts = [
         'left_width' => 'integer',
         'right_width' => 'integer',
+        'settings' => 'array',
     ];
 
     /**
@@ -27,9 +28,13 @@ class LayoutColumns extends Model
      * A page nobody has configured has no columns, which is the same shape as
      * a page configured to have none. The caller never has to know which.
      */
-    public static function forPage(?string $pageType): array
+    public static function forPage(?string $pageType, ?string $theme = null): array
     {
-        $row = $pageType ? static::where('page_type', $pageType)->first() : null;
+        $theme = $theme ?: app(\App\Services\ThemeService::class)->getActiveTheme();
+
+        $row = $pageType
+            ? static::where('theme', $theme)->where('page_type', $pageType)->first()
+            : null;
 
         $left = $row->left_width ?? 0;
         $right = $row->right_width ?? 0;
@@ -43,6 +48,7 @@ class LayoutColumns extends Model
             'left' => $left,
             'right' => $right,
             'content' => self::GRID - $left - $right,
+            'settings' => $row->settings ?? [],
         ];
     }
 }

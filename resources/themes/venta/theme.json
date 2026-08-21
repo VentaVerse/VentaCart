@@ -161,5 +161,52 @@
         "footer_top": {
             "label": "Above the footer"
         }
+    },
+    "page_settings": {
+        "show_breadcrumbs": {
+            "label": "Breadcrumbs",
+            "type": "toggle",
+            "default": true,
+            "pages": [
+                "category",
+                "product",
+                "blog",
+                "page",
+                "brand",
+                "account",
+                "cart",
+                "checkout",
+                "search"
+            ]
+        },
+        "show_page_title": {
+            "label": "Page title",
+            "type": "toggle",
+            "default": true,
+            "pages": [
+                "category",
+                "product",
+                "blog",
+                "page",
+                "brand",
+                "account",
+                "cart",
+                "checkout",
+                "search"
+            ]
+        },
+        "show_reviews": {
+            "label": "Reviews",
+            "type": "toggle",
+            "default": true,
+            "pages": [
+                "product"
+            ]
+        },
+        "show_footer": {
+            "label": "Footer",
+            "type": "toggle",
+            "default": true
+        }
     }
 }

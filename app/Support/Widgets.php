@@ -90,6 +90,47 @@ class Widgets
     }
 
     /**
+     * A widget's settings form, with any dynamic choices resolved.
+     *
+     * A schema can name a source instead of a fixed option list, because the
+     * choices are the merchant's own data: which banner group, which category.
+     * Resolving here means the editor renders a schema and never learns what a
+     * banner group is.
+     */
+    public static function schema(string $key): array
+    {
+        $spec = self::get($key);
+
+        if (! $spec) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($spec['schema'] as $name => $field) {
+            if (isset($field['options']) && is_callable($field['options'])) {
+                try {
+                    $field['options'] = (array) call_user_func($field['options']);
+                } catch (\Throwable $e) {
+                    // One widget that cannot list its choices must not take the
+                    // layout editor down with it. A module mid-install, or one
+                    // whose tables are gone, degrades to an empty list and the
+                    // merchant can still arrange every other widget.
+                    $field['options'] = [];
+                    $field['unavailable'] = true;
+                }
+            }
+
+            $field['name'] = $name;
+            $field['type'] = $field['type'] ?? 'text';
+            $field['label'] = $field['label'] ?? ucfirst(str_replace('_', ' ', $name));
+            $out[] = $field;
+        }
+
+        return $out;
+    }
+
+    /**
      * Theme first, module second.
      *
      * A theme overrides any widget by shipping widgets/{path}.blade.php, and

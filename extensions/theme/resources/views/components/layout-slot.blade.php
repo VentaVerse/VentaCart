@@ -34,6 +34,8 @@
             <span class="v-tag v-tag--off" x-show="!row.available">Module off</span>
 
             <span class="v-card__acts">
+                <button type="button" @click="edit('{{ $region }}', i)"
+                        aria-label="Settings" title="Settings">&#9881;</button>
                 <button type="button" @click="toggle('{{ $region }}', i)"
                         :aria-label="row.enabled ? 'Hide this widget' : 'Show this widget'"
                         :title="row.enabled ? 'Visible' : 'Hidden'">

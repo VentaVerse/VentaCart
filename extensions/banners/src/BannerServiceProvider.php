@@ -32,7 +32,16 @@ class BannerServiceProvider extends ServiceProvider
                 // The SLUG, matching what the view already reads and what the
                 // existing homepage sections already store. Inventing a
                 // group_id here would have broken every section carried over.
-                'banner_group' => ['type' => 'select', 'label' => 'Which group'],
+                'banner_group' => [
+                    'type' => 'select',
+                    'label' => 'Which banner',
+                    // Resolved when the editor asks, not at boot: a merchant
+                    // creating a banner must see it in the list immediately.
+                    'options' => fn () => \Extensions\Banners\Models\BannerGroup::where('is_active', true)
+                        ->orderBy('name')->pluck('name', 'slug')->all(),
+                    'create_route' => 'admin.banners.create',
+                    'create_label' => 'New banner',
+                ],
             ],
             // A banner group is a full-bleed slider. It has no narrow form.
             'regions' => ['header_top', 'content_top', 'content_bottom', 'footer_top'],

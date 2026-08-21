@@ -11,7 +11,7 @@ class LayoutPlacement extends Model
     public const EVERYWHERE = '*';
 
     protected $fillable = [
-        'page_type', 'region', 'widget', 'title', 'config', 'sort_order', 'is_enabled',
+        'theme', 'page_type', 'region', 'widget', 'title', 'config', 'sort_order', 'is_enabled',
     ];
 
     protected $casts = [
@@ -29,9 +29,16 @@ class LayoutPlacement extends Model
      * merchant did not put there from this screen, so the editor has to show
      * inherited rows as inherited rather than pretending they are local.
      */
-    public static function forRegion(?string $pageType, string $region)
+    /** The theme a layout belongs to. Defaults to whichever one is running. */
+    public static function scopeTheme(?string $theme = null): string
+    {
+        return $theme ?: app(\App\Services\ThemeService::class)->getActiveTheme();
+    }
+
+    public static function forRegion(?string $pageType, string $region, ?string $theme = null)
     {
         return static::query()
+            ->where('theme', self::scopeTheme($theme))
             ->where('is_enabled', true)
             ->where('region', $region)
             ->where(function ($q) use ($pageType) {

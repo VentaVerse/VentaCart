@@ -34,13 +34,19 @@ class LayoutController extends Controller
 
         // Counts per page type, so the rail answers "which pages have I
         // touched" without opening each one.
+        $slug = $theme->getActiveTheme();
+        $themeName = $theme->getInstalledThemes()[$slug]['name'] ?? $slug;
+        $theme = $slug;
+
         $counts = LayoutPlacement::query()
+            ->where('theme', $theme)
             ->selectRaw('page_type, COUNT(*) as n')
             ->groupBy('page_type')
             ->pluck('n', 'page_type')
             ->all();
 
         return view('theme::layout', [
+            'theme' => $themeName,
             'pageType' => $pageType,
             'pageTypes' => StorefrontPageType::TYPES,
             'counts' => $counts,
@@ -51,17 +57,32 @@ class LayoutController extends Controller
             'placements' => $this->placements($pageType),
             'inherited' => $pageType === LayoutPlacement::EVERYWHERE
                 ? collect()
-                : LayoutPlacement::where('page_type', LayoutPlacement::EVERYWHERE)->orderBy('sort_order')->get(),
+                : LayoutPlacement::where('theme', $theme)
+                    ->where('page_type', LayoutPlacement::EVERYWHERE)
+                    ->orderBy('sort_order')->get(),
             'widgets' => $this->catalogue($regions),
-            'orphans' => Regions::orphans(),
-            'activeTheme' => $theme->getInstalledThemes()[$theme->getActiveTheme()]['name'] ?? $theme->getActiveTheme(),
+            // Every widget's settings form, resolved. Without this a merchant
+            // can place a banner and never say WHICH banner.
+            'schemas' => collect(Widgets::all())->keys()
+                ->mapWithKeys(fn ($key) => [$key => array_map(function ($field) {
+                    // A named route becomes a URL here, so the view never
+                    // resolves routes and a missing one cannot 500 the editor.
+                    if (! empty($field['create_route']) && \Illuminate\Support\Facades\Route::has($field['create_route'])) {
+                        $field['create_url'] = route($field['create_route']);
+                    }
+                    unset($field['create_route']);
+
+                    return $field;
+                }, Widgets::schema($key))])->all(),
+            'pageSettings' => $this->pageSettings($pageType),
         ]);
     }
 
     /** Everything placed on this page type, grouped by region. */
     private function placements(string $pageType): array
     {
-        $rows = LayoutPlacement::where('page_type', $pageType)
+        $rows = LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
+            ->where('page_type', $pageType)
             ->orderBy('sort_order')->orderBy('id')->get();
 
         $out = [];
@@ -136,10 +157,11 @@ class LayoutController extends Controller
 
         DB::transaction(function () use ($data, $pageType, $rows, &$kept) {
             LayoutColumns::updateOrCreate(
-                ['page_type' => $pageType],
+                ['theme' => LayoutPlacement::scopeTheme(), 'page_type' => $pageType],
                 [
                     'left_width' => (int) ($data['columns']['left'] ?? 0),
                     'right_width' => (int) ($data['columns']['right'] ?? 0),
+                    'settings' => (array) ($data['settings'] ?? []),
                 ]
             );
 
@@ -156,6 +178,7 @@ class LayoutController extends Controller
                 $placement = LayoutPlacement::updateOrCreate(
                     ['id' => $row['id'] ?? null],
                     [
+                        'theme' => LayoutPlacement::scopeTheme(),
                         'page_type' => $pageType,
                         'region' => $region,
                         'widget' => $widget,
@@ -171,12 +194,49 @@ class LayoutController extends Controller
 
             // Whatever this page type had and the editor did not send back was
             // removed on screen. Scoped to this page type, so nothing else moves.
-            LayoutPlacement::where('page_type', $pageType)
+            LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
+                ->where('page_type', $pageType)
                 ->when($kept !== [], fn ($q) => $q->whereNotIn('id', $kept))
                 ->delete();
         });
 
         return back()->with('success', count($kept) . ' ' . (count($kept) === 1 ? 'widget' : 'widgets')
             . ' placed on ' . ($pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType)) . '.');
+    }
+
+    /**
+     * The parts of a hardcoded page this theme lets a merchant change.
+     *
+     * Not a "reduction layer": the page is not being taken apart. Its parts
+     * simply have controls, and hiding is one of them. Declared by the theme in
+     * theme.json, so a theme with nothing to offer offers nothing, and core
+     * never learns what a breadcrumb is.
+     */
+    private function pageSettings(string $pageType): array
+    {
+        $meta = json_decode((string) @file_get_contents(
+            app(ThemeService::class)->getThemePath() . '/theme.json'
+        ), true) ?: [];
+
+        $declared = $meta['page_settings'] ?? [];
+        $stored = LayoutColumns::forPage($pageType)['settings'] ?? [];
+
+        $out = [];
+
+        foreach ($declared as $key => $field) {
+            $out[] = [
+                'name' => $key,
+                'label' => $field['label'] ?? ucfirst(str_replace('_', ' ', $key)),
+                'type' => $field['type'] ?? 'toggle',
+                'default' => $field['default'] ?? true,
+                'value' => $stored[$key] ?? ($field['default'] ?? true),
+                'pages' => $field['pages'] ?? null,
+            ];
+        }
+
+        return array_values(array_filter(
+            $out,
+            fn ($f) => $f['pages'] === null || in_array($pageType, $f['pages'], true)
+        ));
     }
 }
