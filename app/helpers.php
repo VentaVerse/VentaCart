@@ -41,6 +41,42 @@ if (!function_exists('storage_url')) {
     }
 }
 
+if (!function_exists('thumb_url')) {
+    /**
+     * The small version of an image, when one was ever made.
+     *
+     * The product list paints twenty 40x40 boxes and was filling each one from
+     * the full-size original: eighteen of twenty measured 1440x1080, the
+     * largest 280KB for forty pixels, and images were 1.87MB of a 2.40MB page.
+     *
+     * ImageUploadService writes a `_thumb` beside everything it uploads, so
+     * for anything uploaded through Venta the small file already exists. The
+     * migrated OpenCart catalogue has none, and those fall back to the
+     * original rather than to a broken image. One stat per row on a local
+     * disk, memoised, so a repeated path costs nothing.
+     */
+    function thumb_url(?string $path): string
+    {
+        if (! $path) {
+            return '';
+        }
+
+        static $resolved = [];
+
+        if (! array_key_exists($path, $resolved)) {
+            $info = pathinfo($path);
+            $candidate = ($info['dirname'] ?? '') . '/' . ($info['filename'] ?? '') . '_thumb.' . ($info['extension'] ?? 'jpg');
+            $candidate = ltrim($candidate, '/');
+
+            $resolved[$path] = \Illuminate\Support\Facades\Storage::disk('public')->exists($candidate)
+                ? $candidate
+                : $path;
+        }
+
+        return storage_url($resolved[$path]);
+    }
+}
+
 if (!function_exists('theme_json')) {
     function theme_json(string $key, mixed $default = []): mixed
     {

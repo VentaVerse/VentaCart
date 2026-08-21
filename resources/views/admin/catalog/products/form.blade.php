@@ -35,6 +35,18 @@
                    :method="$product ? 'PUT' : 'POST'" enctype="multipart/form-data" novalidate class="v-settle">
         <input type="hidden" name="store_id" id="store_id" value="1">
 
+        {{-- Teleported into the header, the way the Save it stands beside is.
+             It rides this form, so it arms the same dirty state and is written
+             by the same Save; nothing here auto-saves. --}}
+        <template x-teleport=".v-head">
+            <label class="v-toggle v-head__live">
+                <input type="hidden" name="is_active" value="0">
+                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $product?->is_active ?? true))>
+                <span class="v-toggle__track" aria-hidden="true"></span>
+                <span>{{ $product ? 'Live' : 'Publish' }}</span>
+            </label>
+        </template>
+
         <div x-data="productForm()">
             <div x-data="{ tab: @js($errorTab === 'general' ? request('tab', $errorTab) : $errorTab),
                     pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
@@ -138,12 +150,11 @@
                             </x-admin.field>
                         </div>
                         <div class="v-gap v-actrow">
-                            <label class="v-toggle">
-                                <input type="hidden" name="is_active" value="0">
-                                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $product?->is_active ?? true))>
-                                <span class="v-toggle__track" aria-hidden="true"></span>
-                                <span>Active</span>
-                            </label>
+                            {{-- Active moved to the page header. Whether a product is on
+                                 the storefront is a property of the record, not of a tab,
+                                 and it was the last control in a panel called "Shipping
+                                 and dimensions", which is the last place a merchant looks
+                                 for it. Track stock stays: it genuinely is a stock rule. --}}
                             <label class="v-toggle">
                                 <input type="hidden" name="track_stock" value="0">
                                 <input type="checkbox" name="track_stock" value="1" @checked(old('track_stock', $product?->track_stock ?? true))>
@@ -308,17 +319,38 @@
                             <table class="v-table">
                                 <thead>
                                     <tr>
-                                        <th>Variant</th>
-                                        <th>SKU</th>
-                                        <th>Price modifier</th>
-                                        <th class="v-cell-num">Stock</th>
-                                        <th class="v-cell-num">Weight</th>
-                                        <th>On</th>
+                                        <th scope="col"><span class="v-sr">Photo</span></th>
+                                        <th scope="col">Variant</th>
+                                        <th scope="col">SKU</th>
+                                        <th scope="col">Price modifier</th>
+                                        <th scope="col" class="v-cell-num">Stock</th>
+                                        <th scope="col" class="v-cell-num">Weight</th>
+                                        <th scope="col">For sale</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <template x-for="(variant, vIndex) in variants" :key="vIndex">
                                         <tr>
+                                            {{-- The colourway, shown. A merchant scanning nine rows of
+                                                 "Aged White / Black / Creme" is scanning words for a
+                                                 thing that is a picture. --}}
+                                            <td class="v-cell-thumb">
+                                                <button type="button" class="v-vthumb"
+                                                        :class="variant.image && 'is-set'"
+                                                        @click="openVariantImage(variant)"
+                                                        :aria-label="(variant.image ? 'Change' : 'Add') + ' photo for ' + variant.label">
+                                                    <template x-if="variant.image">
+                                                        <img :src="storageUrl(variant.image)" alt="" aria-hidden="true">
+                                                    </template>
+                                                    <template x-if="!variant.image">
+                                                        <span aria-hidden="true">+</span>
+                                                    </template>
+                                                </button>
+                                                <button type="button" class="v-vthumb__x" x-show="variant.image" x-cloak
+                                                        @click="variant.image = ''; touch()"
+                                                        :aria-label="'Remove photo from ' + variant.label">&times;</button>
+                                                <input type="hidden" :name="'variants['+vIndex+'][image]'" :value="variant.image">
+                                            </td>
                                             <td>
                                                 <span x-text="variant.label"></span>
                                                 <template x-for="(key, kIndex) in variant.value_keys" :key="kIndex">
@@ -355,9 +387,22 @@
                                                        aria-label="Variant weight" class="v-control v-control--sm v-mono v-w-sort">
                                             </td>
                                             <td>
-                                                <label class="v-check">
-                                                    <input type="checkbox" x-model="variant.is_active" :name="'variants['+vIndex+'][is_active]'">
-                                                    <span class="v-sr">Variant active</span>
+                                                {{-- The switch, because this is boolean state and the
+                                                     admin has exactly one control for that. It was a bare
+                                                     checkbox with no class at all, which is the
+                                                     multi-selection control, and which rendered as the
+                                                     browser's own blue: the one control on this screen
+                                                     that was not wearing the admin. --}}
+                                                <label class="v-toggle">
+                                                    {{-- The companion always rides the switch: an
+                                                         unchecked box posts nothing, and the server reads
+                                                         presence, so without this every variant switched
+                                                         off would read as absent rather than off. --}}
+                                                    <input type="hidden" :name="'variants['+vIndex+'][is_active]'" value="0">
+                                                    <input type="checkbox" x-model="variant.is_active"
+                                                           :name="'variants['+vIndex+'][is_active]'" value="1">
+                                                    <span class="v-toggle__track" aria-hidden="true"></span>
+                                                    <span class="v-sr" x-text="'For sale: ' + variant.label"></span>
                                                 </label>
                                             </td>
                                         </tr>
@@ -366,6 +411,63 @@
                             </table>
                         </div>
                     </x-admin.panel>
+
+                    {{-- ONE browser for the whole matrix, aimed at a row.
+
+                         The obvious move was to include the single image picker
+                         per row, the way brands and blog do. That partial mints
+                         its own Alpine component and its own full modal per
+                         field, so a two-axis product would stack thirty-six
+                         modals in the document. One dialog with a target is the
+                         same shape the layout editor's subject panel uses. --}}
+                    <div class="v-overlay" x-show="picker.open" x-cloak
+                         @keydown.escape.window="closeVariantImage()" @click.self="closeVariantImage()">
+                        <div class="v-modal v-modal--media" role="dialog" aria-modal="true"
+                             :aria-label="'Photo for ' + (picker.target?.label ?? 'variant')">
+                            <div class="v-between">
+                                <nav class="v-crumbrow" aria-label="Folder path">
+                                    <button type="button" class="v-link" @click="browseVariantDir('')">Files</button>
+                                    <template x-for="(crumb, i) in variantCrumbs" :key="i">
+                                        <span class="v-crumbrow">
+                                            <span aria-hidden="true">/</span>
+                                            <button type="button" class="v-link" @click="browseVariantDir(crumb.path)" x-text="crumb.name"></button>
+                                        </span>
+                                    </template>
+                                </nav>
+                                <button type="button" class="v-modal__x" @click="closeVariantImage()" aria-label="Close">&times;</button>
+                            </div>
+
+                            <div class="v-actrow v-gap-sm">
+                                <input type="search" class="v-control v-control--sm" x-model="picker.search"
+                                       :aria-label="'Search this folder'" placeholder="Filter this folder">
+                                <label class="v-btn v-btn--secondary v-btn--sm">
+                                    <span x-text="picker.uploading ? 'Uploading…' : 'Upload'"></span>
+                                    <input type="file" accept="image/*" class="v-sr" @change="uploadVariantImage($event)">
+                                </label>
+                            </div>
+
+                            <div class="v-mediagrid" x-show="!picker.loading">
+                                <template x-for="folder in variantFolders" :key="folder.path">
+                                    <button type="button" class="v-tilewrap v-tilewrap--dir" @click="browseVariantDir(folder.path)">
+                                        <x-admin.icon name="folder" />
+                                        <span x-text="folder.name"></span>
+                                    </button>
+                                </template>
+                                <template x-for="file in variantFiles" :key="file.path">
+                                    <button type="button" class="v-tilewrap" @click="pickVariantImage(file)"
+                                            :aria-pressed="picker.target?.image === file.path ? 'true' : 'false'">
+                                        <img :src="storageUrl(file.path)" alt="" aria-hidden="true">
+                                        <span x-text="file.name"></span>
+                                    </button>
+                                </template>
+                            </div>
+
+                            <p class="v-empty__line" x-show="picker.loading">Loading…</p>
+                            <p class="v-empty__line" x-show="!picker.loading && variantFolders.length === 0 && variantFiles.length === 0">
+                                Nothing in this folder
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 {{-- ===================== PRICING ===================== --}}
@@ -613,15 +715,33 @@
 
                     const combinations = this.cartesian(valueSets);
 
+                    // Keyed by the combination's own identity, never by the
+                    // words on screen.
+                    //
+                    // This used to be oldVariants[v.label], and the value
+                    // inputs fire on every keystroke, so correcting a typo in
+                    // "Black" missed the lookup for one frame and rebuilt the
+                    // row empty: SKU gone, stock 0, weight gone, modifier
+                    // reset. Typing the letter back did not bring it back,
+                    // because the map had already been rebuilt from the blank
+                    // rows. The wipe armed the dirty flag, so Save wrote the
+                    // zeros. A merchant lost 96 units to a typo.
+                    //
+                    // value_keys is type-index plus value-index, built four
+                    // lines above, and it does not change when the label is
+                    // edited. It was already in the payload; it just was not
+                    // being used for the one thing it is for.
+                    const identity = (v) => (v.value_keys || []).join('|');
+
                     const oldVariants = {};
-                    this.variants.forEach(v => { oldVariants[v.label] = v; });
+                    this.variants.forEach(v => { oldVariants[identity(v)] = v; });
 
                     this.variants = combinations.map(combo => {
-                        const label = combo.map(c => c.value).join(' / ');
-                        const existing = oldVariants[label];
+                        const keys = combo.map(c => c.key);
+                        const existing = oldVariants[keys.join('|')];
                         return {
-                            label: label,
-                            value_keys: combo.map(c => c.key),
+                            label: combo.map(c => c.value).join(' / '),
+                            value_keys: keys,
                             sku: existing?.sku || '',
                             price: existing?.price || 0,
                             modifier_sign: existing?.modifier_sign || '+',
@@ -629,8 +749,98 @@
                             quantity: existing?.quantity || 0,
                             weight: existing?.weight || '',
                             is_active: existing?.is_active ?? true,
+                            // Merchandising, and the thing a rename used to
+                            // destroy along with everything else.
+                            image: existing?.image || '',
                         };
                     });
+                },
+
+                /* ---- one browser, aimed at a row ---- */
+
+                picker: { open: false, target: null, path: '', folders: [], files: [], loading: false, search: '', uploading: false },
+
+                get variantCrumbs() {
+                    if (!this.picker.path) return [];
+                    const parts = this.picker.path.split('/');
+                    return parts.map((name, i) => ({ name, path: parts.slice(0, i + 1).join('/') }));
+                },
+
+                get variantFolders() {
+                    const q = this.picker.search.toLowerCase();
+                    return q ? this.picker.folders.filter(f => f.name.toLowerCase().includes(q)) : this.picker.folders;
+                },
+
+                get variantFiles() {
+                    const q = this.picker.search.toLowerCase();
+                    const files = q ? this.picker.files.filter(f => f.name.toLowerCase().includes(q)) : this.picker.files;
+                    return [...files].sort((a, b) => b.modified - a.modified);
+                },
+
+                openVariantImage(variant) {
+                    this.picker.target = variant;
+                    this.picker.open = true;
+                    this.picker.search = '';
+                    // Open where the answer probably is: the folder this
+                    // variant already points at, else where the merchant was
+                    // last, else the product root.
+                    const at = variant.image ? variant.image.slice(0, variant.image.lastIndexOf('/')) : this.picker.path;
+                    this.browseVariantDir(at || 'products');
+                },
+
+                closeVariantImage() {
+                    this.picker.open = false;
+                    this.picker.target = null;
+                },
+
+                async browseVariantDir(path) {
+                    this.picker.loading = true;
+                    const params = new URLSearchParams();
+                    if (path) params.set('path', path);
+                    try {
+                        const res = await fetch(`{{ route('admin.products.images.browse') }}?${params}`);
+                        const data = await res.json();
+                        if (data.ok) {
+                            this.picker.path = data.path;
+                            this.picker.folders = data.folders;
+                            this.picker.files = data.files;
+                        }
+                    } catch (e) { /* the merchant keeps the folder they were in */ }
+                    this.picker.loading = false;
+                },
+
+                pickVariantImage(file) {
+                    if (!this.picker.target) return;
+                    this.picker.target.image = file.path;
+                    this.closeVariantImage();
+                    this.touch();
+                },
+
+                async uploadVariantImage(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    event.target.value = '';
+
+                    this.picker.uploading = true;
+                    const body = new FormData();
+                    body.append('file', file);
+                    body.append('catalog_path', this.picker.path || 'products');
+
+                    try {
+                        const res = await fetch('{{ route('admin.products.images.upload-to-catalog') }}', {
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', Accept: 'application/json' },
+                            body,
+                        });
+                        const data = await res.json();
+                        if (data.ok) {
+                            this.picker.files.push({ name: data.name, path: data.path, modified: Date.now() / 1000 });
+                            // Straight onto the row that asked for it: the
+                            // merchant uploaded this photo FOR this colourway.
+                            this.pickVariantImage({ path: data.path });
+                        }
+                    } catch (e) { /* nothing is chosen, and the folder stands */ }
+                    this.picker.uploading = false;
                 },
 
                 cartesian(arrays) {

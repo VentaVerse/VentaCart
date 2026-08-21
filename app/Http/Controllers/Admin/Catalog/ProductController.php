@@ -21,7 +21,9 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['categories', 'variants']);
+        // categories was eager-loaded and never read by the view. variants
+        // is read on every row, and now carries the values that name each one.
+        $query = Product::with(['variants.values']);
 
         if ($request->filled('store_id')) {
             $query->where('store_id', $request->input('store_id'));
@@ -49,14 +51,28 @@ class ProductController extends Controller
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('sku', 'like', "%{$search}%");
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  // A variant SKU is the code on the picking slip and on the
+                  // supplier's invoice. It was the one thing a merchant would
+                  // paste into this box and the one thing it could not find,
+                  // because a product with variants shows no SKU of its own.
+                  ->orWhereHas('variants', function ($v) use ($search) {
+                      $v->where('sku', 'like', "%{$search}%");
+                  });
             });
         }
 
         $products = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+
+        // Which parents are showing their variants. In the querystring rather
+        // than in Alpine, so the rows survive pagination, the back button and
+        // a refresh, and so they stay server-rendered like every other row on
+        // this page.
+        $open = collect(explode(',', (string) $request->input('open')))
+            ->filter()->map(fn ($id) => (int) $id)->all();
         $categories = Category::orderBy('name')->get();
 
-        return view('admin.catalog.products.index', compact('products', 'categories'));
+        return view('admin.catalog.products.index', compact('products', 'categories', 'open'));
     }
 
     public function create(Request $request)
@@ -174,6 +190,7 @@ class ProductController extends Controller
                 'quantity' => $v->quantity,
                 'weight' => $v->weight,
                 'is_active' => $v->is_active,
+                'image' => $v->image ?? '',
                 'label' => $v->name,
                 'value_keys' => $keys,
             ];
@@ -316,6 +333,30 @@ class ProductController extends Controller
             'images_json' => ['nullable', 'string'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['exists:categories,id'],
+
+            // The variants payload had no rules at all, so a row with a blank
+            // SKU was accepted, silently dropped by the writer, and reported
+            // as a success. A merchant filling stock across thirty-six
+            // generated rows lost thirty of them and was told the product had
+            // been updated.
+            'variant_types' => ['nullable', 'array'],
+            'variant_types.*.name' => ['required', 'string', 'max:100'],
+            'variant_types.*.values' => ['required', 'array', 'min:1'],
+            'variant_types.*.values.*' => ['required', 'string', 'max:100'],
+            'variants' => ['nullable', 'array'],
+            'variants.*.sku' => ['required', 'string', 'max:100'],
+            'variants.*.quantity' => ['nullable', 'integer', 'min:0'],
+            'variants.*.modifier_sign' => ['nullable', 'in:+,-'],
+            'variants.*.modifier_amount' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.weight' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.is_active' => ['nullable', 'boolean'],
+            'variants.*.image' => ['nullable', 'string', 'max:2048'],
+            'variants.*.value_keys' => ['nullable', 'array'],
+        ], [
+            // Named by row, because the generic message points at the General
+            // tab and leaves a merchant hunting thirty-six rows for the one
+            // that is empty.
+            'variants.*.sku.required' => 'Every variant needs its own SKU. Row :position has none.',
         ]);
 
         // Validate SKU uniqueness across products + variants in this store
@@ -405,6 +446,14 @@ class ProductController extends Controller
             return;
         }
 
+        // What the merchant chose, keyed by the one thing that survives the
+        // rebuild below. This method deletes every variant and recreates it,
+        // so any field the form does not round-trip is destroyed on save. The
+        // photo is the one field a merchant picks by hand rather than types,
+        // and losing it silently to an unrelated edit is the same class of
+        // bug as the label re-key the matrix used to have.
+        $keptImages = $product->variants()->pluck('image', 'sku')->filter()->all();
+
         // Delete old variant types and variants
         $product->variants()->delete();
         $product->variantTypes()->delete();
@@ -458,7 +507,19 @@ class ProductController extends Controller
                 'price_modifier' => $modifier,
                 'quantity' => $variantData['quantity'] ?? 0,
                 'weight' => $weight,
-                'is_active' => isset($variantData['is_active']),
+                // The switch posts 1 and its companion posts 0, so the value
+                // is read rather than the key's presence. isset() was correct
+                // for a bare checkbox and would have read every switched-off
+                // variant as switched ON the moment the companion arrived.
+                'is_active' => (bool) ($variantData['is_active'] ?? false),
+                // Absent and empty are different answers. The matrix always
+                // posts the key, so an empty value is a merchant who pressed
+                // Remove and must be obeyed; a missing key is a caller that
+                // never knew about photos, and there the stored one stands.
+                // Collapsing the two with ?: made the photo unremovable.
+                'image' => array_key_exists('image', $variantData)
+                    ? ($variantData['image'] ?: null)
+                    : ($keptImages[$variantData['sku']] ?? null),
             ]);
 
             // Attach variant type values

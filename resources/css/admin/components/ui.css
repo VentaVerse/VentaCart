@@ -1635,3 +1635,108 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 @media (pointer: coarse) {
     .v-dragrow__move button { min-width: 44px; min-height: 44px; }
 }
+
+/* --- Variants in the product list -----------------------------
+   A colourway is what gets picked, counted and photographed, and
+   the only way to see one used to be to open the product and change
+   tab. The parent keeps its row; its variants sit under it as real
+   rows, server-rendered like everything else on the page. */
+
+.v-cell-open { width: 28px; padding-right: 0; }
+
+.v-disclose {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--v-r-sm);
+    color: var(--v-ink-3);
+}
+
+.v-disclose:hover { background: var(--v-hover); color: var(--v-ink); }
+.v-disclose svg { width: 15px; height: 15px; transition: transform var(--v-fast); }
+.v-disclose.is-open svg { transform: rotate(90deg); }
+
+.v-table tr.is-parent > td { border-bottom-color: transparent; }
+
+/* The child reads as belonging to the row above: same ground, a
+   brass spine down the open group, and no repeat of the parent's
+   own chrome. */
+.v-table tr.is-child > td {
+    background: var(--v-sunken);
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.v-table tr.is-child > td:first-child {
+    box-shadow: inset 2px 0 0 var(--v-act-edge);
+}
+
+.v-childname { font-size: 12.5px; font-weight: 600; }
+
+.v-thumb--sm { width: 28px; height: 28px; }
+
+/* Zero is the number a merchant is looking for, so it stops being
+   the same grey as every other number. */
+.v-stock--out { color: var(--v-bad); font-weight: 700; }
+
+/* --- The variant photo cell ------------------------------------ */
+
+.v-cell-thumb { width: 52px; position: relative; }
+
+.v-vthumb {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px dashed var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-sunken);
+    color: var(--v-ink-3);
+    cursor: pointer;
+    overflow: hidden;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.v-vthumb:hover { border-color: var(--v-act-fill); color: var(--v-act); }
+.v-vthumb.is-set { border-style: solid; border-color: var(--v-line-2); }
+.v-vthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.v-vthumb__x {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--v-slab);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+}
+
+/* --- The tab strip on a narrow screen --------------------------
+   .v-tabs was overflow-x: visible inside an overflow-x: clip
+   ancestor, so at 390px the last two tabs sat past the edge with
+   nothing to scroll: SEO was at x=398 in a 390px viewport and a
+   click on it timed out. Keyboard could still activate it, and then
+   never scrolled it into view either. */
+
+.v-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+}
+
+.v-tabs::-webkit-scrollbar { display: none; }
+.v-tab { scroll-snap-align: start; }
+
+/* Publish state sits with Save, not inside a tab. */
+.v-head__live { margin-left: auto; font-size: 13px; }
+.v-head { align-items: center; }

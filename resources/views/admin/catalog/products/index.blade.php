@@ -38,35 +38,66 @@
                 <table class="v-table">
                     <thead>
                         <tr>
-                            <th>Product</th>
-                            <th>SKU</th>
-                            <th class="v-cell-num">Price</th>
-                            <th class="v-cell-num">Stock</th>
-                            <th>Status</th>
-                            <th class="v-cell-act"><span class="v-sr">Actions</span></th>
+                            <th scope="col" colspan="2">Product</th>
+                            <th scope="col">SKU</th>
+                            <th scope="col" class="v-cell-num">Price</th>
+                            <th scope="col" class="v-cell-num">Stock</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="v-cell-act"><span class="v-sr">Actions</span></th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($products as $product)
-                            <tr>
+                            @php
+                                $vCount = $product->variants->count();
+                                $vOpen = in_array($product->id, $open, true);
+                                // Toggling this parent, with every other open
+                                // parent kept. The whole set rides the URL.
+                                $vNext = $vOpen
+                                    ? array_values(array_diff($open, [$product->id]))
+                                    : array_merge($open, [$product->id]);
+                                $vHref = request()->fullUrlWithQuery(['open' => implode(',', $vNext) ?: null]);
+                            @endphp
+                            <tr @class(['is-parent' => $vCount > 0 && $vOpen])>
+                                <td class="v-cell-open">
+                                    @if ($vCount > 0)
+                                        <a href="{{ $vHref }}#p{{ $product->id }}" id="p{{ $product->id }}"
+                                           class="v-disclose {{ $vOpen ? 'is-open' : '' }}"
+                                           aria-expanded="{{ $vOpen ? 'true' : 'false' }}"
+                                           aria-label="{{ $vOpen ? 'Hide' : 'Show' }} the {{ $vCount }} variants of {{ $product->name }}">
+                                            <x-admin.icon name="chevron-right" />
+                                        </a>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="v-actrow">
                                         @if ($product->image)
-                                            <img class="v-thumb" src="{{ storage_url($product->image) }}" alt="">
+                                            <img class="v-thumb" src="{{ thumb_url($product->image) }}" alt="" loading="lazy" decoding="async" width="40" height="40">
                                         @else
                                             <span class="v-thumb v-thumb--blank"><x-admin.icon name="image" /></span>
                                         @endif
                                         <span>
                                             <a href="{{ route('admin.products.edit', $product) }}" class="v-rowlink">{{ $product->name }}</a>
-                                            @if ($product->has_variants)
-                                                <span class="v-cell-quiet v-block">{{ $product->variants->count() }} variants</span>
+                                            @if ($vCount > 0)
+                                                <span class="v-cell-quiet v-block">{{ $vCount }} {{ Str::plural('variant', $vCount) }}</span>
                                             @endif
                                         </span>
                                     </span>
                                 </td>
-                                <td class="v-mono v-cell-quiet">{{ $product->sku ?? '-' }}</td>
+                                <td class="v-mono v-cell-quiet">
+                                    {{-- A product with variants has no SKU of its own, and a bare
+                                         dash read as "this has no code", which sent merchants
+                                         hunting for one that does not exist. --}}
+                                    @if ($product->sku)
+                                        {{ $product->sku }}
+                                    @elseif ($vCount > 0)
+                                        <span class="v-cell-quiet">per variant</span>
+                                    @else
+                                        &mdash;
+                                    @endif
+                                </td>
                                 <td class="v-cell-num v-mono">
-                                    @if ($product->has_variants)
+                                    @if ($vCount > 0)
                                         @php
                                             $minPrice = $product->variants->min('price');
                                             $maxPrice = $product->variants->max('price');
@@ -80,7 +111,26 @@
                                         {{ number_format($product->price, 2) }}
                                     @endif
                                 </td>
-                                <td class="v-cell-num v-mono">{{ $product->has_variants ? $product->variants->sum('quantity') : $product->quantity }}</td>
+                                <td class="v-cell-num v-mono">
+                                    {{-- The sum hid the fact that one colourway was at zero while
+                                         the total read 888, so this row disagreed with the low-stock
+                                         filter that had just surfaced it. The total still shows,
+                                         because it is what gets reordered; the worst child is what
+                                         gets flagged. --}}
+                                    @if ($vCount > 0)
+                                        @php
+                                            $vTotal = $product->variants->sum('quantity');
+                                            $vWorst = $product->variants->min('quantity');
+                                            $vOut = $product->variants->where('quantity', '<=', 0)->count();
+                                        @endphp
+                                        <span @class(['v-stock--out' => $vWorst <= 0])>{{ $vTotal }}</span>
+                                        @if ($vOut > 0)
+                                            <span class="v-block v-cell-quiet">{{ $vOut }} out</span>
+                                        @endif
+                                    @else
+                                        <span @class(['v-stock--out' => $product->quantity <= 0])>{{ $product->quantity }}</span>
+                                    @endif
+                                </td>
                                 <td>
                                     <span class="v-badge v-badge--{{ $product->is_active ? 'good' : 'quiet' }}">
                                         {{ $product->is_active ? 'Active' : 'Inactive' }}
@@ -92,9 +142,48 @@
                                             @click="$dispatch('v-confirm', 'delete-product-{{ $product->id }}')">Delete</button>
                                 </td>
                             </tr>
+
+                            {{-- The variants themselves, server-rendered like every
+                                 other row on this page. A colourway is what gets
+                                 picked, counted and photographed, and until now the
+                                 only way to see one was to open the product and
+                                 change tab. --}}
+                            @if ($vOpen)
+                                @foreach ($product->variants as $vRow)
+                                    <tr class="is-child">
+                                        <td class="v-cell-open"></td>
+                                        <td>
+                                            <span class="v-actrow">
+                                                @if ($vRow->image)
+                                                    <img class="v-thumb v-thumb--sm" src="{{ thumb_url($vRow->image) }}" alt="" loading="lazy" decoding="async" width="28" height="28">
+                                                @else
+                                                    <span class="v-thumb v-thumb--sm v-thumb--blank"><x-admin.icon name="image" /></span>
+                                                @endif
+                                                <span class="v-childname">{{ $vRow->name ?: $vRow->values->pluck('value')->implode(' / ') ?: 'Variant' }}</span>
+                                            </span>
+                                        </td>
+                                        <td class="v-mono v-cell-quiet">{{ $vRow->sku ?: '—' }}</td>
+                                        <td class="v-cell-num v-mono">{{ number_format($vRow->price, 2) }}</td>
+                                        <td class="v-cell-num v-mono">
+                                            <span @class(['v-stock--out' => $vRow->quantity <= 0])>{{ $vRow->quantity }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="v-badge v-badge--{{ $vRow->is_active ? 'good' : 'quiet' }}">
+                                                {{ $vRow->is_active ? 'For sale' : 'Off' }}
+                                            </span>
+                                        </td>
+                                        <td class="v-cell-act">
+                                            {{-- Editing a variant is editing its product, and the
+                                                 form opens on the tab that holds it. --}}
+                                            <a href="{{ route('admin.products.edit', $product) }}?tab=variants"
+                                               class="v-btn v-btn--ghost v-btn--sm">Edit</a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @endif
                         @empty
                             <tr>
-                                <td colspan="6">
+                                <td colspan="7">
                                     <div class="v-empty">
                                         <p class="v-empty__title">No products found</p>
                                         <p class="v-empty__line">{{ (request('search') || request('category_id') || request('status') || request('stock')) ? 'Try adjusting the filters.' : 'The catalog starts here.' }}</p>
