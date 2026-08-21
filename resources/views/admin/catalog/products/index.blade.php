@@ -37,12 +37,43 @@
             <div class="v-tablewrap">
                 <table class="v-table">
                     <thead>
+                        @php
+                            // One header, one question. The arrow points where
+                            // the next press will take it, and aria-sort says
+                            // the same thing to anyone not looking at arrows.
+                            $vSort = function (string $key, string $label, string $class = '') use ($sort, $dir) {
+                                $on = $sort === $key;
+                                $next = $on && $dir === 'asc' ? 'desc' : 'asc';
+                                $href = request()->fullUrlWithQuery(['sort' => $key, 'dir' => $next, 'page' => null]);
+                                $aria = $on ? ($dir === 'asc' ? 'ascending' : 'descending') : 'none';
+
+                                return compact('on', 'href', 'aria', 'label', 'class', 'dir');
+                            };
+                        @endphp
                         <tr>
-                            <th scope="col" colspan="2">Product</th>
+                            @php $vName = $vSort('name', 'Product'); @endphp
+                            <th scope="col" colspan="2" aria-sort="{{ $vName['aria'] }}">
+                                <a href="{{ $vName['href'] }}" class="v-sorth {{ $vName['on'] ? 'is-on' : '' }}">
+                                    Product <span class="v-sorth__i" aria-hidden="true">{{ $vName['on'] ? ($dir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+                                </a>
+                            </th>
                             <th scope="col">SKU</th>
-                            <th scope="col" class="v-cell-num">Price</th>
-                            <th scope="col" class="v-cell-num">Stock</th>
+                            @php $vPrice = $vSort('price', 'Price'); @endphp
+                            <th scope="col" class="v-cell-num" aria-sort="{{ $vPrice['aria'] }}">
+                                <a href="{{ $vPrice['href'] }}" class="v-sorth {{ $vPrice['on'] ? 'is-on' : '' }}">
+                                    Price <span class="v-sorth__i" aria-hidden="true">{{ $vPrice['on'] ? ($dir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+                                </a>
+                            </th>
+                            @php $vStock = $vSort('stock', 'Stock'); @endphp
+                            <th scope="col" class="v-cell-num" aria-sort="{{ $vStock['aria'] }}">
+                                <a href="{{ $vStock['href'] }}" class="v-sorth {{ $vStock['on'] ? 'is-on' : '' }}">
+                                    Stock <span class="v-sorth__i" aria-hidden="true">{{ $vStock['on'] ? ($dir === 'asc' ? '↑' : '↓') : '↕' }}</span>
+                                </a>
+                            </th>
                             <th scope="col">Status</th>
+                            {{-- Only what is on screen can be sorted. An Updated
+                                 sort with no Updated column would order the list by
+                                 something the merchant cannot see. --}}
                             <th scope="col" class="v-cell-act"><span class="v-sr">Actions</span></th>
                         </tr>
                     </thead>
@@ -199,7 +230,26 @@
             </div>
         </x-admin.panel>
 
-        <x-admin.pager :paginator="$products" />
+        <div class="v-pagerow">
+            <x-admin.pager :paginator="$products" />
+
+            {{-- How many rows at a time. A merchant working through the
+                 catalogue was doing it twenty at a time over ninety-four
+                 pages with no way to say otherwise. Not a state control: it
+                 is navigation, so it is a link per size and nothing here
+                 talks to a save. --}}
+            <span class="v-perpage">
+                <span class="v-cell-quiet">Rows</span>
+                @foreach ([20, 50, 100] as $vSize)
+                    @if ($vSize === $perPage)
+                        <span class="v-pager__n is-on" aria-current="true">{{ $vSize }}</span>
+                    @else
+                        <a href="{{ request()->fullUrlWithQuery(['per' => $vSize, 'page' => null]) }}"
+                           class="v-pager__n" aria-label="Show {{ $vSize }} rows per page">{{ $vSize }}</a>
+                    @endif
+                @endforeach
+            </span>
+        </div>
 
         @foreach ($products as $product)
             <x-admin.confirm name="delete-product-{{ $product->id }}" title="Delete {{ $product->name }}?"

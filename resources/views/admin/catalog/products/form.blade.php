@@ -9,13 +9,29 @@
             'variants' => ['variants', 'variant_types'],
             'seo' => ['meta_title', 'meta_description', 'meta_keywords'],
         ];
+        // Matched against the whole key, not just its head. A blank or
+        // duplicate variant SKU arrives as `variants.31.sku`, and the old
+        // check for `variants` and `variants.*` missed it, so the merchant
+        // landed on General with an error about a row they could not see.
+        $vKeys = array_keys($errors->messages());
         foreach ($tabFields as $tab => $fields) {
             foreach ($fields as $field) {
-                if ($errors->has($field) || $errors->has($field . '.*')) {
-                    $errorTab = $tab;
-                    break 2;
+                foreach ($vKeys as $key) {
+                    if ($key === $field || str_starts_with($key, $field . '.')) {
+                        $errorTab = $tab;
+                        break 3;
+                    }
                 }
             }
+        }
+    }
+
+    // Which variant rows the server refused, so each one can say so where the
+    // merchant is looking rather than as a string at the top of another tab.
+    $variantErrors = [];
+    foreach ($errors->messages() as $key => $messages) {
+        if (preg_match('/^variants\.(\d+)\./', $key, $m)) {
+            $variantErrors[(int) $m[1]] = $messages[0];
         }
     }
 @endphp
@@ -48,23 +64,53 @@
         </template>
 
         <div x-data="productForm()">
-            <div x-data="{ tab: @js($errorTab === 'general' ? request('tab', $errorTab) : $errorTab),
-                    pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
-                <div class="v-tabs" role="tablist">
-                    <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'general' ? 'true' : 'false'" @click="pick('general')">General</button>
-                    <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'images' ? 'true' : 'false'" @click="pick('images')">Images</button>
-                    <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'links' ? 'true' : 'false'" @click="pick('links')">Links</button>
-                    <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'variants' ? 'true' : 'false'" @click="pick('variants')">
+            <div x-data="{ rowErrors: @js($variantErrors), tab: @js($errorTab === 'general' ? request('tab', $errorTab) : $errorTab),
+                    tabs: ['general', 'images', 'links', 'variants', 'pricing', 'seo'],
+                    pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); },
+                    /* The strip announced role=tablist and role=tab and then
+                       behaved like six ordinary buttons: no arrow keys, no
+                       Home or End, and six separate tab stops. Claiming the
+                       pattern without implementing it is worse than not
+                       claiming it, because a screen reader user is told to
+                       expect arrows that do nothing. */
+                    step(delta) {
+                        const at = this.tabs.indexOf(this.tab);
+                        const next = (at + delta + this.tabs.length) % this.tabs.length;
+                        this.jump(this.tabs[next]);
+                    },
+                    jump(t) {
+                        this.pick(t);
+                        this.$nextTick(() => this.$refs['tab_' + t]?.focus());
+                    } }">
+                <div class="v-tabs" role="tablist" aria-label="Product sections"
+                     @keydown.arrow-right.prevent="step(1)" @keydown.arrow-left.prevent="step(-1)"
+                     @keydown.home.prevent="jump(tabs[0])" @keydown.end.prevent="jump(tabs[tabs.length - 1])">
+                    <button type="button" class="v-tab" role="tab" id="tab-general" aria-controls="panel-general"
+                            x-ref="tab_general" :tabindex="tab === 'general' ? 0 : -1"
+                            :aria-selected="tab === 'general' ? 'true' : 'false'" @click="pick('general')">General</button>
+                    <button type="button" class="v-tab" role="tab" id="tab-images" aria-controls="panel-images"
+                            x-ref="tab_images" :tabindex="tab === 'images' ? 0 : -1"
+                            :aria-selected="tab === 'images' ? 'true' : 'false'" @click="pick('images')">Images</button>
+                    <button type="button" class="v-tab" role="tab" id="tab-links" aria-controls="panel-links"
+                            x-ref="tab_links" :tabindex="tab === 'links' ? 0 : -1"
+                            :aria-selected="tab === 'links' ? 'true' : 'false'" @click="pick('links')">Links</button>
+                    <button type="button" class="v-tab" role="tab" id="tab-variants" aria-controls="panel-variants"
+                            x-ref="tab_variants" :tabindex="tab === 'variants' ? 0 : -1"
+                            :aria-selected="tab === 'variants' ? 'true' : 'false'" @click="pick('variants')">
                         Variants <span class="v-tab__count" x-show="variants.length > 0" x-text="variants.length"></span>
                     </button>
-                    <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'pricing' ? 'true' : 'false'" @click="pick('pricing')">
+                    <button type="button" class="v-tab" role="tab" id="tab-pricing" aria-controls="panel-pricing"
+                            x-ref="tab_pricing" :tabindex="tab === 'pricing' ? 0 : -1"
+                            :aria-selected="tab === 'pricing' ? 'true' : 'false'" @click="pick('pricing')">
                         Pricing <span class="v-tab__count" x-show="specials.length > 0" x-text="specials.length"></span>
                     </button>
-                    <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'seo' ? 'true' : 'false'" @click="pick('seo')">SEO</button>
+                    <button type="button" class="v-tab" role="tab" id="tab-seo" aria-controls="panel-seo"
+                            x-ref="tab_seo" :tabindex="tab === 'seo' ? 0 : -1"
+                            :aria-selected="tab === 'seo' ? 'true' : 'false'" @click="pick('seo')">SEO</button>
                 </div>
 
                 {{-- ===================== GENERAL ===================== --}}
-                <div x-show="tab === 'general'" class="v-settle">
+                <div x-show="tab === 'general'" class="v-settle" role="tabpanel" id="panel-general" aria-labelledby="tab-general" tabindex="0">
                     <x-admin.panel title="Product">
                         <div class="v-grid v-grid--2">
                             <div x-data="brandSearch()" x-init="init()">
@@ -166,7 +212,7 @@
                 </div>
 
                 {{-- ===================== IMAGES ===================== --}}
-                <div x-show="tab === 'images'" class="v-settle">
+                <div x-show="tab === 'images'" class="v-settle" role="tabpanel" id="panel-images" aria-labelledby="tab-images" tabindex="0">
                     <x-admin.panel title="Images">
                         @include('admin.catalog.products.partials.image_manager', [
                             'existingImages' => $existingImages,
@@ -177,7 +223,7 @@
                 </div>
 
                 {{-- ===================== LINKS ===================== --}}
-                <div x-show="tab === 'links'" class="v-settle">
+                <div x-show="tab === 'links'" class="v-settle" role="tabpanel" id="panel-links" aria-labelledby="tab-links" tabindex="0">
                     @php
                         $allCategories = $categories->map(function($c) use ($categories) {
                             $parent = $c->parent_id ? $categories->firstWhere('id', $c->parent_id) : null;
@@ -278,7 +324,7 @@
                 </div>
 
                 {{-- ===================== VARIANTS ===================== --}}
-                <div x-show="tab === 'variants'" class="v-settle">
+                <div x-show="tab === 'variants'" class="v-settle" role="tabpanel" id="panel-variants" aria-labelledby="tab-variants" tabindex="0">
                     <x-admin.panel title="Variant types">
                         <x-slot:acts>
                             <button type="button" class="v-btn v-btn--secondary v-btn--sm" @click="addVariantType(); touch()"
@@ -308,6 +354,9 @@
                             </div>
                         </template>
 
+                        <p class="v-field__error" x-show="comboRefused" x-cloak
+                           x-text="comboRefused + ' combinations is more than this table can hold. Reduce the values to ' + maxCombinations + ' or fewer.'"></p>
+
                         <div x-show="variantTypes.length === 0 && variants.length === 0" class="v-empty">
                             <p class="v-empty__title">No variants configured</p>
                             <p class="v-empty__line">This product uses a single price and stock quantity.</p>
@@ -326,11 +375,12 @@
                                         <th scope="col" class="v-cell-num">Stock</th>
                                         <th scope="col" class="v-cell-num">Weight</th>
                                         <th scope="col">For sale</th>
+                                        <th scope="col" class="v-cell-act"><span class="v-sr">Remove</span></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <template x-for="(variant, vIndex) in variants" :key="vIndex">
-                                        <tr>
+                                        <tr :class="rowErrors[vIndex] && 'is-refused'">
                                             {{-- The colourway, shown. A merchant scanning nine rows of
                                                  "Aged White / Black / Creme" is scanning words for a
                                                  thing that is a picture. --}}
@@ -360,8 +410,11 @@
                                             <td>
                                                 <input type="text" x-model="variant.sku" :name="'variants['+vIndex+'][sku]'"
                                                        aria-label="Variant SKU"
-                                                       :class="isSkuDuplicate(variant.sku, vIndex) && 'is-invalid'"
+                                                       :aria-describedby="rowErrors[vIndex] ? 'verr' + vIndex : null"
+                                                       :class="(isSkuDuplicate(variant.sku, vIndex) || rowErrors[vIndex]) && 'is-invalid'"
                                                        class="v-control v-control--sm v-mono">
+                                                <span class="v-field__error" x-show="rowErrors[vIndex]" x-cloak
+                                                      :id="'verr' + vIndex" x-text="rowErrors[vIndex]"></span>
                                             </td>
                                             <td>
                                                 <span class="v-actrow">
@@ -404,6 +457,15 @@
                                                     <span class="v-toggle__track" aria-hidden="true"></span>
                                                     <span class="v-sr" x-text="'For sale: ' + variant.label"></span>
                                                 </label>
+                                            </td>
+                                            {{-- A combination a merchant does not stock.
+                                                 Removing one used to mean deleting the whole
+                                                 value from the type above, which took every
+                                                 other row that value appears in with it. --}}
+                                            <td class="v-cell-act">
+                                                <button type="button" class="v-row__x"
+                                                        @click="dropCombination(vIndex)"
+                                                        :aria-label="'Remove ' + variant.label">&times;</button>
                                             </td>
                                         </tr>
                                     </template>
@@ -471,7 +533,7 @@
                 </div>
 
                 {{-- ===================== PRICING ===================== --}}
-                <div x-show="tab === 'pricing'" class="v-settle">
+                <div x-show="tab === 'pricing'" class="v-settle" role="tabpanel" id="panel-pricing" aria-labelledby="tab-pricing" tabindex="0">
                     <x-admin.panel title="Special pricing"
                         note="The lowest priority number wins when two rows both qualify.">
                         <x-slot:acts>
@@ -531,7 +593,7 @@
                 </div>
 
                 {{-- ===================== SEO ===================== --}}
-                <div x-show="tab === 'seo'" class="v-settle">
+                <div x-show="tab === 'seo'" class="v-settle" role="tabpanel" id="panel-seo" aria-labelledby="tab-seo" tabindex="0">
                     <x-admin.panel title="SEO">
                         <x-admin.field name="slug" label="Slug" hint="Leave blank to auto-generate from the name. Public URL: /product/{slug}">
                             <input type="text" name="slug" class="v-control v-mono" value="{{ old('slug', $product?->slug) }}">
@@ -568,7 +630,7 @@
             media_live_embeds: true,
             media_alt_source: false,
             media_poster: false,
-            content_style: 'body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }',
+            content_style: 'body { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 14px; }',
             branding: false,
             promotion: false,
             license_key: 'gpl',
@@ -715,6 +777,17 @@
 
                     const combinations = this.cartesian(valueSets);
 
+                    // Two types with a dozen values each is 144 rows of six
+                    // controls: a table nobody fills by hand and a payload
+                    // nothing validates usefully. Refused before it is built,
+                    // because building it and then explaining it is worse.
+                    if (combinations.length > this.maxCombinations) {
+                        this.comboRefused = combinations.length;
+                        return;
+                    }
+
+                    this.comboRefused = 0;
+
                     // Keyed by the combination's own identity, never by the
                     // words on screen.
                     //
@@ -842,6 +915,23 @@
                     } catch (e) { /* nothing is chosen, and the folder stands */ }
                     this.picker.uploading = false;
                 },
+
+                /**
+                 * Drop one combination without touching the values above.
+                 *
+                 * It comes back the next time the values change, because the
+                 * matrix is generated from them; that is the honest behaviour
+                 * for a generated grid, and it is still better than the only
+                 * previous route, which was deleting a value and losing every
+                 * other row it appeared in.
+                 */
+                dropCombination(index) {
+                    this.variants.splice(index, 1);
+                    this.touch();
+                },
+
+                maxCombinations: 60,
+                comboRefused: 0,
 
                 cartesian(arrays) {
                     if (arrays.length === 0) return [];

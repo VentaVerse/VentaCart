@@ -1740,3 +1740,54 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 /* Publish state sits with Save, not inside a tab. */
 .v-head__live { margin-left: auto; font-size: 13px; }
 .v-head { align-items: center; }
+
+/* A refused variant row says so where the merchant is looking. */
+.v-table tr.is-refused > td { background: var(--v-bad-wash); }
+
+/* --- Numbered pages -------------------------------------------
+   Previous and Next alone is a corridor, not navigation: page 94
+   of the catalogue was ninety-three clicks away. */
+
+.v-pager__pages { display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; }
+
+.v-pager__n {
+    display: inline-grid;
+    place-items: center;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 6px;
+    border-radius: var(--v-r-sm);
+    font-family: var(--v-font-mono);
+    font-size: 12px;
+    color: var(--v-ink-2);
+}
+
+.v-pager__n:hover { background: var(--v-hover); color: var(--v-ink); }
+.v-pager__n.is-on { background: var(--v-act-fill); color: var(--v-act-ink); font-weight: 700; }
+.v-pager__gap { color: var(--v-ink-3); padding: 0 2px; font-size: 12px; }
+
+@media (max-width: 560px) {
+    .v-pager__pages { display: none; }
+}
+
+/* --- Sortable headers -----------------------------------------
+   The list answered one question, "what exists, in creation
+   order". These are the other three a packing desk asks. */
+
+.v-sorth {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: inherit;
+    white-space: nowrap;
+}
+
+.v-sorth:hover { color: var(--v-ink); }
+.v-sorth__i { font-family: var(--v-font-mono); font-size: 11px; color: var(--v-ink-3); }
+.v-sorth.is-on { color: var(--v-act); }
+.v-sorth.is-on .v-sorth__i { color: var(--v-act); }
+.v-cell-num .v-sorth { justify-content: flex-end; }
+
+.v-pagerow { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.v-pagerow .v-pager { flex: 1 1 auto; }
+.v-perpage { display: inline-flex; align-items: center; gap: 3px; font-size: 12px; }

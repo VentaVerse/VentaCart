@@ -8,6 +8,33 @@
     <nav {{ $attributes->merge(['class' => 'v-pager']) }} role="navigation" aria-label="Pagination">
         <span class="v-mono">{{ number_format($paginator->firstItem() ?? 0) }} to {{ number_format($paginator->lastItem() ?? 0) }} of {{ number_format($paginator->total()) }}</span>
         <span class="v-pager__steps">
+            {{-- Numbered pages, because Previous and Next over ninety-four
+                 pages is not navigation, it is a corridor. Windowed around
+                 the current page with the two ends always reachable, so the
+                 control stays one line at any total. Each href is echoed ONCE
+                 for the same reason the steps are; see above. --}}
+            @php
+                $vLast = $paginator->lastPage();
+                $vNow = $paginator->currentPage();
+                $vWindow = collect(range(max(1, $vNow - 1), min($vLast, $vNow + 1)))
+                    ->prepend(1)->push($vLast)->unique()->sort()->values();
+            @endphp
+            @if ($vLast > 1)
+                <span class="v-pager__pages">
+                    @php $vPrev = 0; @endphp
+                    @foreach ($vWindow as $vPage)
+                        @if ($vPrev && $vPage > $vPrev + 1)
+                            <span class="v-pager__gap" aria-hidden="true">&hellip;</span>
+                        @endif
+                        @if ($vPage === $vNow)
+                            <span class="v-pager__n is-on" aria-current="page">{{ $vPage }}</span>
+                        @else
+                            <a href="{{ $paginator->url($vPage) }}" class="v-pager__n" aria-label="Page {{ $vPage }}">{{ $vPage }}</a>
+                        @endif
+                        @php $vPrev = $vPage; @endphp
+                    @endforeach
+                </span>
+            @endif
             @if ($paginator->previousPageUrl())
                 <a href="{{ $paginator->previousPageUrl() }}" rel="prev" class="v-btn v-btn--secondary v-btn--sm">Previous</a>
             @else

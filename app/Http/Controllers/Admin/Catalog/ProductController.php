@@ -62,7 +62,37 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->orderBy('created_at', 'desc')->paginate(20)->withQueryString();
+        // What the merchant asked to see first. The list only ever answered
+        // "what exists, in creation order", so the questions a packing desk
+        // actually asks (what is nearly out, what costs the most, what changed
+        // overnight) had no way in. Allow-listed rather than passed through:
+        // an order-by taken from the querystring is a column name taken from a
+        // stranger.
+        $sortable = [
+            'name' => 'name',
+            'price' => 'price',
+            'stock' => 'quantity',
+            'updated' => 'updated_at',
+            'created' => 'created_at',
+        ];
+
+        $sort = $request->input('sort');
+        $dir = $request->input('dir') === 'asc' ? 'asc' : 'desc';
+
+        if (isset($sortable[$sort])) {
+            $query->orderBy($sortable[$sort], $dir);
+        } else {
+            $sort = null;
+            $query->orderBy('created_at', 'desc');
+        }
+
+        // Bounded, and never zero: a per-page from the querystring is a
+        // number a stranger chose, and 100,000 rows is a denial of service
+        // with a friendly name.
+        $perPage = (int) $request->input('per', 20);
+        $perPage = in_array($perPage, [20, 50, 100], true) ? $perPage : 20;
+
+        $products = $query->paginate($perPage)->withQueryString();
 
         // Which parents are showing their variants. In the querystring rather
         // than in Alpine, so the rows survive pagination, the back button and
@@ -72,7 +102,7 @@ class ProductController extends Controller
             ->filter()->map(fn ($id) => (int) $id)->all();
         $categories = Category::orderBy('name')->get();
 
-        return view('admin.catalog.products.index', compact('products', 'categories', 'open'));
+        return view('admin.catalog.products.index', compact('products', 'categories', 'open', 'sort', 'dir', 'perPage'));
     }
 
     public function create(Request $request)
@@ -365,6 +395,45 @@ class ProductController extends Controller
         return $validated;
     }
 
+    /**
+     * Every SKU on this form, and where each one came from.
+     *
+     * All three checks below used to throw on the key `sku`, which is the
+     * PARENT's field on the General tab. So a merchant who typed a duplicate
+     * into row 31 of the Variants tab was thrown to General, shown a bare
+     * string, and left to find the row themselves. The message now lands on
+     * the input that caused it.
+     */
+    private function skuOrigins(Request $request): array
+    {
+        $origins = [];
+
+        foreach ((array) $request->input('variants', []) as $index => $variant) {
+            $sku = $variant['sku'] ?? null;
+            if ($sku) {
+                $origins[$sku] ??= 'variants.' . $index . '.sku';
+            }
+        }
+
+        if ($parent = $request->input('sku')) {
+            $origins[$parent] ??= 'sku';
+        }
+
+        return $origins;
+    }
+
+    /** One message per offending input, so the form can point at each. */
+    private function skuFailure(array $origins, iterable $skus, string $message): void
+    {
+        $errors = [];
+
+        foreach ($skus as $sku) {
+            $errors[$origins[$sku] ?? 'sku'] = str_replace(':sku', $sku, $message);
+        }
+
+        throw \Illuminate\Validation\ValidationException::withMessages($errors);
+    }
+
     protected function validateSkuUniqueness(Request $request, $storeId, ?int $productId = null): void
     {
         $parentSku = $request->input('sku');
@@ -375,12 +444,27 @@ class ProductController extends Controller
             $allSkus->prepend($parentSku);
         }
 
+        $origins = $this->skuOrigins($request);
+
         // Check for duplicates within the submitted form itself
         $duplicates = $allSkus->duplicates()->unique()->values();
         if ($duplicates->isNotEmpty()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'sku' => 'Duplicate SKU(s) found: ' . $duplicates->implode(', '),
-            ]);
+            // Every row carrying the repeated code is named, not just the
+            // first: telling a merchant "P222-V3 is duplicated" while marking
+            // one of the two rows involved is half an answer.
+            $errors = [];
+            foreach ($duplicates as $sku) {
+                foreach ($variantSkus as $i => $vSku) {
+                    if ($vSku === $sku) {
+                        $errors['variants.' . $i . '.sku'] = $sku . ' is used more than once on this product.';
+                    }
+                }
+                if ($parentSku === $sku) {
+                    $errors['sku'] = $sku . ' is used more than once on this product.';
+                }
+            }
+
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
         }
 
         if ($allSkus->isEmpty()) {
@@ -394,9 +478,7 @@ class ProductController extends Controller
             ->pluck('sku');
 
         if ($existingProductSkus->isNotEmpty()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'sku' => 'SKU already used by another product: ' . $existingProductSkus->implode(', '),
-            ]);
+            $this->skuFailure($origins, $existingProductSkus, ':sku already belongs to another product.');
         }
 
         // Check against other products' variant SKUs in this store
@@ -410,9 +492,7 @@ class ProductController extends Controller
             ->pluck('sku');
 
         if ($existingVariantSkus->isNotEmpty()) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'sku' => 'SKU already used by a variant on another product: ' . $existingVariantSkus->implode(', '),
-            ]);
+            $this->skuFailure($origins, $existingVariantSkus, ':sku already belongs to a variant on another product.');
         }
     }
 
