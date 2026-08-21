@@ -37,6 +37,13 @@ class Widgets
             'view' => null,
             'module' => null,
             'regions' => null,
+            // How this widget lays out, so the picker can DRAW it instead of
+            // naming it. A merchant choosing between "Category tabs" and
+            // "Brand strip" is choosing between two shapes, and the words are
+            // the worst available description of a shape. Not an image: a
+            // wireframe the editor draws, so a third-party widget gets one by
+            // declaring a word rather than by shipping an asset.
+            'shape' => null,
             'schema' => [],
         ];
     }

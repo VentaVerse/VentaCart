@@ -22,6 +22,7 @@ class CoreWidgets
     {
         Widgets::register('catalog.products', [
             'title' => 'Product grid',
+            'shape' => 'grid',
             'module' => 'catalog',
             'view' => 'widgets.catalog.products',
             'schema' => [
@@ -34,6 +35,7 @@ class CoreWidgets
 
         Widgets::register('catalog.brands', [
             'title' => 'Brand strip',
+            'shape' => 'strip',
             'module' => 'catalog',
             'view' => 'widgets.catalog.brands',
             // Full width only. A carousel with side arrows in a 1/8 rail is
@@ -46,6 +48,7 @@ class CoreWidgets
 
         Widgets::register('catalog.category_tabs', [
             'title' => 'Category tabs',
+            'shape' => 'tabs',
             'module' => 'catalog',
             'view' => 'widgets.catalog.category_tabs',
             // Full width only. A carousel with side arrows in a 1/8 rail is
@@ -55,12 +58,14 @@ class CoreWidgets
 
         Widgets::register('catalog.recently_viewed', [
             'title' => 'Recently viewed',
+            'shape' => 'grid',
             'module' => 'catalog',
             'view' => 'widgets.catalog.recently_viewed',
         ]);
 
         Widgets::register('content.text', [
             'title' => 'Text block',
+            'shape' => 'text',
             'module' => 'content',
             'view' => 'widgets.content.text',
             'schema' => [
@@ -71,6 +76,7 @@ class CoreWidgets
 
         Widgets::register('blog.posts', [
             'title' => 'Blog posts',
+            'shape' => 'cards',
             'module' => 'blog',
             'view' => 'widgets.blog.posts',
         ]);

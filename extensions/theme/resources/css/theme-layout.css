@@ -319,7 +319,6 @@
 
 /* ---------- widget settings and page controls ---------- */
 
-.v-lay__pick--wide { width: 340px; }
 
 .v-lay__field { display: block; margin-bottom: 12px; }
 .v-lay__field > span { display: block; font-size: 12px; color: var(--v-ink-3); margin-bottom: 5px; }
@@ -354,29 +353,6 @@
 
 /* The page's own parts. Not a reduction layer: the page is not taken apart,
    its parts simply have controls, and hiding is one of them. */
-.v-lay__page-settings {
-    margin-top: 12px;
-    padding: 12px 14px;
-    background: var(--v-surface);
-    border: 1px solid var(--v-line);
-    border-radius: var(--v-r-md);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 18px;
-}
-
-.v-lay__pslabel {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: var(--v-ink-3);
-    width: 100%;
-}
-
-.v-lay__ps { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--v-ink-2); cursor: pointer; }
-.v-lay__ps input { width: 16px; height: 16px; accent-color: var(--v-act-fill); }
 
 /* The Pages panel inside the theme editor: one door per page type. */
 .v-pagelinks { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -838,4 +814,189 @@
     .v-lay__panel { padding: 0; }
     .v-lay__sheet { border-radius: 0; }
     .v-card__subj { display: none; }
+}
+
+/* ---------- the page's own parts ----------
+   Each switch stands on the thing it governs, so "on this page" is
+   answered by being on the page rather than stated in a heading, and
+   switching one off dims the part instead of changing nothing. */
+
+.v-lay__part {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+}
+
+.v-lay__partbar {
+    width: 46px;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--v-line-2);
+    flex: none;
+}
+
+.v-lay__partsw { font-size: 12px; gap: 8px; }
+.v-lay__partsw .v-toggle__track { width: 30px; height: 17px; }
+.v-lay__partsw .v-toggle__track::after { width: 12px; height: 12px; top: 2.5px; left: 2.5px; }
+.v-lay__partsw input:checked ~ .v-toggle__track::after { transform: translateX(13px); }
+
+/* Off reads as absent, not as broken: the label greys and the bar that
+   stands for the part loses its weight. */
+.v-lay__part.is-off .v-lay__partbar { background: var(--v-line); }
+.v-lay__part.is-off .v-lay__partsw > span { color: var(--v-ink-3); text-decoration: line-through; }
+
+.v-lay__chrome.is-off { opacity: .5; }
+.v-lay__chrome .v-lay__partsw { margin-left: auto; }
+
+.v-lay__page-settings {
+    grid-column: 2;
+    margin: 12px 0 0;
+    padding: 12px 14px;
+    background: var(--v-surface);
+    border: 1px solid var(--v-line);
+    border-radius: var(--v-r-md);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+}
+
+.v-lay__page-settings legend {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--v-ink-3);
+    padding: 0 6px;
+}
+
+/* ---------- choosing a widget, in the position it is for ----------
+   The panel used to be fixed to the viewport's bottom-right, so every
+   plus opened it in the same corner, on top of the slot being filled,
+   49 tab stops from the button that opened it. It opens here instead,
+   pushing the slot open rather than covering it. */
+
+.v-slot__pick {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+    gap: 8px;
+    padding: 4px 0 2px;
+}
+
+.v-pickcard {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    border: 1px solid var(--v-line-2);
+    border-radius: var(--v-r-sm);
+    background: var(--v-surface);
+    padding: 9px;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--v-ink);
+    text-align: left;
+}
+
+.v-pickcard:hover { border-color: var(--v-act-fill); background: var(--v-act-wash); }
+.v-pickcard__nm { font-size: 12px; font-weight: 600; }
+
+/* The widget, drawn. A merchant choosing between Category tabs and Brand
+   strip is choosing between two shapes, and the name is the worst
+   available description of a shape. Each widget declares one word and
+   the editor draws the wireframe, so nothing ships an asset. */
+.v-wire {
+    display: grid;
+    gap: 3px;
+    height: 42px;
+    padding: 5px;
+    border-radius: 4px;
+    background: var(--v-sunken);
+    border: 1px solid var(--v-line);
+}
+
+/* Every bar hidden by default, then each shape shows exactly the ones it
+   uses. Both rules carry the same weight and the shape comes second, which
+   is the whole reason this is written as :nth-child on both sides: a plain
+   `.v-wire--grid i` loses to `.v-wire i:nth-child(n + 3)` and every shape
+   silently collapsed to two bars. */
+.v-wire i { background: var(--v-line-2); border-radius: 2px; }
+.v-wire i:nth-child(n) { display: none; }
+
+.v-wire--banner { grid-template-columns: 1fr; }
+.v-wire--banner i:nth-child(-n + 1) { display: block; }
+
+.v-wire--grid { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
+.v-wire--grid i:nth-child(-n + 6) { display: block; }
+
+.v-wire--strip { grid-template-columns: repeat(4, 1fr); align-content: center; }
+.v-wire--strip i:nth-child(-n + 4) { display: block; height: 12px; border-radius: 999px; }
+
+.v-wire--tabs { grid-template-columns: repeat(3, 1fr); grid-template-rows: 7px 1fr; }
+.v-wire--tabs i:nth-child(-n + 4) { display: block; }
+.v-wire--tabs i:nth-child(-n + 3) { background: var(--v-act-edge); }
+.v-wire--tabs i:nth-child(4) { grid-column: 1 / -1; }
+
+.v-wire--cards { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 4px; }
+.v-wire--cards i:nth-child(-n + 6) { display: block; }
+.v-wire--cards i:nth-child(n + 4) { background: var(--v-line); }
+
+.v-wire--text { grid-template-rows: repeat(3, 4px); align-content: center; }
+.v-wire--text i:nth-child(-n + 3) { display: block; }
+.v-wire--text i:nth-child(3) { width: 60%; }
+
+.v-wire--block { grid-template-columns: 1fr; }
+.v-wire--block i:nth-child(-n + 1) { display: block; }
+
+.v-slot__pickx {
+    grid-column: 1 / -1;
+    justify-self: start;
+    border: 0;
+    background: none;
+    color: var(--v-ink-3);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 4px 0;
+    cursor: pointer;
+}
+
+.v-slot__pickx:hover { color: var(--v-ink); text-decoration: underline; }
+
+/* ---------- the card on a phone ----------
+   At 390px the six-glyph action cluster won the width fight and the
+   merchant's own title lost it completely: .v-card__nm measured 0px
+   wide against 64px of content, so three Product grid cards read
+   identically, and Remove sat 19px past the viewport edge inside an
+   overflow-x: hidden parent, unreachable at any scroll.
+
+   The name takes its own line and every action stays on the card. No
+   overflow menu, because hiding Move up behind a press is a worse
+   answer than one more row. */
+
+@media (max-width: 700px) {
+    .v-card { flex-wrap: wrap; row-gap: 6px; }
+
+    .v-card__nm {
+        flex: 1 1 100%;
+        order: 1;
+        white-space: normal;
+        overflow: visible;
+    }
+
+    .v-card__grip { order: 0; }
+
+    /* The machine label and the subject chip are the two things a
+       merchant never navigates by. They go first. */
+    .v-card__kind,
+    .v-card__subj { display: none; }
+
+    .v-card__acts {
+        order: 2;
+        flex: 1 1 100%;
+        margin-left: 0;
+        justify-content: flex-end;
+        gap: 4px;
+    }
+
+    .v-card .v-tag { order: 1; }
 }

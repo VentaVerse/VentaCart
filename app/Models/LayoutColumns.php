@@ -27,6 +27,12 @@ class LayoutColumns extends Model
      *
      * A page nobody has configured has no columns, which is the same shape as
      * a page configured to have none. The caller never has to know which.
+     *
+     * All pages is a real answer, not a placeholder. Placements made there
+     * already appear on every page, so the editor teaches a merchant that the
+     * screen means everywhere; columns and page parts set there used to be
+     * written and never read, which broke that promise twice on the same
+     * screen. A concrete page overrides, and silence there defers upward.
      */
     public static function forPage(?string $pageType, ?string $theme = null): array
     {
@@ -36,8 +42,18 @@ class LayoutColumns extends Model
             ? static::where('theme', $theme)->where('page_type', $pageType)->first()
             : null;
 
-        $left = $row->left_width ?? 0;
-        $right = $row->right_width ?? 0;
+        $every = $pageType === LayoutPlacement::EVERYWHERE
+            ? null
+            : static::where('theme', $theme)->where('page_type', LayoutPlacement::EVERYWHERE)->first();
+
+        // A page that has never been given columns of its own takes the ones
+        // set for every page. A page that HAS been given them, including a
+        // deliberate zero, keeps its own.
+        $hasOwn = $row && ($row->left_width > 0 || $row->right_width > 0);
+        $widths = $hasOwn ? $row : ($every ?: $row);
+
+        $left = $widths->left_width ?? 0;
+        $right = $widths->right_width ?? 0;
 
         // Clamped rather than trusted. A bad row must not be able to render a
         // page whose content column is zero or negative columns wide.
@@ -48,7 +64,10 @@ class LayoutColumns extends Model
             'left' => $left,
             'right' => $right,
             'content' => self::GRID - $left - $right,
-            'settings' => $row->settings ?? [],
+            // Merged key by key, not row by row: a merchant who hid the
+            // footer everywhere and the breadcrumbs on one page has answered
+            // two different questions and must keep both answers.
+            'settings' => array_merge($every->settings ?? [], $row->settings ?? []),
         ];
     }
 }

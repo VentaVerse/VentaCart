@@ -27,6 +27,7 @@ class BannerServiceProvider extends ServiceProvider
         \App\Support\Widgets::register('banners.group', [
             'title' => 'Banner group',
             'module' => 'banners',
+            'shape' => 'banner',
             'view' => 'widgets.banners.group',
             'schema' => [
                 // The SLUG, matching what the view already reads and what the

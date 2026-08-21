@@ -63,18 +63,9 @@ class LayoutController extends Controller
             'widgets' => $this->catalogue($regions),
             // Every widget's settings form, resolved. Without this a merchant
             // can place a banner and never say WHICH banner.
-            'schemas' => collect(Widgets::all())->keys()
-                ->mapWithKeys(fn ($key) => [$key => array_map(function ($field) {
-                    // A named route becomes a URL here, so the view never
-                    // resolves routes and a missing one cannot 500 the editor.
-                    if (! empty($field['create_route']) && \Illuminate\Support\Facades\Route::has($field['create_route'])) {
-                        $field['create_url'] = route($field['create_route']);
-                    }
-                    unset($field['create_route']);
-
-                    return $field;
-                }, Widgets::schema($key))])->all(),
+            'schemas' => $this->schemaSet(),
             'pageSettings' => $this->pageSettings($pageType),
+            'sampleUrl' => $this->sampleUrl($pageType),
             // Placements in regions this theme no longer declares. Computed
             // since the layout system landed and never once rendered, so a
             // theme update that drops a region hid a merchant's work silently.
@@ -138,6 +129,7 @@ class LayoutController extends Controller
                 'key' => $key,
                 'title' => $spec['title'],
                 'module' => $spec['module'],
+                'shape' => $spec['shape'] ?? null,
                 'regions' => $spec['regions'] ?: array_keys($regions),
             ];
         }
@@ -275,6 +267,41 @@ class LayoutController extends Controller
     }
 
     /**
+     * A real page of the type being edited, to go and look at.
+     *
+     * View store always opened the homepage, so a merchant arranging Product
+     * pages was sent somewhere their changes did not show. Resolved from the
+     * merchant's own catalogue, and never guessed: a type with no real page
+     * behind it yet falls back to the homepage rather than linking to a 404.
+     */
+    private function sampleUrl(string $pageType): string
+    {
+        $home = url('/');
+
+        try {
+            return match ($pageType) {
+                'category' => ($c = \App\Models\Category::where('is_active', true)->orderBy('id')->first())
+                    ? route('category.show', $c) : $home,
+                'product' => ($p = \App\Models\Product::where('is_active', true)->orderBy('id')->first())
+                    ? route('product.show', $p) : $home,
+                'brand' => ($b = \App\Models\Brand::where('is_active', true)->orderBy('id')->first())
+                    ? route('brand.show', $b) : $home,
+                'search' => route('search.results', ['q' => 'a']),
+                'cart' => route('cart.index'),
+                'checkout' => route('checkout.index'),
+                'blog' => \Illuminate\Support\Facades\Route::has('blog.index') ? route('blog.index') : $home,
+                'account' => \Illuminate\Support\Facades\Route::has('account.dashboard') ? route('account.dashboard') : $home,
+                'auth' => \Illuminate\Support\Facades\Route::has('customer.login') ? route('customer.login') : $home,
+                default => $home,
+            };
+        } catch (\Throwable $e) {
+            // A missing route or an empty catalogue is not a reason for the
+            // layout editor to 500. The link falls back to the storefront.
+            return $home;
+        }
+    }
+
+    /**
      * The parts of a hardcoded page this theme lets a merchant change.
      *
      * Not a "reduction layer": the page is not being taken apart. Its parts
@@ -298,6 +325,10 @@ class LayoutController extends Controller
                 'name' => $key,
                 'label' => $field['label'] ?? ucfirst(str_replace('_', ' ', $key)),
                 'type' => $field['type'] ?? 'toggle',
+                // Where in the page this part sits, so the editor can draw its
+                // control on the thing it governs rather than in a box off to
+                // one side whose scope has to be stated in words.
+                'part' => $field['part'] ?? null,
                 'default' => $field['default'] ?? true,
                 'value' => $stored[$key] ?? ($field['default'] ?? true),
                 'pages' => $field['pages'] ?? null,
@@ -313,10 +344,30 @@ class LayoutController extends Controller
     /** The widget settings forms, refetched when the merchant comes back. */
     public function schemas()
     {
-        return response()->json(
-            collect(Widgets::all())->keys()
-                ->mapWithKeys(fn ($key) => [$key => Widgets::schema($key)])
-                ->all()
-        );
+        return response()->json($this->schemaSet());
+    }
+
+    /**
+     * Every widget's settings form, resolved the same way twice.
+     *
+     * This endpoint used to build its own, without the create_route mapping
+     * the page does, so a refresh replaced every schema with one whose New
+     * banner group link had no href. It was invisible for as long as the
+     * refresh itself was broken, and became a live regression the moment that
+     * was fixed. One resolver now, so the two cannot drift again.
+     */
+    private function schemaSet(): array
+    {
+        return collect(Widgets::all())->keys()
+            ->mapWithKeys(fn ($key) => [$key => array_map(function ($field) {
+                // A named route becomes a URL here, so the view never resolves
+                // routes and a missing one cannot 500 the editor.
+                if (! empty($field['create_route']) && \Illuminate\Support\Facades\Route::has($field['create_route'])) {
+                    $field['create_url'] = route($field['create_route']);
+                }
+                unset($field['create_route']);
+
+                return $field;
+            }, Widgets::schema($key))])->all();
     }
 }

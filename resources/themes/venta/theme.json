@@ -166,6 +166,7 @@
         "show_breadcrumbs": {
             "label": "Breadcrumbs",
             "type": "toggle",
+            "part": "body",
             "default": true,
             "pages": [
                 "category",
@@ -182,6 +183,7 @@
         "show_page_title": {
             "label": "Page title",
             "type": "toggle",
+            "part": "body",
             "default": true,
             "pages": [
                 "category",
@@ -198,6 +200,7 @@
         "show_reviews": {
             "label": "Reviews",
             "type": "toggle",
+            "part": "body",
             "default": true,
             "pages": [
                 "product"
@@ -206,6 +209,7 @@
         "show_footer": {
             "label": "Footer",
             "type": "toggle",
+            "part": "footer",
             "default": true
         }
     }

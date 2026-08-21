@@ -19,7 +19,7 @@
         <div class="v-head__actions">
             {{-- The screen changes what every shopper sees and had no path to
                  the storefront it edits. --}}
-            <a href="{{ url('/') }}" target="_blank" rel="noopener" class="v-btn v-btn--sm">View store</a>
+            <a href="{{ $sampleUrl }}" target="_blank" rel="noopener" class="v-btn v-btn--sm">View store</a>
         </div>
     </div>
 
@@ -88,7 +88,14 @@
                     </div>
                 @endif
 
-                <div class="v-lay__chrome"><span class="v-lay__logo"></span><span class="v-lay__line"></span><span>header</span></div>
+                <div class="v-lay__chrome" :class="{ 'is-off': !partOn('header') }">
+                    <span class="v-lay__logo"></span>
+                    <span class="v-lay__line"></span>
+                    <span>header</span>
+                    <template x-for="f in partsIn('header')" :key="f.name">
+                        <x-theme::part-switch />
+                    </template>
+                </div>
 
                 {{-- the row --}}
                 <div class="v-lay__middle">
@@ -121,7 +128,21 @@
                             <x-theme::layout-slot region="content_top" label="Above the content" />
                         @endif
 
-                        <div class="v-lay__pagebody"><b>The page itself</b></div>
+                        {{-- The parts of the hardcoded page this theme lets a
+                             merchant switch off, drawn where they actually sit.
+                             The control on the thing it governs answers "on this
+                             page" by standing on the page, and switching one off
+                             dims the part rather than changing nothing anyone
+                             can see. --}}
+                        <div class="v-lay__pagebody">
+                            <template x-for="f in partsIn('body')" :key="f.name">
+                                <div class="v-lay__part" :class="{ 'is-off': !f.value }">
+                                    <span class="v-lay__partbar" aria-hidden="true"></span>
+                                    <x-theme::part-switch />
+                                </div>
+                            </template>
+                            <b>The page itself</b>
+                        </div>
 
                         @if (isset($regions['content_bottom']))
                             <x-theme::layout-slot region="content_bottom" label="Below the content" />
@@ -150,7 +171,13 @@
                     @endif
                 </div>
 
-                <div class="v-lay__chrome"><span class="v-lay__line"></span><span>footer</span></div>
+                <div class="v-lay__chrome" :class="{ 'is-off': !partOn('footer') }">
+                    <span class="v-lay__line"></span>
+                    <span>footer</span>
+                    <template x-for="f in partsIn('footer')" :key="f.name">
+                        <x-theme::part-switch />
+                    </template>
+                </div>
 
                 @if (isset($regions['footer_top']))
                     <div class="v-lay__strip">
@@ -221,16 +248,15 @@
             </p>
         </div>
 
-        {{-- what this theme lets you change on the page itself --}}
-        <div class="v-lay__page-settings" x-show="pageSettings.length" x-cloak>
-            <div class="v-lay__pslabel">On this page</div>
-            <template x-for="f in pageSettings" :key="f.name">
-                <label class="v-lay__ps">
-                    <input type="checkbox" :checked="f.value" @change="f.value = $event.target.checked; touch()">
-                    <span x-text="f.label"></span>
-                </label>
+        {{-- Parts this theme declares but does not say where to draw. They
+             have nowhere to stand on the stage, so they stand under it. A
+             theme that names every part's home never renders this at all. --}}
+        <fieldset class="v-lay__page-settings" x-show="partsIn(null).length" x-cloak>
+            <legend>Elsewhere on this page</legend>
+            <template x-for="f in partsIn(null)" :key="f.name">
+                <x-theme::part-switch />
             </template>
-        </div>
+        </fieldset>
 
         {{-- The widget's own subject, edited without leaving the layout.
 
@@ -316,22 +342,6 @@
             </div>
         </div>
 
-        {{-- the picker --}}
-        <div class="v-lay__pick" x-show="adding" x-cloak @keydown.escape.window="adding = null">
-            <div class="v-lay__pickhead">
-                <b>Add to <span x-text="regionLabel(adding)"></span></b>
-                <button type="button" @click="adding = null" aria-label="Close">&times;</button>
-            </div>
-            <template x-for="w in offerable(adding)" :key="w.key">
-                <button type="button" class="v-lay__pickrow" @click="add(w)">
-                    <span x-text="w.title"></span>
-                    <span class="mono" x-text="w.key"></span>
-                </button>
-            </template>
-            <p class="v-lay__pickempty" x-show="offerable(adding).length === 0">
-                No widget fits this position
-            </p>
-        </div>
       </div>
     </x-admin.form>
 
@@ -381,6 +391,9 @@
                     pageSettings: seed.pageSettings,
                     orphans: seed.orphans,
                     adding: null,
+                    // The plus that opened the picker, so Escape can hand
+                    // focus back to it rather than dropping it on the body.
+                    addingFrom: null,
                     editing: null,
                     // The open subject panel: { row, field }. frameUrl null
                     // means level one, the choices; anything else is the
@@ -421,6 +434,30 @@
                         return this.widgets.filter((w) => w.regions.includes(region));
                     },
 
+                    /**
+                     * Opening in place, and moving focus with it.
+                     *
+                     * Pressing the plus used to leave focus on the plus while
+                     * the panel opened in another corner of the screen, so a
+                     * keyboard merchant could open the picker and never reach
+                     * it. Both halves are here: focus in on open, focus back
+                     * on close.
+                     */
+                    openPicker(region, el) {
+                        this.adding = region;
+                        this.addingFrom = el;
+                        this.$nextTick(() => {
+                            root?.querySelector('.v-slot__pick .v-pickcard')?.focus();
+                        });
+                    },
+
+                    closePicker() {
+                        const back = this.addingFrom;
+                        this.adding = null;
+                        this.addingFrom = null;
+                        back?.focus();
+                    },
+
                     add(w) {
                         const region = this.adding;
                         if (!this.rows[region]) this.rows[region] = [];
@@ -429,13 +466,24 @@
                             label: w.title, enabled: true, available: true, config: {},
                         });
                         this.rows = { ...this.rows };
-                        this.adding = null;
+                        this.say(w.title + ' added to ' + this.regionLabel(region) + '. Save to keep it.');
+                        this.closePicker();
                         this.touch();
                     },
 
                     /* ---- settings ---- */
 
                     edit(region, i) { this.editing = this.rows[region][i]; },
+
+                    /** Silent before: the live region carried moves and rescues
+                     *  and said nothing for the two commonest actions. */
+                    announceToggle(row) {
+                        this.say((row.title || row.label) + (row.enabled ? ' shown' : ' hidden') + '. Save to keep it.');
+                    },
+
+                    announceRemove(label, region) {
+                        this.say(label + ' removed from ' + this.regionLabel(region) + '. Save to keep it.');
+                    },
 
                     schemaFor(widget) { return widget ? (this.schemas[widget] || []) : []; },
 
@@ -456,6 +504,29 @@
                     setCfg(name, value) {
                         if (!this.editing.config) this.editing.config = {};
                         this.editing.config[name] = value;
+                        this.touch();
+                    },
+
+                    /* ---- page parts ---- */
+
+                    /**
+                     * The parts that belong to one place in the stage. Passing
+                     * null asks for the ones this theme declared without saying
+                     * where they live, which are the only ones that still need
+                     * a panel of their own.
+                     */
+                    partsIn(part) {
+                        return this.pageSettings.filter((f) => (f.part ?? null) === part);
+                    },
+
+                    /** Is every part of this piece of chrome switched on? */
+                    partOn(part) {
+                        return this.partsIn(part).every((f) => f.value);
+                    },
+
+                    setPart(f, value) {
+                        f.value = value;
+                        this.say(f.label + (value ? ' shown' : ' hidden') + ' on this page. Save to keep it.');
                         this.touch();
                     },
 
@@ -598,13 +669,20 @@
                     },
 
                     remove(region, i) {
+                        const row = this.rows[region][i];
+                        // The inspector was left open on a card that no longer
+                        // exists, editing an object nothing renders.
+                        if (this.editing === row) this.editing = null;
                         this.rows[region].splice(i, 1);
                         this.rows = { ...this.rows };
+                        this.announceRemove(row.title || row.label, region);
                         this.touch();
                     },
 
                     toggle(region, i) {
-                        this.rows[region][i].enabled = !this.rows[region][i].enabled;
+                        const row = this.rows[region][i];
+                        row.enabled = !row.enabled;
+                        this.announceToggle(row);
                         this.touch();
                     },
 

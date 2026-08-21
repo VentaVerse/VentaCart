@@ -10,7 +10,8 @@
     <div class="v-slot__lbl">
         <span>{{ $label }}</span>
         <span class="mono">{{ $region }}</span>
-        <button type="button" class="v-slot__add" @click="adding = '{{ $region }}'"
+        <button type="button" class="v-slot__add" @click="openPicker('{{ $region }}', $el)"
+                :aria-expanded="adding === '{{ $region }}' ? 'true' : 'false'"
                 aria-label="Add a widget to {{ $label }}">+</button>
     </div>
 
@@ -28,7 +29,7 @@
         {{-- Reachable, and movable without a mouse. It was a draggable div with
              no role and no tabindex, so reordering worked for exactly one input
              device: not touch, not the keyboard, not assistive tech. --}}
-        <div class="v-card" :class="{ 'is-off': !row.enabled, 'is-gone': !row.available }"
+        <div class="v-card" :class="{ 'is-off': !row.enabled, 'is-gone': !row.available, 'is-editing': editing === row }"
              tabindex="0" role="group" :aria-label="(row.title || row.label) + ' in {{ $label }}'"
              draggable="true" @dragstart="start('{{ $region }}', i)"
              @drop.stop.prevent="drop('{{ $region }}', i)"
@@ -66,6 +67,7 @@
                 <button type="button" @click="edit('{{ $region }}', i)"
                         aria-label="Settings" title="Settings">&#9881;</button>
                 <button type="button" @click="toggle('{{ $region }}', i)"
+                        :aria-pressed="row.enabled ? 'false' : 'true'"
                         :aria-label="row.enabled ? 'Hide this widget' : 'Show this widget'"
                         :title="row.enabled ? 'Visible' : 'Hidden'">
                     <span x-text="row.enabled ? '◉' : '○'"></span>
@@ -87,7 +89,37 @@
         </div>
     </template>
 
-    <p class="v-slot__empty" x-show="placed('{{ $region }}').length === 0 && inheritedIn('{{ $region }}').length === 0">
+    {{-- The choices open INSIDE the position they are for.
+
+         The picker was one fixed panel in the viewport's bottom-right corner,
+         so every plus on the page opened it in the same place: 307px below the
+         one at the top, 418px ABOVE the one at the bottom, and on top of the
+         cards in the very slot being filled. It was also the last element in
+         the document, which put its first option 49 tab presses away from the
+         button that opened it. Opening in place answers all three, and gives
+         the room to draw each widget rather than name it. --}}
+    <template x-if="adding === '{{ $region }}'">
+        <div class="v-slot__pick" role="dialog" aria-modal="false"
+             aria-label="Add a widget to {{ $label }}"
+             @keydown.escape.stop="closePicker()">
+            <template x-for="w in offerable('{{ $region }}')" :key="w.key">
+                <button type="button" class="v-pickcard" @click="add(w)">
+                    <span class="v-wire" :class="'v-wire--' + (w.shape || 'block')" aria-hidden="true">
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                    </span>
+                    <span class="v-pickcard__nm" x-text="w.title"></span>
+                </button>
+            </template>
+
+            <p class="v-slot__empty" x-show="offerable('{{ $region }}').length === 0">
+                No widget fits this position
+            </p>
+
+            <button type="button" class="v-slot__pickx" @click="closePicker()">Cancel</button>
+        </div>
+    </template>
+
+    <p class="v-slot__empty" x-show="adding !== '{{ $region }}' && placed('{{ $region }}').length === 0 && inheritedIn('{{ $region }}').length === 0">
         Nothing here yet
     </p>
 </div>
