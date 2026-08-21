@@ -113,20 +113,11 @@ class ErpProductController extends Controller
                     }),
                 ];
             }),
-            'variants' => $product->variants->map(function ($variant) {
-                return [
-                    'id' => $variant->id,
-                    'sku' => $variant->sku,
-                    'price' => $variant->price,
-                    'cost' => $variant->cost,
-                    'quantity' => $variant->quantity,
-                    'weight' => $variant->weight,
-                    'is_active' => $variant->is_active,
-                    'option_values' => $variant->values->map(function ($val) {
-                        return ['id' => $val->id, 'value' => $val->value];
-                    }),
-                ];
-            }),
+            'variants' => $product->variants->map(fn ($variant) => $this->variantPayload($variant) + [
+                'option_values' => $variant->values->map(function ($val) {
+                    return ['id' => $val->id, 'value' => $val->value];
+                }),
+            ]),
             'status' => $product->is_active,
             'has_variants' => $product->has_variants,
             'meta_title' => $product->meta_title,
@@ -170,7 +161,13 @@ class ErpProductController extends Controller
             'variants.*.cost' => 'nullable|numeric|min:0',
             'variants.*.quantity' => 'nullable|integer|min:0',
             'variants.*.weight' => 'nullable|numeric|min:0',
+            // Whether this one variant is sellable, so the ERP can retire a
+            // colourway without deleting it and losing its history.
             'variants.*.status' => 'nullable|boolean',
+            // A URL we fetch, exactly like the product's own images. A path
+            // already in storage is accepted too, so a round trip of what we
+            // returned is a no-op rather than a re-download.
+            'variants.*.image' => 'nullable|string|max:2048',
         ]);
 
         $storeId = (int) config('app.store_id', 1);
@@ -266,17 +263,9 @@ class ErpProductController extends Controller
 
         if ($product->has_variants) {
             $product->load('variants.values');
-            $data['variants'] = $product->variants->map(function ($v) {
-                return [
-                    'id' => $v->id,
-                    'sku' => $v->sku,
-                    'price' => $v->price,
-                    'cost' => $v->cost,
-                    'quantity' => $v->quantity,
-                    'weight' => $v->weight,
-                    'options' => $v->values->map(fn($val) => $val->value)->implode(' / '),
-                ];
-            });
+            $data['variants'] = $product->variants->map(fn ($v) => $this->variantPayload($v) + [
+                'options' => $v->values->map(fn ($val) => $val->value)->implode(' / '),
+            ]);
         }
 
         return $this->logAndRespond($request, $data, 201, $product->sku);
@@ -320,7 +309,13 @@ class ErpProductController extends Controller
             'variants.*.cost' => 'nullable|numeric|min:0',
             'variants.*.quantity' => 'nullable|integer|min:0',
             'variants.*.weight' => 'nullable|numeric|min:0',
+            // Whether this one variant is sellable, so the ERP can retire a
+            // colourway without deleting it and losing its history.
             'variants.*.status' => 'nullable|boolean',
+            // A URL we fetch, exactly like the product's own images. A path
+            // already in storage is accepted too, so a round trip of what we
+            // returned is a no-op rather than a re-download.
+            'variants.*.image' => 'nullable|string|max:2048',
         ]);
 
         $storeId = (int) config('app.store_id', 1);
@@ -458,17 +453,9 @@ class ErpProductController extends Controller
 
         if ($product->has_variants) {
             $product->load('variants.values');
-            $data['variants'] = $product->variants->map(function ($v) {
-                return [
-                    'id' => $v->id,
-                    'sku' => $v->sku,
-                    'price' => $v->price,
-                    'cost' => $v->cost,
-                    'quantity' => $v->quantity,
-                    'weight' => $v->weight,
-                    'options' => $v->values->map(fn($val) => $val->value)->implode(' / '),
-                ];
-            });
+            $data['variants'] = $product->variants->map(fn ($v) => $this->variantPayload($v) + [
+                'options' => $v->values->map(fn ($val) => $val->value)->implode(' / '),
+            ]);
         }
 
         if (!empty($imageResult['uploaded'])) {
@@ -650,6 +637,14 @@ class ErpProductController extends Controller
      */
     private function syncVariantsFromErp(Product $product, array $variants): void
     {
+        // What the merchant set by hand, keyed by the one thing that survives
+        // a resync. This method rebuilds every variant from scratch, which is
+        // correct for the fields the ERP owns and wrong for the one it does
+        // not: a variant photo is merchandising, chosen in the admin, and it
+        // would be destroyed by every push that did not happen to mention it.
+        // Carried forward by SKU, and overridden the moment the ERP sends one.
+        $keptImages = $product->variants()->pluck('image', 'sku')->filter()->all();
+
         // Delete existing variants and types
         $product->variants()->delete();
         $product->variantTypes()->delete();
@@ -697,6 +692,7 @@ class ErpProductController extends Controller
                 'quantity' => $v['quantity'] ?? 0,
                 'weight' => $v['weight'] ?? null,
                 'is_active' => $v['status'] ?? true,
+                'image' => $this->resolveVariantImage($v, $keptImages),
             ]);
 
             $valueKey = "{$v['option_name']}:{$v['name']}";
@@ -773,6 +769,73 @@ class ErpProductController extends Controller
         }
 
         return compact('uploaded', 'failed');
+    }
+
+    /**
+     * One variant, as the ERP reads it.
+     *
+     * There were three of these and they disagreed: the read endpoint said
+     * whether a variant was active and the two write responses did not, so an
+     * ERP that pushed a disabled colourway got back a payload that could not
+     * confirm it. One shape now, used by all three, and it carries the two
+     * fields this round added.
+     */
+    private function variantPayload(\App\Models\ProductVariant $variant): array
+    {
+        return [
+            'id' => $variant->id,
+            'sku' => $variant->sku,
+            'price' => $variant->price,
+            'cost' => $variant->cost,
+            'quantity' => $variant->quantity,
+            'weight' => $variant->weight,
+            'is_active' => (bool) $variant->is_active,
+            // Absolute, so the ERP can fetch it and hand the same value back
+            // on the next push without us re-downloading our own file.
+            'image' => $variant->image ? Storage::disk('public')->url($variant->image) : null,
+            'image_path' => $variant->image,
+        ];
+    }
+
+    /**
+     * Where one variant's picture comes from.
+     *
+     * Three cases, in the order the merchant would expect: the ERP sent a URL
+     * and we fetch it; the ERP sent back a path we already store, which is a
+     * round trip of our own answer and needs no work; the ERP said nothing,
+     * and whatever the merchant set in the admin stands.
+     *
+     * A fetch that fails returns the kept image rather than throwing. A photo
+     * is not worth failing a stock and price sync over, which is the opposite
+     * of the rule for the product's own images, where a missing one means the
+     * whole push is rejected.
+     */
+    private function resolveVariantImage(array $variant, array $keptImages): ?string
+    {
+        $given = $variant['image'] ?? null;
+        $kept = $keptImages[$variant['sku']] ?? null;
+
+        if ($given === null || $given === '') {
+            return $kept;
+        }
+
+        // Already ours: the ERP handed back the path we gave it.
+        if (! preg_match('#^https?://#i', $given)) {
+            return Storage::disk('public')->exists($given) ? $given : $kept;
+        }
+
+        $result = $this->fetchRemoteImage($given, self::IMAGE_ALLOWED_TYPES);
+
+        if (! $result['ok']) {
+            return $kept;
+        }
+
+        $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+        $path = 'products/variants/' . Str::random(40) . '.' . ($extensions[$result['mime']] ?? 'jpg');
+
+        Storage::disk('public')->put($path, $result['body']);
+
+        return $path;
     }
 
     /**
