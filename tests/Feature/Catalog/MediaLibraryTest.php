@@ -183,23 +183,24 @@ class MediaLibraryTest extends TestCase
         Storage::disk('public')->assertExists('brands/logo-2.jpg');
     }
 
-    public function test_renaming_a_folder_carries_every_stored_path_with_it(): void
+    /**
+     * Moving image files is deliberately not a capability. A folder merge was
+     * built and removed: repointing product_images, products.image and
+     * product_variants.image is not enough, because order_products.image holds
+     * a denormalised path on 31,278 rows and order history must not break.
+     */
+    public function test_a_folder_cannot_be_renamed_from_here(): void
     {
-        $this->putFile('products/wampler/tumnus.jpg');
-
-        $p = Product::create(['store_id' => 1, 'name' => 'A', 'slug' => 'a', 'price' => 1, 'quantity' => 1,
-            'image' => 'products/wampler/tumnus.jpg']);
-        ProductImage::create(['product_id' => $p->id, 'path' => 'products/wampler/tumnus.jpg', 'sort_order' => 0]);
+        Storage::disk('public')->makeDirectory('products/wampler');
 
         $this->postJson(route('admin.media.folder'), [
             'path' => 'products', 'name' => 'Wampler', 'from' => 'products/wampler',
         ])->assertOk();
 
-        // A rename that leaves the database behind is a way to break every
-        // product in the folder at once.
-        $this->assertSame('products/Wampler/tumnus.jpg', $p->fresh()->image);
-        $this->assertSame('products/Wampler/tumnus.jpg', ProductImage::first()->path);
-        Storage::disk('public')->assertExists('products/Wampler/tumnus.jpg');
+        // 'from' is ignored, not honoured: the old folder is untouched and a
+        // new empty one is created beside it.
+        Storage::disk('public')->assertExists('products/wampler');
+        Storage::disk('public')->assertExists('products/Wampler');
     }
 
     public function test_a_folder_cannot_land_on_an_existing_one(): void

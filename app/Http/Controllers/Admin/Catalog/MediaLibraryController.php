@@ -192,13 +192,20 @@ class MediaLibraryController extends Controller
         ]);
     }
 
-    /** Create or rename a folder. The job no picker can do. */
+    /**
+     * Create a folder. Creating only.
+     *
+     * Renaming was here and is gone: moving image files means every stored
+     * path has to move with them, and order_products.image holds a
+     * denormalised copy on 31,278 rows. Order history is the one thing that
+     * must not break, so reorganising an existing library is a migration with
+     * its own plan, not a button in the admin.
+     */
     public function folder(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'path' => ['nullable', 'string'],
             'name' => ['required', 'string', 'max:120', 'regex:/^[^\/\\\\:*?"<>|]+$/'],
-            'from' => ['nullable', 'string'],
         ]);
 
         $parent = MediaLibrary::safePath($validated['path'] ?? null);
@@ -209,24 +216,6 @@ class MediaLibraryController extends Controller
 
         $name = trim($validated['name']);
         $target = ltrim($parent . '/' . $name, '/');
-
-        if (! empty($validated['from'])) {
-            $from = MediaLibrary::safePath($validated['from']);
-
-            if ($from === false || $from === '' || ! Storage::disk('public')->exists($from)) {
-                return response()->json(['ok' => false, 'message' => 'That folder is gone.'], 422);
-            }
-
-            if (Storage::disk('public')->exists($target)) {
-                return response()->json(['ok' => false, 'message' => 'A folder called ' . $name . ' is already here.'], 422);
-            }
-
-            // Rename moves the files, so every stored path that pointed inside
-            // it has to move with them or the catalogue breaks on save.
-            $moved = MediaLibrary::renameFolder($from, $target);
-
-            return response()->json(['ok' => true, 'path' => $target, 'repointed' => $moved]);
-        }
 
         if (Storage::disk('public')->exists($target)) {
             return response()->json(['ok' => false, 'message' => 'A folder called ' . $name . ' is already here.'], 422);

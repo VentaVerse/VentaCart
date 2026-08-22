@@ -226,58 +226,19 @@ class MediaLibrary
     }
 
     /**
-     * Move a folder and repoint everything that referenced inside it.
+     * Moving image FILES is deliberately not a capability here.
      *
-     * A rename that leaves the database pointing at the old path is not a
-     * rename, it is a way to break every product in that folder at once.
+     * A tidy-up that merged the six case-duplicate folders (Wampler and
+     * wampler, TC Electronic and tc_electronic, and four more) was built and
+     * then removed, because repointing the catalogue is not enough:
+     * order_products.image holds a denormalised path on 31,278 rows, and
+     * order history is the one thing that must not break. Renaming a folder
+     * has exactly the same hazard.
+     *
+     * The library can create folders, and every picker can browse, upload,
+     * import and delete. Reorganising what already exists is a migration, not
+     * an admin action, and it needs to account for order history.
      */
-    public static function renameFolder(string $from, string $to): int
-    {
-        Storage::disk('public')->move($from, $to);
-
-        return DB::transaction(function () use ($from, $to) {
-            $like = $from . '/%';
-
-            $images = ProductImage::where('path', 'like', $like)
-                ->update(['path' => DB::raw(self::replaceExpression('path', $from, $to))]);
-
-            $main = Product::where('image', 'like', $like)
-                ->update(['image' => DB::raw(self::replaceExpression('image', $from, $to))]);
-
-            // Variants carry their own photo now, so they move with the rest.
-            $variants = \App\Models\ProductVariant::where('image', 'like', $like)
-                ->update(['image' => DB::raw(self::replaceExpression('image', $from, $to))]);
-
-            return $images + $main + $variants;
-        });
-    }
-
-    /**
-     * Point every stored reference at a file's new home.
-     *
-     * Used by the folder merge, one file at a time, because a merge moves
-     * files individually rather than renaming a directory wholesale.
-     *
-     * @return int rows repointed
-     */
-    public static function repoint(string $from, string $to): int
-    {
-        return DB::transaction(function () use ($from, $to) {
-            $images = ProductImage::where('path', $from)->update(['path' => $to]);
-            $main = Product::where('image', $from)->update(['image' => $to]);
-            $variants = \App\Models\ProductVariant::where('image', $from)->update(['image' => $to]);
-
-            return $images + $main + $variants;
-        });
-    }
-
-    private static function replaceExpression(string $column, string $from, string $to): string
-    {
-        $f = str_replace("'", "''", $from);
-        $t = str_replace("'", "''", $to);
-
-        return "REPLACE({$column}, '{$f}/', '{$t}/')";
-    }
 
     private static function isImage(string $path): bool
     {
