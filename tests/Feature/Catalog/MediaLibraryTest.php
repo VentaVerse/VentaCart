@@ -59,6 +59,26 @@ class MediaLibraryTest extends TestCase
         }
     }
 
+    /**
+     * An allow list, not a deny list. A deny list only refuses the folders
+     * somebody remembered, and the public disk grows whenever a package is
+     * installed.
+     */
+    public function test_anything_that_is_not_a_media_root_is_refused(): void
+    {
+        foreach (['vendor/package/logo.png', 'livewire/x.js', 'storage', 'whatever-lands-here'] as $notMedia) {
+            $this->assertFalse(MediaLibrary::safePath($notMedia), $notMedia . ' is not media');
+        }
+
+        foreach (MediaLibrary::ROOTS as $root) {
+            $this->assertSame($root, MediaLibrary::safePath($root));
+        }
+
+        // Not offered as a root, still reachable: 17 live products point into
+        // the retired OpenCart tree.
+        $this->assertSame('catalog/old.jpg', MediaLibrary::safePath('catalog/old.jpg'));
+    }
+
     public function test_deleting_says_what_it_cost_and_detaches_the_rows(): void
     {
         $this->putFile('products/shared.jpg');
@@ -108,6 +128,22 @@ class MediaLibraryTest extends TestCase
         $this->assertNull($body['parent'], 'the root has no up-tile to offer');
         $this->assertSame([], $body['files']);
         Storage::disk('public')->assertExists('categories');
+    }
+
+    /**
+     * Nothing asserted on the folder list until a stale constant reference in
+     * foldersIn() put a 500 on every browse call and the suite stayed green.
+     */
+    public function test_browse_returns_the_folders_inside_a_root(): void
+    {
+        $this->putFile('products/wampler/a.jpg');
+        $this->putFile('products/boss/b.jpg');
+        $this->putFile('products/loose.jpg');
+
+        $body = $this->getJson(route('admin.media.browse', ['root' => 'products']))->assertOk()->json();
+
+        $this->assertSame(['boss', 'wampler'], collect($body['folders'])->pluck('name')->all());
+        $this->assertSame(['loose.jpg'], collect($body['files'])->pluck('name')->all());
     }
 
     public function test_search_looks_through_the_whole_root_not_one_folder(): void

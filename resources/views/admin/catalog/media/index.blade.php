@@ -21,10 +21,12 @@
          nothing is using. The browsing itself is the shared component, so
          this page and every picker cannot drift again. --}}
     <div class="v-settle" x-data="mediaPage()">
+        {{-- commit="manage": a selection here is not something being chosen
+             for a product, it is something being cleared out. The footer said
+             "Add N" and fired into a handler that did nothing. --}}
         <x-admin.media-picker name="__library" root="products" mode="multi"
-                              can="upload,url,delete,folder" bare
-                              data-library
-                              @media:picked="noted($event.detail.paths)" />
+                              commit="manage" can="upload,url,delete,folder" bare
+                              data-library />
 
         <x-admin.panel title="The library">
             <x-slot:acts>
@@ -84,9 +86,8 @@
                         }));
                     },
 
-                    /** Nothing is being chosen here, so a selection is just a
-                     *  selection; the panel's own delete is what acts on it. */
-                    noted() {},
+                    /* Nothing is chosen here; the panel's own Delete acts on
+                       the selection. */
                 };
             }
         </script>

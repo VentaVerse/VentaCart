@@ -20,11 +20,19 @@ use Illuminate\Support\Str;
  */
 class MediaLibrary
 {
-    /** The folders the admin offers. Anything else is not a media root. */
+    /** The folders the admin offers as a starting point. */
     public const ROOTS = ['products', 'brands', 'categories', 'blog', 'banners'];
 
-    /** Never browsable: staging, and the store's own identity and payment assets. */
-    private const HIDDEN = ['_tmp', 'identity', 'bank-qr', 'theme'];
+    /**
+     * Everywhere a picker may go, which is the roots plus the retired
+     * OpenCart tree.
+     *
+     * `catalog/` is not offered as a root and is not where anything new is
+     * written, but 17 live products still point into its 1,904 files, so
+     * blocking it outright would make those images unpickable. It stays
+     * reachable and stays unadvertised.
+     */
+    private const REACHABLE = ['products', 'brands', 'categories', 'blog', 'banners', 'catalog'];
 
     public const EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
@@ -36,10 +44,15 @@ class MediaLibrary
     /**
      * A path we are willing to act on, or false.
      *
-     * Traversal was the only thing the old checks looked for. A hidden root is
-     * refused too: a product picker could reach bank-qr/ and hand the store's
-     * payment QR code to a delete button, because the root parameter was only
-     * ever a default and never a boundary.
+     * Traversal was the only thing the old check looked for, and the `root`
+     * parameter was only ever a starting folder: once any path was supplied
+     * it was listed directly, so a product picker could walk into bank-qr/
+     * and hand the store's payment QR code to a delete button.
+     *
+     * An ALLOW list rather than a deny list, because a deny list only refuses
+     * the folders somebody remembered. Anything that is not a media root is
+     * not media: identity, bank-qr, theme, _tmp, and whatever a future
+     * package drops on the public disk.
      */
     public static function safePath(?string $path): string|false
     {
@@ -55,7 +68,7 @@ class MediaLibrary
 
         $head = explode('/', $path)[0];
 
-        return in_array($head, self::HIDDEN, true) ? false : $path;
+        return in_array($head, self::REACHABLE, true) ? $path : false;
     }
 
     public static function ensure(string $path): void
@@ -69,7 +82,9 @@ class MediaLibrary
     public static function foldersIn(string $path): array
     {
         return collect(Storage::disk('public')->directories($path))
-            ->reject(fn ($dir) => in_array(basename($dir), self::HIDDEN, true))
+            // At the disk root the only folders offered are media roots; deeper
+            // in, every subfolder of a reachable root is fair game.
+            ->filter(fn ($dir) => self::safePath($dir) !== false)
             ->map(fn ($dir) => ['name' => basename($dir), 'path' => $dir])
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
             ->values()->all();
@@ -229,7 +244,30 @@ class MediaLibrary
             $main = Product::where('image', 'like', $like)
                 ->update(['image' => DB::raw(self::replaceExpression('image', $from, $to))]);
 
-            return $images + $main;
+            // Variants carry their own photo now, so they move with the rest.
+            $variants = \App\Models\ProductVariant::where('image', 'like', $like)
+                ->update(['image' => DB::raw(self::replaceExpression('image', $from, $to))]);
+
+            return $images + $main + $variants;
+        });
+    }
+
+    /**
+     * Point every stored reference at a file's new home.
+     *
+     * Used by the folder merge, one file at a time, because a merge moves
+     * files individually rather than renaming a directory wholesale.
+     *
+     * @return int rows repointed
+     */
+    public static function repoint(string $from, string $to): int
+    {
+        return DB::transaction(function () use ($from, $to) {
+            $images = ProductImage::where('path', $from)->update(['path' => $to]);
+            $main = Product::where('image', $from)->update(['image' => $to]);
+            $variants = \App\Models\ProductVariant::where('image', $from)->update(['image' => $to]);
+
+            return $images + $main + $variants;
         });
     }
 

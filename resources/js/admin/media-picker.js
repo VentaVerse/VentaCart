@@ -16,6 +16,8 @@ export function registerMediaPicker(Alpine) {
         root: cfg.root || 'products',
         mode: cfg.mode || 'single',
         can: (cfg.can || 'upload').split(',').map((c) => c.trim()),
+        // 'add' hands the selection to the caller; 'manage' deletes it.
+        commitAction: cfg.commit === 'manage' ? 'manage' : 'add',
         endpoints: cfg.endpoints,
 
         // --- what the merchant chose
@@ -164,7 +166,7 @@ export function registerMediaPicker(Alpine) {
             at === -1 ? this.picked.push(file.path) : this.picked.splice(at, 1);
         },
 
-        commit() {
+        take() {
             const added = this.picked.filter((p) => !this.value.includes(p));
             this.value = [...this.value, ...added];
             this.emit('picked', { paths: added });
@@ -246,31 +248,65 @@ export function registerMediaPicker(Alpine) {
          * and said nothing, and one image in this catalogue is on fourteen
          * products.
          */
-        askDelete(file) { this.confirming = file; },
+        askDelete(file) { this.confirming = [file]; },
+
+        /** The whole selection, so the cost is stated once for all of them. */
+        askDeleteMany() {
+            this.confirming = this.files.filter((f) => this.picked.includes(f.path));
+        },
+
+        get confirmTitle() {
+            const n = this.confirming?.length || 0;
+
+            return n > 1 ? 'Delete ' + n + ' files?' : 'Delete this file?';
+        },
+
+        get confirmNames() {
+            const names = (this.confirming || []).map((f) => f.name);
+            if (names.length <= 3) return names.join(', ');
+
+            return names.slice(0, 3).join(', ') + ' and ' + (names.length - 3) + ' more';
+        },
 
         get deleteWarning() {
-            const n = this.confirming?.usedBy || 0;
-            if (!n) return 'Nothing is using it.';
+            const files = this.confirming || [];
+            const using = files.filter((f) => f.usedBy > 0);
+            const products = files.reduce((n, f) => n + (f.usedBy || 0), 0);
 
-            return n === 1 ? '1 product uses it and will lose its image.'
-                           : n + ' products use it and will lose their image.';
+            if (!products) return 'Nothing is using them.';
+
+            const where = using.length === files.length || files.length === 1
+                ? ''
+                : ' across ' + using.length + ' of them';
+
+            return products === 1
+                ? '1 product uses ' + (files.length > 1 ? 'one of these' : 'it') + ' and will lose its image.'
+                : products + ' products use ' + (files.length > 1 ? 'these' : 'it') + where + ' and will lose their image.';
         },
 
         async confirmDelete() {
-            const file = this.confirming;
+            const files = this.confirming || [];
             this.confirming = null;
-            if (!file) return;
+            if (!files.length) return;
+
+            const paths = files.map((f) => f.path);
 
             const data = await this.ask(this.endpoints.delete, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.endpoints.token, Accept: 'application/json' },
-                body: JSON.stringify({ paths: [file.path] }),
+                body: JSON.stringify({ paths }),
             });
 
             if (data) {
-                this.toast('Deleted ' + file.name + (data.detached ? ', removed from ' + data.detached + ' products' : ''));
-                if (this.mode === 'multi') this.drop(file.path);
-                else if (this.value === file.path) this.clear();
+                const what = files.length === 1 ? files[0].name : files.length + ' files';
+                this.toast('Deleted ' + what + (data.detached ? ', removed from ' + data.detached + ' products' : ''));
+
+                paths.forEach((path) => {
+                    if (this.mode === 'multi') this.drop(path);
+                    else if (this.value === path) this.clear();
+                });
+
+                this.picked = this.picked.filter((p) => !paths.includes(p));
                 await this.browse(this.path, this.page);
             }
         },

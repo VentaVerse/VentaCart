@@ -26,7 +26,8 @@
     </div>
 
     {{-- Rendered by JS (renderGrid) so the custom drag reorder owns the DOM. --}}
-    <div x-show="items.length > 0" x-ref="sortableGrid" class="v-mediagrid"></div>
+    <div x-show="items.length > 0" x-ref="sortableGrid" class="v-mediagrid"
+         role="list" aria-label="Product images, in order. The first is the main image."></div>
 
 </div>
 
@@ -75,6 +76,25 @@ function imageManager() {
                 card.draggable = true;
                 card.dataset.path = item.path;
                 card.dataset.index = index;
+
+                // Reachable and movable without a mouse.
+                //
+                // These were draggable divs with tabIndex -1 and no role, so
+                // reordering worked for exactly one input device. Order is not
+                // decoration here: position 0 IS the main image, so choosing
+                // which photo a shopper sees first was mouse-only.
+                card.tabIndex = 0;
+                card.setAttribute('role', 'listitem');
+                card.setAttribute('aria-label',
+                    (index === 0 ? 'Main image' : 'Image ' + (index + 1)) +
+                    ' of ' + this.items.length + '. Use Ctrl with the arrow keys to reorder.');
+                card.addEventListener('keydown', (e) => {
+                    if (!e.ctrlKey && !e.metaKey) return;
+                    const delta = e.key === 'ArrowLeft' ? -1 : (e.key === 'ArrowRight' ? 1 : 0);
+                    if (!delta) return;
+                    e.preventDefault();
+                    this.moveItem(index, index + delta);
+                });
 
                 const imgWrap = document.createElement('div');
                 imgWrap.className = 'v-imgcard__art';
@@ -198,6 +218,32 @@ function imageManager() {
 
         showToast(msg, type = 'success') {
             Alpine.store('toasts').push(msg, type === 'error' ? 'danger' : 'success');
+        },
+
+        /**
+         * Move one image, keeping focus on it.
+         *
+         * renderGrid() rebuilds the whole grid, so the card that was focused
+         * is a different element afterwards and focus would fall to the body
+         * mid-task. It is restored by position.
+         */
+        moveItem(from, to) {
+            if (to < 0 || to >= this.items.length || from === to) return;
+
+            const [moved] = this.items.splice(from, 1);
+            this.items.splice(to, 0, moved);
+
+            this.renderGrid();
+            this._markDirty();
+
+            this.$nextTick(() => {
+                const cards = this.$refs.sortableGrid?.querySelectorAll('.v-imgcard');
+                cards?.[to]?.focus();
+            });
+
+            this.showToast(to === 0
+                ? 'Moved to first. This is now the main image.'
+                : 'Moved to position ' + (to + 1) + '.');
         },
 
         removeItem(index) {

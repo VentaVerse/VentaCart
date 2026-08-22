@@ -3,6 +3,11 @@
     'value' => null,
     'root' => 'products',
     'mode' => 'single',
+    // What a multi selection is FOR. 'add' hands the paths to the caller,
+    // which is what a picker does. 'manage' deletes them, which is what the
+    // library page does and what it could not do until now: it rendered an
+    // Add button that fired into a handler doing nothing.
+    'commit' => 'add',
     'can' => 'upload,url,delete',
     'label' => null,
     'trigger' => 'Browse',
@@ -29,6 +34,7 @@
         root: @js($root),
         mode: @js($mode),
         can: @js($can),
+        commit: @js($commit),
         value: @js($vSeed),
         endpoints: {
             browse: @js(route('admin.media.browse')),
@@ -202,17 +208,25 @@
                     <span class="v-cell-quiet" x-text="picked.length + ' selected'"></span>
                     <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="picked = []"
                             :disabled="!picked.length">Clear</button>
-                    <button type="button" class="v-btn v-btn--primary v-btn--sm" @click="commit()"
-                            :disabled="!picked.length" x-text="'Add ' + picked.length"></button>
+
+                    <template x-if="commitAction === 'add'">
+                        <button type="button" class="v-btn v-btn--primary v-btn--sm" @click="take()"
+                                :disabled="!picked.length" x-text="'Add ' + picked.length"></button>
+                    </template>
+
+                    <template x-if="commitAction === 'manage'">
+                        <button type="button" class="v-btn v-btn--danger-fill v-btn--sm" @click="askDeleteMany()"
+                                :disabled="!picked.length" x-text="'Delete ' + picked.length"></button>
+                    </template>
                 </span>
             </div>
 
             {{-- Nested inside the panel so a click outside the confirm is not
                  read as a click outside the browser. --}}
             <div class="v-overlay" x-show="confirming" x-cloak @click.self="confirming = null">
-                <div class="v-modal" role="alertdialog" aria-modal="true" aria-label="Delete this file?">
-                    <h2 class="v-modal__title">Delete this file?</h2>
-                    <p x-text="confirming?.name"></p>
+                <div class="v-modal" role="alertdialog" aria-modal="true" aria-label="Delete files">
+                    <h2 class="v-modal__title" x-text="confirmTitle"></h2>
+                    <p x-text="confirmNames"></p>
                     <p class="v-cell-quiet" x-text="deleteWarning"></p>
                     <div class="v-modal__foot">
                         <button type="button" class="v-btn v-btn--ghost" @click="confirming = null">Cancel</button>
