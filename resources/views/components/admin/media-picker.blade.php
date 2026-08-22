@@ -174,7 +174,14 @@
                                 @click="choose(file)"
                                 :aria-pressed="(isChosen(file) || isPicked(file)) ? 'true' : 'false'">
                             <span class="v-mediatile__frame">
-                                <img :src="file.thumb" :alt="file.name" loading="lazy" decoding="async">
+                                {{-- Not draggable. There is no reordering in the
+                                     library and no moving between folders, so a
+                                     thumbnail you can pick up offers a rearrange
+                                     that does not exist. It also competes with
+                                     the grid's real drag, which is dropping
+                                     files IN from the desktop to upload. --}}
+                                <img :src="file.thumb" :alt="file.name" draggable="false"
+                                     loading="lazy" decoding="async">
                             </span>
                             <span class="v-mediatile__name" x-text="file.name"></span>
                             <span class="v-tilemark" x-show="isChosen(file)" aria-hidden="true">&check;</span>

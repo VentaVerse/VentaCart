@@ -137,8 +137,12 @@ function imageManager() {
                     this._dragEl = card;
                     this._placeholder = this._createPlaceholder();
                     e.dataTransfer.effectAllowed = 'move';
-                    // Delay so the browser captures the drag image first
+                    // Delay so the browser captures the drag image first.
+                    // dragend can land before this frame does on a very short
+                    // drag, and it nulls the placeholder, so the frame has to
+                    // check it is still wanted rather than insert null.
                     requestAnimationFrame(() => {
+                        if (!this._placeholder || this._dragEl !== card) return;
                         grid.insertBefore(this._placeholder, card);
                         card.style.display = 'none';
                     });
@@ -166,18 +170,37 @@ function imageManager() {
                 const cards = [...grid.querySelectorAll('[data-path]')].filter(c => c !== this._dragEl);
                 if (!cards.length) return;
 
-                let inserted = false;
+                // The swap happens at a card's MIDDLE, not at its far edge.
+                //
+                // This tested `clientX < rect.right`, which is true across the
+                // whole of a card and everything to its left, so the
+                // placeholder stayed in front of card 2 until the pointer
+                // cleared card 2 entirely. Moving image 1 one place to the
+                // right meant dragging it past the end of image 2, which is
+                // twice the distance and reads as the drop being refused.
+                let before = null;
+
                 for (const c of cards) {
-                    const rect = c.getBoundingClientRect();
-                    if (e.clientY < rect.bottom && e.clientX < rect.right) {
-                        if (this._placeholder.nextSibling !== c) {
-                            grid.insertBefore(this._placeholder, c);
-                        }
-                        inserted = true;
+                    const r = c.getBoundingClientRect();
+
+                    // A wrapped grid has rows: anything ending above the
+                    // pointer is on an earlier row and cannot be the target.
+                    if (e.clientY > r.bottom) continue;
+
+                    const onThisRow = e.clientY >= r.top;
+                    const pastMiddle = onThisRow && e.clientX > r.left + (r.width / 2);
+
+                    if (!pastMiddle) {
+                        before = c;
                         break;
                     }
                 }
-                if (!inserted) {
+
+                if (before) {
+                    if (this._placeholder.nextSibling !== before) {
+                        grid.insertBefore(this._placeholder, before);
+                    }
+                } else if (grid.lastElementChild !== this._placeholder) {
                     grid.appendChild(this._placeholder);
                 }
             });
@@ -192,7 +215,13 @@ function imageManager() {
                     if (allChildren[i] === this._placeholder) break;
                     if (allChildren[i].dataset.path && allChildren[i] !== this._dragEl) toIndex++;
                 }
-                if (this._dragFromIndex < toIndex) toIndex--;
+
+                // No off-by-one correction here. The count above already
+                // SKIPS the dragged card, so it is the index to splice into
+                // after the card is removed. Correcting again cancelled every
+                // forward move by one place, which is why dragging an image
+                // one step to the right did nothing until you had dragged it
+                // clear of the next image entirely.
 
                 if (toIndex < 0) toIndex = 0;
                 if (toIndex >= this.items.length) toIndex = this.items.length - 1;
