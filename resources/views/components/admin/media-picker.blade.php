@@ -114,8 +114,11 @@
                     <option value="name">Name</option>
                 </select>
 
-                <span class="v-mpick__count mono"
-                      x-text="searching ? total + ' found' : total + (total === 1 ? ' file' : ' files')"></span>
+                {{-- What is actually on screen. It read "30 files" above a
+                     grid of forty-two folders, because the count only ever
+                     counted files and the folders were the thing you were
+                     looking at. --}}
+                <span class="v-mpick__count mono" x-text="tally"></span>
 
                 <span class="v-mpick__acts">
                     <template x-if="able('folder')">

@@ -56,6 +56,19 @@ export function registerMediaPicker(Alpine) {
 
         get chosen() { return this.mode === 'multi' ? this.value : (this.value ? [this.value] : []); },
 
+        /** Names both halves of what the grid is showing, and neither when empty. */
+        get tally() {
+            if (this.searching) {
+                return this.total + (this.total === 1 ? ' match' : ' matches');
+            }
+
+            const parts = [];
+            if (this.folders.length) parts.push(this.folders.length + (this.folders.length === 1 ? ' folder' : ' folders'));
+            if (this.total) parts.push(this.total + (this.total === 1 ? ' file' : ' files'));
+
+            return parts.join(', ');
+        },
+
         get payload() { return this.mode === 'multi' ? JSON.stringify(this.value) : this.value; },
 
         /**

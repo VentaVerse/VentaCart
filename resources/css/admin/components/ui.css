@@ -1904,17 +1904,25 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 
 .v-tilemark--pick { background: #2F7D5B; color: #fff; }
 
-/* What a file would cost to delete, before anyone reaches for it. */
+/* What a file would cost to delete, before anyone reaches for it.
+   Anchored over the thumbnail, not under it: at the bottom-left it sat on
+   the first characters of the caption, so every name read "in 2 -Gear-Day"
+   with the "New" hidden behind the badge. It steps aside on hover, where
+   the delete button lives and where the confirm states the count anyway. */
 .v-tileused {
     position: absolute;
-    bottom: 4px;
-    left: 4px;
+    top: 4px;
+    right: 4px;
     font-size: 10.5px;
     padding: 1px 6px;
     border-radius: 999px;
     background: var(--v-slab);
     color: #fff;
+    pointer-events: none;
 }
+
+.v-tilewrap:hover .v-tileused,
+.v-tilewrap:focus-within .v-tileused { display: none; }
 
 .v-mediatile--up { color: var(--v-ink-3); }
 
@@ -1965,3 +1973,32 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
     font-size: 11px;
     line-height: 1.4;
 }
+
+/* --- The tile fills its cell -----------------------------------
+   Measured broken: the grid track and the wrapper were both a
+   correct 124px, and the button inside them was 427px, because a
+   <button> shrink-wraps its content and .v-mediatile__frame's
+   width:100% then had nothing real to resolve against, so it fell
+   back to the image's natural 300px. Tiles overlapped, captions
+   collided, and the badges landed anywhere.
+
+   The frame's percentage needs a parent with a width, and a grid
+   item needs min-width:0 or its content sets the floor. */
+
+.v-mpick__grid > .v-tilewrap,
+.v-mpick__grid > .v-mediatile { min-width: 0; }
+
+.v-mpick__grid .v-mediatile {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* In this picker "added" means currently chosen, not unavailable, so
+   it stays selectable and keeps its brightness. The 0.65 dim reads as
+   disabled and belongs to the older tile it was written for. */
+.v-mpick__grid .v-mediatile.is-added { opacity: 1; cursor: pointer; }
+
+/* A destructive button that cannot fire should not look like it can.
+   .55 opacity on a filled red still reads as armed. */
+.v-btn--danger-fill:disabled { opacity: .38; box-shadow: none; }
