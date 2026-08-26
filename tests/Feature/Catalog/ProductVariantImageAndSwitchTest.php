@@ -142,22 +142,24 @@ class ProductVariantImageAndSwitchTest extends TestCase
         $this->assertDatabaseCount('product_variants', 0);
     }
 
-    public function test_the_list_shows_a_variants_photo_sku_stock_and_state_when_opened(): void
+    public function test_the_list_shows_a_variants_photo_sku_stock_and_state_outright(): void
     {
+        // No disclosure to open: a variant is what gets picked, counted and
+        // photographed, so the list shows it without being asked.
         $product = $this->product();
         $product->variants()->create([
             'sku' => 'STRAP-BLUE', 'price' => 1200, 'quantity' => 3,
             'is_active' => false, 'image' => 'products/variants/blue.jpg',
         ]);
 
-        $closed = $this->get(route('admin.products.index'))->assertOk();
-        $closed->assertDontSee('STRAP-BLUE', false);
+        $list = $this->get(route('admin.products.index'))->assertOk();
+        $list->assertSee('STRAP-BLUE', false);
+        $list->assertSee('1,200.00', false);
+        $list->assertSee('products/variants/blue.jpg', false);
+        $list->assertSee('Off', false);
 
-        $open = $this->get(route('admin.products.index', ['open' => $product->id]))->assertOk();
-        $open->assertSee('STRAP-BLUE', false);
-        $open->assertSee('1,200.00', false);
-        $open->assertSee('products/variants/blue.jpg', false);
-        $open->assertSee('Off', false);
+        // And nothing is left to toggle.
+        $list->assertDontSee('v-disclose', false);
     }
 
     public function test_the_list_finds_a_product_by_its_variant_sku(): void

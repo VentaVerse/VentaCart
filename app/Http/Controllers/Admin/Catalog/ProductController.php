@@ -94,15 +94,9 @@ class ProductController extends Controller
 
         $products = $query->paginate($perPage)->withQueryString();
 
-        // Which parents are showing their variants. In the querystring rather
-        // than in Alpine, so the rows survive pagination, the back button and
-        // a refresh, and so they stay server-rendered like every other row on
-        // this page.
-        $open = collect(explode(',', (string) $request->input('open')))
-            ->filter()->map(fn ($id) => (int) $id)->all();
         $categories = Category::orderBy('name')->get();
 
-        return view('admin.catalog.products.index', compact('products', 'categories', 'open', 'sort', 'dir', 'perPage'));
+        return view('admin.catalog.products.index', compact('products', 'categories', 'sort', 'dir', 'perPage'));
     }
 
     public function create(Request $request)

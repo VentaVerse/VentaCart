@@ -1658,20 +1658,6 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 
 .v-cell-open { width: 28px; padding-right: 0; }
 
-.v-disclose {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: var(--v-r-sm);
-    color: var(--v-ink-3);
-}
-
-.v-disclose:hover { background: var(--v-hover); color: var(--v-ink); }
-.v-disclose svg { width: 15px; height: 15px; transition: transform var(--v-fast); }
-.v-disclose.is-open svg { transform: rotate(90deg); }
-
 .v-table tr.is-parent > td { border-bottom-color: transparent; }
 
 /* The child reads as belonging to the row above: same ground, a

@@ -79,27 +79,13 @@
                     </thead>
                     <tbody>
                         @forelse ($products as $product)
-                            @php
-                                $vCount = $product->variants->count();
-                                $vOpen = in_array($product->id, $open, true);
-                                // Toggling this parent, with every other open
-                                // parent kept. The whole set rides the URL.
-                                $vNext = $vOpen
-                                    ? array_values(array_diff($open, [$product->id]))
-                                    : array_merge($open, [$product->id]);
-                                $vHref = request()->fullUrlWithQuery(['open' => implode(',', $vNext) ?: null]);
-                            @endphp
-                            <tr @class(['is-parent' => $vCount > 0 && $vOpen])>
-                                <td class="v-cell-open">
-                                    @if ($vCount > 0)
-                                        <a href="{{ $vHref }}#p{{ $product->id }}" id="p{{ $product->id }}"
-                                           class="v-disclose {{ $vOpen ? 'is-open' : '' }}"
-                                           aria-expanded="{{ $vOpen ? 'true' : 'false' }}"
-                                           aria-label="{{ $vOpen ? 'Hide' : 'Show' }} the {{ $vCount }} variants of {{ $product->name }}">
-                                            <x-admin.icon name="chevron-right" />
-                                        </a>
-                                    @endif
-                                </td>
+                            @php $vCount = $product->variants->count(); @endphp
+                            <tr @class(['is-parent' => $vCount > 0])>
+                                {{-- The indent gutter the child rows align under.
+                                     It used to hold a disclosure chevron; variants
+                                     are always shown now, so there is nothing left
+                                     to disclose. --}}
+                                <td class="v-cell-open" id="p{{ $product->id }}"></td>
                                 <td>
                                     <span class="v-actrow">
                                         @if ($product->image)
@@ -176,11 +162,10 @@
 
                             {{-- The variants themselves, server-rendered like every
                                  other row on this page. A colourway is what gets
-                                 picked, counted and photographed, and until now the
-                                 only way to see one was to open the product and
-                                 change tab. --}}
-                            @if ($vOpen)
-                                @foreach ($product->variants as $vRow)
+                                 picked, counted and photographed, so it is shown
+                                 outright rather than hidden behind a disclosure the
+                                 merchant had to open one product at a time. --}}
+                            @foreach ($product->variants as $vRow)
                                     <tr class="is-child">
                                         <td class="v-cell-open"></td>
                                         <td>
@@ -211,7 +196,6 @@
                                         </td>
                                     </tr>
                                 @endforeach
-                            @endif
                         @empty
                             <tr>
                                 <td colspan="7">
