@@ -104,9 +104,6 @@
                                 <input type="checkbox" name="settings[cod_payment_methods][]" value="{{ $slug }}"
                                     {{ in_array($slug, $codMethods, true) ? 'checked' : '' }}>
                                 {{ $method['label'] }}
-                                @if ($method['legacy'])
-                                    <span class="v-badge v-badge--quiet">legacy</span>
-                                @endif
                             </label>
                         @endforeach
                     </div>

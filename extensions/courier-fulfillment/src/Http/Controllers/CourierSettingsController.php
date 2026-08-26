@@ -228,60 +228,24 @@ class CourierSettingsController extends Controller
             ];
         }
 
-        // Payment-method keys seen in real orders + the core methods, for COD classification.
-        // Marketplace keys are excluded: those orders are marketplace-fulfilled and never
-        // courier-booked by the store, so classifying them is meaningless (absent = prepaid).
-        $marketplaceKeys = ['shopee', 'lazada', 'tiktok'];
-        $seenMethods = \Illuminate\Support\Facades\DB::table('orders')->whereNotNull('payment_method')->where('payment_method', '!=', '')->distinct()->pluck('payment_method')->all();
-        $methodSlugs = collect(array_merge($seenMethods, \App\Services\PaymentManager::registeredBaseKeys()))->unique()->reject(fn ($m) => in_array($m, $marketplaceKeys, true))->sort()->values()->all();
-
-        // Last-used date per slug, in ONE grouped query (never per-slug queries).
-        $lastUsedBySlug = \Illuminate\Support\Facades\DB::table('orders')
-            ->whereNotNull('payment_method')
-            ->where('payment_method', '!=', '')
-            ->groupBy('payment_method')
-            ->pluck(\Illuminate\Support\Facades\DB::raw('MAX(created_at)'), 'payment_method');
-
-        $liveCoreMethods = \App\Services\PaymentManager::registeredBaseKeys();
-        $legacyCutoff = now()->subMonths(12);
-
-        // Pre-resolve bank names for bank_transfer_<id> slugs in ONE query
-        // (never per-slug) — used below to shorten the label to just the bank
-        // name and suppress the redundant slug hint in the view.
-        $bankIds = [];
-        foreach ($methodSlugs as $slug) {
-            if (preg_match('/^bank_transfer_(\d+)$/', $slug, $m)) {
-                $bankIds[] = (int) $m[1];
-            }
-        }
-        $bankNames = ($bankIds && class_exists(\Extensions\PaymentBankTransfer\Models\BankAccount::class))
-            ? \Extensions\PaymentBankTransfer\Models\BankAccount::whereIn('id', $bankIds)->pluck('bank_name', 'id')
-            : collect();
-
+        // The COD list is built from the payment methods Venta actually has
+        // INSTALLED, never from what the orders table happens to contain.
+        // Deriving it from order history resurrected every retired slug the
+        // store ever wrote (the per-bank-account `bank_transfer_<id>` format,
+        // for one) and offered them as if they were live methods. The registry
+        // is the truth about what exists; the orders table is only the truth
+        // about what happened.
         $paymentMethodOptions = [];
-        foreach ($methodSlugs as $slug) {
+        foreach (\App\Services\PaymentManager::registeredBaseKeys() as $slug) {
             $probe = new \App\Models\Order();
             $probe->payment_method = $slug;
             $label = $probe->payment_method_label;
             if ($label === '') {
                 $label = ucwords(str_replace('_', ' ', $slug));
             }
-
-            // bank_transfer_<id> with a resolvable bank name: the bank name
-            // alone IS the label (e.g. "Maya" instead of "Bank Transfer — Maya").
-            if (preg_match('/^bank_transfer_(\d+)$/', $slug, $m)) {
-                $bankName = $bankNames[(int) $m[1]] ?? null;
-                if ($bankName) {
-                    $label = $bankName;
-                }
-            }
-
-            $lastUsed = $lastUsedBySlug[$slug] ?? null;
-            $legacy = !in_array($slug, $liveCoreMethods, true)
-                && (!$lastUsed || \Illuminate\Support\Carbon::parse($lastUsed)->lt($legacyCutoff));
-
-            $paymentMethodOptions[$slug] = ['label' => $label, 'legacy' => $legacy];
+            $paymentMethodOptions[$slug] = ['label' => $label];
         }
+        ksort($paymentMethodOptions);
 
         $codRaw = $settings['cod_payment_methods'] ?? null;
         if ($codRaw !== null) {
