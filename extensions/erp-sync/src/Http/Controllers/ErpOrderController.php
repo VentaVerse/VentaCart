@@ -40,6 +40,11 @@ class ErpOrderController extends Controller
                 'id' => $order->id,
                 'order_number' => $order->id,
                 'status' => $order->order_status_name,
+                // The group this order was placed under, informational only.
+                // A snapshot on the order rather than a lookup, so it answers
+                // what the buyer was at the time and does not change when a
+                // customer is later moved between groups.
+                'customer_group' => $order->customer_group_name,
                 'customer_name' => $order->full_name,
                 'customer_email' => $order->email,
                 'total' => $order->total,
@@ -68,6 +73,11 @@ class ErpOrderController extends Controller
             'order_number' => $order->id,
             'status' => $order->order_status_name,
             'status_id' => $order->order_status_id,
+            // Null on the 24,237 migrated orders that never captured it, and
+            // deliberately not backfilled from the customer: not one of them
+            // has a customer attached, so there is nothing to fall back to
+            // and a guess would read as fact.
+            'customer_group' => $order->customer_group_name,
             'customer' => $order->customer ? [
                 'id' => $order->customer->id,
                 'name' => $order->customer->first_name . ' ' . $order->customer->last_name,
