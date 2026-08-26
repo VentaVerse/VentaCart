@@ -94,13 +94,18 @@ crossing any of them.
 DB::table('products')->whereNotNull('deleted_at')->delete();
 ```
 
-`down()` only re-adds the column. The rows are gone. Pre-flight:
+`down()` only re-adds the column. The rows are gone.
 
-```sql
-SELECT COUNT(*) FROM products WHERE deleted_at IS NOT NULL;
+**Pre-flight, run this yourself before migrating. Do not ask the owner to run it:**
+
+```bash
+php artisan tinker --execute="echo DB::table('products')->whereNotNull('deleted_at')->count();"
 ```
 
-Above zero means real data loss. Stop and confirm with the owner.
+- **0** — safe, continue the deploy normally.
+- **anything above 0** — STOP. That many products will be destroyed permanently.
+  Report the number to the owner and wait for an explicit go-ahead. Do not run
+  `migrate` in the meantime.
 
 ### `2026_08_08_162937_add_username_to_users_table.php`
 
