@@ -1229,7 +1229,7 @@
 
                                         <div class="v-grid v-grid--2">
                                             <x-admin.field name="service" label="Service" required>
-                                                <select name="service" class="v-control">
+                                                <select name="service" x-model="service" class="v-control">
                                                     <template x-for="o in current.services" :key="o.value"><option :value="o.value" x-text="o.label"></option></template>
                                                 </select>
                                             </x-admin.field>
@@ -1461,6 +1461,7 @@
                 step: 1,
                 active: null,
                 courier: '',
+                service: '',
                 parcel: '',
                 // Step 2 has two shapes now: an integrated courier's own form,
                 // or the manual record. One flag decides which, and it is
@@ -1740,6 +1741,14 @@
                     // Nothing is quoted for a shipment no integration owns.
                     this.resetRiderQuote();
                 },
+                // The configured default when it is still one of the options
+                // the courier offers, otherwise the first option. A default
+                // that no longer exists must not leave the control blank.
+                pickDefault(options, configured) {
+                    const list = options || [];
+                    if (configured && list.some(o => o.value === configured)) return configured;
+                    return (list[0] || {}).value || '';
+                },
                 chooseCourier(key) {
                     this.courier = key;
                     this.manual = false;
@@ -1749,10 +1758,17 @@
                     // x-model cannot do this itself: the options arrive from
                     // x-for AFTER x-model has run, so the state would stay ''
                     // while the control displays (and submits) its first
-                    // option. Seeding both from that same first option is what
-                    // keeps the total, the heading and the form in step.
-                    this.parcel = ((this.options[key] || {}).parcels || [{}])[0].value || '';
-                    this.shippingPayment = ((this.options[key] || {}).payments || [{}])[0].value || '';
+                    // option.
+                    //
+                    // Seed from the courier's CONFIGURED default where there
+                    // is one. Seeding from the first option regardless is what
+                    // made "Default service: Same Day Pickup" book Next Day
+                    // every time: next_day simply sits first in QuadX's list,
+                    // and the setting was never consulted by the form.
+                    const opts = this.options[key] || {};
+                    this.service = this.pickDefault(opts.services, opts.defaultService);
+                    this.parcel = this.pickDefault(opts.parcels, opts.defaultParcel);
+                    this.shippingPayment = ((opts.payments || [{}])[0] || {}).value || '';
                     this.seedRiderQuote();
                     // Task T4: pickup slots are fetched HERE — the moment the
                     // admin actually picks SPX — never during the queue's

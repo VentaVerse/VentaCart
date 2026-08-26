@@ -413,8 +413,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface
      */
     private function rateQuote(Order $order, array $opts = [], ?int $timeout = null): array
     {
-        $service = (string) ($opts['service'] ?? '')
-            ?: (string) (Setting::where('group', 'courier')->where('key', 'quadx_default_service')->value('value') ?: 'next_day');
+        $service = self::serviceFor($opts);
 
         $res = $this->client->estimateRates([
             'service_type'     => $service,
@@ -473,6 +472,28 @@ class QuadXFulfillment implements CourierFulfillmentInterface
         $fees = is_array($adjusted) && $adjusted !== [] ? $adjusted : ($attributes['shipping_fee'] ?? []);
 
         return is_array($fees) ? array_filter($fees, 'is_numeric') : [];
+    }
+
+    /**
+     * The service and parcel for this shipment, in one place because a quote
+     * that priced a different service than the booking would be quoting a
+     * different shipment. Both rateQuote() and buildPayload() read them here.
+     *
+     * The operator's configured default is the fallback, NOT a hardcoded
+     * literal. buildPayload() used to fall back to 'next_day' outright, so a
+     * store that had chosen Same Day Pickup was quoted on its own choice and
+     * then booked on next_day regardless.
+     */
+    private static function serviceFor(array $opts): string
+    {
+        return (string) ($opts['service'] ?? '')
+            ?: (string) (Setting::where('group', 'courier')->where('key', 'quadx_default_service')->value('value') ?: 'next_day');
+    }
+
+    private static function parcelFor(array $opts): string
+    {
+        return (string) ($opts['parcel'] ?? '')
+            ?: (string) (Setting::where('group', 'courier')->where('key', 'quadx_default_parcel')->value('value') ?: 'box');
     }
 
     /**
@@ -712,7 +733,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface
 
         $payload = [
             'status'           => 'for_pickup',
-            'service'          => $opts['service'] ?? 'next_day',
+            'service'          => self::serviceFor($opts),
             'reference_id'     => (string) $order->id,
             'delivery_address' => $this->deliveryAddress($order),
             'pickup_address'   => $this->pickupAddress($opts),
@@ -724,7 +745,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'payment_method'   => $buyerPayment === 'cod' ? 'cod' : 'other',
             'items'            => $this->items($order),
             'currency'         => 'PHP',
-            'shipment'         => $opts['parcel'] ?? 'box',
+            'shipment'         => self::parcelFor($opts),
             'total'            => (float) $order->total,
             // QuadX insures via declared_value (~1% fee on that amount). Omitting
             // this field entirely makes QuadX silently DEFAULT declared_value to

@@ -243,6 +243,10 @@ class FulfillmentController extends Controller
         // to tell the two card states apart; every other key keeps its
         // pre-existing shape for a courier that IS fully configured, so
         // that card renders byte-identically to before.
+        // Every courier setting in ONE query, so the per-courier defaults
+        // below cost nothing per courier.
+        $courierSettings = Setting::where('group', 'courier')->pluck('value', 'key');
+
         $courierOptions = [];
         foreach (CourierManager::flagged() as $c) {
             $configured = $c->isEnabled();
@@ -256,7 +260,12 @@ class FulfillmentController extends Controller
                 'services'     => $c->getServiceTypes(),
                 'parcels'      => $c->getParcelOptions(),
                 'payments'     => $c->getShippingPaymentOptions(),
-                'mode'         => Setting::where('group', 'courier')->where('key', $c->getKey() . '_mode')->value('value'),
+                'mode'         => $courierSettings[$c->getKey() . '_mode'] ?? null,
+                // The operator's configured defaults, so the booking form
+                // opens on what they chose rather than on whichever option
+                // happens to sit first in the courier's own list.
+                'defaultService' => $courierSettings[$c->getKey() . '_default_service'] ?? null,
+                'defaultParcel'  => $courierSettings[$c->getKey() . '_default_parcel'] ?? null,
                 'fee_estimate' => null,
             ];
         }
