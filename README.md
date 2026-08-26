@@ -1,3 +1,22 @@
+# Venta
+
+Open source e-commerce platform built on Laravel.
+
+> ## Deploying to a live store?
+>
+> **Read [`docs/DEPLOY.md`](docs/DEPLOY.md) before running `php artisan migrate`.**
+>
+> It records which one-off artisan commands each install still owes, and flags
+> three migrations that cannot be rolled back. One of them permanently deletes
+> soft-deleted products. Another leaves every admin locked out of the panel until
+> a backfill is run.
+>
+> This applies to human operators and to any AI coding agent working on a live
+> install. `CLAUDE.md` is gitignored and does not ship, so this README and
+> `docs/DEPLOY.md` are the only deploy instructions that reach a deployed store.
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">
