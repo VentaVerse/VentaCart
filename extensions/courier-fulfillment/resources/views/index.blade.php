@@ -617,7 +617,12 @@
                                         @php($itemVariant = trim((string) $item->variant_label))
                                         <span class="v-namerow v-fulfilitem">
                                             @if ($itemImage)
-                                                <img src="{{ storage_url($itemImage) }}" alt="" class="v-thumb v-zoomable"
+                                                {{-- The list carries the 300px thumbnail so a fifty row
+                                                     queue is not fifty full size catalog images; the zoom
+                                                     asks for the full one, because looking closer is the
+                                                     whole point of it at a packing desk. --}}
+                                                <img src="{{ thumb_url($itemImage) }}" data-full="{{ storage_url($itemImage) }}"
+                                                     alt="" class="v-thumb v-zoomable" loading="lazy" decoding="async" width="40" height="40"
                                                      @mouseenter="showZoom($event.currentTarget)"
                                                      @mouseleave="hideZoom()">
                                             @else
@@ -1552,7 +1557,7 @@
                         r.top + (r.height / 2) - (size / 2),
                         window.innerHeight - size - edge
                     ));
-                    this.zoom = { src: el.currentSrc || el.src, x: Math.max(edge, x), y };
+                    this.zoom = { src: el.dataset.full || el.currentSrc || el.src, x: Math.max(edge, x), y };
                 },
                 hideZoom() { this.zoom = { ...this.zoom, src: null }; },
                 get current() { return this.options[this.courier] ?? {name:'',services:[],parcels:[],payments:[]}; },
