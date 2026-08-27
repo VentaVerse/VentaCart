@@ -472,10 +472,12 @@
                         <template x-for="item in items" :key="item.id">
                             <div class="flex items-start gap-3">
                                 <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-[var(--color-search-bg)]">
-                                    <template x-if="item.product && (item.product.image || (item.product.images && item.product.images.length))">
-                                        <img :src="storageUrl(item.product.image ? item.product.image : item.product.images[0].path)" :alt="item.name" class="w-full h-full object-contain p-1" loading="lazy">
+                                    {{-- Same one resolution as the cart and the mini cart:
+                                         variant photo, product primary, first gallery image. --}}
+                                    <template x-if="item.image">
+                                        <img :src="storageUrl(item.image)" :alt="item.name" class="w-full h-full object-contain p-1" loading="lazy">
                                     </template>
-                                    <template x-if="!item.product || (!item.product.image && (!item.product.images || !item.product.images.length))">
+                                    <template x-if="!item.image">
                                         <div class="w-full h-full flex items-center justify-center text-[var(--color-input-border)]">
                                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                                         </div>
@@ -676,8 +678,16 @@
                         <template x-for="item in items" :key="item.id">
                             <div class="checkout-modal-item">
                                 <div class="checkout-modal-item-img">
-                                    <template x-if="item.product && (item.product.image || (item.product.images && item.product.images.length))">
-                                        <img :src="storageUrl(item.product.image ? item.product.image : item.product.images[0].path)" :alt="item.name" loading="lazy">
+                                    {{-- The last look before paying, so it shows the colourway
+                                         that was chosen, and a mark rather than an empty box
+                                         when a line has no picture at all. --}}
+                                    <template x-if="item.image">
+                                        <img :src="storageUrl(item.image)" :alt="item.name" loading="lazy">
+                                    </template>
+                                    <template x-if="!item.image">
+                                        <div class="w-full h-full flex items-center justify-center opacity-40">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                        </div>
                                     </template>
                                 </div>
                                 <div class="flex-1 min-w-0">
