@@ -1122,7 +1122,7 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
     border-radius: 8px;
     cursor: pointer;
     font-size: 11px;
-    color: var(--v-mut, var(--v-ink));
+    color: var(--v-ink-3);
     transition: background var(--v-fast);
 }
 
@@ -1255,7 +1255,7 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 }
 
 .v-ledger dt {
-    color: var(--v-mut, var(--v-ink));
+    color: var(--v-ink-3);
     font-size: 13px;
 }
 
@@ -1271,6 +1271,15 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
     color: var(--v-ink);
     border-top: 1px solid var(--v-line);
     padding-top: 6px;
+}
+
+/* The sum is the one line that is NOT quiet. Both list styles set their label
+   colour through a descendant selector (0,1,1), which outranks a bare
+   .v-facts__sum (0,1,0), so the total's label took the muted label colour and
+   lost the emphasis the class exists to give it. */
+.v-facts dt.v-facts__sum,
+.v-ledger dt.v-facts__sum {
+    color: var(--v-ink);
 }
 
 .v-ledger__notes {
@@ -1312,7 +1321,7 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 .v-feed__when {
     margin: 4px 0 0;
     font-size: 12px;
-    color: var(--v-mut, var(--v-ink));
+    color: var(--v-ink-3);
 }
 
 /* --- Order form: segments, pickers, line items ----------------- */
