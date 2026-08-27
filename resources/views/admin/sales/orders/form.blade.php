@@ -470,8 +470,11 @@
                             </div>
                         </x-admin.panel>
 
-                        <x-admin.panel title="Shipping">
-                            <div class="v-grid v-grid--2">
+                        {{-- Flush, because this panel closes with a ledger. Same idiom as
+                             the order view, where the ledger is the footer rule under the
+                             items table rather than a card of its own. --}}
+                        <x-admin.panel title="Shipping" flush>
+                            <div class="v-panelpad v-grid v-grid--2">
                                 <x-admin.field name="shipping_method" label="Shipping method">
                                     <input type="hidden" name="shipping_method" :value="shippingMethod === 'custom' ? shippingMethodCustom : shippingMethod">
                                     <span x-show="loadingShipping" class="v-loadline">
@@ -498,16 +501,12 @@
                                     <input type="number" name="shipping_cost" x-model.number="shippingCost" step="0.01" min="0" class="v-control">
                                 </x-admin.field>
                             </div>
-                        </x-admin.panel>
 
-                        {{-- The money, once and only once everything that decides it is
-                             above: the basket, the coupon, and the shipping cost. It used
-                             to sit inside Products, which put a Shipping line and a Total
-                             on screen before the control that sets them, so the operator
-                             typed a cost and had to scroll back up to see the effect. --}}
-                        <x-admin.panel title="Order total">
-                            <div class="v-sumbox v-sumbox--lead">
-                                <dl class="v-facts">
+                            {{-- The money, closing the panel that holds the last input
+                                 feeding it. Every figure above it on the page: the basket,
+                                 the coupon, the shipping cost. --}}
+                            <div class="v-ledger">
+                                <dl>
                                     <dt>Subtotal</dt>
                                     <dd class="v-mono" x-text="subtotal.toFixed(2)"></dd>
                                     <dt>Shipping</dt>

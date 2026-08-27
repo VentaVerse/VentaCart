@@ -27,6 +27,11 @@
 .v-panel__body { padding: 14px var(--v-pad) var(--v-pad); }
 .v-panel__body--flush { padding: 12px 0 0; }
 
+/* Ordinary content sharing a flush body with an edge-to-edge table or ledger.
+   The flush body drops the inset so the rule can span the full width; fields
+   in the same panel still need it back. */
+.v-panelpad { padding: 0 var(--v-pad) var(--v-pad); }
+
 /* --- Buttons -------------------------------------------------- */
 
 .v-btn {
@@ -1380,10 +1385,6 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 /* Totals block pinned to the panel's right edge */
 .v-sumbox { margin-left: auto; width: min(300px, 100%); }
 
-/* Standalone, not a table footer. The auto margin exists to right-align the
-   figures under a wide table; in a panel of its own it strands them against
-   the edge with the rest of the panel empty. */
-.v-sumbox--lead { margin-left: 0; }
 
 .v-sumbox .v-facts dd { text-align: right; }
 

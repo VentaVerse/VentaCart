@@ -31,9 +31,8 @@ class OrderEntryOneStepTest extends TestCase
         'Products',          // needs the customer; drives everything below
         'Shipping address',  // where it goes
         'Billing address',   // independent, kept beside the other address
-        'Shipping',          // needs products AND address
-        'Order total',       // needs the basket, the coupon AND the shipping cost
-        'Payment and status',// how they settle what the line above came to
+        'Shipping',          // needs products AND address; closes with the ledger
+        'Payment and status',// how they settle what the ledger came to
     ];
 
     /**
@@ -108,6 +107,28 @@ class OrderEntryOneStepTest extends TestCase
 
         $this->assertPanelsInDependencyOrder($html);
         $this->assertStringNotContainsString('v-tabs', $html);
+    }
+
+    public function test_the_money_closes_the_panel_holding_its_last_input(): void
+    {
+        // The ledger is a FOOTER RULE, the same component and position the
+        // order view uses under its items table. It was briefly a panel of its
+        // own titled "Order total", which put a 300px column of figures alone
+        // in a full width card and read as an empty box.
+        $html = $this->actingAs(User::factory()->create())
+            ->get(route('admin.orders.create'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('v-ledger', $html);
+        $this->assertStringNotContainsString('Order total', $html);
+
+        // It must sit AFTER the shipping cost input that completes it.
+        $this->assertGreaterThan(
+            strpos($html, 'name="shipping_cost"'),
+            strpos($html, 'v-ledger'),
+            'The ledger renders before the shipping cost that feeds it.'
+        );
     }
 
     public function test_the_shipping_control_explains_itself_with_an_empty_basket(): void
