@@ -113,7 +113,9 @@
                                     <td>
                                         <span class="v-namerow">
                                             @if ($item->image)
-                                                <img src="{{ storage_url($item->image) }}" alt="" class="v-thumb">
+                                                <img src="{{ thumb_url($item->image) }}" alt="" class="v-thumb" loading="lazy" decoding="async" width="40" height="40">
+                                            @else
+                                                <span class="v-thumb v-thumb--blank"><x-admin.icon name="products" /></span>
                                             @endif
                                             <span>
                                                 {{ $item->name }}

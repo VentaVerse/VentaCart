@@ -8,6 +8,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\ShippingCourier;
 use Illuminate\Http\Request;
 use App\Services\OrderStatusChanger;
@@ -218,7 +219,7 @@ class OrderController extends Controller
 
         $now = now();
         $existingItems = $order->products->map(function ($item) use ($customerGroupId, $now) {
-            $image = $item->image ? storage_url($item->image) : null;
+            $image = $item->image ? thumb_url($item->image) : null;
             $groupPrice = null;
 
             if ($customerGroupId && $item->product) {
@@ -507,6 +508,10 @@ class OrderController extends Controller
 
             if ($product->has_variants) {
                 foreach ($product->variants as $variant) {
+                    // The row IS the colourway, so it wears the colourway's
+                    // photo. Only a variant with none of its own falls back to
+                    // the parent picture.
+                    $variantImage = $variant->image ? storage_url($variant->image) : $image;
                     $basePrice = (float) $variant->price;
 
                     // Resolve via CartService (handles specials + date + quantity + group)
@@ -526,7 +531,7 @@ class OrderController extends Controller
                         'group_price' => $resolvedPrice,
                         'group_price_mode' => $resolvedPrice < $basePrice ? ($displayMode ?? 'override') : 'regular',
                         'stock' => $variant->quantity,
-                        'image' => $image,
+                        'image' => $variantImage,
                     ];
                 }
             } else {
@@ -789,8 +794,12 @@ class OrderController extends Controller
 
         $items = $request->input('items', []);
 
-        // One lookup for the whole basket instead of a Product::find per line.
+        // One lookup per table for the whole basket, never a find per line.
+        // The variant's own photo wins where there is one: the snapshot has to
+        // remember the colourway that was actually sold.
         $images = Product::whereIn('id', collect($items)->pluck('product_id')->filter()->unique())
+            ->pluck('image', 'id');
+        $variantImages = ProductVariant::whereIn('id', collect($items)->pluck('product_variant_id')->filter()->unique())
             ->pluck('image', 'id');
 
         foreach ($items as $item) {
@@ -811,7 +820,8 @@ class OrderController extends Controller
                 'quantity' => $qty,
                 'total' => $price * $qty,
                 'is_custom' => !empty($item['is_custom']),
-                'image' => $images[$item['product_id'] ?? null] ?? null,
+                'image' => ($variantImages[$item['product_variant_id'] ?? null] ?? null)
+                    ?: ($images[$item['product_id'] ?? null] ?? null),
             ]);
         }
     }

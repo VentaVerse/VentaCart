@@ -1341,6 +1341,11 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 }
 .v-combo__opt:hover { background: var(--v-hover); }
 .v-combo__opt + .v-combo__opt { border-top: 1px solid var(--v-line-2); }
+/* A result that carries a picture: the thumb leads, the text column takes
+   the rest. min-width:0 so a long product name ellipsizes instead of
+   forcing the menu wider than the field it hangs from. */
+.v-combo__opt--media { display: flex; align-items: center; gap: 10px; }
+.v-combo__body { flex: 1; min-width: 0; }
 .v-combo__main { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .v-combo__meta { margin-top: 2px; font-size: 12px; color: var(--v-ink-3); display: flex; gap: 10px; flex-wrap: wrap; }
 

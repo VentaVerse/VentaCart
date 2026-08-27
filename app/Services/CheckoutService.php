@@ -277,7 +277,12 @@ class CheckoutService
                     'product_variant_id' => $item->product_variant_id,
                     'name' => $item->name,
                     'sku' => $item->sku,
-                    'image' => $item->product?->image,
+                    // The variant's OWN photo when it has one. A colourway is
+                    // what the buyer chose and what the packer pulls off the
+                    // shelf, so the line has to carry that picture and not the
+                    // parent's. Falls back to the product for a variant with no
+                    // photo of its own, and for a product with no variants.
+                    'image' => $item->productVariant?->image ?: $item->product?->image,
                     'variant_label' => $item->variant_label,
                     'price' => $item->price,
                     'quantity' => $item->quantity,

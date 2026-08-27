@@ -402,16 +402,28 @@
                                             placeholder="Search products by name or SKU" autocomplete="off" aria-label="Search products" class="v-control">
                                         <div x-show="productDropdownOpen && productResults.length > 0" x-cloak class="v-combo__menu">
                                             <template x-for="p in productResults" :key="(p.product_id || '') + '-' + (p.product_variant_id || '')">
-                                                <button type="button" class="v-combo__opt" @click="addProduct(p)">
-                                                    <span class="v-combo__main">
-                                                        <strong x-text="p.name + (p.variant_label ? ' (' + p.variant_label + ')' : '')"></strong>
-                                                        <span x-show="p.stock <= 0" class="v-badge v-badge--bad">Out of stock</span>
-                                                        <span x-show="p.stock > 0 && p.stock <= 5" class="v-badge v-badge--warn" x-text="p.stock + ' left'"></span>
-                                                    </span>
-                                                    <span class="v-combo__meta">
-                                                        <span x-show="p.sku" x-text="'SKU ' + p.sku"></span>
-                                                        <span x-text="'₱' + parseFloat(p.price).toFixed(2)"></span>
-                                                        <span x-text="'Stock ' + (p.stock ?? 0)"></span>
+                                                {{-- The photo leads the row because the row is often a
+                                                     colourway: four cable lengths read as four near
+                                                     identical lines of text, and the picture is the only
+                                                     thing that tells them apart at a glance. --}}
+                                                <button type="button" class="v-combo__opt v-combo__opt--media" @click="addProduct(p)">
+                                                    <template x-if="p.image">
+                                                        <img :src="p.image" alt="" class="v-thumb v-thumb--sm" loading="lazy" decoding="async" width="28" height="28">
+                                                    </template>
+                                                    <template x-if="!p.image">
+                                                        <span class="v-thumb v-thumb--sm v-thumb--blank"><x-admin.icon name="products" /></span>
+                                                    </template>
+                                                    <span class="v-combo__body">
+                                                        <span class="v-combo__main">
+                                                            <strong x-text="p.name + (p.variant_label ? ' (' + p.variant_label + ')' : '')"></strong>
+                                                            <span x-show="p.stock <= 0" class="v-badge v-badge--bad">Out of stock</span>
+                                                            <span x-show="p.stock > 0 && p.stock <= 5" class="v-badge v-badge--warn" x-text="p.stock + ' left'"></span>
+                                                        </span>
+                                                        <span class="v-combo__meta">
+                                                            <span x-show="p.sku" x-text="'SKU ' + p.sku"></span>
+                                                            <span x-text="'₱' + parseFloat(p.price).toFixed(2)"></span>
+                                                            <span x-text="'Stock ' + (p.stock ?? 0)"></span>
+                                                        </span>
                                                     </span>
                                                 </button>
                                             </template>
@@ -558,15 +570,20 @@
     @php
         $formItems = $existingItems ?? [];
         if (old('items')) {
-            $formItems = collect(old('items'))->map(function ($i) {
-                $image = null;
+            // One lookup per table for the whole basket, never a find per row.
+            // The variant's own photo wins: a rejected save must come back
+            // showing the colourway the merchant actually picked.
+            $oldRows = collect(old('items'));
+            $productPhotos = \App\Models\Product::whereIn('id', $oldRows->pluck('product_id')->filter()->unique())
+                ->pluck('image', 'id');
+            $variantPhotos = \App\Models\ProductVariant::whereIn('id', $oldRows->pluck('product_variant_id')->filter()->unique())
+                ->pluck('image', 'id');
+
+            $formItems = $oldRows->map(function ($i) use ($productPhotos, $variantPhotos) {
+                $photo = ($variantPhotos[$i['product_variant_id'] ?? null] ?? null)
+                    ?: ($productPhotos[$i['product_id'] ?? null] ?? null);
+                $image = $photo ? thumb_url($photo) : null;
                 $productId = $i['product_id'] ?? null;
-                if ($productId) {
-                    $product = \App\Models\Product::find($productId);
-                    if ($product?->image) {
-                        $image = storage_url($product->image);
-                    }
-                }
                 return [
                     'product_id' => $productId ?? '',
                     'product_variant_id' => $i['product_variant_id'] ?? '',

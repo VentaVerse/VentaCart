@@ -329,7 +329,9 @@ class ProductHardDeleteTest extends TestCase
             ->assertSee('Tube Screamer TS-808')
             ->assertSee('HIST-1')
             ->assertSee('Green')
-            ->assertSee('catalog/hist.jpg');
+            // The line's OWN snapshot image, served as its thumbnail: the
+            // product is gone, so this path is all that is left of the picture.
+            ->assertSee('catalog/hist_thumb.jpg');
     }
 
     // ------------------------------------------------------------ the cascade
