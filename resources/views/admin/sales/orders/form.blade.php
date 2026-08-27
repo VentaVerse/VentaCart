@@ -34,17 +34,8 @@
                     </div>
                 @endif
 
-                <div x-data="{ tab: @js(request('tab', 'details')),
-                        pick(t) { this.tab = t; const u = new URL(window.location); u.searchParams.set('tab', t); history.replaceState(null, '', u); } }">
-                    <div class="v-tabs" role="tablist">
-                        <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'details' ? 'true' : 'false'" @click="pick('details')">Details</button>
-                        <button type="button" class="v-tab" role="tab" :aria-selected="tab === 'products' ? 'true' : 'false'" @click="pick('products')">
-                            Products<span x-show="items.length > 0" x-text="' (' + items.length + ')'"></span>
-                        </button>
-                    </div>
-
-                    {{-- ===================== DETAILS TAB ===================== --}}
-                    <div x-show="tab === 'details'" class="v-settle">
+                <div>
+                    <div class="v-settle">
 
                         <x-admin.panel title="Customer">
                             <div class="v-settle">
@@ -108,6 +99,168 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </x-admin.panel>
+
+                        {{-- Products sit here, directly under the customer whose group
+                             prices them, and ABOVE the shipping address and method that
+                             are quoted FROM them. They used to live on a second tab, so
+                             the page taught a sequence it could not honour: you reached
+                             the shipping method and found an empty control, with the
+                             thing that fills it on a tab you had not opened. --}}
+                        <x-admin.panel title="Products">
+                            <div class="v-settle">
+                                <div x-show="!customerId && !isNewCustomer" class="v-notice">
+                                    <p class="v-notice__text">Select or create a customer before adding products.</p>
+                                </div>
+
+                                <div x-show="customerId || isNewCustomer" class="v-inline">
+                                    <div class="v-combo">
+                                        <input type="text" x-model="productSearch" @input.debounce.300ms="searchProducts()" @focus="productDropdownOpen = true" @click.away="productDropdownOpen = false"
+                                            placeholder="Search products by name or SKU" autocomplete="off" aria-label="Search products" class="v-control">
+                                        <div x-show="productDropdownOpen && productResults.length > 0" x-cloak class="v-combo__menu">
+                                            <template x-for="p in productResults" :key="(p.product_id || '') + '-' + (p.product_variant_id || '')">
+                                                {{-- The photo leads the row because the row is often a
+                                                     colourway: four cable lengths read as four near
+                                                     identical lines of text, and the picture is the only
+                                                     thing that tells them apart at a glance. --}}
+                                                <button type="button" class="v-combo__opt v-combo__opt--media" @click="addProduct(p)">
+                                                    <template x-if="p.image">
+                                                        <img :src="p.image" alt="" class="v-thumb v-thumb--sm" loading="lazy" decoding="async" width="28" height="28">
+                                                    </template>
+                                                    <template x-if="!p.image">
+                                                        <span class="v-thumb v-thumb--sm v-thumb--blank"><x-admin.icon name="products" /></span>
+                                                    </template>
+                                                    <span class="v-combo__body">
+                                                        <span class="v-combo__main">
+                                                            <strong x-text="p.name + (p.variant_label ? ' (' + p.variant_label + ')' : '')"></strong>
+                                                            <span x-show="p.stock <= 0" class="v-badge v-badge--bad">Out of stock</span>
+                                                            <span x-show="p.stock > 0 && p.stock <= 5" class="v-badge v-badge--warn" x-text="p.stock + ' left'"></span>
+                                                        </span>
+                                                        <span class="v-combo__meta">
+                                                            <span x-show="p.sku" x-text="'SKU ' + p.sku"></span>
+                                                            <span x-text="'₱' + parseFloat(p.price).toFixed(2)"></span>
+                                                            <span x-text="'Stock ' + (p.stock ?? 0)"></span>
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="v-btn v-btn--secondary" @click="addCustomItem()">Add custom item</button>
+                                </div>
+
+                                <div x-show="items.length === 0" class="v-empty">
+                                    <p class="v-empty__title">No items yet</p>
+                                    <p class="v-empty__line">Search the catalog above or add a custom line.</p>
+                                </div>
+
+                                <div x-show="items.length > 0" class="v-tablewrap">
+                                    <table class="v-table">
+                                        <thead>
+                                            <tr>
+                                                <th colspan="2">Product</th>
+                                                <th>SKU</th>
+                                                <th>Price</th>
+                                                <th>Customer price</th>
+                                                <th>Qty</th>
+                                                <th class="v-cell-num">Total</th>
+                                                <th class="v-cell-act"><span class="v-sr">Actions</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="(item, iIndex) in items" :key="iIndex">
+                                                <tr>
+                                                    <td>
+                                                        <template x-if="item.image">
+                                                            <img :src="item.image" :alt="item.name" class="v-thumb">
+                                                        </template>
+                                                        <template x-if="!item.image">
+                                                            <span class="v-thumb v-thumb--blank"><x-admin.icon name="products" /></span>
+                                                        </template>
+                                                    </td>
+                                                    <td>
+                                                        <template x-if="item.is_custom">
+                                                            <input type="text" x-model="item.name" :name="'items['+iIndex+'][name]'" placeholder="Product name" class="v-control v-control--sm">
+                                                        </template>
+                                                        <template x-if="!item.is_custom">
+                                                            <span>
+                                                                <span x-text="item.name"></span>
+                                                                <span x-show="item.variant_label" class="v-subnote v-tone-act v-block" x-text="item.variant_label"></span>
+                                                                <input type="hidden" :name="'items['+iIndex+'][name]'" :value="item.name">
+                                                            </span>
+                                                        </template>
+                                                        <input type="hidden" :name="'items['+iIndex+'][product_id]'" :value="item.product_id || ''">
+                                                        <input type="hidden" :name="'items['+iIndex+'][product_variant_id]'" :value="item.product_variant_id || ''">
+                                                        <input type="hidden" :name="'items['+iIndex+'][variant_label]'" :value="item.variant_label || ''">
+                                                        <input type="hidden" :name="'items['+iIndex+'][is_custom]'" :value="item.is_custom ? '1' : '0'">
+                                                    </td>
+                                                    <td>
+                                                        <input type="text" x-model="item.sku" :name="'items['+iIndex+'][sku]'" class="v-control v-control--sm v-w-rate" :readonly="!item.is_custom">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" x-model="item.price" :name="'items['+iIndex+'][price]'" step="0.01" min="0" @input.debounce.500ms="refreshMethods()" class="v-control v-control--sm v-w-rate">
+                                                    </td>
+                                                    <td>
+                                                        <template x-if="item.group_price_mode === 'sale'">
+                                                            <span class="v-mono">
+                                                                <span class="v-strike v-cell-quiet" x-text="parseFloat(item.base_price || 0).toFixed(2)"></span>
+                                                                <span class="v-tone-bad" x-text="parseFloat(item.group_price).toFixed(2)"></span>
+                                                            </span>
+                                                        </template>
+                                                        <template x-if="item.group_price_mode === 'override'">
+                                                            <span class="v-mono v-tone-act" x-text="parseFloat(item.group_price).toFixed(2)"></span>
+                                                        </template>
+                                                        <template x-if="!item.group_price_mode || item.group_price_mode === 'regular'">
+                                                            <span class="v-mono v-cell-quiet" x-text="parseFloat(item.group_price || item.base_price || 0).toFixed(2)"></span>
+                                                        </template>
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" x-model.number="item.quantity" :name="'items['+iIndex+'][quantity]'" min="1" @input.debounce.500ms="refreshMethods()"
+                                                            class="v-control v-control--sm v-w-sort" :class="!item.is_custom && item.stock !== undefined && item.quantity > item.stock ? 'v-control--bad' : ''">
+                                                        <template x-if="!item.is_custom && item.stock !== undefined && item.quantity > item.stock">
+                                                            <span class="v-subnote v-tone-bad v-block" x-text="'Only ' + item.stock + ' in stock'"></span>
+                                                        </template>
+                                                    </td>
+                                                    <td class="v-cell-num v-mono" x-text="(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)"></td>
+                                                    <td class="v-cell-act">
+                                                        <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())">Remove</button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {{-- Coupon entry renders only while the coupons extension
+                                     is enabled (its route carries the apply endpoint). An
+                                     existing order's stored discount still shows in the
+                                     summary below either way. --}}
+                                @if (Route::has('admin.orders.validate-coupon'))
+                                <div class="v-well">
+                                    <span class="v-field__label">Coupon code</span>
+                                    <input type="hidden" name="coupon_code" :value="couponCode">
+                                    <input type="hidden" name="coupon_discount" :value="couponDiscount">
+                                    <template x-if="!couponCode">
+                                        <span class="v-block">
+                                            <span class="v-inline">
+                                                <input type="text" x-model="couponInput" placeholder="Enter coupon code" @keydown.enter.prevent="applyCoupon()" aria-label="Coupon code" class="v-control">
+                                                <button type="button" class="v-btn v-btn--secondary" @click="applyCoupon()" :disabled="couponLoading || !couponInput.trim()">
+                                                    <span x-text="couponLoading ? '…' : 'Apply'"></span>
+                                                </button>
+                                            </span>
+                                            <span x-show="couponError" class="v-subnote v-tone-bad v-block" x-text="couponError"></span>
+                                        </span>
+                                    </template>
+                                    <template x-if="couponCode">
+                                        <span class="v-between">
+                                            <span class="v-mono"><strong x-text="couponCode"></strong> <span class="v-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></span></span>
+                                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="removeCoupon()">Remove</button>
+                                        </span>
+                                    </template>
+                                </div>
+                                @endif
+
                             </div>
                         </x-admin.panel>
 
@@ -333,6 +486,10 @@
                                         <option value="custom">Other (type below)</option>
                                     </select>
                                     <input x-show="shippingMethod === 'custom'" type="text" x-model="shippingMethodCustom" placeholder="Custom shipping method" class="v-control v-gap">
+                                    {{-- The rate is quoted FROM the basket, so with nothing in it
+                                         the control has no answer to give. It used to say nothing at
+                                         all, which read as a broken dropdown. --}}
+                                    <span x-show="!loadingShipping && items.length === 0" class="v-subnote">Quoted once the order has products.</span>
                                     <span x-show="!loadingShipping && availableShippingMethods.length === 0 && items.length > 0 && shipping.country_id" class="v-subnote v-tone-warn">
                                         No shipping methods reach this address. Use Other to set one manually.
                                     </span>
@@ -340,6 +497,30 @@
                                 <x-admin.field name="shipping_cost" label="Shipping cost">
                                     <input type="number" name="shipping_cost" x-model.number="shippingCost" step="0.01" min="0" class="v-control">
                                 </x-admin.field>
+                            </div>
+                        </x-admin.panel>
+
+                        {{-- The money, once and only once everything that decides it is
+                             above: the basket, the coupon, and the shipping cost. It used
+                             to sit inside Products, which put a Shipping line and a Total
+                             on screen before the control that sets them, so the operator
+                             typed a cost and had to scroll back up to see the effect. --}}
+                        <x-admin.panel title="Order total">
+                            <div class="v-sumbox v-sumbox--lead">
+                                <dl class="v-facts">
+                                    <dt>Subtotal</dt>
+                                    <dd class="v-mono" x-text="subtotal.toFixed(2)"></dd>
+                                    <dt>Shipping</dt>
+                                    <dd class="v-mono" x-text="(shippingCost || 0).toFixed(2)"></dd>
+                                    <template x-if="couponDiscount > 0">
+                                        <dt>Coupon (<span x-text="couponCode"></span>)</dt>
+                                    </template>
+                                    <template x-if="couponDiscount > 0">
+                                        <dd class="v-mono v-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></dd>
+                                    </template>
+                                    <dt class="v-facts__sum">Total</dt>
+                                    <dd class="v-facts__sum v-mono" x-text="orderTotal.toFixed(2)"></dd>
+                                </dl>
                             </div>
                         </x-admin.panel>
 
@@ -383,181 +564,6 @@
                                         <input type="checkbox" name="notify_admin" value="1">
                                         <span>Send notification to admin</span>
                                     </label>
-                                </div>
-                            </div>
-                        </x-admin.panel>
-                    </div>
-
-                    {{-- ===================== PRODUCTS TAB ===================== --}}
-                    <div x-show="tab === 'products'" x-cloak class="v-settle">
-                        <x-admin.panel title="Products">
-                            <div class="v-settle">
-                                <div x-show="!customerId && !isNewCustomer" class="v-notice">
-                                    <p class="v-notice__text">Select or create a customer in the Details tab before adding products.</p>
-                                </div>
-
-                                <div x-show="customerId || isNewCustomer" class="v-inline">
-                                    <div class="v-combo">
-                                        <input type="text" x-model="productSearch" @input.debounce.300ms="searchProducts()" @focus="productDropdownOpen = true" @click.away="productDropdownOpen = false"
-                                            placeholder="Search products by name or SKU" autocomplete="off" aria-label="Search products" class="v-control">
-                                        <div x-show="productDropdownOpen && productResults.length > 0" x-cloak class="v-combo__menu">
-                                            <template x-for="p in productResults" :key="(p.product_id || '') + '-' + (p.product_variant_id || '')">
-                                                {{-- The photo leads the row because the row is often a
-                                                     colourway: four cable lengths read as four near
-                                                     identical lines of text, and the picture is the only
-                                                     thing that tells them apart at a glance. --}}
-                                                <button type="button" class="v-combo__opt v-combo__opt--media" @click="addProduct(p)">
-                                                    <template x-if="p.image">
-                                                        <img :src="p.image" alt="" class="v-thumb v-thumb--sm" loading="lazy" decoding="async" width="28" height="28">
-                                                    </template>
-                                                    <template x-if="!p.image">
-                                                        <span class="v-thumb v-thumb--sm v-thumb--blank"><x-admin.icon name="products" /></span>
-                                                    </template>
-                                                    <span class="v-combo__body">
-                                                        <span class="v-combo__main">
-                                                            <strong x-text="p.name + (p.variant_label ? ' (' + p.variant_label + ')' : '')"></strong>
-                                                            <span x-show="p.stock <= 0" class="v-badge v-badge--bad">Out of stock</span>
-                                                            <span x-show="p.stock > 0 && p.stock <= 5" class="v-badge v-badge--warn" x-text="p.stock + ' left'"></span>
-                                                        </span>
-                                                        <span class="v-combo__meta">
-                                                            <span x-show="p.sku" x-text="'SKU ' + p.sku"></span>
-                                                            <span x-text="'₱' + parseFloat(p.price).toFixed(2)"></span>
-                                                            <span x-text="'Stock ' + (p.stock ?? 0)"></span>
-                                                        </span>
-                                                    </span>
-                                                </button>
-                                            </template>
-                                        </div>
-                                    </div>
-                                    <button type="button" class="v-btn v-btn--secondary" @click="addCustomItem()">Add custom item</button>
-                                </div>
-
-                                <div x-show="items.length === 0" class="v-empty">
-                                    <p class="v-empty__title">No items yet</p>
-                                    <p class="v-empty__line">Search the catalog above or add a custom line.</p>
-                                </div>
-
-                                <div x-show="items.length > 0" class="v-tablewrap">
-                                    <table class="v-table">
-                                        <thead>
-                                            <tr>
-                                                <th colspan="2">Product</th>
-                                                <th>SKU</th>
-                                                <th>Price</th>
-                                                <th>Customer price</th>
-                                                <th>Qty</th>
-                                                <th class="v-cell-num">Total</th>
-                                                <th class="v-cell-act"><span class="v-sr">Actions</span></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <template x-for="(item, iIndex) in items" :key="iIndex">
-                                                <tr>
-                                                    <td>
-                                                        <template x-if="item.image">
-                                                            <img :src="item.image" :alt="item.name" class="v-thumb">
-                                                        </template>
-                                                        <template x-if="!item.image">
-                                                            <span class="v-thumb v-thumb--blank"><x-admin.icon name="products" /></span>
-                                                        </template>
-                                                    </td>
-                                                    <td>
-                                                        <template x-if="item.is_custom">
-                                                            <input type="text" x-model="item.name" :name="'items['+iIndex+'][name]'" placeholder="Product name" class="v-control v-control--sm">
-                                                        </template>
-                                                        <template x-if="!item.is_custom">
-                                                            <span>
-                                                                <span x-text="item.name"></span>
-                                                                <span x-show="item.variant_label" class="v-subnote v-tone-act v-block" x-text="item.variant_label"></span>
-                                                                <input type="hidden" :name="'items['+iIndex+'][name]'" :value="item.name">
-                                                            </span>
-                                                        </template>
-                                                        <input type="hidden" :name="'items['+iIndex+'][product_id]'" :value="item.product_id || ''">
-                                                        <input type="hidden" :name="'items['+iIndex+'][product_variant_id]'" :value="item.product_variant_id || ''">
-                                                        <input type="hidden" :name="'items['+iIndex+'][variant_label]'" :value="item.variant_label || ''">
-                                                        <input type="hidden" :name="'items['+iIndex+'][is_custom]'" :value="item.is_custom ? '1' : '0'">
-                                                    </td>
-                                                    <td>
-                                                        <input type="text" x-model="item.sku" :name="'items['+iIndex+'][sku]'" class="v-control v-control--sm v-w-rate" :readonly="!item.is_custom">
-                                                    </td>
-                                                    <td>
-                                                        <input type="number" x-model="item.price" :name="'items['+iIndex+'][price]'" step="0.01" min="0" @input.debounce.500ms="refreshMethods()" class="v-control v-control--sm v-w-rate">
-                                                    </td>
-                                                    <td>
-                                                        <template x-if="item.group_price_mode === 'sale'">
-                                                            <span class="v-mono">
-                                                                <span class="v-strike v-cell-quiet" x-text="parseFloat(item.base_price || 0).toFixed(2)"></span>
-                                                                <span class="v-tone-bad" x-text="parseFloat(item.group_price).toFixed(2)"></span>
-                                                            </span>
-                                                        </template>
-                                                        <template x-if="item.group_price_mode === 'override'">
-                                                            <span class="v-mono v-tone-act" x-text="parseFloat(item.group_price).toFixed(2)"></span>
-                                                        </template>
-                                                        <template x-if="!item.group_price_mode || item.group_price_mode === 'regular'">
-                                                            <span class="v-mono v-cell-quiet" x-text="parseFloat(item.group_price || item.base_price || 0).toFixed(2)"></span>
-                                                        </template>
-                                                    </td>
-                                                    <td>
-                                                        <input type="number" x-model.number="item.quantity" :name="'items['+iIndex+'][quantity]'" min="1" @input.debounce.500ms="refreshMethods()"
-                                                            class="v-control v-control--sm v-w-sort" :class="!item.is_custom && item.stock !== undefined && item.quantity > item.stock ? 'v-control--bad' : ''">
-                                                        <template x-if="!item.is_custom && item.stock !== undefined && item.quantity > item.stock">
-                                                            <span class="v-subnote v-tone-bad v-block" x-text="'Only ' + item.stock + ' in stock'"></span>
-                                                        </template>
-                                                    </td>
-                                                    <td class="v-cell-num v-mono" x-text="(parseFloat(item.price || 0) * (item.quantity || 1)).toFixed(2)"></td>
-                                                    <td class="v-cell-act">
-                                                        <button type="button" class="v-btn v-btn--danger v-btn--sm" @click="items.splice(iIndex, 1); $nextTick(() => refreshMethods())">Remove</button>
-                                                    </td>
-                                                </tr>
-                                            </template>
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {{-- Coupon entry renders only while the coupons extension
-                                     is enabled (its route carries the apply endpoint). An
-                                     existing order's stored discount still shows in the
-                                     summary below either way. --}}
-                                @if (Route::has('admin.orders.validate-coupon'))
-                                <div class="v-well">
-                                    <span class="v-field__label">Coupon code</span>
-                                    <input type="hidden" name="coupon_code" :value="couponCode">
-                                    <input type="hidden" name="coupon_discount" :value="couponDiscount">
-                                    <template x-if="!couponCode">
-                                        <span class="v-block">
-                                            <span class="v-inline">
-                                                <input type="text" x-model="couponInput" placeholder="Enter coupon code" @keydown.enter.prevent="applyCoupon()" aria-label="Coupon code" class="v-control">
-                                                <button type="button" class="v-btn v-btn--secondary" @click="applyCoupon()" :disabled="couponLoading || !couponInput.trim()">
-                                                    <span x-text="couponLoading ? '…' : 'Apply'"></span>
-                                                </button>
-                                            </span>
-                                            <span x-show="couponError" class="v-subnote v-tone-bad v-block" x-text="couponError"></span>
-                                        </span>
-                                    </template>
-                                    <template x-if="couponCode">
-                                        <span class="v-between">
-                                            <span class="v-mono"><strong x-text="couponCode"></strong> <span class="v-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></span></span>
-                                            <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="removeCoupon()">Remove</button>
-                                        </span>
-                                    </template>
-                                </div>
-                                @endif
-
-                                <div class="v-sumbox">
-                                    <dl class="v-facts">
-                                        <dt>Subtotal</dt>
-                                        <dd class="v-mono" x-text="subtotal.toFixed(2)"></dd>
-                                        <dt>Shipping</dt>
-                                        <dd class="v-mono" x-text="(shippingCost || 0).toFixed(2)"></dd>
-                                        <template x-if="couponDiscount > 0">
-                                            <dt>Coupon (<span x-text="couponCode"></span>)</dt>
-                                        </template>
-                                        <template x-if="couponDiscount > 0">
-                                            <dd class="v-mono v-tone-act">-<span x-text="couponDiscount.toFixed(2)"></span></dd>
-                                        </template>
-                                        <dt class="v-facts__sum">Total</dt>
-                                        <dd class="v-facts__sum v-mono" x-text="orderTotal.toFixed(2)"></dd>
-                                    </dl>
                                 </div>
                             </div>
                         </x-admin.panel>
