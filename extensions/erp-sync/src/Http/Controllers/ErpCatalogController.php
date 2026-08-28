@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\OrderStatus;
+use App\Models\ShippingCourier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -76,9 +77,47 @@ class ErpCatalogController extends Controller
                     // field can now only be 'decrement' or null.
                     'stock_action' => $status->deducts_stock ? 'decrement' : null,
                     'sort_order' => $status->sort_order,
+                    // Which fulfilment queue the status belongs to (unpaid,
+                    // to_pack, to_handover, shipping, failed, lost_damaged,
+                    // delivered, cancelled), or null when unplaced or when the
+                    // courier-fulfillment extension is not installed. The ERP
+                    // mirrors this store's own queue from it rather than
+                    // guessing from status names.
+                    'placement' => $this->placementFor((int) $status->id),
                 ];
             });
 
         return $this->logAndRespond($request, $statuses);
+    }
+
+    /**
+     * The store's couriers a parcel can be handed to by hand: the same list
+     * the admin's "Record shipment" form offers. ?active_only=1 drops the
+     * retired ones, which is what the ERP always asks for.
+     */
+    public function shippingCouriers(Request $request): JsonResponse
+    {
+        $query = ShippingCourier::query()->select(['id', 'name', 'tracking_url', 'is_active', 'sort_order']);
+
+        if ($request->filled('active_only')) {
+            $query->where('is_active', true);
+        }
+
+        $couriers = $query->orderBy('sort_order')->orderBy('name')->get()->map(fn ($c) => [
+            'id' => $c->id,
+            'name' => $c->name,
+            'tracking_url' => $c->tracking_url,
+            'is_active' => (bool) $c->is_active,
+        ]);
+
+        return $this->logAndRespond($request, ['data' => $couriers]);
+    }
+
+    /** The placement map lives in the courier-fulfillment extension; absent, every status is unplaced. */
+    private function placementFor(int $orderStatusId): ?string
+    {
+        $map = 'Extensions\\CourierFulfillment\\PlacementMap';
+
+        return class_exists($map) ? $map::placementFor($orderStatusId) : null;
     }
 }

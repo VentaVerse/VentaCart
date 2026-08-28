@@ -29,6 +29,14 @@ class ErpOrderController extends Controller
             $query->where('created_at', '>=', $request->input('since'));
         }
 
+        // What changed since the ERP last looked, bookings included: a
+        // booking made in this admin touches updated_at, so the ERP's
+        // minute-by-minute pull can ask for only those rows instead of
+        // re-reading the store.
+        if ($request->filled('updated_since')) {
+            $query->where('updated_at', '>=', $request->input('updated_since'));
+        }
+
         if ($request->filled('customer_email')) {
             $query->where('email', $request->input('customer_email'));
         }
@@ -49,7 +57,9 @@ class ErpOrderController extends Controller
                 'customer_email' => $order->email,
                 'total' => $order->total,
                 'item_count' => $order->item_count,
+                'courier' => $this->courierPayload($order),
                 'created_at' => $order->created_at?->toIso8601String(),
+                'updated_at' => $order->updated_at?->toIso8601String(),
             ];
         });
 
@@ -134,6 +144,7 @@ class ErpOrderController extends Controller
             'payment_reference' => $order->payment_reference,
             'shipping_method' => $order->shipping_method,
             'tracking_number' => $order->tracking_number,
+            'courier' => $this->courierPayload($order),
             'comment' => $order->comment,
             'courier_comment' => $order->courier_comment,
             'history' => $order->histories->map(function ($h) {
@@ -149,6 +160,39 @@ class ErpOrderController extends Controller
         ];
 
         return $this->logAndRespond($request, $data);
+    }
+
+    /**
+     * The courier booking on this order, as the ERP needs to read it.
+     *
+     * Three cases, told apart the way FulfillmentService tells them apart:
+     * an integrated booking carries a provider key; a shipment recorded by
+     * hand carries a courier from the store's own list and no provider; and
+     * an order nobody has booked carries neither. The columns come from the
+     * courier-fulfillment extension's migration and are simply null on an
+     * install without it, so this reads as "no booking" there too.
+     *
+     * @return array{provider: ?string, tracking_number: ?string, status: ?string, booked_at: ?string, manual: bool, manual_courier: ?string}
+     */
+    private function courierPayload(Order $order): array
+    {
+        $provider = $order->getAttribute('courier_provider');
+        $manual = $provider === null && $order->shipping_courier_id !== null;
+
+        return [
+            'provider' => $provider,
+            'tracking_number' => $manual
+                ? $order->tracking_number
+                : $order->getAttribute('courier_tracking_number'),
+            'status' => $order->getAttribute('courier_status'),
+            'booked_at' => ($at = $order->getAttribute('courier_booked_at'))
+                ? \Illuminate\Support\Carbon::parse($at)->toIso8601String()
+                : null,
+            'manual' => $manual,
+            'manual_courier' => $manual
+                ? ($order->shipping_courier_name ?: $order->shippingCourier?->name)
+                : null,
+        ];
     }
 
     public function updateStatus(Request $request, int $id): JsonResponse

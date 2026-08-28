@@ -5,8 +5,10 @@ namespace Extensions\CourierFulfillment\Http\Controllers;
 use App\Http\Controllers\Api\LogsApiCalls;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\ServiceabilityService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,18 +34,37 @@ class ErpFulfillmentController extends Controller
             return $this->logAndRespond($request, ['error' => 'Order not found'], 404);
         }
 
-        // Sensible defaults so the ERP can book with a minimal payload; any field
-        // may be overridden. buyer_payment left null => the courier derives it
-        // from whether the order is COD.
-        $opts = [
-            'courier'          => $request->input('courier', $this->defaultCourierKey()),
-            'service'          => $request->input('service', 'next_day'),
-            'parcel'           => $request->input('parcel', 'box'),
-            'buyer_payment'    => $request->input('buyer_payment'),
-            'shipping_payment' => $request->input('shipping_payment', 'net_off'),
-            // Bookings are uninsured by default; ERP may opt in explicitly.
-            'insure'           => $request->boolean('insure'),
-        ];
+        // Everything the admin queue's own booking form takes, with the same
+        // rules, so an ERP booking can say where the parcel leaves from and
+        // in which slot. A field the ERP leaves out is left out here too:
+        // each courier applies its own default (QuadX its configured service
+        // and parcel), and who pays defaults to the courier's first option,
+        // which for QuadX is cash on pickup. This used to fill next_day, box
+        // and net_off for every courier, QuadX's words sent to SPX.
+        $data = $request->validate([
+            'courier'           => ['nullable', 'string', 'max:32'],
+            'service'           => ['nullable', 'string', 'max:64'],
+            'parcel'            => ['nullable', 'string', 'max:64'],
+            'buyer_payment'     => ['nullable', 'in:cod,prepaid'],
+            'shipping_payment'  => ['nullable', 'string', 'max:32'],
+            'insure'            => ['sometimes', 'boolean'],
+            'length_cm'         => ['sometimes', 'nullable', 'numeric', 'min:0.01'],
+            'width_cm'          => ['sometimes', 'nullable', 'numeric', 'min:0.01'],
+            'height_cm'         => ['sometimes', 'nullable', 'numeric', 'min:0.01'],
+            'weight_kg'         => ['sometimes', 'nullable', 'numeric', 'min:0.01'],
+            'pickup_slot'       => ['sometimes', 'nullable', 'string'],
+            'pickup_address_id' => ['sometimes', 'nullable', 'integer', 'exists:courier_fulfillment_pickup_addresses,id'],
+        ]);
+
+        $opts = array_filter($data, fn ($v) => $v !== null && $v !== '');
+        $opts['courier'] = (string) ($opts['courier'] ?? $this->defaultCourierKey());
+        // Bookings are uninsured by default; the ERP opts in explicitly.
+        $opts['insure'] = $request->boolean('insure');
+
+        $courier = CourierManager::get($opts['courier']);
+        if ($courier && empty($opts['shipping_payment'])) {
+            $opts['shipping_payment'] = self::bookingDefaultsFor($courier)['shipping_payment'];
+        }
 
         $res = $service->book($order, $opts);
 
@@ -179,10 +200,19 @@ class ErpFulfillmentController extends Controller
 
         $verdicts = ServiceabilityService::forOrder($order);
 
+        // Each courier's answer carries its name, what a booking with it can
+        // choose, and what it chooses by default, so the ERP's booking form
+        // is this queue's own form and never has to know a courier itself.
+        $couriers = [];
+        foreach ($verdicts as $key => $verdict) {
+            $courier = CourierManager::get((string) $key);
+            $couriers[$key] = $verdict->toArray() + ($courier ? self::choicesFor($courier) : []);
+        }
+
         return $this->logAndRespond($request, [
             'success' => true,
             'order_id' => $order->id,
-            'couriers' => array_map(fn ($v) => $v->toArray(), $verdicts),
+            'couriers' => $couriers,
             'all_refused' => ServiceabilityService::allRefused($verdicts),
         ]);
     }
@@ -257,6 +287,141 @@ class ErpFulfillmentController extends Controller
             'courier' => $courier->getKey(),
             'slots' => $courier->getPickupSlots($order),
         ]);
+    }
+
+    /**
+     * Record a shipment with a courier this app does not integrate with:
+     * the admin queue's "Record shipment", from the ERP. Same service path,
+     * same refusals. order_status_id is optional here, unlike the admin
+     * form: absent, the order moves to the module's booked status, which
+     * is what the ERP expects and does not have the ids to say itself.
+     */
+    public function bookManual(Request $request, int $id, FulfillmentService $service): JsonResponse
+    {
+        $order = Order::find($id);
+        if (!$order) {
+            return $this->logAndRespond($request, ['error' => 'Order not found'], 404);
+        }
+
+        $data = $request->validate([
+            'shipping_courier_id' => ['nullable', 'integer'],
+            'tracking_number'     => ['nullable', 'string', 'max:190'],
+            'comment'             => ['nullable', 'string', 'max:500'],
+            'notify_customer'     => ['sometimes', 'boolean'],
+            'order_status_id'     => ['nullable', 'integer'],
+        ]);
+
+        $res = $service->bookManual($order, array_filter($data, fn ($v) => $v !== null && $v !== '') + [
+            'notify_customer' => $request->boolean('notify_customer'),
+        ]);
+
+        if (!($res['success'] ?? false)) {
+            return $this->logAndRespond($request, [
+                'error' => $res['error'] ?? 'Recording failed',
+                'code'  => $res['code'] ?? null,
+            ], 422);
+        }
+
+        return $this->logAndRespond($request, [
+            'success'      => true,
+            'order_id'     => $order->id,
+            'courier'      => [
+                'manual'          => true,
+                'manual_courier'  => $res['courier'] ?? null,
+                'tracking_number' => $res['tracking_number'] ?? null,
+            ],
+            'order_status' => $res['status'] ?? null,
+        ]);
+    }
+
+    /** The undo of bookManual, from the ERP. */
+    public function clearManual(Request $request, int $id, FulfillmentService $service): JsonResponse
+    {
+        $order = Order::find($id);
+        if (!$order) {
+            return $this->logAndRespond($request, ['error' => 'Order not found'], 404);
+        }
+
+        $res = $service->clearManual($order);
+
+        if (!($res['success'] ?? false)) {
+            return $this->logAndRespond($request, [
+                'error' => $res['error'] ?? 'Clearing failed',
+                'code'  => $res['code'] ?? null,
+            ], 422);
+        }
+
+        return $this->logAndRespond($request, [
+            'success'  => true,
+            'order_id' => $order->id,
+            'message'  => $res['message'] ?? 'Shipment cleared.',
+            'order_status' => $res['status'] ?? null,
+        ]);
+    }
+
+    /** Where a parcel can leave from, default first: the ERP's "Ships from". */
+    public function pickupAddresses(Request $request): JsonResponse
+    {
+        $addresses = PickupAddress::query()
+            ->orderByDesc('is_default')
+            ->orderBy('label')
+            ->get()
+            ->map(fn (PickupAddress $a) => [
+                'id' => $a->id,
+                'label' => $a->label,
+                'summary' => $a->summary(),
+                'contact_name' => $a->contact_name,
+                'contact_phone' => $a->contact_phone,
+                'address_1' => $a->address_1,
+                'barangay' => $a->barangay,
+                'district' => $a->district,
+                'city' => $a->city,
+                'state' => $a->state,
+                'postcode' => $a->postcode,
+                'is_default' => (bool) $a->is_default,
+            ]);
+
+        return $this->logAndRespond($request, ['data' => $addresses]);
+    }
+
+    /**
+     * What a booking with this courier can choose, and what it chooses when
+     * nothing is chosen.
+     *
+     * @return array{name: string, service_types: array, parcel_options: array, shipping_payment_options: array, defaults: array{service: ?string, parcel: ?string, shipping_payment: ?string}}
+     */
+    private static function choicesFor(CourierFulfillmentInterface $courier): array
+    {
+        return [
+            'name' => $courier->getName(),
+            'service_types' => $courier->getServiceTypes(),
+            'parcel_options' => $courier->getParcelOptions(),
+            'shipping_payment_options' => $courier->getShippingPaymentOptions(),
+            'defaults' => self::bookingDefaultsFor($courier),
+        ];
+    }
+
+    /**
+     * A courier's own defaults when it states them (QuadX does), otherwise
+     * the first of each of its lists, which is what its select opens on.
+     *
+     * @return array{service: ?string, parcel: ?string, shipping_payment: ?string}
+     */
+    private static function bookingDefaultsFor(CourierFulfillmentInterface $courier): array
+    {
+        $first = fn (array $options) => $options !== [] ? (string) ($options[0]['value'] ?? '') : null;
+
+        $defaults = [
+            'service' => $first($courier->getServiceTypes()),
+            'parcel' => $first($courier->getParcelOptions()),
+            'shipping_payment' => $first($courier->getShippingPaymentOptions()),
+        ];
+
+        if (method_exists($courier, 'bookingDefaults')) {
+            $defaults = array_merge($defaults, array_filter($courier->bookingDefaults(), fn ($v) => $v !== null && $v !== ''));
+        }
+
+        return $defaults;
     }
 
     private function defaultCourierKey(): ?string

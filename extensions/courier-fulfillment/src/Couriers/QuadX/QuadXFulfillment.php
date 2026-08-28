@@ -96,6 +96,24 @@ class QuadXFulfillment implements CourierFulfillmentInterface
      * the fee" (COD shipping on top of item value) is a separate mechanism
      * (a shipping line item added to the total) and isn't offered here yet.
      */
+    /**
+     * What a booking chooses when the caller chose nothing: the store's own
+     * default service and parcel (the same settings serviceFor() and
+     * parcelFor() fall back to), and cash on pickup for who pays, which is
+     * how the shop actually settles with the rider. The ERP's booking form
+     * opens on these; its serviceability call reads them from here.
+     *
+     * @return array{service: string, parcel: string, shipping_payment: string}
+     */
+    public function bookingDefaults(): array
+    {
+        return [
+            'service' => self::serviceFor([]),
+            'parcel' => self::parcelFor([]),
+            'shipping_payment' => 'cash',
+        ];
+    }
+
     public function getShippingPaymentOptions(): array
     {
         return [

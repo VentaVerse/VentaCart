@@ -39,4 +39,19 @@ Route::prefix('api/v1')->middleware('erp.auth')->group(function () {
     Route::get('/orders/{id}/pickup-slots', [ErpFulfillmentController::class, 'pickupSlots'])
         ->whereNumber('id')
         ->name('erp.orders.pickup-slots');
+
+    // The third way a parcel leaves, from the ERP: a courier this app does
+    // not integrate with, recorded by hand. Same FulfillmentService paths
+    // the admin queue's Record shipment and its undo run.
+    Route::post('/orders/{id}/book-manual', [ErpFulfillmentController::class, 'bookManual'])
+        ->whereNumber('id')
+        ->name('erp.orders.book-manual');
+    Route::post('/orders/{id}/clear-manual', [ErpFulfillmentController::class, 'clearManual'])
+        ->whereNumber('id')
+        ->name('erp.orders.clear-manual');
+
+    // Where a parcel can leave from, so the ERP's booking form can offer
+    // the same "Ships from" choice the admin queue's does.
+    Route::get('/pickup-addresses', [ErpFulfillmentController::class, 'pickupAddresses'])
+        ->name('erp.pickup-addresses');
 });

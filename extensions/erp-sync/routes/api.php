@@ -13,6 +13,7 @@ Route::prefix('api/v1')->middleware(['api', 'erp.auth'])->group(function () {
     Route::get('/categories', [ErpCatalogController::class, 'categories']);
     Route::get('/brands', [ErpCatalogController::class, 'brands']);
     Route::get('/order-statuses', [ErpCatalogController::class, 'orderStatuses']);
+    Route::get('/shipping-couriers', [ErpCatalogController::class, 'shippingCouriers']);
 
     // Products
     Route::get('/products', [ErpProductController::class, 'index']);
