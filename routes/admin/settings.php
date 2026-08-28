@@ -9,7 +9,6 @@ use App\Http\Controllers\Admin\Settings\OrderStatusController;
 use App\Http\Controllers\Admin\Settings\SettingController;
 use App\Http\Controllers\Admin\Settings\SettingsHubController;
 use App\Http\Controllers\Admin\Settings\SettingsSectionController;
-use App\Http\Controllers\Admin\Settings\ShippingCourierController;
 use App\Http\Controllers\Admin\Settings\StoreIdentityController;
 use App\Http\Controllers\Admin\Settings\UserController;
 use App\Http\Controllers\Admin\Settings\UserGroupController;
@@ -55,15 +54,6 @@ Route::prefix('settings')->group(function () {
     Route::put('/order-statuses', [OrderStatusController::class, 'updateAll'])->name('order-statuses.update-all');
     Route::put('/order-statuses/{orderStatus}', [OrderStatusController::class, 'update'])->name('order-statuses.update');
     Route::delete('/order-statuses/{orderStatus}', [OrderStatusController::class, 'destroy'])->name('order-statuses.destroy');
-
-    // Couriers & Tracking (configuration — operational booking, if any,
-    // stays elsewhere; this is rate/tracking-URL setup)
-    Route::get('/couriers', [ShippingCourierController::class, 'index'])->name('shipping-couriers.index');
-    Route::get('/couriers/create', [ShippingCourierController::class, 'create'])->name('shipping-couriers.create');
-    Route::get('/couriers/{shippingCourier}/edit', [ShippingCourierController::class, 'edit'])->name('shipping-couriers.edit');
-    Route::post('/couriers', [ShippingCourierController::class, 'store'])->name('shipping-couriers.store');
-    Route::put('/couriers/{shippingCourier}', [ShippingCourierController::class, 'update'])->name('shipping-couriers.update');
-    Route::delete('/couriers/{shippingCourier}', [ShippingCourierController::class, 'destroy'])->name('shipping-couriers.destroy');
 
     // Email Templates
     Route::get('/email-templates', [EmailTemplateController::class, 'index'])->name('email-templates.index');
@@ -137,5 +127,26 @@ Route::prefix('settings')->group(function () {
 
     // single-segment wildcard that would otherwise swallow every literal
     // settings/* route registered above it (payments, shipping, etc).
+    // Couriers lived here until 2026-08-28 and now answers under Sales. Its
+    // three page URLs are redirected HERE rather than in redirects.php,
+    // because that file loads after this one and the {section} catch-all
+    // below would have swallowed them first (a 404 from the section
+    // controller, never the redirect). Literal siblings before the wildcard,
+    // same rule as the block above.
+    foreach ([
+        'couriers/create'                  => ['admin.shipping-couriers.create', []],
+        'couriers/{shippingCourier}/edit'  => ['admin.shipping-couriers.edit', ['shippingCourier']],
+        'couriers'                         => ['admin.shipping-couriers.index', []],
+    ] as $old => [$name, $params]) {
+        Route::get($old, function (...$args) use ($name) {
+            $url = route($name, $args);
+            if ($qs = request()->getQueryString()) {
+                $url .= (str_contains($url, '?') ? '&' : '?') . $qs;
+            }
+
+            return redirect($url, 301);
+        });
+    }
+
     Route::get('/{section}', [SettingsSectionController::class, 'show'])->name('settings.section');
 });

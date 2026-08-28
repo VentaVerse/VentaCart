@@ -1169,6 +1169,17 @@
                                                 <span class="v-choicecard__name">Another courier</span>
                                                 <span class="v-choicecard__tags"><span class="v-choicecard__tag">Manual</span></span>
                                             </button>
+                                        @else
+                                            {{-- The card is missing because the store's courier
+                                                 directory is empty, not because manual shipments
+                                                 are off. Same off-card the unconfigured
+                                                 integrations wear, pointing at where the fix is. --}}
+                                            <div class="v-choicecard v-choicecard--off" data-courier-card="__manual" data-courier-configured="false">
+                                                <span class="v-choicecard__mark v-choicecard__mark--drawn" aria-hidden="true"><x-admin.icon name="fulfillment" /></span>
+                                                <span class="v-choicecard__name">Another courier</span>
+                                                <span class="v-choicecard__tags"><span class="v-choicecard__tag">No couriers yet</span></span>
+                                                <span class="v-choicecard__msg">Add one under <a href="{{ route('admin.shipping-couriers.index') }}">Sales &rarr; Couriers</a> to record a shipment by hand.</span>
+                                            </div>
                                         @endif
                                         </div>
                                     </div>

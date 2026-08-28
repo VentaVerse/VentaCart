@@ -44,7 +44,7 @@ class EmailTemplateSeeder extends Seeder
                 'store_id' => 1,
                 'slug' => 'order_status_update',
                 'name' => 'Order Status Update',
-                'subject' => 'Order #{order_id} Update — {new_status}',
+                'subject' => 'Order #{order_id} update: {new_status}',
                 'type' => 'customer',
                 'body' => '<p>Hi {customer_name},</p>
 <p>Your order <strong style="color: #F5A623;">#{order_id}</strong> has been updated.</p>
@@ -56,6 +56,7 @@ class EmailTemplateSeeder extends Seeder
 </td>
 </tr>
 </table>
+{tracking_details}
 <p>{comment}</p>
 <p>Thank you,<br>{store_name}</p>',
             ],

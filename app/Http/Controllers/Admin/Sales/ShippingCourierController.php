@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Settings;
+namespace App\Http\Controllers\Admin\Sales;
 
 use App\Http\Controllers\Controller;
 use App\Models\ShippingCourier;
@@ -21,19 +21,19 @@ class ShippingCourierController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        return view('admin.settings.shipping-couriers.index', compact('couriers'));
+        return view('admin.sales.couriers.index', compact('couriers'));
     }
 
     public function create()
     {
-        return view('admin.settings.shipping-couriers.form', ['courier' => null]);
+        return view('admin.sales.couriers.form', ['courier' => null]);
     }
 
     public function edit(ShippingCourier $shippingCourier)
     {
         abort_unless($shippingCourier->store_id === $this->storeId, 404);
 
-        return view('admin.settings.shipping-couriers.form', ['courier' => $shippingCourier]);
+        return view('admin.sales.couriers.form', ['courier' => $shippingCourier]);
     }
 
     public function store(Request $request)

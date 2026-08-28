@@ -3,8 +3,8 @@
 // Venta Admin v Settings area. General is general; a module's settings
 // live with the module. 'section' non-null resolves through
 // admin.settings.section; null items are standalone settings pages.
-// Notifications when that page is rebuilt; Couriers & Tracking folds
-// into the Fulfillment module space.
+// Notifications when that page is rebuilt. Couriers moved to Sales
+// (2026-08-28): order vocabulary, and core with no module installed.
 return [
     [
         'label' => 'Store',
@@ -19,7 +19,6 @@ return [
         'label' => 'Commerce',
         'items' => [
             ['key' => 'order-statuses', 'line' => 'Status flow and stock actions.', 'label' => 'Orders', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null],
-            ['key' => 'couriers', 'line' => 'Courier list and tracking links.', 'label' => 'Couriers & Tracking', 'icon' => 'package', 'route' => 'admin.shipping-couriers.index', 'section' => null],
         ],
     ],
     [

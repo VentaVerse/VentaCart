@@ -298,7 +298,7 @@ class UrlGrammarTest extends TestCase
         $response->assertRedirect(route('admin.orders.edit', 123));
     }
 
-    public function test_old_shipping_couriers_url_redirects_to_settings_couriers(): void
+    public function test_old_shipping_couriers_url_redirects_to_sales_couriers(): void
     {
         $this->actingAs(User::factory()->create());
 
@@ -306,7 +306,24 @@ class UrlGrammarTest extends TestCase
 
         $response->assertStatus(301);
         $response->assertRedirect(route('admin.shipping-couriers.index'));
-        $this->assertStringContainsString('/settings/couriers', $response->headers->get('Location'));
+        $this->assertStringContainsString('/sales/couriers', $response->headers->get('Location'));
+    }
+
+    /**
+     * Couriers lived under Settings between the first URL split and
+     * 2026-08-28, so that era's bookmarks redirect too, edit pages included.
+     */
+    public function test_settings_era_couriers_urls_redirect_to_sales(): void
+    {
+        $this->actingAs(User::factory()->create());
+        $courier = \App\Models\ShippingCourier::create(['store_id' => 1, 'name' => 'LBC', 'is_active' => true, 'sort_order' => 1]);
+
+        $this->get('/'.$this->prefix().'/settings/couriers')
+            ->assertStatus(301)->assertRedirect(route('admin.shipping-couriers.index'));
+        $this->get('/'.$this->prefix().'/settings/couriers/create')
+            ->assertStatus(301)->assertRedirect(route('admin.shipping-couriers.create'));
+        $this->get('/'.$this->prefix().'/settings/couriers/'.$courier->id.'/edit')
+            ->assertStatus(301)->assertRedirect(route('admin.shipping-couriers.edit', $courier));
     }
 
     /**

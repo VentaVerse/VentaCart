@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\OrderNotificationService;
 use App\Models\ShippingCourier;
 use Illuminate\Http\Request;
 use App\Services\OrderStatusChanger;
@@ -383,35 +384,14 @@ class OrderController extends Controller
             $validated['created_by'],
         );
 
-        // Send email notification if requested
+        // After the write. The status email carries the tracking placeholders
+        // whenever the order has a number; a tracking number recorded in this
+        // same submission also earns the shipping email, as it always has.
         if ($validated['notify_customer'] && $order->email) {
-            $emailComment = $validated['comment'] ?? '';
-            \App\Services\TemplateMailService::send('order_status_update', $order->email, [
-                'customer_name' => $order->first_name . ' ' . $order->last_name,
-                'order_id' => $order->id,
-                'old_status' => $oldStatus,
-                'new_status' => $newStatus?->name ?? 'Unknown',
-                'comment' => $emailComment,
-                'store_name' => config('app.name'),
-            ]);
+            OrderNotificationService::statusChanged($order, $oldStatus, $newStatus?->name, $validated['comment'] ?? '');
 
-            // Also send shipping notification if tracking was added
             if ($courierChanged && !empty($order->tracking_number)) {
-                $courier = $order->shippingCourier;
-                $trackingUrl = '';
-                if ($courier?->tracking_url && $order->tracking_number) {
-                    $trackingUrl = str_replace('{tracking_number}', $order->tracking_number, $courier->tracking_url);
-                }
-                \App\Services\TemplateMailService::send('shipping_notification', $order->email, [
-                    'customer_name' => $order->first_name . ' ' . $order->last_name,
-                    'order_id' => $order->id,
-                    'tracking_number' => $trackingUrl
-                        ? '<a href="' . e($trackingUrl) . '" style="color: #F5A623; text-decoration: underline;">' . e($order->tracking_number) . '</a>'
-                        : $order->tracking_number,
-                    'carrier_name' => $order->shipping_courier_name ?? $order->shipping_method ?? 'Courier',
-                    'tracking_url' => $trackingUrl,
-                    'store_name' => config('app.name'),
-                ]);
+                OrderNotificationService::shipped($order);
             }
         }
 
@@ -449,23 +429,8 @@ class OrderController extends Controller
                 : null,
         ]);
 
-        // Send shipping notification if new tracking number and notify is checked
-        if ($notify && !empty($validated['tracking_number']) && $order->email) {
-            $courier = $order->shippingCourier;
-            $trackingUrl = '';
-            if ($courier?->tracking_url && !empty($validated['tracking_number'])) {
-                $trackingUrl = str_replace('{tracking_number}', $validated['tracking_number'], $courier->tracking_url);
-            }
-            \App\Services\TemplateMailService::send('shipping_notification', $order->email, [
-                'customer_name' => $order->first_name . ' ' . $order->last_name,
-                'order_id' => $order->id,
-                'tracking_number' => $trackingUrl
-                    ? '<a href="' . e($trackingUrl) . '" style="color: #F5A623; text-decoration: underline;">' . e($validated['tracking_number']) . '</a>'
-                    : $validated['tracking_number'],
-                'carrier_name' => $order->shipping_courier_name ?? $order->shipping_method ?? 'Courier',
-                'tracking_url' => $trackingUrl,
-                'store_name' => config('app.name'),
-            ]);
+        if ($notify) {
+            OrderNotificationService::shipped($order);
         }
 
         return redirect()->route('admin.orders.show', $order)

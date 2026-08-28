@@ -302,8 +302,12 @@ Still v2, waiting for its own wave: the reviews pages (Sales area).
 
 - Currencies, API & Sync (sections): row-record saves through the
   id'd-form idiom, reveal-safe token notice, confirm dialogs.
-- Orders (statuses), Couriers & Tracking: editable row tables with
-  per-record saves and add panels.
+- Orders (statuses), Couriers: editable row tables with per-record
+  saves and add panels. Couriers moved OUT of Settings on 2026-08-28
+  (owner ruling): it is the store's courier directory, order vocabulary
+  like statuses, and core (works with no fulfillment module installed),
+  so it lives under Sales at /sales/couriers on the classic shell, with a
+  pointer from the Fulfillment space's context nav. Route names froze.
 - Email Templates (index + editor): submit-toggle in the list;
   TinyMCE wired into the dirty doctrine (editor edits summon the
   save bar); test send in place via vPost; copyable placeholders.

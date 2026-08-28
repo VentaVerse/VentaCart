@@ -117,7 +117,10 @@ adminLegacyRedirect('orders/{order}', 'admin.orders.show');
 // Sales — Order Statuses (now Settings)
 adminLegacyRedirect('order-statuses', 'admin.order-statuses.index');
 
-// Sales — Shipping Couriers (now Settings > Couriers)
+// Couriers: two homes ago at /shipping-couriers, then Settings, now Sales.
+// The route names never changed, so every era's URL lands on the live page.
+// The Settings-era URLs (settings/couriers/...) are redirected inside
+// routes/admin/settings.php, ahead of its {section} catch-all.
 adminLegacyRedirect('shipping-couriers', 'admin.shipping-couriers.index');
 
 // Sales — Fulfillment (operational queue) + Settings > Modules > Courier

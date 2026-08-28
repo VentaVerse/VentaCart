@@ -1,8 +1,8 @@
-<x-admin.settings-shell :title="$courier ? 'Edit ' . $courier->name : 'Add courier'" active="couriers">
+<x-admin.shell :title="$courier ? 'Edit ' . $courier->name : 'Add courier'" active="sales">
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
-                <a href="{{ route('admin.shipping-couriers.index') }}">Couriers & Tracking</a>
+                <a href="{{ route('admin.shipping-couriers.index') }}">Couriers</a>
                 <span aria-hidden="true">/</span>
                 <span>{{ $courier?->name ?? 'New courier' }}</span>
             </div>
@@ -40,4 +40,4 @@
             </div>
         </x-admin.panel>
     </x-admin.form>
-</x-admin.settings-shell>
+</x-admin.shell>

@@ -67,15 +67,11 @@ class StatusMapper
             'notify_customer'  => $target['notify'],
         ]);
 
-        if ($target['notify'] && $order->email) {
-            \App\Services\TemplateMailService::send('order_status_update', $order->email, [
-                'customer_name' => $order->first_name . ' ' . $order->last_name,
-                'order_id'      => $order->id,
-                'old_status'    => $oldStatus,
-                'new_status'    => $newStatus->name,
-                'comment'       => 'Courier status: ' . $courierStatus,
-                'store_name'    => config('app.name'),
-            ]);
+        // Through the shared sender, so the email names the courier and links
+        // the tracking number this order has carried since booking. It used
+        // to send the bare status pair and nothing to click.
+        if ($target['notify']) {
+            \App\Services\OrderNotificationService::statusChanged($order, $oldStatus, $newStatus->name, 'Courier status: ' . $courierStatus);
         }
 
         return true;

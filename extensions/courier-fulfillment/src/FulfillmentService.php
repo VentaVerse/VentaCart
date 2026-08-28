@@ -7,6 +7,7 @@ use App\Models\OrderHistory;
 use App\Models\OrderStatus;
 use App\Models\Setting;
 use App\Models\ShippingCourier;
+use App\Services\OrderNotificationService;
 use App\Services\OrderStatusChanger;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Support\Facades\Auth;
@@ -556,6 +557,12 @@ class FulfillmentService
         if ((string) $order->tracking_number === (string) $tracking) {
             $fill['tracking_number'] = null;
             $fill['tracking_link']   = null;
+            // The name was stamped for this booking; a manual courier row
+            // (shipping_courier_id) would still own it, so only clear when
+            // no row does.
+            if ($order->shipping_courier_id === null) {
+                $fill['shipping_courier_name'] = null;
+            }
         }
         $order->forceFill($fill)->save();
 
@@ -870,6 +877,11 @@ class FulfillmentService
             // only writer of core tracking_number; no tracking_link yet at booking time.
             'tracking_number'         => $result['tracking_number'] ?? null,
             'tracking_link'           => null, // stale link from a prior booking/manual entry must not point at the new shipment; the poll re-stamps it when the courier link appears
+            // Who carries it, in the same core snapshot column a manual
+            // shipment fills from its courier row. Without it the shopper's
+            // account page and every email showed a bare number with no
+            // courier beside it for an integrated booking.
+            'shipping_courier_name'   => $courier->getName(),
         ])->save();
 
         if ($previousTracking) {
@@ -1071,6 +1083,24 @@ class FulfillmentService
             // difference is WHICH status, which the operator may name.
             $applied = self::applyBookedStatus($order, $courier?->name, $tracking, $comment, $chosenStatus, $notify);
         });
+
+        // Committed; only now may the customer hear about it. OrderStatusChanger
+        // never sends mail (its contract), so until this was added a ticked
+        // "notify customer" on a recorded shipment sent nothing at all. A
+        // parcel with a number gets the shipping email, which names the courier
+        // and links the number; one without gets the plain status email.
+        if ($notify) {
+            if ($tracking) {
+                OrderNotificationService::shipped($order);
+            } elseif ($applied) {
+                OrderNotificationService::statusChanged(
+                    $order,
+                    OrderStatus::whereKey($preBookingStatusId)->value('name'),
+                    $applied->name,
+                    $note ?? '',
+                );
+            }
+        }
 
         return [
             'success'         => true,

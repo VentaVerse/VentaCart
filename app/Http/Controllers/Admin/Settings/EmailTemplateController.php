@@ -12,8 +12,8 @@ class EmailTemplateController extends Controller
 {
     private const PLACEHOLDER_MAP = [
         'order_confirmation' => ['customer_name', 'order_id', 'subtotal', 'shipping_method', 'shipping_cost', 'order_total', 'order_items', 'shipping_address', 'payment_method', 'payment_details', 'comment', 'store_name'],
-        'order_status_update' => ['customer_name', 'order_id', 'old_status', 'new_status', 'comment', 'store_name'],
-        'shipping_notification' => ['customer_name', 'order_id', 'tracking_number', 'carrier_name', 'tracking_url', 'store_name'],
+        'order_status_update' => ['customer_name', 'order_id', 'old_status', 'new_status', 'comment', 'tracking_details', 'carrier_name', 'tracking_number', 'tracking_url', 'store_name'],
+        'shipping_notification' => ['customer_name', 'order_id', 'tracking_details', 'tracking_number', 'carrier_name', 'tracking_url', 'store_name'],
         'welcome' => ['customer_name', 'store_name', 'store_url'],
         'password_reset' => ['customer_name', 'reset_url', 'store_name'],
         'review_request' => ['customer_name', 'product_name', 'product_image', 'review_url', 'store_name'],
@@ -40,6 +40,7 @@ class EmailTemplateController extends Controller
             'tracking_number' => '<a href="https://www.jtexpress.ph/trajectoryQuery?billcode=PH123456789" style="color: #F5A623; text-decoration: underline;">PH123456789</a>',
             'carrier_name' => 'J&T Express',
             'tracking_url' => 'https://www.jtexpress.ph/trajectoryQuery?billcode=PH123456789',
+            'tracking_details' => '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 20px 0;"><tr><td style="padding: 16px; background-color: #222222; border-radius: 6px;"><p style="margin: 0 0 4px 0; font-size: 12px; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Tracking</p><p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Courier:</strong> J&amp;T Express</p><p style="margin: 0; font-size: 14px; color: #e8e8e8;"><strong>Tracking number:</strong> <span style="color: #F5A623;"><a href="https://www.jtexpress.ph/trajectoryQuery?billcode=PH123456789" style="color: #F5A623; text-decoration: underline;">PH123456789</a></span></p></td></tr></table>',
             'store_name' => config('app.name'),
             'store_url' => '#',
             'reset_url' => '#',

@@ -30,6 +30,11 @@ return [
         'segment' => 'sales',
         'items' => [
             ['key' => 'orders', 'label' => 'Orders', 'route' => 'admin.orders.index', 'icon' => 'orders', 'permission' => null, 'keywords' => ['sales', 'invoices']],
+            // The store's courier directory: who carries orders and where a
+            // tracking number links to. Core, not a fulfillment feature (it
+            // works with no module installed), so it lives with the orders it
+            // describes rather than under Extensions or Settings.
+            ['key' => 'couriers', 'label' => 'Couriers', 'route' => 'admin.shipping-couriers.index', 'icon' => 'package', 'permission' => null, 'keywords' => ['tracking', 'tracking url', 'waybill', 'lbc', 'jnt', 'j&t', 'gogo']],
         ],
     ],
     [

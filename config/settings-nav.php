@@ -20,7 +20,6 @@ return [
         'label' => 'Operations',
         'items' => [
             ['key' => 'order-statuses', 'label' => 'Order Statuses', 'description' => 'Status flow and automatic stock actions.', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null, 'permission' => null, 'keywords' => ['workflow', 'stock action', 'decrement', 'pending']],
-            ['key' => 'couriers', 'label' => 'Couriers & Tracking', 'description' => 'Courier list and tracking-URL templates.', 'icon' => 'fulfillment', 'route' => 'admin.shipping-couriers.index', 'section' => null, 'permission' => null, 'keywords' => ['tracking url', 'lbc', 'jnt', 'waybill']],
             ['key' => 'email-templates', 'label' => 'Email Templates', 'description' => 'Transactional email content and test sends.', 'icon' => 'pages', 'route' => 'admin.email-templates.index', 'section' => null, 'permission' => null, 'keywords' => ['order confirmation', 'notification', 'template']],
             ['key' => 'automations', 'label' => 'Automations', 'description' => 'Scheduled jobs: schedules, status, run now.', 'icon' => 'settings', 'route' => 'admin.settings.section', 'section' => 'automations', 'permission' => null, 'keywords' => ['cron', 'schedule', 'jobs', 'sitemap', 'currency update']],
         ],

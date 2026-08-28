@@ -1,8 +1,8 @@
-<x-admin.settings-shell title="Couriers & Tracking" active="couriers">
+<x-admin.shell title="Couriers" active="sales">
     <div class="v-head">
         <div class="v-head__body">
-            <h1 class="v-head__title">Couriers & Tracking
-                <x-admin.help text="The couriers orders ship with, and the link a tracking number turns into." /></h1>
+            <h1 class="v-head__title">Couriers
+                <x-admin.help text="Who carries orders, and the page a tracking number links to. Used by the order form, the fulfillment queue, and the shopper's tracking link." /></h1>
         </div>
         <div class="v-head__actions">
             <a href="{{ route('admin.shipping-couriers.create') }}" class="v-btn v-btn--primary">Add courier</a>
@@ -57,4 +57,4 @@
                 confirm="Delete" :action="route('admin.shipping-couriers.destroy', $courier)" method="DELETE" />
         @endforeach
     </div>
-</x-admin.settings-shell>
+</x-admin.shell>
