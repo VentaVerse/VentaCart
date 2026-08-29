@@ -10,7 +10,6 @@ return [
         'label' => 'Store',
         'items' => [
             ['key' => 'general', 'line' => 'Store identity, timezone, and default meta.', 'label' => 'General', 'icon' => 'store', 'route' => 'admin.settings.section', 'section' => 'general'],
-            ['key' => 'checkout', 'line' => 'Guest checkout and stock rules.', 'label' => 'Checkout & Stock', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout'],
             ['key' => 'currencies', 'line' => 'Currency list and exchange rates.', 'label' => 'Currencies', 'icon' => 'currency', 'route' => 'admin.settings.section', 'section' => 'currencies'],
             ['key' => 'localization', 'line' => 'Countries, provinces, and geo zones.', 'label' => 'Localization', 'icon' => 'globe', 'route' => 'admin.localization.index', 'section' => null],
         ],
@@ -19,6 +18,8 @@ return [
         'label' => 'Commerce',
         'items' => [
             ['key' => 'order-statuses', 'line' => 'Status flow and stock actions.', 'label' => 'Orders', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null],
+            // Owner ruling 2026-08-30: checkout rules and stock rules are commerce, not store identity.
+            ['key' => 'checkout', 'line' => 'Guest checkout and stock rules.', 'label' => 'Checkout & Stock', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout'],
         ],
     ],
     [

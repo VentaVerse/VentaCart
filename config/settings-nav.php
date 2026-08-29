@@ -11,7 +11,6 @@ return [
         'items' => [
             ['key' => 'general', 'label' => 'General', 'description' => 'Store identity, timezone, and default meta tags.', 'icon' => 'settings', 'route' => 'admin.settings.section', 'section' => 'general', 'permission' => null, 'keywords' => ['site name', 'identity', 'timezone', 'meta', 'logo']],
             ['key' => 'mail', 'label' => 'Mail', 'description' => 'SMTP server, sender identity, and test sending.', 'icon' => 'pages', 'route' => 'admin.settings.section', 'section' => 'mail', 'permission' => null, 'keywords' => ['smtp', 'email', 'sender', 'from address']],
-            ['key' => 'checkout', 'label' => 'Checkout & Stock', 'description' => 'Guest checkout, out-of-stock rules, low-stock alerts.', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout', 'permission' => null, 'keywords' => ['guest', 'out of stock', 'low stock', 'threshold']],
             ['key' => 'currencies', 'label' => 'Currencies', 'description' => 'Currency list, symbols, and exchange-rate updates.', 'icon' => 'coupons', 'route' => 'admin.settings.section', 'section' => 'currencies', 'permission' => null, 'keywords' => ['exchange rate', 'peso', 'php', 'forex', 'symbol']],
             ['key' => 'localization', 'label' => 'Localization', 'description' => 'Countries, zones, and geo zones.', 'icon' => 'media', 'route' => 'admin.localization.index', 'section' => null, 'permission' => null, 'keywords' => ['countries', 'provinces', 'geo zones', 'regions']],
         ],
@@ -19,6 +18,7 @@ return [
     [
         'label' => 'Operations',
         'items' => [
+            ['key' => 'checkout', 'label' => 'Checkout & Stock', 'description' => 'Guest checkout, out-of-stock rules, low-stock alerts.', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout', 'permission' => null, 'keywords' => ['guest', 'out of stock', 'low stock', 'threshold']],
             ['key' => 'order-statuses', 'label' => 'Order Statuses', 'description' => 'Status flow and automatic stock actions.', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null, 'permission' => null, 'keywords' => ['workflow', 'stock action', 'decrement', 'pending']],
             ['key' => 'email-templates', 'label' => 'Email Templates', 'description' => 'Transactional email content and test sends.', 'icon' => 'pages', 'route' => 'admin.email-templates.index', 'section' => null, 'permission' => null, 'keywords' => ['order confirmation', 'notification', 'template']],
             ['key' => 'automations', 'label' => 'Automations', 'description' => 'Scheduled jobs: schedules, status, run now.', 'icon' => 'settings', 'route' => 'admin.settings.section', 'section' => 'automations', 'permission' => null, 'keywords' => ['cron', 'schedule', 'jobs', 'sitemap', 'currency update']],
