@@ -255,11 +255,73 @@
                         <input type="number" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)">
                     </template>
 
-                    <template x-if="f.type !== 'select' && f.type !== 'number'">
+                    <template x-if="f.type === 'textarea'">
+                        <textarea rows="4" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)"></textarea>
+                    </template>
+
+                    {{-- One image, or several: chosen through the page's one
+                         media browser, aimed at this field. --}}
+                    <template x-if="f.type === 'image' || f.type === 'images'">
+                        <span class="v-lay__media">
+                            <template x-for="(path, pi) in mediaList(f)" :key="path + pi">
+                                <span class="v-lay__mediaitem">
+                                    <img :src="'/storage/' + path" alt="">
+                                    <button type="button" @click="dropMedia(f, pi)" aria-label="Remove image">&times;</button>
+                                </span>
+                            </template>
+                            <button type="button" class="v-lay__new" @click="pickMedia(f, $el)"
+                                    x-text="f.type === 'images' ? 'Add images' : (cfg(f.name) ? 'Change image' : 'Choose image')"></button>
+                        </span>
+                    </template>
+
+                    {{-- Repeating rows of small fields: tabs, list items, sections. --}}
+                    <template x-if="f.type === 'rows'">
+                        <span class="v-lay__rows">
+                            <template x-for="(row, ri) in rowsOf(f)" :key="ri">
+                                <span class="v-lay__rowsitem">
+                                    <template x-for="(sub, subName) in f.fields" :key="subName">
+                                        <label class="v-lay__subfield">
+                                            <span x-text="sub.label"></span>
+                                            <template x-if="sub.type === 'select'">
+                                                <select @change="setRowField(f, ri, subName, $event.target.value)">
+                                                    <option value="">Choose&hellip;</option>
+                                                    <template x-for="(label, value) in sub.options" :key="value">
+                                                        <option :value="value" :selected="row[subName] === value" x-text="label"></option>
+                                                    </template>
+                                                </select>
+                                            </template>
+                                            <template x-if="sub.type === 'textarea'">
+                                                <textarea rows="3" :value="row[subName] ?? ''" @input="setRowField(f, ri, subName, $event.target.value)"></textarea>
+                                            </template>
+                                            <template x-if="sub.type === 'number'">
+                                                <input type="number" :value="row[subName] ?? ''" @input="setRowField(f, ri, subName, $event.target.value)">
+                                            </template>
+                                            <template x-if="sub.type !== 'select' && sub.type !== 'textarea' && sub.type !== 'number'">
+                                                <input type="text" :value="row[subName] ?? ''" @input="setRowField(f, ri, subName, $event.target.value)">
+                                            </template>
+                                        </label>
+                                    </template>
+                                    <span class="v-lay__rowsacts">
+                                        <button type="button" @click="moveRowField(f, ri, -1)" :disabled="ri === 0" aria-label="Move up">&uarr;</button>
+                                        <button type="button" @click="moveRowField(f, ri, 1)" :disabled="ri === rowsOf(f).length - 1" aria-label="Move down">&darr;</button>
+                                        <button type="button" @click="dropRowField(f, ri)" aria-label="Remove">&times;</button>
+                                    </span>
+                                </span>
+                            </template>
+                            <button type="button" class="v-lay__new" @click="addRowField(f)">Add</button>
+                        </span>
+                    </template>
+
+                    <template x-if="!['select', 'number', 'textarea', 'image', 'images', 'rows'].includes(f.type)">
                         <input type="text" :value="cfg(f.name)" @input="setCfg(f.name, $event.target.value)">
                     </template>
                 </label>
             </template>
+
+            {{-- The one media browser for every image field on this page,
+                 aimed at whichever field asked. --}}
+            <x-admin.media-picker name="widget_media" mode="multi" root="products" bare trigger="Choose"
+                class="v-lay__mediapicker" @media:picked="heardMedia($event.detail)" />
 
             <p class="v-lay__pickempty" x-show="schemaFor(editing?.widget).length === 0">
                 Nothing to configure
@@ -923,9 +985,11 @@
 
                     /* ---- adding widgets ---- */
 
+                    /** What fits this position on this page type. */
                     offerable(region) {
                         if (!region) return [];
-                        return this.widgets.filter((w) => w.regions.includes(region));
+                        return this.widgets.filter((w) => w.regions.includes(region)
+                            && (!w.pages || w.pages.includes(this.pageType)));
                     },
 
                     isAdding(region, u, c) {
@@ -986,6 +1050,78 @@
                         if (!this.editing.config) this.editing.config = {};
                         this.editing.config[name] = value;
                         this.touch();
+                    },
+
+                    /* ---- media and rows fields ---- */
+
+                    mediaTarget: null,
+
+                    mediaList(f) {
+                        const v = this.cfg(f.name);
+                        if (f.type === 'images') return Array.isArray(v) ? v : [];
+                        return v ? [v] : [];
+                    },
+
+                    pickMedia(f, el) {
+                        this.mediaTarget = f;
+                        const picker = root?.querySelector('.v-lay__mediapicker');
+                        picker?.dispatchEvent(new CustomEvent('media:open', { detail: { from: el }, bubbles: false }));
+                    },
+
+                    /** The browser handed over paths; they land in the field that asked. */
+                    heardMedia(detail) {
+                        const f = this.mediaTarget;
+                        if (!f || !this.editing) return;
+                        const paths = (detail?.paths ?? (detail?.path ? [detail.path] : [])).filter(Boolean);
+                        if (!paths.length) return;
+                        if (f.type === 'images') {
+                            const have = this.mediaList(f);
+                            this.setCfg(f.name, [...have, ...paths.filter((p) => !have.includes(p))]);
+                        } else {
+                            this.setCfg(f.name, paths[paths.length - 1]);
+                        }
+                    },
+
+                    dropMedia(f, i) {
+                        if (f.type === 'images') {
+                            const list = this.mediaList(f).slice();
+                            list.splice(i, 1);
+                            this.setCfg(f.name, list);
+                        } else {
+                            this.setCfg(f.name, '');
+                        }
+                    },
+
+                    rowsOf(f) {
+                        const v = this.cfg(f.name);
+                        return Array.isArray(v) ? v : [];
+                    },
+
+                    addRowField(f) {
+                        const blank = {};
+                        Object.keys(f.fields || {}).forEach((k) => { blank[k] = ''; });
+                        this.setCfg(f.name, [...this.rowsOf(f), blank]);
+                    },
+
+                    setRowField(f, i, name, value) {
+                        const list = this.rowsOf(f).map((r) => ({ ...r }));
+                        if (!list[i]) return;
+                        list[i][name] = value;
+                        this.setCfg(f.name, list);
+                    },
+
+                    moveRowField(f, i, by) {
+                        const list = this.rowsOf(f).slice();
+                        const to = i + by;
+                        if (to < 0 || to >= list.length) return;
+                        [list[i], list[to]] = [list[to], list[i]];
+                        this.setCfg(f.name, list);
+                    },
+
+                    dropRowField(f, i) {
+                        const list = this.rowsOf(f).slice();
+                        list.splice(i, 1);
+                        this.setCfg(f.name, list);
                     },
 
                     /* ---- page parts ---- */

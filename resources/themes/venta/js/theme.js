@@ -88,6 +88,17 @@ Alpine.data('imageSlider', (config = {}) => ({
 /* ============================================
    Brand Carousel (auto-scroll)
    ============================================ */
+/* A gallery widget's larger view: one image at a time, keys and buttons. */
+Alpine.data('vLightbox', (images = []) => ({
+    images,
+    at: null,
+    open(i) { this.at = i; document.body.style.overflow = 'hidden'; },
+    close() { this.at = null; document.body.style.overflow = ''; },
+    next() { if (this.at !== null) this.at = (this.at + 1) % this.images.length; },
+    prev() { if (this.at !== null) this.at = (this.at - 1 + this.images.length) % this.images.length; },
+    current() { return this.at === null ? '' : this.images[this.at]; },
+}));
+
 Alpine.data('brandCarousel', (config = {}) => ({
     autoplay: config.autoplay || false,
     speed: config.speed || 3000,

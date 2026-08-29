@@ -37,6 +37,10 @@ class Widgets
             'view' => null,
             'module' => null,
             'regions' => null,
+            // Page types this widget makes sense on, or null for any. A
+            // widget that reads the page's own subject (the product being
+            // viewed) declares where that subject exists.
+            'pages' => null,
             // How this widget lays out, so the picker can DRAW it instead of
             // naming it. A merchant choosing between "Category tabs" and
             // "Brand strip" is choosing between two shapes, and the words are

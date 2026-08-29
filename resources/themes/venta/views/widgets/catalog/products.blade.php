@@ -1,32 +1,40 @@
 @if (($products ?? collect())->isNotEmpty())
-<section class="py-10 md:py-14">
-    <div class="container-store">
-        <h2 class="section-title reveal">{{ $placement->title }}</h2>
 @php
     $config = $placement->config ?? [];
-    $colsMobile = $config['columns_mobile'] ?? 2;
-    $colsTablet = $config['columns_tablet'] ?? 3;
-    $colsDesktop = $config['columns_desktop'] ?? 4;
-    $gridId = 'section-grid-' . $placement->id;
+    $columns = max(2, min(6, (int) ($config['columns'] ?? 4)));
+    $layout = ($config['layout'] ?? 'grid') === 'slider' ? 'slider' : 'grid';
+    $cardStyle = $config['card'] ?? 'default';
+    $cardStyle = in_array($cardStyle, ['default', 'compact', 'overlay'], true) ? $cardStyle : 'default';
 @endphp
+<section class="py-10 md:py-14">
+    <div class="container-store">
+        @if ($placement->title)
+            <h2 class="section-title reveal">{{ $placement->title }}</h2>
+        @endif
 
-@if ($products->isNotEmpty())
-    <div id="{{ $gridId }}" class="grid gap-5 reveal-stagger">
-        @foreach ($products as $product)
-            @include('partials.product-card', ['product' => $product])
-        @endforeach
-    </div>
-
-    @push('head')
-    <style>
-        #{{ $gridId }} { grid-template-columns: repeat({{ $colsMobile }}, minmax(0, 1fr)); }
-        @media (min-width: 768px) { #{{ $gridId }} { grid-template-columns: repeat({{ $colsTablet }}, minmax(0, 1fr)); } }
-        @media (min-width: 1024px) { #{{ $gridId }} { grid-template-columns: repeat({{ $colsDesktop }}, minmax(0, 1fr)); } }
-    </style>
-    @endpush
-@else
-    <p class="text-center text-[var(--color-text)] py-8" class="font-body">No products to display.</p>
-@endif
+        @if ($layout === 'slider')
+            <div class="wslider reveal" x-data="brandCarousel()">
+                <button type="button" class="wslider__btn wslider__btn--prev" @click="scrollLeft()" aria-label="Previous">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div x-ref="scroll" class="wslider__track wslider__track--{{ $columns }}">
+                    @foreach ($products as $product)
+                        <div class="wslider__item">
+                            @include('partials.product-card', ['product' => $product, 'cardStyle' => $cardStyle])
+                        </div>
+                    @endforeach
+                </div>
+                <button type="button" class="wslider__btn wslider__btn--next" @click="scrollRight()" aria-label="Next">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+        @else
+            <div class="wgrid wgrid--{{ $columns }} reveal-stagger">
+                @foreach ($products as $product)
+                    @include('partials.product-card', ['product' => $product, 'cardStyle' => $cardStyle])
+                @endforeach
+            </div>
+        @endif
     </div>
 </section>
 @endif

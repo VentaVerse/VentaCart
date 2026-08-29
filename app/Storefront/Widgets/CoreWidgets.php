@@ -27,10 +27,65 @@ class CoreWidgets
             'view' => 'widgets.catalog.products',
             'schema' => [
                 'filter' => ['type' => 'select', 'label' => 'Show',
-                    'options' => ['new' => 'Newest', 'featured' => 'Featured', 'specials' => 'On sale', 'best_sellers' => 'Best sellers']],
+                    'options' => ['new' => 'Newest', 'featured' => 'Featured', 'specials' => 'On sale', 'best_sellers' => 'Best sellers',
+                        'most_viewed' => 'Most viewed', 'random' => 'Random']],
                 'limit' => ['type' => 'number', 'label' => 'How many', 'default' => 12],
+                'layout' => ['type' => 'select', 'label' => 'Layout', 'default' => 'grid',
+                    'options' => ['grid' => 'Grid', 'slider' => 'Slider']],
+                'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
+                    'options' => ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+                'card' => ['type' => 'select', 'label' => 'Card style', 'default' => 'default',
+                    'options' => ['default' => 'Default', 'compact' => 'Compact', 'overlay' => 'Image with overlay']],
             ],
             'resolve' => fn (array $config) => ['products' => self::products($config)],
+        ]);
+
+        // Tabs of product listings: Latest | Featured | Best sellers, the
+        // arrangement every marketplace homepage carries.
+        Widgets::register('catalog.product_tabs', [
+            'title' => 'Product tabs',
+            'shape' => 'tabs',
+            'module' => 'catalog',
+            'view' => 'widgets.catalog.product_tabs',
+            'schema' => [
+                'tabs' => ['type' => 'rows', 'label' => 'Tabs', 'fields' => [
+                    'title' => ['type' => 'text', 'label' => 'Tab'],
+                    'filter' => ['type' => 'select', 'label' => 'Show', 'options' => ['new' => 'Newest', 'featured' => 'Featured', 'specials' => 'On sale', 'best_sellers' => 'Best sellers', 'most_viewed' => 'Most viewed', 'random' => 'Random']],
+                    'limit' => ['type' => 'number', 'label' => 'How many'],
+                ]],
+                'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
+                    'options' => ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+            ],
+            'resolve' => function (array $config) {
+                $tabs = [];
+                foreach (is_array($config['tabs'] ?? null) ? $config['tabs'] : [] as $tab) {
+                    if (! is_array($tab)) {
+                        continue;
+                    }
+                    $tabs[] = [
+                        'title' => (string) ($tab['title'] ?? ''),
+                        'products' => self::products(['filter' => $tab['filter'] ?? 'new', 'limit' => $tab['limit'] ?? 8]),
+                    ];
+                }
+
+                return ['tabs' => $tabs];
+            },
+        ]);
+
+        // Products that shared an order with the one being viewed. Product
+        // pages only: anywhere else there is no product to relate to.
+        Widgets::register('catalog.also_bought', [
+            'title' => 'Also bought',
+            'shape' => 'grid',
+            'module' => 'catalog',
+            'view' => 'widgets.catalog.also_bought',
+            'pages' => ['product'],
+            'schema' => [
+                'limit' => ['type' => 'number', 'label' => 'How many', 'default' => 4],
+                'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
+                    'options' => ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+            ],
+            'resolve' => fn (array $config) => ['products' => self::alsoBought($config)],
         ]);
 
         Widgets::register('catalog.brands', [
@@ -74,18 +129,174 @@ class CoreWidgets
             ],
         ]);
 
+        Widgets::register('content.cta', [
+            'title' => 'Call to action',
+            'shape' => 'banner',
+            'module' => 'content',
+            'view' => 'widgets.content.cta',
+            'schema' => [
+                'text' => ['type' => 'textarea', 'label' => 'Text'],
+                'button' => ['type' => 'text', 'label' => 'Button'],
+                'url' => ['type' => 'text', 'label' => 'Link'],
+                'alignment' => ['type' => 'select', 'label' => 'Alignment', 'default' => 'center',
+                    'options' => ['left' => 'Left', 'center' => 'Center', 'right' => 'Right']],
+            ],
+        ]);
+
+        Widgets::register('content.icon_list', [
+            'title' => 'Icon list',
+            'shape' => 'strip',
+            'module' => 'content',
+            'view' => 'widgets.content.icon_list',
+            'schema' => [
+                'items' => ['type' => 'rows', 'label' => 'Items', 'fields' => [
+                    'icon' => ['type' => 'select', 'label' => 'Icon', 'options' => self::ICONS],
+                    'title' => ['type' => 'text', 'label' => 'Title'],
+                    'text' => ['type' => 'text', 'label' => 'Text'],
+                ]],
+                'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
+                    'options' => ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+            ],
+        ]);
+
+        Widgets::register('content.separator', [
+            'title' => 'Separator',
+            'shape' => 'block',
+            'module' => 'content',
+            'view' => 'widgets.content.separator',
+            'schema' => [
+                'style' => ['type' => 'select', 'label' => 'Style', 'default' => 'space',
+                    'options' => ['space' => 'Space', 'line' => 'Line']],
+                'size' => ['type' => 'select', 'label' => 'Size', 'default' => 'md',
+                    'options' => ['sm' => 'Small', 'md' => 'Medium', 'lg' => 'Large']],
+            ],
+        ]);
+
+        Widgets::register('content.gallery', [
+            'title' => 'Gallery',
+            'shape' => 'grid',
+            'module' => 'content',
+            'view' => 'widgets.content.gallery',
+            'schema' => [
+                'images' => ['type' => 'images', 'label' => 'Images', 'root' => 'banners'],
+                'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
+                    'options' => ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+                'lightbox' => ['type' => 'select', 'label' => 'On click', 'default' => 'lightbox',
+                    'options' => ['lightbox' => 'Open larger', 'none' => 'Nothing']],
+            ],
+        ]);
+
+        Widgets::register('content.accordion', [
+            'title' => 'Accordion',
+            'shape' => 'tabs',
+            'module' => 'content',
+            'view' => 'widgets.content.accordion',
+            'schema' => [
+                'items' => ['type' => 'rows', 'label' => 'Sections', 'fields' => [
+                    'title' => ['type' => 'text', 'label' => 'Title'],
+                    'text' => ['type' => 'textarea', 'label' => 'Text'],
+                ]],
+                'open' => ['type' => 'select', 'label' => 'At first', 'default' => 'first',
+                    'options' => ['first' => 'First section open', 'none' => 'All closed']],
+            ],
+        ]);
+
+        Widgets::register('social.facebook', [
+            'title' => 'Facebook page',
+            'shape' => 'block',
+            'module' => 'social',
+            'view' => 'widgets.social.facebook',
+            'schema' => [
+                'url' => ['type' => 'text', 'label' => 'Page URL'],
+                'height' => ['type' => 'number', 'label' => 'Height', 'default' => 400],
+            ],
+        ]);
+
+        Widgets::register('social.twitter', [
+            'title' => 'X timeline',
+            'shape' => 'block',
+            'module' => 'social',
+            'view' => 'widgets.social.twitter',
+            'schema' => [
+                'username' => ['type' => 'text', 'label' => 'Username'],
+                'height' => ['type' => 'number', 'label' => 'Height', 'default' => 400],
+            ],
+        ]);
+
+        // Blog posts read the blog extension's table when it is present; the
+        // widget stays registered so a placement survives the extension being
+        // switched off, rendering nothing until it is back.
         Widgets::register('blog.posts', [
             'title' => 'Blog posts',
             'shape' => 'cards',
             'module' => 'blog',
             'view' => 'widgets.blog.posts',
+            'schema' => [
+                'limit' => ['type' => 'number', 'label' => 'How many', 'default' => 3],
+                'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '3',
+                    'options' => ['2' => '2', '3' => '3', '4' => '4']],
+            ],
+            'resolve' => function (array $config) {
+                if (! class_exists(\Extensions\Blog\Models\BlogPost::class)) {
+                    return ['posts' => collect()];
+                }
+
+                return ['posts' => \Extensions\Blog\Models\BlogPost::query()
+                    ->where('is_published', true)
+                    ->where(fn ($q) => $q->whereNull('published_at')->orWhere('published_at', '<=', now()))
+                    ->orderByDesc('published_at')->orderByDesc('id')
+                    ->limit(max(1, min(24, (int) ($config['limit'] ?? 3))))
+                    ->get()];
+            },
         ]);
     }
 
     /** Lifted verbatim from HomeController::getProductsForSection(). */
+    /** The icons an icon list may pick from; drawn by the theme. */
+    public const ICONS = [
+        'truck' => 'Delivery', 'shield' => 'Guarantee', 'refresh' => 'Returns', 'chat' => 'Support',
+        'star' => 'Star', 'box' => 'Parcel', 'card' => 'Payment', 'clock' => 'Time', 'pin' => 'Location', 'gift' => 'Gift',
+    ];
+
+    /**
+     * Products that shared an order with the product being viewed, most
+     * often first. Nothing off a product page: there is nothing to relate to.
+     */
+    private static function alsoBought(array $config)
+    {
+        $current = request()->route('product');
+        $productId = $current instanceof Product ? $current->id
+            : (is_scalar($current) ? Product::where('slug', (string) $current)->value('id') : null);
+
+        if (! $productId) {
+            return collect();
+        }
+
+        $orderIds = \App\Models\OrderProduct::where('product_id', $productId)->pluck('order_id');
+        if ($orderIds->isEmpty()) {
+            return collect();
+        }
+
+        $ids = \App\Models\OrderProduct::whereIn('order_id', $orderIds)
+            ->where('product_id', '!=', $productId)
+            ->whereNotNull('product_id')
+            ->select('product_id', DB::raw('COUNT(*) as n'))
+            ->groupBy('product_id')
+            ->orderByDesc('n')
+            ->limit(max(1, min(24, (int) ($config['limit'] ?? 4))))
+            ->pluck('product_id');
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        return Product::where('is_active', true)->whereIn('id', $ids)->with(['images', 'specials'])->get()
+            ->sortBy(fn ($p) => $ids->search($p->id))->values();
+    }
+
     private static function products(array $config)
     {
-        $limit = $config['limit'] ?? 12;
+        $limit = max(1, min(48, (int) ($config['limit'] ?? 12)));
         $filter = $config['filter'] ?? 'new';
 
         $query = Product::where('is_active', true)->with(['images', 'specials'])
@@ -102,6 +313,12 @@ class CoreWidgets
                         ->where(fn ($q2) => $q2->whereNull('date_start')->orWhere('date_start', '<=', now()))
                         ->where(fn ($q2) => $q2->whereNull('date_end')->orWhere('date_end', '>=', now()));
                 });
+                break;
+            case 'most_viewed':
+                $query->orderByDesc('views')->orderByDesc('id');
+                break;
+            case 'random':
+                $query->inRandomOrder();
                 break;
             case 'best_sellers':
                 $prefix = DB::getTablePrefix();

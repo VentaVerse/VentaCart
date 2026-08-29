@@ -207,6 +207,7 @@ class LayoutController extends Controller
                 'module' => $spec['module'],
                 'shape' => $spec['shape'] ?? null,
                 'regions' => $spec['regions'] ?: array_keys($regions),
+                'pages' => $spec['pages'] ?? null,
             ];
         }
 

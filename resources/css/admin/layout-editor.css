@@ -1110,3 +1110,22 @@
    is a chip. */
 .v-lay__field .v-lay__chips { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
 .v-lay__chips .v-chip { width: 22px; height: 22px; flex: 0 0 22px; margin: 0; }
+
+
+/* ---- media and repeating fields in the widget inspector --------------- */
+
+.v-lay__media { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.v-lay__mediaitem { position: relative; width: 48px; height: 48px; border-radius: 4px; overflow: hidden; border: 1px solid var(--v-line); }
+.v-lay__mediaitem img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.v-lay__mediaitem button { position: absolute; top: 0; right: 0; width: 18px; height: 18px; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; line-height: 1; cursor: pointer; }
+.v-lay__mediapicker { display: block; }
+
+.v-lay__rows { display: grid; gap: 8px; }
+.v-lay__rowsitem { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--v-line); border-radius: 6px; background: var(--v-paper); }
+.v-lay__subfield { display: grid; gap: 3px; font-size: 12px; }
+.v-lay__subfield > span { color: var(--v-ink-3); }
+.v-lay__subfield input, .v-lay__subfield select, .v-lay__subfield textarea { width: 100%; }
+.v-lay__rowsacts { display: flex; gap: 4px; justify-content: flex-end; }
+.v-lay__rowsacts button { min-width: 24px; height: 24px; border: 1px solid var(--v-line); background: var(--v-sheet); border-radius: 4px; cursor: pointer; color: var(--v-ink-3); }
+.v-lay__rowsacts button:disabled { opacity: .35; cursor: default; }
+.v-lay__field textarea { width: 100%; }
