@@ -1744,7 +1744,9 @@
  /* Status Badges */
  .account-status-badge {
  font-family: var(--font-heading);
- @apply inline-block text-[10px] font-semibold px-2.5 py-1 rounded-full;
+ /* Same size as the details beside it (text-sm): at 10px the one fact a
+    customer opens the page for was the smallest thing on it. */
+ @apply inline-block text-sm font-semibold px-3 py-1 rounded-full leading-snug;
  }
 
  .account-status-pending {
