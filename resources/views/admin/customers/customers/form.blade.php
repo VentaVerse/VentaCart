@@ -74,10 +74,25 @@
                         <x-admin.field name="phone" label="Phone">
                             <input type="text" name="phone" class="v-control v-mono" value="{{ old('phone', $customer?->phone) }}">
                         </x-admin.field>
-                        <x-admin.field name="password" label="Password" :required="! $customer"
-                            :hint="$customer ? 'Leave blank to keep the current password.' : null">
-                            <input type="password" name="password" autocomplete="new-password" minlength="8" class="v-control" @required(! $customer)>
-                        </x-admin.field>
+                        @if ($customer)
+                            {{-- Not rendered until asked. An email field beside a password
+                                 field is a login form to Chrome, which then autofills the
+                                 ADMIN's saved credentials into the customer's record and
+                                 raises the Unsaved changes bar on a page nobody touched. --}}
+                            <div x-data="{ changing: {{ old('password') ? 'true' : 'false' }} }">
+                                <div class="v-label v-gap-sm">Password</div>
+                                <button type="button" class="v-btn v-btn--ghost v-btn--sm" x-show="!changing" @click="changing = true">Change password</button>
+                                <template x-if="changing">
+                                    <x-admin.field name="password" label="New password">
+                                        <input type="password" name="password" autocomplete="new-password" minlength="8" class="v-control" x-init="$nextTick(() => $el.focus())">
+                                    </x-admin.field>
+                                </template>
+                            </div>
+                        @else
+                            <x-admin.field name="password" label="Password" required>
+                                <input type="password" name="password" autocomplete="new-password" minlength="8" class="v-control" required>
+                            </x-admin.field>
+                        @endif
                     </div>
                     <div class="v-gap v-actrow">
                         <label class="v-toggle">

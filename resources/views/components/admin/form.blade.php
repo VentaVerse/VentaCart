@@ -15,7 +15,11 @@
      puts it, rather than a bar occupying the top of the viewport. The
      dirty tracking that bar introduced stays: it is the half that earned
      its keep, and it is what still guards an unsaved exit. --}}
-<form id="{{ $formId }}" method="POST" action="{{ $action }}" x-data="vForm()" {{ $attributes->except('id') }}>
+{{-- autocomplete="off": a doctrine form is a record editor, never a login.
+     Browser autofill and reload-time form restoration both write values
+     into fields after the baseline is taken, which raised the Unsaved
+     changes bar on a page nobody had touched. --}}
+<form id="{{ $formId }}" method="POST" action="{{ $action }}" x-data="vForm()" autocomplete="off" {{ $attributes->except('id') }}>
     @csrf
     @if ($spoof) @method($method) @endif
 

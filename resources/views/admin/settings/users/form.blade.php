@@ -23,10 +23,23 @@
                 <x-admin.field name="email" label="Email" required>
                     <input type="email" name="email" required class="v-control" value="{{ old('email', $user->email ?? '') }}">
                 </x-admin.field>
-                <x-admin.field name="password" label="Password" :required="! $user"
-                    :hint="$user ? 'Leave blank to keep the current password.' : null">
-                    <input type="password" name="password" autocomplete="new-password" class="v-control" @required(! $user)>
-                </x-admin.field>
+                @if ($user)
+                    {{-- Same guard as the customer form: no password field in the DOM
+                         until asked, so the browser sees no login form to autofill. --}}
+                    <div x-data="{ changing: {{ old('password') ? 'true' : 'false' }} }">
+                        <div class="v-label v-gap-sm">Password</div>
+                        <button type="button" class="v-btn v-btn--ghost v-btn--sm" x-show="!changing" @click="changing = true">Change password</button>
+                        <template x-if="changing">
+                            <x-admin.field name="password" label="New password">
+                                <input type="password" name="password" autocomplete="new-password" class="v-control" x-init="$nextTick(() => $el.focus())">
+                            </x-admin.field>
+                        </template>
+                    </div>
+                @else
+                    <x-admin.field name="password" label="Password" required>
+                        <input type="password" name="password" autocomplete="new-password" class="v-control" required>
+                    </x-admin.field>
+                @endif
             </div>
             <div class="v-gap">
                 <x-admin.field name="role_id" label="User group" required>
