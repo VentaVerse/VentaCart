@@ -64,6 +64,8 @@
                 </span>
 
                 <span class="v-lrow__acts">
+                    <button type="button" class="v-lrow__paint" :class="{ 'is-on': styled(unit), 'is-editing': editingRow === unit }"
+                            @click="editRow('{{ $region }}', u)" aria-label="Row style" title="Row style">&#9679;</button>
                     <button type="button" @click="nudgeRow('{{ $region }}', u, -1)" :disabled="u === 0"
                             aria-label="Move row up" title="Move row up">&uarr;</button>
                     <button type="button" @click="nudgeRow('{{ $region }}', u, 1)"

@@ -13,4 +13,6 @@ Route::prefix('extensions/theme/layout')->group(function () {
     Route::get('/', [LayoutController::class, 'index'])->name('layout');
     Route::post('/', [LayoutController::class, 'update'])->name('layout.update');
     Route::get('/schemas', [LayoutController::class, 'schemas'])->name('layout.schemas');
+    Route::post('/style-presets', [LayoutController::class, 'storeStylePreset'])->name('layout.style-presets.store');
+    Route::delete('/style-presets/{preset}', [LayoutController::class, 'destroyStylePreset'])->name('layout.style-presets.destroy');
 });

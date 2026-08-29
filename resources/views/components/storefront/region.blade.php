@@ -32,9 +32,17 @@
      is core markup on the theme's eight-column grid: the theme styles
      .layout-row and .layout-col, and decides nothing about what is inside. --}}
 @foreach ($vUnits as $vUnit)
-    @if ($vUnit['row'] && $vUnit['row']->isSplit())
-        @php $vWidths = \App\Models\LayoutRow::normalizeColumns($vUnit['row']->columns); @endphp
-        <div class="layout-row layout-row--{{ count($vWidths) }}" data-layout-row="{{ $vUnit['row']->id }}">
+    @php
+        $vRow = $vUnit['row'];
+        $vStyled = $vRow && \App\Support\RowStyle::isStyled($vRow->style);
+    @endphp
+    @if ($vRow && ($vRow->isSplit() || $vStyled))
+        @php $vWidths = \App\Models\LayoutRow::normalizeColumns($vRow->columns); @endphp
+        {{-- The style attribute carries the merchant's chosen values as custom
+             properties (data, not authored CSS); the rules live in
+             resources/css/storefront/layout-rows.css. --}}
+        <div class="layout-row layout-row--{{ count($vWidths) }} {{ $vStyled ? implode(' ', \App\Support\RowStyle::classes($vRow->style)) : '' }}"
+             data-layout-row="{{ $vRow->id }}" @if ($vStyled) style="{{ \App\Support\RowStyle::vars($vRow->style) }}" @endif>
             @foreach ($vWidths as $vIndex => $vWidth)
                 <div class="layout-col layout-col--{{ $vWidth }}">
                     @foreach ($vUnit['columns'][$vIndex] ?? [] as $placement)

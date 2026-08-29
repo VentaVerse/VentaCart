@@ -32,7 +32,7 @@
     </div>
 
     <x-admin.form :action="route('admin.layout.update')">
-      <div class="v-lay" :class="{ 'is-inspecting': editing }" x-data="layoutEditor(window.__layout)">
+      <div class="v-lay" :class="{ 'is-inspecting': editing || editingRow }" x-data="layoutEditor(window.__layout)">
         <input type="hidden" name="payload" :value="payload()">
 
         {{-- On a phone the 12-link rail filled the whole first viewport before
@@ -266,6 +266,166 @@
             </p>
         </div>
 
+        {{-- The row's own style, from a closed set of choices. Colours come
+             from the theme's palette or a hex; the storefront paints the row
+             from custom properties, the rules live in one shared stylesheet. --}}
+        <div class="v-lay__inspector v-lay__inspector--row" x-show="editingRow" x-cloak
+             @keydown.escape.window="editingRow = null">
+            <div class="v-lay__pickhead">
+                <b>Row style</b>
+                <button type="button" @click="editingRow = null" aria-label="Close">&times;</button>
+            </div>
+
+            <label class="v-lay__field">
+                <span>Style preset</span>
+                <span class="v-lay__withnew">
+                    <select @change="applyPreset($event.target.value); $event.target.value = ''">
+                        <option value="">Choose&hellip;</option>
+                        <template x-for="p in stylePresets" :key="p.id">
+                            <option :value="p.id" x-text="p.name"></option>
+                        </template>
+                    </select>
+                </span>
+            </label>
+
+            <div class="v-lay__field v-lay__presetsave">
+                <input type="text" placeholder="" x-model="presetName" aria-label="Preset name" maxlength="80">
+                <button type="button" class="v-btn v-btn--sm" @click="savePreset()" :disabled="!presetName.trim()">Save as preset</button>
+            </div>
+
+            <div class="v-lay__presets" x-show="stylePresets.length" x-cloak>
+                <template x-for="p in stylePresets" :key="'d' + p.id">
+                    <span class="v-lay__presetrow">
+                        <button type="button" @click="applyPreset(p.id)" x-text="p.name"></button>
+                        <button type="button" class="v-lay__presetx" @click="deletePreset(p)" :aria-label="'Delete preset ' + p.name">&times;</button>
+                    </span>
+                </template>
+            </div>
+
+            <label class="v-lay__field">
+                <span>Background</span>
+                <select :value="rs('bg')" @change="setRowStyle('bg', $event.target.value)">
+                    <option value="none">None</option>
+                    <option value="color">Colour</option>
+                    <option value="gradient">Gradient</option>
+                    <option value="image">Image</option>
+                </select>
+            </label>
+
+            <template x-if="rs('bg') === 'color' || rs('bg') === 'gradient'">
+                <div class="v-lay__field">
+                    <span x-text="rs('bg') === 'gradient' ? 'From' : 'Colour'"></span>
+                    <x-admin.row-color field="bg_color" />
+                </div>
+            </template>
+
+            <template x-if="rs('bg') === 'gradient'">
+                <div>
+                    <div class="v-lay__field">
+                        <span>To</span>
+                        <x-admin.row-color field="bg_color2" />
+                    </div>
+                    <label class="v-lay__field">
+                        <span>Angle</span>
+                        <input type="number" min="0" max="360" step="15" :value="rs('bg_angle')" @input="setRowStyle('bg_angle', $event.target.value)">
+                    </label>
+                </div>
+            </template>
+
+            <template x-if="rs('bg') === 'image'">
+                <div>
+                    <div class="v-lay__field">
+                        <span>Image</span>
+                        <span class="v-lay__imgpath">
+                            <span class="mono" x-text="rs('bg_image') || 'None chosen'"></span>
+                            <button type="button" class="v-lay__new" x-show="rs('bg_image')" @click="setRowStyle('bg_image', '')">Clear</button>
+                        </span>
+                        <x-admin.media-picker name="row_bg_image" root="banners" bare trigger="Choose image"
+                            @media:picked="setRowStyle('bg_image', $event.detail.path ?? ($event.detail.paths ?? [])[0] ?? '')" />
+                    </div>
+                    <label class="v-lay__field">
+                        <span>Size</span>
+                        <select :value="rs('bg_size')" @change="setRowStyle('bg_size', $event.target.value)">
+                            <option value="cover">Cover</option><option value="contain">Contain</option><option value="auto">Actual size</option>
+                        </select>
+                    </label>
+                    <label class="v-lay__field">
+                        <span>Position</span>
+                        <select :value="rs('bg_position')" @change="setRowStyle('bg_position', $event.target.value)">
+                            <option value="center">Center</option><option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option>
+                        </select>
+                    </label>
+                    <label class="v-lay__field">
+                        <span>Repeat</span>
+                        <select :value="rs('bg_repeat')" @change="setRowStyle('bg_repeat', $event.target.value)">
+                            <option value="no-repeat">No repeat</option><option value="repeat">Repeat</option>
+                        </select>
+                    </label>
+                    <label class="v-lay__field">
+                        <span>Scrolling</span>
+                        <select :value="rs('bg_attachment')" @change="setRowStyle('bg_attachment', $event.target.value)">
+                            <option value="scroll">Scrolls with the page</option><option value="fixed">Fixed</option>
+                        </select>
+                    </label>
+                </div>
+            </template>
+
+            <div class="v-lay__field">
+                <span>Text colour</span>
+                <x-admin.row-color field="text" />
+            </div>
+
+            <label class="v-lay__field">
+                <span>Padding</span>
+                <select :value="rs('pad')" @change="setRowStyle('pad', $event.target.value)">
+                    <option value="none">None</option><option value="sm">Small</option><option value="md">Medium</option><option value="lg">Large</option><option value="xl">Extra large</option>
+                </select>
+            </label>
+
+            <label class="v-lay__field">
+                <span>Width</span>
+                <select :value="rs('width')" @change="setRowStyle('width', $event.target.value)">
+                    <option value="contained">On the page</option><option value="full">Edge to edge</option>
+                </select>
+            </label>
+
+            <label class="v-lay__field">
+                <span>Border</span>
+                <select :value="rs('border')" @change="setRowStyle('border', $event.target.value)">
+                    <option value="none">None</option><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
+                </select>
+            </label>
+
+            <template x-if="rs('border') !== 'none'">
+                <div>
+                    <label class="v-lay__field">
+                        <span>Border width</span>
+                        <input type="number" min="1" max="8" :value="rs('border_width')" @input="setRowStyle('border_width', $event.target.value)">
+                    </label>
+                    <div class="v-lay__field">
+                        <span>Border colour</span>
+                        <x-admin.row-color field="border_color" />
+                    </div>
+                </div>
+            </template>
+
+            <label class="v-lay__field">
+                <span>Corners</span>
+                <select :value="rs('radius')" @change="setRowStyle('radius', $event.target.value)">
+                    <option value="none">Square</option><option value="sm">Slightly rounded</option><option value="md">Rounded</option><option value="lg">Very rounded</option>
+                </select>
+            </label>
+
+            <label class="v-lay__field">
+                <span>Shadow</span>
+                <select :value="rs('shadow')" @change="setRowStyle('shadow', $event.target.value)">
+                    <option value="none">None</option><option value="sm">Light</option><option value="md">Medium</option><option value="lg">Heavy</option>
+                </select>
+            </label>
+
+            <button type="button" class="v-lay__new" @click="clearRowStyle()">Remove all styling</button>
+        </div>
+
         {{-- Parts this theme declares but does not say where to draw. They
              have nowhere to stand on the stage, so they stand under it. A
              theme that names every part's home never renders this at all. --}}
@@ -371,6 +531,10 @@
                 rows: @js($rows),
                 inherited: @js($inherited),
                 layouts: @js($layouts),
+                themeColors: @js($themeColors),
+                stylePresets: @js($stylePresets),
+                styleDefaults: @js($styleDefaults),
+                stylePresetsUrl: @js($stylePresetsUrl),
                 widgets: @js($widgets),
                 schemas: @js($schemas),
                 pageSettings: @js($pageSettings),
@@ -397,6 +561,7 @@
                     id: unit.id ?? null,
                     columns: unit.columns && unit.columns.length ? unit.columns.slice() : [8],
                     enabled: unit.enabled !== false,
+                    style: unit.style ? { ...unit.style } : null,
                     cols: (unit.cols || [[]]).map((c) => c.slice()),
                 });
 
@@ -425,6 +590,13 @@
                     orphans: seed.orphans,
                     // Where the picker is open: { region, u, c }.
                     adding: null,
+                    // The row whose style is open in the inspector.
+                    editingRow: null,
+                    themeColors: seed.themeColors,
+                    stylePresets: seed.stylePresets,
+                    styleDefaults: seed.styleDefaults,
+                    stylePresetsUrl: seed.stylePresetsUrl,
+                    presetName: '',
                     // The plus that opened the picker, so Escape can hand
                     // focus back to it rather than dropping it on the body.
                     addingFrom: null,
@@ -469,6 +641,94 @@
                     },
 
                     commit() { this.rows = { ...this.rows }; },
+
+                    /* ---- row style ---- */
+
+                    editRow(region, u) {
+                        this.editing = null;
+                        this.editingRow = this.rows[region][u];
+                        if (!this.editingRow.style) this.editingRow.style = { ...this.styleDefaults };
+                    },
+
+                    rs(name) {
+                        const style = this.editingRow?.style ?? {};
+                        return style[name] ?? this.styleDefaults[name] ?? '';
+                    },
+
+                    setRowStyle(name, value) {
+                        if (!this.editingRow) return;
+                        if (!this.editingRow.style) this.editingRow.style = { ...this.styleDefaults };
+                        this.editingRow.style[name] = value;
+                        this.commit();
+                        this.touch();
+                    },
+
+                    clearRowStyle() {
+                        if (!this.editingRow) return;
+                        this.editingRow.style = { ...this.styleDefaults };
+                        this.commit();
+                        this.say('Row styling removed. Save to keep it.');
+                        this.touch();
+                    },
+
+                    /** Is this row painted at all? Drawn as a mark on its head. */
+                    styled(unit) {
+                        const s = unit.style;
+                        if (!s) return false;
+                        return s.bg !== 'none' || s.text !== '' || s.pad !== 'none' || s.width !== 'contained'
+                            || s.border !== 'none' || s.radius !== 'none' || s.shadow !== 'none';
+                    },
+
+                    /** A hex to show on a chip, whether the value is a hex or a theme key. */
+                    swatch(value) {
+                        if (!value) return 'transparent';
+                        if (value.startsWith('#')) return value;
+                        return (this.themeColors.find((c) => c.key === value) || {}).hex || 'transparent';
+                    },
+
+                    applyPreset(id) {
+                        const preset = this.stylePresets.find((p) => String(p.id) === String(id));
+                        if (!preset || !this.editingRow) return;
+                        this.editingRow.style = { ...this.styleDefaults, ...preset.style };
+                        this.commit();
+                        this.say('Preset ' + preset.name + ' applied. Save to keep it.');
+                        this.touch();
+                    },
+
+                    async savePreset() {
+                        const name = this.presetName.trim();
+                        if (!name || !this.editingRow) return;
+                        try {
+                            const res = await fetch(this.stylePresetsUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', Accept: 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '' },
+                                body: JSON.stringify({ name, style: this.editingRow.style ?? this.styleDefaults }),
+                            });
+                            if (!res.ok) throw new Error('refused');
+                            const preset = await res.json();
+                            this.stylePresets = [...this.stylePresets, preset].sort((a, b) => a.name.localeCompare(b.name));
+                            this.presetName = '';
+                            this.say('Preset ' + preset.name + ' saved.');
+                        } catch (e) {
+                            this.say('The preset could not be saved.');
+                        }
+                    },
+
+                    async deletePreset(preset) {
+                        try {
+                            const res = await fetch(this.stylePresetsUrl + '/' + preset.id, {
+                                method: 'DELETE',
+                                headers: { Accept: 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '' },
+                            });
+                            if (!res.ok) throw new Error('refused');
+                            this.stylePresets = this.stylePresets.filter((p) => p.id !== preset.id);
+                            this.say('Preset ' + preset.name + ' deleted.');
+                        } catch (e) {
+                            this.say('The preset could not be deleted.');
+                        }
+                    },
 
                     /* ---- rows ---- */
 
@@ -526,6 +786,7 @@
                         const unit = this.rows[region][u];
                         const n = unit.cols.flat().length;
                         if (unit.cols.flat().includes(this.editing)) this.editing = null;
+                        if (this.editingRow === unit) this.editingRow = null;
                         this.rows[region].splice(u, 1);
                         this.commit();
                         this.say('Row removed from ' + this.regionLabel(region)
@@ -937,7 +1198,8 @@
                                     }));
                                 });
                                 rows.push({
-                                    id: unit.id, region, columns: unit.columns, enabled: unit.enabled, placements,
+                                    id: unit.id, region, columns: unit.columns, enabled: unit.enabled,
+                                    style: unit.style, placements,
                                 });
                             });
                         });

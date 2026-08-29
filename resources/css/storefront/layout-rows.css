@@ -1,0 +1,73 @@
+/* ---------------------------------------------------------------------------
+   Rows inside a region: core markup the Layout editor produces, styled here
+   once for every theme that imports this file. A theme may override any of
+   it in its own stylesheet; the class names and the custom properties
+   (--row-bg, --row-text, --row-border, --row-bg-*) are the contract.
+
+   A split row is columns on the same eight-column grid as the page's rails,
+   so a 4+4 row and a 2/6 rail line up. Under the tablet breakpoint the
+   columns stack in their own order.
+--------------------------------------------------------------------------- */
+
+.layout-row {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.layout-col { min-width: 0; }
+.layout-col--1 { grid-column: span 1; }
+.layout-col--2 { grid-column: span 2; }
+.layout-col--3 { grid-column: span 3; }
+.layout-col--4 { grid-column: span 4; }
+.layout-col--5 { grid-column: span 5; }
+.layout-col--6 { grid-column: span 6; }
+.layout-col--7 { grid-column: span 7; }
+.layout-col--8 { grid-column: span 8; }
+
+@media (max-width: 767px) {
+    .layout-row { grid-template-columns: minmax(0, 1fr); }
+    .layout-col { grid-column: span 1 !important; }
+}
+
+/* ---- a styled row --------------------------------------------------- */
+
+.layout-row--styled { color: var(--row-text, inherit); }
+
+.layout-row--bg {
+    background: var(--row-bg);
+    background-size: var(--row-bg-size, auto);
+    background-position: var(--row-bg-position, center);
+    background-repeat: var(--row-bg-repeat, no-repeat);
+    background-attachment: var(--row-bg-attachment, scroll);
+}
+
+.layout-row--border { border: var(--row-border); }
+
+.layout-row--pad-sm { padding: 0.75rem; }
+.layout-row--pad-md { padding: 1.5rem; }
+.layout-row--pad-lg { padding: 2.5rem 1.5rem; }
+.layout-row--pad-xl { padding: 4rem 1.5rem; }
+
+.layout-row--radius-sm { border-radius: 0.375rem; }
+.layout-row--radius-md { border-radius: 0.75rem; }
+.layout-row--radius-lg { border-radius: 1.25rem; }
+
+.layout-row--shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.layout-row--shadow-md { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.layout-row--shadow-lg { box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18); }
+
+/* Full bleed: the background runs edge to edge while the content stays on
+   the page's measure. The wrapper escapes its container by the viewport's
+   margin on each side. */
+.layout-row--full {
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding-left: max(1.5rem, calc(50vw - 640px));
+    padding-right: max(1.5rem, calc(50vw - 640px));
+}
+
+/* A styled row with one column keeps its content full width. */
+.layout-row--1 > .layout-col { grid-column: span 8; }

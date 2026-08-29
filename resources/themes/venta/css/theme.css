@@ -1,3 +1,4 @@
+@import '../../../css/storefront/layout-rows.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -2580,32 +2581,6 @@
     aside.store-col { order: 2; }
 }
 
-/* ---------------------------------------------------------------------------
-   Rows inside a region (core markup, theme styling)
-
-   A split row from the Layout editor: columns on the same eight-column grid
-   as the page's rails, so a 4+4 row and a 2/6 rail line up. Under the tablet
-   breakpoint the columns stack in their own order.
---------------------------------------------------------------------------- */
-
-.layout-row {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 1.5rem;
-    align-items: start;
-}
-
-.layout-col { min-width: 0; }
-.layout-col--1 { grid-column: span 1; }
-.layout-col--2 { grid-column: span 2; }
-.layout-col--3 { grid-column: span 3; }
-.layout-col--4 { grid-column: span 4; }
-.layout-col--5 { grid-column: span 5; }
-.layout-col--6 { grid-column: span 6; }
-.layout-col--7 { grid-column: span 7; }
-.layout-col--8 { grid-column: span 8; }
-
-@media (max-width: 767px) {
-    .layout-row { grid-template-columns: minmax(0, 1fr); }
-    .layout-col { grid-column: span 1 !important; }
-}
+/* Rows inside a region: core markup from the Layout editor, styled once in
+   resources/css/storefront/layout-rows.css (imported at the top of this file)
+   and overridable here. */

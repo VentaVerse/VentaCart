@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\LayoutColumns;
 use App\Models\LayoutPlacement;
 use App\Models\LayoutRow;
+use App\Models\LayoutStylePreset;
+use App\Support\RowStyle;
 use App\Services\ThemeService;
 use App\Support\Regions;
 use App\Support\StorefrontPageType;
@@ -62,6 +64,13 @@ class LayoutController extends Controller
                 ? (object) []
                 : $this->units(LayoutPlacement::EVERYWHERE),
             'layouts' => LayoutRow::LAYOUTS,
+            // The theme's own colours, so a row can be painted in the look's
+            // vocabulary and keep following it when the look changes.
+            'themeColors' => $this->themeColors(),
+            'stylePresets' => LayoutStylePreset::where('theme', $theme)->orderBy('name')->get(['id', 'name', 'style'])
+                ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'style' => RowStyle::normalize($p->style)])->values(),
+            'styleDefaults' => RowStyle::DEFAULTS,
+            'stylePresetsUrl' => route('admin.layout.style-presets.store'),
             'widgets' => $this->catalogue($regions),
             // Every widget's settings form, resolved. Without this a merchant
             // can place a banner and never say WHICH banner.
@@ -131,6 +140,7 @@ class LayoutController extends Controller
                     'id' => $row?->id,
                     'columns' => $widths,
                     'enabled' => $row ? (bool) $row->is_enabled : true,
+                    'style' => RowStyle::normalize($row?->style),
                     'cols' => array_fill(0, count($widths), []),
                 ];
             }
@@ -149,6 +159,7 @@ class LayoutController extends Controller
                     'id' => $row->id,
                     'columns' => $widths,
                     'enabled' => (bool) $row->is_enabled,
+                    'style' => RowStyle::normalize($row->style),
                     'cols' => array_fill(0, count($widths), []),
                 ];
             }
@@ -285,6 +296,7 @@ class LayoutController extends Controller
                         'page_type' => $pageType,
                         'region' => $region,
                         'columns' => $widths,
+                        'style' => RowStyle::normalize($unit['style'] ?? []),
                         'sort_order' => $r,
                         'is_enabled' => (bool) ($unit['enabled'] ?? true),
                     ]
@@ -441,6 +453,54 @@ class LayoutController extends Controller
             $out,
             fn ($f) => $f['pages'] === null || in_array($pageType, $f['pages'], true)
         ));
+    }
+
+    /**
+     * The active theme's colours as the row inspector offers them: key, a
+     * readable label, and the current value so the chip can show it.
+     */
+    private function themeColors(): array
+    {
+        $colors = app(ThemeService::class)->getGroup('colors');
+        $out = [];
+
+        foreach ($colors as $key => $hex) {
+            if (! is_string($hex) || ! preg_match('/^#[0-9a-fA-F]{6}$/', $hex)) {
+                continue;
+            }
+            $out[] = ['key' => $key, 'label' => ucfirst(str_replace('_', ' ', $key)), 'hex' => strtoupper($hex)];
+        }
+
+        return $out;
+    }
+
+    /**
+     * A row style kept under a name. Its own record, saved on its own
+     * explicit control, like a module's record from the subject panel; the
+     * page's Save is for the layout.
+     */
+    public function storeStylePreset(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:80'],
+            'style' => ['required', 'array'],
+        ]);
+
+        $preset = LayoutStylePreset::create([
+            'theme' => LayoutPlacement::scopeTheme(),
+            'name' => $data['name'],
+            'style' => RowStyle::normalize($data['style']),
+        ]);
+
+        return response()->json(['id' => $preset->id, 'name' => $preset->name, 'style' => $preset->style]);
+    }
+
+    public function destroyStylePreset(LayoutStylePreset $preset)
+    {
+        abort_unless($preset->theme === LayoutPlacement::scopeTheme(), 404);
+        $preset->delete();
+
+        return response()->json(['ok' => true]);
     }
 
     /** The widget settings forms, refetched when the merchant comes back. */
