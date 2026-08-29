@@ -131,11 +131,18 @@ class PollCourierStatus extends Command
                     // courier_* columns aren't in core Order::$fillable — must forceFill.
                     // tracking_link IS fillable, but forceFill here keeps this a single call.
                     $order->forceFill($fill)->save();
-                    if ($statusChanged) {
-                        \Extensions\CourierFulfillment\StatusMapper::apply($order, $status);
-                        $updated++;
-                        $this->line("  order {$order->id}: " . ($old ?? '(none)') . " -> {$status}");
-                    }
+                }
+
+                // The map is consulted on EVERY poll, not only when the courier
+                // status changed. A mapping the merchant saved AFTER a parcel
+                // reached a status must still move the order: one sat on
+                // received_at_pickup_hub for days because the status never
+                // changed again, so the new mapping was never read. apply() is
+                // idempotent and returns false when the order is already there.
+                $moved = $status ? \Extensions\CourierFulfillment\StatusMapper::apply($order, $status) : false;
+                if ($statusChanged || $moved) {
+                    $updated++;
+                    $this->line("  order {$order->id}: " . ($old ?? '(none)') . " -> {$status}" . ($moved ? ' (order status moved)' : ''));
                 }
             }
         }
