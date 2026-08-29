@@ -471,9 +471,9 @@
                         this.say('Row added to ' + this.regionLabel(region) + '. Save to keep it.');
                         this.touch();
                         this.$nextTick(() => {
-                            const rows = root?.querySelectorAll('.v-slot .v-row');
-                            const last = el?.closest('.v-slot')?.querySelectorAll('.v-row:not(.v-row--inherit)');
-                            last?.[last.length - 1]?.querySelector('.v-rowcol__add')?.focus();
+                            const rows = root?.querySelectorAll('.v-slot .v-lrow');
+                            const last = el?.closest('.v-slot')?.querySelectorAll('.v-lrow:not(.v-lrow--inherit)');
+                            last?.[last.length - 1]?.querySelector('.v-lrowcol__add')?.focus();
                         });
                     },
 

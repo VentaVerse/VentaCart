@@ -22,10 +22,10 @@
          unexplained, and not editable from here, because it does not
          belong to this page. --}}
     <template x-for="(unit, u) in inheritedIn('{{ $region }}')" :key="'i' + u">
-        <div class="v-row v-row--inherit">
-            <div class="v-row__cols" :class="'v-row__cols--' + unit.columns.length">
+        <div class="v-lrow v-lrow--inherit">
+            <div class="v-lrow__cols" :class="'v-lrow__cols--' + unit.columns.length">
                 <template x-for="(col, c) in unit.cols" :key="c">
-                    <div class="v-rowcol" :style="'flex-grow:' + unit.columns[c]">
+                    <div class="v-lrowcol" :style="'flex-grow:' + unit.columns[c]">
                         <template x-for="row in col" :key="'i' + row.id">
                             <div class="v-card v-card--inherit">
                                 <span class="v-card__nm" x-text="row.title || row.widget"></span>
@@ -39,20 +39,20 @@
     </template>
 
     <template x-for="(unit, u) in rowsIn('{{ $region }}')" :key="unit.key">
-        <div class="v-row" :class="{ 'is-off': !unit.enabled, 'is-split': unit.columns.length > 1 }"
+        <div class="v-lrow" :class="{ 'is-off': !unit.enabled, 'is-split': unit.columns.length > 1 }"
              tabindex="0" role="group" :aria-label="'Row ' + (u + 1) + ' in {{ $label }}'"
              @keydown.ctrl.arrow-up.prevent="nudgeRow('{{ $region }}', u, -1)"
              @keydown.ctrl.arrow-down.prevent="nudgeRow('{{ $region }}', u, 1)">
 
-            <div class="v-row__head">
-                <span class="v-row__grip" aria-hidden="true">⣿</span>
+            <div class="v-lrow__head">
+                <span class="v-lrow__grip" aria-hidden="true">⣿</span>
 
                 {{-- The shape of the row, drawn: a merchant picks between
                      shapes, and the words for shapes are the worst available
                      description of them. --}}
-                <span class="v-row__shapes" role="group" aria-label="Columns">
+                <span class="v-lrow__shapes" role="group" aria-label="Columns">
                     <template x-for="shape in layouts" :key="shape.join('-')">
-                        <button type="button" class="v-shape" :class="{ 'is-on': sameShape(unit.columns, shape) }"
+                        <button type="button" class="v-lshape" :class="{ 'is-on': sameShape(unit.columns, shape) }"
                                 @click="setShape('{{ $region }}', u, shape)"
                                 :aria-pressed="sameShape(unit.columns, shape) ? 'true' : 'false'"
                                 :aria-label="shape.join(' + ') + ' of 8'" :title="shape.join(' + ')">
@@ -63,7 +63,7 @@
                     </template>
                 </span>
 
-                <span class="v-row__acts">
+                <span class="v-lrow__acts">
                     <button type="button" @click="nudgeRow('{{ $region }}', u, -1)" :disabled="u === 0"
                             aria-label="Move row up" title="Move row up">&uarr;</button>
                     <button type="button" @click="nudgeRow('{{ $region }}', u, 1)"
@@ -80,9 +80,9 @@
                 </span>
             </div>
 
-            <div class="v-row__cols" :class="'v-row__cols--' + unit.columns.length">
+            <div class="v-lrow__cols" :class="'v-lrow__cols--' + unit.columns.length">
                 <template x-for="(col, c) in unit.cols" :key="c">
-                    <div class="v-rowcol" :class="{ 'is-target': dragging }" :style="'flex-grow:' + unit.columns[c]"
+                    <div class="v-lrowcol" :class="{ 'is-target': dragging }" :style="'flex-grow:' + unit.columns[c]"
                          @dragover.prevent @drop.stop.prevent="drop('{{ $region }}', u, c)">
 
                         <template x-for="(row, i) in col" :key="row.id ?? ('n' + u + '-' + c + '-' + i)">
@@ -135,7 +135,7 @@
                             </div>
                         </template>
 
-                        <button type="button" class="v-rowcol__add" @click="openPicker('{{ $region }}', u, c, $el)"
+                        <button type="button" class="v-lrowcol__add" @click="openPicker('{{ $region }}', u, c, $el)"
                                 :aria-expanded="isAdding('{{ $region }}', u, c) ? 'true' : 'false'"
                                 aria-label="Add a widget to this column">+ Widget</button>
 
