@@ -166,6 +166,8 @@ class ThemeSeeder extends Seeder
         }
 
         // Nav Menu Items
+        $mainMenu = \App\Models\NavMenu::main();
+
         if (NavMenuItem::count() === 0) {
             $categories = \App\Models\Category::whereNull('parent_id')
                 ->where('is_active', true)
@@ -176,6 +178,7 @@ class ThemeSeeder extends Seeder
             $sort = 1;
             foreach ($categories as $cat) {
                 NavMenuItem::create([
+                    'menu_id' => $mainMenu->id,
                     'label' => $cat->name,
                     'type' => 'category',
                     'category_id' => $cat->id,
@@ -184,6 +187,7 @@ class ThemeSeeder extends Seeder
             }
 
             NavMenuItem::create([
+                'menu_id' => $mainMenu->id,
                 'label' => 'Blog',
                 'type' => 'custom',
                 'url' => '/blog',

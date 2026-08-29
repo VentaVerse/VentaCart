@@ -2737,3 +2737,46 @@ button.wgallery__item:focus-visible { outline: 2px solid var(--color-primary); o
 .wreviews__body { font-size: 0.9375rem; color: var(--color-text); }
 .wreviews__meta { font-size: 0.8125rem; color: var(--color-text); }
 .wreviews__meta a { color: var(--color-primary); }
+
+/* ===========================================================================
+   The composed menu (phase 4): mega menus, brand and HTML dropdowns, titles,
+   separators, accents, and the Menu widget. Outside the components layer:
+   the accent is a per-item custom property, the rest is plain markup.
+   =========================================================================== */
+
+.nav-accent { color: var(--nav-accent) !important; }
+.nav-sep { width: 1px; height: 1.25rem; background: var(--color-border); align-self: center; margin: 0 0.25rem; }
+.nav-title { font-family: var(--font-heading); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text); align-self: center; padding: 0 0.75rem; }
+.nav-dropdown-sep { display: block; height: 1px; background: var(--color-border); margin: 0.375rem 0; }
+.nav-dropdown-title { display: block; padding: 0.5rem 1.25rem 0.125rem; font-family: var(--font-heading); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text); }
+
+.nav-dropdown-wrap--mega { position: static; }
+.nav-mega {
+    left: 0; right: 0; width: 100%; min-width: 0;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1.5rem 2rem; padding: 1.5rem 2rem;
+}
+.nav-mega__col { display: grid; align-content: start; gap: 0.125rem; }
+.nav-mega__head { display: block; font-family: var(--font-heading); font-size: 0.8125rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-heading); padding: 0 0 0.5rem; }
+.nav-mega .nav-dropdown-item { padding: 0.25rem 0; }
+.nav-mega__col--brands { border-left: 1px solid var(--color-border); padding-left: 1.5rem; }
+.nav-mega__banner { grid-column: span 2; align-self: start; }
+.nav-mega__banner img { width: 100%; border-radius: 0.375rem; display: block; }
+.nav-mega__extra { grid-column: 1 / -1; border-top: 1px solid var(--color-border); padding-top: 0.5rem !important; }
+.nav-dropdown--html { padding: 1rem 1.25rem; min-width: 16rem; }
+.nav-dropdown--brands { columns: 2; column-gap: 1rem; min-width: 18rem; }
+
+.mobile-nav-sep { border: 0; height: 1px; background: var(--color-border); margin: 0.5rem 1.25rem; }
+.mobile-nav-title { display: block; padding: 0.75rem 1.25rem 0.25rem; font-family: var(--font-heading); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text); }
+
+.wmenu { padding-top: 1rem; padding-bottom: 1rem; }
+.wmenu__title { margin-bottom: 0.75rem; }
+.wmenu__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+.wmenu--vertical .wmenu__list { flex-direction: column; gap: 0.375rem; }
+.wmenu__item > a { font-family: var(--font-heading); color: var(--color-text-heading); }
+.wmenu__item > a:hover { color: var(--color-primary); }
+.wmenu__sub { list-style: none; margin: 0.25rem 0 0; padding: 0 0 0 0.75rem; display: grid; gap: 0.125rem; font-size: 0.875rem; }
+.wmenu__sub a { color: var(--color-text); }
+.wmenu__heading { font-family: var(--font-heading); font-size: 0.6875rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text); align-self: center; }
+.wmenu__sep { width: 1px; height: 1rem; background: var(--color-border); align-self: center; }
+.wmenu--vertical .wmenu__sep { width: auto; height: 1px; margin: 0.25rem 0; }
+

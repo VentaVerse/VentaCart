@@ -201,6 +201,22 @@ class CoreWidgets
             ],
         ]);
 
+        // Any composed menu, anywhere: a footer menu under the content, a
+        // second bar above the header.
+        Widgets::register('nav.menu', [
+            'title' => 'Menu',
+            'shape' => 'strip',
+            'module' => 'navigation',
+            'view' => 'widgets.nav.menu',
+            'schema' => [
+                'menu' => ['type' => 'select', 'label' => 'Which menu',
+                    'options' => fn () => \App\Models\NavMenu::orderBy('name')->pluck('name', 'key')->all()],
+                'direction' => ['type' => 'select', 'label' => 'Direction', 'default' => 'horizontal',
+                    'options' => ['horizontal' => 'Across', 'vertical' => 'Down']],
+            ],
+            'resolve' => fn (array $config) => ['tree' => \App\Support\NavTree::for((string) ($config['menu'] ?? \App\Models\NavMenu::MAIN))],
+        ]);
+
         Widgets::register('social.facebook', [
             'title' => 'Facebook page',
             'shape' => 'block',

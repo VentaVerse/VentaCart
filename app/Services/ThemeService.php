@@ -173,6 +173,8 @@ class ThemeService
         Cache::forget(self::CACHE_KEY);
         Cache::forget('theme_homepage_sections');
         Cache::forget('theme_nav_items');
+        Cache::forget('nav_subcategories');
+        \App\Support\NavTree::forget();
         Cache::forget('theme_footer_columns');
         Cache::forget('theme_currencies');
         Cache::forget('nav_subcategories');

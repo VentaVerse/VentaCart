@@ -90,6 +90,8 @@ class StoreLayout extends Component
             'bodyFont' => $bodyFont,
             'navItems' => $navItems,
             'navSubcategories' => $navSubcategories,
+            // The composed main menu, resolved: what the header draws now.
+            'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
             'footerColumns' => $theme->getFooterColumns(),
             'currencies' => $theme->getActiveCurrencies(),
             'defaultCurrency' => $theme->getDefaultCurrency(),

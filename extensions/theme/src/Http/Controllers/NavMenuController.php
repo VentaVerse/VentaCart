@@ -21,6 +21,7 @@ class NavMenuController extends Controller
         $maxSort = NavMenuItem::max('sort_order') ?? 0;
 
         NavMenuItem::create([
+            'menu_id' => \App\Models\NavMenu::main()->id,
             'label' => $request->input('label'),
             'type' => $request->input('type'),
             'category_id' => $request->input('type') === 'category' ? $request->input('category_id') : null,

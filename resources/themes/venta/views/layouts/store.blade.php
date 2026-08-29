@@ -200,49 +200,8 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
-                @foreach ($navItems as $item)
-                    @php $subs = $navSubcategories[$item->category_id] ?? []; @endphp
-                    @if (count($subs) > 0)
-                        <div x-data="{ expanded: false }">
-                            <div class="mobile-nav-parent">
-                                <a href="{{ $item->resolved_url }}" @if ($item->new_tab) target="_blank" rel="noopener" @endif>
-                                    {{ $item->label }}
-                                </a>
-                                <button @click="expanded = !expanded" class="mobile-nav-toggle">
-                                    <svg :class="expanded && 'rotate-180'" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                </button>
-                            </div>
-                            <div x-show="expanded" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-                                <div class="mobile-nav-subs">
-                                    @foreach ($subs as $sub)
-                                        @if (!empty($sub['children']))
-                                            <div x-data="{ subExpanded: false }">
-                                                <div class="mobile-nav-parent">
-                                                    <a href="{{ route('category.show', $sub['slug']) }}">{{ $sub['name'] }}</a>
-                                                    <button @click="subExpanded = !subExpanded" class="mobile-nav-toggle">
-                                                        <svg :class="subExpanded && 'rotate-180'" class="w-3.5 h-3.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                                    </button>
-                                                </div>
-                                                <div x-show="subExpanded" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-                                                    <div class="mobile-nav-subs">
-                                                        @foreach ($sub['children'] as $grandchild)
-                                                            <a href="{{ route('category.show', $grandchild['slug']) }}">{{ $grandchild['name'] }}</a>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @else
-                                            <a href="{{ route('category.show', $sub['slug']) }}">{{ $sub['name'] }}</a>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    @else
-                        <a href="{{ $item->resolved_url }}" @if ($item->new_tab) target="_blank" rel="noopener" @endif>
-                            {{ $item->label }}
-                        </a>
-                    @endif
+                @foreach ($navTree as $node)
+                    @include('partials.header.parts.mobile-node', ['node' => $node])
                 @endforeach
             </div>
         </div>
