@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderStatus extends Model
 {
-    protected $fillable = ['store_id', 'name', 'is_default', 'deducts_stock', 'counts_as_revenue', 'sort_order'];
+    protected $fillable = ['store_id', 'name', 'is_default', 'deducts_stock', 'counts_as_revenue', 'customer_can_cancel', 'sort_order'];
 
     protected function casts(): array
     {
@@ -24,6 +24,7 @@ class OrderStatus extends Model
             // independent of it thereafter: a lost or damaged parcel deducted
             // stock and earned nothing. Read ONLY through App\Support\Revenue.
             'counts_as_revenue' => 'boolean',
+            'customer_can_cancel' => 'boolean',
         ];
     }
 

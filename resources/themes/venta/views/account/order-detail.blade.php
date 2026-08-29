@@ -8,6 +8,13 @@
             @include('account.partials.sidebar')
 
             <div class="space-y-6">
+                @if (session('success'))
+                    <div class="account-flash-success reveal">{{ session('success') }}</div>
+                @endif
+                @if (session('error'))
+                    <div class="account-flash-error reveal">{{ session('error') }}</div>
+                @endif
+
                 {{-- Order Summary Header --}}
                 <div class="account-card reveal">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -29,6 +36,25 @@
                             <p class="text-lg text-[var(--color-text-heading)]" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</p>
                         </div>
                     </div>
+
+                    {{-- Cancel: only while the status allows it (Settings, Orders,
+                         Customer may cancel). One confirm step with an optional
+                         reason; after it the button is gone and the status above
+                         says where the order went. --}}
+                    @if ($canCancel ?? false)
+                        <div class="mt-6 pt-6 border-t border-[var(--color-border)]" x-data="{ open: false }">
+                            <button type="button" class="account-btn-secondary text-sm" x-show="!open" @click="open = true">CANCEL THIS ORDER</button>
+                            <form method="POST" action="{{ route('account.orders.cancel', $order) }}" x-show="open" x-cloak class="space-y-3">
+                                @csrf
+                                <label class="account-label" for="cancel-reason">Reason (optional)</label>
+                                <input id="cancel-reason" type="text" name="reason" maxlength="500" class="account-input" value="{{ old('reason') }}">
+                                <div class="flex flex-wrap gap-3">
+                                    <button type="submit" class="account-btn-danger text-sm">YES, CANCEL ORDER #{{ $order->id }}</button>
+                                    <button type="button" class="account-btn-secondary text-sm" @click="open = false">KEEP IT</button>
+                                </div>
+                            </form>
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Addresses --}}

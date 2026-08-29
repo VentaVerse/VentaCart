@@ -31,8 +31,29 @@ class OrderHistoryController extends Controller
         // moment an admin removed a status.
         abort_if(is_null($order->order_status_name), 404);
 
-        $order->load(['products', 'histories']);
+        $order->load(['products', 'histories', 'status']);
+        $canCancel = \App\Services\CustomerOrderCancellation::allowed($order, Auth::guard('customer')->user());
 
-        return view('account.order-detail', compact('order'));
+        return view('account.order-detail', compact('order', 'canCancel'));
+    }
+
+    /**
+     * The customer cancels their own order, while its status still allows
+     * it. The service holds the rule and the row lock; this only answers
+     * the page.
+     */
+    public function cancel(\Illuminate\Http\Request $request, Order $order)
+    {
+        abort_if($order->customer_id !== Auth::guard('customer')->id(), 403);
+
+        $validated = $request->validate(['reason' => ['nullable', 'string', 'max:500']]);
+
+        try {
+            $status = \App\Services\CustomerOrderCancellation::cancel($order, Auth::guard('customer')->user(), $validated['reason'] ?? null);
+        } catch (\RuntimeException $e) {
+            return redirect()->route('account.orders.show', $order)->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('account.orders.show', $order)->with('success', 'Order #' . $order->id . ' cancelled. It is now ' . $status->name . '.');
     }
 }

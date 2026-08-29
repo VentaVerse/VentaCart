@@ -220,6 +220,26 @@ class EmailTemplateSeeder extends Seeder
             ],
         ];
 
+        $templates[] = [
+            'slug' => 'order_cancelled_by_customer_admin',
+            'name' => 'Order Cancelled by Customer (Admin)',
+            'subject' => 'Order #{order_id} cancelled by {customer_name}',
+            'type' => 'admin',
+            'body' => '<p>A customer cancelled their order from their account.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 16px 0;">
+<tr><td style="padding: 16px 20px; background-color: #222222; border-radius: 6px;">
+<p style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; color: #999999; text-transform: uppercase; letter-spacing: 1px;">Order Details</p>
+<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Order ID:</strong> <span style="color: #F5A623;">#{order_id}</span></p>
+<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Customer:</strong> {customer_name}</p>
+<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Email:</strong> {customer_email}</p>
+<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Total:</strong> {order_total}</p>
+<p style="margin: 0 0 4px 0; font-size: 14px; color: #e8e8e8;"><strong>Was on:</strong> {old_status}</p>
+<p style="margin: 0; font-size: 14px; color: #e8e8e8;"><strong>Now on:</strong> {new_status}</p>
+</td></tr>
+</table>
+{comment}',
+        ];
+
         foreach ($templates as $template) {
             // firstOrCreate: subjects and bodies are edited in the admin,
             // often in the store's own voice and language. A new template ships

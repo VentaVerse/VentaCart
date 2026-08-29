@@ -17,6 +17,7 @@ class EmailTemplateController extends Controller
         'welcome' => ['customer_name', 'store_name', 'store_url'],
         'password_reset' => ['customer_name', 'reset_url', 'store_name'],
         'review_request' => ['customer_name', 'product_name', 'product_image', 'review_url', 'store_name'],
+        'order_cancelled_by_customer_admin' => ['order_id', 'customer_name', 'customer_email', 'order_total', 'old_status', 'new_status', 'comment', 'store_name'],
         'new_order_admin' => ['order_id', 'customer_name', 'customer_email', 'subtotal', 'shipping_method', 'shipping_cost', 'order_total', 'order_items', 'shipping_address', 'payment_method', 'comment'],
         'low_stock_admin' => ['product_name', 'product_sku', 'current_qty', 'store_name'],
     ];

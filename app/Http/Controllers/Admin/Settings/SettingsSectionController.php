@@ -36,6 +36,11 @@ class SettingsSectionController extends Controller
         if ($section === 'currencies') {
             $data['currencies'] = Currency::orderBy('is_default', 'desc')->orderBy('code')->get();
         }
+        if ($section === 'checkout') {
+            // For "Cancelled by customer lands on".
+            $data['orderStatuses'] = \App\Models\OrderStatus::where('store_id', (int) config('app.store_id', 1))
+                ->orderBy('sort_order')->orderBy('name')->pluck('name', 'id')->all();
+        }
         if ($section === 'automations') {
             $data['automations'] = Automation::orderBy('id')->get();
         }

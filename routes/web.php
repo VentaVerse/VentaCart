@@ -100,6 +100,7 @@ Route::prefix('account')->name('account.')->middleware(['customer.auth', 'noinde
 
     Route::get('/orders', [OrderHistoryController::class, 'index'])->name('orders');
     Route::get('/orders/{order}', [OrderHistoryController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{order}/cancel', [OrderHistoryController::class, 'cancel'])->name('orders.cancel');
 });
 
 require __DIR__.'/admin.php';

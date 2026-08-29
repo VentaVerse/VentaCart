@@ -124,6 +124,7 @@ class OrderStatusController extends Controller
             'rows.*.name' => ['required', 'string', 'max:255'],
             'rows.*.deducts_stock' => ['boolean'],
             'rows.*.counts_as_revenue' => ['boolean'],
+            'rows.*.customer_can_cancel' => ['boolean'],
             'rows.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'default_id' => ['required', 'integer'],
         ]);
@@ -145,6 +146,7 @@ class OrderStatusController extends Controller
                     'name' => $row['name'],
                     'deducts_stock' => filter_var($row['deducts_stock'] ?? false, FILTER_VALIDATE_BOOL),
                     'counts_as_revenue' => filter_var($row['counts_as_revenue'] ?? false, FILTER_VALIDATE_BOOL),
+                    'customer_can_cancel' => filter_var($row['customer_can_cancel'] ?? false, FILTER_VALIDATE_BOOL),
                     'sort_order' => $row['sort_order'] ?? 0,
                     'is_default' => (int) $id === (int) $validated['default_id'],
                 ]);

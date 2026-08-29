@@ -35,6 +35,18 @@
              is the classic order comment; the message to the courier is what
              fulfillment hands the rider at booking. Labels follow the
              settings-as-fallback pattern: blank uses the default. --}}
+        <x-admin.panel title="Cancellation by the customer"
+            note="A customer can cancel their own order from their account while it sits on a status marked Customer may cancel (Settings, Orders). This is the status the order moves to when they do.">
+            <x-admin.field name="groups.checkout.customer_cancel_status_id" label="Cancelled by customer lands on">
+                <select name="groups[checkout][customer_cancel_status_id]" class="v-control">
+                    <option value="" @selected(empty($settings['checkout']['customer_cancel_status_id'] ?? ''))>Use default (Canceled)</option>
+                    @foreach ($orderStatuses as $id => $name)
+                        <option value="{{ $id }}" @selected((string) ($settings['checkout']['customer_cancel_status_id'] ?? '') === (string) $id)>{{ $name }}</option>
+                    @endforeach
+                </select>
+            </x-admin.field>
+        </x-admin.panel>
+
         <x-admin.panel title="Order messages">
             <label class="v-toggle">
                 <input type="hidden" name="groups[checkout][comment_store_enabled]" value="0">
