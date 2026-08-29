@@ -163,9 +163,10 @@ class LayoutThemeScopeTest extends TestCase
 
         $html = $this->get(route('admin.theme.layout', ['page' => 'cart']))->assertOk()->getContent();
 
-        preg_match('/placements: (\{.*?\}|\[\]),\n/s', $html, $m);
+        // The seed is rows now (phase 1 of the Plaza plan); the rule is the same.
+        preg_match('/rows: (\{.*?\}|\[\]),\n/s', $html, $m);
 
-        $this->assertNotEmpty($m, 'Could not find the placements seed in the page.');
+        $this->assertNotEmpty($m, 'Could not find the rows seed in the page.');
         $this->assertSame('{}', $m[1], 'An empty page seeds a JS Array, which Alpine cannot react to.');
     }
 

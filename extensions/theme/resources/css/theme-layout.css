@@ -1013,3 +1013,40 @@
 
     .v-card .v-tag { order: 1; }
 }
+
+
+/* ---- rows inside a position ------------------------------------------- */
+
+.v-row { border: 1px solid var(--v-line); border-radius: 8px; background: var(--v-sheet); margin-bottom: 8px; }
+.v-row:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
+.v-row.is-off { opacity: 0.55; }
+.v-row--inherit { border-style: dashed; background: transparent; }
+
+.v-row__head { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-bottom: 1px solid var(--v-line); font-size: 12px; color: var(--v-ink-3); }
+.v-row__grip { cursor: grab; color: var(--v-ink-3); }
+.v-row__shapes { display: inline-flex; gap: 4px; }
+
+.v-shape { display: inline-flex; gap: 2px; width: 34px; height: 18px; padding: 2px; border: 1px solid var(--v-line); border-radius: 4px; background: var(--v-sheet); cursor: pointer; }
+.v-shape i { display: block; flex-basis: 0; background: var(--v-ink-3); border-radius: 2px; opacity: 0.55; }
+.v-shape.is-on { border-color: var(--v-act-fill); }
+.v-shape.is-on i { background: var(--v-act-fill); opacity: 1; }
+.v-shape:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
+
+.v-row__acts { margin-left: auto; display: inline-flex; gap: 2px; }
+.v-row__acts button { min-width: 24px; height: 24px; border: 0; background: transparent; color: var(--v-ink-3); border-radius: 4px; cursor: pointer; }
+.v-row__acts button:hover:not(:disabled) { background: var(--v-paper); color: var(--v-ink); }
+.v-row__acts button:disabled { opacity: 0.35; cursor: default; }
+
+.v-row__cols { display: flex; gap: 8px; padding: 8px; align-items: stretch; }
+.v-rowcol { flex-basis: 0; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 6px; border: 1px dashed transparent; border-radius: 6px; }
+.v-row.is-split .v-rowcol { border-color: var(--v-line); }
+.v-rowcol.is-target { border-color: var(--v-act-fill); background: color-mix(in srgb, var(--v-act-fill) 6%, transparent); }
+
+.v-rowcol__add { align-self: flex-start; border: 1px dashed var(--v-line); background: transparent; color: var(--v-ink-3); font-size: 12px; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.v-rowcol__add:hover { color: var(--v-ink); border-color: var(--v-ink-3); }
+.v-rowcol__add:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
+
+@media (max-width: 720px) {
+    .v-row__cols { flex-direction: column; }
+    .v-row__shapes { display: none; }
+}

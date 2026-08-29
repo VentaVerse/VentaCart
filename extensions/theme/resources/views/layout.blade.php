@@ -360,8 +360,9 @@
             window.__layout = {
                 pageType: @js($pageType),
                 regions: @js($regions),
-                placements: @js($placements),
+                rows: @js($rows),
                 inherited: @js($inherited),
+                layouts: @js($layouts),
                 widgets: @js($widgets),
                 schemas: @js($schemas),
                 pageSettings: @js($pageSettings),
@@ -378,6 +379,24 @@
                 // on the checkbox that called it and re-entered itself:
                 // "Maximum call stack size exceeded" on every page-setting click.
                 let root = null;
+                let nextKey = 1;
+
+                // A row as the editor holds it: its columns (widths in eighths),
+                // its cards per column, and a stable key for x-for so a row
+                // keeps its DOM while it is moved.
+                const wrap = (unit) => ({
+                    key: 'r' + (nextKey++),
+                    id: unit.id ?? null,
+                    columns: unit.columns && unit.columns.length ? unit.columns.slice() : [8],
+                    enabled: unit.enabled !== false,
+                    cols: (unit.cols || [[]]).map((c) => c.slice()),
+                });
+
+                const seedRows = {};
+                const seeded = Array.isArray(seed.rows) ? {} : (seed.rows || {});
+                Object.entries(seeded).forEach(([region, units]) => {
+                    seedRows[region] = units.map(wrap);
+                });
 
                 return {
                     pageType: seed.pageType,
@@ -385,21 +404,18 @@
                     // An OBJECT even when the server sent nothing. A JS Array with
                     // string keys assigned to it is not reactive in Alpine, and
                     // the payload input silently kept its load-time value.
-                    rows: Array.isArray(seed.placements) ? {} : seed.placements,
+                    rows: seedRows,
                     inherited: seed.inherited,
+                    layouts: seed.layouts,
                     widgets: seed.widgets,
                     cols: { left: seed.cols.left, right: seed.cols.right },
                     grid: seed.grid,
                     minContent: seed.minContent,
                     schemas: seed.schemas,
-                    // Never copied off the seed, so refreshChoices() has been
-                    // fetching the string "undefined" since it was written: a
-                    // 404 on every window focus, and the choices never once
-                    // refreshed. Found when the panel's own save started
-                    // calling it.
                     schemasUrl: seed.schemasUrl,
                     pageSettings: seed.pageSettings,
                     orphans: seed.orphans,
+                    // Where the picker is open: { region, u, c }.
                     adding: null,
                     // The plus that opened the picker, so Escape can hand
                     // focus back to it rather than dropping it on the body.
@@ -412,49 +428,120 @@
                     frameUrl: null,
                     frameTitle: '',
                     frameSteps: 0,
-                    // A back we asked for lands as another 'ready', which
-                    // would add back the step it just removed.
                     frameGoingBack: false,
                     dragging: null,
                     moving: null,
                     announcement: '',
                     sayTimer: null,
 
-                    /** Named `placed`, never `in`: `in` is a JS operator and Alpine
-                     *  could not parse the expression, so every slot threw. */
                     init() {
                         root = this.$root ?? this.$el;
                         window.addEventListener('focus', () => this.refreshChoices());
                         window.addEventListener('message', (e) => this.hearFrame(e));
                     },
 
-                    placed(region) { return this.rows[region] || []; },
+                    /* ---- reading ---- */
+
+                    rowsIn(region) { return this.rows[region] || []; },
+
+                    /** Every card in a position, whatever row or column it is in. */
+                    cardsIn(region) {
+                        return this.rowsIn(region).flatMap((u) => u.cols.flat());
+                    },
 
                     regionLabel(region) { return (this.regions[region] || {}).label || region; },
 
                     /** Rows a page inherits from All pages. Shown, never editable here. */
                     inheritedIn(region) {
-                        return this.inherited.filter((r) => r.region === region);
+                        return (this.inherited[region] || []);
                     },
 
-                    /* ---- adding ---- */
+                    sameShape(a, b) {
+                        return a.length === b.length && a.every((w, i) => w === b[i]);
+                    },
+
+                    commit() { this.rows = { ...this.rows }; },
+
+                    /* ---- rows ---- */
+
+                    addRow(region, el) {
+                        if (!this.rows[region]) this.rows[region] = [];
+                        this.rows[region].push(wrap({ columns: [8], cols: [[]] }));
+                        this.commit();
+                        this.say('Row added to ' + this.regionLabel(region) + '. Save to keep it.');
+                        this.touch();
+                        this.$nextTick(() => {
+                            const rows = root?.querySelectorAll('.v-slot .v-row');
+                            const last = el?.closest('.v-slot')?.querySelectorAll('.v-row:not(.v-row--inherit)');
+                            last?.[last.length - 1]?.querySelector('.v-rowcol__add')?.focus();
+                        });
+                    },
+
+                    /**
+                     * Changing the shape keeps every card: columns that vanish
+                     * hand their cards to the last column that remains, in
+                     * order, rather than dropping them off the page.
+                     */
+                    setShape(region, u, shape) {
+                        const unit = this.rows[region][u];
+                        const cols = shape.map((_, i) => unit.cols[i] ? unit.cols[i].slice() : []);
+                        if (unit.cols.length > shape.length) {
+                            const spill = unit.cols.slice(shape.length).flat();
+                            cols[shape.length - 1].push(...spill);
+                        }
+                        unit.columns = shape.slice();
+                        unit.cols = cols;
+                        this.commit();
+                        this.say('Row set to ' + shape.join(' + ') + '. Save to keep it.');
+                        this.touch();
+                    },
+
+                    nudgeRow(region, u, by) {
+                        const list = this.rows[region];
+                        const to = u + by;
+                        if (!list || to < 0 || to >= list.length) return;
+                        [list[u], list[to]] = [list[to], list[u]];
+                        this.commit();
+                        this.say('Row moved ' + (by < 0 ? 'up' : 'down'));
+                        this.touch();
+                    },
+
+                    toggleRow(region, u) {
+                        const unit = this.rows[region][u];
+                        unit.enabled = !unit.enabled;
+                        this.say('Row ' + (unit.enabled ? 'shown' : 'hidden') + '. Save to keep it.');
+                        this.touch();
+                    },
+
+                    /** Removing a row removes what is in it, and says how much. */
+                    removeRow(region, u) {
+                        const unit = this.rows[region][u];
+                        const n = unit.cols.flat().length;
+                        if (unit.cols.flat().includes(this.editing)) this.editing = null;
+                        this.rows[region].splice(u, 1);
+                        this.commit();
+                        this.say('Row removed from ' + this.regionLabel(region)
+                            + (n ? ' with ' + n + (n === 1 ? ' widget' : ' widgets') : '') + '. Save to keep it.');
+                        this.touch();
+                    },
+
+                    /* ---- adding widgets ---- */
 
                     offerable(region) {
                         if (!region) return [];
                         return this.widgets.filter((w) => w.regions.includes(region));
                     },
 
+                    isAdding(region, u, c) {
+                        return !!this.adding && this.adding.region === region && this.adding.u === u && this.adding.c === c;
+                    },
+
                     /**
-                     * Opening in place, and moving focus with it.
-                     *
-                     * Pressing the plus used to leave focus on the plus while
-                     * the panel opened in another corner of the screen, so a
-                     * keyboard merchant could open the picker and never reach
-                     * it. Both halves are here: focus in on open, focus back
-                     * on close.
+                     * Opening in place, and moving focus with it: focus in on
+                     * open, focus back on close.
                      */
-                    openPicker(region, el) {
-                        this.adding = region;
+                    openPicker(region, u, c, el) {
+                        this.adding = { region, u, c };
                         this.addingFrom = el;
                         this.$nextTick(() => {
                             root?.querySelector('.v-slot__pick .v-pickcard')?.focus();
@@ -469,13 +556,14 @@
                     },
 
                     add(w) {
-                        const region = this.adding;
-                        if (!this.rows[region]) this.rows[region] = [];
-                        this.rows[region].push({
+                        const { region, u, c } = this.adding;
+                        const unit = this.rows[region]?.[u];
+                        if (!unit) return;
+                        unit.cols[c].push({
                             id: null, widget: w.key, title: w.title,
                             label: w.title, enabled: true, available: true, config: {},
                         });
-                        this.rows = { ...this.rows };
+                        this.commit();
                         this.say(w.title + ' added to ' + this.regionLabel(region) + '. Save to keep it.');
                         this.closePicker();
                         this.touch();
@@ -483,30 +571,17 @@
 
                     /* ---- settings ---- */
 
-                    edit(region, i) { this.editing = this.rows[region][i]; },
-
-                    /** Silent before: the live region carried moves and rescues
-                     *  and said nothing for the two commonest actions. */
-                    announceToggle(row) {
-                        this.say((row.title || row.label) + (row.enabled ? ' shown' : ' hidden') + '. Save to keep it.');
-                    },
-
-                    announceRemove(label, region) {
-                        this.say(label + ' removed from ' + this.regionLabel(region) + '. Save to keep it.');
-                    },
+                    edit(row) { this.editing = row; },
 
                     schemaFor(widget) { return widget ? (this.schemas[widget] || []) : []; },
 
                     /**
-                     * Falls back to the schema's declared default. A freshly added
-                     * Product grid showed Show and How many both blank while it
-                     * would in fact render the 12 newest, so the merchant had to
-                     * remember what the blank meant.
+                     * Falls back to the schema's declared default, so a freshly
+                     * added Product grid does not show Show and How many blank.
                      */
                     cfg(name) {
                         const set = this.editing?.config ?? {};
                         if (set[name] !== undefined && set[name] !== '') return set[name];
-
                         const field = this.schemaFor(this.editing?.widget).find((f) => f.name === name);
                         return field?.default ?? '';
                     },
@@ -519,17 +594,10 @@
 
                     /* ---- page parts ---- */
 
-                    /**
-                     * The parts that belong to one place in the stage. Passing
-                     * null asks for the ones this theme declared without saying
-                     * where they live, which are the only ones that still need
-                     * a panel of their own.
-                     */
                     partsIn(part) {
                         return this.pageSettings.filter((f) => (f.part ?? null) === part);
                     },
 
-                    /** Is every part of this piece of chrome switched on? */
                     partOn(part) {
                         return this.partsIn(part).every((f) => f.value);
                     },
@@ -542,19 +610,10 @@
 
                     /* ---- the subject panel ---- */
 
-                    /**
-                     * The one schema field that points at a record, or null.
-                     *
-                     * A widget declares this by handing over browse rows; core
-                     * never lists the widgets that have a subject, so the day a
-                     * module adds one it appears here without a core edit.
-                     */
                     subjectOf(row) {
                         const field = this.schemaFor(row?.widget).find((f) => Array.isArray(f.browse));
                         if (!field) return null;
-
                         const value = row?.config?.[field.name] ?? field.default ?? '';
-
                         return {
                             field,
                             browse_label: field.browse_label,
@@ -565,7 +624,6 @@
                     openSubject(row) {
                         const subject = this.subjectOf(row);
                         if (!subject) return;
-
                         this.panel = { row, field: subject.field };
                         this.frameUrl = null;
                         this.frameTitle = '';
@@ -580,33 +638,24 @@
                         this.frameSteps = 0;
                     },
 
-                    /** What this placement currently points at. */
                     panelValue() {
                         const name = this.panel?.field?.name;
                         if (!name) return '';
-
                         return this.panel.row?.config?.[name] ?? this.panel.field.default ?? '';
                     },
 
-                    /**
-                     * Choosing writes nothing. It is layout state, so it arms
-                     * this page's Save alongside every other arrangement change.
-                     */
                     chooseSubject(choice) {
                         const name = this.panel?.field?.name;
                         if (!name || choice.value === this.panelValue()) return;
-
                         if (!this.panel.row.config) this.panel.row.config = {};
                         this.panel.row.config[name] = choice.value;
-                        this.rows = { ...this.rows };
+                        this.commit();
                         this.say(choice.label + ' placed. Save to keep it.');
                         this.touch();
                     },
 
-                    /** Whose Save the merchant is about to press. */
                     ownerOf(row) {
                         const spec = this.widgets.find((w) => w.key === row?.widget);
-
                         return spec?.module || (row?.label ?? '');
                     },
 
@@ -617,162 +666,129 @@
                         this.frameUrl = choice.url;
                     },
 
-                    /**
-                     * One level at a time. Inside the frame the module's own
-                     * links are ordinary navigation, so back there is the
-                     * frame's history; at the top of it, back is the choices.
-                     */
                     panelBack() {
                         if (this.frameSteps > 1) {
                             this.frameSteps -= 1;
                             this.frameGoingBack = true;
-                            // A same-document back sends no 'ready' at all, so
-                            // the flag clears itself rather than swallowing the
-                            // next step forward.
                             setTimeout(() => { this.frameGoingBack = false; }, 2000);
                             this.$refs.frame?.contentWindow?.postMessage(
                                 { v: 'venta-frame-host', type: 'back' }, window.location.origin
                             );
                             return;
                         }
-
                         this.frameUrl = null;
                         this.frameTitle = '';
                         this.frameSteps = 0;
                     },
 
-                    /**
-                     * The framed page states what it is and when it saved. A
-                     * save down there can rename the very thing this card is
-                     * labelled with, so the choices are re-read and the card
-                     * relabels itself without a reload.
-                     */
                     hearFrame(e) {
                         if (e.origin !== window.location.origin) return;
                         if (!e.data || e.data.v !== 'venta-frame') return;
                         if (!this.panel) return;
-
                         if (e.data.type === 'ready') {
                             this.frameTitle = e.data.title || '';
-
                             if (this.frameGoingBack) {
                                 this.frameGoingBack = false;
                             } else {
                                 this.frameSteps += 1;
                             }
                         }
-
                         if (e.data.type === 'saved') {
                             this.refreshChoices().then(() => this.resyncPanel());
                             if (e.data.message) this.say(e.data.message);
                         }
                     },
 
-                    /** The panel is holding a copy of a field that just changed. */
                     resyncPanel() {
                         if (!this.panel) return;
-
                         const fresh = this.schemaFor(this.panel.row?.widget)
                             .find((f) => f.name === this.panel.field.name);
-
                         if (fresh) this.panel = { row: this.panel.row, field: fresh };
                     },
 
-                    remove(region, i) {
-                        const row = this.rows[region][i];
-                        // The inspector was left open on a card that no longer
-                        // exists, editing an object nothing renders.
+                    /* ---- cards ---- */
+
+                    remove(region, u, c, i) {
+                        const col = this.rows[region][u].cols[c];
+                        const row = col[i];
                         if (this.editing === row) this.editing = null;
-                        this.rows[region].splice(i, 1);
-                        this.rows = { ...this.rows };
-                        this.announceRemove(row.title || row.label, region);
+                        col.splice(i, 1);
+                        this.commit();
+                        this.say((row.title || row.label) + ' removed from ' + this.regionLabel(region) + '. Save to keep it.');
                         this.touch();
                     },
 
-                    toggle(region, i) {
-                        const row = this.rows[region][i];
+                    toggle(row) {
                         row.enabled = !row.enabled;
-                        this.announceToggle(row);
+                        this.say((row.title || row.label) + (row.enabled ? ' shown' : ' hidden') + '. Save to keep it.');
                         this.touch();
                     },
 
                     /* ---- moving ---- */
 
-                    start(region, i) { this.dragging = { region, i }; },
+                    start(region, u, c, i) { this.dragging = { region, u, c, i }; },
 
-                    /** Drop onto a slot: move between regions, or reorder within one. */
-                    drop(region, at = null) {
+                    /** The dragged card, lifted out of where it was. */
+                    lift() {
+                        const d = this.dragging;
+                        this.dragging = null;
+                        if (!d) return null;
+                        const col = this.rows[d.region]?.[d.u]?.cols?.[d.c];
+                        if (!col) return null;
+                        return { card: col[d.i], from: d, col };
+                    },
+
+                    fits(card, region) {
+                        const spec = this.widgets.find((w) => w.key === card.widget);
+                        if (spec && !spec.regions.includes(region)) {
+                            this.say((card.title || card.label) + ' cannot go in ' + this.regionLabel(region));
+                            return false;
+                        }
+                        return true;
+                    },
+
+                    /** Drop onto a column, or onto a card in it (before that card). */
+                    drop(region, u, c, at = null) {
                         const d = this.dragging;
                         if (!d) return;
-                        this.dragging = null;
+                        const card = this.rows[d.region]?.[d.u]?.cols?.[d.c]?.[d.i];
+                        if (!card || !this.fits(card, region)) { this.dragging = null; return; }
 
-                        const widget = this.rows[d.region][d.i];
-                        // A widget that does not accept this position is refused,
-                        // rather than accepted and then rendered wrong.
-                        const spec = this.widgets.find((w) => w.key === widget.widget);
+                        const lifted = this.lift();
+                        lifted.col.splice(d.i, 1);
 
-                        // A silent return is indistinguishable from a bug: the card
-                        // simply sprang back and nothing said why.
-                        if (spec && !spec.regions.includes(region)) {
-                            this.say((widget.title || widget.label) + ' cannot go in ' + this.regionLabel(region));
-                            return;
-                        }
+                        const target = this.rows[region][u].cols[c];
+                        let index = at === null ? target.length : at;
+                        // Dropping onto a later card in the same column: the
+                        // removal above shifted it up by one.
+                        if (target === lifted.col && at !== null && at > d.i) index -= 1;
+                        target.splice(index, 0, card);
+                        this.commit();
+                        this.touch();
+                    },
 
-                        this.rows[d.region].splice(d.i, 1);
+                    /** Drop on the position itself, outside any row: a new row at the end. */
+                    dropIntoRegion(region) {
+                        const d = this.dragging;
+                        if (!d) return;
+                        const card = this.rows[d.region]?.[d.u]?.cols?.[d.c]?.[d.i];
+                        if (!card || !this.fits(card, region)) { this.dragging = null; return; }
+
+                        const lifted = this.lift();
+                        lifted.col.splice(d.i, 1);
                         if (!this.rows[region]) this.rows[region] = [];
-
-                        const target = at === null ? this.rows[region].length : at;
-                        this.rows[region].splice(target, 0, widget);
-                        this.rows = { ...this.rows };
+                        this.rows[region].push(wrap({ columns: [8], cols: [[card]] }));
+                        this.commit();
                         this.touch();
                     },
 
-                    /* ---- widths ---- */
-
-                    /* ---- columns ---- */
-
-                    addColumn(side) { this.setWidth(side, 2); this.touch(); },
-
-                    dropLabel(side) {
-                        const n = this.placed(side === 'left' ? 'column_left' : 'column_right').length;
-                        return n === 0
-                            ? 'Remove ' + side + ' column'
-                            : 'Remove ' + side + ' column (' + n + ' inside)';
-                    },
-
-                    /**
-                     * Removing a column used to hide its widgets and keep saving
-                     * them: the slot stopped rendering, the cards vanished, and
-                     * the placements still went to the database where nothing
-                     * would ever draw them. They move to Below the content now,
-                     * and the merchant is told so.
-                     */
-                    dropColumn(side) {
-                        const region = side === 'left' ? 'column_left' : 'column_right';
-                        const stranded = this.placed(region);
-
-                        if (stranded.length) {
-                            if (!this.rows.content_bottom) this.rows.content_bottom = [];
-                            this.rows.content_bottom.push(...stranded);
-                            this.rows[region] = [];
-                            this.say(stranded.length + (stranded.length === 1 ? ' widget' : ' widgets') + ' moved to Below the content');
-                        }
-
-                        this.cols[side] = 0;
-                        this.rows = { ...this.rows };
-                        this.touch();
-                    },
-
-                    /* ---- moving without a mouse ---- */
-
-                    /** Reorder with buttons, so touch and keyboard both work. */
-                    nudgeCard(region, i, by) {
-                        const list = this.rows[region];
+                    /** Reorder inside a column with buttons, so touch and keyboard both work. */
+                    nudgeCard(region, u, c, i, by) {
+                        const list = this.rows[region][u].cols[c];
                         const to = i + by;
                         if (!list || to < 0 || to >= list.length) return;
-
                         [list[i], list[to]] = [list[to], list[i]];
-                        this.rows = { ...this.rows };
+                        this.commit();
                         this.say((list[to].title || list[to].label) + ' moved ' + (by < 0 ? 'up' : 'down'));
                         this.touch();
                     },
@@ -790,15 +806,16 @@
                         return true;
                     },
 
-                    moveTo(region, i, target) {
+                    /** Into a new full-width row at the end of the target position. */
+                    moveTo(region, u, c, i, target) {
                         if (region === target) { this.moving = null; return; }
-
-                        const widget = this.rows[region][i];
-                        this.rows[region].splice(i, 1);
+                        const col = this.rows[region][u].cols[c];
+                        const card = col[i];
+                        col.splice(i, 1);
                         if (!this.rows[target]) this.rows[target] = [];
-                        this.rows[target].push(widget);
-                        this.rows = { ...this.rows };
-                        this.say((widget.title || widget.label) + ' moved to ' + this.regionLabel(target));
+                        this.rows[target].push(wrap({ columns: [8], cols: [[card]] }));
+                        this.commit();
+                        this.say((card.title || card.label) + ' moved to ' + this.regionLabel(target));
                         this.moving = null;
                         this.touch();
                     },
@@ -813,22 +830,17 @@
                             window.location = '{{ route('admin.theme.layout') }}?page=' + encodeURIComponent(orphan.page_type);
                             return;
                         }
-
                         if (!this.rows.content_bottom) this.rows.content_bottom = [];
-                        this.rows.content_bottom.push({
+                        this.rows.content_bottom.push(wrap({ columns: [8], cols: [[{
                             id: orphan.id, widget: orphan.widget, title: orphan.title,
                             label: orphan.title || orphan.widget, enabled: true, available: true, config: {},
-                        });
+                        }]] }));
                         this.orphans = this.orphans.filter((o) => o.id !== orphan.id);
-                        this.rows = { ...this.rows };
+                        this.commit();
                         this.say((orphan.title || orphan.widget) + ' moved to Below the content');
                         this.touch();
                     },
 
-                    /**
-                     * A banner created in the other tab was invisible here until a
-                     * reload, because options are resolved server-side at render.
-                     */
                     async refreshChoices() {
                         try {
                             const res = await fetch(this.schemasUrl, { headers: { Accept: 'application/json' } });
@@ -841,6 +853,36 @@
                         this.announcement = message;
                         clearTimeout(this.sayTimer);
                         this.sayTimer = setTimeout(() => { this.announcement = ''; }, 4000);
+                    },
+
+                    /* ---- the page rails ---- */
+
+                    addColumn(side) { this.setWidth(side, 2); this.touch(); },
+
+                    dropLabel(side) {
+                        const n = this.cardsIn(side === 'left' ? 'column_left' : 'column_right').length;
+                        return n === 0
+                            ? 'Remove ' + side + ' column'
+                            : 'Remove ' + side + ' column (' + n + ' inside)';
+                    },
+
+                    /**
+                     * Removing a rail moves its rows to Below the content and
+                     * says so, rather than hiding them and saving them anyway.
+                     */
+                    dropColumn(side) {
+                        const region = side === 'left' ? 'column_left' : 'column_right';
+                        const stranded = this.rowsIn(region);
+                        const n = this.cardsIn(region).length;
+                        if (stranded.length) {
+                            if (!this.rows.content_bottom) this.rows.content_bottom = [];
+                            this.rows.content_bottom.push(...stranded);
+                            this.rows[region] = [];
+                            this.say(n + (n === 1 ? ' widget' : ' widgets') + ' moved to Below the content');
+                        }
+                        this.cols[side] = 0;
+                        this.commit();
+                        this.touch();
                     },
 
                     grab(side, e) {
@@ -876,12 +918,20 @@
                     },
 
                     payload() {
-                        const out = [];
-                        Object.entries(this.rows).forEach(([region, list]) => {
-                            list.forEach((p) => out.push({
-                                id: p.id, region, widget: p.widget,
-                                title: p.title, enabled: p.enabled, config: p.config,
-                            }));
+                        const rows = [];
+                        Object.entries(this.rows).forEach(([region, units]) => {
+                            units.forEach((unit) => {
+                                const placements = [];
+                                unit.cols.forEach((col, c) => {
+                                    col.forEach((p) => placements.push({
+                                        id: p.id, column: c, widget: p.widget,
+                                        title: p.title, enabled: p.enabled, config: p.config,
+                                    }));
+                                });
+                                rows.push({
+                                    id: unit.id, region, columns: unit.columns, enabled: unit.enabled, placements,
+                                });
+                            });
                         });
                         const settings = {};
                         this.pageSettings.forEach((f) => { settings[f.name] = f.value; });
@@ -890,7 +940,7 @@
                             page_type: this.pageType,
                             columns: this.cols,
                             settings,
-                            placements: out,
+                            rows,
                         });
                     },
                 };

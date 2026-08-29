@@ -5,6 +5,7 @@ namespace Extensions\Theme\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\LayoutColumns;
 use App\Models\LayoutPlacement;
+use App\Models\LayoutRow;
 use App\Services\ThemeService;
 use App\Support\Regions;
 use App\Support\StorefrontPageType;
@@ -54,12 +55,13 @@ class LayoutController extends Controller
             'columns' => LayoutColumns::forPage($pageType),
             'grid' => LayoutColumns::GRID,
             'minContent' => LayoutColumns::MIN_CONTENT,
-            'placements' => $this->placements($pageType),
+            'rows' => $this->units($pageType),
+            // What this page inherits from All pages, in the same shape, so
+            // the editor draws it as rows it cannot touch.
             'inherited' => $pageType === LayoutPlacement::EVERYWHERE
-                ? collect()
-                : LayoutPlacement::where('theme', $theme)
-                    ->where('page_type', LayoutPlacement::EVERYWHERE)
-                    ->orderBy('sort_order')->get(),
+                ? (object) []
+                : $this->units(LayoutPlacement::EVERYWHERE),
+            'layouts' => LayoutRow::LAYOUTS,
             'widgets' => $this->catalogue($regions),
             // Every widget's settings form, resolved. Without this a merchant
             // can place a banner and never say WHICH banner.
@@ -80,19 +82,28 @@ class LayoutController extends Controller
         ]);
     }
 
-    /** Everything placed on this page type, grouped by region. */
-    private function placements(string $pageType): object
+    /**
+     * Everything placed on this page type, grouped by region, as the rows the
+     * editor draws: each row with its column widths and its cards per column.
+     * A placement with no row stands as its own one-column row, which is what
+     * every placement was before rows existed.
+     */
+    private function units(string $pageType): object
     {
-        $rows = LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
+        $theme = LayoutPlacement::scopeTheme();
+
+        $placements = LayoutPlacement::where('theme', $theme)
             ->where('page_type', $pageType)
             ->orderBy('sort_order')->orderBy('id')->get();
 
-        $out = [];
+        $rows = LayoutRow::where('theme', $theme)
+            ->where('page_type', $pageType)
+            ->get()->keyBy('id');
 
-        foreach ($rows as $row) {
+        $card = function (LayoutPlacement $row): array {
             $widget = Widgets::get($row->widget);
 
-            $out[$row->region][] = [
+            return [
                 'id' => $row->id,
                 'widget' => $row->widget,
                 'title' => $row->title,
@@ -103,13 +114,58 @@ class LayoutController extends Controller
                 'available' => $widget !== null,
                 'config' => $row->config ?? [],
             ];
+        };
+
+        $units = [];
+
+        foreach ($placements as $placement) {
+            $rowId = $placement->row_id && $rows->has($placement->row_id) ? $placement->row_id : null;
+            $unitKey = $rowId ? 'row-' . $rowId : 'loose-' . $placement->id;
+
+            if (! isset($units[$unitKey])) {
+                $row = $rowId ? $rows->get($rowId) : null;
+                $widths = $row ? LayoutRow::normalizeColumns($row->columns) : [LayoutRow::GRID];
+                $units[$unitKey] = [
+                    'region' => $placement->region,
+                    'sort' => $row ? [$row->sort_order, $row->id] : [$placement->sort_order, $placement->id],
+                    'id' => $row?->id,
+                    'columns' => $widths,
+                    'enabled' => $row ? (bool) $row->is_enabled : true,
+                    'cols' => array_fill(0, count($widths), []),
+                ];
+            }
+
+            $index = $rowId ? max(0, min((int) $placement->column_index, count($units[$unitKey]['columns']) - 1)) : 0;
+            $units[$unitKey]['cols'][$index][] = $card($placement);
+        }
+
+        // A row with nothing in it yet is still a row the merchant made.
+        foreach ($rows as $row) {
+            if (! isset($units['row-' . $row->id])) {
+                $widths = LayoutRow::normalizeColumns($row->columns);
+                $units['row-' . $row->id] = [
+                    'region' => $row->region,
+                    'sort' => [$row->sort_order, $row->id],
+                    'id' => $row->id,
+                    'columns' => $widths,
+                    'enabled' => (bool) $row->is_enabled,
+                    'cols' => array_fill(0, count($widths), []),
+                ];
+            }
+        }
+
+        usort($units, fn ($a, $b) => $a['sort'] <=> $b['sort']);
+
+        $out = [];
+        foreach ($units as $unit) {
+            $region = $unit['region'];
+            unset($unit['region'], $unit['sort']);
+            $out[$region][] = $unit;
         }
 
         // An OBJECT, always. An empty PHP array serialises to [], which is a JS
         // Array, and assigning a string key to it never triggers Alpine's
-        // reactivity: the hidden payload input kept its load-time value, so
-        // every save on a page with no placements yet wrote nothing and
-        // reported success. That was all 11 page types on a fresh install.
+        // reactivity: the hidden payload input kept its load-time value.
         return (object) $out;
     }
 
@@ -160,7 +216,15 @@ class LayoutController extends Controller
             return back()->with('error', 'Unknown page type.');
         }
 
-        $rows = collect($data['placements'] ?? [])->values();
+        // The editor sends rows. A flat placements list (the shape before rows
+        // existed, and what an import may still carry) is accepted too: each
+        // placement becomes its own one-column row.
+        $rows = isset($data['rows']) && is_array($data['rows'])
+            ? collect($data['rows'])->values()
+            : collect($data['placements'] ?? [])->values()->map(fn ($p) => [
+                'id' => null, 'region' => $p['region'] ?? '', 'columns' => [LayoutRow::GRID], 'enabled' => true,
+                'placements' => [$p + ['column' => 0]],
+            ]);
 
         // Written by this save, and counted in what the merchant is told.
         $kept = [];
@@ -195,31 +259,61 @@ class LayoutController extends Controller
                 ]
             );
 
-            foreach ($rows as $i => $row) {
-                $region = (string) ($row['region'] ?? '');
-                $widget = (string) ($row['widget'] ?? '');
+            $keptRows = [];
+            $order = 0;
 
-                // A region this theme does not declare, or a widget nothing
-                // registers, is not written. The editor cannot invent either.
-                if (! Regions::exists($region) || ! Widgets::has($widget)) {
+            foreach ($rows as $r => $unit) {
+                $region = (string) ($unit['region'] ?? '');
+                // A region this theme does not declare is not written. The
+                // editor cannot invent one.
+                if (! Regions::exists($region)) {
                     continue;
                 }
 
-                $placement = LayoutPlacement::updateOrCreate(
-                    ['id' => $row['id'] ?? null],
+                $widths = LayoutRow::normalizeColumns($unit['columns'] ?? [LayoutRow::GRID]);
+
+                // A row the editor sent under an id it does not own (another
+                // page, another theme) is written as a new row of this page.
+                $rowId = isset($unit['id']) ? (int) $unit['id'] : null;
+                $owned = $rowId ? LayoutRow::where('id', $rowId)
+                    ->where('theme', LayoutPlacement::scopeTheme())->where('page_type', $pageType)->exists() : false;
+
+                $layoutRow = LayoutRow::updateOrCreate(
+                    ['id' => $owned ? $rowId : null],
                     [
                         'theme' => LayoutPlacement::scopeTheme(),
                         'page_type' => $pageType,
                         'region' => $region,
-                        'widget' => $widget,
-                        'title' => $row['title'] ?? null,
-                        'config' => $row['config'] ?? [],
-                        'sort_order' => $i,
-                        'is_enabled' => (bool) ($row['enabled'] ?? true),
+                        'columns' => $widths,
+                        'sort_order' => $r,
+                        'is_enabled' => (bool) ($unit['enabled'] ?? true),
                     ]
                 );
+                $keptRows[] = $layoutRow->id;
 
-                $kept[] = $placement->id;
+                foreach (collect($unit['placements'] ?? [])->values() as $row) {
+                    $widget = (string) ($row['widget'] ?? '');
+                    // A widget nothing registers is not written either.
+                    if (! Widgets::has($widget)) {
+                        continue;
+                    }
+                    $placement = LayoutPlacement::updateOrCreate(
+                        ['id' => $row['id'] ?? null],
+                        [
+                            'theme' => LayoutPlacement::scopeTheme(),
+                            'page_type' => $pageType,
+                            'region' => $region,
+                            'row_id' => $layoutRow->id,
+                            'column_index' => max(0, min((int) ($row['column'] ?? 0), count($widths) - 1)),
+                            'widget' => $widget,
+                            'title' => $row['title'] ?? null,
+                            'config' => $row['config'] ?? [],
+                            'sort_order' => $order++,
+                            'is_enabled' => (bool) ($row['enabled'] ?? true),
+                        ]
+                    );
+                    $kept[] = $placement->id;
+                }
             }
 
             // A payload we could not read a single widget out of is not an
@@ -228,7 +322,8 @@ class LayoutController extends Controller
             // an error message and an error message arriving after the work
             // was already destroyed. An empty placements list is a different
             // thing entirely and still empties the page, below.
-            if ($kept === [] && $rows->isNotEmpty()) {
+            $sent = $rows->sum(fn ($unit) => count($unit['placements'] ?? []));
+            if ($kept === [] && $sent > 0) {
                 throw new RefusedSave();
             }
 
@@ -243,6 +338,13 @@ class LayoutController extends Controller
             LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
                 ->where('page_type', $pageType)
                 ->whereNotIn('id', array_merge($kept, $spared))
+                ->delete();
+
+            // Rows removed on screen go too. A spared placement inside one is
+            // left loose (row_id nulled by the schema), never deleted.
+            LayoutRow::where('theme', LayoutPlacement::scopeTheme())
+                ->where('page_type', $pageType)
+                ->whereNotIn('id', $keptRows)
                 ->delete();
             });
         } catch (RefusedSave $e) {
