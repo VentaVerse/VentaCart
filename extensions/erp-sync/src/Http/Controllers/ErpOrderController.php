@@ -54,6 +54,12 @@ class ErpOrderController extends Controller
                 // customer is later moved between groups.
                 'customer_group' => $order->customer_group_name,
                 'customer_name' => $order->full_name,
+                // The customer's message from checkout, on the LIST as well as
+                // the detail, so the ERP can flag an order that carries one
+                // without fetching every order. Informational, never written
+                // back through this API.
+                'comment' => $order->comment,
+                'courier_comment' => $order->courier_comment,
                 'customer_email' => $order->email,
                 'total' => $order->total,
                 'item_count' => $order->item_count,

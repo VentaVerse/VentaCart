@@ -610,6 +610,17 @@
                                         <span class="v-tierlabel">Created</span>
                                         <span class="v-mono">{{ optional($order->created_at)->format('M d, Y g:ia') }}</span>
                                     </span>
+                                    {{-- The customer's own words, on the row and not only in the
+                                         drawer: a packer reads the row, and "add a handwritten
+                                         note" or "pickup today please" is exactly what they need
+                                         before the parcel is sealed. One line, the drawer holds
+                                         the rest. --}}
+                                    @if (trim((string) $order->comment) !== '')
+                                        <span class="v-tierrow__note" title="{{ $order->comment }}">
+                                            <span class="v-tierlabel v-tierlabel--note">Message to Store</span>
+                                            <span class="v-tierrow__notetext">{{ $order->comment }}</span>
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

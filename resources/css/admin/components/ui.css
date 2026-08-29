@@ -1455,6 +1455,12 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 .v-tierrow { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .v-tierrow__side { display: inline-flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .v-tierrow .v-tierlabel { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--v-ink-3); }
+/* The customer's message on the queue row: its own full-width line under
+   the facts, clamped to one line (the drawer carries the whole text). The
+   label is brass so a row that carries one is told apart at a glance. */
+.v-tierrow__note { flex-basis: 100%; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.v-tierrow .v-tierlabel--note { color: var(--v-act); white-space: nowrap; }
+.v-tierrow__notetext { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--v-ink); font-size: 13px; }
 .v-cellstack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
 .v-cellstack__note { font-size: 12px; color: var(--v-ink-3); }
 .v-cellstack__error { font-size: 12px; color: var(--v-bad); }
