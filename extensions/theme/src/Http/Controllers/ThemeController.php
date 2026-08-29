@@ -353,9 +353,58 @@ class ThemeController extends Controller
     public function directory(ThemeService $theme)
     {
         return view('theme::directory', [
-            'themes' => $theme->getInstalledThemes(),
+            'themes' => $theme->getAvailableThemes(),
             'active' => $theme->getActiveTheme(),
+            'live' => $theme->hasActiveTheme(),
         ]);
+    }
+
+    /**
+     * Install a theme package found on disk. The kernel checks the contract
+     * and refuses a package that would not draw every page.
+     */
+    public function install(Request $request, ThemeService $theme, \App\Services\ExtensionManager $extensions)
+    {
+        $slug = (string) $request->input('theme');
+        $meta = $theme->getAvailableThemes()[$slug] ?? null;
+
+        if (! $meta) {
+            return back()->with('error', 'That theme is not on disk.');
+        }
+
+        try {
+            $extensions->install(ThemeService::registryName($slug));
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        $theme->clearCache();
+
+        return back()->with('success', $meta['name'] . ' is installed.');
+    }
+
+    /**
+     * Uninstall a theme package. Its folder stays; its layout rows and
+     * settings stay too, so installing it again finds them. Uninstalling
+     * the live theme leaves the storefront on core's plain page until
+     * another theme is made live.
+     */
+    public function uninstall(Request $request, ThemeService $theme, \App\Services\ExtensionManager $extensions)
+    {
+        $slug = (string) $request->input('theme');
+        $meta = $theme->getAvailableThemes()[$slug] ?? null;
+
+        if (! $meta || ! $meta['installed']) {
+            return back()->with('error', 'That theme is not installed.');
+        }
+
+        $extensions->uninstall(ThemeService::registryName($slug));
+        $theme->clearCache();
+
+        return back()->with(
+            $slug === $theme->getActiveTheme() ? 'warning' : 'success',
+            $meta['name'] . ' is uninstalled.' . ($slug === $theme->getActiveTheme() ? ' The storefront shows "No theme installed" until a theme is made live.' : '')
+        );
     }
 
     /**

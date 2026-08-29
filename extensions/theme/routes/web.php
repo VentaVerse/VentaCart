@@ -18,6 +18,10 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // page: which themes are installed, which one the storefront runs.
         Route::get('/', [ThemeController::class, 'directory'])->name('index');
         Route::post('/activate', [ThemeController::class, 'activate'])->name('activate');
+        // Under /package so the core extension routes (/extensions/{name}/install)
+        // do not take these for the editor extension itself.
+        Route::post('/package/install', [ThemeController::class, 'install'])->name('package.install');
+        Route::post('/package/uninstall', [ThemeController::class, 'uninstall'])->name('package.uninstall');
         // The editor for one theme, reached by choosing it.
         Route::get('/customise', [ThemeController::class, 'index'])->name('customise');
         // The layout editor. Its own work page, not a tab inside the theme

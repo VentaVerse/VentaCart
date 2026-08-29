@@ -41,7 +41,34 @@ class RegisterThemeViews
     {
         self::register();
 
+        // A store without an installed theme shows core's plain page on
+        // storefront pages. The admin keeps working (that is where a theme
+        // gets installed), and webhooks and form posts pass: a courier or
+        // payment callback has nothing to do with how pages look.
+        if ($request->isMethodSafe() && ! $this->isAdmin($request) && ! $this->hasTheme()) {
+            return response()->view('storefront.no-theme', [
+                'siteName' => (string) config('app.name', 'This store'),
+            ], 503);
+        }
+
         return $next($request);
+    }
+
+    private function isAdmin(Request $request): bool
+    {
+        $prefix = trim((string) config('admin.prefix', 'admin'), '/');
+
+        return $request->is($prefix) || $request->is($prefix . '/*');
+    }
+
+    private function hasTheme(): bool
+    {
+        try {
+            return app(ThemeService::class)->hasActiveTheme();
+        } catch (\Throwable) {
+            // No settings or registry table yet: nothing to gate on.
+            return true;
+        }
     }
 
     /**

@@ -1,0 +1,26 @@
+/* The plain page a store shows when no theme is installed. Nothing of a
+   theme is loaded here; this is core's own, and deliberately unbranded. */
+.no-theme {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #f3f2ef;
+    color: #2a2926;
+    font: 16px/1.5 Georgia, 'Times New Roman', serif;
+}
+.no-theme__card {
+    max-width: 32rem;
+    padding: 2.5rem 2rem;
+    text-align: center;
+}
+.no-theme__card h1 {
+    margin: 0 0 .5rem;
+    font-size: 1.75rem;
+    font-weight: 400;
+    letter-spacing: .01em;
+}
+.no-theme__card p {
+    margin: 0;
+    color: #6a6864;
+}

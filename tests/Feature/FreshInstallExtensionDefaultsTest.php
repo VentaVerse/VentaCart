@@ -33,9 +33,13 @@ class FreshInstallExtensionDefaultsTest extends TestCase
 {
     use RefreshDatabase;
 
+    /** This test is about the bare registry; the harness must not pre-install the theme. */
+    protected bool $installsDefaultTheme = false;
+
     /** Installed AND enabled on a fresh install. */
     private const ENABLED = [
         'theme',
+        'theme-venta',
         'blog',
         'coupons',
         'reviews',

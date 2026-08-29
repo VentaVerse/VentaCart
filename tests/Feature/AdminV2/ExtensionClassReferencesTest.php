@@ -26,6 +26,10 @@ class ExtensionClassReferencesTest extends TestCase
         // extension classes (registerAutoloader is keyed off manifests).
         $manager = app(ExtensionManager::class);
         foreach ($manager->discovered() as $manifest) {
+            // Theme packages have no provider and no PHP of their own.
+            if (empty($manifest['provider'])) {
+                continue;
+            }
             $ns = preg_replace('/\\\\[^\\\\]+$/', '', $manifest['provider']) . '\\';
             $src = $manifest['path'] . '/src/';
             spl_autoload_register(function ($class) use ($ns, $src) {

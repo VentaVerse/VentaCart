@@ -211,10 +211,36 @@ class ThemeService
         return $slug;
     }
 
+    /** The registry name a theme package installs under. */
+    public static function registryName(string $slug): string
+    {
+        return 'theme-' . $slug;
+    }
+
     /**
-     * Every theme installed, by slug. A theme is a folder with a theme.json.
+     * Whether the storefront has a theme to draw with: the one it is
+     * pointed at is installed and its folder is on disk. When not, core
+     * shows its plain "No theme installed" page.
+     */
+    public function hasActiveTheme(): bool
+    {
+        return isset($this->getInstalledThemes()[$this->getActiveTheme()]);
+    }
+
+    /**
+     * Installed themes, by slug: available packages the store has installed
+     * (a registry row, enabled). Only these can be made live.
      */
     public function getInstalledThemes(): array
+    {
+        return array_filter($this->getAvailableThemes(), fn ($meta) => $meta['installed']);
+    }
+
+    /**
+     * Every theme package on disk, by slug, with whether it is installed.
+     * A theme is a folder under resources/themes with a theme.json.
+     */
+    public function getAvailableThemes(): array
     {
         $dir = resource_path('themes');
 
@@ -239,6 +265,8 @@ class ThemeService
             $meta['slug'] = $slug;
             $meta['name'] = $meta['name'] ?? ucfirst(str_replace('-', ' ', $slug));
             $meta['is_default'] = $slug === self::THEME;
+            $meta['state'] = app(ExtensionManager::class)->state(self::registryName($slug));
+            $meta['installed'] = $meta['state'] === 'enabled';
             $themes[$slug] = $meta;
         }
 

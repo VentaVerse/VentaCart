@@ -34,7 +34,10 @@ class ExtensionSeeder extends Seeder
         // Not "are the defaults present" but "has this store ever been set up".
         // Checking per extension would re-install one an owner deliberately
         // removed, which is the same overreach in a smaller costume.
-        if (Extension::query()->exists()) {
+        // Theme packages do not count: the shipped theme may be registered
+        // before the store is set up (the test harness does this), and a
+        // theme alone does not mean anyone chose the modules.
+        if (Extension::query()->where('name', 'not like', 'theme-%')->exists()) {
             return;
         }
 

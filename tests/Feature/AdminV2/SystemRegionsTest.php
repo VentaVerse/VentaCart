@@ -21,6 +21,7 @@ class SystemRegionsTest extends TestCase
 
     private function usePlaza(): void
     {
+        app(\App\Services\ExtensionManager::class)->install(ThemeService::registryName('plaza'));
         app(ThemeService::class)->activateTheme('plaza');
         app(ThemeService::class)->clearCache();
     }

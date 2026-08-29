@@ -61,24 +61,51 @@ class ExtensionManager
 
         $root = $this->path();
 
-        if (! File::isDirectory($root)) {
-            return $this->discoveredCache = collect();
-        }
+        $manifests = File::isDirectory($root)
+            ? collect(File::glob($root . '/*/extension.json'))
+                ->map(function (string $manifestPath) {
+                    $manifest = json_decode(File::get($manifestPath), true);
 
-        return $this->discoveredCache = collect(File::glob($root . '/*/extension.json'))
-            ->map(function (string $manifestPath) {
-                $manifest = json_decode(File::get($manifestPath), true);
+                    if (! is_array($manifest) || empty($manifest['name'])) {
+                        return null;
+                    }
 
-                if (! is_array($manifest) || empty($manifest['name'])) {
+                    $manifest['path'] = dirname($manifestPath);
+
+                    return $manifest;
+                })
+                ->filter()
+            : collect();
+
+        // A theme is a package too: a folder under resources/themes with a
+        // theme.json. It has no provider, no migrations and no routes; the
+        // registry row is what "installed" means, and the shipped default
+        // is installed with the other essentials on a fresh store.
+        $themes = collect(File::glob(resource_path('themes/*/theme.json')))
+            ->map(function (string $json) {
+                $meta = json_decode(File::get($json), true);
+
+                if (! is_array($meta)) {
                     return null;
                 }
 
-                $manifest['path'] = dirname($manifestPath);
+                $slug = basename(dirname($json));
 
-                return $manifest;
+                return [
+                    'name' => ThemeService::registryName($slug),
+                    'title' => (string) ($meta['name'] ?? ucfirst(str_replace('-', ' ', $slug))),
+                    'version' => (string) ($meta['version'] ?? '1.0.0'),
+                    'description' => (string) ($meta['description'] ?? ''),
+                    'type' => 'theme',
+                    'theme' => $slug,
+                    'icon' => 'tags',
+                    'path' => dirname($json),
+                    'default_enabled' => $slug === ThemeService::THEME,
+                ];
             })
-            ->filter()
-            ->keyBy('name');
+            ->filter();
+
+        return $this->discoveredCache = $manifests->concat($themes)->keyBy('name');
     }
 
     /**
@@ -281,6 +308,19 @@ class ExtensionManager
 
         if (! $manifest) {
             throw new \RuntimeException("Cannot install extension [{$name}]: no extension.json found.");
+        }
+
+        // A theme is installed only when it keeps the contract; a package
+        // missing a view the store renders would take the storefront down
+        // the moment it went live.
+        if (! empty($manifest['theme'])) {
+            $problems = \App\Support\ThemeContract::check($manifest['path']);
+
+            if ($problems !== []) {
+                throw new \RuntimeException(
+                    ($manifest['title'] ?? $name) . ' does not keep the theme contract: ' . implode(' ', $problems)
+                );
+            }
         }
 
         $this->runMigrations($manifest['path'], 'migrate');

@@ -19,12 +19,14 @@
 
     <div class="v-themes">
         @foreach ($themes as $slug => $meta)
-            <div class="v-theme {{ $slug === $active ? 'is-active' : '' }}">
+            <div class="v-theme {{ $slug === $active && $meta['installed'] ? 'is-active' : '' }} {{ $meta['installed'] ? '' : 'is-off' }}">
                 <div class="v-theme__body">
                     <div class="v-theme__title">
                         <h2>{{ $meta['name'] }}</h2>
-                        @if ($slug === $active)
+                        @if ($slug === $active && $meta['installed'])
                             <span class="v-theme__live">Live</span>
+                        @elseif (! $meta['installed'])
+                            <span class="v-tag">Not installed</span>
                         @endif
                     </div>
 
@@ -37,14 +39,30 @@
                 </div>
 
                 <div class="v-theme__acts">
-                    @if ($slug === $active)
+                    @if (! $meta['installed'])
+                        <form method="POST" action="{{ route('admin.theme.package.install') }}">
+                            @csrf
+                            <input type="hidden" name="theme" value="{{ $slug }}">
+                            <button type="submit" class="v-btn v-btn--primary v-btn--sm">Install</button>
+                        </form>
+                    @elseif ($slug === $active)
                         <a href="{{ route('admin.theme.customise') }}" class="v-btn v-btn--primary v-btn--sm">Customise</a>
                         <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
+                        <form method="POST" action="{{ route('admin.theme.package.uninstall') }}" x-data @submit.prevent="if (confirm('Uninstall the live theme? The storefront shows a plain page until another theme is made live.')) $el.submit()">
+                            @csrf
+                            <input type="hidden" name="theme" value="{{ $slug }}">
+                            <button type="submit" class="v-btn v-btn--sm v-btn--danger">Uninstall</button>
+                        </form>
                     @else
                         <form method="POST" action="{{ route('admin.theme.activate') }}">
                             @csrf
                             <input type="hidden" name="theme" value="{{ $slug }}">
                             <button type="submit" class="v-btn v-btn--sm">Use this theme</button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.theme.package.uninstall') }}">
+                            @csrf
+                            <input type="hidden" name="theme" value="{{ $slug }}">
+                            <button type="submit" class="v-btn v-btn--sm">Uninstall</button>
                         </form>
                     @endif
                 </div>
