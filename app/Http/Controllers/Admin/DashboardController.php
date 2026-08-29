@@ -836,20 +836,6 @@ class DashboardController extends Controller
      */
     private function isAutomationUnhealthy(Automation $automation): bool
     {
-        if ($automation->last_run_status === 'failed') {
-            return true;
-        }
-
-        if (! $automation->cron_expression) {
-            return false;
-        }
-
-        try {
-            $expectedRun = (new CronExpression($automation->cron_expression))->getPreviousRunDate(now());
-        } catch (Throwable $e) {
-            return false;
-        }
-
-        return ! $automation->last_run_at || $automation->last_run_at->lt($expectedRun);
+        return $automation->isUnhealthy();
     }
 }

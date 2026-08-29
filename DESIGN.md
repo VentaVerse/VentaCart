@@ -285,6 +285,24 @@ keeps the stored value (persist() already skips empty encrypted keys).
 
 Still v2, waiting for its own wave: the reviews pages (Sales area).
 
+## Extension automations (owner ruling, 2026-08-30)
+
+One heartbeat for the whole store: a single `* * * * * php artisan
+schedule:run` crontab line, and a row in `automations` per job carrying
+its own on/off switch and schedule. An extension that needs a scheduled
+job seeds its row (firstOrCreate, so a merchant's edits survive) and
+drops `<x-admin.automation key="..." title="..." />` into its own
+settings page, INSIDE that page's doctrine form. The component renders
+the switch, the frequency editor, the last run, and a Run now verb, and
+posts under `automation[<key>][...]`; the extension's controller hands
+the request to `AutomationInput::apply($key, $request->all())`. The
+global Settings, Automations page still lists every row: same data, a
+second door. When the heartbeat has not fired in an hour the component
+says so and shows the crontab line, because "this job is off" and
+"nothing on this server runs any job" are fixed in different places.
+The fulfillment module's Status updates panel is the first consumer and
+heals its own missing row on every hub load.
+
 ## Migrated so far
 
 - Settings landing (`admin/settings/hub.blade.php`): grouped

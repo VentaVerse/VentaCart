@@ -7,7 +7,9 @@ use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
 use Extensions\CourierFulfillment\CourierManager;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\Database\Seeders\CourierFulfillmentAutomationSeeder;
 use Extensions\CourierFulfillment\PlacementMap;
+use App\Services\AutomationInput;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
@@ -137,6 +139,12 @@ class CourierSettingsController extends Controller
      */
     public function index()
     {
+        // The poll's automation row is seeded by db:seed, which a store that
+        // installed this module and never seeded again does not have, and
+        // then nothing polls no matter what the crontab says. firstOrCreate,
+        // so a store that has the row keeps every edit it made.
+        (new CourierFulfillmentAutomationSeeder())->run();
+
         $settings = Setting::where('group', 'courier')->pluck('value', 'key')->toArray();
 
         // Ensure a stable webhook token exists per registered courier —
@@ -513,6 +521,12 @@ class CourierSettingsController extends Controller
                     ->where('placement', FulfillmentService::UNBOOKED_PLACEMENT),
             ],
         ]);
+
+        // The poll's switch and schedule ride this same form and land on the
+        // automations row the global page and the heartbeat read. Validated
+        // and written before the module keys, so a bad interval saves
+        // nothing at all.
+        AutomationInput::apply('courier_poll_status', $request->all());
 
         $data = array_intersect_key(
             $request->input('settings', []),

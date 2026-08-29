@@ -109,6 +109,12 @@
                     </div>
                 </div>
             </x-admin.panel>
+
+            {{-- The courier status poll, controlled where the feature lives
+                 rather than only on Settings, Automations. Same row, same
+                 heartbeat; this is a second door onto it, not a copy. --}}
+            <x-admin.automation key="courier_poll_status" title="Status updates"
+                note="Fetches each booked order's latest courier status and moves it through Status Mapping. Runs on the store's schedule:run heartbeat." />
         </x-admin.form>
 
     </div>

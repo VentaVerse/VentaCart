@@ -122,6 +122,70 @@ export function registerV(Alpine) {
     // The masked-secret field. A closure holds the component root: the
     // buttons live inside x-if clones that die on mode switches, so any
     // deferred $root/$el reference would point at a detached node.
+    // x-admin.automation: one automation's switch and schedule, living on
+    // an extension's own settings page inside that page's doctrine form.
+    // The state here mirrors the global Automations editor's; the server
+    // recomputes the cron expression on save, so preview() is display only.
+    Alpine.data('vAutomation', (cfg) => ({
+        preset: cfg.preset || 'every_n_minutes',
+        params: {
+            minute: typeof cfg.params?.minute === 'number' ? cfg.params.minute : ((cfg.preset || 'every_n_minutes') === 'every_n_minutes' ? 15 : 0),
+            hour: typeof cfg.params?.hour === 'number' ? cfg.params.hour : 0,
+            day_of_week: typeof cfg.params?.day_of_week === 'number' ? cfg.params.day_of_week : 0,
+            day_of_month: typeof cfg.params?.day_of_month === 'number' ? cfg.params.day_of_month : 1,
+        },
+        runUrl: cfg.runUrl || null,
+        running: false,
+        ran: null,
+        onPresetChange() {
+            if (this.preset === 'every_n_minutes' && ![1, 5, 10, 15, 20, 30].includes(this.params.minute)) {
+                this.params.minute = 15;
+            }
+        },
+        pad(n) { return String(n || 0).padStart(2, '0'); },
+        time() { return this.pad(this.params.hour) + ':' + this.pad(this.params.minute); },
+        setTime(evt) {
+            const [h, m] = (evt.target.value || '00:00').split(':').map(Number);
+            this.params.hour = isNaN(h) ? 0 : h;
+            this.params.minute = isNaN(m) ? 0 : m;
+        },
+        preview() {
+            const p = this.params;
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            switch (this.preset) {
+                case 'every_n_minutes': return p.minute === 1 ? 'Runs every minute.' : 'Runs every ' + p.minute + ' minutes.';
+                case 'hourly': return 'Runs hourly at minute ' + p.minute + '.';
+                case 'daily': return 'Runs daily at ' + this.time() + '.';
+                case 'weekly': return 'Runs every ' + days[p.day_of_week] + ' at ' + this.time() + '.';
+                case 'monthly': return 'Runs on day ' + p.day_of_month + ' of each month at ' + this.time() + '.';
+            }
+            return '';
+        },
+        cron() {
+            const p = this.params;
+            switch (this.preset) {
+                case 'every_n_minutes': return p.minute === 1 ? '* * * * *' : '*/' + p.minute + ' * * * *';
+                case 'hourly': return p.minute + ' * * * *';
+                case 'daily': return p.minute + ' ' + p.hour + ' * * *';
+                case 'weekly': return p.minute + ' ' + p.hour + ' * * ' + p.day_of_week;
+                case 'monthly': return p.minute + ' ' + p.hour + ' ' + p.day_of_month + ' * *';
+            }
+            return '';
+        },
+        // A one-shot verb, outside the save bar on purpose: it runs the job
+        // as it is stored, never the edits on screen, and says so.
+        async run() {
+            if (!this.runUrl || this.running) return;
+            this.running = true;
+            try {
+                const result = await window.vPost(this.runUrl);
+                this.ran = result.ok ? 'Ran just now.' : 'Run failed: ' + result.message;
+            } finally {
+                this.running = false;
+            }
+        },
+    }));
+
     Alpine.data('vSecret', (cfg) => { let root = null; return {
         mode: cfg.display ? 'rest' : 'edit',
         shown: null,

@@ -14,38 +14,47 @@ class AutomationUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        $preset = $this->input('schedule_preset');
+        return self::rulesFor($this->input('schedule_preset'));
+    }
 
+    /**
+     * The schedule rules, keyed under $prefix, so the same rules validate the
+     * global Automations page (no prefix) and an extension's own settings
+     * form, where the fields ride under automation[<key>][...].
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function rulesFor(?string $preset, string $prefix = ''): array
+    {
         $rules = [
-            'schedule_preset' => ['required', 'string', 'in:' . implode(',', CronExpressionBuilder::PRESETS)],
-            'enabled' => ['sometimes', 'boolean'],
+            $prefix . 'schedule_preset' => ['required', 'string', 'in:' . implode(',', CronExpressionBuilder::PRESETS)],
+            $prefix . 'enabled' => ['sometimes', 'boolean'],
         ];
+        $p = $prefix . 'schedule_params.';
 
-        $rules = array_merge($rules, match ($preset) {
+        return array_merge($rules, match ($preset) {
             'every_n_minutes' => [
-                'schedule_params.minute' => ['required', 'integer', 'in:' . implode(',', CronExpressionBuilder::ALLOWED_MINUTE_INTERVALS)],
+                $p . 'minute' => ['required', 'integer', 'in:' . implode(',', CronExpressionBuilder::ALLOWED_MINUTE_INTERVALS)],
             ],
             'hourly' => [
-                'schedule_params.minute' => ['required', 'integer', 'between:0,59'],
+                $p . 'minute' => ['required', 'integer', 'between:0,59'],
             ],
             'daily' => [
-                'schedule_params.hour' => ['required', 'integer', 'between:0,23'],
-                'schedule_params.minute' => ['required', 'integer', 'between:0,59'],
+                $p . 'hour' => ['required', 'integer', 'between:0,23'],
+                $p . 'minute' => ['required', 'integer', 'between:0,59'],
             ],
             'weekly' => [
-                'schedule_params.day_of_week' => ['required', 'integer', 'between:0,6'],
-                'schedule_params.hour' => ['required', 'integer', 'between:0,23'],
-                'schedule_params.minute' => ['required', 'integer', 'between:0,59'],
+                $p . 'day_of_week' => ['required', 'integer', 'between:0,6'],
+                $p . 'hour' => ['required', 'integer', 'between:0,23'],
+                $p . 'minute' => ['required', 'integer', 'between:0,59'],
             ],
             'monthly' => [
-                'schedule_params.day_of_month' => ['required', 'integer', 'between:1,28'],
-                'schedule_params.hour' => ['required', 'integer', 'between:0,23'],
-                'schedule_params.minute' => ['required', 'integer', 'between:0,59'],
+                $p . 'day_of_month' => ['required', 'integer', 'between:1,28'],
+                $p . 'hour' => ['required', 'integer', 'between:0,23'],
+                $p . 'minute' => ['required', 'integer', 'between:0,59'],
             ],
             default => [],
         });
-
-        return $rules;
     }
 
     public function messages(): array

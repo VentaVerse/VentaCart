@@ -55,6 +55,42 @@ class Automation extends Model
      * Update last-run telemetry. Output is capped at 2000 chars to keep the
      * column lean; use storage/logs/automations/*.log for full output.
      */
+    /**
+     * Unhealthy: the last run failed, or the run the cron expression says
+     * should already have happened has not (never run, or the last run
+     * predates it). Moved here from the dashboard so an extension's own
+     * settings page can show the same verdict for its own automation.
+     */
+    public function isUnhealthy(): bool
+    {
+        if ($this->last_run_status === 'failed') {
+            return true;
+        }
+        if (! $this->cron_expression) {
+            return false;
+        }
+        try {
+            $expectedRun = (new \Cron\CronExpression($this->cron_expression))->getPreviousRunDate(now());
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return ! $this->last_run_at || $this->last_run_at->lt($expectedRun);
+    }
+
+    /**
+     * Has the heartbeat (`schedule:run`, one crontab line) fired at all
+     * lately? True when no enabled automation has run in the last hour. The
+     * one signal that separates "this job is off" from "nothing on this
+     * server runs any job", which are fixed in different places.
+     */
+    public static function heartbeatMissing(): bool
+    {
+        $latest = static::enabled()->max('last_run_at');
+
+        return $latest === null || \Illuminate\Support\Carbon::parse($latest)->lt(now()->subHour());
+    }
+
     public function recordRun(string $status, ?string $output = null): void
     {
         $this->update([
