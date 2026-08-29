@@ -1862,13 +1862,24 @@
 
  .account-items__head,
  .account-item {
- @apply md:grid md:items-baseline md:gap-4;
- grid-template-columns: minmax(0, 1fr) 6rem 3rem 7rem;
+ @apply md:grid md:items-center md:gap-4;
+ grid-template-columns: 3rem minmax(0, 1fr) 6rem 3rem 7rem;
  }
 
- .account-items__head span:nth-child(2),
- .account-items__head span:nth-child(4) { @apply text-right; }
- .account-items__head span:nth-child(3) { @apply text-center; }
+ .account-items__head span:nth-child(3),
+ .account-items__head span:nth-child(5) { @apply text-right; }
+ .account-items__head span:nth-child(4) { @apply text-center; }
+
+ /* The line's photo: a 48px square that keeps its place even when a line
+    has no image, so names stay in one column. On a phone it sits beside
+    the name; the money line wraps beneath both. */
+ .account-item__thumb {
+ @apply w-12 h-12 shrink-0 rounded-md overflow-hidden border border-[var(--color-border)] bg-[var(--color-card-bg)];
+ }
+
+ .account-item__thumb img {
+ @apply w-full h-full object-cover;
+ }
 
  .account-item {
  /* Declared before the md:grid rule above in the cascade? No: this rule
@@ -1879,7 +1890,8 @@
  }
 
  .account-item__name {
- @apply w-full md:w-auto min-w-0;
+ @apply min-w-0;
+ flex: 1 1 60%;
  }
 
  .account-item__price { @apply md:text-right; color: var(--color-text-heading); }

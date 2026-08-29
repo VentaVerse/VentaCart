@@ -106,12 +106,30 @@
                     <h2 class="account-section-title">Items</h2>
                     <ul class="account-items" aria-label="Items">
                         <li class="account-items__head" aria-hidden="true">
-                            <span>Product</span><span>Price</span><span>Qty</span><span>Total</span>
+                            <span></span><span>Product</span><span>Price</span><span>Qty</span><span>Total</span>
                         </li>
                         @foreach ($order->products as $item)
+                            {{-- The line's own image is the variant's photo when the buyer
+                                 picked one, else the product's main image; older lines that
+                                 captured none fall back to the product's current image. --}}
+                            @php
+                                $itemImage = $item->image ?: $item->product?->image;
+                                $itemUrl = $item->product && $item->product->is_active ? route('product.show', $item->product->slug) : null;
+                            @endphp
                             <li class="account-item">
+                                <div class="account-item__thumb">
+                                    @if ($itemImage)
+                                        @if ($itemUrl)<a href="{{ $itemUrl }}" tabindex="-1" aria-hidden="true">@endif
+                                        <img src="{{ thumb_url($itemImage) }}" alt="" loading="lazy" decoding="async" width="48" height="48">
+                                        @if ($itemUrl)</a>@endif
+                                    @endif
+                                </div>
                                 <div class="account-item__name">
-                                    <span class="text-[var(--color-text-heading)]">{{ $item->name }}</span>
+                                    @if ($itemUrl)
+                                        <a href="{{ $itemUrl }}" class="text-[var(--color-text-heading)] hover:underline">{{ $item->name }}</a>
+                                    @else
+                                        <span class="text-[var(--color-text-heading)]">{{ $item->name }}</span>
+                                    @endif
                                     @if ($item->variant_label)
                                         <span class="block text-xs text-[var(--color-text)]">{{ $item->variant_label }}</span>
                                     @endif

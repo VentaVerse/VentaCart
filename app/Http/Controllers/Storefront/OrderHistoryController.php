@@ -34,7 +34,7 @@ class OrderHistoryController extends Controller
         // moment an admin removed a status.
         abort_if(is_null($order->order_status_name), 404);
 
-        $order->load(['products', 'histories.status', 'status']);
+        $order->load(['products.product', 'histories.status', 'status']);
         $canCancel = \App\Services\CustomerOrderCancellation::allowed($order, Auth::guard('customer')->user());
 
         return view('account.order-detail', compact('order', 'canCancel'));
