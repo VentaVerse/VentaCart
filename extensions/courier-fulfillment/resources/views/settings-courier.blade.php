@@ -204,8 +204,12 @@
                                         <th>Notify customer</th>
                                     </tr>
                                 </thead>
+                                @foreach ($courierStatusGroups as $groupLabel => $groupStatuses)
                                 <tbody>
-                                    @foreach ($courierStatuses as $statusKey => $label)
+                                    @if ($groupLabel !== '')
+                                        <tr class="v-table__group"><th colspan="3" scope="colgroup">{{ $groupLabel }}</th></tr>
+                                    @endif
+                                    @foreach ($groupStatuses as $statusKey => $label)
                                         <tr>
                                             <td>
                                                 {{ $label }}
@@ -233,6 +237,7 @@
                                         </tr>
                                     @endforeach
                                 </tbody>
+                                @endforeach
                             </table>
                         </div>
                     </x-admin.panel>

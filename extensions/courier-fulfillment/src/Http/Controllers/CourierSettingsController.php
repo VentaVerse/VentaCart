@@ -435,9 +435,48 @@ class CourierSettingsController extends Controller
         // chain exactly as before.
         $builtinLabels = method_exists($c, 'statusLabels') ? $c->statusLabels() : [];
 
+        $labelFor = fn (string $name) => $cachedLabels[$name] ?? $builtinLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
+
+        // Rows in the courier's own reading order, under its own headings
+        // when it offers them (QuadX does), one unnamed group otherwise.
+        $groups = method_exists($c, 'mappableStatusGroups') ? $c->mappableStatusGroups() : ['' => $c->mappableStatuses()];
+        $courierStatusGroups = [];
         $courierStatuses = [];
-        foreach ($c->mappableStatuses() as $name) {
-            $courierStatuses[$name] = $cachedLabels[$name] ?? $builtinLabels[$name] ?? ucwords(str_replace('_', ' ', $name));
+        foreach ($groups as $heading => $names) {
+            foreach ($names as $name) {
+                $courierStatusGroups[$heading][$name] = $labelFor($name);
+                $courierStatuses[$name] = $courierStatusGroups[$heading][$name];
+            }
+        }
+
+        // Anything this store's parcels have ACTUALLY reported that the list
+        // above does not carry: shown so a new courier status can never
+        // strand an order out of sight again (a live QuadX order sat on
+        // received_at_pickup_hub with no row to map it by). Recent bookings
+        // only, one query, the timeline read once per order.
+        $seen = [];
+        \App\Models\Order::query()
+            ->where('courier_provider', $key)
+            ->whereNotNull('courier_meta')
+            ->latest('id')
+            ->limit(200)
+            ->get(['id', 'courier_status', 'courier_meta'])
+            ->each(function ($order) use (&$seen) {
+                if ($order->courier_status) {
+                    $seen[$order->courier_status] = true;
+                }
+                $meta = json_decode($order->courier_meta, true) ?: [];
+                foreach (($meta['timeline'] ?? []) as $event) {
+                    if (!empty($event['status'])) {
+                        $seen[$event['status']] = true;
+                    }
+                }
+            });
+        $unlisted = array_values(array_diff(array_keys($seen), array_keys($courierStatuses)));
+        sort($unlisted);
+        foreach ($unlisted as $name) {
+            $courierStatusGroups['Seen on your orders, not listed above'][$name] = $labelFor($name);
+            $courierStatuses[$name] = $courierStatusGroups['Seen on your orders, not listed above'][$name];
         }
 
         // Smart defaults for the status-mapping table: only applied when this
@@ -445,24 +484,29 @@ class CourierSettingsController extends Controller
         // are actually in its own mappableStatuses() — inert data, not a
         // QuadX special case. Display-only pre-selections; nothing is written
         // to the DB here — the admin's first Save is what persists them.
-        $defaultStatusNames = [
+        // A courier may suggest where each row starts (QuadX does); the old
+        // five-name table stays as the fallback for one that does not.
+        $defaultStatusNames = method_exists($c, 'suggestedStatusMap') ? $c->suggestedStatusMap() : [
             'picked_up'        => 'Shipped',
             'in_transit'       => 'Shipped',
             'out_for_delivery' => 'Shipped',
             'delivered'        => 'Delivered',
             'canceled'         => 'Canceled',
         ];
-
+        // Per ROW, not only when the whole map is empty: a status added to
+        // the vocabulary after the merchant saved their map arrives with its
+        // suggestion pre-selected instead of blank. Display-only until the
+        // merchant's own Save persists it.
         $statusMap = \Extensions\CourierFulfillment\StatusMapper::currentMap($key);
-        if (empty($statusMap)) {
-            foreach ($defaultStatusNames as $statusName => $ventaName) {
-                if (!array_key_exists($statusName, $courierStatuses)) {
-                    continue; // not part of THIS courier's own vocabulary
-                }
-                $id = \App\Models\OrderStatus::where('name', $ventaName)->value('id');
-                if ($id) {
-                    $statusMap[$statusName] = ['order_status_id' => $id, 'notify' => false];
-                }
+        $bookedName = FulfillmentService::bookedStatus()?->name;
+        foreach ($defaultStatusNames as $statusName => $ventaName) {
+            if (!array_key_exists($statusName, $courierStatuses) || array_key_exists($statusName, $statusMap)) {
+                continue; // not this courier's vocabulary, or the merchant already chose
+            }
+            $ventaName = $ventaName === '@booked' ? $bookedName : $ventaName;
+            $id = $ventaName ? \App\Models\OrderStatus::where('name', $ventaName)->value('id') : null;
+            if ($id) {
+                $statusMap[$statusName] = ['order_status_id' => $id, 'notify' => false];
             }
         }
 
@@ -482,6 +526,7 @@ class CourierSettingsController extends Controller
                 ? ($settings[$modeField['key']] ?? ($modeField['options'][0]['value'] ?? null))
                 : null,
             'courierStatuses' => $courierStatuses,
+            'courierStatusGroups' => $courierStatusGroups,
             'statusMap'       => $statusMap,
             'orderStatuses'   => $orderStatuses,
         ]);

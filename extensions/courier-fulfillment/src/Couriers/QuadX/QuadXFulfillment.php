@@ -768,10 +768,66 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     }
 
     /** Curated subset presented on the status-mapping table — unchanged from before this became courier-owned data. */
+    /**
+     * The statuses an order status may be hung on, cherry-picked by the owner
+     * (2026-08-30) from the 59 QuadX's own /orders/statuses endpoint lists.
+     * The nine this used to be were a guess that never included half of
+     * what QuadX actually sends (received_at_pickup_hub stranded a live
+     * order; failed_pickup_attempt is what arrives, never failed_pickup).
+     *
+     * Left out on purpose: for_release and claimed (never seen), the
+     * claims/lost/damaged/disposal chain (waits on the returns process,
+     * board #52), and the four ops-system events (dws_update,
+     * runsheet_closure, rcd_*). The map page appends any status this store
+     * has actually received that is not listed here, so nothing can strand
+     * an order silently again.
+     */
     public function mappableStatuses(): array
     {
-        return ['for_pickup', 'picked_up', 'in_transit', 'out_for_delivery',
-                'delivered', 'failed_pickup', 'failed_delivery', 'returned', 'canceled'];
+        return array_merge(...array_values($this->mappableStatusGroups()));
+    }
+
+    /**
+     * The same statuses, in the order and under the headings a merchant
+     * reads the parcel's journey in. Group label => raw statuses.
+     *
+     * @return array<string, list<string>>
+     */
+    public function mappableStatusGroups(): array
+    {
+        return [
+            'Before pickup'      => ['for_pickup', 'accepted', 'pickup_rider_found', 'out_for_pickup'],
+            'Picked up, moving'  => ['picked_up', 'received_at_pickup_hub', 'at_sorting_center', 'at_3pl_facility',
+                                     'in_transit', 'in_transit_to_delivery_area', 'received_at_delivery_hub',
+                                     'received_at_delivery_area', 'for_delivery', 'delivery_rider_found', 'out_for_delivery'],
+            'Delivered'          => ['delivered'],
+            'Failed attempt'     => ['failed_pickup_attempt', 'failed_pickup', 'failed_delivery', 'for_reattempt', 'rejected'],
+            'Return to sender'   => ['for_return', 'out_for_return', 'return_in_transit', 'arrived_at_rts_hub',
+                                     'arrived_at_rts_area', 'at_sorting_center_rts', 'returned', 'failed_return'],
+            'Cancelled'          => ['canceled'],
+        ];
+    }
+
+    /**
+     * Which Venta status a row starts on before the merchant has chosen:
+     * the module's own booked status for everything still at the pickup
+     * end, Shipped once the courier has it, and the obvious two ends.
+     * Names, resolved to ids by the page; a store without the name gets a
+     * blank row, never a wrong one.
+     *
+     * @return array<string, string> raw status => Venta status NAME, or the
+     *   token '@booked' for "whatever status is placed under To Handover"
+     */
+    public function suggestedStatusMap(): array
+    {
+        $groups = $this->mappableStatusGroups();
+        $map = [];
+        foreach ($groups['Before pickup'] as $k) { $map[$k] = '@booked'; }
+        foreach ($groups['Picked up, moving'] as $k) { $map[$k] = 'Shipped'; }
+        $map['delivered'] = 'Delivered';
+        $map['canceled'] = 'Canceled';
+
+        return $map;
     }
 
     // --- Payload builder --------------------------------------------------
