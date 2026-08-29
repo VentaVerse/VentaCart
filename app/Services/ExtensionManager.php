@@ -342,6 +342,12 @@ class ExtensionManager
         }
 
         Extension::where('name', $name)->delete();
+        // An extension's scheduled jobs leave with it: their commands are
+        // gone, and a row the heartbeat can no longer run is not a setting
+        // worth keeping (owner, 2026-08-30).
+        if (\Illuminate\Support\Facades\Schema::hasTable('automations') && \Illuminate\Support\Facades\Schema::hasColumn('automations', 'extension')) {
+            \App\Models\Automation::where('extension', $name)->delete();
+        }
 
         $this->invalidateRegistryCache();
         $this->clearRouteCacheIfNeeded('uninstall', $name);

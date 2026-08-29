@@ -79,7 +79,9 @@
                                     </label>
                                 </td>
                                 <td>
-                                    @if ($automation->last_run_status === 'success')
+                                    @if ($held = $automation->heldByDisabledExtension())
+                                        <span class="v-badge v-badge--quiet" title="Runs again when the {{ $held }} extension is enabled">Off with {{ $held }}</span>
+                                    @elseif ($automation->last_run_status === 'success')
                                         <span class="v-badge v-badge--good">Success</span>
                                     @elseif ($automation->last_run_status === 'failed')
                                         <span class="v-badge v-badge--bad">Failed</span>

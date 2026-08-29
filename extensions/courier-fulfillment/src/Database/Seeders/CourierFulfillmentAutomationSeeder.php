@@ -21,9 +21,10 @@ class CourierFulfillmentAutomationSeeder extends Seeder
         $preset = 'every_n_minutes';
         $params = ['minute' => 10];
 
-        Automation::firstOrCreate(
+        $automation = Automation::firstOrCreate(
             ['key' => 'courier_poll_status'],
             [
+                'extension' => 'courier-fulfillment',
                 'name' => 'Courier Status Polling',
                 'command' => 'courier:poll-status',
                 'description' => 'Fetches the latest courier status for in-flight (booked, non-terminal) orders from each enabled courier.',
@@ -33,5 +34,9 @@ class CourierFulfillmentAutomationSeeder extends Seeder
                 'enabled' => true,
             ]
         );
+        // A row seeded before ownership existed: claim it, touching nothing else.
+        if ($automation->extension === null) {
+            $automation->update(['extension' => 'courier-fulfillment']);
+        }
     }
 }

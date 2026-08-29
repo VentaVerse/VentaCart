@@ -22,7 +22,7 @@ Artisan::command('inspire', function () {
 // silently register nothing and let the admin finish installation.
 // ==========================================================================
 try {
-    Automation::enabled()->get()->each(function (Automation $automation) {
+    Automation::runnable()->get()->each(function (Automation $automation) {
         $outputLog = storage_path("logs/automations/{$automation->key}.log");
         @mkdir(dirname($outputLog), 0775, true);
 

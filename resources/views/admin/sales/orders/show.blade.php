@@ -118,7 +118,13 @@
                                                 <span class="v-thumb v-thumb--blank"><x-admin.icon name="products" /></span>
                                             @endif
                                             <span>
-                                                {{ $item->name }}
+                                                {{-- A line whose product still exists opens that product; a
+                                                     custom line or a deleted product stays the name it was sold as. --}}
+                                                @if ($item->product)
+                                                    <a href="{{ route('admin.products.edit', $item->product_id) }}" class="v-rowlink">{{ $item->name }}</a>
+                                                @else
+                                                    {{ $item->name }}
+                                                @endif
                                                 <span class="v-cell-quiet v-block">
                                                     @if ($item->variant_label){{ $item->variant_label }}@endif
                                                     @if ($item->sku) · {{ $item->sku }}@endif

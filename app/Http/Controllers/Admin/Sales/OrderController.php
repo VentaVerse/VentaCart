@@ -92,7 +92,9 @@ class OrderController extends Controller
     {
         // customer stays only because the page links to its profile; every
         // value rendered here now comes off the order itself.
-        $order->load(['customer:id', 'products', 'histories']);
+        // products.product:id only says whether the product still exists,
+        // which is what decides if the line's name is a link to its edit page.
+        $order->load(['customer:id', 'products.product:id', 'histories']);
         $statuses = OrderStatus::where('store_id', (int) config('app.store_id', 1))->orderBy('sort_order')->get();
         $couriers = ShippingCourier::where('store_id', (int) config('app.store_id', 1))->where('is_active', true)->orderBy('sort_order')->get();
 

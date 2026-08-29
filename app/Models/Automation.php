@@ -17,6 +17,7 @@ class Automation extends Model
 {
     protected $fillable = [
         'key',
+        'extension',
         'name',
         'command',
         'description',
@@ -41,6 +42,30 @@ class Automation extends Model
     public function scopeEnabled($query)
     {
         return $query->where('enabled', true);
+    }
+
+    /**
+     * Enabled AND runnable: a row owned by an extension only runs while that
+     * extension is installed and enabled, because its command only exists
+     * then. A disabled module's job is not a failure to report every ten
+     * minutes; it is a job that is off with its module.
+     */
+    public function scopeRunnable($query)
+    {
+        return $query->where('enabled', true)->where(function ($q) {
+            $q->whereNull('extension')
+                ->orWhereIn('extension', \App\Models\Extension::where('enabled', true)->select('name'));
+        });
+    }
+
+    /** The name of the module this job belongs to when that module is not currently enabled; null otherwise. */
+    public function heldByDisabledExtension(): ?string
+    {
+        if (! $this->extension) {
+            return null;
+        }
+
+        return \App\Models\Extension::where('name', $this->extension)->where('enabled', true)->exists() ? null : $this->extension;
     }
 
     /**
