@@ -67,9 +67,9 @@
             <div class="v-lrow__cols" :class="'v-lrow__cols--' + unit.columns.length">
                 <template x-for="(col, c) in unit.cols" :key="c">
                     <div class="v-lrowcol" :style="'flex-grow:' + unit.columns[c]">
-                        <template x-for="row in col" :key="'i' + row.id">
+                        <template x-for="row in col" :key="'i' + (row.id ?? row.widget)">
                             <div class="v-card v-card--inherit">
-                                <span class="v-card__nm" x-text="row.title || row.widget"></span>
+                                <span class="v-card__nm" x-text="row.title || row.label || row.widget"></span>
                                 <span class="v-tag">All pages</span>
                             </div>
                         </template>
