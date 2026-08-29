@@ -254,12 +254,56 @@ class ThemeService
             throw new \InvalidArgumentException("Theme [{$slug}] is not installed.");
         }
 
+        $from = $this->getActiveTheme();
+
         Setting::updateOrCreate(
             ['group' => 'identity', 'key' => 'active_theme'],
             ['value' => $slug]
         );
 
+        // A theme opened for the first time has no layout of its own, and a
+        // storefront with empty positions is not what anyone meant by
+        // "use this theme". The merchant's arrangement travels with them:
+        // copied, so the theme they left keeps its own, and only when the
+        // new theme has nothing, so a theme they come back to keeps what
+        // they built there.
+        if ($from !== $slug) {
+            $this->carryLayout($from, $slug);
+        }
+
         $this->clearCache();
+    }
+
+    /** Copy one theme's rows, placements and page columns onto another that has none. */
+    public function carryLayout(string $from, string $to): void
+    {
+        $hasOwn = \App\Models\LayoutPlacement::where('theme', $to)->exists()
+            || \App\Models\LayoutRow::where('theme', $to)->exists();
+        if ($hasOwn) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($from, $to) {
+            $rowMap = [];
+            foreach (\App\Models\LayoutRow::where('theme', $from)->orderBy('id')->get() as $row) {
+                $copy = $row->replicate();
+                $copy->theme = $to;
+                $copy->save();
+                $rowMap[$row->id] = $copy->id;
+            }
+            foreach (\App\Models\LayoutPlacement::where('theme', $from)->orderBy('id')->get() as $placement) {
+                $copy = $placement->replicate();
+                $copy->theme = $to;
+                $copy->row_id = $placement->row_id ? ($rowMap[$placement->row_id] ?? null) : null;
+                $copy->save();
+            }
+            foreach (\App\Models\LayoutColumns::where('theme', $from)->get() as $columns) {
+                \App\Models\LayoutColumns::updateOrCreate(
+                    ['theme' => $to, 'page_type' => $columns->page_type],
+                    ['left_width' => $columns->left_width, 'right_width' => $columns->right_width, 'settings' => $columns->settings]
+                );
+            }
+        });
     }
 
     public function getThemePath(?string $theme = null): string
