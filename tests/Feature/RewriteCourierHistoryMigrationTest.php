@@ -36,7 +36,7 @@ class RewriteCourierHistoryMigrationTest extends TestCase
         return require base_path('database/migrations/2026_08_30_180000_rewrite_courier_status_history_as_sentences.php');
     }
 
-    private function order(string $provider, ?string $courierName): Order
+    private function order(?string $provider, ?string $courierName): Order
     {
         $status = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Pending'], ['is_default' => true, 'sort_order' => 1]);
         $customer = Customer::create(['store_id' => 1, 'first_name' => 'Jane', 'last_name' => 'Doe', 'email' => uniqid('jane') . '@example.com', 'password' => bcrypt('x')]);
@@ -45,8 +45,10 @@ class RewriteCourierHistoryMigrationTest extends TestCase
             'first_name' => 'Jane', 'last_name' => 'Doe', 'email' => $customer->email, 'phone' => '1',
             'shipping_first_name' => 'Jane', 'shipping_last_name' => 'Doe', 'shipping_address_1' => 'x',
             'shipping_city' => 'Cebu City', 'shipping_postcode' => '6000', 'subtotal' => 100, 'total' => 100,
-        ])->forceFill(['courier_provider' => $provider, 'shipping_courier_name' => $courierName]);
-        $order->save();
+        ]);
+        if ($provider !== null) {
+            $order->forceFill(['courier_provider' => $provider, 'shipping_courier_name' => $courierName])->save();
+        }
 
         return $order;
     }
@@ -74,7 +76,9 @@ class RewriteCourierHistoryMigrationTest extends TestCase
 
     public function test_a_fresh_install_touches_nothing(): void
     {
-        $order = $this->order('quadx', 'QuadX');
+        // No extension installed either: a first deploy without fulfillment
+        // has no courier_provider column, and the migration must not assume it.
+        $order = $this->order(null, null);
         $order->histories()->create(['order_status_id' => $order->order_status_id, 'comment' => 'Courier status: for_pickup']);
 
         $this->migration()->up();

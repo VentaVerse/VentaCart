@@ -23,7 +23,9 @@ return new class extends Migration
 
     public function up(): void
     {
-        if (\App\Support\InstallState::isFreshInstall() || ! Schema::hasTable('order_histories')) {
+        // courier_provider is the fulfillment extension's column; a store
+        // that never installed it never had the mapper write these rows.
+        if (\App\Support\InstallState::isFreshInstall() || ! Schema::hasTable('order_histories') || ! Schema::hasColumn('orders', 'courier_provider')) {
             return;
         }
 
