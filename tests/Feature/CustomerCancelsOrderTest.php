@@ -72,6 +72,18 @@ class CustomerCancelsOrderTest extends TestCase
             ->assertOk()->assertDontSee('CANCEL THIS ORDER');
     }
 
+    public function test_the_orders_list_offers_cancel_beside_view_on_the_same_terms(): void
+    {
+        $customer = $this->customer();
+        $open = $this->order($customer, $this->pending);
+        $paid = $this->order($customer, $this->processing);
+
+        $html = $this->actingAs($customer, 'customer')->get(route('account.orders'))->assertOk()->getContent();
+
+        $this->assertStringContainsString(route('account.orders.cancel', $open), $html);
+        $this->assertStringNotContainsString(route('account.orders.cancel', $paid), $html);
+    }
+
     public function test_cancelling_moves_the_order_writes_history_returns_stock_and_tells_both_sides(): void
     {
         $customer = $this->customer();

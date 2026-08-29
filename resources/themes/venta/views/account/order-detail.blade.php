@@ -36,25 +36,6 @@
                             <p class="text-lg text-[var(--color-text-heading)]" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</p>
                         </div>
                     </div>
-
-                    {{-- Cancel: only while the status allows it (Settings, Orders,
-                         Customer may cancel). One confirm step with an optional
-                         reason; after it the button is gone and the status above
-                         says where the order went. --}}
-                    @if ($canCancel ?? false)
-                        <div class="mt-6 pt-6 border-t border-[var(--color-border)]" x-data="{ open: false }">
-                            <button type="button" class="account-btn-secondary text-sm" x-show="!open" @click="open = true">CANCEL THIS ORDER</button>
-                            <form method="POST" action="{{ route('account.orders.cancel', $order) }}" x-show="open" x-cloak class="space-y-3">
-                                @csrf
-                                <label class="account-label" for="cancel-reason">Reason (optional)</label>
-                                <input id="cancel-reason" type="text" name="reason" maxlength="500" class="account-input" value="{{ old('reason') }}">
-                                <div class="flex flex-wrap gap-3">
-                                    <button type="submit" class="account-btn-danger text-sm">YES, CANCEL ORDER #{{ $order->id }}</button>
-                                    <button type="button" class="account-btn-secondary text-sm" @click="open = false">KEEP IT</button>
-                                </div>
-                            </form>
-                        </div>
-                    @endif
                 </div>
 
                 {{-- Addresses --}}
@@ -192,7 +173,30 @@
                     </div>
                 @endif
 
-                <a href="{{ route('account.orders') }}" class="text-sm text-[var(--color-primary)] hover:underline">&larr; Back to Orders</a>
+                {{-- The page foot: the way back, and the one destructive act,
+                     offered only while the status allows it (Settings, Checkout,
+                     Cancellation by the customer). One confirm step with an
+                     optional reason; after it the button is gone and the
+                     status at the top says where the order went. --}}
+                <div class="account-order-foot" x-data="{ open: false }">
+                    @if ($canCancel ?? false)
+                        <form method="POST" action="{{ route('account.orders.cancel', $order) }}" class="account-cancel-panel" x-show="open" x-cloak x-transition.opacity.duration.200ms>
+                            @csrf
+                            <label class="account-label" for="cancel-reason">Reason (optional)</label>
+                            <input id="cancel-reason" x-ref="reason" type="text" name="reason" maxlength="500" class="account-input w-full" value="{{ old('reason') }}">
+                            <div class="account-cancel-panel__acts">
+                                <button type="submit" class="account-btn-danger account-btn-danger--solid">YES, CANCEL ORDER #{{ $order->id }}</button>
+                                <button type="button" class="account-btn-secondary" @click="open = false">KEEP IT</button>
+                            </div>
+                        </form>
+                    @endif
+                    <div class="account-order-foot__row">
+                        <a href="{{ route('account.orders') }}" class="text-sm text-[var(--color-primary)] hover:underline">&larr; Back to Orders</a>
+                        @if ($canCancel ?? false)
+                            <button type="button" class="account-btn-danger" x-show="!open" @click="open = true; $nextTick(() => $refs.reason.focus())">CANCEL THIS ORDER</button>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>

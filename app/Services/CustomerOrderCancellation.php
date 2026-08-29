@@ -41,6 +41,29 @@ class CustomerOrderCancellation
     }
 
     /**
+     * The same answer for a page of orders, with the landing status looked
+     * up once instead of once per row.
+     *
+     * @param  iterable<Order>  $orders
+     * @return array<int, bool>  keyed by order id
+     */
+    public static function allowedMany(iterable $orders, ?Customer $customer): array
+    {
+        $out = [];
+        $target = null;
+
+        foreach ($orders as $order) {
+            $target ??= self::target($order) ?? false;
+            $out[$order->id] = $customer
+                && (int) $order->customer_id === (int) $customer->id
+                && (bool) $order->status?->customer_can_cancel
+                && $target !== false;
+        }
+
+        return $out;
+    }
+
+    /**
      * The status a customer cancellation lands on. Null when the merchant
      * has not chosen one, and then nothing is offered: no guessing by a
      * status NAME (owner ruling, 2026-08-30: a name can be renamed or

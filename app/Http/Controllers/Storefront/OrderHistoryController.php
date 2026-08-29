@@ -16,10 +16,13 @@ class OrderHistoryController extends Controller
             // The list prints a line count per row; without this it ran one
             // COUNT query per order.
             ->withCount('products')
+            ->with('status')
             ->latest()
             ->paginate(15);
 
-        return view('account.orders', compact('orders'));
+        $cancellable = \App\Services\CustomerOrderCancellation::allowedMany($orders, Auth::guard('customer')->user());
+
+        return view('account.orders', compact('orders', 'cancellable'));
     }
 
     public function show(Order $order)
