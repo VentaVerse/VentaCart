@@ -22,6 +22,12 @@ class ThemeService
 
     public function __construct()
     {
+        $this->reload();
+    }
+
+    /** Read the stored settings again, dropping any overlay. */
+    public function reload(): void
+    {
         $this->settings = Cache::rememberForever(self::CACHE_KEY, function () {
             $data = [];
             foreach (Setting::all() as $setting) {
@@ -29,6 +35,30 @@ class ThemeService
             }
             return $data;
         });
+        if (class_exists(\App\Support\ThemeOptions::class)) {
+            \App\Support\ThemeOptions::flush();
+        }
+    }
+
+    /**
+     * Lay unsaved values over the stored settings for the rest of this
+     * request: a theme's editor previewing a draft, or editing a theme that
+     * is not the live one. Nothing is written; the next request reads the
+     * store as it is.
+     *
+     * @param  array<string, array<string, mixed>>  $groups  group => [key => value]
+     */
+    public function overlay(array $groups): void
+    {
+        foreach ($groups as $group => $values) {
+            foreach ((array) $values as $key => $value) {
+                $this->settings[$group][$key] = $value;
+            }
+        }
+        // Per-request memo of theme options reads through this service.
+        if (class_exists(\App\Support\ThemeOptions::class) && method_exists(\App\Support\ThemeOptions::class, 'flush')) {
+            \App\Support\ThemeOptions::flush();
+        }
     }
 
     public function get(string $key, mixed $default = null): mixed

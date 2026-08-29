@@ -98,6 +98,9 @@ class ExtensionManager
                     'description' => (string) ($meta['description'] ?? ''),
                     'type' => 'theme',
                     'theme' => $slug,
+                    // A theme with code of its own (an editor, routes) names
+                    // its provider like an extension does; src/ autoloads.
+                    'provider' => $meta['provider'] ?? null,
                     'icon' => 'tags',
                     'path' => dirname($json),
                     'default_enabled' => $slug === ThemeService::THEME,

@@ -109,111 +109,7 @@ class LayoutController extends Controller
      */
     private function units(string $pageType): object
     {
-        $theme = LayoutPlacement::scopeTheme();
-
-        $placements = LayoutPlacement::where('theme', $theme)
-            ->where('page_type', $pageType)
-            ->orderBy('sort_order')->orderBy('id')->get();
-
-        $rows = LayoutRow::where('theme', $theme)
-            ->where('page_type', $pageType)
-            ->get()->keyBy('id');
-
-        $card = function (LayoutPlacement $row): array {
-            $widget = Widgets::get($row->widget);
-
-            return [
-                'id' => $row->id,
-                'widget' => $row->widget,
-                'title' => $row->title,
-                'label' => $widget['title'] ?? $row->widget,
-                'enabled' => (bool) $row->is_enabled,
-                // A placement whose module is switched off renders nothing on
-                // the storefront. It must read as unavailable, not broken.
-                'available' => $widget !== null,
-                'config' => $row->config ?? [],
-            ];
-        };
-
-        $units = [];
-
-        foreach ($placements as $placement) {
-            $rowId = $placement->row_id && $rows->has($placement->row_id) ? $placement->row_id : null;
-            $unitKey = $rowId ? 'row-' . $rowId : 'loose-' . $placement->id;
-
-            if (! isset($units[$unitKey])) {
-                $row = $rowId ? $rows->get($rowId) : null;
-                $widths = $row ? LayoutRow::normalizeColumns($row->columns) : [LayoutRow::GRID];
-                $units[$unitKey] = [
-                    'region' => $placement->region,
-                    'sort' => $row ? [$row->sort_order, $row->id] : [$placement->sort_order, $placement->id],
-                    'id' => $row?->id,
-                    'columns' => $widths,
-                    'enabled' => $row ? (bool) $row->is_enabled : true,
-                    'style' => RowStyle::normalize($row?->style),
-                    'cols' => array_fill(0, count($widths), []),
-                ];
-            }
-
-            $index = $rowId ? max(0, min((int) $placement->column_index, count($units[$unitKey]['columns']) - 1)) : 0;
-            $units[$unitKey]['cols'][$index][] = $card($placement);
-        }
-
-        // A row with nothing in it yet is still a row the merchant made.
-        foreach ($rows as $row) {
-            if (! isset($units['row-' . $row->id])) {
-                $widths = LayoutRow::normalizeColumns($row->columns);
-                $units['row-' . $row->id] = [
-                    'region' => $row->region,
-                    'sort' => [$row->sort_order, $row->id],
-                    'id' => $row->id,
-                    'columns' => $widths,
-                    'enabled' => (bool) $row->is_enabled,
-                    'style' => RowStyle::normalize($row->style),
-                    'cols' => array_fill(0, count($widths), []),
-                ];
-            }
-        }
-
-        usort($units, fn ($a, $b) => $a['sort'] <=> $b['sort']);
-
-        $out = [];
-        foreach ($units as $unit) {
-            $region = $unit['region'];
-            unset($unit['region'], $unit['sort']);
-            $out[$region][] = $unit;
-        }
-
-        // A system region with nothing arranged on the page it belongs to
-        // shows the theme's shipped pieces as one row of cards, ids null:
-        // saving the page makes them the merchant's own.
-        foreach (Regions::all() as $region => $spec) {
-            $defaults = Regions::defaults($region);
-            if ($defaults === [] || isset($out[$region]) || Regions::page($region) !== $pageType) {
-                continue;
-            }
-            $out[$region][] = [
-                'id' => null,
-                'columns' => [LayoutRow::GRID],
-                'enabled' => true,
-                'style' => RowStyle::normalize([]),
-                'shipped' => true,
-                'cols' => [array_map(fn ($d) => [
-                    'id' => null,
-                    'widget' => $d['widget'],
-                    'title' => $d['title'],
-                    'label' => Widgets::get($d['widget'])['title'] ?? $d['widget'],
-                    'enabled' => true,
-                    'available' => Widgets::has($d['widget']),
-                    'config' => $d['config'],
-                ], $defaults)],
-            ];
-        }
-
-        // An OBJECT, always. An empty PHP array serialises to [], which is a JS
-        // Array, and assigning a string key to it never triggers Alpine's
-        // reactivity: the hidden payload input kept its load-time value.
-        return (object) $out;
+        return \App\Support\LayoutInventory::units($pageType);
     }
 
     /**
@@ -225,23 +121,7 @@ class LayoutController extends Controller
      */
     private function catalogue(array $regions): array
     {
-        $out = [];
-
-        foreach (Widgets::all() as $key => $spec) {
-            $out[] = [
-                'key' => $key,
-                'title' => $spec['title'],
-                'module' => $spec['module'],
-                'shape' => $spec['shape'] ?? null,
-                'regions' => $spec['regions'] ?: array_keys($regions),
-                'pages' => $spec['pages'] ?? null,
-                'system' => (bool) ($spec['system'] ?? false),
-            ];
-        }
-
-        usort($out, fn ($a, $b) => strcmp($a['title'], $b['title']));
-
-        return $out;
+        return \App\Support\LayoutInventory::catalogue($regions);
     }
 
     /**
@@ -265,138 +145,11 @@ class LayoutController extends Controller
             return back()->with('error', 'Unknown page type.');
         }
 
-        // The editor sends rows. A flat placements list (the shape before rows
-        // existed, and what an import may still carry) is accepted too: each
-        // placement becomes its own one-column row.
-        $rows = isset($data['rows']) && is_array($data['rows'])
-            ? collect($data['rows'])->values()
-            : collect($data['placements'] ?? [])->values()->map(fn ($p) => [
-                'id' => null, 'region' => $p['region'] ?? '', 'columns' => [LayoutRow::GRID], 'enabled' => true,
-                'placements' => [$p + ['column' => 0]],
-            ]);
-
-        // Written by this save, and counted in what the merchant is told.
-        $kept = [];
-        // Protected from the sweep, and deliberately NOT counted: telling a
-        // merchant "3 widgets placed" when one of them is a banner they cannot
-        // currently see is how a screen earns distrust.
-        $spared = [];
-
         try {
-            DB::transaction(function () use ($data, $pageType, $rows, &$kept, &$spared) {
-            // Placements this screen can show but cannot send back: a widget
-            // whose module is switched off, and a region this theme no longer
-            // declares. The editor renders both (a Module off chip, the
-            // orphans block) and PROMISES both are kept. Without this they
-            // fell through the loop below, never reached $kept, and the sweep
-            // deleted them. A merchant who switched Banners off for an
-            // afternoon, tidied their homepage, and switched it back on had
-            // lost the placement and its config, under a success message.
-            $spared = LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
-                ->where('page_type', $pageType)
-                ->get()
-                ->filter(fn ($p) => ! Regions::exists($p->region) || ! Widgets::has($p->widget))
-                ->pluck('id')
-                ->all();
-
-            LayoutColumns::updateOrCreate(
-                ['theme' => LayoutPlacement::scopeTheme(), 'page_type' => $pageType],
-                [
-                    'left_width' => (int) ($data['columns']['left'] ?? 0),
-                    'right_width' => (int) ($data['columns']['right'] ?? 0),
-                    'settings' => (array) ($data['settings'] ?? []),
-                ]
-            );
-
-            $keptRows = [];
-            $order = 0;
-
-            foreach ($rows as $r => $unit) {
-                $region = (string) ($unit['region'] ?? '');
-                // A region this theme does not declare is not written. The
-                // editor cannot invent one.
-                if (! Regions::exists($region)) {
-                    continue;
-                }
-
-                $widths = LayoutRow::normalizeColumns($unit['columns'] ?? [LayoutRow::GRID]);
-
-                // A row the editor sent under an id it does not own (another
-                // page, another theme) is written as a new row of this page.
-                $rowId = isset($unit['id']) ? (int) $unit['id'] : null;
-                $owned = $rowId ? LayoutRow::where('id', $rowId)
-                    ->where('theme', LayoutPlacement::scopeTheme())->where('page_type', $pageType)->exists() : false;
-
-                $layoutRow = LayoutRow::updateOrCreate(
-                    ['id' => $owned ? $rowId : null],
-                    [
-                        'theme' => LayoutPlacement::scopeTheme(),
-                        'page_type' => $pageType,
-                        'region' => $region,
-                        'columns' => $widths,
-                        'style' => RowStyle::normalize($unit['style'] ?? []),
-                        'sort_order' => $r,
-                        'is_enabled' => (bool) ($unit['enabled'] ?? true),
-                    ]
-                );
-                $keptRows[] = $layoutRow->id;
-
-                foreach (collect($unit['placements'] ?? [])->values() as $row) {
-                    $widget = (string) ($row['widget'] ?? '');
-                    // A widget nothing registers is not written either.
-                    if (! Widgets::has($widget)) {
-                        continue;
-                    }
-                    $placement = LayoutPlacement::updateOrCreate(
-                        ['id' => $row['id'] ?? null],
-                        [
-                            'theme' => LayoutPlacement::scopeTheme(),
-                            'page_type' => $pageType,
-                            'region' => $region,
-                            'row_id' => $layoutRow->id,
-                            'column_index' => max(0, min((int) ($row['column'] ?? 0), count($widths) - 1)),
-                            'widget' => $widget,
-                            'title' => $row['title'] ?? null,
-                            'config' => $row['config'] ?? [],
-                            'sort_order' => $order++,
-                            'is_enabled' => (bool) ($row['enabled'] ?? true),
-                        ]
-                    );
-                    $kept[] = $placement->id;
-                }
-            }
-
-            // A payload we could not read a single widget out of is not an
-            // instruction to empty the page, it is a payload we could not
-            // read. Refusing the whole save here is the difference between
-            // an error message and an error message arriving after the work
-            // was already destroyed. An empty placements list is a different
-            // thing entirely and still empties the page, below.
-            $sent = $rows->sum(fn ($unit) => count($unit['placements'] ?? []));
-            if ($kept === [] && $sent > 0) {
-                throw new RefusedSave();
-            }
-
-            // Whatever this page type had and the editor did not send back was
-            // removed on screen. Scoped to this page type, so nothing else moves.
-            //
-            // Always constrained, never conditionally. The old guard skipped
-            // whereNotIn when nothing was kept, so a save where every row was
-            // refused deleted the entire page type and then reported an error
-            // about a transaction that had already committed. An empty $kept
-            // now means exactly what it says: the merchant emptied the page.
-            LayoutPlacement::where('theme', LayoutPlacement::scopeTheme())
-                ->where('page_type', $pageType)
-                ->whereNotIn('id', array_merge($kept, $spared))
-                ->delete();
-
-            // Rows removed on screen go too. A spared placement inside one is
-            // left loose (row_id nulled by the schema), never deleted.
-            LayoutRow::where('theme', LayoutPlacement::scopeTheme())
-                ->where('page_type', $pageType)
-                ->whereNotIn('id', $keptRows)
-                ->delete();
-            });
+            $result = app(\App\Services\LayoutSaver::class)->save($pageType, $data);
+            $kept = $result['kept'];
+            $spared = $result['spared'];
+            $rows = collect(array_fill(0, $result['rows'], null));
         } catch (RefusedSave $e) {
             return back()->with('error', 'Nothing could be placed on '
                 . ($pageType === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($pageType))
@@ -428,29 +181,7 @@ class LayoutController extends Controller
      */
     private function sampleUrl(string $pageType): string
     {
-        $home = url('/');
-
-        try {
-            return match ($pageType) {
-                'category' => ($c = \App\Models\Category::where('is_active', true)->orderBy('id')->first())
-                    ? route('category.show', $c) : $home,
-                'product' => ($p = \App\Models\Product::where('is_active', true)->orderBy('id')->first())
-                    ? route('product.show', $p) : $home,
-                'brand' => ($b = \App\Models\Brand::where('is_active', true)->orderBy('id')->first())
-                    ? route('brand.show', $b) : $home,
-                'search' => route('search.results', ['q' => 'a']),
-                'cart' => route('cart.index'),
-                'checkout' => route('checkout.index'),
-                'blog' => \Illuminate\Support\Facades\Route::has('blog.index') ? route('blog.index') : $home,
-                'account' => \Illuminate\Support\Facades\Route::has('account.dashboard') ? route('account.dashboard') : $home,
-                'auth' => \Illuminate\Support\Facades\Route::has('customer.login') ? route('customer.login') : $home,
-                default => $home,
-            };
-        } catch (\Throwable $e) {
-            // A missing route or an empty catalogue is not a reason for the
-            // layout editor to 500. The link falls back to the storefront.
-            return $home;
-        }
+        return \App\Support\LayoutInventory::sampleUrl($pageType);
     }
 
     /**
@@ -499,17 +230,7 @@ class LayoutController extends Controller
      */
     private function themeColors(): array
     {
-        $colors = app(ThemeService::class)->getGroup('colors');
-        $out = [];
-
-        foreach ($colors as $key => $hex) {
-            if (! is_string($hex) || ! preg_match('/^#[0-9a-fA-F]{6}$/', $hex)) {
-                continue;
-            }
-            $out[] = ['key' => $key, 'label' => ucfirst(str_replace('_', ' ', $key)), 'hex' => strtoupper($hex)];
-        }
-
-        return $out;
+        return \App\Support\LayoutInventory::themeColors();
     }
 
     /**
@@ -718,16 +439,6 @@ class LayoutController extends Controller
      */
     private function schemaSet(): array
     {
-        return collect(Widgets::all())->keys()
-            ->mapWithKeys(fn ($key) => [$key => array_map(function ($field) {
-                // A named route becomes a URL here, so the view never resolves
-                // routes and a missing one cannot 500 the editor.
-                if (! empty($field['create_route']) && \Illuminate\Support\Facades\Route::has($field['create_route'])) {
-                    $field['create_url'] = route($field['create_route']);
-                }
-                unset($field['create_route']);
-
-                return $field;
-            }, Widgets::schema($key))])->all();
+        return \App\Support\LayoutInventory::schemaSet();
     }
 }

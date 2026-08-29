@@ -7,9 +7,14 @@
      * widgets belong there; the theme decides where the slot IS and what wraps
      * it. That division is what makes a layout portable between themes that
      * look nothing alike.
+     *
+     * A theme's own editor may step in through App\Support\LayoutHooks: draw
+     * a draft instead of the saved rows, wrap rows and placements so it can
+     * point at them, and show an empty region as somewhere to drop into.
      */
     $vPageType = \App\Support\StorefrontPageType::current();
-    $vUnits = \App\Models\LayoutRow::forRegion($vPageType, $name);
+    $vUnits = \App\Support\LayoutHooks::resolveUnits($vPageType, $name)
+        ?? \App\Models\LayoutRow::forRegion($vPageType, $name);
 
     // A system region nobody has arranged yet shows the theme's own pieces,
     // in the theme's order, as if they were placed: the page looks as it
@@ -28,45 +33,59 @@
     // is disabled or uninstalled renders NOTHING on the storefront, and is
     // reported in the layout editor instead. A shopper must never meet a
     // broken slot because an admin turned an extension off.
-    $vRender = function ($placement) {
+    $vRender = function ($placement) use ($name) {
         $vWidget = \App\Support\Widgets::get($placement->widget);
         $vView = \App\Support\Widgets::view($placement->widget);
         if (! $vWidget || ! $vView) {
-            return '';
+            return \App\Support\LayoutHooks::wrapPlacement('', $placement, $name);
         }
         $vData = \App\Support\Widgets::resolve($placement->widget, $placement->config ?? []);
 
-        return view($vView, array_merge(['placement' => $placement], $vData))->render();
+        return \App\Support\LayoutHooks::wrapPlacement(
+            view($vView, array_merge(['placement' => $placement], $vData))->render(),
+            $placement,
+            $name
+        );
     };
-@endphp
 
-{{-- A row with one column is drawn as its placements, nothing around them,
-     so a store that never split a row renders exactly as it did. A split row
-     is core markup on the theme's eight-column grid: the theme styles
-     .layout-row and .layout-col, and decides nothing about what is inside. --}}
-@foreach ($vUnits as $vUnit)
-    @php
+    // A row with one column is drawn as its placements, nothing around them,
+    // so a store that never split a row renders exactly as it did. A split
+    // row is core markup on the theme's eight-column grid: the theme styles
+    // .layout-row and .layout-col, and decides nothing about what is inside.
+    $vOut = '';
+    foreach ($vUnits as $vIndex => $vUnit) {
         $vRow = $vUnit['row'];
         $vStyled = $vRow && \App\Support\RowStyle::isStyled($vRow->style);
-    @endphp
-    @if ($vRow && ($vRow->isSplit() || $vStyled))
-        @php $vWidths = \App\Models\LayoutRow::normalizeColumns($vRow->columns); @endphp
-        {{-- The style attribute carries the merchant's chosen values as custom
-             properties (data, not authored CSS); the rules live in
-             resources/css/storefront/layout-rows.css. --}}
-        <div class="layout-row layout-row--{{ count($vWidths) }} {{ $vStyled ? implode(' ', \App\Support\RowStyle::classes($vRow->style)) : '' }}"
-             data-layout-row="{{ $vRow->id }}" @if ($vStyled) style="{{ \App\Support\RowStyle::vars($vRow->style) }}" @endif>
-            @foreach ($vWidths as $vIndex => $vWidth)
-                <div class="layout-col layout-col--{{ $vWidth }}">
-                    @foreach ($vUnit['columns'][$vIndex] ?? [] as $placement)
-                        {!! $vRender($placement) !!}
-                    @endforeach
-                </div>
-            @endforeach
-        </div>
-    @else
-        @foreach ($vUnit['columns'][0] ?? [] as $placement)
-            {!! $vRender($placement) !!}
-        @endforeach
-    @endif
-@endforeach
+        $vHtml = '';
+
+        if ($vRow && ($vRow->isSplit() || $vStyled)) {
+            $vWidths = \App\Models\LayoutRow::normalizeColumns($vRow->columns);
+            // The style attribute carries the merchant's chosen values as
+            // custom properties (data, not authored CSS); the rules live in
+            // resources/css/storefront/layout-rows.css.
+            $vHtml .= '<div class="layout-row layout-row--' . count($vWidths)
+                . ($vStyled ? ' ' . e(implode(' ', \App\Support\RowStyle::classes($vRow->style))) : '') . '"'
+                . ' data-layout-row="' . e((string) $vRow->id) . '"'
+                . ($vStyled ? ' style="' . e(\App\Support\RowStyle::vars($vRow->style)) . '"' : '') . '>';
+            foreach ($vWidths as $vCol => $vWidth) {
+                $vHtml .= '<div class="layout-col layout-col--' . (int) $vWidth . '">';
+                foreach ($vUnit['columns'][$vCol] ?? [] as $placement) {
+                    $vHtml .= $vRender($placement);
+                }
+                $vHtml .= '</div>';
+            }
+            $vHtml .= '</div>';
+        } else {
+            foreach ($vUnit['columns'][0] ?? [] as $placement) {
+                $vHtml .= $vRender($placement);
+            }
+        }
+
+        $vOut .= \App\Support\LayoutHooks::wrapRow($vHtml, $vRow, $name, (int) $vIndex, $vPageType);
+    }
+
+    if ($vUnits->isEmpty()) {
+        $vOut = \App\Support\LayoutHooks::renderEmpty($name, $vPageType);
+    }
+@endphp
+{!! $vOut !!}

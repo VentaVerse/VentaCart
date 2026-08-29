@@ -46,14 +46,21 @@
                             <button type="submit" class="v-btn v-btn--primary v-btn--sm">Install</button>
                         </form>
                     @elseif ($slug === $active)
-                        <a href="{{ route('admin.theme.customise') }}" class="v-btn v-btn--primary v-btn--sm">Customise</a>
-                        <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
+                        @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
+                            <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--primary v-btn--sm">Edit</a>
+                        @else
+                            <a href="{{ route('admin.theme.customise') }}" class="v-btn v-btn--primary v-btn--sm">Customise</a>
+                            <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
+                        @endif
                         <form method="POST" action="{{ route('admin.theme.package.uninstall') }}" x-data @submit.prevent="if (confirm('Uninstall the live theme? The storefront shows a plain page until another theme is made live.')) $el.submit()">
                             @csrf
                             <input type="hidden" name="theme" value="{{ $slug }}">
                             <button type="submit" class="v-btn v-btn--sm v-btn--danger">Uninstall</button>
                         </form>
                     @else
+                        @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
+                            <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--sm">Edit</a>
+                        @endif
                         <form method="POST" action="{{ route('admin.theme.activate') }}">
                             @csrf
                             <input type="hidden" name="theme" value="{{ $slug }}">

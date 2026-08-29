@@ -16,6 +16,13 @@ final class ThemeOptions
 
     private static ?string $for = null;
 
+    /** Forget the per-request memo, after settings were overlaid. */
+    public static function flush(): void
+    {
+        self::$resolved = null;
+        self::$for = null;
+    }
+
     public static function get(string $key, mixed $default = null): mixed
     {
         $all = self::all();
