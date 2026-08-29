@@ -36,10 +36,7 @@ class CheckoutService
      */
     public function getAvailablePaymentMethods(?array $address = null, ?float $subtotal = null, array $restrictionContext = []): array
     {
-        // Offerable, not merely enabled: a method with no order status
-        // selected is not shown, because an order paid by it would have
-        // nowhere to be born (owner ruling 2026-08-30, no fallback).
-        $methods = \App\Services\PaymentManager::offerableMethods();
+        $methods = \App\Services\PaymentManager::enabledMethods();
 
         // Apply payment restrictions whenever we know the cart subtotal. The
         // address may be null (customer hasn't picked or saved one yet) — that
@@ -203,15 +200,13 @@ class CheckoutService
             }
         }
 
-        // The status this order is born with is the payment method's own
-        // "Order status on checkout" and nothing else. The method was only
-        // offered because it has one; a request that reaches here without
-        // it (a stale checkout page after the merchant cleared the setting)
-        // is refused rather than guessed.
-        $defaultStatus = \App\Services\PaymentManager::checkoutStatus($paymentMethod);
-        if (! $defaultStatus) {
-            throw new \RuntimeException($paymentMethod->getName() . ' is not available right now. Please choose another payment method.');
-        }
+        // The method's own "Order status on checkout" (every method page
+        // lists the statuses and nothing else; the merchant picks one and
+        // saves). A page never saved falls back to the store's Default
+        // status, the one the merchant marked with the radio on Order
+        // Status and cannot delete: not a name, not a guess.
+        $defaultStatus = \App\Services\PaymentManager::checkoutStatus($paymentMethod)
+            ?? OrderStatus::where('store_id', $this->storeId)->where('is_default', true)->first();
 
         $order = DB::transaction(function () use (
             $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,

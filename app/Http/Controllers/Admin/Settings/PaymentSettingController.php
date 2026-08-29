@@ -28,19 +28,9 @@ class PaymentSettingController extends Controller
         // payment method.
         $noMethodEnabled = $cards->every(fn (array $c) => $c['state'] !== 'enabled');
 
-        // An enabled method with no "Order status on checkout" is not offered
-        // at checkout (no fallback, owner ruling 2026-08-30). Name those
-        // cards, keyed the way manifests name them: payment-<base-key>.
-        $needsStatus = collect(\App\Services\PaymentManager::enabledMethods())
-            ->filter(fn ($m) => \App\Services\PaymentManager::checkoutStatus($m) === null)
-            ->map(fn ($m) => 'payment-' . str_replace('_', '-', $m->getBaseKey()))
-            ->values()
-            ->all();
-
         return view('admin.settings.payments.index', [
             'cards' => $cards,
             'noMethodEnabled' => $noMethodEnabled,
-            'needsStatus' => $needsStatus,
         ]);
     }
 }

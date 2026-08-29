@@ -13,7 +13,6 @@
             <div class="v-gap">
                 <x-admin.field name="settings.cod_success_status_id" label="Order status on checkout">
                     <select name="settings[cod_success_status_id]" class="v-control">
-                        <option value="">Not selected: the method is not offered at checkout</option>
                         @foreach ($orderStatuses as $os)
                             <option value="{{ $os->id }}" @selected(($settings['payment']['cod_success_status_id'] ?? '') == $os->id)>{{ $os->name }}</option>
                         @endforeach
