@@ -40,6 +40,7 @@ class FulfillmentRowMessageTest extends TestCase
     {
         $status = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Processing'], ['sort_order' => 2]);
         \Extensions\CourierFulfillment\PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
         return Order::create([
             'store_id' => 1, 'order_status_id' => $status->id, 'comment' => $comment,

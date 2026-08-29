@@ -34,6 +34,12 @@
                 </x-slot:acts>
                 <span class="v-badge v-badge--warn">No order status is placed under To Handover</span>
             </x-admin.panel>
+        @elseif ($bookedOrderStatusId === null)
+            {{-- Placed, but nothing chosen. There is no guessed default any
+                 more (owner ruling 2026-08-30): the select below decides. --}}
+            <x-admin.panel title="Booking is refused" role="status">
+                <span class="v-badge v-badge--warn">No booked order status is selected</span>
+            </x-admin.panel>
         @endif
 
         {{-- Module-level settings: not owned by any one courier's schema. --}}
@@ -54,7 +60,7 @@
                     <x-admin.field name="settings.cancel_order_status_id" label="Cancel order status"
                         hint="Applied by a Cancel order action in the queue. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
                         <select name="settings[cancel_order_status_id]" class="v-control">
-                            <option value="" @selected($cancelOrderStatusId === null)>Use default (Canceled)</option>
+                            <option value="" @selected($cancelOrderStatusId === null)>Not selected</option>
                             @foreach ($orderStatuses as $id => $name)
                                 <option value="{{ $id }}" @selected((string) $id === (string) $cancelOrderStatusId)>{{ $name }}</option>
                             @endforeach
@@ -69,7 +75,7 @@
                         hint="Applied when a booking succeeds, moving the order from To Pack to To Handover. History and stock behave as if the status were changed from the order page, and the customer is not notified.">
                         <select name="settings[booked_order_status_id]" class="v-control">
                             <option value="" @selected($bookedOrderStatusId === null)>
-                                {{ $bookedDefaultName ? 'Use default (' . $bookedDefaultName . ')' : 'No status is placed under To Handover' }}
+                                {{ empty($handoverStatuses) ? 'No status is placed under To Handover' : 'Not selected' }}
                             </option>
                             @foreach ($handoverStatuses as $id => $name)
                                 <option value="{{ $id }}" @selected((string) $id === (string) $bookedOrderStatusId)>{{ $name }}</option>
@@ -83,7 +89,7 @@
                         hint="The fallback applied when a courier booking is cancelled. The status the order held before it was booked wins whenever it is still placed under To Pack.">
                         <select name="settings[unbooked_order_status_id]" class="v-control">
                             <option value="" @selected($unbookedOrderStatusId === null)>
-                                {{ $unbookedDefaultName ? 'Use default (' . $unbookedDefaultName . ')' : 'No status is placed under To Pack' }}
+                                {{ empty($packStatuses) ? 'No status is placed under To Pack' : 'Not selected' }}
                             </option>
                             @foreach ($packStatuses as $id => $name)
                                 <option value="{{ $id }}" @selected((string) $id === (string) $unbookedOrderStatusId)>{{ $name }}</option>

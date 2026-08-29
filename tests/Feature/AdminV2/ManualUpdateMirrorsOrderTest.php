@@ -42,7 +42,9 @@ class ManualUpdateMirrorsOrderTest extends TestCase
         $this->from = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
         $this->to   = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 2]);
         PlacementMap::put($this->from->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $this->from->id);
         PlacementMap::put($this->to->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $this->to->id);
 
         $this->actingAs(User::factory()->create());
     }

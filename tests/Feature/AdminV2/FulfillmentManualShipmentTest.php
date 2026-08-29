@@ -130,6 +130,7 @@ class FulfillmentManualShipmentTest extends TestCase
         );
 
         PlacementMap::put($status->id, $placement);
+        \Tests\Support\FulfillmentSettings::selectFor($placement, (int) $status->id);
 
         return $status;
     }
@@ -142,6 +143,7 @@ class FulfillmentManualShipmentTest extends TestCase
         );
 
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
         return $status;
     }

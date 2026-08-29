@@ -19,7 +19,7 @@ return [
         'label' => 'Operations',
         'items' => [
             ['key' => 'checkout', 'label' => 'Checkout & Stock', 'description' => 'Guest checkout, out-of-stock rules, low-stock alerts.', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout', 'permission' => null, 'keywords' => ['guest', 'out of stock', 'low stock', 'threshold']],
-            ['key' => 'order-statuses', 'label' => 'Order Statuses', 'description' => 'Status flow and automatic stock actions.', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null, 'permission' => null, 'keywords' => ['workflow', 'stock action', 'decrement', 'pending']],
+            ['key' => 'order-statuses', 'label' => 'Order Status', 'description' => 'Status flow and automatic stock actions.', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null, 'permission' => null, 'keywords' => ['workflow', 'stock action', 'decrement', 'pending']],
             ['key' => 'email-templates', 'label' => 'Email Templates', 'description' => 'Transactional email content and test sends.', 'icon' => 'pages', 'route' => 'admin.email-templates.index', 'section' => null, 'permission' => null, 'keywords' => ['order confirmation', 'notification', 'template']],
             ['key' => 'automations', 'label' => 'Automations', 'description' => 'Scheduled jobs: schedules, status, run now.', 'icon' => 'settings', 'route' => 'admin.settings.section', 'section' => 'automations', 'permission' => null, 'keywords' => ['cron', 'schedule', 'jobs', 'sitemap', 'currency update']],
         ],

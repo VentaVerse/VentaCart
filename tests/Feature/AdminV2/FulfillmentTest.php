@@ -178,16 +178,19 @@ class FulfillmentTest extends TestCase
         // Placement is module data with NO default (owner ruling,
         // 2026-08-09), so a bookable fixture places its own status.
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
         // fulfillment-placement Task 3: a store must have somewhere to put a
         // booked order (a To-Handover-placed status), or FulfillmentService::
         // book() refuses before the outbound call rather than leaving a
         // booked order actionless in To Pack. OrderStatusSeeder seeds this
         // status on a real install; these tests build their statuses by hand,
         // so the fixture carries it too.
-        PlacementMap::put(OrderStatus::firstOrCreate(
+        $handover = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Order Being Shipped'],
             ['sort_order' => 4],
-        )->id, 'to_handover');
+        );
+        PlacementMap::put($handover->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $handover->id);
 
         return Order::create(array_merge([
             'store_id' => 1,
@@ -540,7 +543,9 @@ class FulfillmentTest extends TestCase
         $pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'sort_order' => 1, 'is_default' => true]);
         $delivered = OrderStatus::create(['store_id' => 1, 'name' => 'Delivered', 'sort_order' => 2]);
         PlacementMap::put($pending->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $pending->id);
         PlacementMap::put($delivered->id, 'delivered');
+        \Tests\Support\FulfillmentSettings::selectFor('delivered', (int) $delivered->id);
 
         // Two different couriers' maps, saved under their own derived keys —
         // proves no cross-talk between "fake_status_map" and "quadx_status_map".
@@ -593,6 +598,7 @@ class FulfillmentTest extends TestCase
 
         $status = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 1, 'is_default' => true]);
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
         $order = Order::create([
             'store_id' => 1,
             'order_status_id' => $status->id,
@@ -642,6 +648,7 @@ class FulfillmentTest extends TestCase
         // those actions belong to is now named by the order's status.
         $status = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Order Being Shipped'], ['sort_order' => 1, 'is_default' => true]);
         PlacementMap::put($status->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $status->id);
 
         $quadxOrder = $this->makeBookableOrder(['order_status_id' => $status->id]);
         $quadxOrder->forceFill([

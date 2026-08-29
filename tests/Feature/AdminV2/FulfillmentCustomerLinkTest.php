@@ -42,6 +42,7 @@ class FulfillmentCustomerLinkTest extends TestCase
     {
         $status = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Processing'], ['sort_order' => 2]);
         \Extensions\CourierFulfillment\PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
         return $status;
     }

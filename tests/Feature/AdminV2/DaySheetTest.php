@@ -151,6 +151,7 @@ class DaySheetTest extends TestCase
     {
         $status = $this->orderStatus($name);
         PlacementMap::put($status->id, $placement);
+        \Tests\Support\FulfillmentSettings::selectFor($placement, (int) $status->id);
 
         return $status;
     }

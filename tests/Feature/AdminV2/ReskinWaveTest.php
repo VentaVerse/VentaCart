@@ -1358,8 +1358,11 @@ class ReskinWaveTest extends TestCase
         // Placement is module data with NO default (owner ruling,
         // 2026-08-09), so every status this test relies on is placed here.
         \Extensions\CourierFulfillment\PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
         \Extensions\CourierFulfillment\PlacementMap::put($shippedStatus->id, 'shipping');
+        \Tests\Support\FulfillmentSettings::selectFor('shipping', (int) $shippedStatus->id);
         \Extensions\CourierFulfillment\PlacementMap::put($deliveredStatus->id, 'delivered');
+        \Tests\Support\FulfillmentSettings::selectFor('delivered', (int) $deliveredStatus->id);
 
         $makeOrder = function (string $suffix, ?OrderStatus $on = null) use ($status) {
             return Order::create([

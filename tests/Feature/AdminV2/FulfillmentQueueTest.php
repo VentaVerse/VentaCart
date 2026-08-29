@@ -179,6 +179,7 @@ class FulfillmentQueueTest extends TestCase
         );
 
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
         return $status;
     }
@@ -196,6 +197,7 @@ class FulfillmentQueueTest extends TestCase
         );
 
         PlacementMap::put($status->id, $stage);
+        \Tests\Support\FulfillmentSettings::selectFor($stage, (int) $status->id);
 
         return $status;
     }

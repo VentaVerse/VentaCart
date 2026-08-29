@@ -17,7 +17,7 @@ return [
     [
         'label' => 'Commerce',
         'items' => [
-            ['key' => 'order-statuses', 'line' => 'Status flow and stock actions.', 'label' => 'Orders', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null],
+            ['key' => 'order-statuses', 'line' => 'Status flow and stock actions.', 'label' => 'Order Status', 'icon' => 'orders', 'route' => 'admin.order-statuses.index', 'section' => null],
             // Owner ruling 2026-08-30: checkout rules and stock rules are commerce, not store identity.
             ['key' => 'checkout', 'line' => 'Guest checkout and stock rules.', 'label' => 'Checkout & Stock', 'icon' => 'cart', 'route' => 'admin.settings.section', 'section' => 'checkout'],
         ],

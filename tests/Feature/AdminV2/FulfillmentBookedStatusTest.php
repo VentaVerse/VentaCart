@@ -105,6 +105,7 @@ class FulfillmentBookedStatusTest extends TestCase
         );
 
         PlacementMap::put($status->id, $placement);
+        \Tests\Support\FulfillmentSettings::selectFor($placement, (int) $status->id);
 
         return $status;
     }
@@ -164,7 +165,7 @@ class FulfillmentBookedStatusTest extends TestCase
 
         $pack = $this->statusPlaced('to_pack', 'Processing');
         $handover = $this->statusPlaced('to_handover', 'Ready for Pickup');
-        Setting::create(['group' => 'courier', 'key' => 'booked_order_status_id', 'value' => (string) $handover->id]);
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'booked_order_status_id'], ['value' => (string) $handover->id]);
 
         $order = $this->makeOrder($pack);
 
@@ -184,23 +185,43 @@ class FulfillmentBookedStatusTest extends TestCase
         $this->assertStringContainsString('Ready for Pickup', $history->first()->comment);
     }
 
-    public function test_booking_defaults_to_order_being_shipped_when_the_setting_is_unset(): void
+    public function test_booking_is_refused_when_no_booked_status_is_selected(): void
+    {
+        // No guess any more (owner ruling 2026-08-30): two statuses placed
+        // under To Handover, one of them even named Order Being Shipped, and
+        // still nothing is booked until the merchant selects one.
+        $this->installExtension();
+        $this->enableQuadxStaging();
+        Http::fake(); // any outbound call here is itself the bug
+
+        $this->statusPlaced('to_handover', 'Aaa Handover', 1);
+        $this->statusPlaced('to_handover', 'Order Being Shipped', 9);
+        Setting::where('group', 'courier')->where('key', 'booked_order_status_id')->delete();
+
+        $order = $this->makeOrder();
+
+        $res = app(FulfillmentService::class)->book($order, $this->bookPayload());
+        $this->assertFalse($res['success']);
+        $this->assertSame('no_booked_status', $res['code']);
+        Http::assertNothingSent();
+    }
+
+    public function test_the_selected_booked_status_wins_over_sort_order_and_name(): void
     {
         $this->installExtension();
         $this->enableQuadxStaging();
         $this->fakeQuadxBooking();
 
-        // Two candidates: the named default must win over the first by sort.
         $this->statusPlaced('to_handover', 'Aaa Handover', 1);
-        $named = $this->statusPlaced('to_handover', 'Order Being Shipped', 9);
+        $this->statusPlaced('to_handover', 'Order Being Shipped', 5);
+        $chosen = $this->statusPlaced('to_handover', 'Handed to Courier', 9);
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'booked_order_status_id'], ['value' => (string) $chosen->id]);
 
         $order = $this->makeOrder();
 
         $res = app(FulfillmentService::class)->book($order, $this->bookPayload());
         $this->assertTrue($res['success']);
-
-        $this->assertSame($named->id, $order->fresh()->order_status_id);
-        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'booked_order_status_id']);
+        $this->assertSame($chosen->id, $order->fresh()->order_status_id);
     }
 
     public function test_booking_falls_back_to_the_first_to_handover_status_when_nothing_is_configured_or_named(): void
@@ -226,13 +247,17 @@ class FulfillmentBookedStatusTest extends TestCase
         $this->fakeQuadxBooking();
 
         $delivered = $this->statusPlaced('delivered', 'Delivered');
-        $handover = $this->statusPlaced('to_handover', 'Order Being Shipped');
-        Setting::create(['group' => 'courier', 'key' => 'booked_order_status_id', 'value' => (string) $delivered->id]);
+        $this->statusPlaced('to_handover', 'Order Being Shipped');
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'booked_order_status_id'], ['value' => (string) $delivered->id]);
 
         $order = $this->makeOrder();
 
-        $this->assertTrue(app(FulfillmentService::class)->book($order, $this->bookPayload())['success']);
-        $this->assertSame($handover->id, $order->fresh()->order_status_id);
+        // A selection that is no longer placed under To Handover is ignored,
+        // and nothing is guessed in its place: the booking is refused until
+        // the merchant fixes the selection.
+        $res = app(FulfillmentService::class)->book($order, $this->bookPayload());
+        $this->assertFalse($res['success']);
+        $this->assertSame('no_booked_status', $res['code']);
     }
 
     // ------------------------------------------------------------------
@@ -292,8 +317,8 @@ class FulfillmentBookedStatusTest extends TestCase
 
         $this->assertFalse($res['success']);
         $this->assertSame('no_booked_status', $res['code']);
-        $this->assertStringContainsString('To Handover', $res['error']);
-        $this->assertStringContainsString('Status Mapping', $res['error']);
+        $this->assertStringContainsString('booked order status', $res['error']);
+        $this->assertStringContainsString('Fulfillment, Settings', $res['error']);
 
         Http::assertNothingSent();
         $order->refresh();
@@ -465,7 +490,7 @@ class FulfillmentBookedStatusTest extends TestCase
         $waiting = $this->statusPlaced('to_pack', 'Awaiting Packing', 1);
         $custom = $this->statusPlaced('to_pack', 'Custom Build Queue', 5);
         $this->statusPlaced('to_handover', 'Order Being Shipped');
-        Setting::create(['group' => 'courier', 'key' => 'unbooked_order_status_id', 'value' => (string) $waiting->id]);
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'unbooked_order_status_id'], ['value' => (string) $waiting->id]);
 
         $order = $this->makeOrder($custom);
 
@@ -500,7 +525,7 @@ class FulfillmentBookedStatusTest extends TestCase
         $this->statusPlaced('to_pack', 'Aaa First Pack', 1);
         $configured = $this->statusPlaced('to_pack', 'Repacking', 4);
         $handover = $this->statusPlaced('to_handover', 'Order Being Shipped');
-        Setting::create(['group' => 'courier', 'key' => 'unbooked_order_status_id', 'value' => (string) $configured->id]);
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'unbooked_order_status_id'], ['value' => (string) $configured->id]);
 
         // A booking made before this task shipped: no pre-booking status in meta.
         $order = $this->makeOrder($handover);
@@ -624,10 +649,12 @@ class FulfillmentBookedStatusTest extends TestCase
 
         $this->get($this->settingsUrl())->assertOk(); // prime routes
 
+        $before = Setting::where('group', 'courier')->where('key', 'booked_order_status_id')->value('value');
+
         $this->post($this->settingsUrl(), ['settings' => ['booked_order_status_id' => (string) $pack->id]])
             ->assertSessionHasErrors('settings.booked_order_status_id');
 
-        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'booked_order_status_id']);
+        $this->assertSame($before, Setting::where('group', 'courier')->where('key', 'booked_order_status_id')->value('value'), 'A rejected value must leave the selection untouched.');
     }
 
     public function test_the_hub_rejects_an_unbooked_status_that_is_not_placed_under_to_pack(): void
@@ -640,10 +667,12 @@ class FulfillmentBookedStatusTest extends TestCase
 
         $this->get($this->settingsUrl())->assertOk();
 
+        $before = Setting::where('group', 'courier')->where('key', 'unbooked_order_status_id')->value('value');
+
         $this->post($this->settingsUrl(), ['settings' => ['unbooked_order_status_id' => (string) $handover->id]])
             ->assertSessionHasErrors('settings.unbooked_order_status_id');
 
-        $this->assertDatabaseMissing('settings', ['group' => 'courier', 'key' => 'unbooked_order_status_id']);
+        $this->assertSame($before, Setting::where('group', 'courier')->where('key', 'unbooked_order_status_id')->value('value'), 'A rejected value must leave the selection untouched.');
     }
 
     public function test_the_hub_saves_and_clears_both_status_settings(): void

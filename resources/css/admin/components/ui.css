@@ -806,6 +806,18 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
     bottom: auto;
     top: calc(100% + 7px);
 }
+/* A mark inside anything that clips (a scrolling table wrapper, say) gets
+   its bubble lifted to the viewport by admin.js: fixed at the coordinates
+   it measured, which no ancestor's overflow can cut. The last row of a
+   table used to lose the bottom of its bubble to the wrapper's edge. */
+.v-help.is-fixed .v-help__tip,
+.v-tablewrap .v-help.is-fixed .v-help__tip {
+    position: fixed;
+    left: var(--v-help-x);
+    top: var(--v-help-y);
+    bottom: auto;
+    right: auto;
+}
 
 /* --- Bulk action bar (follows a selection down the page) -------- */
 

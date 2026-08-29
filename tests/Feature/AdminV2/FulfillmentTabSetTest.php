@@ -79,6 +79,7 @@ class FulfillmentTabSetTest extends TestCase
         );
 
         PlacementMap::put($status->id, $placement);
+        \Tests\Support\FulfillmentSettings::selectFor($placement, (int) $status->id);
 
         return $status;
     }

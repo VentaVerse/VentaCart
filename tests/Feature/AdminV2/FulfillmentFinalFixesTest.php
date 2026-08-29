@@ -119,14 +119,17 @@ class FulfillmentFinalFixesTest extends TestCase
             ['sort_order' => 1, 'is_default' => true],
         );
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
         // fulfillment-placement Task 3: booking moves the order onto a
         // To-Handover-placed status and is refused when the store has none
         // (FulfillmentService::bookedStatus()). Seeded on a real install by
         // OrderStatusSeeder; built by hand here, same as the other statuses.
-        PlacementMap::put(OrderStatus::firstOrCreate(
+        $handover = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Order Being Shipped'],
             ['sort_order' => 4],
-        )->id, 'to_handover');
+        );
+        PlacementMap::put($handover->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $handover->id);
 
         return Order::create([
             'store_id' => 1, 'order_status_id' => $status->id,

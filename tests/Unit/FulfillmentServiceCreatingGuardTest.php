@@ -57,13 +57,16 @@ class FulfillmentServiceCreatingGuardTest extends TestCase
         // an unplaced status belongs to no tab, so a bookable fixture has to
         // place its own status under To Pack.
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
         // fulfillment-placement Task 3: booking needs a To-Handover-placed
         // status to move the order to, or it is refused before any outbound
         // call (FulfillmentService::bookedStatus()).
-        PlacementMap::put(OrderStatus::firstOrCreate(
+        $handover = OrderStatus::firstOrCreate(
             ['store_id' => 1, 'name' => 'Order Being Shipped'],
             ['sort_order' => 4],
-        )->id, 'to_handover');
+        );
+        PlacementMap::put($handover->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $handover->id);
 
         return Order::create(array_merge([
             'store_id' => 1, 'order_status_id' => $status->id,

@@ -100,6 +100,7 @@ class OrderTrackingEmailsTest extends TestCase
     {
         $status = $this->orderStatus($name, $sort);
         \Extensions\CourierFulfillment\PlacementMap::put($status->id, $placement);
+        \Tests\Support\FulfillmentSettings::selectFor($placement, (int) $status->id);
 
         return $status;
     }

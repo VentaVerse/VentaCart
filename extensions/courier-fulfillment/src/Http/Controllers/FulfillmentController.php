@@ -937,14 +937,12 @@ class FulfillmentController extends Controller
             return back()->with('error', "Order #{$order->id} is mid-booking with a courier. Wait for the booking to finish, cancel the booking, then cancel the order.");
         }
 
+        // The setting is the only source; no guess by the name Canceled any
+        // more (owner ruling 2026-08-30).
         $configuredId = Setting::where('group', 'courier')->where('key', 'cancel_order_status_id')->value('value');
         $status = $configuredId ? \App\Models\OrderStatus::find((int) $configuredId) : null;
-        // Default (and fallback for a configured id whose status row was
-        // since deleted): the status named "Canceled" — the same default the
-        // settings hub's select pre-selects.
-        $status = $status ?? \App\Models\OrderStatus::where('name', 'Canceled')->first();
         if (!$status) {
-            return back()->with('error', 'No cancel status is configured. Choose one under Settings, Modules, Courier Fulfillment.');
+            return back()->with('error', 'No cancel order status is selected. Choose one under Extensions, Fulfillment, Settings.');
         }
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($order, $status) {

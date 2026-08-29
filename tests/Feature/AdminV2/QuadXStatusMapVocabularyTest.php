@@ -94,6 +94,7 @@ class QuadXStatusMapVocabularyTest extends TestCase
         $shipped = OrderStatus::create(['store_id' => 1, 'name' => 'Shipped', 'sort_order' => 3]);
         $handover = OrderStatus::create(['store_id' => 1, 'name' => 'Order Being Shipped', 'sort_order' => 4]);
         \Extensions\CourierFulfillment\PlacementMap::put($handover->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $handover->id);
         // The merchant saved a map before received_at_pickup_hub existed as a row.
         Setting::create(['group' => 'courier', 'key' => 'quadx_status_map', 'value' => json_encode([
             'picked_up' => ['order_status_id' => $shipped->id, 'notify' => false],

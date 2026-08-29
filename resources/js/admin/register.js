@@ -276,6 +276,27 @@ window.vCopy = async function (text) {
         tip.style.display = wasDisplay;
         tip.style.visibility = wasVis;
         const r = mark.getBoundingClientRect();
+        // Anything between the mark and the page that clips (a scrolling
+        // table wrapper) would cut the bubble at its edge. Lift it to the
+        // viewport instead: fixed at measured coordinates, below the mark
+        // when there is room, above when there is not.
+        let clipped = false;
+        for (let a = mark.parentElement; a && a !== document.body; a = a.parentElement) {
+            const o = getComputedStyle(a);
+            if (o.overflowY !== 'visible') { clipped = true; break; }
+        }
+        mark.classList.toggle('is-fixed', clipped);
+        if (clipped) {
+            const gutter = 8;
+            const below = r.bottom + 7 + tip.offsetHeight <= window.innerHeight - gutter;
+            const y = below ? r.bottom + 7 : Math.max(gutter, r.top - 7 - tip.offsetHeight);
+            const x = Math.max(gutter, Math.min(r.left - 8, window.innerWidth - gutter - wide));
+            mark.style.setProperty('--v-help-x', Math.round(x) + 'px');
+            mark.style.setProperty('--v-help-y', Math.round(y) + 'px');
+            mark.classList.remove('is-below');
+            mark.style.setProperty('--v-help-shift', '0px');
+            return;
+        }
         mark.classList.toggle('is-below', r.top < need);
         // Slide left by exactly the overflow past the right gutter, but never
         // past the left gutter: on a phone the bubble is wider than the space

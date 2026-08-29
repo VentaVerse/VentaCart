@@ -123,6 +123,7 @@ class FulfillmentServiceabilityTest extends TestCase
             ['sort_order' => 1, 'is_default' => true],
         );
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
         return Order::create([
             'store_id'            => 1,

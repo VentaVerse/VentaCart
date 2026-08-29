@@ -69,6 +69,7 @@ class FulfillmentStatusPlacementPageTest extends TestCase
         $processing = $this->makeStatus('Processing', 1);
         $delivered = $this->makeStatus('Delivered', 2);
         PlacementMap::put($delivered->id, 'delivered');
+        \Tests\Support\FulfillmentSettings::selectFor('delivered', (int) $delivered->id);
 
         $this->makeOrder($processing->id);
         $this->makeOrder($processing->id);
@@ -82,7 +83,7 @@ class FulfillmentStatusPlacementPageTest extends TestCase
             ->assertSee('name="placements[' . $delivered->id . ']"', false)
             // The whole placement vocabulary is offered, including the
             // "no tab" choice, whose label carries its one consequence.
-            ->assertSee('Not placed (All tab only)')
+            ->assertSee('No tab (shown in All only)')
             ->assertSee('To Ship, To Pack')
             ->assertSee('Lost and Damaged')
             // Live counts, so the merchant sees the scale of a re-placement.
@@ -99,6 +100,7 @@ class FulfillmentStatusPlacementPageTest extends TestCase
         // rule can produce the order this asserts.
         $placed = $this->makeStatus('Aaa Placed', 1);
         PlacementMap::put($placed->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $placed->id);
         $this->makeStatus('Zzz Unplaced', 2);
 
         $body = $this->get($this->url())->assertOk()->getContent();

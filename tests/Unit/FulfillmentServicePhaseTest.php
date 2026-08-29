@@ -167,6 +167,7 @@ class FulfillmentServicePhaseTest extends TestCase
             ['sort_order' => 1],
         );
         PlacementMap::put($status->id, $placement);
+        \Tests\Support\FulfillmentSettings::selectFor($placement, (int) $status->id);
 
         return $this->order($attributes + ['order_status_id' => $status->id]);
     }

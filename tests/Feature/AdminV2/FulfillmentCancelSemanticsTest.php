@@ -92,6 +92,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         // 2026-08-09): an unplaced status belongs to no tab, so this fixture
         // places its own default status under To Pack.
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
         return $status;
     }
@@ -104,6 +105,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
         );
 
         PlacementMap::put($status->id, $stage);
+        \Tests\Support\FulfillmentSettings::selectFor($stage, (int) $status->id);
 
         return $status;
     }
@@ -252,7 +254,7 @@ class FulfillmentCancelSemanticsTest extends TestCase
 
         $this->statusWithStage('cancelled', 'Canceled'); // the default would be this...
         $void = $this->statusWithStage('cancelled', 'Voided');
-        Setting::create(['group' => 'courier', 'key' => 'cancel_order_status_id', 'value' => (string) $void->id]);
+        Setting::updateOrCreate(['group' => 'courier', 'key' => 'cancel_order_status_id'], ['value' => (string) $void->id]);
 
         $order = $this->makeOrder();
 
@@ -302,15 +304,18 @@ class FulfillmentCancelSemanticsTest extends TestCase
         $this->installExtension();
 
         $canceled = $this->statusWithStage('cancelled', 'Canceled');
+        // The test helper selects a placed cancelled status the way a real
+        // store has one chosen; this test is about the UNSELECTED state.
+        \App\Models\Setting::where('group', 'courier')->where('key', 'cancel_order_status_id')->delete();
 
-        // Fix-round minor: with NO stored setting the placeholder is what's
-        // selected — never a concrete status the admin did not choose (the
-        // old pre-selected default silently persisted on first hub save).
+        // With NO stored setting the placeholder is what's selected, and it
+        // says so: never a concrete status the admin did not choose, and no
+        // guessed default any more (owner ruling 2026-08-30).
         $this->get($this->settingsUrl())
             ->assertOk()
             ->assertSee('name="settings[cancel_order_status_id]"', false)
             ->assertSee('<option value="" selected', false)
-            ->assertSee('Use default (Canceled)')
+            ->assertSee('Not selected')
             ->assertDontSee('<option value="' . $canceled->id . '" selected', false);
     }
 
@@ -1077,10 +1082,11 @@ class FulfillmentCancelSemanticsTest extends TestCase
         // page. 'delivered' is offered by no select at all, which is what
         // keeps this an honest assertion about scoping.
         $this->statusWithStage('delivered', 'DeliveredStageStatus');
+        \App\Models\Setting::where('group', 'courier')->where('key', 'cancel_order_status_id')->delete();
 
         $this->get($this->settingsUrl())
             ->assertOk()
-            ->assertSee('Use default (Canceled)')
+            ->assertSee('Not selected')
             ->assertSee('<option value="' . $canceled->id . '"', false)
             ->assertSee('<option value="' . $void->id . '"', false)
             ->assertDontSee('DeliveredStageStatus');

@@ -412,25 +412,19 @@ class FulfillmentService
             return null;
         }
 
+        // The setting is the only source (owner ruling 2026-08-30). There
+        // used to be two guesses behind it, a status NAME and then the first
+        // placed status by sort order; a name can be renamed or deleted and a
+        // guess that silently changes is worse than a refusal that names the
+        // select to fill. An existing store's effective guesses were pinned
+        // into these settings once, at upgrade (the 2026_08_30_130000
+        // migration), so nothing moved for it.
         $configured = Setting::where('group', 'courier')->where('key', $key)->value('value');
         if ($configured && in_array((int) $configured, $ids, true)) {
-            $status = OrderStatus::find((int) $configured);
-            if ($status) {
-                return $status;
-            }
+            return OrderStatus::find((int) $configured);
         }
 
-        if ($preferredName !== null) {
-            $named = OrderStatus::whereIn('id', $ids)->where('name', $preferredName)->first();
-            if ($named) {
-                return $named;
-            }
-        }
-
-        return OrderStatus::whereIn('id', $ids)
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->first();
+        return null;
     }
 
     /**
@@ -848,7 +842,7 @@ class FulfillmentService
             return [
                 'success' => false,
                 'code'    => 'no_booked_status',
-                'error'   => 'No order status is placed under To Handover, so a booked order would have nowhere to go. Place one under Extensions, Fulfillment, Status Mapping.',
+                'error'   => 'No booked order status is selected, so a booked order would have nowhere to go. Choose one under Extensions, Fulfillment, Settings.',
             ];
         }
 

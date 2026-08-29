@@ -5,7 +5,7 @@
         // is not obvious from the control - an unplaced status's orders still
         // show up, in the All tab. No help card, no paragraph: the option is
         // named for what it does (owner's UI copy rule, 2026-08-09).
-        $options = ['' => 'Not placed (All tab only)'] + $placementNames;
+        $options = ['' => 'No tab (shown in All only)'] + $placementNames;
     @endphp
 
     <div class="v-head">
@@ -32,7 +32,7 @@
                              placement without saving anything. --}}
                         <button type="button" class="v-btn v-btn--secondary v-btn--sm"
                             @click="$el.closest('form').querySelectorAll('select[data-suggested]').forEach(s => { if (!s.value) { s.value = s.dataset.suggested; s.dispatchEvent(new Event('change', { bubbles: true })); } })">
-                            Suggest placements
+                            Suggest tabs
                         </button>
                     </x-slot:acts>
                 @endif
@@ -40,7 +40,7 @@
                 <div class="v-tablewrap">
                     <table class="v-table">
                         <thead>
-                            <tr><th>Order status</th><th>Placement</th><th class="v-cell-num">Orders</th></tr>
+                            <tr><th>Order status</th><th>Tab</th><th class="v-cell-num">Orders</th></tr>
                         </thead>
                         <tbody>
                             @foreach ($unplaced as $row)
@@ -49,7 +49,7 @@
                                     <td>
                                         <select name="placements[{{ $row['id'] }}]"
                                             @if ($row['suggestion']) data-suggested="{{ $row['suggestion'] }}" @endif
-                                            aria-label="Placement for {{ $row['name'] }}"
+                                            aria-label="Tab for {{ $row['name'] }}"
                                             class="v-control v-w-name">
                                             @foreach ($options as $value => $label)
                                                 <option value="{{ $value }}" @selected($value === '')>{{ $label }}</option>
@@ -72,7 +72,7 @@
                 <div class="v-tablewrap">
                     <table class="v-table">
                         <thead>
-                            <tr><th>Order status</th><th>Placement</th><th class="v-cell-num">Orders</th></tr>
+                            <tr><th>Order status</th><th>Tab</th><th class="v-cell-num">Orders</th></tr>
                         </thead>
                         <tbody>
                             @foreach ($placed as $row)
@@ -80,7 +80,7 @@
                                     <td>{{ $row['name'] }}</td>
                                     <td>
                                         <select name="placements[{{ $row['id'] }}]"
-                                            aria-label="Placement for {{ $row['name'] }}"
+                                            aria-label="Tab for {{ $row['name'] }}"
                                             class="v-control v-w-name">
                                             @foreach ($options as $value => $label)
                                                 <option value="{{ $value }}" @selected($value === $row['placement'])>{{ $label }}</option>

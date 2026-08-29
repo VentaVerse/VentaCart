@@ -60,8 +60,10 @@ class ErpFulfillmentContractTest extends TestCase
     {
         $pending = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Pending'], ['sort_order' => 1, 'is_default' => true]);
         PlacementMap::put($pending->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $pending->id);
         $shipped = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Order Being Shipped'], ['sort_order' => 4]);
         PlacementMap::put($shipped->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $shipped->id);
         $unplaced = OrderStatus::firstOrCreate(['store_id' => 1, 'name' => 'Quote'], ['sort_order' => 9]);
 
         return [$pending, $shipped, $unplaced];

@@ -66,6 +66,7 @@ class FulfillmentReturnsTest extends TestCase
         );
 
         PlacementMap::put($status->id, 'to_pack');
+        \Tests\Support\FulfillmentSettings::selectFor('to_pack', (int) $status->id);
 
         return $status;
     }
@@ -79,6 +80,7 @@ class FulfillmentReturnsTest extends TestCase
         );
 
         PlacementMap::put($status->id, 'cancelled');
+        \Tests\Support\FulfillmentSettings::selectFor('cancelled', (int) $status->id);
 
         return $status;
     }

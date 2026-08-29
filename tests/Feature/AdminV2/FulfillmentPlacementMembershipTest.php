@@ -97,6 +97,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
         );
 
         PlacementMap::put($status->id, $placement);
+        \Tests\Support\FulfillmentSettings::selectFor($placement, (int) $status->id);
 
         return $status;
     }
@@ -303,6 +304,7 @@ class FulfillmentPlacementMembershipTest extends TestCase
         // Re-placing the SAME status moves every order on it, with no order
         // row touched: this is the whole point of the placement setting.
         PlacementMap::put($repacking->id, 'to_handover');
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $repacking->id);
 
         $this->get($this->queueUrl() . '?filter=to_ship&sub=to_handover')
             ->assertOk()
