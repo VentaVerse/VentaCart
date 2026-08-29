@@ -260,6 +260,42 @@ window.vCopy = async function (text) {
 // One mechanism for every in-page action button (test sends, generate
 // buttons): POST as JSON, never navigate, toast the server's own verdict.
 // Returns { ok, message } so a caller can react beyond the toast.
+// The help mark's bubble opens upward by default. Before it shows, measure
+// whether there is room above the mark inside the viewport; when there is
+// not, open it below. Likewise pull it in from the right edge. Delegated,
+// so marks rendered later (x-if, x-for, fetched partials) get it too.
+(function placeHelpBubbles() {
+    const place = (mark) => {
+        const tip = mark.querySelector('.v-help__tip');
+        if (!tip) return;
+        const wasDisplay = tip.style.display, wasVis = tip.style.visibility;
+        tip.style.display = 'block';
+        tip.style.visibility = 'hidden';
+        const need = tip.offsetHeight + 7;
+        const wide = tip.offsetWidth;
+        tip.style.display = wasDisplay;
+        tip.style.visibility = wasVis;
+        const r = mark.getBoundingClientRect();
+        mark.classList.toggle('is-below', r.top < need);
+        // Slide left by exactly the overflow past the right gutter, but never
+        // past the left gutter: on a phone the bubble is wider than the space
+        // on either side of the mark, and the gutter wins over the anchor.
+        const gutter = 8;
+        const naturalLeft = r.left - 8;
+        const overflow = naturalLeft + wide - (window.innerWidth - gutter);
+        const shift = overflow > 0 ? -Math.min(overflow, Math.max(0, naturalLeft - gutter)) : 0;
+        mark.style.setProperty('--v-help-shift', shift + 'px');
+    };
+    document.addEventListener('pointerenter', (e) => {
+        const mark = e.target instanceof Element ? e.target.closest('.v-help') : null;
+        if (mark) place(mark);
+    }, true);
+    document.addEventListener('focusin', (e) => {
+        const mark = e.target instanceof Element ? e.target.closest('.v-help') : null;
+        if (mark) place(mark);
+    });
+})();
+
 window.vPost = async function (url, data = {}) {
     let result;
     try {

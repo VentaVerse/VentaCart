@@ -736,7 +736,11 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
 .v-help__tip {
     position: absolute;
     bottom: calc(100% + 7px);
-    left: -8px;
+    /* --v-help-shift is set by admin.js on hover/focus: the exact number of
+       pixels the bubble must slide left to stay inside the viewport, and 0
+       when it already does. A flip to the other side does not work on a
+       phone, where a 260px bubble overflows whichever side it anchors to. */
+    left: calc(-8px + var(--v-help-shift, 0px));
     z-index: 30;
     width: max-content;
     max-width: 260px;
@@ -766,6 +770,22 @@ select.v-control { appearance: none; background-image: linear-gradient(45deg, tr
         transform: translateY(3px);
     }
 }
+/* No room above: a mark near the top of the viewport opened its bubble
+   off-screen, which read as "hidden behind something". admin.js measures
+   on hover/focus and flips it below the mark (is-below), and slides it
+   left by exactly the overflow (--v-help-shift) when it would run past
+   the right edge. */
+.v-help.is-below .v-help__tip {
+    bottom: auto;
+    top: calc(100% + 7px);
+}
+.v-help.is-below:hover .v-help__tip,
+.v-help.is-below:focus-visible .v-help__tip {
+    @starting-style {
+        transform: translateY(-3px);
+    }
+}
+
 /* Inside a scrolling table wrapper the clip eats anything above the
    header, so the bubble opens downward over the rows instead. */
 .v-tablewrap .v-help__tip {
