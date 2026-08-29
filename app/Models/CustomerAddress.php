@@ -24,4 +24,15 @@ class CustomerAddress extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
+    }
+
+    /** The number with its country's dialling code, for display. */
+    public function getPhoneDisplayAttribute(): ?string
+    {
+        return \App\Support\Phone::display($this->phone, $this->country?->phone_code);
+    }
 }

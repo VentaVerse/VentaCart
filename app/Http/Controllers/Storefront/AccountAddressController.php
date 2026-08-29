@@ -13,7 +13,7 @@ class AccountAddressController extends Controller
     public function index()
     {
         $customer = Auth::guard('customer')->user();
-        $addresses = $customer->addresses()->latest()->get();
+        $addresses = $customer->addresses()->with('country')->latest()->get();
 
         return view('account.addresses', compact('addresses'));
     }

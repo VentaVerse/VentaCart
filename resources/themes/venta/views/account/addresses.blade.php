@@ -39,11 +39,16 @@
                                     @if ($address->district)
                                         <p class="text-[var(--color-text-muted)]">{{ $address->district }}</p>
                                     @endif
-                                    <p class="text-[var(--color-text-muted)]">
-                                        {{ $address->city }}@if ($address->state), {{ $address->state }}@endif
-                                        @if ($address->postcode) {{ $address->postcode }}@endif
-                                    </p>
-                                    <p class="text-[var(--color-text)]">{{ $address->country_code }}</p>
+                                    <p class="text-[var(--color-text-muted)]">{{ $address->city }}@if ($address->state), {{ $address->state }}@endif</p>
+                                    @if ($address->postcode)
+                                        <p class="text-[var(--color-text-muted)]">Postal code {{ $address->postcode }}</p>
+                                    @endif
+                                    @if ($address->country?->name)
+                                        <p class="text-[var(--color-text)]">{{ $address->country->name }}</p>
+                                    @endif
+                                    @if ($address->phone_display)
+                                        <p class="text-[var(--color-text-heading)] mt-1">{{ $address->phone_display }}</p>
+                                    @endif
                                 </div>
 
                                 <div class="flex items-center gap-3 pt-3 border-t border-[var(--color-border)]">

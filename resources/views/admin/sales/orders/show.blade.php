@@ -78,8 +78,8 @@
                         @if ($order->shipping_district)<p class="v-cell-quiet">{{ $order->shipping_district }}</p>@endif
                         <p class="v-cell-quiet">{{ $order->shipping_city }}@if ($order->shipping_state), {{ $order->shipping_state }}@endif {{ $order->shipping_postcode }}</p>
                         @if ($order->shipping_country_name ?? $order->shippingCountry?->name)<p class="v-cell-quiet">{{ $order->shipping_country_name ?? $order->shippingCountry?->name }}</p>@endif
-                        @if ($order->shipping_phone || $order->phone)
-                            <p class="v-mono v-gap-sm">{{ $order->shipping_phone ?: $order->phone }}</p>
+                        @if ($order->shipping_phone_display)
+                            <p class="v-mono v-gap-sm">{{ $order->shipping_phone_display }}</p>
                         @endif
                     </div>
                     <div>
@@ -91,8 +91,8 @@
                             @if ($order->billing_district)<p class="v-cell-quiet">{{ $order->billing_district }}</p>@endif
                             <p class="v-cell-quiet">{{ $order->billing_city }}@if ($order->billing_state), {{ $order->billing_state }}@endif {{ $order->billing_postcode }}</p>
                             @if ($order->billing_country_name ?? $order->billingCountry?->name)<p class="v-cell-quiet">{{ $order->billing_country_name ?? $order->billingCountry?->name }}</p>@endif
-                            @if ($order->billing_phone)
-                                <p class="v-mono v-gap-sm">{{ $order->billing_phone }}</p>
+                            @if ($order->billing_phone_display)
+                                <p class="v-mono v-gap-sm">{{ $order->billing_phone_display }}</p>
                             @endif
                         @else
                             <p class="v-cell-quiet">Same as shipping</p>

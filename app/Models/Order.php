@@ -143,6 +143,18 @@ class Order extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /** The shipping phone with its country's dialling code, for display. */
+    public function getShippingPhoneDisplayAttribute(): ?string
+    {
+        return \App\Support\Phone::display($this->shipping_phone ?: $this->phone, $this->shippingCountry?->phone_code);
+    }
+
+    /** The billing phone with its country's dialling code, for display. */
+    public function getBillingPhoneDisplayAttribute(): ?string
+    {
+        return \App\Support\Phone::display($this->billing_phone, $this->billingCountry?->phone_code);
+    }
+
     public function shippingCountry(): BelongsTo
     {
         return $this->belongsTo(Country::class, 'shipping_country_id');

@@ -30,8 +30,16 @@
                             @if ($defaultAddress->district)
                                 <p>{{ $defaultAddress->district }}</p>
                             @endif
-                            <p>{{ $defaultAddress->city }}@if ($defaultAddress->state), {{ $defaultAddress->state }}@endif @if ($defaultAddress->postcode) {{ $defaultAddress->postcode }}@endif</p>
-                            <p>{{ $defaultAddress->country_code }}</p>
+                            <p>{{ $defaultAddress->city }}@if ($defaultAddress->state), {{ $defaultAddress->state }}@endif</p>
+                            @if ($defaultAddress->postcode)
+                                <p>Postal code {{ $defaultAddress->postcode }}</p>
+                            @endif
+                            @if ($defaultAddress->country?->name)
+                                <p>{{ $defaultAddress->country->name }}</p>
+                            @endif
+                            @if ($defaultAddress->phone_display)
+                                <p class="text-[var(--color-text-heading)] mt-1">{{ $defaultAddress->phone_display }}</p>
+                            @endif
                         </div>
                     </div>
                 @endif
