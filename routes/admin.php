@@ -11,6 +11,7 @@ Route::middleware(['auth', 'admin.session.cap'])
         require __DIR__.'/admin/catalog.php';
         require __DIR__.'/admin/customers.php';
         require __DIR__.'/admin/content.php';
+        require __DIR__.'/admin/layout.php';
         require __DIR__.'/admin/marketing.php';
         require __DIR__.'/admin/extensions.php';
         require __DIR__.'/admin/settings.php';

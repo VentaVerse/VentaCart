@@ -50,6 +50,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/css/admin/admin.css',
+                'resources/css/admin/layout-editor.css',
                 'resources/js/admin/admin.js',
                 // Theme editor live preview: loaded by the storefront ONLY when an
                 // authenticated admin frames it, never in a shopper's bundle.

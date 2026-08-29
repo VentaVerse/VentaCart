@@ -43,7 +43,7 @@ class LayoutSaveSparesStrandedTest extends TestCase
 
     private function save(array $payload)
     {
-        return $this->post(route('admin.theme.layout.update'), ['payload' => json_encode($payload)]);
+        return $this->post(route('admin.layout.update'), ['payload' => json_encode($payload)]);
     }
 
     private function place(array $attributes): LayoutPlacement

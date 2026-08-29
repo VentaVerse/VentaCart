@@ -35,7 +35,7 @@ class LayoutStageHoldsItsColumnTest extends TestCase
 
     public function test_the_live_region_is_inside_the_stage_not_beside_it(): void
     {
-        $html = $this->get(route('admin.theme.layout', ['page' => 'home']))->assertOk()->getContent();
+        $html = $this->get(route('admin.layout', ['page' => 'home']))->assertOk()->getContent();
 
         $stage = strpos($html, 'class="v-lay__stage"');
         $said = strpos($html, 'class="v-lay__said"');
@@ -47,7 +47,7 @@ class LayoutStageHoldsItsColumnTest extends TestCase
 
     public function test_the_announcement_is_still_a_live_region(): void
     {
-        $this->get(route('admin.theme.layout', ['page' => 'home']))
+        $this->get(route('admin.layout', ['page' => 'home']))
             ->assertOk()
             ->assertSee('role="status" aria-live="polite"', false);
     }

@@ -60,7 +60,7 @@
                 // a redirect; the arranging of all eleven lives in Layout.
                 $vThemeLinks = [
                     'Pages' => [
-                        ['label' => 'Arrange pages', 'icon' => 'layers', 'url' => route('admin.theme.layout')],
+                        ['label' => 'Arrange pages', 'icon' => 'layers', 'url' => route('admin.layout')],
                     ],
                 ];
             @endphp

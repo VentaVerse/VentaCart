@@ -1,6 +1,6 @@
 <?php
 
-namespace Extensions\Theme\Http\Controllers;
+namespace App\Http\Controllers\Admin\Layout;
 
 /**
  * The editor sent placements and not one of them could be stored.

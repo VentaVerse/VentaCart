@@ -30,12 +30,12 @@ class LayoutEditorTest extends TestCase
 
     private function save(array $payload)
     {
-        return $this->post(route('admin.theme.layout.update'), ['payload' => json_encode($payload)]);
+        return $this->post(route('admin.layout.update'), ['payload' => json_encode($payload)]);
     }
 
     public function test_it_renders_every_region_the_theme_declares(): void
     {
-        $this->get(route('admin.theme.layout', ['page' => 'home']))
+        $this->get(route('admin.layout', ['page' => 'home']))
             ->assertOk()
             ->assertSee('header_top', false)
             ->assertSee('content_top', false)
@@ -142,7 +142,7 @@ class LayoutEditorTest extends TestCase
     {
         LayoutPlacement::create(['page_type' => 'home', 'region' => 'content_top', 'widget' => 'catalog.brands', 'title' => 'Safe', 'sort_order' => 0, 'is_enabled' => true]);
 
-        $this->post(route('admin.theme.layout.update'), ['payload' => 'not json'])->assertRedirect();
+        $this->post(route('admin.layout.update'), ['payload' => 'not json'])->assertRedirect();
 
         $this->assertDatabaseHas('layout_placements', ['title' => 'Safe']);
     }
@@ -150,6 +150,6 @@ class LayoutEditorTest extends TestCase
     public function test_it_is_behind_admin_auth(): void
     {
         auth()->logout();
-        $this->get(route('admin.theme.layout'))->assertRedirect();
+        $this->get(route('admin.layout'))->assertRedirect();
     }
 }

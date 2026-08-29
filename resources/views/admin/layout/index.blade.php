@@ -1,17 +1,25 @@
 <x-admin.shell title="Layout">
     @push('head')
-        @vite('extensions/theme/resources/css/theme-layout.css')
+        @vite('resources/css/admin/layout-editor.css')
     @endpush
 
     <div class="v-head">
         <div class="v-head__body">
+            {{-- The trail still reads through Themes (owner: keep the entry
+                 there for now), but the page is core: the links only appear
+                 while the theme editor is enabled to provide them. --}}
             <div class="v-head__trail">
-                <a href="{{ route('admin.extensions.index') }}">Extensions</a>
-                <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.theme.index') }}">Themes</a>
-                <span aria-hidden="true">/</span>
-                <a href="{{ route('admin.theme.customise') }}">{{ $theme }}</a>
-                <span aria-hidden="true">/</span>
+                @if (\Illuminate\Support\Facades\Route::has('admin.theme.index'))
+                    <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                    <span aria-hidden="true">/</span>
+                    <a href="{{ route('admin.theme.index') }}">Themes</a>
+                    <span aria-hidden="true">/</span>
+                    <a href="{{ route('admin.theme.customise') }}">{{ $theme }}</a>
+                    <span aria-hidden="true">/</span>
+                @else
+                    <span>{{ $theme }}</span>
+                    <span aria-hidden="true">/</span>
+                @endif
                 <span>Layout</span>
             </div>
             <h1 class="v-head__title">Layout</h1>
@@ -23,7 +31,7 @@
         </div>
     </div>
 
-    <x-admin.form :action="route('admin.theme.layout.update')">
+    <x-admin.form :action="route('admin.layout.update')">
       <div class="v-lay" :class="{ 'is-inspecting': editing }" x-data="layoutEditor(window.__layout)">
         <input type="hidden" name="payload" :value="payload()">
 
@@ -32,9 +40,9 @@
         <label class="v-lay__pagepick">
             <span>Page</span>
             <select onchange="window.location = this.value">
-                <option value="{{ route('admin.theme.layout', ['page' => '*']) }}" @selected($pageType === '*')>All pages</option>
+                <option value="{{ route('admin.layout', ['page' => '*']) }}" @selected($pageType === '*')>All pages</option>
                 @foreach ($pageTypes as $vKey => $vLabel)
-                    <option value="{{ route('admin.theme.layout', ['page' => $vKey]) }}" @selected($pageType === $vKey)>{{ $vLabel }}</option>
+                    <option value="{{ route('admin.layout', ['page' => $vKey]) }}" @selected($pageType === $vKey)>{{ $vLabel }}</option>
                 @endforeach
             </select>
         </label>
@@ -42,7 +50,7 @@
         {{-- which page --}}
         <nav class="v-lay__rail" aria-label="Pages">
             <div class="v-lay__raillbl">Everywhere</div>
-            <a href="{{ route('admin.theme.layout', ['page' => '*']) }}"
+            <a href="{{ route('admin.layout', ['page' => '*']) }}"
                class="{{ $pageType === '*' ? 'is-on' : '' }}">
                 <span>All pages</span>
                 @if (($counts['*'] ?? 0) > 0)<span class="n">{{ $counts['*'] }}</span>@endif
@@ -50,7 +58,7 @@
 
             <div class="v-lay__raillbl">Pages</div>
             @foreach ($pageTypes as $key => $label)
-                <a href="{{ route('admin.theme.layout', ['page' => $key]) }}"
+                <a href="{{ route('admin.layout', ['page' => $key]) }}"
                    class="{{ $pageType === $key ? 'is-on' : '' }}">
                     <span>{{ $label }}</span>
                     @if (($counts[$key] ?? 0) > 0)<span class="n">{{ $counts[$key] }}</span>@endif
@@ -94,7 +102,7 @@
                 {{-- top --}}
                 @if (isset($regions['header_top']))
                     <div class="v-lay__strip">
-                        <x-theme::layout-slot region="header_top" label="Above the header" />
+                        <x-admin.layout-slot region="header_top" label="Above the header" />
                     </div>
                 @endif
 
@@ -103,7 +111,7 @@
                     <span class="v-lay__line"></span>
                     <span>header</span>
                     <template x-for="f in partsIn('header')" :key="f.name">
-                        <x-theme::part-switch />
+                        <x-admin.part-switch />
                     </template>
                 </div>
 
@@ -119,7 +127,7 @@
                         </template>
                         <template x-if="cols.left > 0">
                             <div class="v-lay__col v-lay__col--side" :style="'width:' + (cols.left / grid * 100) + '%'">
-                                <x-theme::layout-slot region="column_left" label="Left column" side="true" />
+                                <x-admin.layout-slot region="column_left" label="Left column" side="true" />
                             </div>
                         </template>
                         <template x-if="cols.left > 0">
@@ -135,7 +143,7 @@
 
                     <div class="v-lay__col v-lay__col--center">
                         @if (isset($regions['content_top']))
-                            <x-theme::layout-slot region="content_top" label="Above the content" />
+                            <x-admin.layout-slot region="content_top" label="Above the content" />
                         @endif
 
                         {{-- The parts of the hardcoded page this theme lets a
@@ -148,14 +156,14 @@
                             <template x-for="f in partsIn('body')" :key="f.name">
                                 <div class="v-lay__part" :class="{ 'is-off': !f.value }">
                                     <span class="v-lay__partbar" aria-hidden="true"></span>
-                                    <x-theme::part-switch />
+                                    <x-admin.part-switch />
                                 </div>
                             </template>
                             <b>The page itself</b>
                         </div>
 
                         @if (isset($regions['content_bottom']))
-                            <x-theme::layout-slot region="content_bottom" label="Below the content" />
+                            <x-admin.layout-slot region="content_bottom" label="Below the content" />
                         @endif
                     </div>
 
@@ -171,7 +179,7 @@
                         </template>
                         <template x-if="cols.right > 0">
                             <div class="v-lay__col v-lay__col--side" :style="'width:' + (cols.right / grid * 100) + '%'">
-                                <x-theme::layout-slot region="column_right" label="Right column" side="true" />
+                                <x-admin.layout-slot region="column_right" label="Right column" side="true" />
                             </div>
                         </template>
                         <template x-if="cols.right === 0">
@@ -185,13 +193,13 @@
                     <span class="v-lay__line"></span>
                     <span>footer</span>
                     <template x-for="f in partsIn('footer')" :key="f.name">
-                        <x-theme::part-switch />
+                        <x-admin.part-switch />
                     </template>
                 </div>
 
                 @if (isset($regions['footer_top']))
                     <div class="v-lay__strip">
-                        <x-theme::layout-slot region="footer_top" label="Above the footer" />
+                        <x-admin.layout-slot region="footer_top" label="Above the footer" />
                     </div>
                 @endif
 
@@ -264,7 +272,7 @@
         <fieldset class="v-lay__page-settings" x-show="partsIn(null).length" x-cloak>
             <legend>Elsewhere on this page</legend>
             <template x-for="f in partsIn(null)" :key="f.name">
-                <x-theme::part-switch />
+                <x-admin.part-switch />
             </template>
         </fieldset>
 
@@ -367,7 +375,7 @@
                 schemas: @js($schemas),
                 pageSettings: @js($pageSettings),
                 orphans: @js($orphans),
-                schemasUrl: @js(route('admin.theme.layout.schemas')),
+                schemasUrl: @js(route('admin.layout.schemas')),
                 cols: @js($columns),
                 grid: @js($grid),
                 minContent: @js($minContent),
@@ -827,7 +835,7 @@
                      */
                     rescue(orphan) {
                         if (orphan.page_type !== this.pageType) {
-                            window.location = '{{ route('admin.theme.layout') }}?page=' + encodeURIComponent(orphan.page_type);
+                            window.location = '{{ route('admin.layout') }}?page=' + encodeURIComponent(orphan.page_type);
                             return;
                         }
                         if (!this.rows.content_bottom) this.rows.content_bottom = [];

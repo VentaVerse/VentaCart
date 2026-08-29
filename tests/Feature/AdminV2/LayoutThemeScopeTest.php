@@ -81,7 +81,7 @@ class LayoutThemeScopeTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->post(route('admin.theme.layout.update'), ['payload' => json_encode([
+        $this->post(route('admin.layout.update'), ['payload' => json_encode([
             'page_type' => 'home',
             'columns' => ['left' => 0, 'right' => 0],
             'placements' => [['id' => null, 'region' => 'content_top', 'widget' => 'catalog.brands', 'title' => 'Made here', 'enabled' => true]],
@@ -97,7 +97,7 @@ class LayoutThemeScopeTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get(route('admin.theme.layout', ['page' => 'product']))
+        $this->get(route('admin.layout', ['page' => 'product']))
             ->assertOk()
             ->assertSee('show_reviews', false)
             ->assertSee('Breadcrumbs', false);
@@ -108,7 +108,7 @@ class LayoutThemeScopeTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->get(route('admin.theme.layout', ['page' => 'cart']))
+        $this->get(route('admin.layout', ['page' => 'cart']))
             ->assertOk()
             ->assertDontSee('show_reviews', false);
     }
@@ -117,7 +117,7 @@ class LayoutThemeScopeTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->post(route('admin.theme.layout.update'), ['payload' => json_encode([
+        $this->post(route('admin.layout.update'), ['payload' => json_encode([
             'page_type' => 'product',
             'columns' => ['left' => 0, 'right' => 0],
             'settings' => ['show_reviews' => false],
@@ -161,7 +161,7 @@ class LayoutThemeScopeTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $html = $this->get(route('admin.theme.layout', ['page' => 'cart']))->assertOk()->getContent();
+        $html = $this->get(route('admin.layout', ['page' => 'cart']))->assertOk()->getContent();
 
         // The seed is rows now (phase 1 of the Plaza plan); the rule is the same.
         preg_match('/rows: (\{.*?\}|\[\]),\n/s', $html, $m);
@@ -175,7 +175,7 @@ class LayoutThemeScopeTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->post(route('admin.theme.layout.update'), ['payload' => json_encode([
+        $this->post(route('admin.layout.update'), ['payload' => json_encode([
             'page_type' => 'cart',
             'columns' => ['left' => 0, 'right' => 0],
             'placements' => [['id' => null, 'region' => 'content_top', 'widget' => 'nobody.home', 'title' => 'X', 'enabled' => true]],
@@ -241,7 +241,7 @@ class LayoutThemeScopeTest extends TestCase
             'sort_order' => 0, 'is_enabled' => true,
         ]);
 
-        $this->get(route('admin.theme.layout', ['page' => 'home']))
+        $this->get(route('admin.layout', ['page' => 'home']))
             ->assertOk()
             ->assertSee('Stranded strip', false)
             ->assertSee('faceplate', false);
@@ -268,13 +268,13 @@ class LayoutThemeScopeTest extends TestCase
     {
         $this->actingAs(User::factory()->create());
 
-        $this->getJson(route('admin.theme.layout.schemas'))
+        $this->getJson(route('admin.layout.schemas'))
             ->assertOk()
             ->assertJsonStructure(['catalog.products']);
     }
 
     public function test_the_choices_endpoint_is_behind_admin_auth(): void
     {
-        $this->get(route('admin.theme.layout.schemas'))->assertRedirect();
+        $this->get(route('admin.layout.schemas'))->assertRedirect();
     }
 }

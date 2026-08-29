@@ -1,6 +1,6 @@
 <?php
 
-namespace Extensions\Theme\Http\Controllers;
+namespace App\Http\Controllers\Admin\Layout;
 
 use App\Http\Controllers\Controller;
 use App\Models\LayoutColumns;
@@ -16,10 +16,10 @@ use Illuminate\Support\Facades\DB;
 /**
  * The layout editor: what renders where, on which pages.
  *
- * Owned by the theme extension because regions are declared by the theme, but
- * it is its own work page rather than a tab inside the theme editor. The data
- * is store data: placements survive a theme switch, and this is the screen a
- * merchant opens weekly while the theme editor is the one they open twice.
+ * Core, not the theme extension (owner ruling 2026-08-29): the data is store
+ * data, placements and rows survive a theme switch, and switching the theme
+ * editor off must not hide the merchant's own layouts. Regions are still
+ * declared by the active theme; this screen only reads them.
  */
 class LayoutController extends Controller
 {
@@ -46,7 +46,7 @@ class LayoutController extends Controller
             ->pluck('n', 'page_type')
             ->all();
 
-        return view('theme::layout', [
+        return view('admin.layout.index', [
             'theme' => $themeName,
             'pageType' => $pageType,
             'pageTypes' => StorefrontPageType::TYPES,

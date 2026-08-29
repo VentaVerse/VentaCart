@@ -109,7 +109,7 @@ class WidgetSubjectPanelTest extends TestCase
     {
         BannerGroup::create(['name' => 'Homepage hero', 'slug' => 'homepage-hero', 'is_active' => true]);
 
-        $this->get(route('admin.theme.layout', ['page' => 'home']))
+        $this->get(route('admin.layout', ['page' => 'home']))
             ->assertOk()
             ->assertSee('browse', false)
             ->assertSee('Homepage hero', false);

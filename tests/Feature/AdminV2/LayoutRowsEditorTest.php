@@ -27,7 +27,7 @@ class LayoutRowsEditorTest extends TestCase
 
     private function save(array $payload)
     {
-        return $this->post(route('admin.theme.layout.update'), ['payload' => json_encode($payload)]);
+        return $this->post(route('admin.layout.update'), ['payload' => json_encode($payload)]);
     }
 
     public function test_a_split_row_round_trips_with_its_cards_in_their_columns(): void
@@ -49,7 +49,7 @@ class LayoutRowsEditorTest extends TestCase
         $this->assertDatabaseHas('layout_placements', ['title' => 'Left', 'row_id' => $row->id, 'column_index' => 0]);
         $this->assertDatabaseHas('layout_placements', ['title' => 'Right', 'row_id' => $row->id, 'column_index' => 1]);
 
-        $this->get(route('admin.theme.layout', ['page' => 'home']))->assertOk()
+        $this->get(route('admin.layout', ['page' => 'home']))->assertOk()
             ->assertSee('[3,5]', false)->assertSee('Left', false)->assertSee('Right', false);
 
         $this->get('/')->assertOk()->assertSee('layout-col--3', false)->assertSee('layout-col--5', false);
@@ -136,7 +136,7 @@ class LayoutRowsEditorTest extends TestCase
 
     public function test_the_editor_ships_the_shapes_it_offers(): void
     {
-        $this->get(route('admin.theme.layout', ['page' => 'home']))->assertOk()
+        $this->get(route('admin.layout', ['page' => 'home']))->assertOk()
             ->assertSee('layouts:', false)->assertSee('[2,4,2]', false)->assertSee('Add a row to', false);
     }
 }
