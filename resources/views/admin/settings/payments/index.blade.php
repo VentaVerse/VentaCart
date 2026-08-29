@@ -23,6 +23,11 @@
                     <span class="v-dir__body">
                         <span class="v-dir__name">{{ $module['title'] }}</span>
                         <span class="v-dir__line v-block">{{ $module['description'] }}</span>
+                        @if (in_array($module['name'], $needsStatus ?? [], true))
+                            {{-- Enabled, but not offered at checkout until its page names
+                                 the status an order is born with. --}}
+                            <span class="v-badge v-badge--warn">No order status selected</span>
+                        @endif
                     </span>
                     @include('admin.extensions.partials.lifecycle-actions')
                 </div>

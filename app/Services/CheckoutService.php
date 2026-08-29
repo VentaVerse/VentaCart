@@ -36,7 +36,10 @@ class CheckoutService
      */
     public function getAvailablePaymentMethods(?array $address = null, ?float $subtotal = null, array $restrictionContext = []): array
     {
-        $methods = \App\Services\PaymentManager::enabledMethods();
+        // Offerable, not merely enabled: a method with no order status
+        // selected is not shown, because an order paid by it would have
+        // nowhere to be born (owner ruling 2026-08-30, no fallback).
+        $methods = \App\Services\PaymentManager::offerableMethods();
 
         // Apply payment restrictions whenever we know the cart subtotal. The
         // address may be null (customer hasn't picked or saved one yet) — that
@@ -200,20 +203,15 @@ class CheckoutService
             }
         }
 
-        // Resolve initial order status based on payment method
-        $statusSettingKey = "{$paymentMethod->getBaseKey()}_success_status_id";
-
-        $initialStatus = null;
-        if ($statusSettingKey) {
-            $statusId = \App\Models\Setting::where('group', 'payment')->where('key', $statusSettingKey)->value('value');
-            if ($statusId) {
-                $initialStatus = OrderStatus::find($statusId);
-            }
+        // The status this order is born with is the payment method's own
+        // "Order status on checkout" and nothing else. The method was only
+        // offered because it has one; a request that reaches here without
+        // it (a stale checkout page after the merchant cleared the setting)
+        // is refused rather than guessed.
+        $defaultStatus = \App\Services\PaymentManager::checkoutStatus($paymentMethod);
+        if (! $defaultStatus) {
+            throw new \RuntimeException($paymentMethod->getName() . ' is not available right now. Please choose another payment method.');
         }
-
-        $defaultStatus = $initialStatus ?? OrderStatus::where('store_id', $this->storeId)
-            ->where('is_default', true)
-            ->first();
 
         $order = DB::transaction(function () use (
             $customer, $shippingAddress, $billingAddress, $paymentMethodKey, $paymentMethod,

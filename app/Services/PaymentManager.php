@@ -65,6 +65,33 @@ class PaymentManager
     }
 
     /**
+     * The order status an order paid by this method is born with: the
+     * method's own "Order status on checkout" setting, and nothing else.
+     * There used to be a fallback to the store's Default status; the owner
+     * removed it (2026-08-30). A method with no status selected, or whose
+     * status has been deleted, is not offered at checkout at all rather
+     * than creating an order that lands somewhere the merchant never chose.
+     */
+    public static function checkoutStatus(PaymentMethodInterface $method): ?\App\Models\OrderStatus
+    {
+        $id = \App\Models\Setting::where('group', 'payment')
+            ->where('key', $method->getBaseKey() . '_success_status_id')
+            ->value('value');
+
+        return $id ? \App\Models\OrderStatus::find((int) $id) : null;
+    }
+
+    /**
+     * Enabled AND ready to take an order: the methods a buyer may pick.
+     *
+     * @return PaymentMethodInterface[]
+     */
+    public static function offerableMethods(): array
+    {
+        return array_values(array_filter(self::enabledMethods(), fn ($m) => self::checkoutStatus($m) !== null));
+    }
+
+    /**
      * Base keys of every REGISTERED method class, independent of enabled state
      * or factory instance availability (a disabled family must still be
      * administrable). Requires registered classes to be constructible with no

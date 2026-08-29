@@ -12,7 +12,7 @@
             <div class="v-gap">
                 <x-admin.field name="settings.bank_transfer_success_status_id" label="Order status on checkout">
                     <select name="settings[bank_transfer_success_status_id]" class="v-control">
-                        <option value="">Default (Pending)</option>
+                        <option value="">Not selected: the method is not offered at checkout</option>
                         @foreach ($orderStatuses as $os)
                             <option value="{{ $os->id }}" @selected(($settings['payment']['bank_transfer_success_status_id'] ?? '') == $os->id)>{{ $os->name }}</option>
                         @endforeach
