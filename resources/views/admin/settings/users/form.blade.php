@@ -31,7 +31,7 @@
                         <button type="button" class="v-btn v-btn--ghost v-btn--sm" x-show="!changing" @click="changing = true">Change password</button>
                         <template x-if="changing">
                             <x-admin.field name="password" label="New password">
-                                <input type="password" name="password" autocomplete="new-password" class="v-control" x-init="$nextTick(() => $el.focus())">
+                                <input type="password" name="password" autocomplete="new-password" class="v-control" x-init="$nextTick(() => { $el.focus(); $el.closest('form')?.dispatchEvent(new Event('v-rebaseline')); })">
                             </x-admin.field>
                         </template>
                     </div>
