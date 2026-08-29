@@ -21,7 +21,7 @@
                             <h2 class="account-section-title mb-0">Default Address</h2>
                             <a href="{{ route('account.addresses') }}" class="text-xs text-[var(--color-primary)] hover:underline">Manage</a>
                         </div>
-                        <div class="text-sm text-[var(--color-text-muted)] space-y-0.5">
+                        <div class="text-sm text-[var(--color-text)] space-y-0.5">
                             <p class="text-[var(--color-text-heading)]">{{ $defaultAddress->first_name }} {{ $defaultAddress->last_name }}</p>
                             <p>{{ $defaultAddress->address_1 }}</p>
                             @if ($defaultAddress->barangay)

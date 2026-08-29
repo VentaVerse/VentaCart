@@ -32,16 +32,16 @@
 
                                 <div class="text-sm space-y-0.5 mb-4">
                                     <p class="text-[var(--color-text-heading)] font-medium">{{ $address->first_name }} {{ $address->last_name }}</p>
-                                    <p class="text-[var(--color-text-muted)]">{{ $address->address_1 }}</p>
+                                    <p class="text-[var(--color-text)]">{{ $address->address_1 }}</p>
                                     @if ($address->barangay)
-                                        <p class="text-[var(--color-text-muted)]">{{ $address->barangay }}</p>
+                                        <p class="text-[var(--color-text)]">{{ $address->barangay }}</p>
                                     @endif
                                     @if ($address->district)
-                                        <p class="text-[var(--color-text-muted)]">{{ $address->district }}</p>
+                                        <p class="text-[var(--color-text)]">{{ $address->district }}</p>
                                     @endif
-                                    <p class="text-[var(--color-text-muted)]">{{ $address->city }}@if ($address->state), {{ $address->state }}@endif</p>
+                                    <p class="text-[var(--color-text)]">{{ $address->city }}@if ($address->state), {{ $address->state }}@endif</p>
                                     @if ($address->postcode)
-                                        <p class="text-[var(--color-text-muted)]">Postal code {{ $address->postcode }}</p>
+                                        <p class="text-[var(--color-text)]">Postal code {{ $address->postcode }}</p>
                                     @endif
                                     @if ($address->country?->name)
                                         <p class="text-[var(--color-text)]">{{ $address->country->name }}</p>
