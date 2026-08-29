@@ -14,8 +14,49 @@
     <div class="v-slot__lbl">
         <span>{{ $label }}</span>
         <span class="mono">{{ $region }}</span>
+        {{-- The position's own menu: keep, load, copy, carry. Every act here
+             either changes editor state (and arms Save) or is a record on its
+             own control; none writes this page behind the Save. --}}
+        <button type="button" class="v-slot__menu" @click="tools = (tools === '{{ $region }}' ? null : '{{ $region }}')"
+                :aria-expanded="tools === '{{ $region }}' ? 'true' : 'false'" aria-label="Templates for {{ $label }}" title="Templates">&#8943;</button>
         <button type="button" class="v-slot__add" @click="addRow('{{ $region }}', $el)"
                 aria-label="Add a row to {{ $label }}" title="Add a row">+</button>
+    </div>
+
+    <div class="v-slot__tools" x-show="tools === '{{ $region }}'" x-cloak @keydown.escape.stop="tools = null">
+        <div class="v-slot__toolrow">
+            <input type="text" x-model="templateName" maxlength="80" aria-label="Template name" placeholder="">
+            <button type="button" class="v-btn v-btn--sm" @click="saveTemplate('{{ $region }}')"
+                    :disabled="!templateName.trim() || rowsIn('{{ $region }}').length === 0">Save as template</button>
+        </div>
+        <div class="v-slot__toolrow" x-show="templates.length" x-cloak>
+            <select x-ref="tpl_{{ $region }}" aria-label="Load a template">
+                <option value="">Load a template&hellip;</option>
+                <template x-for="t in templates" :key="t.id">
+                    <option :value="t.id" x-text="t.name + (t.region ? ' (' + regionLabel(t.region) + ')' : '')"></option>
+                </template>
+            </select>
+            <button type="button" class="v-btn v-btn--sm" @click="loadTemplate('{{ $region }}', $refs.tpl_{{ $region }}.value, 'append')">Add</button>
+            <button type="button" class="v-btn v-btn--sm" @click="loadTemplate('{{ $region }}', $refs.tpl_{{ $region }}.value, 'replace')">Replace</button>
+            <button type="button" class="v-lay__new" @click="deleteTemplate($refs.tpl_{{ $region }}.value)">Delete</button>
+        </div>
+        <div class="v-slot__toolrow">
+            <select x-ref="copy_{{ $region }}" aria-label="Copy to page">
+                <option value="">Copy to&hellip;</option>
+                <option value="*">All pages</option>
+                @foreach (\App\Support\StorefrontPageType::TYPES as $vKey => $vLabel)
+                    <option value="{{ $vKey }}">{{ $vLabel }}</option>
+                @endforeach
+            </select>
+            <button type="button" class="v-btn v-btn--sm" @click="copyRegion('{{ $region }}', $refs.copy_{{ $region }}.value)"
+                    :disabled="rowsIn('{{ $region }}').length === 0">Copy</button>
+        </div>
+        <div class="v-slot__toolrow">
+            <button type="button" class="v-lay__new" @click="exportRegion('{{ $region }}')" :disabled="rowsIn('{{ $region }}').length === 0">Export</button>
+            <label class="v-lay__new v-slot__import">Import
+                <input type="file" accept="application/json,.json" @change="importRegion('{{ $region }}', $event)">
+            </label>
+        </div>
     </div>
 
     {{-- Inherited from All pages: shown so nothing appears on a page

@@ -15,4 +15,9 @@ Route::prefix('extensions/theme/layout')->group(function () {
     Route::get('/schemas', [LayoutController::class, 'schemas'])->name('layout.schemas');
     Route::post('/style-presets', [LayoutController::class, 'storeStylePreset'])->name('layout.style-presets.store');
     Route::delete('/style-presets/{preset}', [LayoutController::class, 'destroyStylePreset'])->name('layout.style-presets.destroy');
+    Route::post('/templates', [LayoutController::class, 'storeTemplate'])->name('layout.templates.store');
+    Route::delete('/templates/{template}', [LayoutController::class, 'destroyTemplate'])->name('layout.templates.destroy');
+    Route::post('/templates/export', [LayoutController::class, 'exportTemplate'])->name('layout.templates.export');
+    Route::post('/templates/import', [LayoutController::class, 'importTemplate'])->name('layout.templates.import');
+    Route::post('/copy', [LayoutController::class, 'copyRegion'])->name('layout.copy');
 });

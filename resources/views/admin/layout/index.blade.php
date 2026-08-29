@@ -535,6 +535,12 @@
                 stylePresets: @js($stylePresets),
                 styleDefaults: @js($styleDefaults),
                 stylePresetsUrl: @js($stylePresetsUrl),
+                templates: @js($templates),
+                templatesUrl: @js($templatesUrl),
+                exportUrl: @js($exportUrl),
+                importUrl: @js($importUrl),
+                copyUrl: @js($copyUrl),
+                csrf: @js(csrf_token()),
                 widgets: @js($widgets),
                 schemas: @js($schemas),
                 pageSettings: @js($pageSettings),
@@ -597,6 +603,16 @@
                     styleDefaults: seed.styleDefaults,
                     stylePresetsUrl: seed.stylePresetsUrl,
                     presetName: '',
+                    // Area templates: which position's menu is open, the name
+                    // being typed, and the saved arrangements.
+                    tools: null,
+                    templateName: '',
+                    templates: seed.templates,
+                    templatesUrl: seed.templatesUrl,
+                    exportUrl: seed.exportUrl,
+                    importUrl: seed.importUrl,
+                    copyUrl: seed.copyUrl,
+                    csrf: seed.csrf,
                     // The plus that opened the picker, so Escape can hand
                     // focus back to it rather than dropping it on the body.
                     addingFrom: null,
@@ -641,6 +657,117 @@
                     },
 
                     commit() { this.rows = { ...this.rows }; },
+
+                    /* ---- area templates ---- */
+
+                    /** One position's rows as data: shapes, styles, cards. */
+                    regionRows(region) {
+                        return this.rowsIn(region).map((unit) => ({
+                            columns: unit.columns, enabled: unit.enabled, style: unit.style,
+                            placements: unit.cols.flatMap((col, c) => col.map((p) => ({
+                                column: c, widget: p.widget, title: p.title, enabled: p.enabled, config: p.config,
+                            }))),
+                        }));
+                    },
+
+                    headers(json = true) {
+                        return Object.assign({ Accept: 'application/json', 'X-CSRF-TOKEN': this.csrf },
+                            json ? { 'Content-Type': 'application/json' } : {});
+                    },
+
+                    async saveTemplate(region) {
+                        const name = this.templateName.trim();
+                        if (!name) return;
+                        try {
+                            const res = await fetch(this.templatesUrl, { method: 'POST', headers: this.headers(),
+                                body: JSON.stringify({ name, region, rows: this.regionRows(region) }) });
+                            const body = await res.json();
+                            if (!res.ok) throw new Error(body.message || 'refused');
+                            this.templates = [...this.templates, body].sort((a, b) => a.name.localeCompare(b.name));
+                            this.templateName = '';
+                            this.say('Template ' + body.name + ' saved.');
+                        } catch (e) {
+                            this.say(e.message || 'The template could not be saved.');
+                        }
+                    },
+
+                    loadTemplate(region, id, how) {
+                        const t = this.templates.find((x) => String(x.id) === String(id));
+                        if (!t) return;
+                        const fresh = t.rows.map((u) => wrap(u));
+                        if (how === 'replace') {
+                            if (this.rowsIn(region).some((u) => u.cols.flat().includes(this.editing))) this.editing = null;
+                            if (this.rowsIn(region).includes(this.editingRow)) this.editingRow = null;
+                            this.rows[region] = fresh;
+                        } else {
+                            if (!this.rows[region]) this.rows[region] = [];
+                            this.rows[region].push(...fresh);
+                        }
+                        this.commit();
+                        this.say(t.name + (how === 'replace' ? ' replaced ' : ' added to ') + this.regionLabel(region) + '. Save to keep it.');
+                        this.touch();
+                    },
+
+                    async deleteTemplate(id) {
+                        const t = this.templates.find((x) => String(x.id) === String(id));
+                        if (!t) return;
+                        try {
+                            const res = await fetch(this.templatesUrl + '/' + t.id, { method: 'DELETE', headers: this.headers(false) });
+                            if (!res.ok) throw new Error('refused');
+                            this.templates = this.templates.filter((x) => x.id !== t.id);
+                            this.say('Template ' + t.name + ' deleted.');
+                        } catch (e) {
+                            this.say('The template could not be deleted.');
+                        }
+                    },
+
+                    async copyRegion(region, target) {
+                        if (!target) return;
+                        try {
+                            const res = await fetch(this.copyUrl, { method: 'POST', headers: this.headers(),
+                                body: JSON.stringify({ region, target_page: target, rows: this.regionRows(region) }) });
+                            const body = await res.json();
+                            if (!res.ok) throw new Error(body.message || 'refused');
+                            this.say(body.message);
+                        } catch (e) {
+                            this.say(e.message || 'Nothing was copied.');
+                        }
+                    },
+
+                    /** A form post, so the browser saves the file itself. */
+                    exportRegion(region) {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = this.exportUrl;
+                        form.target = '_blank';
+                        const add = (n, v) => { const i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; form.appendChild(i); };
+                        add('_token', this.csrf);
+                        add('region', region);
+                        add('rows', JSON.stringify(this.regionRows(region)));
+                        document.body.appendChild(form);
+                        form.submit();
+                        form.remove();
+                    },
+
+                    async importRegion(region, event) {
+                        const file = event.target.files?.[0];
+                        event.target.value = '';
+                        if (!file) return;
+                        const data = new FormData();
+                        data.append('file', file);
+                        try {
+                            const res = await fetch(this.importUrl, { method: 'POST', headers: this.headers(false), body: data });
+                            const body = await res.json();
+                            if (!res.ok) throw new Error(body.message || 'refused');
+                            if (!this.rows[region]) this.rows[region] = [];
+                            this.rows[region].push(...body.rows.map((u) => wrap(u)));
+                            this.commit();
+                            this.say(body.rows.length + (body.rows.length === 1 ? ' row' : ' rows') + ' imported into ' + this.regionLabel(region) + '. Save to keep it.');
+                            this.touch();
+                        } catch (e) {
+                            this.say(e.message || 'The file could not be read.');
+                        }
+                    },
 
                     /* ---- row style ---- */
 

@@ -7,6 +7,7 @@ use App\Models\LayoutColumns;
 use App\Models\LayoutPlacement;
 use App\Models\LayoutRow;
 use App\Models\LayoutStylePreset;
+use App\Models\LayoutTemplate;
 use App\Support\RowStyle;
 use App\Services\ThemeService;
 use App\Support\Regions;
@@ -71,6 +72,14 @@ class LayoutController extends Controller
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'style' => RowStyle::normalize($p->style)])->values(),
             'styleDefaults' => RowStyle::DEFAULTS,
             'stylePresetsUrl' => route('admin.layout.style-presets.store'),
+            // Saved arrangements, handed over in the editor's own shape so
+            // loading one is a local act that arms Save.
+            'templates' => LayoutTemplate::where('theme', $theme)->orderBy('name')->get()
+                ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'region' => $t->region, 'rows' => LayoutTemplate::toUnits($t->rows)])->values(),
+            'templatesUrl' => route('admin.layout.templates.store'),
+            'exportUrl' => route('admin.layout.templates.export'),
+            'importUrl' => route('admin.layout.templates.import'),
+            'copyUrl' => route('admin.layout.copy'),
             'widgets' => $this->catalogue($regions),
             // Every widget's settings form, resolved. Without this a merchant
             // can place a banner and never say WHICH banner.
@@ -501,6 +510,139 @@ class LayoutController extends Controller
         $preset->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * The rows of one region kept under a name. Its own record on its own
+     * control, like a style preset; loading it later is editor state.
+     */
+    public function storeTemplate(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:80'],
+            'region' => ['nullable', 'string', 'max:64'],
+            'rows' => ['required', 'array'],
+        ]);
+
+        $rows = LayoutTemplate::cleanRows($data['rows']);
+        if ($rows === []) {
+            return response()->json(['message' => 'Nothing in this position could be kept as a template.'], 422);
+        }
+
+        $template = LayoutTemplate::create([
+            'theme' => LayoutPlacement::scopeTheme(),
+            'name' => $data['name'],
+            'region' => $data['region'] ?? null,
+            'rows' => $rows,
+        ]);
+
+        return response()->json(['id' => $template->id, 'name' => $template->name, 'region' => $template->region, 'rows' => LayoutTemplate::toUnits($rows)]);
+    }
+
+    public function destroyTemplate(LayoutTemplate $template)
+    {
+        abort_unless($template->theme === LayoutPlacement::scopeTheme(), 404);
+        $template->delete();
+
+        return response()->json(['ok' => true]);
+    }
+
+    /** One region's rows as a file the merchant can carry to another store. */
+    public function exportTemplate(Request $request)
+    {
+        $data = $request->validate(['region' => ['required', 'string', 'max:64'], 'rows' => ['required', 'string']]);
+        $rows = LayoutTemplate::cleanRows(json_decode($data['rows'], true));
+
+        $file = json_encode([
+            'venta_layout' => 1,
+            'theme' => LayoutPlacement::scopeTheme(),
+            'region' => $data['region'],
+            'rows' => $rows,
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        $name = 'layout-' . preg_replace('/[^a-z0-9]+/', '-', strtolower($data['region'])) . '-' . now()->format('Ymd-His') . '.json';
+
+        return response($file, 200, [
+            'Content-Type' => 'application/json',
+            'Content-Disposition' => 'attachment; filename="' . $name . '"',
+        ]);
+    }
+
+    /**
+     * A file back in. Nothing is written: the rows come back in the editor's
+     * shape and land in the position the merchant chose, where Save decides.
+     */
+    public function importTemplate(Request $request)
+    {
+        $request->validate(['file' => ['required', 'file', 'max:2048']]);
+        $data = json_decode((string) file_get_contents($request->file('file')->getRealPath()), true);
+
+        if (! is_array($data) || empty($data['venta_layout']) || ! isset($data['rows'])) {
+            return response()->json(['message' => 'Not a layout file.'], 422);
+        }
+
+        $units = LayoutTemplate::toUnits($data['rows']);
+        if ($units === []) {
+            return response()->json(['message' => 'The file holds no rows this store can place.'], 422);
+        }
+
+        return response()->json(['region' => $data['region'] ?? null, 'rows' => $units]);
+    }
+
+    /**
+     * The rows of one region, written onto another page type as new rows
+     * after that page's own. A write on its own control: the merchant is
+     * copying somewhere they are not looking, and Save only covers here.
+     */
+    public function copyRegion(Request $request)
+    {
+        $data = $request->validate([
+            'region' => ['required', 'string', 'max:64'],
+            'target_page' => ['required', 'string', 'max:32'],
+            'target_region' => ['nullable', 'string', 'max:64'],
+            'rows' => ['required', 'array'],
+        ]);
+
+        $target = $data['target_page'];
+        if ($target !== LayoutPlacement::EVERYWHERE && ! StorefrontPageType::exists($target)) {
+            return response()->json(['message' => 'Unknown page type.'], 422);
+        }
+        $targetRegion = ($data['target_region'] ?? null) ?: $data['region'];
+        if (! Regions::exists($targetRegion)) {
+            return response()->json(['message' => 'This theme has no such position.'], 422);
+        }
+
+        $rows = LayoutTemplate::cleanRows($data['rows']);
+        if ($rows === []) {
+            return response()->json(['message' => 'Nothing here could be copied.'], 422);
+        }
+
+        $theme = LayoutPlacement::scopeTheme();
+        $count = 0;
+
+        DB::transaction(function () use ($rows, $theme, $target, $targetRegion, &$count) {
+            $after = (int) LayoutRow::where('theme', $theme)->where('page_type', $target)->max('sort_order');
+            $order = (int) LayoutPlacement::where('theme', $theme)->where('page_type', $target)->max('sort_order');
+
+            foreach ($rows as $i => $row) {
+                $layoutRow = LayoutRow::create([
+                    'theme' => $theme, 'page_type' => $target, 'region' => $targetRegion,
+                    'columns' => $row['columns'], 'style' => $row['style'], 'sort_order' => $after + 1 + $i, 'is_enabled' => $row['enabled'],
+                ]);
+                foreach ($row['placements'] as $p) {
+                    LayoutPlacement::create([
+                        'theme' => $theme, 'page_type' => $target, 'region' => $targetRegion, 'row_id' => $layoutRow->id,
+                        'column_index' => $p['column'], 'widget' => $p['widget'], 'title' => $p['title'], 'config' => $p['config'],
+                        'sort_order' => ++$order, 'is_enabled' => $p['enabled'],
+                    ]);
+                    $count++;
+                }
+            }
+        });
+
+        $where = $target === LayoutPlacement::EVERYWHERE ? 'all pages' : StorefrontPageType::label($target);
+
+        return response()->json(['ok' => true, 'message' => count($rows) . ' ' . (count($rows) === 1 ? 'row' : 'rows') . ' with ' . $count . ' ' . ($count === 1 ? 'widget' : 'widgets') . ' copied to ' . $where . '.']);
     }
 
     /** The widget settings forms, refetched when the merchant comes back. */

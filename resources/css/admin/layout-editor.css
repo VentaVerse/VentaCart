@@ -1085,3 +1085,28 @@
 .v-lay__presetrow button:hover { background: var(--v-paper); }
 
 .v-lay__imgpath { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; font-size: 12px; }
+
+
+/* ---- a position's templates menu ------------------------------------- */
+
+.v-slot__menu {
+    width: 24px; height: 24px; border: 0; border-radius: 4px; background: transparent;
+    color: var(--v-ink-3); cursor: pointer; font-size: 16px; line-height: 1; margin-left: auto;
+}
+.v-slot__menu:hover, .v-slot__menu[aria-expanded="true"] { background: var(--v-paper); color: var(--v-ink); }
+.v-slot__menu:focus-visible { outline: 2px solid var(--v-focus); outline-offset: 2px; }
+.v-slot__lbl .v-slot__add { margin-left: 4px; }
+
+.v-slot__tools {
+    display: grid; gap: 8px; padding: 10px; margin-bottom: 10px;
+    border: 1px solid var(--v-line); border-radius: 6px; background: var(--v-sheet); font-size: 12px;
+}
+.v-slot__toolrow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.v-slot__toolrow input[type="text"], .v-slot__toolrow select { flex: 1 1 140px; min-width: 0; height: 30px; }
+.v-slot__import { position: relative; overflow: hidden; cursor: pointer; }
+.v-slot__import input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* The chips sit in a field whose children are stretched full width; a chip
+   is a chip. */
+.v-lay__field .v-lay__chips { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.v-lay__chips .v-chip { width: 22px; height: 22px; flex: 0 0 22px; margin: 0; }
