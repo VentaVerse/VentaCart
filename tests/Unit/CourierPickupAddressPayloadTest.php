@@ -325,6 +325,7 @@ class CourierPickupAddressPayloadTest extends TestCase
             'order_status_id' => $handover->id, 'placement' => 'to_handover',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+        \Tests\Support\FulfillmentSettings::selectFor('to_handover', (int) $handover->id);
 
         $order = $this->makeOrder();
         $order->forceFill(['order_status_id' => $status->id])->save();
