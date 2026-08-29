@@ -436,7 +436,9 @@
  font-family: var(--font-body);
  font-size: 0.8125rem;
  letter-spacing: 0.02em;
- color: var(--color-footer-text);
+ /* Page text, not footer text: the dropdown sits on the page background,
+    and a footer colour tuned for a dark footer fell to 2:1 here. */
+ color: var(--color-text);
  padding: 0.5rem 1.25rem;
  transition: all 0.15s;
  }
@@ -1869,7 +1871,10 @@
  .account-items__head span:nth-child(3) { @apply text-center; }
 
  .account-item {
- @apply flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 border-b border-[var(--color-search-bg)];
+ /* Declared before the md:grid rule above in the cascade? No: this rule
+    comes later, so its flex would beat the grid at md. md:flex-none is
+    not a thing; restate the grid here so the desk layout wins. */
+ @apply flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 border-b border-[var(--color-search-bg)] md:grid;
  color: var(--color-text);
  }
 
