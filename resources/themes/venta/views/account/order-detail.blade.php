@@ -25,15 +25,15 @@
                         <div>
                             <span class="account-label">Status</span>
                             @php $statusName = $order->order_status_name ?? 'Pending'; @endphp
-                            <p><span class="account-status-badge account-status-{{ strtolower($statusName) }}">{{ $statusName }}</span></p>
+                            <p><span class="account-status-badge account-status-badge--{{ $order->status?->tone ?? 'neutral' }}">{{ $statusName }}</span></p>
                         </div>
                         <div>
                             <span class="account-label">Payment</span>
-                            <p class="text-sm text-[var(--color-text-muted)]">{{ $order->payment_method_label ?: 'N/A' }}</p>
+                            <p class="text-sm text-[var(--color-text)]">{{ $order->payment_method_label ?: 'N/A' }}</p>
                         </div>
                         <div>
                             <span class="account-label">Total</span>
-                            <p class="text-lg text-[var(--color-text-heading)]" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</p>
+                            <p class="text-lg text-[var(--color-text-heading)] font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</p>
                         </div>
                     </div>
                 </div>
@@ -46,7 +46,7 @@
                             @if ($order->shipping_address_1)
                                 <div>
                                     <h2 class="account-section-title">Ship To</h2>
-                                    <div class="text-sm text-[var(--color-text-muted)] space-y-0.5">
+                                    <div class="text-sm text-[var(--color-text)] space-y-0.5">
                                         <p class="text-[var(--color-text-heading)]">{{ $order->shipping_first_name }} {{ $order->shipping_last_name }}</p>
                                         <p>{{ $order->shipping_address_1 }}</p>
                                         @if ($order->shipping_barangay) <p>{{ $order->shipping_barangay }}</p> @endif
@@ -62,7 +62,7 @@
                             <div>
                                 <h2 class="account-section-title">Bill To</h2>
                                 @if ($order->billing_first_name)
-                                    <div class="text-sm text-[var(--color-text-muted)] space-y-0.5">
+                                    <div class="text-sm text-[var(--color-text)] space-y-0.5">
                                         <p class="text-[var(--color-text-heading)]">{{ $order->billing_first_name }} {{ $order->billing_last_name }}</p>
                                         <p>{{ $order->billing_address_1 }}</p>
                                         @if ($order->billing_barangay) <p>{{ $order->billing_barangay }}</p> @endif
@@ -83,12 +83,12 @@
                 @if ($order->tracking_number)
                     <div class="account-card reveal">
                         <h2 class="account-section-title">Tracking</h2>
-                        <p class="text-sm text-[var(--color-text-muted)]">
+                        <p class="text-sm text-[var(--color-text)]">
                             @if ($order->shipping_courier_name)
                                 {{ $order->shipping_courier_name }}:
                             @endif
                             @if ($order->tracking_link)
-                                <a href="{{ $order->tracking_link }}" target="_blank" class="text-[var(--color-primary)] hover:underline">{{ $order->tracking_number }}</a>
+                                <a href="{{ $order->tracking_link }}" target="_blank" rel="noopener noreferrer" class="account-link">{{ $order->tracking_number }}</a>
                             @else
                                 <span class="text-[var(--color-text-heading)]">{{ $order->tracking_number }}</span>
                             @endif
@@ -130,12 +130,12 @@
                     <div class="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2 text-sm text-right">
                         <div class="flex justify-end gap-8">
                             <span class="text-[var(--color-text)]">Subtotal</span>
-                            <span class="text-[var(--color-text-heading)] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->subtotal, 2) }}</span>
+                            <span class="text-[var(--color-text-heading)] w-28 font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->subtotal, 2) }}</span>
                         </div>
                         @if ($order->shipping_cost > 0 || $order->courier_label)
                             <div class="flex justify-end gap-8">
-                                <span class="text-[var(--color-text)]">Shipping @if ($order->courier_label)<span class="text-[var(--color-text-muted)]">({{ $order->courier_label }})</span>@endif</span>
-                                <span class="text-[var(--color-text-heading)] w-28" class="font-heading">
+                                <span class="text-[var(--color-text)]">Shipping @if ($order->courier_label)<span class="text-[var(--color-text)]">({{ $order->courier_label }})</span>@endif</span>
+                                <span class="text-[var(--color-text-heading)] w-28 font-heading">
                                     @if ($order->shipping_cost > 0)
                                         {{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->shipping_cost, 2) }}
                                     @else
@@ -145,8 +145,8 @@
                             </div>
                         @endif
                         <div class="flex justify-end gap-8 pt-2 border-t border-[var(--color-border)]">
-                            <span class="text-[var(--color-text-heading)]" class="font-heading-wide">TOTAL</span>
-                            <span class="text-lg text-[var(--color-text-heading)] w-28" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</span>
+                            <span class="text-[var(--color-text-heading)] font-heading-wide">TOTAL</span>
+                            <span class="text-lg text-[var(--color-text-heading)] w-28 font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</span>
                         </div>
                     </div>
                 </div>
@@ -161,10 +161,13 @@
                                     <div class="text-[var(--color-text)] whitespace-nowrap pt-0.5">{{ $history->created_at->format('M d, Y H:i') }}</div>
                                     <div>
                                         @if ($history->order_status_name)
-                                            <span class="inline-block px-2 py-0.5 rounded text-[11px] font-semibold bg-[var(--color-search-bg)] text-[var(--color-text-muted)]">{{ $history->order_status_name }}</span>
+                                            <span class="account-status-badge account-status-badge--sm account-status-badge--{{ $history->status?->tone ?? 'neutral' }}">{{ $history->order_status_name }}</span>
                                         @endif
-                                        @if ($history->comment)
-                                            <p class="text-[var(--color-text-muted)] mt-0.5">{{ strip_tags($history->comment) }}</p>
+                                        {{-- A comment reaches the customer only when it was written for
+                                             them (notify_customer): the store's own notes and the courier
+                                             feed's raw vocabulary stay in the admin. --}}
+                                        @if ($history->comment && $history->notify_customer)
+                                            <p class="text-[var(--color-text)] mt-1">{{ strip_tags($history->comment) }}</p>
                                         @endif
                                     </div>
                                 </div>
@@ -191,7 +194,7 @@
                         </form>
                     @endif
                     <div class="account-order-foot__row">
-                        <a href="{{ route('account.orders') }}" class="text-sm text-[var(--color-primary)] hover:underline">&larr; Back to Orders</a>
+                        <a href="{{ route('account.orders') }}" class="account-link">&larr; Back to Orders</a>
                         @if ($canCancel ?? false)
                             <button type="button" class="account-btn-danger" x-show="!open" @click="open = true; $nextTick(() => $refs.reason.focus())">CANCEL THIS ORDER</button>
                         @endif

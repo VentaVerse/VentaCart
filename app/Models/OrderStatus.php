@@ -8,7 +8,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderStatus extends Model
 {
-    protected $fillable = ['store_id', 'name', 'is_default', 'deducts_stock', 'counts_as_revenue', 'customer_can_cancel', 'sort_order'];
+    protected $fillable = ['store_id', 'name', 'is_default', 'deducts_stock', 'counts_as_revenue', 'customer_can_cancel', 'tone', 'sort_order'];
+
+    protected $attributes = ['tone' => \App\Support\StatusTone::NEUTRAL];
 
     protected function casts(): array
     {

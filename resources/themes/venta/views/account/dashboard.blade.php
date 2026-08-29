@@ -65,9 +65,9 @@
                                             <td class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->total, 2) }}</td>
                                             <td>
                                                 @php $statusName = $order->order_status_name ?? 'Pending'; @endphp
-                                                <span class="account-status-badge account-status-{{ strtolower($statusName) }}">{{ $statusName }}</span>
+                                                <span class="account-status-badge account-status-badge--{{ $order->status?->tone ?? 'neutral' }}">{{ $statusName }}</span>
                                             </td>
-                                            <td><a href="{{ route('account.orders.show', $order) }}" class="text-xs text-[var(--color-primary)] hover:underline">View</a></td>
+                                            <td class="account-row-actions"><a href="{{ route('account.orders.show', $order) }}">View</a></td>
                                         </tr>
                                     @endforeach
                                 </tbody>

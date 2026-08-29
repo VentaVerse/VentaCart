@@ -1596,15 +1596,40 @@
  }
 
  .account-sidebar {
- @apply bg-[var(--color-dropdown-bg)] border border-[var(--color-border)] rounded-lg overflow-hidden sticky top-6 self-start shadow-sm;
+ @apply bg-[var(--color-dropdown-bg)] border border-[var(--color-border)] rounded-lg overflow-hidden self-start shadow-sm lg:sticky lg:top-6;
  }
 
  .account-sidebar-user {
- @apply px-5 py-4 border-b border-[var(--color-border)];
+ @apply flex items-center justify-between gap-4 px-5 py-4 border-b border-[var(--color-border)];
+ }
+
+ /* The fold: below lg the menu hides behind a button naming the section
+    the customer is in, so an order page opens on the order. */
+ .account-sidebar-toggle {
+ font-family: var(--font-heading);
+ @apply inline-flex items-center gap-2 min-h-[2.75rem] px-3 rounded-md text-sm font-semibold border border-[var(--color-border)] lg:hidden;
+ color: var(--color-primary);
+ }
+
+ .account-sidebar-toggle:focus-visible {
+ outline: 2px solid var(--color-primary);
+ outline-offset: 2px;
+ }
+
+ .account-sidebar-nav {
+ @apply hidden lg:block;
+ }
+
+ .account-sidebar-nav.is-open {
+ @apply block;
  }
 
  .account-sidebar-nav {
  @apply py-2;
+ }
+
+ .account-sidebar-nav a {
+ @apply min-h-[2.75rem];
  }
 
  .account-sidebar-nav a,
@@ -1618,9 +1643,10 @@
  }
 
  .account-sidebar-nav a.active {
- color: var(--color-primary);
+ color: var(--color-text-heading);
  border-left-color: var(--color-primary);
- @apply bg-blue-50;
+ background: color-mix(in srgb, var(--color-primary) 10%, var(--color-dropdown-bg));
+ @apply font-semibold;
  }
 
  .account-sidebar-nav .logout-link {
@@ -1641,8 +1667,23 @@
  }
 
  .account-label {
- @apply block text-xs mb-1.5 tracking-wide uppercase font-medium; color: var(--color-text-muted);
+ @apply block text-xs mb-1.5 tracking-wide uppercase font-medium;
+ /* The muted token sits near 3:1 on white in every look; the label
+    borrows enough of the heading colour to clear 4.5:1 and stay muted. */
+ color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-text-heading));
  font-family: var(--font-heading);
+ }
+
+ /* Text links in the account: a real target on a phone (44px), a plain
+    link on desktop. */
+ .account-link {
+ font-family: var(--font-heading);
+ @apply inline-flex items-center gap-1 min-h-[2.75rem] lg:min-h-0 text-sm font-semibold;
+ color: var(--color-primary);
+ }
+
+ .account-link:hover {
+ @apply underline;
  }
 
  .account-input {
@@ -1690,8 +1731,10 @@
  }
 
  .account-btn-danger--solid {
- background: var(--color-danger-accent);
- border-color: var(--color-danger-accent);
+ /* The accent alone is under 4:1 with white text; darkened a step it
+    clears AA in a light look and still reads as the same red in a dark one. */
+ background: color-mix(in srgb, var(--color-danger-accent) 78%, black);
+ border-color: color-mix(in srgb, var(--color-danger-accent) 78%, black);
  color: #FFFFFF;
  }
 
@@ -1714,7 +1757,7 @@
  .account-row-actions a,
  .account-row-actions__danger {
  font-family: var(--font-heading);
- @apply inline-block text-sm font-semibold;
+ @apply inline-flex items-center min-h-[2.75rem] lg:min-h-0 text-sm font-semibold;
  }
 
  .account-row-actions a {
@@ -1727,12 +1770,12 @@
 
  .account-row-actions__danger {
  @apply ml-4;
- color: var(--color-danger-accent);
+ color: var(--color-danger-text);
  }
 
  .account-row-actions__danger:hover {
  @apply underline;
- color: var(--color-danger-text);
+ color: var(--color-danger-accent);
  }
 
  /* The wrapper is a size container so the confirm strip can measure it:
@@ -1832,40 +1875,32 @@
 
  .account-table th {
  font-family: var(--font-heading);
- @apply text-left text-xs font-semibold pb-3 border-b border-[var(--color-border)]; color: var(--color-text-muted);
+ @apply text-left text-xs font-semibold pb-3 border-b border-[var(--color-border)];
+ color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-text-heading));
  }
 
  .account-table td {
  @apply py-3 border-b border-[var(--color-search-bg)]; color: var(--color-text);
  }
 
- /* Status Badges */
+ /* Status Badges: the tone is a setting on the status (Settings, Order
+    Status), never derived from its name. Each tone is one theme colour
+    with a tint of itself behind it, so every look keeps its own reds and
+    greens. Text is the tone colour pulled toward the heading colour for
+    contrast on the tint. */
  .account-status-badge {
  font-family: var(--font-heading);
- /* Same size as the details beside it (text-sm): at 10px the one fact a
-    customer opens the page for was the smallest thing on it. */
- @apply inline-block text-sm font-semibold px-3 py-1 rounded-full leading-snug;
+ --tone: var(--color-text-muted);
+ @apply inline-block text-sm font-semibold px-3 py-1 rounded-full leading-snug whitespace-nowrap;
+ background: color-mix(in srgb, var(--tone) 12%, var(--color-dropdown-bg));
+ color: color-mix(in srgb, var(--tone) 70%, var(--color-text-heading));
+ box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone) 28%, transparent);
  }
 
- .account-status-pending {
- background: color-mix(in srgb, var(--color-warning) 10%, transparent);
- color: var(--color-warning);
+ .account-status-badge--sm {
+ @apply text-xs px-2 py-0.5;
  }
 
- .account-status-processing {
- background: rgba(59, 130, 246, 0.1);
- color: var(--color-primary);
- }
-
- .account-status-shipped, .account-status-complete {
- background: rgba(16, 185, 129, 0.1);
- color: #059669;
- }
-
- .account-status-cancelled, .account-status-refunded {
- background: rgba(220, 38, 38, 0.1);
- color: var(--color-secondary);
- }
 
  /* Address select loading state */
  .address-select-loading {
@@ -2399,6 +2434,19 @@
  display: inline-block;
  }
 }
+
+/* Status badge tones, outside the components layer on purpose: the class
+   is written as account-status-badge--{tone} from the status record, so
+   it never appears literally in a view and a layered rule would be purged
+   at build time. */
+/* In progress is the heading colour, not the primary: in a look whose
+   primary is green it would be indistinguishable from Done. Five steps
+   read apart in every palette: muted grey, dark, amber, green, red. */
+.account-status-badge--info { --tone: var(--color-text-heading); }
+.account-status-badge--warning { --tone: var(--color-warning); }
+.account-status-badge--success { --tone: var(--color-success); }
+.account-status-badge--danger { --tone: var(--color-danger-accent); }
+
 
 /* Circled icon on a storefront notice, e.g. the migrated-account prompt on
    login. Its own rule rather than colour utilities on the element, so it

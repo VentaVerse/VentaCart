@@ -1,9 +1,25 @@
-<div class="account-sidebar">
+@php
+    $accountSection = match (true) {
+        request()->routeIs('account.orders*') => 'My Orders',
+        request()->routeIs('account.addresses*') => 'Address Book',
+        request()->routeIs('account.profile') => 'Profile Settings',
+        default => 'My Account',
+    };
+@endphp
+{{-- On a phone the menu folds behind the section the customer is in, so
+     the page's own content is the first screen. Desktop shows it whole. --}}
+<div class="account-sidebar" x-data="{ open: false }">
     <div class="account-sidebar-user">
-        <div class="text-xs text-[var(--color-text)] tracking-wider" class="font-heading">WELCOME BACK</div>
-        <div class="text-[var(--color-text-heading)] text-sm mt-1">{{ auth('customer')->user()->full_name }}</div>
+        <div>
+            <div class="text-xs text-[var(--color-text)] tracking-wider font-heading">WELCOME BACK</div>
+            <div class="text-[var(--color-text-heading)] text-sm mt-1">{{ auth('customer')->user()->full_name }}</div>
+        </div>
+        <button type="button" class="account-sidebar-toggle" :aria-expanded="open" aria-controls="account-nav" @click="open = !open">
+            <span>{{ $accountSection }}</span>
+            <svg class="w-4 h-4 transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
     </div>
-    <nav class="account-sidebar-nav">
+    <nav id="account-nav" class="account-sidebar-nav" :class="{ 'is-open': open }">
         <a href="{{ route('account.dashboard') }}" class="{{ request()->routeIs('account.dashboard') ? 'active' : '' }}">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             My Account

@@ -327,6 +327,9 @@ class CheckoutService
                 'order_id' => $order->id,
                 'order_status_id' => $status->id,
                 'comment' => 'Order confirmed.',
+                // Written for the customer: the account page shows a history
+                // comment only when the customer was meant to read it.
+                'notify_customer' => true,
             ]);
 
             StockService::adjustForStatusChange($order, $status);

@@ -53,6 +53,7 @@ class OrderStatusController extends Controller
             'counts_as_revenue' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
+            'tone' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\StatusTone::ALL)],
             // Fulfillment placement left core with the column it lived on
             // (owner ruling, 2026-08-09). Refused outright rather than
             // silently dropped, so a stale form or a hand-rolled request
@@ -67,6 +68,7 @@ class OrderStatusController extends Controller
         // than quietly read as false.
         $validated['deducts_stock'] = $request->boolean('deducts_stock');
         $validated['counts_as_revenue'] = $request->boolean('counts_as_revenue');
+        $validated['tone'] = $validated['tone'] ?? \App\Support\StatusTone::suggest($validated['name'], $validated['deducts_stock']);
 
         if ($validated['is_default']) {
             OrderStatus::where('store_id', $this->storeId)->update(['is_default' => false]);
@@ -88,6 +90,7 @@ class OrderStatusController extends Controller
             'counts_as_revenue' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_default' => ['boolean'],
+            'tone' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\StatusTone::ALL)],
             // Fulfillment placement left core with the column it lived on
             // (owner ruling, 2026-08-09). Refused outright rather than
             // silently dropped, so a stale form or a hand-rolled request
@@ -125,6 +128,7 @@ class OrderStatusController extends Controller
             'rows.*.deducts_stock' => ['boolean'],
             'rows.*.counts_as_revenue' => ['boolean'],
             'rows.*.customer_can_cancel' => ['boolean'],
+            'rows.*.tone' => ['nullable', \Illuminate\Validation\Rule::in(\App\Support\StatusTone::ALL)],
             'rows.*.sort_order' => ['nullable', 'integer', 'min:0'],
             'default_id' => ['required', 'integer'],
         ]);
@@ -147,6 +151,7 @@ class OrderStatusController extends Controller
                     'deducts_stock' => filter_var($row['deducts_stock'] ?? false, FILTER_VALIDATE_BOOL),
                     'counts_as_revenue' => filter_var($row['counts_as_revenue'] ?? false, FILTER_VALIDATE_BOOL),
                     'customer_can_cancel' => filter_var($row['customer_can_cancel'] ?? false, FILTER_VALIDATE_BOOL),
+                    'tone' => $row['tone'] ?? $status->tone,
                     'sort_order' => $row['sort_order'] ?? 0,
                     'is_default' => (int) $id === (int) $validated['default_id'],
                 ]);

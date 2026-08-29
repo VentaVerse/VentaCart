@@ -456,6 +456,16 @@ tbody + tbody .v-table__group th { border-top: 1px solid var(--v-line); }
 .v-cell-name { min-width: 15rem; }
 .v-namerow { display: flex; align-items: center; gap: 8px; }
 .v-w-sort { max-width: 84px; }
+/* The status tone select: five short words, so it keeps the statuses
+   table inside the measure instead of pushing Sort and Default off it. */
+.v-w-tone { width: 7.25rem; min-width: 7.25rem; }
+/* A table with more columns than the measure has room for at one line
+   per header: headers wrap to two lines and the name cell gives up its
+   slack, so Sort, Default and the row actions stay on screen. */
+.v-table--tight th { white-space: normal; }
+.v-table--tight th .v-namerow { display: inline; }
+.v-table--tight .v-cell-name { width: 11rem; min-width: 11rem; }
+.v-table--tight .v-cell-name .v-control { min-width: 0; }
 .v-w-name { max-width: 200px; }
 .v-cell-url { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--v-ink-2); }
 .v-rowedit { display: flex; flex-direction: column; gap: 10px; padding: 4px 0; }

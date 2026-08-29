@@ -14,13 +14,14 @@
         <x-admin.form :action="route('admin.order-statuses.update-all')" method="PUT">
             <x-admin.panel title="Statuses" flush>
                 <div class="v-tablewrap">
-                    <table class="v-table">
+                    <table class="v-table v-table--tight">
                         <thead>
                             <tr>
                                 <th>Status</th>
                                 <th><span class="v-namerow">Deducts stock <x-admin.help text="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned." /></span></th>
                                 <th><span class="v-namerow">Counts as revenue <x-admin.help text="Orders with no status never count, whatever this is set to." /></span></th>
                                 <th><span class="v-namerow">Customer may cancel <x-admin.help text="A customer can cancel their own order from their account while it sits on this status. Tick the statuses that mean not paid yet." /></span></th>
+                                <th><span class="v-namerow">Tone <x-admin.help text="The colour of this status in the customer's account: Attention for not paid yet, In progress while it moves, Done when it is over, Stopped when it went wrong." /></span></th>
                                 <th>Sort</th>
                                 <th>Default</th>
                                 <th class="v-cell-act"><span class="v-sr">Actions</span></th>
@@ -56,6 +57,13 @@
                                                    aria-label="{{ $status->name }} customer may cancel">
                                             <span class="v-toggle__track" aria-hidden="true"></span>
                                         </label>
+                                    </td>
+                                    <td>
+                                        <select name="rows[{{ $status->id }}][tone]" aria-label="{{ $status->name }} tone" class="v-control v-select v-w-tone">
+                                            @foreach (\App\Support\StatusTone::LABELS as $tone => $label)
+                                                <option value="{{ $tone }}" @selected(old('rows.'.$status->id.'.tone', $status->tone) === $tone)>{{ $label }}</option>
+                                            @endforeach
+                                        </select>
                                     </td>
                                     <td>
                                         <input type="number" name="rows[{{ $status->id }}][sort_order]" value="{{ old('rows.'.$status->id.'.sort_order', $status->sort_order) }}" min="0"
@@ -96,6 +104,13 @@
                 </x-admin.field>
                 <x-admin.field name="sort_order" label="Sort">
                     <input type="number" name="sort_order" min="0" value="0" class="v-control v-mono">
+                </x-admin.field>
+                <x-admin.field name="tone" label="Tone">
+                    <select name="tone" class="v-control v-select">
+                        @foreach (\App\Support\StatusTone::LABELS as $tone => $label)
+                            <option value="{{ $tone }}" @selected(old('tone') === $tone)>{{ $label }}</option>
+                        @endforeach
+                    </select>
                 </x-admin.field>
                 <div class="v-addrow__opts">
                     <label class="v-toggle" title="Stock leaves inventory at this status. Orders reaching a status without it get their stock returned.">

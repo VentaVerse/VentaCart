@@ -86,6 +86,7 @@ class OrderStatusSeeder extends Seeder
                 'is_default' => $status['is_default'],
                 'deducts_stock' => in_array($status['name'], self::DEDUCTS_STOCK, true),
                 'counts_as_revenue' => in_array($status['name'], self::COUNTS_AS_REVENUE, true),
+                'tone' => \App\Support\StatusTone::suggest($status['name'], in_array($status['name'], self::DEDUCTS_STOCK, true)),
                 'sort_order' => $status['sort_order'],
                 'created_at' => $now,
                 'updated_at' => $now,
