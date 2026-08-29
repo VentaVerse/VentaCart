@@ -64,8 +64,9 @@ class QuadXStatusMapVocabularyTest extends TestCase
             ->assertDontSee($this->field('dws_update'), false);
 
         $quadx = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment();
-        $this->assertCount(30, $quadx->mappableStatuses());
-        $this->assertCount(30, array_unique($quadx->mappableStatuses()), 'A status sits in two groups.');
+        $this->assertCount(31, $quadx->mappableStatuses());
+        $this->assertCount(31, array_unique($quadx->mappableStatuses()), 'A status sits in two groups.');
+        $this->assertSame('in_transit', $quadx->statusPhase('for_transfer')['phase'], 'for_transfer is a parcel on the move (owner, 2026-08-30).');
     }
 
     public function test_a_status_the_store_has_received_but_the_list_lacks_still_gets_a_row(): void

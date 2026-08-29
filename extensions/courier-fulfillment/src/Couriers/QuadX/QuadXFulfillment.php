@@ -280,7 +280,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     private const SHIPPED_STATUSES = ['picked_up','in_transit','out_for_delivery','for_delivery',
                 'in_transit_to_delivery_area','received_at_delivery_hub',
                 'received_at_delivery_area','at_sorting_center','at_3pl_facility',
-                'received_at_pickup_hub','claimed','confirmed_transit'];
+                'received_at_pickup_hub','for_transfer','claimed','confirmed_transit'];
 
     /**
      * Buckets a raw QuadX status onto the spine. Never returns
@@ -797,7 +797,7 @@ class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTra
     {
         return [
             'Before pickup'      => ['for_pickup', 'accepted', 'pickup_rider_found', 'out_for_pickup'],
-            'Picked up, moving'  => ['picked_up', 'received_at_pickup_hub', 'at_sorting_center', 'at_3pl_facility',
+            'Picked up, moving'  => ['picked_up', 'received_at_pickup_hub', 'for_transfer', 'at_sorting_center', 'at_3pl_facility',
                                      'in_transit', 'in_transit_to_delivery_area', 'received_at_delivery_hub',
                                      'received_at_delivery_area', 'for_delivery', 'delivery_rider_found', 'out_for_delivery'],
             'Delivered'          => ['delivered'],
