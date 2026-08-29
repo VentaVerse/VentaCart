@@ -1,4 +1,4 @@
-@props(['action', 'method' => 'POST', 'headerSave' => true, 'saveOnlyWhenDirty' => false])
+@props(['action', 'method' => 'POST', 'headerSave' => true, 'saveOnlyWhenDirty' => false, 'guard' => true])
 @php
     $spoof = strtoupper($method) !== 'POST' && strtoupper($method) !== 'GET';
     // Unique PER FORM, never per action: several forms on one page can
@@ -8,7 +8,11 @@
     $formId = $attributes->get('id') ?: 'vform-' . \Illuminate\Support\Str::random(8);
 @endphp
 {{-- The save doctrine. Every v form gets dirty tracking, a Save, and the
-     leave guard by existing; a page cannot opt out of honesty.
+     leave guard by existing. The one way out is :guard="false", which the
+     owner grants per page (the customer editor, 2026-08-29, after browser
+     autofill kept raising Unsaved changes on a page nobody had touched):
+     the form then runs on vFormPlain, a stand-in that is never dirty and
+     never guards the unload, and Save simply stands in the header.
 
      Owner ruling 2026-08-19: the Save is a plain button sitting with the
      page's other actions, the way our own legacy and every other platform
@@ -19,7 +23,7 @@
      Browser autofill and reload-time form restoration both write values
      into fields after the baseline is taken, which raised the Unsaved
      changes bar on a page nobody had touched. --}}
-<form id="{{ $formId }}" method="POST" action="{{ $action }}" x-data="vForm()" autocomplete="off" {{ $attributes->except('id') }}>
+<form id="{{ $formId }}" method="POST" action="{{ $action }}" x-data="{{ $guard ? 'vForm()' : 'vFormPlain()' }}" autocomplete="off" {{ $attributes->except('id') }}>
     @csrf
     @if ($spoof) @method($method) @endif
 

@@ -32,7 +32,7 @@
     @endphp
     <div x-data="customerForm()">
     <x-admin.form :action="$customer ? route('admin.customers.update', $customer) : route('admin.customers.store')"
-                   :method="$customer ? 'PUT' : 'POST'" class="v-settle">
+                   :method="$customer ? 'PUT' : 'POST'" :guard="false" class="v-settle">
         <input type="hidden" name="store_id" value="1">
 
             <div class="v-tabs" role="tablist">

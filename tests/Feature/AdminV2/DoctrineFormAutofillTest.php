@@ -43,6 +43,19 @@ class DoctrineFormAutofillTest extends TestCase
         $this->assertMatchesRegularExpression('/<form[^>]*autocomplete="off"/', $html);
     }
 
+    public function test_the_customer_pages_run_without_the_dirty_tracker(): void
+    {
+        $customer = $this->customer();
+        $admin = User::factory()->create();
+
+        foreach ([route('admin.customers.edit', $customer), route('admin.customers.create')] as $url) {
+            $html = $this->actingAs($admin)->get($url)->assertOk()->getContent();
+
+            $this->assertStringContainsString('x-data="vFormPlain()"', $html);
+            $this->assertStringNotContainsString('x-data="vForm()"', $html);
+        }
+    }
+
     public function test_the_create_page_still_requires_a_password(): void
     {
         $this->actingAs(User::factory()->create())

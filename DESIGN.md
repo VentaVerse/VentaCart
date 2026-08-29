@@ -57,7 +57,10 @@ stated in `tokens.css` with AA-checked stops.
 ## The save doctrine (the reason v exists)
 
 One page is one save scope. `x-admin.form` renders the form, CSRF,
-method spoof, and the save bar; a page cannot opt out.
+method spoof, and the save bar. A page opts out only by owner ruling,
+with `:guard="false"`: the form then runs on `vFormPlain` (never dirty,
+no leave guard, Save always in the header). The customer editor is the
+one such page (2026-08-29).
 
 - `vForm` (admin.js) snapshots the form's serialized fields on
   load, flips `dirty` on any input/change, and un-dirties when edits

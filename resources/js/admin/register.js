@@ -18,6 +18,22 @@ export function registerV(Alpine) {
     // formEl lives in a closure, not on the component: methods invoked
     // through a child scope chain (an inner editor calling touch()) run
     // with the CHILD's $el, and FormData(childDiv) throws.
+    // The one exit from the doctrine, by owner ruling (2026-08-29): a form
+    // rendered with :guard="false" gets this stand-in instead. Same names
+    // as vForm so a page's editors can keep calling touch() and dispatching
+    // v-rebaseline, but nothing is ever dirty, nothing guards the unload,
+    // and Save simply stands there. Submit still flips saving so the
+    // button cannot be pressed twice.
+    Alpine.data('vFormPlain', () => ({
+        dirty: false,
+        saving: false,
+        init() { this.$el.addEventListener('submit', () => { this.saving = true; }); },
+        touch() {},
+        check() {},
+        rebaseline() {},
+        discard() {},
+    }));
+
     Alpine.data('vForm', () => { let formEl = null; return {
         dirty: false,
         saving: false,
