@@ -1,7 +1,6 @@
 <?php
 
 use Extensions\Theme\Http\Controllers\FooterColumnController;
-use Extensions\Theme\Http\Controllers\NavMenuController;
 use Extensions\Theme\Http\Controllers\ThemeController;
 use Illuminate\Support\Facades\Route;
 
@@ -39,13 +38,6 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // success and changed nothing. The data was carried across by
         // layout:carry-homepage-sections; the model stays for that command.
         Route::post('/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('update-theme-settings');
-
-
-        Route::post('/nav', [NavMenuController::class, 'store'])->name('nav.store');
-        Route::get('/nav/{item}/edit', [NavMenuController::class, 'edit'])->name('nav.edit');
-        Route::put('/nav/{item}', [NavMenuController::class, 'update'])->name('nav.update');
-        Route::delete('/nav/{item}', [NavMenuController::class, 'destroy'])->name('nav.destroy');
-        Route::post('/nav/reorder', [NavMenuController::class, 'reorder'])->name('nav.reorder');
 
         Route::post('/footer', [FooterColumnController::class, 'store'])->name('footer.store');
         Route::post('/footer/bulk-update', [FooterColumnController::class, 'bulkUpdate'])->name('footer.bulk-update');

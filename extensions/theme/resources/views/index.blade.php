@@ -480,80 +480,13 @@
 
         {{-- ========== NAVIGATION (records) ========== --}}
         <div x-show="tab === 'navigation'" x-cloak>
-            <x-admin.panel title="Menu items">
-                <div x-init="initSortable($el.querySelector('[data-sortable]'), @js(route('admin.theme.nav.reorder')))">
-                    <div data-sortable>
-                        @foreach ($navItems as $item)
-                            <div class="v-dragrow" draggable="true" data-id="{{ $item->id }}">
-                                <x-admin.icon name="menu" class="v-dragrow__grip drag-handle" />
-                                <span class="v-dir__body">
-                                    <span class="v-dir__name">{{ $item->label }}</span>
-                                    <span class="v-dir__line v-block">{{ $item->type === 'category' ? 'Category: ' . ($item->category?->name ?? 'N/A') : 'Custom: ' . $item->url }}</span>
-                                </span>
-                                <span class="v-dragrow__move">
-                                    <button type="button" aria-label="Move {{ $item->label }} up" title="Move up"
-                                            onclick="nudgeRow(this, -1, '{{ route('admin.theme.nav.reorder') }}')">&uarr;</button>
-                                    <button type="button" aria-label="Move {{ $item->label }} down" title="Move down"
-                                            onclick="nudgeRow(this, 1, '{{ route('admin.theme.nav.reorder') }}')">&darr;</button>
-                                </span>
-                                <span class="v-badge {{ $item->is_enabled ? 'v-badge--good' : 'v-badge--quiet' }}">{{ $item->is_enabled ? 'Active' : 'Disabled' }}</span>
-                                <a href="{{ route('admin.theme.nav.edit', $item) }}" class="v-btn v-btn--ghost v-btn--sm">Edit</a>
-                                <button type="button" class="v-row__x" aria-label="Delete {{ $item->label }}" @click="$dispatch('v-confirm', 'delete-nav-{{ $item->id }}')">
-                                    <x-admin.icon name="trash" />
-                                </button>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
-
-                <div class="v-gap-lg" x-data="{ newType: 'category' }">
-                    <div class="v-label v-gap-sm">Add menu item</div>
-                    <form method="POST" action="{{ route('admin.theme.nav.store') }}">
-                        @csrf
-                        <div class="v-grid v-grid--2 v-narrow">
-                            <x-admin.field name="type" label="Type" required>
-                                <select name="type" x-model="newType" class="v-control">
-                                    <option value="category">Category</option>
-                                    <option value="custom">Custom link</option>
-                                </select>
-                            </x-admin.field>
-                            <x-admin.field name="label" label="Label" required>
-                                <input type="text" name="label" required placeholder="Menu label" class="v-control">
-                            </x-admin.field>
-                        </div>
-                        <div class="v-gap v-narrow" x-show="newType === 'category'">
-                            <x-admin.field name="category_id" label="Category">
-                                <select name="category_id" class="v-control">
-                                    <option value="">Select…</option>
-                                    @foreach ($categories as $cat)
-                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
-                                    @endforeach
-                                </select>
-                            </x-admin.field>
-                        </div>
-                        <div class="v-gap v-narrow" x-show="newType === 'custom'" x-cloak>
-                            <x-admin.field name="url" label="URL">
-                                <input type="text" name="url" placeholder="/blog or https://…" class="v-control v-mono">
-                            </x-admin.field>
-                        </div>
-                        <div class="v-gap v-actrow">
-                            <label class="v-check">
-                                <input type="checkbox" name="new_tab" value="1">
-                                Open in a new tab
-                            </label>
-                            <button type="submit" class="v-btn v-btn--primary">Add item</button>
-                        </div>
-                    </form>
-                </div>
+            {{-- The menu composer is core now (Plaza plan, phase 4); this
+                 tab stays as the door merchants already know. --}}
+            <x-admin.panel title="Menus">
+                <p class="v-gap-sm">{{ $navItems->count() }} {{ $navItems->count() === 1 ? 'item' : 'items' }} in the main menu.</p>
+                <a href="{{ route('admin.layout.menus') }}" class="v-btn v-btn--primary v-btn--sm">Open the menu composer</a>
             </x-admin.panel>
-
-            @foreach ($navItems as $item)
-                <x-admin.confirm name="delete-nav-{{ $item->id }}" title="Delete {{ $item->label }}?"
-                    message="The menu item leaves the storefront header immediately."
-                    confirm="Delete" :action="route('admin.theme.nav.destroy', $item)" method="DELETE" />
-            @endforeach
         </div>
-
         {{-- ========== HOMEPAGE (records) ========== --}}
         <div x-show="tab === 'footer'" x-cloak>
             <x-admin.panel title="Footer columns">
