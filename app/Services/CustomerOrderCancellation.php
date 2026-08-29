@@ -15,8 +15,8 @@ use RuntimeException;
  * ones, in practice). Owner request, 2026-08-30.
  *
  * The rule is data, not code: OrderStatus::customer_can_cancel per status,
- * and setting checkout.customer_cancel_status_id for where it lands
- * (falling back to the status named Canceled). Because the move goes
+ * and setting checkout.customer_cancel_status_id for where it lands. No
+ * landing status chosen, no cancellation offered. Because the move goes
  * through OrderStatusChanger, stock returns, history is written, the
  * fulfillment tab and the ERP follow, exactly as an admin cancellation
  * would.
@@ -29,7 +29,6 @@ class CustomerOrderCancellation
 {
     public const SETTING_GROUP = 'checkout';
     public const SETTING_KEY = 'customer_cancel_status_id';
-    public const FALLBACK_STATUS_NAME = 'Canceled';
 
     /** Can this customer cancel this order right now? Read-only; the page uses it to show the button. */
     public static function allowed(Order $order, ?Customer $customer): bool
@@ -41,13 +40,18 @@ class CustomerOrderCancellation
         return (bool) $order->status?->customer_can_cancel && self::target($order) !== null;
     }
 
-    /** The status a customer cancellation lands on, or null when the store has none configured or named. */
+    /**
+     * The status a customer cancellation lands on. Null when the merchant
+     * has not chosen one, and then nothing is offered: no guessing by a
+     * status NAME (owner ruling, 2026-08-30: a name can be renamed or
+     * deleted, and a guess that silently stops working is worse than a
+     * button that never appears until the setting is made).
+     */
     public static function target(Order $order): ?OrderStatus
     {
         $id = Setting::where('group', self::SETTING_GROUP)->where('key', self::SETTING_KEY)->value('value');
-        $status = $id ? OrderStatus::where('store_id', $order->store_id)->find((int) $id) : null;
 
-        return $status ?? OrderStatus::where('store_id', $order->store_id)->where('name', self::FALLBACK_STATUS_NAME)->first();
+        return $id ? OrderStatus::where('store_id', $order->store_id)->find((int) $id) : null;
     }
 
     /**

@@ -42,6 +42,7 @@ class CustomerCancelsOrderTest extends TestCase
         $this->pending = OrderStatus::create(['store_id' => 1, 'name' => 'Pending', 'is_default' => true, 'sort_order' => 1, 'deducts_stock' => true, 'customer_can_cancel' => true]);
         $this->processing = OrderStatus::create(['store_id' => 1, 'name' => 'Processing', 'sort_order' => 2, 'deducts_stock' => true]);
         $this->canceled = OrderStatus::create(['store_id' => 1, 'name' => 'Canceled', 'sort_order' => 7, 'deducts_stock' => false]);
+        Setting::create(['group' => 'checkout', 'key' => 'customer_cancel_status_id', 'value' => (string) $this->canceled->id]);
     }
 
     private function customer(string $email = 'jane@example.com'): Customer
@@ -98,12 +99,12 @@ class CustomerCancelsOrderTest extends TestCase
         Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedSubject, 'cancelled by Jane Doe'));
     }
 
-    public function test_it_lands_on_the_configured_status_when_one_is_set(): void
+    public function test_it_lands_on_the_configured_status(): void
     {
         $customer = $this->customer();
         $order = $this->order($customer, $this->pending);
         $byCustomer = OrderStatus::create(['store_id' => 1, 'name' => 'Cancelled by customer', 'sort_order' => 8]);
-        Setting::create(['group' => 'checkout', 'key' => 'customer_cancel_status_id', 'value' => (string) $byCustomer->id]);
+        Setting::where('group', 'checkout')->where('key', 'customer_cancel_status_id')->update(['value' => (string) $byCustomer->id]);
 
         $this->actingAs($customer, 'customer')->post(route('account.orders.cancel', $order))->assertRedirect();
 
@@ -142,11 +143,15 @@ class CustomerCancelsOrderTest extends TestCase
         $this->assertSame($this->pending->id, $order->fresh()->order_status_id);
     }
 
-    public function test_without_a_landing_status_nothing_happens(): void
+    public function test_without_a_landing_status_nothing_is_offered_and_nothing_happens(): void
     {
-        $this->canceled->delete();
+        // No guess by a status name: the setting is the only source. Unset it,
+        // and even a ticked status offers no button and refuses a direct POST.
+        Setting::where('group', 'checkout')->where('key', 'customer_cancel_status_id')->delete();
         $customer = $this->customer();
         $order = $this->order($customer, $this->pending);
+
+        $this->actingAs($customer, 'customer')->get(route('account.orders.show', $order))->assertOk()->assertDontSee('CANCEL THIS ORDER');
 
         $this->assertFalse(CustomerOrderCancellation::allowed($order->fresh('status'), $customer));
         $this->actingAs($customer, 'customer')->post(route('account.orders.cancel', $order))->assertSessionHas('error');
@@ -167,5 +172,16 @@ class CustomerCancelsOrderTest extends TestCase
 
         $this->assertFalse($this->pending->fresh()->customer_can_cancel);
         $this->assertTrue($this->processing->fresh()->customer_can_cancel);
+    }
+
+    public function test_a_deleted_landing_status_offers_nothing_rather_than_guessing(): void
+    {
+        $customer = $this->customer();
+        $order = $this->order($customer, $this->pending);
+        $this->canceled->delete();
+
+        $this->assertFalse(CustomerOrderCancellation::allowed($order->fresh('status'), $customer));
+        $this->actingAs($customer, 'customer')->post(route('account.orders.cancel', $order))->assertSessionHas('error');
+        $this->assertSame($this->pending->id, $order->fresh()->order_status_id);
     }
 }
