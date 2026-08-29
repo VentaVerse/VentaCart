@@ -75,7 +75,8 @@ class LayoutController extends Controller
             // Saved arrangements, handed over in the editor's own shape so
             // loading one is a local act that arms Save.
             'templates' => LayoutTemplate::where('theme', $theme)->orderBy('name')->get()
-                ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'region' => $t->region, 'rows' => LayoutTemplate::toUnits($t->rows)])->values(),
+                ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'region' => $t->region, 'rows' => LayoutTemplate::toUnits($t->rows)])
+                ->concat($this->shippedTemplates())->values(),
             'templatesUrl' => route('admin.layout.templates.store'),
             'exportUrl' => route('admin.layout.templates.export'),
             'importUrl' => route('admin.layout.templates.import'),
@@ -511,6 +512,33 @@ class LayoutController extends Controller
         $preset->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Arrangements the active theme ships in its layouts folder: a demo home
+     * page, a starting point. Read-only; loading one makes editor rows like
+     * any saved template.
+     */
+    private function shippedTemplates(): \Illuminate\Support\Collection
+    {
+        $dir = app(ThemeService::class)->getThemePath() . '/layouts';
+        if (! is_dir($dir)) {
+            return collect();
+        }
+
+        return collect(glob($dir . '/*.json'))->map(function ($file) {
+            $data = json_decode((string) file_get_contents($file), true);
+            if (! is_array($data) || empty($data['venta_layout']) || ! isset($data['rows'])) {
+                return null;
+            }
+
+            return [
+                'id' => 'theme:' . basename($file, '.json'),
+                'name' => (string) ($data['name'] ?? ucfirst(basename($file, '.json'))) . ' (shipped)',
+                'region' => $data['region'] ?? null,
+                'rows' => LayoutTemplate::toUnits($data['rows']),
+            ];
+        })->filter()->values();
     }
 
     /**

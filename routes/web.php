@@ -29,6 +29,8 @@ Route::get('/brand', [StorefrontBrandController::class, 'index'])->name('brand.i
 Route::get('/brand/{brand:slug}', [StorefrontBrandController::class, 'show'])->name('brand.show');
 Route::get('/category/{category:slug}', [StorefrontCategoryController::class, 'show'])->name('category.show');
 Route::get('/product/{product:slug}', [StorefrontProductController::class, 'show'])->name('product.show');
+// A product's quick view: a fragment the active theme provides, or 404 when it does not.
+Route::get('/product/{product:slug}/quick-view', [StorefrontProductController::class, 'quickView'])->name('product.quickview');
 // Storefront blog moved to the blog extension (extensions/blog/routes/web.php).
 
 // Review submission moved to the reviews extension

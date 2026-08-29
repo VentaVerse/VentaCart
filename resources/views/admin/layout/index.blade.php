@@ -773,6 +773,7 @@
                     async deleteTemplate(id) {
                         const t = this.templates.find((x) => String(x.id) === String(id));
                         if (!t) return;
+                        if (String(t.id).startsWith('theme:')) { this.say(t.name + ' ships with the theme and stays.'); return; }
                         try {
                             const res = await fetch(this.templatesUrl + '/' + t.id, { method: 'DELETE', headers: this.headers(false) });
                             if (!res.ok) throw new Error('refused');

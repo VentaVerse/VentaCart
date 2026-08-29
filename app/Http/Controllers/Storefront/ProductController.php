@@ -222,4 +222,18 @@ class ProductController extends Controller
             'hasFreeShipping', 'ogTitle', 'ogDescription'
         ));
     }
+
+    /**
+     * The quick view fragment. The theme owns the view; a theme without one
+     * has no quick view, and this answers 404 rather than half a page.
+     */
+    public function quickView(Product $product)
+    {
+        abort_unless($product->is_active, 404);
+        abort_unless(view()->exists('product.quick-view'), 404);
+
+        $product->load(['images', 'specials', 'brand']);
+
+        return view('product.quick-view', ['product' => $product]);
+    }
 }
