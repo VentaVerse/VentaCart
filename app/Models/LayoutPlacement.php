@@ -11,14 +11,21 @@ class LayoutPlacement extends Model
     public const EVERYWHERE = '*';
 
     protected $fillable = [
-        'theme', 'page_type', 'region', 'widget', 'title', 'config', 'sort_order', 'is_enabled',
+        'theme', 'page_type', 'region', 'row_id', 'column_index', 'widget', 'title', 'config', 'sort_order', 'is_enabled',
     ];
 
     protected $casts = [
         'config' => 'array',
         'is_enabled' => 'boolean',
         'sort_order' => 'integer',
+        'column_index' => 'integer',
     ];
+
+    /** The row this placement sits in, or null for an implicit one-column row. */
+    public function row(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(LayoutRow::class, 'row_id');
+    }
 
     /**
      * Everything that renders in one region of one page type, in order.
