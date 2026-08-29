@@ -12,6 +12,8 @@ use App\Services\OrderStatusChanger;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
+use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
 
 /**
  * Shared booking core, used by BOTH the admin Fulfillment page and the ERP API
@@ -614,6 +616,33 @@ class FulfillmentService
      *
      * @return array{success:bool, error?:string, status?:?string, timeline?:array, links?:array}
      */
+    /**
+     * The link the shopper gets for an integrated shipment, resolved in one
+     * place for booking, the poll and a manual refresh alike.
+     *
+     * The courier's own per-shipment URL first (delivery, then pickup), then
+     * its public tracker keyed by the number when it runs one, then whatever
+     * core already holds. Never null out a stored link: a poll cycle that
+     * returns nothing is a quiet API, not a vanished parcel.
+     */
+    public static function resolveTrackingLink(CourierFulfillmentInterface $courier, ?array $links, ?string $tracking, ?string $keep, array $courierMeta = []): ?string
+    {
+        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
+            if (is_string($u) && str_starts_with($u, 'http')) {
+                return $u;
+            }
+        }
+
+        if ($tracking !== null && $tracking !== '' && $courier instanceof ProvidesPublicTrackingUrl) {
+            $public = $courier->publicTrackingUrl($tracking, $courierMeta);
+            if ($public) {
+                return $public;
+            }
+        }
+
+        return $keep;
+    }
+
     public static function refreshTracking(Order $order): array
     {
         $courier = CourierManager::get((string) $order->courier_provider);
@@ -644,21 +673,19 @@ class FulfillmentService
             $fill['courier_meta'] = json_encode($meta);
         }
 
-        // Core tracking_link snapshot: prefer the delivery URL, then pickup.
-        // When this call returned no usable link, keep whatever core already
-        // has — never null out a previously stored link.
-        $trackingLink = null;
-        foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
-            if (is_string($u) && str_starts_with($u, 'http')) {
-                $trackingLink = $u;
-                break;
-            }
-        }
-        // raw column, NOT the accessor — the accessor live-derives and would
+        // Raw column, NOT the accessor: the accessor live-derives and would
         // trigger relation queries / freeze derived URLs.
-        $trackingLink = $trackingLink ?? $order->getRawOriginal('tracking_link');
+        $trackingLink = self::resolveTrackingLink($courier, is_array($links) ? $links : null, $order->courier_tracking_number, $order->getRawOriginal('tracking_link'), $order->courier_meta ? (json_decode($order->courier_meta, true) ?: []) : []);
         if ($trackingLink !== $order->getRawOriginal('tracking_link')) {
             $fill['tracking_link'] = $trackingLink;
+        }
+
+        // Bookings made before the name was stamped at booking time left the
+        // shopper a bare number with no courier beside it. Heal it here,
+        // where the courier is already known, unless a manual courier row
+        // owns the name.
+        if ($order->shipping_courier_name === null && $order->shipping_courier_id === null) {
+            $fill['shipping_courier_name'] = $courier->getName();
         }
 
         if (!empty($fill)) {
@@ -876,7 +903,11 @@ class FulfillmentService
             // Core snapshot field (Order Historical Snapshots): the extension is the
             // only writer of core tracking_number; no tracking_link yet at booking time.
             'tracking_number'         => $result['tracking_number'] ?? null,
-            'tracking_link'           => null, // stale link from a prior booking/manual entry must not point at the new shipment; the poll re-stamps it when the courier link appears
+            // Never the previous booking's link (it would point at a
+            // superseded shipment): the courier's public tracker for THIS
+            // number when it has one, else null until the poll brings the
+            // per-shipment URL.
+            'tracking_link'           => self::resolveTrackingLink($courier, null, $result['tracking_number'] ?? null, null, is_array($meta) ? $meta : []),
             // Who carries it, in the same core snapshot column a manual
             // shipment fills from its courier row. Without it the shopper's
             // account page and every email showed a bare number with no

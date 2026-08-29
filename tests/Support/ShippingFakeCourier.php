@@ -11,7 +11,7 @@ use App\Models\Order;
  * extension has booted (its PSR-4 autoloader registers on bootEnabled()), or
  * the parent fails to load. Register per test, unregister in tearDown.
  */
-class ShippingFakeCourier extends FakeCourierFulfillment
+class ShippingFakeCourier extends FakeCourierFulfillment implements \Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl
 {
     public function getKey(): string
     {
@@ -36,5 +36,18 @@ class ShippingFakeCourier extends FakeCourierFulfillment
     public function cancelShipment(string $trackingNumber): array
     {
         return ['success' => true];
+    }
+
+    /** Answers like QuadX did on a live refresh: a status, no links. */
+    public function getTracking(string $trackingNumber): array
+    {
+        return ['success' => true, 'status' => 'in_transit', 'links' => [], 'timeline' => []];
+    }
+
+    public function publicTrackingUrl(string $trackingNumber, array $courierMeta): ?string
+    {
+        $host = ($courierMeta['mode'] ?? 'production') === 'production' ? 'https://fake.test' : 'https://sandbox.fake.test';
+
+        return $host . '/track/' . rawurlencode($trackingNumber);
     }
 }

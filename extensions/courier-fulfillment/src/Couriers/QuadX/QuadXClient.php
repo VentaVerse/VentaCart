@@ -52,10 +52,17 @@ class QuadXClient
         return $missing;
     }
 
-    public function baseUrl(): string
+    /** The environment this client talks to right now: 'staging' or 'production'. */
+    public function mode(): string
     {
         $mode = $this->setting('quadx_mode', 'staging');
-        return self::BASE_URLS[$mode] ?? self::BASE_URLS['staging'];
+
+        return isset(self::BASE_URLS[$mode]) ? $mode : 'staging';
+    }
+
+    public function baseUrl(): string
+    {
+        return self::BASE_URLS[$this->mode()];
     }
 
     // --- Endpoints --------------------------------------------------------

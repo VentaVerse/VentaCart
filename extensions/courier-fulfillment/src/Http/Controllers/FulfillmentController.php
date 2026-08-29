@@ -84,6 +84,7 @@ class FulfillmentController extends Controller
         // page explains its own state instead).
         if (Setting::where('group', 'courier')->where('key', 'fulfillment_enabled')->value('value') === '0') {
             return view('courier-fulfillment::index', [
+                'linkableCustomers' => [],
                 'paused' => true,
                 'canConfigureCouriers' => $this->canConfigureCouriers(),
             ]);
@@ -297,8 +298,18 @@ class FulfillmentController extends Controller
             ->values()
             ->all();
 
+        // Customers a row may link to: the ones on this page that still
+        // exist, in one query. A guest order (no customer_id) or a deleted
+        // account stays plain text rather than a link to a 404.
+        $linkableCustomers = \App\Models\Customer::query()
+            ->whereIn('id', $orders->getCollection()->pluck('customer_id')->filter()->unique())
+            ->pluck('id')
+            ->flip()
+            ->all();
+
         return view('courier-fulfillment::index', [
             'orders' => $orders,
+            'linkableCustomers' => $linkableCustomers,
             'couriers' => $couriers,
             'manualCouriers' => $manualCouriers,
             'primary' => $primary,

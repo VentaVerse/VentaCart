@@ -106,19 +106,19 @@ class PollCourierStatus extends Command
                 // Core tracking_link snapshot: prefer the delivery URL, then pickup.
                 // When this poll cycle returned no usable link, keep whatever core
                 // already has — never null out a previously stored link.
-                $trackingLink = null;
-                foreach ([$links['delivery'] ?? null, $links['pickup'] ?? null] as $u) {
-                    if (is_string($u) && str_starts_with($u, 'http')) {
-                        $trackingLink = $u;
-                        break;
-                    }
-                }
-                // raw column, NOT the accessor — the accessor live-derives and would trigger relation queries / freeze derived URLs.
-                $trackingLink = $trackingLink ?? $order->getRawOriginal('tracking_link');
+                // One resolver with refreshTracking() and book(): courier URL,
+                // then its public tracker, then what core already holds. Raw
+                // column, NOT the accessor, which live-derives.
+                $trackingLink = \Extensions\CourierFulfillment\FulfillmentService::resolveTrackingLink($courier, is_array($links) ? $links : null, $order->courier_tracking_number, $order->getRawOriginal('tracking_link'), is_array($meta) ? $meta : []);
                 $linkChanged = $trackingLink !== $order->getRawOriginal('tracking_link');
+                $nameMissing = $order->shipping_courier_name === null && $order->shipping_courier_id === null;
 
-                if ($statusChanged || $metaChanged || $linkChanged) {
+                if ($statusChanged || $metaChanged || $linkChanged || $nameMissing) {
                     $fill = [];
+                    if ($nameMissing) {
+                        // Pre-stamp bookings: the shopper saw a bare number.
+                        $fill['shipping_courier_name'] = $courier->getName();
+                    }
                     if ($statusChanged) {
                         $fill['courier_status'] = $status;
                     }

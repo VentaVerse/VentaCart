@@ -14,16 +14,12 @@
             ['key' => 'settings', 'label' => 'Settings', 'icon' => 'settings', 'url' => route('admin.fulfillment.settings')],
             ['key' => 'status-mapping', 'label' => 'Status Mapping', 'icon' => 'layers', 'url' => route('admin.fulfillment.settings.placement')],
             ['key' => 'pickup-addresses', 'label' => 'Pickup Addresses', 'icon' => 'store', 'url' => route('admin.fulfillment.pickup-addresses.index')],
-            // A pointer, not a page of this module: the courier directory is
-            // core (Sales, Couriers) and the queue's manual shipment reads
-            // it. Reachable from here because this is where an operator
-            // looks for it.
-            ['key' => 'couriers', 'label' => 'Couriers', 'icon' => 'package', 'url' => route('admin.shipping-couriers.index')],
         ]],
-        // The integrations, named as such: "Couriers" is the pointer above,
-        // the store's directory of who carries parcels, and two entries in
-        // one nav wearing the same word would send an operator to the wrong
-        // one every other time.
+        // The integrations, named as such. The store's courier directory
+        // (Sales, Couriers) is deliberately NOT linked from here (owner
+        // ruling 2026-08-29): a context-nav entry that leaves the space with
+        // no way back reads as teleportation, and the queue already points
+        // at the directory in the one place it matters, the manual card.
         ['label' => 'Integrations', 'items' => $courierItems],
     ];
 @endphp

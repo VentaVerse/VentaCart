@@ -75,15 +75,23 @@ class CouriersHomeTest extends TestCase
             ->assertDontSee('Couriers & Tracking', false);
     }
 
-    public function test_the_fulfillment_space_points_at_the_directory_rather_than_copying_it(): void
+    public function test_the_fulfillment_space_does_not_link_out_to_the_directory(): void
     {
+        // A context-nav entry that leaves the space with no way back reads
+        // as teleportation (owner ruling 2026-08-29). The queue's manual
+        // card is the one place that points at the directory, when empty.
         app(ExtensionManager::class)->install('courier-fulfillment');
         app(ExtensionManager::class)->bootEnabled();
 
-        $this->actingAs(User::factory()->create())
+        $html = $this->actingAs(User::factory()->create())
             ->get('/' . $this->prefix() . '/extensions/courier-fulfillment/settings')
             ->assertOk()
-            ->assertSee(route('admin.shipping-couriers.index'), false);
+            ->getContent();
+
+        // The main sidebar carries the Sales, Couriers link on every admin
+        // page; what must NOT exist is a context-nav item for it.
+        $this->assertStringNotContainsString(route('admin.shipping-couriers.index') . '" class="v-snav__item"', $html);
+        $this->assertStringContainsString('class="v-snav__item"', $html, 'The context nav did not render at all, so this assertion proves nothing.');
     }
 
     public function test_the_queue_says_where_to_add_a_courier_when_the_directory_is_empty(): void

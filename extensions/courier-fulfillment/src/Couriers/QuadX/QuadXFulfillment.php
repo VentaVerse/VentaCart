@@ -5,6 +5,7 @@ namespace Extensions\CourierFulfillment\Couriers\QuadX;
 use App\Models\Order;
 use App\Models\Setting;
 use Extensions\CourierFulfillment\Contracts\CourierFulfillmentInterface;
+use Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl;
 use Extensions\CourierFulfillment\Models\PickupAddress;
 use Extensions\CourierFulfillment\ServiceabilityService;
 use Extensions\CourierFulfillment\Support\PickupCountry;
@@ -17,7 +18,7 @@ use Extensions\CourierFulfillment\Support\ServiceabilityVerdict;
  * lives here + QuadXClient: auth, parcel categories, services, the
  * seller_payment_method field, and name-based address resolution.
  */
-class QuadXFulfillment implements CourierFulfillmentInterface
+class QuadXFulfillment implements CourierFulfillmentInterface, ProvidesPublicTrackingUrl
 {
     public function __construct(
         private ?QuadXClient $client = null,
@@ -138,6 +139,10 @@ class QuadXFulfillment implements CourierFulfillmentInterface
             'tracking_number' => $b['tracking_number'] ?? null,
             'status'          => $b['status'] ?? 'for_pickup',
             'meta'            => [
+                // Which environment this parcel lives in, recorded at booking
+                // because the setting can change afterwards and the parcel
+                // cannot: a sandbox booking stays a sandbox booking.
+                'mode'             => $this->client->mode(),
                 'quadx_id'         => $b['id'] ?? null,
                 'service'          => $opts['service'] ?? null,
                 'parcel'           => $opts['parcel'] ?? null,
@@ -636,6 +641,33 @@ class QuadXFulfillment implements CourierFulfillmentInterface
                 'help'    => 'Pre-selected parcel category on the booking form.',
             ],
         ];
+    }
+
+    /**
+     * GoGo Xpress is QuadX's consumer brand and runs a public tracker keyed
+     * by the tracking number alone, one host per environment to match the
+     * API split (api.staging.quadx.xyz / api.quadx.xyz). The API's own
+     * tracking_links are preferred wherever they exist; this is what the
+     * shopper gets when the API hands back none, which a live refresh of a
+     * booked parcel showed it does.
+     */
+    public function publicTrackingUrl(string $trackingNumber, array $courierMeta): ?string
+    {
+        $trackingNumber = trim($trackingNumber);
+        if ($trackingNumber === '') {
+            return null;
+        }
+
+        // The booking's own environment. A parcel booked before the mode was
+        // recorded has no better witness than the mode configured now, which
+        // is right for every store that never switched; one that booked in
+        // the sandbox and then went live will link those old sandbox parcels
+        // to the live tracker, and that is the limit of what can be known.
+        $mode = $courierMeta['mode'] ?? $this->client->mode();
+
+        $host = $mode === 'production' ? 'https://app.gogoxpress.com' : 'https://app.staging.gogoxpress.com';
+
+        return $host . '/track/' . rawurlencode($trackingNumber);
     }
 
     public function parseWebhook(array $payload): array

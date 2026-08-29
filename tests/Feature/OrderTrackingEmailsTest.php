@@ -251,10 +251,80 @@ class OrderTrackingEmailsTest extends TestCase
         $order = $order->fresh();
         $this->assertSame('Fake Ship', $order->shipping_courier_name, 'The shopper would see a bare number with no courier beside it.');
         $this->assertSame('FS-0001', $order->tracking_number);
+        // The courier hands back no per-shipment URL, so the shopper gets its
+        // public tracker for this number, at booking time, not after a poll.
+        $this->assertSame('https://fake.test/track/FS-0001', $order->getRawOriginal('tracking_link'));
 
         \Extensions\CourierFulfillment\FulfillmentService::cancelBooking($order);
 
         $this->assertNull($order->fresh()->shipping_courier_name);
         $this->assertNull($order->fresh()->tracking_number);
+    }
+
+    public function test_a_refresh_heals_a_booking_made_before_names_and_links_were_stamped(): void
+    {
+        // Order #29874 on NGD: a QuadX booking with no courier name and no
+        // link, because both were introduced after it was booked and QuadX
+        // answers a live refresh with links: []. The poll and a manual
+        // refresh now fill both from the courier they already know.
+        $this->installFulfillment();
+        \Extensions\CourierFulfillment\CourierManager::register(ShippingFakeCourier::class);
+        $order = $this->order();
+        $order->forceFill([
+            'courier_provider'        => 'fakeship',
+            'courier_tracking_number' => 'FS-OLD',
+            'courier_status'          => 'for_pickup',
+            'tracking_number'         => 'FS-OLD',
+            'tracking_link'           => null,
+            'shipping_courier_name'   => null,
+        ])->save();
+
+        $result = \Extensions\CourierFulfillment\FulfillmentService::refreshTracking($order);
+        $this->assertTrue($result['success'], $result['error'] ?? '');
+
+        $order = $order->fresh();
+        $this->assertSame('Fake Ship', $order->shipping_courier_name);
+        $this->assertSame('https://fake.test/track/FS-OLD', $order->getRawOriginal('tracking_link'));
+    }
+
+    public function test_quadx_links_a_parcel_to_the_tracker_of_the_environment_it_was_booked_in(): void
+    {
+        // A sandbox booking must never link to the live tracker, and the
+        // setting flipping to production later does not move it: the parcel
+        // carries its own mode from booking time.
+        $this->installFulfillment();
+        Setting::create(['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'production']);
+        $quadx = new \Extensions\CourierFulfillment\Couriers\QuadX\QuadXFulfillment();
+
+        $this->assertInstanceOf(\Extensions\CourierFulfillment\Contracts\ProvidesPublicTrackingUrl::class, $quadx);
+        $this->assertSame('https://app.staging.gogoxpress.com/track/GPZZ-FZDV-0KHH', $quadx->publicTrackingUrl('GPZZ-FZDV-0KHH', ['mode' => 'staging']));
+        $this->assertSame('https://app.gogoxpress.com/track/GPZZ-FZDV-0KHH', $quadx->publicTrackingUrl('GPZZ-FZDV-0KHH', ['mode' => 'production']));
+        // Booked before the mode was recorded: the configured mode is the
+        // only witness left.
+        $this->assertSame('https://app.gogoxpress.com/track/GPZZ-FZDV-0KHH', $quadx->publicTrackingUrl('GPZZ-FZDV-0KHH', []));
+        $this->assertNull($quadx->publicTrackingUrl('  ', []));
+    }
+
+    public function test_a_quadx_booking_records_the_environment_it_used(): void
+    {
+        $this->installFulfillment();
+        Setting::create(['group' => 'courier', 'key' => 'quadx_enabled', 'value' => '1']);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_mode', 'value' => 'staging']);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_staging_api_key', 'value' => \Illuminate\Support\Facades\Crypt::encryptString('k')]);
+        Setting::create(['group' => 'courier', 'key' => 'quadx_staging_secret_key', 'value' => \Illuminate\Support\Facades\Crypt::encryptString('s')]);
+        \Illuminate\Support\Facades\Http::fake([
+            'api.staging.quadx.xyz/v2/orders' => \Illuminate\Support\Facades\Http::response(['tracking_number' => 'GPZZ-TEST-0001', 'status' => 'for_pickup', 'id' => 1], 200),
+        ]);
+        $this->placed('to_handover', 'Order Being Shipped', 3);
+        $order = $this->order($this->placed('to_pack', 'Processing', 2));
+
+        $result = (new \Extensions\CourierFulfillment\FulfillmentService())->book($order, ['courier' => 'quadx', 'service' => 'next_day', 'parcel' => 'box']);
+        $this->assertTrue($result['success'], $result['error'] ?? '');
+
+        $order = $order->fresh();
+        $meta = json_decode($order->courier_meta, true);
+        $this->assertSame('staging', $meta['mode'] ?? null, 'The booking did not record which environment it used.');
+        $this->assertSame('https://app.staging.gogoxpress.com/track/GPZZ-TEST-0001', $order->getRawOriginal('tracking_link'));
+        $this->assertSame('QuadX', $order->shipping_courier_name);
     }
 }

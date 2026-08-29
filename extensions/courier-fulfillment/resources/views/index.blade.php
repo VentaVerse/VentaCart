@@ -523,6 +523,9 @@
                                 'id' => $order->id,
                                 'date' => optional($order->created_at)->format('M d, Y g:ia'),
                                 'customerName' => trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-',
+                                // The account behind the order, when it still exists; a guest
+                                // order stays a name.
+                                'customerUrl' => isset($linkableCustomers[$order->customer_id]) ? route('admin.customers.edit', $order->customer_id) : null,
                                 'address' => trim(collect([$order->shipping_address_1, $order->shipping_city, $order->shipping_state])->filter()->implode(', ')) ?: '-',
                                 // The place a courier is being asked about,
                                 // in the customer's own words: barangay,
@@ -593,7 +596,12 @@
                                 <div class="v-tierrow">
                                     <span class="v-tierrow__side">
                                         <span class="v-tierlabel">Customer</span>
-                                        <span>{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</span>
+                                        @php($customerUrl = isset($linkableCustomers[$order->customer_id]) ? route('admin.customers.edit', $order->customer_id) : null)
+                                        @if ($customerUrl)
+                                            <a class="v-rowlink" href="{{ $customerUrl }}">{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</a>
+                                        @else
+                                            <span>{{ trim(($order->shipping_first_name ?? '') . ' ' . ($order->shipping_last_name ?? '')) ?: '-' }}</span>
+                                        @endif
                                         <span class="v-tierlabel">Order</span>
                                         <a class="v-rowlink v-mono" href="{{ route('admin.orders.show', $order) }}">#{{ $order->id }}</a>
                                         <span class="v-cell-quiet">({{ $order->products_count ?? 0 }} {{ ($order->products_count ?? 0) === 1 ? 'item' : 'items' }})</span>
@@ -861,7 +869,12 @@
                         {{-- Summary --}}
                         <div class="v-drawer__sec">
                             <div class="v-kvs">
-                                <div class="v-kv"><span>Customer</span><span x-text="active.customerName"></span></div>
+                                <div class="v-kv"><span>Customer</span>
+                                    <span>
+                                        <a x-show="active.customerUrl" :href="active.customerUrl" class="v-link" x-text="active.customerName"></a>
+                                        <span x-show="!active.customerUrl" x-text="active.customerName"></span>
+                                    </span>
+                                </div>
                                 <div class="v-kv"><span>Order status</span><span x-text="active.statusName"></span></div>
                                 <div class="v-kv"><span>Items</span><span x-text="active.itemsCount + ' item(s)'"></span></div>
                                 <div class="v-kv"><span>Ship to</span><span x-text="active.address"></span></div>
