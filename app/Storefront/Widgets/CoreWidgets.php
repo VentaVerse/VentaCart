@@ -129,6 +129,24 @@ class CoreWidgets
             ],
         ]);
 
+        // The theme's own header pieces, placeable where a theme declares a
+        // header region. Views come from the theme; core only names them.
+        foreach ([
+            'system.header' => ['title' => 'Header (as arranged)', 'shape' => 'block'],
+            'system.topbar' => ['title' => 'Top bar', 'shape' => 'strip'],
+            'system.logo' => ['title' => 'Logo', 'shape' => 'block'],
+            'system.search' => ['title' => 'Search', 'shape' => 'block'],
+            'system.cart' => ['title' => 'Cart', 'shape' => 'block'],
+            'system.nav' => ['title' => 'Main menu', 'shape' => 'strip'],
+        ] as $key => $spec) {
+            Widgets::register($key, $spec + [
+                'module' => 'theme',
+                'system' => true,
+                'view' => 'widgets.' . str_replace('.', '.', $key),
+                'regions' => ['header'],
+            ]);
+        }
+
         Widgets::register('content.cta', [
             'title' => 'Call to action',
             'shape' => 'banner',

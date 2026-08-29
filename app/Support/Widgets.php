@@ -41,6 +41,9 @@ class Widgets
             // widget that reads the page's own subject (the product being
             // viewed) declares where that subject exists.
             'pages' => null,
+            // A theme's own piece (its header, its product gallery), offered
+            // where the theme declares a system region for it.
+            'system' => false,
             // How this widget lays out, so the picker can DRAW it instead of
             // naming it. A merchant choosing between "Category tabs" and
             // "Brand strip" is choosing between two shapes, and the words are

@@ -106,14 +106,21 @@
                     </div>
                 @endif
 
-                <div class="v-lay__chrome" :class="{ 'is-off': !partOn('header') }">
-                    <span class="v-lay__logo"></span>
-                    <span class="v-lay__line"></span>
-                    <span>header</span>
-                    <template x-for="f in partsIn('header')" :key="f.name">
-                        <x-admin.part-switch />
-                    </template>
-                </div>
+                @if (isset($regions['header']))
+                    {{-- A theme whose header is rows: the merchant arranges it here. --}}
+                    <div class="v-lay__strip v-lay__strip--system">
+                        <x-admin.layout-slot region="header" :label="$regions['header']['label'] ?? 'Header'" />
+                    </div>
+                @else
+                    <div class="v-lay__chrome" :class="{ 'is-off': !partOn('header') }">
+                        <span class="v-lay__logo"></span>
+                        <span class="v-lay__line"></span>
+                        <span>header</span>
+                        <template x-for="f in partsIn('header')" :key="f.name">
+                            <x-admin.part-switch />
+                        </template>
+                    </div>
+                @endif
 
                 {{-- the row --}}
                 <div class="v-lay__middle">
@@ -630,6 +637,7 @@
                     columns: unit.columns && unit.columns.length ? unit.columns.slice() : [8],
                     enabled: unit.enabled !== false,
                     style: unit.style ? { ...unit.style } : null,
+                    shipped: !!unit.shipped,
                     cols: (unit.cols || [[]]).map((c) => c.slice()),
                 });
 

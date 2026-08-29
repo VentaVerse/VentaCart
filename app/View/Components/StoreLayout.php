@@ -81,6 +81,21 @@ class StoreLayout extends Component
             return $result;
         });
 
+        // System widgets (a theme's own header pieces as rows) render through
+        // the region component, outside this view's own data; they read the
+        // same bundle from the shared pool.
+        \Illuminate\Support\Facades\View::share([
+            'siteName' => $siteName,
+            'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
+            'currencies' => $theme->getActiveCurrencies(),
+            'defaultCurrency' => $theme->getDefaultCurrency(),
+            'activeCurrency' => $theme->getActiveCurrency(),
+            'cartCount' => $cartService->getCount(),
+            'cartSubtotal' => $cartService->getSubtotal(),
+            'customerLoggedIn' => auth('customer')->check(),
+            'customerUser' => auth('customer')->user(),
+        ]);
+
         return view('layouts.store', [
             'theme' => $theme,
             'pageTitle' => $pageTitle,

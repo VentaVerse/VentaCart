@@ -1015,6 +1015,9 @@
 }
 
 
+.v-lay__strip--system { border-color: var(--v-act-edge); }
+.v-lrow.is-shipped { border-style: dashed; }
+
 /* ---- rows inside a position ------------------------------------------- */
 
 .v-lrow { border: 1px solid var(--v-line); border-radius: 8px; background: var(--v-sheet); margin-bottom: 8px; }

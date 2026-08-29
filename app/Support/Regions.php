@@ -46,6 +46,34 @@ class Regions
     }
 
     /**
+     * What a region shows until the merchant arranges it: the theme's own
+     * pieces, declared in theme.json as widget keys (or {widget, config}).
+     * A region with defaults is a system region: the page's fixed parts
+     * became rows the merchant may reorder, keep, or replace.
+     *
+     * @return list<array{widget: string, title: ?string, config: array}>
+     */
+    public static function defaults(string $region, ?string $theme = null): array
+    {
+        $out = [];
+        foreach ((array) (static::all($theme)[$region]['defaults'] ?? []) as $entry) {
+            if (is_string($entry)) {
+                $out[] = ['widget' => $entry, 'title' => null, 'config' => []];
+            } elseif (is_array($entry) && ! empty($entry['widget'])) {
+                $out[] = ['widget' => (string) $entry['widget'], 'title' => $entry['title'] ?? null, 'config' => (array) ($entry['config'] ?? [])];
+            }
+        }
+
+        return $out;
+    }
+
+    /** The page type a region belongs to ('*' when it renders everywhere). */
+    public static function page(string $region, ?string $theme = null): string
+    {
+        return (string) (static::all($theme)[$region]['page'] ?? '*');
+    }
+
+    /**
      * Placements pointing at regions this theme does not have.
      *
      * Surfaced, never deleted. Switching theme must not silently destroy a

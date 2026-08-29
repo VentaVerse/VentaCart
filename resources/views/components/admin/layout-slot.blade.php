@@ -80,13 +80,14 @@
     </template>
 
     <template x-for="(unit, u) in rowsIn('{{ $region }}')" :key="unit.key">
-        <div class="v-lrow" :class="{ 'is-off': !unit.enabled, 'is-split': unit.columns.length > 1 }"
+        <div class="v-lrow" :class="{ 'is-off': !unit.enabled, 'is-split': unit.columns.length > 1, 'is-shipped': unit.shipped }"
              tabindex="0" role="group" :aria-label="'Row ' + (u + 1) + ' in {{ $label }}'"
              @keydown.ctrl.arrow-up.prevent="nudgeRow('{{ $region }}', u, -1)"
              @keydown.ctrl.arrow-down.prevent="nudgeRow('{{ $region }}', u, 1)">
 
             <div class="v-lrow__head">
                 <span class="v-lrow__grip" aria-hidden="true">⣿</span>
+                <span class="v-tag" x-show="unit.shipped" x-cloak>As shipped</span>
 
                 {{-- The shape of the row, drawn: a merchant picks between
                      shapes, and the words for shapes are the worst available

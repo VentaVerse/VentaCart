@@ -184,6 +184,32 @@ class LayoutController extends Controller
             $out[$region][] = $unit;
         }
 
+        // A system region with nothing arranged on the page it belongs to
+        // shows the theme's shipped pieces as one row of cards, ids null:
+        // saving the page makes them the merchant's own.
+        foreach (Regions::all() as $region => $spec) {
+            $defaults = Regions::defaults($region);
+            if ($defaults === [] || isset($out[$region]) || Regions::page($region) !== $pageType) {
+                continue;
+            }
+            $out[$region][] = [
+                'id' => null,
+                'columns' => [LayoutRow::GRID],
+                'enabled' => true,
+                'style' => RowStyle::normalize([]),
+                'shipped' => true,
+                'cols' => [array_map(fn ($d) => [
+                    'id' => null,
+                    'widget' => $d['widget'],
+                    'title' => $d['title'],
+                    'label' => Widgets::get($d['widget'])['title'] ?? $d['widget'],
+                    'enabled' => true,
+                    'available' => Widgets::has($d['widget']),
+                    'config' => $d['config'],
+                ], $defaults)],
+            ];
+        }
+
         // An OBJECT, always. An empty PHP array serialises to [], which is a JS
         // Array, and assigning a string key to it never triggers Alpine's
         // reactivity: the hidden payload input kept its load-time value.
@@ -209,6 +235,7 @@ class LayoutController extends Controller
                 'shape' => $spec['shape'] ?? null,
                 'regions' => $spec['regions'] ?: array_keys($regions),
                 'pages' => $spec['pages'] ?? null,
+                'system' => (bool) ($spec['system'] ?? false),
             ];
         }
 

@@ -11,6 +11,19 @@
     $vPageType = \App\Support\StorefrontPageType::current();
     $vUnits = \App\Models\LayoutRow::forRegion($vPageType, $name);
 
+    // A system region nobody has arranged yet shows the theme's own pieces,
+    // in the theme's order, as if they were placed: the page looks as it
+    // always did until the merchant moves something.
+    if ($vUnits->isEmpty() && ($vDefaults = \App\Support\Regions::defaults($name)) !== []) {
+        $vUnits = collect([[
+            'row' => null,
+            'columns' => [array_map(fn ($d) => new \App\Models\LayoutPlacement([
+                'theme' => \App\Models\LayoutPlacement::scopeTheme(), 'page_type' => $vPageType ?? '*', 'region' => $name,
+                'widget' => $d['widget'], 'title' => $d['title'], 'config' => $d['config'], 'is_enabled' => true,
+            ]), $vDefaults)],
+        ]]);
+    }
+
     // One placement, rendered by its widget's view. A placement whose module
     // is disabled or uninstalled renders NOTHING on the storefront, and is
     // reported in the layout editor instead. A shopper must never meet a
