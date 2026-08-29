@@ -264,7 +264,8 @@ class CoreWidgets
      */
     private static function alsoBought(array $config)
     {
-        $current = request()->route('product');
+        // The product the page is about, from the route's own parameter.
+        $current = request()->route()?->parameter('product');
         $productId = $current instanceof Product ? $current->id
             : (is_scalar($current) ? Product::where('slug', (string) $current)->value('id') : null);
 
