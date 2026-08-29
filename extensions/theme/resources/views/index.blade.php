@@ -572,6 +572,8 @@
                                             </label>
                                         @elseif (($schema['type'] ?? '') === 'color')
                                             <input type="color" name="theme_settings[{{ $key }}]" value="{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '#000000') }}" class="v-swatch v-swatch--lg">
+                                        @elseif (($schema['type'] ?? '') === 'textarea')
+                                            <textarea name="theme_settings[{{ $key }}]" rows="6" class="v-control v-mono">{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '') }}</textarea>
                                         @elseif (($schema['type'] ?? '') === 'number')
                                             <input type="number" name="theme_settings[{{ $key }}]" value="{{ $themeSettingValues[$key] ?? ($schema['default'] ?? '') }}" class="v-control v-mono v-w-rate">
                                         @else

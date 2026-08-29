@@ -175,6 +175,7 @@ class ThemeService
         Cache::forget('theme_nav_items');
         Cache::forget('nav_subcategories');
         \App\Support\NavTree::forget();
+        \App\Support\ThemeOptions::forget();
         Cache::forget('theme_footer_columns');
         Cache::forget('theme_currencies');
         Cache::forget('nav_subcategories');

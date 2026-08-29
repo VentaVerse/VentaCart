@@ -316,9 +316,14 @@ class CoreWidgets
         $limit = max(1, min(48, (int) ($config['limit'] ?? 12)));
         $filter = $config['filter'] ?? 'new';
 
-        $query = Product::where('is_active', true)->with(['images', 'specials'])
-            ->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'approved')], 'rating')
-            ->withCount(['reviews as reviews_count' => fn ($q) => $q->where('status', 'approved')]);
+        $query = Product::where('is_active', true)->with(['images', 'specials']);
+        // Ratings ride along only while the reviews extension is present: the
+        // relation names its model, and a store that switched reviews off
+        // must still list products.
+        if (class_exists(\Extensions\Reviews\Models\Review::class)) {
+            $query->withAvg(['reviews as reviews_avg_rating' => fn ($q) => $q->where('status', 'approved')], 'rating')
+                ->withCount(['reviews as reviews_count' => fn ($q) => $q->where('status', 'approved')]);
+        }
 
         switch ($filter) {
             case 'new':
