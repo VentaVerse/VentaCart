@@ -1634,7 +1634,7 @@
 
  .account-sidebar-nav a,
  .account-sidebar-nav .logout-link {
- @apply flex items-center gap-3 px-5 py-3 text-sm border-l-2 border-transparent transition-all duration-200; color: var(--color-text-muted);
+ @apply flex items-center gap-3 px-5 py-3 text-sm border-l-2 border-transparent transition-all duration-200; color: var(--color-text);
  }
 
  .account-sidebar-nav a:hover,
@@ -1811,6 +1811,76 @@
  .account-cancel-panel__acts {
  @apply flex flex-wrap gap-3 pt-1;
  }
+
+ /* KEEP IT sits on the panel's tint: the muted default falls under 3:1
+    there, so inside the panel it reads in the heading colour. */
+ .account-cancel-panel .account-btn-secondary {
+ color: var(--color-text-heading);
+ border-color: var(--color-danger-border);
+ background: var(--color-dropdown-bg);
+ }
+
+ .account-free {
+ color: color-mix(in srgb, var(--color-success) 70%, var(--color-text-heading));
+ }
+
+ .account-copy {
+ font-family: var(--font-heading);
+ @apply inline-flex items-center gap-1 ml-2 px-2 min-h-[2.75rem] lg:min-h-0 lg:py-0.5 rounded text-xs font-semibold border border-[var(--color-border)] transition-colors;
+ color: var(--color-text);
+ }
+
+ .account-copy:hover {
+ border-color: var(--color-text);
+ color: var(--color-text-heading);
+ }
+
+ .account-copy.is-copied {
+ color: color-mix(in srgb, var(--color-success) 70%, var(--color-text-heading));
+ border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border));
+ }
+
+ .account-copy:focus-visible {
+ outline: 2px solid var(--color-primary);
+ outline-offset: 2px;
+ }
+
+ /* Order lines: one grid on a desk (product, price, qty, total), and on a
+    phone the name on its own line with "price x qty  total" beneath it,
+    so a long product name never squeezes into an 84px column. */
+ .account-items {
+ @apply text-sm;
+ }
+
+ .account-items__head {
+ font-family: var(--font-heading);
+ @apply hidden md:grid text-xs font-semibold pb-3 border-b border-[var(--color-border)];
+ color: color-mix(in srgb, var(--color-text-muted) 55%, var(--color-text-heading));
+ }
+
+ .account-items__head,
+ .account-item {
+ @apply md:grid md:items-baseline md:gap-4;
+ grid-template-columns: minmax(0, 1fr) 6rem 3rem 7rem;
+ }
+
+ .account-items__head span:nth-child(2),
+ .account-items__head span:nth-child(4) { @apply text-right; }
+ .account-items__head span:nth-child(3) { @apply text-center; }
+
+ .account-item {
+ @apply flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 border-b border-[var(--color-search-bg)];
+ color: var(--color-text);
+ }
+
+ .account-item__name {
+ @apply w-full md:w-auto min-w-0;
+ }
+
+ .account-item__price { @apply md:text-right; color: var(--color-text-heading); }
+ .account-item__qty { @apply md:text-center; }
+ .account-item__x { @apply md:hidden mr-1; }
+ .account-item__total { @apply ml-auto md:ml-0 md:text-right; color: var(--color-text-heading); }
 
  tbody .account-cancel-panel {
  @apply my-3;

@@ -11,9 +11,6 @@
                 @if (session('success'))
                     <div class="account-flash-success reveal">{{ session('success') }}</div>
                 @endif
-                @if (session('error'))
-                    <div class="account-flash-error reveal">{{ session('error') }}</div>
-                @endif
 
                 {{-- Order Summary Header --}}
                 <div class="account-card reveal">
@@ -88,10 +85,18 @@
                                 {{ $order->shipping_courier_name }}:
                             @endif
                             @if ($order->tracking_link)
-                                <a href="{{ $order->tracking_link }}" target="_blank" rel="noopener noreferrer" class="account-link">{{ $order->tracking_number }}</a>
+                                <a href="{{ $order->tracking_link }}" target="_blank" rel="noopener noreferrer" class="account-link">{{ $order->tracking_number }}<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14 5h5m0 0v5m0-5L10 14M19 14v4a1 1 0 01-1 1H6a1 1 0 01-1-1V6a1 1 0 011-1h4"/></svg><span class="sr-only">(opens in a new tab)</span></a>
                             @else
                                 <span class="text-[var(--color-text-heading)]">{{ $order->tracking_number }}</span>
                             @endif
+                            <span x-data="{ copied: false }" class="inline-flex">
+                                <button type="button" class="account-copy" :class="copied && 'is-copied'" :aria-label="copied ? 'Copied' : 'Copy tracking number'"
+                                        @click="navigator.clipboard?.writeText(@js($order->tracking_number)).then(() => { copied = true; setTimeout(() => copied = false, 2000) })">
+                                    <svg x-show="!copied" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a1 1 0 011-1h10"/></svg>
+                                    <svg x-show="copied" x-cloak class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                    <span x-text="copied ? 'Copied' : 'Copy'">Copy</span>
+                                </button>
+                            </span>
                         </p>
                     </div>
                 @endif
@@ -99,33 +104,24 @@
                 {{-- Order Items --}}
                 <div class="account-card reveal">
                     <h2 class="account-section-title">Items</h2>
-                    <div class="overflow-x-auto">
-                        <table class="account-table w-full" style="table-layout: fixed;">
-                            <thead>
-                                <tr>
-                                    <th>Product</th>
-                                    <th style="width: 5rem; text-align: right;">Price</th>
-                                    <th style="width: 3rem; text-align: center;">Qty</th>
-                                    <th style="width: 6rem; text-align: right;">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($order->products as $item)
-                                    <tr>
-                                        <td>
-                                            <span class="text-[var(--color-text-heading)]">{{ $item->name }}</span>
-                                            @if ($item->variant_label)
-                                                <span class="block text-xs text-[var(--color-text)]">{{ $item->variant_label }}</span>
-                                            @endif
-                                        </td>
-                                        <td style="text-align: right;" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price, 2) }}</td>
-                                        <td style="text-align: center;">{{ $item->quantity }}</td>
-                                        <td style="text-align: right;" class="font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price * $item->quantity, 2) }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                    <ul class="account-items" aria-label="Items">
+                        <li class="account-items__head" aria-hidden="true">
+                            <span>Product</span><span>Price</span><span>Qty</span><span>Total</span>
+                        </li>
+                        @foreach ($order->products as $item)
+                            <li class="account-item">
+                                <div class="account-item__name">
+                                    <span class="text-[var(--color-text-heading)]">{{ $item->name }}</span>
+                                    @if ($item->variant_label)
+                                        <span class="block text-xs text-[var(--color-text)]">{{ $item->variant_label }}</span>
+                                    @endif
+                                </div>
+                                <span class="account-item__price font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price, 2) }}</span>
+                                <span class="account-item__qty"><span class="account-item__x" aria-hidden="true">&times;</span>{{ $item->quantity }}</span>
+                                <span class="account-item__total font-heading">{{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($item->price * $item->quantity, 2) }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
 
                     <div class="mt-4 pt-4 border-t border-[var(--color-border)] space-y-2 text-sm text-right">
                         <div class="flex justify-end gap-8">
@@ -139,7 +135,7 @@
                                     @if ($order->shipping_cost > 0)
                                         {{ $defaultCurrency->symbol ?? '₱' }}{{ number_format($order->shipping_cost, 2) }}
                                     @else
-                                        <span class="text-emerald-500">FREE</span>
+                                        <span class="account-free">FREE</span>
                                     @endif
                                 </span>
                             </div>
@@ -181,9 +177,12 @@
                      Cancellation by the customer). One confirm step with an
                      optional reason; after it the button is gone and the
                      status at the top says where the order went. --}}
-                <div class="account-order-foot" x-data="{ open: false }">
+                <div class="account-order-foot" x-data="{ open: {{ session('error') || $errors->any() ? 'true' : 'false' }} }" @keydown.escape.window="open = false">
+                    @if (session('error'))
+                        <div class="account-flash-error" role="alert">{{ session('error') }}</div>
+                    @endif
                     @if ($canCancel ?? false)
-                        <form method="POST" action="{{ route('account.orders.cancel', $order) }}" class="account-cancel-panel" x-show="open" x-cloak x-transition.opacity.duration.200ms>
+                        <form method="POST" action="{{ route('account.orders.cancel', $order) }}" id="cancel-panel" class="account-cancel-panel" role="region" aria-label="Cancel order #{{ $order->id }}" x-show="open" x-cloak x-transition.opacity.duration.200ms>
                             @csrf
                             <label class="account-label" for="cancel-reason">Reason (optional)</label>
                             <input id="cancel-reason" x-ref="reason" type="text" name="reason" maxlength="500" class="account-input w-full" value="{{ old('reason') }}">
@@ -196,7 +195,7 @@
                     <div class="account-order-foot__row">
                         <a href="{{ route('account.orders') }}" class="account-link">&larr; Back to Orders</a>
                         @if ($canCancel ?? false)
-                            <button type="button" class="account-btn-danger" x-show="!open" @click="open = true; $nextTick(() => $refs.reason.focus())">CANCEL THIS ORDER</button>
+                            <button type="button" class="account-btn-danger" x-show="!open" :aria-expanded="open" aria-controls="cancel-panel" @click="open = true; $nextTick(() => $refs.reason.focus())">CANCEL THIS ORDER</button>
                         @endif
                     </div>
                 </div>

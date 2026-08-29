@@ -32,7 +32,7 @@
                                      in the same Alpine scope as the row it belongs to. --}}
                                 @foreach ($orders as $order)
                                     @php $canCancel = $cancellable[$order->id] ?? false; @endphp
-                                    <tbody x-data="{ open: false }">
+                                    <tbody x-data="{ open: false }" @keydown.escape.window="open = false">
                                         <tr>
                                             <td class="text-[var(--color-text-heading)]">#{{ $order->id }}</td>
                                             <td>{{ $order->created_at->format('M d, Y') }}</td>
@@ -45,14 +45,14 @@
                                             <td class="account-row-actions">
                                                 <a href="{{ route('account.orders.show', $order) }}">View</a>
                                                 @if ($canCancel)
-                                                    <button type="button" class="account-row-actions__danger" x-show="!open" @click="open = true; $nextTick(() => $refs.reason.focus())">Cancel</button>
+                                                    <button type="button" class="account-row-actions__danger" x-show="!open" :aria-expanded="open" aria-controls="cancel-panel-{{ $order->id }}" @click="open = true; $nextTick(() => $refs.reason.focus())">Cancel</button>
                                                 @endif
                                             </td>
                                         </tr>
                                         @if ($canCancel)
                                             <tr x-show="open" x-cloak x-transition.opacity.duration.200ms>
                                                 <td colspan="6" class="account-cancel-cell">
-                                                    <form method="POST" action="{{ route('account.orders.cancel', $order) }}" class="account-cancel-panel">
+                                                    <form method="POST" action="{{ route('account.orders.cancel', $order) }}" id="cancel-panel-{{ $order->id }}" class="account-cancel-panel" role="region" aria-label="Cancel order #{{ $order->id }}">
                                                         @csrf
                                                         <label class="account-label" for="cancel-reason-{{ $order->id }}">Reason (optional)</label>
                                                         <input id="cancel-reason-{{ $order->id }}" x-ref="reason" type="text" name="reason" maxlength="500" class="account-input w-full">

@@ -1244,7 +1244,7 @@ class FulfillmentTest extends TestCase
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $order->id,
             'order_status_id' => $delivered->id,
-            'comment' => 'Courier status: delivered',
+            'comment' => 'QuadX: Delivered',
         ]);
 
         $this->assertSame(8, $product->fresh()->quantity);
@@ -1326,7 +1326,7 @@ class FulfillmentTest extends TestCase
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $order->id,
             'order_status_id' => $delivered->id,
-            'comment' => 'Courier status: 4001',
+            'comment' => 'SPX: Delivered',
         ]);
     }
 
@@ -1593,7 +1593,7 @@ class FulfillmentTest extends TestCase
         $this->assertSame('https://track.quadx.test/QX-ACTIVE-001', $active->getRawOriginal('tracking_link'));
         $this->assertDatabaseHas('order_histories', [
             'order_id' => $active->id,
-            'comment' => 'Courier status: in_transit',
+            'comment' => 'QuadX: In transit',
         ]);
 
         // Terminal order: completely untouched by this poll cycle.

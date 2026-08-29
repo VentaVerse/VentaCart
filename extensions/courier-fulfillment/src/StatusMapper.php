@@ -57,13 +57,19 @@ class StatusMapper
 
         $oldStatus = \App\Models\OrderStatus::find($order->order_status_id)?->name ?? 'Unknown';
 
+        // What the history row says, and what the customer reads when the
+        // mapping notifies them: the courier's name and the status in the
+        // courier's own words ("QuadX: Out for delivery"), never the raw
+        // code. The code itself lives on courier_status for the admin.
+        $comment = CourierStatusLabel::sentence($order, (string) $courierStatus);
+
         $order->update(['order_status_id' => $newStatus->id]);
         \App\Services\StockService::adjustForStatusChange($order, $newStatus);
 
         OrderHistory::create([
             'order_id'         => $order->id,
             'order_status_id'  => $newStatus->id,
-            'comment'          => 'Courier status: ' . $courierStatus,
+            'comment'          => $comment,
             'notify_customer'  => $target['notify'],
         ]);
 
@@ -71,7 +77,7 @@ class StatusMapper
         // the tracking number this order has carried since booking. It used
         // to send the bare status pair and nothing to click.
         if ($target['notify']) {
-            \App\Services\OrderNotificationService::statusChanged($order, $oldStatus, $newStatus->name, 'Courier status: ' . $courierStatus);
+            \App\Services\OrderNotificationService::statusChanged($order, $oldStatus, $newStatus->name, $comment);
         }
 
         return true;

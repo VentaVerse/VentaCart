@@ -86,7 +86,7 @@ class OrderStatusToneTest extends TestCase
             'shipping_city' => 'Cebu City', 'shipping_postcode' => '6000', 'subtotal' => 100, 'total' => 100,
         ]);
         $order->histories()->create(['order_status_id' => $unpaid->id, 'comment' => 'Order confirmed.', 'notify_customer' => true]);
-        $order->histories()->create(['order_status_id' => $moving->id, 'comment' => 'Courier status: for_pickup', 'notify_customer' => false]);
+        $order->histories()->create(['order_status_id' => $moving->id, 'comment' => 'Packed by Ana, for_pickup booked', 'notify_customer' => false]);
 
         $list = $this->actingAs($customer, 'customer')->get(route('account.orders'))->assertOk()->getContent();
         $this->assertStringContainsString('account-status-badge--info', $list);
