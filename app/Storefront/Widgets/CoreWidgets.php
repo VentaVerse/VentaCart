@@ -147,6 +147,24 @@ class CoreWidgets
             ]);
         }
 
+        // The product page's own pieces, for a theme that declares a
+        // product_main region. The gallery and buy box stay one piece: they
+        // share the scope that moves the image when a variant is chosen.
+        foreach ([
+            'system.product_buy' => ['title' => 'Gallery and buy box', 'shape' => 'block'],
+            'system.product_tabs' => ['title' => 'Description and reviews', 'shape' => 'block'],
+            'system.product_related' => ['title' => 'Related products', 'shape' => 'strip'],
+            'system.product_brand' => ['title' => 'More from the brand', 'shape' => 'strip'],
+        ] as $key => $spec) {
+            Widgets::register($key, $spec + [
+                'module' => 'theme',
+                'system' => true,
+                'view' => 'widgets.' . $key,
+                'regions' => ['product_main'],
+                'pages' => ['product'],
+            ]);
+        }
+
         Widgets::register('content.cta', [
             'title' => 'Call to action',
             'shape' => 'banner',

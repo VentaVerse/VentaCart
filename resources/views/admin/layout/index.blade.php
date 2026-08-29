@@ -159,15 +159,29 @@
                              page" by standing on the page, and switching one off
                              dims the part rather than changing nothing anyone
                              can see. --}}
-                        <div class="v-lay__pagebody">
-                            <template x-for="f in partsIn('body')" :key="f.name">
-                                <div class="v-lay__part" :class="{ 'is-off': !f.value }">
-                                    <span class="v-lay__partbar" aria-hidden="true"></span>
-                                    <x-admin.part-switch />
-                                </div>
-                            </template>
-                            <b>The page itself</b>
-                        </div>
+                        @php
+                            // A theme may declare this page's own pieces as a
+                            // region (Plaza's product page): it is arranged
+                            // here, in place of the fixed page body.
+                            $vOwnRegion = collect($regions)->filter(function ($spec, $key) use ($pageType) {
+                                return ! empty($spec['defaults']) && ($spec['page'] ?? '*') === $pageType && $pageType !== '*';
+                            })->keys()->first();
+                        @endphp
+                        @if ($vOwnRegion)
+                            <div class="v-lay__pagebody v-lay__pagebody--region">
+                                <x-admin.layout-slot :region="$vOwnRegion" :label="$regions[$vOwnRegion]['label'] ?? 'The page itself'" />
+                            </div>
+                        @else
+                            <div class="v-lay__pagebody">
+                                <template x-for="f in partsIn('body')" :key="f.name">
+                                    <div class="v-lay__part" :class="{ 'is-off': !f.value }">
+                                        <span class="v-lay__partbar" aria-hidden="true"></span>
+                                        <x-admin.part-switch />
+                                    </div>
+                                </template>
+                                <b>The page itself</b>
+                            </div>
+                        @endif
 
                         @if (isset($regions['content_bottom']))
                             <x-admin.layout-slot region="content_bottom" label="Below the content" />

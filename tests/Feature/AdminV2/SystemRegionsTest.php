@@ -83,4 +83,58 @@ class SystemRegionsTest extends TestCase
         $this->assertTrue(\App\Support\Widgets::get('system.header')['system']);
         $this->assertFalse(\App\Support\Widgets::allowedIn('system.logo', 'content_top'));
     }
+
+    private function product(): \App\Models\Product
+    {
+        app(\App\Services\ExtensionManager::class)->install('reviews');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+
+        return \App\Models\Product::create(['store_id' => 1, 'name' => 'Region Fuzz', 'slug' => 'region-fuzz', 'sku' => 'RF1', 'price' => 1200, 'quantity' => 3, 'is_active' => true]);
+    }
+
+    public function test_the_product_page_renders_its_shipped_pieces_until_arranged(): void
+    {
+        $this->usePlaza();
+        $product = $this->product();
+        $html = $this->get(route('product.show', $product->slug))->assertOk()->getContent();
+        $this->assertStringContainsString('Region Fuzz', $html);
+        $this->assertStringContainsString('addToCart(', $html, 'The buy box piece is there.');
+        $this->assertStringContainsString('product-description', $html, 'The description piece is there.');
+    }
+
+    public function test_an_arranged_product_page_shows_only_what_was_placed(): void
+    {
+        $this->usePlaza();
+        $product = $this->product();
+        LayoutPlacement::create(['theme' => 'plaza', 'page_type' => 'product', 'region' => 'product_main', 'widget' => 'system.product_buy', 'sort_order' => 0, 'is_enabled' => true]);
+        LayoutPlacement::create(['theme' => 'plaza', 'page_type' => 'product', 'region' => 'product_main', 'widget' => 'content.text', 'config' => ['content' => 'Ships from Manila'], 'sort_order' => 1, 'is_enabled' => true]);
+
+        $html = $this->get(route('product.show', $product->slug))->assertOk()->getContent();
+        $this->assertStringContainsString('addToCart(', $html);
+        $this->assertStringContainsString('Ships from Manila', $html);
+        $this->assertStringNotContainsString('product-description', $html, 'The tabs piece was not placed.');
+    }
+
+    public function test_the_product_editor_arranges_the_page_body_as_a_region(): void
+    {
+        app(\App\Services\ExtensionManager::class)->install('theme');
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
+        $this->usePlaza();
+        $this->actingAs(User::factory()->create());
+
+        $html = $this->get(route('admin.layout', ['page' => 'product']))->assertOk()->getContent();
+        $this->assertStringContainsString('Gallery and buy box', $html);
+        $this->assertStringContainsString('v-lay__pagebody--region', $html);
+
+        // On a page that is not the product page, the product region is not drawn.
+        $home = $this->get(route('admin.layout', ['page' => 'home']))->assertOk()->getContent();
+        $this->assertStringNotContainsString('v-lay__pagebody--region', $home);
+    }
+
+    public function test_venta_keeps_its_fixed_product_page(): void
+    {
+        $product = $this->product();
+        $this->get(route('product.show', $product->slug))->assertOk()->assertSee('addToCart(', false);
+        $this->assertSame([], Regions::defaults('product_main', 'venta'));
+    }
 }

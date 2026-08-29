@@ -213,14 +213,20 @@ class ProductController extends Controller
 
         view()->share('canonical', route('product.show', $product->slug));
 
-        return view('product.show', compact(
+        $page = compact(
             'product', 'activeSpecial', 'overrideSpecial', 'settings',
             'relatedProducts', 'sameBrandProducts',
             'breadcrumbs', 'belowModules',
             'variantMatrix', 'variantTypes', 'effectivePrice', 'priceTiers',
             'valueStockMap', 'approvedReviews', 'averageRating', 'reviewCount',
             'hasFreeShipping', 'ogTitle', 'ogDescription'
-        ));
+        );
+
+        // The page's pieces may be widgets in a theme's product region; they
+        // read the same bundle the page view gets.
+        \App\Support\PageContext::set($page);
+
+        return view('product.show', $page);
     }
 
     /**

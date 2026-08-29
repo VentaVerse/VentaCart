@@ -1016,6 +1016,7 @@
 
 
 .v-lay__strip--system { border-color: var(--v-act-edge); }
+.v-lay__pagebody--region { display: block; padding: 0; background: transparent; border: 0; }
 .v-lrow.is-shipped { border-style: dashed; }
 
 /* ---- rows inside a position ------------------------------------------- */
