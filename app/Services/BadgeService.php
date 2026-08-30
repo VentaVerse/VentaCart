@@ -65,7 +65,8 @@ class BadgeService
 
     private function isNew(Product $product): bool
     {
-        $newCount = (int) $this->theme->get('badges.new_count', 15);
+        // A theme may set the count in its own settings; the store's badge setting is the fallback.
+        $newCount = (int) (\App\Support\ThemeOptions::get('new_label_count') ?: $this->theme->get('badges.new_count', 15));
         $newIds = $this->getNewProductIds($newCount);
         return in_array($product->id, $newIds);
     }

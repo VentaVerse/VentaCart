@@ -20,7 +20,8 @@ class CategoryController extends Controller
         }
 
         $settings = $theme->getGroup('category_page');
-        $perPage = $settings['products_per_page'] ?? 12;
+        // The page's own count wins; the theme's listing setting is the store-wide default.
+        $perPage = max(4, min(96, (int) ($settings['products_per_page'] ?? \App\Support\ThemeOptions::get('listing_per_page', 12))));
 
         // Collect this category + all descendant category IDs
         $categoryIds = $this->getCategoryAndDescendantIds($category);
