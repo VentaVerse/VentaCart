@@ -23,12 +23,15 @@ final class RowStyle
     public const POSITION = ['center', 'top', 'bottom', 'left', 'right'];
     public const REPEAT = ['no-repeat', 'repeat'];
     public const ATTACHMENT = ['scroll', 'fixed'];
+    /** Where a block's own title sits; '' leaves it to the theme. */
+    public const TITLE_ALIGN = ['', 'left', 'center', 'right'];
 
     public const DEFAULTS = [
         'bg' => 'none', 'bg_color' => '', 'bg_color2' => '', 'bg_angle' => 180,
         'bg_image' => '', 'bg_size' => 'cover', 'bg_position' => 'center', 'bg_repeat' => 'no-repeat', 'bg_attachment' => 'scroll',
         'text' => '', 'pad' => 'none', 'width' => 'contained',
         'border' => 'none', 'border_width' => 1, 'border_color' => '', 'radius' => 'none', 'shadow' => 'none',
+        'title_align' => '',
     ];
 
     /** @return array<string, mixed> every key present, every value allowed */
@@ -40,6 +43,7 @@ final class RowStyle
         $pick = fn (string $key, array $allowed) => in_array($in[$key] ?? null, $allowed, true) ? $in[$key] : self::DEFAULTS[$key];
 
         $out['bg'] = $pick('bg', self::BG);
+        $out['title_align'] = $pick('title_align', self::TITLE_ALIGN);
         $out['bg_color'] = self::color($in['bg_color'] ?? '');
         $out['bg_color2'] = self::color($in['bg_color2'] ?? '');
         $out['bg_angle'] = max(0, min(360, (int) ($in['bg_angle'] ?? 180)));
@@ -69,28 +73,31 @@ final class RowStyle
         $n = self::normalize($style);
 
         return $n['bg'] !== 'none' || $n['text'] !== '' || $n['pad'] !== 'none' || $n['width'] !== 'contained'
-            || $n['border'] !== 'none' || $n['radius'] !== 'none' || $n['shadow'] !== 'none';
+            || $n['border'] !== 'none' || $n['radius'] !== 'none' || $n['shadow'] !== 'none' || $n['title_align'] !== '';
     }
 
     /** Classes the stylesheet keys its rules on. @return list<string> */
-    public static function classes(array $style): array
+    public static function classes(array $style, string $prefix = 'layout-row'): array
     {
         $n = self::normalize($style);
-        $out = ['layout-row--styled', 'layout-row--pad-' . $n['pad']];
+        $out = [$prefix . '--styled', $prefix . '--pad-' . $n['pad']];
         if ($n['width'] === 'full') {
-            $out[] = 'layout-row--full';
+            $out[] = $prefix . '--full';
         }
         if ($n['bg'] !== 'none') {
-            $out[] = 'layout-row--bg';
+            $out[] = $prefix . '--bg';
         }
         if ($n['border'] !== 'none') {
-            $out[] = 'layout-row--border';
+            $out[] = $prefix . '--border';
         }
         if ($n['radius'] !== 'none') {
-            $out[] = 'layout-row--radius-' . $n['radius'];
+            $out[] = $prefix . '--radius-' . $n['radius'];
         }
         if ($n['shadow'] !== 'none') {
-            $out[] = 'layout-row--shadow-' . $n['shadow'];
+            $out[] = $prefix . '--shadow-' . $n['shadow'];
+        }
+        if ($n['title_align'] !== '') {
+            $out[] = $prefix . '--title-' . $n['title_align'];
         }
 
         return $out;

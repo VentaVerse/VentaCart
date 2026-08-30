@@ -87,6 +87,7 @@ class StoreLayout extends Component
         \Illuminate\Support\Facades\View::share([
             'siteName' => $siteName,
             'navTree' => \App\Support\NavTree::for(\App\Models\NavMenu::MAIN),
+            'footerColumns' => $theme->getFooterColumns(),
             'currencies' => $theme->getActiveCurrencies(),
             'defaultCurrency' => $theme->getDefaultCurrency(),
             'activeCurrency' => $theme->getActiveCurrency(),

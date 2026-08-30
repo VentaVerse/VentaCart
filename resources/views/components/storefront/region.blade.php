@@ -40,12 +40,17 @@
             return \App\Support\LayoutHooks::wrapPlacement('', $placement, $name);
         }
         $vData = \App\Support\Widgets::resolve($placement->widget, $placement->config ?? []);
+        $vHtml = view($vView, array_merge(['placement' => $placement], $vData))->render();
 
-        return \App\Support\LayoutHooks::wrapPlacement(
-            view($vView, array_merge(['placement' => $placement], $vData))->render(),
-            $placement,
-            $name
-        );
+        // A block styled on its own (box padding, background, border,
+        // corners, shadow, tone, title alignment) is wrapped in core markup
+        // on the same vocabulary as a styled row.
+        if (\App\Support\RowStyle::isStyled($placement->style)) {
+            $vHtml = '<div class="layout-block ' . e(implode(' ', \App\Support\RowStyle::classes($placement->style, 'layout-block'))) . '"'
+                . ' style="' . e(\App\Support\RowStyle::vars($placement->style)) . '">' . $vHtml . '</div>';
+        }
+
+        return \App\Support\LayoutHooks::wrapPlacement($vHtml, $placement, $name);
     };
 
     // A row with one column is drawn as its placements, nothing around them,

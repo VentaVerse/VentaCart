@@ -11,11 +11,12 @@ class LayoutPlacement extends Model
     public const EVERYWHERE = '*';
 
     protected $fillable = [
-        'theme', 'page_type', 'region', 'row_id', 'column_index', 'widget', 'title', 'config', 'sort_order', 'is_enabled',
+        'theme', 'page_type', 'region', 'row_id', 'column_index', 'widget', 'title', 'config', 'style', 'sort_order', 'is_enabled',
     ];
 
     protected $casts = [
         'config' => 'array',
+        'style' => 'array',
         'is_enabled' => 'boolean',
         'sort_order' => 'integer',
         'column_index' => 'integer',

@@ -118,6 +118,7 @@ class LayoutSaver
                             'widget' => $widget,
                             'title' => $row['title'] ?? null,
                             'config' => $row['config'] ?? [],
+                            'style' => isset($row['style']) && is_array($row['style']) ? RowStyle::normalize($row['style']) : null,
                             'sort_order' => $order++,
                             'is_enabled' => (bool) ($row['enabled'] ?? true),
                         ]

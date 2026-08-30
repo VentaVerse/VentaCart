@@ -146,6 +146,10 @@ class CoreWidgets
                 'regions' => ['header'],
             ]);
         }
+        Widgets::register('system.footer', [
+            'title' => 'Footer (as arranged)', 'shape' => 'block', 'module' => 'theme', 'system' => true,
+            'view' => 'widgets.system.footer', 'regions' => ['footer'],
+        ]);
 
         // The product page's own pieces, for a theme that declares a
         // product_main region. The gallery and buy box stay one piece: they

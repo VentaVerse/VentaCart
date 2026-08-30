@@ -40,6 +40,7 @@ final class LayoutInventory
                 // the storefront. It must read as unavailable, not broken.
                 'available' => $widget !== null,
                 'config' => $row->config ?? [],
+                'style' => $row->style ? \App\Support\RowStyle::normalize($row->style) : null,
             ];
         };
 
