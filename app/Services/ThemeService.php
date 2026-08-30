@@ -305,6 +305,80 @@ class ThemeService
         return $themes;
     }
 
+    /** Keep a theme's look (colours, fonts, vars, preset) under its own name. */
+    private function stashLook(string $theme): void
+    {
+        foreach (['colors', 'fonts', 'vars'] as $group) {
+            Setting::where('group', "{$group}__theme_{$theme}")->delete();
+            foreach (Setting::where('group', $group)->get() as $row) {
+                Setting::create(['group' => "{$group}__theme_{$theme}", 'key' => $row->key, 'value' => $row->value]);
+            }
+        }
+        Setting::updateOrCreate(
+            ['group' => "identity__theme_{$theme}", 'key' => 'active_preset'],
+            ['value' => (string) Setting::where('group', 'identity')->where('key', 'active_preset')->value('value')]
+        );
+    }
+
+    /**
+     * Give a theme its own look back, or its default one: the preset named
+     * after the theme when it ships one, else theme.json's colours and fonts.
+     */
+    private function restoreLook(string $theme): void
+    {
+        $kept = Setting::where('group', "colors__theme_{$theme}")->exists();
+        if ($kept) {
+            foreach (['colors', 'fonts', 'vars'] as $group) {
+                Setting::where('group', $group)->delete();
+                foreach (Setting::where('group', "{$group}__theme_{$theme}")->get() as $row) {
+                    Setting::create(['group' => $group, 'key' => $row->key, 'value' => $row->value]);
+                }
+            }
+            $preset = (string) Setting::where('group', "identity__theme_{$theme}")->where('key', 'active_preset')->value('value');
+            Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_preset'], ['value' => $preset]);
+            $this->clearCache();
+
+            return;
+        }
+
+        $meta = json_decode((string) @file_get_contents($this->getThemePath($theme) . '/theme.json'), true) ?: [];
+        foreach (['colors', 'fonts', 'vars'] as $group) {
+            Setting::where('group', $group)->delete();
+            foreach ((array) ($meta[$group] ?? []) as $key => $value) {
+                if (is_scalar($value)) {
+                    Setting::create(['group' => $group, 'key' => $key, 'value' => (string) $value]);
+                }
+            }
+        }
+        Setting::updateOrCreate(['group' => 'identity', 'key' => 'active_preset'], ['value' => $theme]);
+        $this->clearCache();
+
+        if ($this->isShippedPreset($theme, $theme)) {
+            $this->applyPreset($theme);
+        }
+    }
+
+    /**
+     * A theme's shipped arrangement (layouts/home.json), installed on a theme
+     * that has no rows yet. True when something was installed.
+     */
+    private function installShippedLayout(string $theme): bool
+    {
+        if (\App\Models\LayoutPlacement::where('theme', $theme)->exists() || \App\Models\LayoutRow::where('theme', $theme)->exists()) {
+            return true;
+        }
+        $file = $this->getThemePath($theme) . '/layouts/home.json';
+        $data = is_file($file) ? json_decode((string) file_get_contents($file), true) : null;
+        if (! is_array($data) || empty($data['rows'])) {
+            return false;
+        }
+        $region = (string) ($data['region'] ?? 'content_top');
+        $rows = array_map(fn ($row) => $row + ['id' => null, 'region' => $region], \App\Models\LayoutTemplate::cleanRows($data['rows']));
+        app(LayoutSaver::class)->save('home', ['columns' => ['left' => 0, 'right' => 0], 'rows' => $rows]);
+
+        return true;
+    }
+
     /** Point the storefront at another installed theme. */
     public function activateTheme(string $slug): void
     {
@@ -314,19 +388,30 @@ class ThemeService
 
         $from = $this->getActiveTheme();
 
+        if ($from !== $slug) {
+            // The look (colours, fonts, vars, the preset in use) belongs to
+            // the theme it was made for. The outgoing theme's is kept under
+            // its own name; the incoming theme gets its own back, or its
+            // default look the first time.
+            $this->stashLook($from);
+        }
+
         Setting::updateOrCreate(
             ['group' => 'identity', 'key' => 'active_theme'],
             ['value' => $slug]
         );
+        $this->settings['identity']['active_theme'] = $slug;
 
-        // A theme opened for the first time has no layout of its own, and a
-        // storefront with empty positions is not what anyone meant by
-        // "use this theme". The merchant's arrangement travels with them:
-        // copied, so the theme they left keeps its own, and only when the
-        // new theme has nothing, so a theme they come back to keeps what
-        // they built there.
         if ($from !== $slug) {
-            $this->carryLayout($from, $slug);
+            $this->restoreLook($slug);
+
+            // A theme opened for the first time has no layout of its own. It
+            // shows what it ships (layouts/home.json) when it ships one, so
+            // nothing of the previous theme is assumed; a theme without a
+            // shipped arrangement takes the merchant's rows along instead.
+            if (! $this->installShippedLayout($slug)) {
+                $this->carryLayout($from, $slug);
+            }
         }
 
         $this->clearCache();
