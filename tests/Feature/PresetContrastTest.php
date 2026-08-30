@@ -17,8 +17,8 @@ class PresetContrastTest extends TestCase
 
     public function test_every_preset_and_the_default_keep_muted_text_at_aa(): void
     {
-        $files = glob(resource_path('themes/venta/presets/*.json'));
-        $files[] = resource_path('themes/venta/theme.json');
+        // Every theme's shipped looks, and every theme's own defaults.
+        $files = array_merge(glob(resource_path('themes/*/presets/*.json')), glob(resource_path('themes/*/theme.json')));
 
         foreach ($files as $file) {
             $colors = json_decode((string) file_get_contents($file), true)['colors'] ?? [];
@@ -37,7 +37,7 @@ class PresetContrastTest extends TestCase
 
     public function test_body_text_reads_on_the_page_where_the_category_dropdown_paints_it(): void
     {
-        foreach (glob(resource_path('themes/venta/presets/*.json')) as $file) {
+        foreach (glob(resource_path('themes/*/presets/*.json')) as $file) {
             $colors = json_decode((string) file_get_contents($file), true)['colors'] ?? [];
             $ratio = self::contrast($colors['text'], $colors['bg']);
             $this->assertGreaterThanOrEqual(4.5, $ratio, basename($file) . ': text on bg is ' . round($ratio, 2) . ':1');
