@@ -52,6 +52,7 @@ class LayoutTemplate extends Model
                 'columns' => $widths,
                 'enabled' => (bool) ($row['enabled'] ?? true),
                 'style' => RowStyle::normalize($row['style'] ?? []),
+                'responsive' => LayoutRow::normalizeResponsive($row['responsive'] ?? [], count($widths)),
                 'placements' => $placements,
             ];
         }

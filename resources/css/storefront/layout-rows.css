@@ -98,3 +98,20 @@
 .layout-block--title-right .section-title { text-align: right; }
 .layout-block--title-left .section-title::after { margin-left: 0; margin-right: auto; }
 .layout-block--title-right .section-title::after { margin-left: auto; margin-right: 0; }
+
+/* ---- colours and type inside a styled row or block ------------------ */
+.layout-row--headings h1, .layout-row--headings h2, .layout-row--headings h3, .layout-row--headings .section-title,
+.layout-block--headings h1, .layout-block--headings h2, .layout-block--headings h3, .layout-block--headings .section-title { color: var(--row-heading); }
+.layout-row--links a:not(.btn):not(.button), .layout-block--links a:not(.btn):not(.button) { color: var(--row-link); }
+.layout-row--size-sm, .layout-block--size-sm { font-size: 0.9em; }
+.layout-row--size-lg, .layout-block--size-lg { font-size: 1.12em; }
+
+/* ---- columns on smaller screens -------------------------------------- */
+/* A row may give each column a tablet width and a phone order; the values
+   travel as custom properties on the column. */
+@media (min-width: 768px) and (max-width: 1023px) {
+    .layout-col[style*="--col-tablet"] { grid-column: span var(--col-tablet); }
+}
+@media (max-width: 767px) {
+    .layout-col { order: var(--col-phone-order, 0); }
+}

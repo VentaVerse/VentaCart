@@ -65,6 +65,8 @@
 
         if ($vRow && ($vRow->isSplit() || $vStyled)) {
             $vWidths = \App\Models\LayoutRow::normalizeColumns($vRow->columns);
+            $vResp = \App\Models\LayoutRow::isResponsive($vRow->responsive, count($vWidths))
+                ? \App\Models\LayoutRow::normalizeResponsive($vRow->responsive, count($vWidths)) : null;
             // The style attribute carries the merchant's chosen values as
             // custom properties (data, not authored CSS); the rules live in
             // resources/css/storefront/layout-rows.css.
@@ -73,7 +75,16 @@
                 . ' data-layout-row="' . e((string) $vRow->id) . '"'
                 . ($vStyled ? ' style="' . e(\App\Support\RowStyle::vars($vRow->style)) . '"' : '') . '>';
             foreach ($vWidths as $vCol => $vWidth) {
-                $vHtml .= '<div class="layout-col layout-col--' . (int) $vWidth . '">';
+                $vColVars = '';
+                if ($vResp) {
+                    if ($vResp['tablet'][$vCol] !== null) {
+                        $vColVars .= '--col-tablet: ' . (int) $vResp['tablet'][$vCol] . '; ';
+                    }
+                    if ($vResp['phone_order'][$vCol] !== $vCol + 1) {
+                        $vColVars .= '--col-phone-order: ' . (int) $vResp['phone_order'][$vCol] . '; ';
+                    }
+                }
+                $vHtml .= '<div class="layout-col layout-col--' . (int) $vWidth . '"' . ($vColVars !== '' ? ' style="' . e(trim($vColVars)) . '"' : '') . '>';
                 foreach ($vUnit['columns'][$vCol] ?? [] as $placement) {
                     $vHtml .= $vRender($placement);
                 }

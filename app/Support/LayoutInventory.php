@@ -60,6 +60,7 @@ final class LayoutInventory
                     'columns' => $widths,
                     'enabled' => $row ? (bool) $row->is_enabled : true,
                     'style' => \App\Support\RowStyle::normalize($row?->style),
+                    'responsive' => LayoutRow::normalizeResponsive($row?->responsive, count($widths)),
                     'cols' => array_fill(0, count($widths), []),
                 ];
             }
@@ -79,6 +80,7 @@ final class LayoutInventory
                     'columns' => $widths,
                     'enabled' => (bool) $row->is_enabled,
                     'style' => \App\Support\RowStyle::normalize($row->style),
+                    'responsive' => LayoutRow::normalizeResponsive($row->responsive, count($widths)),
                     'cols' => array_fill(0, count($widths), []),
                 ];
             }

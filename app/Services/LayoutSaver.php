@@ -95,6 +95,7 @@ class LayoutSaver
                         'region' => $region,
                         'columns' => $widths,
                         'style' => RowStyle::normalize($unit['style'] ?? []),
+                        'responsive' => LayoutRow::normalizeResponsive($unit['responsive'] ?? [], count($widths)),
                         'sort_order' => $r,
                         'is_enabled' => (bool) ($unit['enabled'] ?? true),
                     ]

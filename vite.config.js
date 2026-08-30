@@ -15,7 +15,7 @@ function getThemeEntries() {
             for (const rel of [
                 'css/theme.css', 'js/theme.js',
                 // A theme's own editor, when it ships one.
-                'editor/css/editor.css', 'editor/js/editor.js', 'editor/css/frame.css', 'editor/js/frame.js',
+                'editor/css/frame.css', 'editor/js/frame.js',
                 'editor/css/panel.css', 'editor/js/panel.js',
             ]) {
                 const entry = `resources/themes/${theme}/${rel}`;

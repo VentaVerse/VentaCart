@@ -25,6 +25,8 @@ final class RowStyle
     public const ATTACHMENT = ['scroll', 'fixed'];
     /** Where a block's own title sits; '' leaves it to the theme. */
     public const TITLE_ALIGN = ['', 'left', 'center', 'right'];
+    /** Text size inside a row or block; '' is the theme's. */
+    public const TEXT_SIZE = ['', 'sm', 'lg'];
 
     public const DEFAULTS = [
         'bg' => 'none', 'bg_color' => '', 'bg_color2' => '', 'bg_angle' => 180,
@@ -32,6 +34,8 @@ final class RowStyle
         'text' => '', 'pad' => 'none', 'width' => 'contained',
         'border' => 'none', 'border_width' => 1, 'border_color' => '', 'radius' => 'none', 'shadow' => 'none',
         'title_align' => '',
+        // Colours inside the row: text is above; headings and links are their own.
+        'heading_color' => '', 'link_color' => '', 'text_size' => '',
     ];
 
     /** @return array<string, mixed> every key present, every value allowed */
@@ -44,6 +48,9 @@ final class RowStyle
 
         $out['bg'] = $pick('bg', self::BG);
         $out['title_align'] = $pick('title_align', self::TITLE_ALIGN);
+        $out['heading_color'] = self::color($in['heading_color'] ?? '');
+        $out['link_color'] = self::color($in['link_color'] ?? '');
+        $out['text_size'] = $pick('text_size', self::TEXT_SIZE);
         $out['bg_color'] = self::color($in['bg_color'] ?? '');
         $out['bg_color2'] = self::color($in['bg_color2'] ?? '');
         $out['bg_angle'] = max(0, min(360, (int) ($in['bg_angle'] ?? 180)));
@@ -73,7 +80,8 @@ final class RowStyle
         $n = self::normalize($style);
 
         return $n['bg'] !== 'none' || $n['text'] !== '' || $n['pad'] !== 'none' || $n['width'] !== 'contained'
-            || $n['border'] !== 'none' || $n['radius'] !== 'none' || $n['shadow'] !== 'none' || $n['title_align'] !== '';
+            || $n['border'] !== 'none' || $n['radius'] !== 'none' || $n['shadow'] !== 'none' || $n['title_align'] !== ''
+            || $n['heading_color'] !== '' || $n['link_color'] !== '' || $n['text_size'] !== '';
     }
 
     /** Classes the stylesheet keys its rules on. @return list<string> */
@@ -98,6 +106,15 @@ final class RowStyle
         }
         if ($n['title_align'] !== '') {
             $out[] = $prefix . '--title-' . $n['title_align'];
+        }
+        if ($n['heading_color'] !== '') {
+            $out[] = $prefix . '--headings';
+        }
+        if ($n['link_color'] !== '') {
+            $out[] = $prefix . '--links';
+        }
+        if ($n['text_size'] !== '') {
+            $out[] = $prefix . '--size-' . $n['text_size'];
         }
 
         return $out;
@@ -130,6 +147,12 @@ final class RowStyle
         }
         if ($n['text'] !== '') {
             $vars['--row-text'] = self::css($n['text']);
+        }
+        if ($n['heading_color'] !== '') {
+            $vars['--row-heading'] = self::css($n['heading_color']);
+        }
+        if ($n['link_color'] !== '') {
+            $vars['--row-link'] = self::css($n['link_color']);
         }
         if ($n['border'] !== 'none') {
             $vars['--row-border'] = $n['border_width'] . 'px ' . $n['border'] . ' ' . (self::css($n['border_color']) ?: 'currentColor');

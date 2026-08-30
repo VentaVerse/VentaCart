@@ -41,11 +41,56 @@ class LayoutRow extends Model
         [2, 2, 2, 2],
     ];
 
-    protected $fillable = ['theme', 'page_type', 'region', 'sort_order', 'columns', 'style', 'is_enabled'];
+    protected $fillable = ['theme', 'page_type', 'region', 'sort_order', 'columns', 'style', 'responsive', 'is_enabled'];
+
+    /**
+     * A row's columns on smaller screens, every value allowed: tablet widths
+     * in eighths (null keeps the desktop width) and the phone order per
+     * column (1-based). Both lists are as long as the row has columns.
+     *
+     * @return array{tablet: list<int|null>, phone_order: list<int>}
+     */
+    public static function normalizeResponsive(mixed $in, int $count): array
+    {
+        $in = is_array($in) ? $in : [];
+        $count = max(1, $count);
+        $tablet = [];
+        $order = [];
+        for ($i = 0; $i < $count; $i++) {
+            $w = $in['tablet'][$i] ?? null;
+            $tablet[] = is_numeric($w) && (int) $w >= 1 && (int) $w <= self::GRID ? (int) $w : null;
+            $o = $in['phone_order'][$i] ?? ($i + 1);
+            $order[] = is_numeric($o) ? max(1, min($count, (int) $o)) : $i + 1;
+        }
+
+        return ['tablet' => $tablet, 'phone_order' => $order];
+    }
+
+    /** Whether any column departs from the default on a smaller screen. */
+    public static function isResponsive(?array $responsive, int $count): bool
+    {
+        if (! $responsive) {
+            return false;
+        }
+        $n = self::normalizeResponsive($responsive, $count);
+        foreach ($n['tablet'] as $w) {
+            if ($w !== null) {
+                return true;
+            }
+        }
+        foreach ($n['phone_order'] as $i => $o) {
+            if ($o !== $i + 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     protected $casts = [
         'columns' => 'array',
         'style' => 'array',
+        'responsive' => 'array',
         'is_enabled' => 'boolean',
         'sort_order' => 'integer',
     ];
