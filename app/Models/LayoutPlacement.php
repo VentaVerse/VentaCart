@@ -45,19 +45,21 @@ class LayoutPlacement extends Model
 
     public static function forRegion(?string $pageType, string $region, ?string $theme = null)
     {
-        return static::query()
+        // Every page's placements, plus those of the most specific key in
+        // the page's chain that has any here (a category's own before its
+        // level's before all categories').
+        $chain = \App\Support\LayoutPage::chain($pageType);
+        $all = static::query()
             ->where('theme', self::scopeTheme($theme))
             ->where('is_enabled', true)
             ->where('region', $region)
-            ->where(function ($q) use ($pageType) {
-                $q->where('page_type', self::EVERYWHERE);
-                if ($pageType !== null) {
-                    $q->orWhere('page_type', $pageType);
-                }
-            })
+            ->whereIn('page_type', $chain)
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
+        $own = \App\Support\LayoutPage::pick($chain, $all->pluck('page_type')->unique()->all());
+
+        return $all->filter(fn ($p) => $p->page_type === self::EVERYWHERE || $p->page_type === $own)->values();
     }
 
     public function inherited(?string $pageType): bool

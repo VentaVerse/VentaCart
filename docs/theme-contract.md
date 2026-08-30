@@ -154,6 +154,14 @@ Row style (background colour keyed to the vocabulary, background image, padding,
 
 `home`, `category`, `product`, `search`, `brand`, `blog`, `page`, `cart`, `checkout`, `account`, `auth`, and `*` for everywhere. `App\Support\StorefrontPageType::current()` resolves the current one from the route.
 
+A layout may also be arranged for a page more specific than a type. The keys are `*` (every page), a type (`category`), a level of categories (`category:level1` to `category:level3`), one category (`category:12`), one content page (`page:3`) and `quickview` (the product quick view fragment). `App\Support\LayoutPage` names them: `valid`, `label`, `type` (the page type a key belongs to), `chain` (from the most specific key down to `*`) and `currentKey` (the key the request is on).
+
+A region shows every page's rows plus the rows of the most specific key in the chain that has any there: a category's own rows replace its level's, which replace all categories'. Columns follow the same chain. The core Layout editor offers the page types; a theme's own editor may offer the rest.
+
+### 3.5 The intro area
+
+A theme that declares an `intro` region draws the page's trail and title as arranged. Core registers `system.breadcrumbs` and `system.page_title` for it; a page view says what it is with `\App\Support\PageIntro::set($title, [['label' => …, 'url' => …], …])` and the theme's two widget views draw it. A theme with a `quickview` region (page `quickview`, default `system.quick_view`) lets the merchant arrange the quick view like any page.
+
 ## 4. Views the theme must provide
 
 Core routes render these view names; the theme's `views/` folder is prepended to the view finder, so `home` is `views/home.blade.php`.

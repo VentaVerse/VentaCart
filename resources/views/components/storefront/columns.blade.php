@@ -10,7 +10,7 @@
      * A page with no columns renders NO grid at all, just its content. A page
      * that is full width should not pay for a wrapper that does nothing.
      */
-    $vPageType = \App\Support\StorefrontPageType::current();
+    $vPageType = \App\Support\LayoutPage::currentKey();
     $vCols = \App\Models\LayoutColumns::forPage($vPageType);
 
     // A column with a width but nothing in it is not drawn: an empty rail

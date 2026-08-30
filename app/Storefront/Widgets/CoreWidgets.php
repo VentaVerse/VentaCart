@@ -146,6 +146,23 @@ class CoreWidgets
                 'regions' => ['header'],
             ]);
         }
+        // The intro area: the page's trail and its title, drawn by the
+        // theme from what the page said about itself (App\Support\PageIntro).
+        foreach ([
+            'system.breadcrumbs' => ['title' => 'Breadcrumbs', 'shape' => 'strip'],
+            'system.page_title' => ['title' => 'Page title', 'shape' => 'block'],
+        ] as $key => $spec) {
+            Widgets::register($key, $spec + [
+                'module' => 'theme',
+                'system' => true,
+                'view' => 'widgets.' . $key,
+                'regions' => ['intro'],
+            ]);
+        }
+        Widgets::register('system.quick_view', [
+            'title' => 'Quick view', 'shape' => 'block', 'module' => 'theme', 'system' => true,
+            'view' => 'widgets.system.quick_view', 'regions' => ['quickview'], 'pages' => [\App\Support\LayoutPage::QUICKVIEW],
+        ]);
         Widgets::register('system.footer', [
             'title' => 'Footer (as arranged)', 'shape' => 'block', 'module' => 'theme', 'system' => true,
             'view' => 'widgets.system.footer', 'regions' => ['footer'],

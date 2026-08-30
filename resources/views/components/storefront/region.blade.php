@@ -12,7 +12,9 @@
      * a draft instead of the saved rows, wrap rows and placements so it can
      * point at them, and show an empty region as somewhere to drop into.
      */
-    $vPageType = \App\Support\StorefrontPageType::current();
+    // The most specific page key this request is on: a category's own
+    // rows win over its level's, over all categories', over every page's.
+    $vPageType = \App\Support\LayoutPage::currentKey();
     $vUnits = \App\Support\LayoutHooks::resolveUnits($vPageType, $name)
         ?? \App\Models\LayoutRow::forRegion($vPageType, $name);
 

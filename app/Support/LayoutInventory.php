@@ -168,6 +168,19 @@ final class LayoutInventory
         $home = url('/');
 
         try {
+            if (preg_match('/^category:(\d+)$/', $pageType, $m) && ($c = \App\Models\Category::find((int) $m[1]))) {
+                return route('category.show', $c);
+            }
+            if (preg_match('/^category:level(\d)$/', $pageType, $m)) {
+                $c = \App\Models\Category::where('is_active', true)->orderBy('id')->get()->first(fn ($cat) => LayoutPage::levelOf($cat->id) === (int) $m[1]);
+                return $c ? route('category.show', $c) : $home;
+            }
+            if (preg_match('/^page:(\d+)$/', $pageType, $m) && ($pg = \App\Models\Page::find((int) $m[1]))) {
+                return route('page.show', $pg);
+            }
+            if ($pageType === LayoutPage::QUICKVIEW) {
+                return ($p = \App\Models\Product::where('is_active', true)->orderBy('id')->first()) ? route('product.show', $p) : $home;
+            }
             return match ($pageType) {
                 'category' => ($c = \App\Models\Category::where('is_active', true)->orderBy('id')->first())
                     ? route('category.show', $c) : $home,

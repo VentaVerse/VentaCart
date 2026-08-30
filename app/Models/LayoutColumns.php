@@ -38,9 +38,24 @@ class LayoutColumns extends Model
     {
         $theme = $theme ?: app(\App\Services\ThemeService::class)->getActiveTheme();
 
-        $row = $pageType
-            ? static::where('theme', $theme)->where('page_type', $pageType)->first()
+        // A specific page (one category, one level) takes its own columns
+        // when it has them, else the nearest key up its chain.
+        $row = $pageType === LayoutPlacement::EVERYWHERE
+            ? static::where('theme', $theme)->where('page_type', LayoutPlacement::EVERYWHERE)->first()
             : null;
+        foreach ($pageType ? \App\Support\LayoutPage::chain($pageType) : [] as $key) {
+            if ($key === LayoutPlacement::EVERYWHERE) {
+                break;
+            }
+            $candidate = static::where('theme', $theme)->where('page_type', $key)->first();
+            if ($candidate && ($row === null)) {
+                $row = $candidate;
+            }
+            if ($candidate && ($candidate->left_width > 0 || $candidate->right_width > 0)) {
+                $row = $candidate;
+                break;
+            }
+        }
 
         $every = $pageType === LayoutPlacement::EVERYWHERE
             ? null

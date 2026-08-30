@@ -138,20 +138,28 @@ class LayoutRow extends Model
     {
         $theme = LayoutPlacement::scopeTheme($theme);
 
-        $placements = LayoutPlacement::forRegion($pageType, $region, $theme);
-
-        $rows = static::query()
+        // Rows and placements answer to the same chain: every page's, plus
+        // the most specific key with anything in this region.
+        $chain = \App\Support\LayoutPage::chain($pageType);
+        $allRows = static::query()
             ->where('theme', $theme)
             ->where('is_enabled', true)
             ->where('region', $region)
-            ->where(function ($q) use ($pageType) {
-                $q->where('page_type', LayoutPlacement::EVERYWHERE);
-                if ($pageType !== null) {
-                    $q->orWhere('page_type', $pageType);
-                }
-            })
-            ->get()
-            ->keyBy('id');
+            ->whereIn('page_type', $chain)
+            ->get();
+        $allPlacements = LayoutPlacement::query()
+            ->where('theme', $theme)
+            ->where('is_enabled', true)
+            ->where('region', $region)
+            ->whereIn('page_type', $chain)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+        $own = \App\Support\LayoutPage::pick($chain, $allRows->pluck('page_type')->merge($allPlacements->pluck('page_type'))->unique()->all());
+        $keep = fn ($m) => $m->page_type === LayoutPlacement::EVERYWHERE || $m->page_type === $own;
+
+        $placements = $allPlacements->filter($keep)->values();
+        $rows = $allRows->filter($keep)->keyBy('id');
 
         $units = [];
 
