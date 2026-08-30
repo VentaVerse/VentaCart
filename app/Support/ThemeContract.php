@@ -52,7 +52,7 @@ final class ThemeContract
     public const OPTIONAL_VIEWS = ['product.quick-view', 'maintenance', 'sitemap'];
 
     /** Setting types the looks editor draws (extensions/theme index view). */
-    public const SETTING_TYPES = ['layout', 'select', 'toggle', 'text', 'textarea', 'number', 'color', 'font', 'media', 'box', 'multi', 'rules'];
+    public const SETTING_TYPES = ['layout', 'select', 'toggle', 'text', 'textarea', 'number', 'color', 'font', 'media', 'box', 'multi', 'rules', 'images'];
 
     /**
      * Everything wrong with the package at $path, as sentences. Empty means

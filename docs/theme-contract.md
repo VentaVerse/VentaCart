@@ -94,6 +94,7 @@ Each entry is a control on the looks editor's Settings tab, stored as `theme_set
 | `box` | four numbers in px as one value, `"top right bottom left"` |
 | `multi` | a set of keys from `options`, stored comma separated |
 | `rules` | a JSON list of rows whose columns are named in `fields` (colour rules, page backgrounds) |
+| `images` | a JSON list of storage paths chosen from the media library (payment marks) |
 
 A theme with an editor of its own (`editor` in theme.json) draws these with its own controls; the core looks editor draws the last five as plain inputs. Every setting may also carry `section`, `tab` and `heading` to say where the theme's editor shows it.
 
