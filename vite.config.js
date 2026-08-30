@@ -16,6 +16,7 @@ function getThemeEntries() {
                 'css/theme.css', 'js/theme.js',
                 // A theme's own editor, when it ships one.
                 'editor/css/editor.css', 'editor/js/editor.js', 'editor/css/frame.css', 'editor/js/frame.js',
+                'editor/css/panel.css', 'editor/js/panel.js',
             ]) {
                 const entry = `resources/themes/${theme}/${rel}`;
                 if (fs.existsSync(path.resolve(__dirname, entry))) entries.push(entry);
