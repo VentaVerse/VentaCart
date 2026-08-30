@@ -25,13 +25,24 @@
             <h1 class="v-head__title">Layout</h1>
         </div>
         <div class="v-head__actions">
+            @if (count($installedThemes) > 1)
+                <label class="v-actrow">
+                    <span class="v-field__label">Theme</span>
+                    <select class="v-control" onchange="window.location = this.value" aria-label="Theme being arranged">
+                        @foreach ($installedThemes as $vSlug => $vName)
+                            @php $vLiveSlug = $themeQuery === [] ? $themeSlug : null; @endphp
+                            <option value="{{ route('admin.layout', ['page' => $pageType] + ($vSlug === $vLiveSlug ? [] : ['theme' => $vSlug])) }}" @selected($vSlug === $themeSlug)>{{ $vName }}{{ $vSlug === $vLiveSlug ? ' (live)' : '' }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            @endif
             {{-- The screen changes what every shopper sees and had no path to
                  the storefront it edits. --}}
             <a href="{{ $sampleUrl }}" target="_blank" rel="noopener" class="v-btn v-btn--sm">View store</a>
         </div>
     </div>
 
-    <x-admin.form :action="route('admin.layout.update')">
+    <x-admin.form :action="route('admin.layout.update', $themeQuery)">
       <div class="v-lay" :class="{ 'is-inspecting': editing || editingRow }" x-data="layoutEditor(window.__layout)">
         <input type="hidden" name="payload" :value="payload()">
 
@@ -40,9 +51,9 @@
         <label class="v-lay__pagepick">
             <span>Page</span>
             <select onchange="window.location = this.value">
-                <option value="{{ route('admin.layout', ['page' => '*']) }}" @selected($pageType === '*')>All pages</option>
+                <option value="{{ route('admin.layout', ['page' => '*'] + $themeQuery) }}" @selected($pageType === '*')>All pages</option>
                 @foreach ($pageTypes as $vKey => $vLabel)
-                    <option value="{{ route('admin.layout', ['page' => $vKey]) }}" @selected($pageType === $vKey)>{{ $vLabel }}</option>
+                    <option value="{{ route('admin.layout', ['page' => $vKey] + $themeQuery) }}" @selected($pageType === $vKey)>{{ $vLabel }}</option>
                 @endforeach
             </select>
         </label>
@@ -50,7 +61,7 @@
         {{-- which page --}}
         <nav class="v-lay__rail" aria-label="Pages">
             <div class="v-lay__raillbl">Everywhere</div>
-            <a href="{{ route('admin.layout', ['page' => '*']) }}"
+            <a href="{{ route('admin.layout', ['page' => '*'] + $themeQuery) }}"
                class="{{ $pageType === '*' ? 'is-on' : '' }}">
                 <span>All pages</span>
                 @if (($counts['*'] ?? 0) > 0)<span class="n">{{ $counts['*'] }}</span>@endif
@@ -58,7 +69,7 @@
 
             <div class="v-lay__raillbl">Pages</div>
             @foreach ($pageTypes as $key => $label)
-                <a href="{{ route('admin.layout', ['page' => $key]) }}"
+                <a href="{{ route('admin.layout', ['page' => $key] + $themeQuery) }}"
                    class="{{ $pageType === $key ? 'is-on' : '' }}">
                     <span>{{ $label }}</span>
                     @if (($counts[$key] ?? 0) > 0)<span class="n">{{ $counts[$key] }}</span>@endif
@@ -628,7 +639,7 @@
                 schemas: @js($schemas),
                 pageSettings: @js($pageSettings),
                 orphans: @js($orphans),
-                schemasUrl: @js(route('admin.layout.schemas')),
+                schemasUrl: @js(route('admin.layout.schemas', $themeQuery)),
                 cols: @js($columns),
                 grid: @js($grid),
                 minContent: @js($minContent),
@@ -1382,7 +1393,7 @@
                      */
                     rescue(orphan) {
                         if (orphan.page_type !== this.pageType) {
-                            window.location = '{{ route('admin.layout') }}?page=' + encodeURIComponent(orphan.page_type);
+                            window.location = '{{ route('admin.layout', $themeQuery) }}{{ $themeQuery === [] ? '?' : '&' }}page=' + encodeURIComponent(orphan.page_type);
                             return;
                         }
                         if (!this.rows.content_bottom) this.rows.content_bottom = [];

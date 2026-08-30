@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 // The URL follows the admin's grammar ({admin}/{section}/{entity}) and the
 // nav entry, which the owner kept under Extensions > Themes for now. When
 // the entry moves, this prefix moves with it; the route names do not.
-Route::prefix('extensions/theme/layout')->group(function () {
+Route::prefix('extensions/theme/layout')->middleware(\App\Http\Middleware\EditTheme::class)->group(function () {
     Route::get('/', [LayoutController::class, 'index'])->name('layout');
     Route::post('/', [LayoutController::class, 'update'])->name('layout.update');
     Route::get('/schemas', [LayoutController::class, 'schemas'])->name('layout.schemas');

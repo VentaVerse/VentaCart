@@ -50,6 +50,7 @@
                             <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--primary v-btn--sm">Edit</a>
                         @else
                             <a href="{{ route('admin.theme.customise') }}" class="v-btn v-btn--primary v-btn--sm">Customise</a>
+                            <a href="{{ route('admin.layout') }}" class="v-btn v-btn--sm">Arrange pages</a>
                             <a href="{{ route('admin.theme.preview') }}" class="v-btn v-btn--sm">Live preview</a>
                         @endif
                         <form method="POST" action="{{ route('admin.theme.package.uninstall') }}" x-data @submit.prevent="if (confirm('Uninstall the live theme? The storefront shows a plain page until another theme is made live.')) $el.submit()">
@@ -60,6 +61,8 @@
                     @else
                         @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
                             <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--sm">Edit</a>
+                        @else
+                            <a href="{{ route('admin.layout', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Arrange pages</a>
                         @endif
                         <form method="POST" action="{{ route('admin.theme.activate') }}">
                             @csrf

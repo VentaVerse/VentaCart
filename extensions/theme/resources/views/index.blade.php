@@ -58,10 +58,16 @@
                 // Menu entries that leave this page. The Pages group used to
                 // promise eleven page types and deliver four, one of which was
                 // a redirect; the arranging of all eleven lives in Layout.
+                $vInstalledThemes = app(\App\Services\ThemeService::class)->getInstalledThemes();
+                $vLiveTheme = app(\App\Services\ThemeService::class)->getActiveTheme();
                 $vThemeLinks = [
-                    'Pages' => [
-                        ['label' => 'Arrange pages', 'icon' => 'layers', 'url' => route('admin.layout')],
-                    ],
+                    'Pages' => count($vInstalledThemes) > 1
+                        ? collect($vInstalledThemes)->map(fn ($t, $vSlug) => [
+                            'label' => 'Arrange pages: ' . ($t['name'] ?? $vSlug),
+                            'icon' => 'layers',
+                            'url' => route('admin.layout', $vSlug === $vLiveTheme ? [] : ['theme' => $vSlug]),
+                        ])->values()->all()
+                        : [['label' => 'Arrange pages', 'icon' => 'layers', 'url' => route('admin.layout')]],
                 ];
             @endphp
             @foreach ($vThemeNav as $vGroup => $vItems)

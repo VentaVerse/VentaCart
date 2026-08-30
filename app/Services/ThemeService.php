@@ -81,6 +81,19 @@ class ThemeService
         return $decoded !== null ? $decoded : $default;
     }
 
+    /**
+     * The settings group holding a theme's look for one family: the live
+     * group when the theme is the live one, its stash otherwise. Lets an
+     * editor read and write a theme's colours without touching the look
+     * the storefront is wearing.
+     */
+    public function lookGroup(string $group, string $slug): string
+    {
+        $live = (string) (\App\Models\Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: self::THEME);
+
+        return $slug === $live ? $group : "{$group}__theme_{$slug}";
+    }
+
     public function getGroup(string $group): array
     {
         return $this->settings[$group] ?? [];

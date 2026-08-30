@@ -39,7 +39,13 @@ class LayoutController extends Controller
         // Counts per page type, so the rail answers "which pages have I
         // touched" without opening each one.
         $slug = $theme->getActiveTheme();
-        $themeName = $theme->getInstalledThemes()[$slug]['name'] ?? $slug;
+        $installed = collect($theme->getInstalledThemes())->map(fn ($t, $k) => $t['name'] ?? $k)->all();
+        $live = (string) (\App\Models\Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: \App\Services\ThemeService::THEME);
+        // ?theme=… (applied by the EditTheme middleware) edits another
+        // installed theme; every link and endpoint carries it along.
+        $themeQuery = $slug === $live ? [] : ['theme' => $slug];
+        $withTheme = fn (string $url) => $themeQuery === [] ? $url : $url . (str_contains($url, '?') ? '&' : '?') . 'theme=' . rawurlencode($slug);
+        $themeName = $installed[$slug] ?? $slug;
         $theme = $slug;
 
         $counts = LayoutPlacement::query()
@@ -51,6 +57,9 @@ class LayoutController extends Controller
 
         return view('admin.layout.index', [
             'theme' => $themeName,
+            'themeSlug' => $slug,
+            'installedThemes' => $installed,
+            'themeQuery' => $themeQuery,
             'pageType' => $pageType,
             'pageTypes' => StorefrontPageType::TYPES,
             'counts' => $counts,
@@ -71,16 +80,16 @@ class LayoutController extends Controller
             'stylePresets' => LayoutStylePreset::where('theme', $theme)->orderBy('name')->get(['id', 'name', 'style'])
                 ->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'style' => RowStyle::normalize($p->style)])->values(),
             'styleDefaults' => RowStyle::DEFAULTS,
-            'stylePresetsUrl' => route('admin.layout.style-presets.store'),
+            'stylePresetsUrl' => $withTheme(route('admin.layout.style-presets.store')),
             // Saved arrangements, handed over in the editor's own shape so
             // loading one is a local act that arms Save.
             'templates' => LayoutTemplate::where('theme', $theme)->orderBy('name')->get()
                 ->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'region' => $t->region, 'rows' => LayoutTemplate::toUnits($t->rows)])
                 ->concat($this->shippedTemplates())->values(),
-            'templatesUrl' => route('admin.layout.templates.store'),
-            'exportUrl' => route('admin.layout.templates.export'),
-            'importUrl' => route('admin.layout.templates.import'),
-            'copyUrl' => route('admin.layout.copy'),
+            'templatesUrl' => $withTheme(route('admin.layout.templates.store')),
+            'exportUrl' => $withTheme(route('admin.layout.templates.export')),
+            'importUrl' => $withTheme(route('admin.layout.templates.import')),
+            'copyUrl' => $withTheme(route('admin.layout.copy')),
             'widgets' => $this->catalogue($regions),
             // Every widget's settings form, resolved. Without this a merchant
             // can place a banner and never say WHICH banner.
