@@ -108,7 +108,26 @@ class ExtensionManager
             })
             ->filter();
 
-        return $this->discoveredCache = $manifests->concat($themes)->keyBy('name');
+        // A theme may bring extensions of its own, under its extensions/
+        // folder. They are packages like any other, installed and switched
+        // through the same registry; they carry the theme's slug so the
+        // theme's own panel can list them and nothing else claims them.
+        $owned = collect(File::glob(resource_path('themes/*/extensions/*/extension.json')))
+            ->map(function (string $manifestPath) {
+                $manifest = json_decode(File::get($manifestPath), true);
+
+                if (! is_array($manifest) || empty($manifest['name'])) {
+                    return null;
+                }
+
+                $manifest['path'] = dirname($manifestPath);
+                $manifest['for_theme'] = basename(dirname($manifestPath, 3));
+
+                return $manifest;
+            })
+            ->filter();
+
+        return $this->discoveredCache = $manifests->concat($owned)->concat($themes)->keyBy('name');
     }
 
     /**
@@ -379,6 +398,21 @@ class ExtensionManager
     public function uninstall(string $name): void
     {
         $manifest = $this->discovered()->get($name);
+
+        // A theme leaves after its own extensions; a package whose theme
+        // is gone would have no panel, no views and no way back.
+        if (! empty($manifest['theme'])) {
+            $stillInstalled = $this->discovered()
+                ->filter(fn (array $m) => ($m['for_theme'] ?? null) === $manifest['theme'] && $this->state($m['name']) !== 'not_installed')
+                ->pluck('title')
+                ->all();
+
+            if ($stillInstalled !== []) {
+                throw new \RuntimeException(
+                    ($manifest['title'] ?? $name) . ' still has extensions installed: ' . implode(', ', $stillInstalled) . '. Remove them first.'
+                );
+            }
+        }
 
         if ($manifest) {
             $this->runMigrations($manifest['path'], 'migrate:rollback');

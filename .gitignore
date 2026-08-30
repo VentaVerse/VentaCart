@@ -72,3 +72,6 @@ countries-states-cities-database-3.1-export.2/
 
 # Third-party reference theme studied for features and workflow only; licensed code, never committed
 /docs/themes/pavilion/
+
+# test fixtures a theme-extension test writes and removes
+resources/themes/*/extensions/zz-test-*

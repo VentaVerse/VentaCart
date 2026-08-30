@@ -28,6 +28,16 @@ Exactly one installed theme is live (`identity.active_theme`). When the live the
 
 The shipped default theme is installed with the other essentials on a fresh store. Stores updated from before this contract get their default and live themes registered by a continuity migration.
 
+### 1.1 Extensions a theme brings
+
+A theme may ship extensions of its own under `extensions/{name}/`, each with
+the same `extension.json`, `src/`, `database/migrations` and routes as a
+store extension. The kernel discovers them with everything else and tags
+them `for_theme: {slug}`; they install, enable, disable and uninstall through
+the same registry and the same admin routes. The theme's own panel lists
+them; the store's Extensions page files them under the theme's name. A theme
+cannot be uninstalled while one of its extensions is still installed.
+
 ## 2. theme.json
 
 ```json

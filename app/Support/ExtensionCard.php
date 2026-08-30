@@ -44,7 +44,7 @@ class ExtensionCard
 
         return [
             'kind' => 'extension',
-            'category' => self::CATEGORY_BY_TYPE[$manifest['type'] ?? 'feature'] ?? 'Modules',
+            'category' => ! empty($manifest['for_theme']) ? ucfirst(str_replace('-', ' ', $manifest['for_theme'])) : (self::CATEGORY_BY_TYPE[$manifest['type'] ?? 'feature'] ?? 'Modules'),
             'name' => $name,
             'title' => $manifest['title'] ?? $name,
             'description' => $manifest['description'] ?? '',
