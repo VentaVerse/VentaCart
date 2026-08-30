@@ -115,3 +115,13 @@
 @media (max-width: 767px) {
     .layout-col { order: var(--col-phone-order, 0); }
 }
+
+/* ---- type inside a styled row or block ------------------------------- */
+.layout-row--font-heading, .layout-row--font-heading *, .layout-block--font-heading, .layout-block--font-heading * { font-family: var(--font-heading); }
+.layout-row--font-body, .layout-row--font-body *, .layout-block--font-body, .layout-block--font-body * { font-family: var(--font-body); }
+.layout-row--headings-sm h1, .layout-row--headings-sm h2, .layout-row--headings-sm h3, .layout-row--headings-sm .section-title,
+.layout-block--headings-sm h1, .layout-block--headings-sm h2, .layout-block--headings-sm h3, .layout-block--headings-sm .section-title { font-size: 1.1em; }
+.layout-row--headings-lg h1, .layout-row--headings-lg h2, .layout-row--headings-lg h3, .layout-row--headings-lg .section-title,
+.layout-block--headings-lg h1, .layout-block--headings-lg h2, .layout-block--headings-lg h3, .layout-block--headings-lg .section-title { font-size: 1.9em; }
+.layout-row--headings-xl h1, .layout-row--headings-xl h2, .layout-row--headings-xl h3, .layout-row--headings-xl .section-title,
+.layout-block--headings-xl h1, .layout-block--headings-xl h2, .layout-block--headings-xl h3, .layout-block--headings-xl .section-title { font-size: 2.6em; }

@@ -27,6 +27,10 @@ final class RowStyle
     public const TITLE_ALIGN = ['', 'left', 'center', 'right'];
     /** Text size inside a row or block; '' is the theme's. */
     public const TEXT_SIZE = ['', 'sm', 'lg'];
+    /** Which of the theme's two faces the row uses for everything; '' leaves each element its own. */
+    public const FONT = ['', 'heading', 'body'];
+    /** Heading size inside a row or block; '' is the theme's. */
+    public const HEADING_SIZE = ['', 'sm', 'lg', 'xl'];
 
     public const DEFAULTS = [
         'bg' => 'none', 'bg_color' => '', 'bg_color2' => '', 'bg_angle' => 180,
@@ -36,6 +40,7 @@ final class RowStyle
         'title_align' => '',
         // Colours inside the row: text is above; headings and links are their own.
         'heading_color' => '', 'link_color' => '', 'text_size' => '',
+        'font' => '', 'heading_size' => '',
     ];
 
     /** @return array<string, mixed> every key present, every value allowed */
@@ -51,6 +56,8 @@ final class RowStyle
         $out['heading_color'] = self::color($in['heading_color'] ?? '');
         $out['link_color'] = self::color($in['link_color'] ?? '');
         $out['text_size'] = $pick('text_size', self::TEXT_SIZE);
+        $out['font'] = $pick('font', self::FONT);
+        $out['heading_size'] = $pick('heading_size', self::HEADING_SIZE);
         $out['bg_color'] = self::color($in['bg_color'] ?? '');
         $out['bg_color2'] = self::color($in['bg_color2'] ?? '');
         $out['bg_angle'] = max(0, min(360, (int) ($in['bg_angle'] ?? 180)));
@@ -81,7 +88,8 @@ final class RowStyle
 
         return $n['bg'] !== 'none' || $n['text'] !== '' || $n['pad'] !== 'none' || $n['width'] !== 'contained'
             || $n['border'] !== 'none' || $n['radius'] !== 'none' || $n['shadow'] !== 'none' || $n['title_align'] !== ''
-            || $n['heading_color'] !== '' || $n['link_color'] !== '' || $n['text_size'] !== '';
+            || $n['heading_color'] !== '' || $n['link_color'] !== '' || $n['text_size'] !== ''
+            || $n['font'] !== '' || $n['heading_size'] !== '';
     }
 
     /** Classes the stylesheet keys its rules on. @return list<string> */
@@ -115,6 +123,12 @@ final class RowStyle
         }
         if ($n['text_size'] !== '') {
             $out[] = $prefix . '--size-' . $n['text_size'];
+        }
+        if ($n['font'] !== '') {
+            $out[] = $prefix . '--font-' . $n['font'];
+        }
+        if ($n['heading_size'] !== '') {
+            $out[] = $prefix . '--headings-' . $n['heading_size'];
         }
 
         return $out;
