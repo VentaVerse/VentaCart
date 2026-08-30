@@ -22,6 +22,32 @@ class ColorGroups
     /** @return array<string, array<string, string>> group label => [token => control label] */
     public static function all(): array
     {
+        return array_merge(self::core(), self::themeGroups());
+    }
+
+    /**
+     * Groups a theme declares in its theme.json under color_groups, for
+     * colours of its own (a carousel's arrows) that core never names.
+     *
+     * @return array<string, array<string, string>>
+     */
+    public static function themeGroups(?string $theme = null): array
+    {
+        $path = app(ThemeService::class)->getThemePath($theme) . '/theme.json';
+        $meta = json_decode((string) @file_get_contents($path), true) ?: [];
+        $out = [];
+        foreach ((array) ($meta['color_groups'] ?? []) as $label => $tokens) {
+            if (is_array($tokens) && $tokens !== []) {
+                $out[(string) $label] = array_map('strval', $tokens);
+            }
+        }
+
+        return $out;
+    }
+
+    /** @return array<string, array<string, string>> */
+    private static function core(): array
+    {
         return [
             'Storefront' => [
                 'primary' => 'Buttons & Links',
