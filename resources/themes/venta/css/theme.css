@@ -71,7 +71,7 @@
 
  ::selection {
  background: var(--color-primary);
- color: #fff;
+ color: var(--color-btn-text);
  }
 
  input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="tel"], input[type="search"], textarea, select {
@@ -238,7 +238,7 @@
 
  .mini-cart-item {
  @apply flex items-center gap-2 py-2;
- border-bottom: 1px solid #F3F4F6;
+ border-bottom: 1px solid var(--color-border);
  }
 
  .mini-cart-item:last-child {
@@ -769,6 +769,7 @@
  .banner-layers-stage {
  position: absolute;
  inset: 0;
+ max-width: 1280px;
  margin: 0 auto;
  left: 0;
  right: 0;
@@ -858,7 +859,8 @@
  ============================================ */
  .hero-placeholder {
  @apply relative overflow-hidden;
- background: linear-gradient(135deg, #F9FAFB 0%, #EFF6FF 50%, #F9FAFB 100%);
+ background: linear-gradient(135deg, var(--color-card-bg) 0%, var(--color-bg) 50%, var(--color-card-bg) 100%);
+ min-height: 400px;
  }
 
  .hero-placeholder::before {
@@ -1117,14 +1119,14 @@
  ============================================ */
  .skeleton-shimmer {
  @apply absolute inset-0 z-[1];
- background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+ background: linear-gradient(90deg, var(--color-card-bg) 25%, var(--color-border) 50%, var(--color-card-bg) 75%);
  background-size: 200% 100%;
  animation: shimmer 1.5s ease-in-out infinite;
  }
 
  .skeleton-bar {
  @apply h-10 rounded;
- background: linear-gradient(90deg, #F3F4F6 25%, #E5E7EB 50%, #F3F4F6 75%);
+ background: linear-gradient(90deg, var(--color-card-bg) 25%, var(--color-border) 50%, var(--color-card-bg) 75%);
  background-size: 200% 100%;
  animation: shimmer 1.5s ease-in-out infinite;
  }
@@ -1944,9 +1946,9 @@
 
  .account-flash-success {
  @apply px-4 py-3 rounded-md text-sm;
- background: rgba(16, 185, 129, 0.08);
- border: 1px solid rgba(16, 185, 129, 0.2);
- color: #059669;
+ background: color-mix(in srgb, var(--color-success) 8%, transparent);
+ border: 1px solid color-mix(in srgb, var(--color-success) 20%, transparent);
+ color: var(--color-success);
  }
 
  .account-flash-error {
@@ -2171,9 +2173,9 @@
  Impersonation Bar
  ============================================ */
  .impersonation-bar {
- background-color: #f59e0b;
+ background-color: var(--color-warning);
  color: #000;
- font-family: ui-sans-serif, system-ui, sans-serif;
+ font-family: var(--font-body);
  z-index: 9999;
  position: relative;
  }
@@ -2263,7 +2265,7 @@
  flex-shrink: 0;
  border-radius: 0.25rem;
  overflow: hidden;
- background: #F3F4F6;
+ background: var(--color-card-bg);
  }
 
  .checkout-modal-item-img img {
@@ -2780,3 +2782,21 @@ button.wgallery__item:focus-visible { outline: 2px solid var(--color-primary); o
 .wmenu__sep { width: 1px; height: 1rem; background: var(--color-border); align-self: center; }
 .wmenu--vertical .wmenu__sep { width: auto; height: 1px; margin: 0.25rem 0; }
 
+
+/* ============================================
+ Pieces that used to be styled inline
+ ============================================ */
+.reviews-pager__btn { padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid var(--color-input-border); color: var(--color-content-text); background: transparent; cursor: pointer; }
+.reviews-pager__btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.reviews-pager__page { font-size: 13px; color: var(--color-text-muted); }
+.checkout-items-scroll { max-height: 360px; overflow-y: auto; }
+.modal-scrim { background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); }
+.section-title--spaced { margin-top: 1.5rem; }
+.account-auth-card--wide { max-width: 36rem; }
+.account-input--textarea { resize: vertical; }
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.product-thumbs--capped { max-height: 420px; }
+.free-shipping-note { color: var(--color-primary); }
+.free-shipping-note__icon { width: 16px; height: 16px; }
+.free-shipping-note__label { font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }

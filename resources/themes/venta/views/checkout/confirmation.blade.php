@@ -11,7 +11,7 @@
         </div>
 
         {{-- Title --}}
-        <h1 class="section-title reveal" style="margin-top: 1.5rem;">ORDER CONFIRMED</h1>
+        <h1 class="section-title section-title--spaced reveal">ORDER CONFIRMED</h1>
         <p class="confirmation-subtitle reveal">Thank you for your order!</p>
         <p class="confirmation-order-id reveal">Order #{{ $order->id }}</p>
 

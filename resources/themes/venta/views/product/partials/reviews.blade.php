@@ -41,18 +41,14 @@
                         @if ($approvedReviews->count() > 20)
                             <div class="flex items-center justify-center gap-2 mt-6 pt-4 border-t border-[var(--color-border)]">
                                 <button @click="reviewPage = Math.max(1, reviewPage - 1); document.getElementById('reviews').scrollIntoView({behavior: 'smooth'})"
-                                    :disabled="reviewPage === 1"
-                                    style="padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; color: #6b7280; background: transparent; cursor: pointer;"
-                                    :style="reviewPage === 1 && 'opacity: 0.3; cursor: not-allowed;'">
+                                    :disabled="reviewPage === 1" class="reviews-pager__btn">
                                     &laquo; Prev
                                 </button>
-                                <span style="font-size: 13px; color: #9ca3af;">
+                                <span class="reviews-pager__page">
                                     Page <span x-text="reviewPage"></span> of <span x-text="Math.ceil({{ $approvedReviews->count() }} / perPage)"></span>
                                 </span>
                                 <button @click="reviewPage = Math.min(Math.ceil({{ $approvedReviews->count() }} / perPage), reviewPage + 1); document.getElementById('reviews').scrollIntoView({behavior: 'smooth'})"
-                                    :disabled="reviewPage >= Math.ceil({{ $approvedReviews->count() }} / perPage)"
-                                    style="padding: 6px 12px; font-size: 13px; border-radius: 6px; border: 1px solid #d1d5db; color: #6b7280; background: transparent; cursor: pointer;"
-                                    :style="reviewPage >= Math.ceil({{ $approvedReviews->count() }} / perPage) && 'opacity: 0.3; cursor: not-allowed;'">
+                                    :disabled="reviewPage >= Math.ceil({{ $approvedReviews->count() }} / perPage)" class="reviews-pager__btn">
                                     Next &raquo;
                                 </button>
                             </div>

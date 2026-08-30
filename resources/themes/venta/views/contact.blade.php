@@ -2,7 +2,7 @@
     <x-storefront.columns>
     <x-storefront.region name="content_top" />
     <div class="container-store py-16">
-        <div class="account-auth-card" style="max-width: 36rem;">
+        <div class="account-auth-card account-auth-card--wide">
             <h1 class="account-auth-title text-center">CONTACT US</h1>
             <p class="text-sm text-[var(--color-text)] text-center mb-6">Have a question? We'd love to hear from you.</p>
 
@@ -48,7 +48,7 @@
                     <div>
                         <label class="account-label">Message</label>
                         <textarea name="message" rows="5" required
-                                  class="account-input w-full" style="resize: vertical;">{{ old('message') }}</textarea>
+                                  class="account-input account-input--textarea w-full">{{ old('message') }}</textarea>
                     </div>
 
                     <x-turnstile />

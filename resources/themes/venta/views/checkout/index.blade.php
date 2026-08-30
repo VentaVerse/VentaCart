@@ -468,7 +468,7 @@
                     <div x-show="stockWarning" x-transition.opacity class="bg-[var(--color-danger-bg)] border border-[var(--color-danger-border)] rounded-lg p-3 mb-4 text-xs text-[var(--color-danger-text)]" x-text="stockWarning"></div>
 
                     {{-- Items --}}
-                    <div class="checkout-items-scroll space-y-4 mb-4" style="max-height: 360px; overflow-y: auto;">
+                    <div class="checkout-items-scroll space-y-4 mb-4">
                         <template x-for="item in items" :key="item.id">
                             <div class="flex items-start gap-3">
                                 <div class="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-[var(--color-search-bg)]">
@@ -799,8 +799,8 @@
             </div>
         </div>
         {{-- QR Enlarge Modal --}}
-        <div x-show="qrOpen" x-transition.opacity class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
-             style="background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);" @click="qrOpen = false" @keydown.escape.window="qrOpen = false" x-cloak>
+        <div x-show="qrOpen" x-transition.opacity class="modal-scrim fixed inset-0 z-[9999] flex items-center justify-center p-4"
+             @click="qrOpen = false" @keydown.escape.window="qrOpen = false" x-cloak>
             <div class="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full" @click.stop>
                 <h3 class="text-center text-sm font-semibold text-[var(--color-text-heading)] mb-3" x-text="qrName"></h3>
                 <img :src="qrSrc" alt="QR Code" class="w-full rounded-lg">

@@ -59,7 +59,7 @@
 
             {{-- Migration Reset Modal --}}
             <template x-teleport="body">
-                <div x-show="showResetModal" x-transition.opacity class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.6)">
+                <div x-show="showResetModal" x-transition.opacity class="modal-scrim fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div @click.outside="showResetModal = false" x-show="showResetModal" x-transition.scale
                          class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 relative">
                         <button @click="showResetModal = false" class="absolute top-3 right-3 text-[var(--color-text-muted)] hover:text-[var(--color-text)]">

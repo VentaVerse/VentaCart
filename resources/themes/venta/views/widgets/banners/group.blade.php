@@ -33,7 +33,7 @@
                         @endif
 
                         {{-- Centered stage container for layers — scales proportionally on mobile --}}
-                        <div class="banner-layers-stage" style="max-width: 1280px;">
+                        <div class="banner-layers-stage">
                             @foreach ($layers as $li => $layer)
                                 @php
                                     $type = $layer['type'] ?? 'text';
@@ -100,7 +100,7 @@
         </div>
     @else
         {{-- Placeholder Hero --}}
-        <div class="hero-placeholder flex items-center justify-center" style="min-height: 400px;">
+        <div class="hero-placeholder flex items-center justify-center">
             <div class="text-center relative z-10 px-6">
                 <div class="flex items-center justify-center gap-3 mb-4">
                     <span class="led led-amber"></span>
