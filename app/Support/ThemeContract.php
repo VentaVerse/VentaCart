@@ -129,8 +129,13 @@ final class ThemeContract
         // Every widget the store can place must have a view in the theme,
         // except a theme's own pieces, which are only required where the
         // theme declares the region they belong to.
+        $slug = basename(rtrim($path, '/'));
         foreach (Widgets::all() as $key => $spec) {
             if (empty($spec['view'])) {
+                continue;
+            }
+            // Another theme's own block is that theme's to draw.
+            if (! empty($spec['theme']) && $spec['theme'] !== $slug) {
                 continue;
             }
             if (! empty($spec['system'])) {

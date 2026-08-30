@@ -534,8 +534,24 @@ class ThemeService
      *
      * @param  array{banners?: array, layouts?: array}  $preset
      */
+    /** @var list<callable(array): void> */
+    private static array $presetContentInstallers = [];
+
+    /**
+     * A theme (or extension) that brings content of its own to a template,
+     * such as Plaza's sliders, registers how to install it.
+     */
+    public static function onPresetContent(callable $installer): void
+    {
+        self::$presetContentInstallers[] = $installer;
+    }
+
     public function applyPresetContent(array $preset): void
     {
+        foreach (self::$presetContentInstallers as $installer) {
+            $installer($preset);
+        }
+
         foreach ((array) ($preset['banners'] ?? []) as $group) {
             if (! class_exists(\Extensions\Banners\Models\BannerGroup::class) || empty($group['slug'])) {
                 continue;
