@@ -749,7 +749,7 @@
                         return this.rowsIn(region).map((unit) => ({
                             columns: unit.columns, enabled: unit.enabled, style: unit.style,
                             placements: unit.cols.flatMap((col, c) => col.map((p) => ({
-                                column: c, widget: p.widget, title: p.title, enabled: p.enabled, config: p.config,
+                                column: c, widget: p.widget, title: p.title, enabled: p.enabled, config: (p.config && typeof p.config === 'object') ? Object.assign({}, p.config) : {},
                             }))),
                         }));
                     },
@@ -1480,7 +1480,7 @@
                                 unit.cols.forEach((col, c) => {
                                     col.forEach((p) => placements.push({
                                         id: p.id, column: c, widget: p.widget,
-                                        title: p.title, enabled: p.enabled, config: p.config,
+                                        title: p.title, enabled: p.enabled, config: (p.config && typeof p.config === 'object') ? Object.assign({}, p.config) : {},
                                     }));
                                 });
                                 rows.push({
