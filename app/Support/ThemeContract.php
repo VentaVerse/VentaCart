@@ -131,7 +131,9 @@ final class ThemeContract
         // theme declares the region they belong to.
         $slug = basename(rtrim($path, '/'));
         foreach (Widgets::all() as $key => $spec) {
-            if (empty($spec['view'])) {
+            // A namespaced view belongs to the extension that registered
+            // the widget, not to the theme.
+            if (empty($spec['view']) || str_contains($spec['view'], '::')) {
                 continue;
             }
             // Another theme's own block is that theme's to draw.

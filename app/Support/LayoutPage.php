@@ -133,13 +133,14 @@ class LayoutPage
         if ($type === null) {
             return null;
         }
-        $subject = request()->route($type);
+        $subject = request()->route()?->parameter($type);
         if ($type === 'category' && $subject instanceof Category) {
             return "category:{$subject->id}";
         }
         if ($type === 'page') {
             // The content page route carries a slug, not a model.
-            $slug = $subject instanceof Page ? null : (request()->route('slug') ?? request()->route('page'));
+            $params = request()->route()?->parameters() ?? [];
+            $slug = $subject instanceof Page ? null : ($params['slug'] ?? $params['page'] ?? null);
             $page = $subject instanceof Page ? $subject : (is_string($slug) ? Page::where('slug', $slug)->first() : null);
             if ($page) {
                 return "page:{$page->id}";
