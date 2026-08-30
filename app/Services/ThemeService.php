@@ -507,6 +507,11 @@ class ThemeService
                 ['value' => $slug]
             );
 
+            // A template is a look that also brings its pages: the banner
+            // groups it slides and the rows it arranges, the way a theme's
+            // demo install does. A look without them leaves the pages alone.
+            $this->applyPresetContent($preset);
+
             // A preset is the whole look, so page-type overrides do not survive
             // it (owner ruling 2026-08-20). The caller states which page types
             // will lose their own colours BEFORE calling this; clearing
@@ -520,6 +525,70 @@ class ThemeService
         });
 
         $this->clearCache();
+    }
+
+    /**
+     * Install what a template brings besides its look: banner groups (by
+     * slug, slides replaced) and page layouts (each page type it names is
+     * rearranged whole, through the same save every editor uses).
+     *
+     * @param  array{banners?: array, layouts?: array}  $preset
+     */
+    public function applyPresetContent(array $preset): void
+    {
+        foreach ((array) ($preset['banners'] ?? []) as $group) {
+            if (! class_exists(\Extensions\Banners\Models\BannerGroup::class) || empty($group['slug'])) {
+                continue;
+            }
+            $record = \Extensions\Banners\Models\BannerGroup::updateOrCreate(
+                ['slug' => (string) $group['slug']],
+                [
+                    'name' => (string) ($group['name'] ?? $group['slug']),
+                    'autoplay' => (bool) ($group['autoplay'] ?? true),
+                    'speed' => (int) ($group['speed'] ?? 5000),
+                    'height' => (int) ($group['height'] ?? 500),
+                    'height_mobile' => (int) ($group['height_mobile'] ?? 400),
+                    'full_width' => (bool) ($group['full_width'] ?? true),
+                    'is_active' => true,
+                ]
+            );
+            $record->slides()->delete();
+            foreach (array_values((array) ($group['slides'] ?? [])) as $i => $slide) {
+                $record->slides()->create([
+                    'name' => (string) ($slide['name'] ?? ''),
+                    'bg_image' => (string) ($slide['image'] ?? ''),
+                    'bg_image_mobile' => $slide['image_mobile'] ?? null,
+                    'bg_color' => (string) ($slide['bg_color'] ?? '#000000'),
+                    'bg_size' => (string) ($slide['bg_size'] ?? 'cover'),
+                    'link' => $slide['link'] ?? null,
+                    'link_new_tab' => (bool) ($slide['new_tab'] ?? false),
+                    'layers' => (array) ($slide['layers'] ?? []),
+                    'sort_order' => $i,
+                    'is_active' => true,
+                ]);
+            }
+        }
+
+        foreach ((array) ($preset['layouts'] ?? []) as $pageType => $regions) {
+            if ($pageType !== \App\Models\LayoutPlacement::EVERYWHERE && ! \App\Support\StorefrontPageType::exists((string) $pageType)) {
+                continue;
+            }
+            $rows = [];
+            foreach ((array) $regions as $region => $list) {
+                if ($region === 'columns') {
+                    continue;
+                }
+                foreach (\App\Models\LayoutTemplate::cleanRows($list) as $row) {
+                    $rows[] = $row + ['id' => null, 'region' => (string) $region];
+                }
+            }
+            app(LayoutSaver::class)->save((string) $pageType, [
+                'columns' => (array) ($regions['columns'] ?? ['left' => 0, 'right' => 0]),
+                'rows' => $rows,
+            ]);
+        }
+
+        \App\Support\NavTree::forget();
     }
 
     /**
