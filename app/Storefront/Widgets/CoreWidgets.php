@@ -237,7 +237,7 @@ class CoreWidgets
             'schema' => [
                 'images' => ['type' => 'images', 'label' => 'Images', 'root' => 'banners'],
                 'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
-                    'options' => ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+                    'options' => ['1' => '1', '2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
                 'lightbox' => ['type' => 'select', 'label' => 'On click', 'default' => 'lightbox',
                     'options' => ['lightbox' => 'Open larger', 'none' => 'Nothing']],
             ],
@@ -403,7 +403,12 @@ class CoreWidgets
                 $prefix = DB::getTablePrefix();
                 $query->withCount(['orderProducts as total_revenue' => function ($q) use ($prefix) {
                     $q->select(DB::raw("COALESCE(SUM({$prefix}order_products.price * {$prefix}order_products.quantity), 0)"));
-                }])->orderByDesc('total_revenue');
+                }])
+                    // Everything that has sold nothing has sold the same
+                    // amount, so a store with no orders yet would return
+                    // whatever the database felt like. Views break the tie,
+                    // which is the closest thing to a seller a new shop has.
+                    ->orderByDesc('total_revenue')->orderByDesc('views')->orderByDesc('id');
                 break;
             default:
                 $query->latest();

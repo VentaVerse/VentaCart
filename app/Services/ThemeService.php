@@ -608,7 +608,7 @@ class ThemeService
             // A template is a look that also brings its pages: the banner
             // groups it slides and the rows it arranges, the way a theme's
             // demo install does. A look without them leaves the pages alone.
-            $this->applyPresetContent($preset);
+            $this->applyPresetContent($preset, $slug);
 
             // A preset is the whole look, so page-type overrides do not survive
             // it (owner ruling 2026-08-20). The caller states which page types
@@ -644,10 +644,17 @@ class ThemeService
         self::$presetContentInstallers[] = $installer;
     }
 
-    public function applyPresetContent(array $preset): void
+    public function applyPresetContent(array $preset, string $slug = ''): void
     {
         foreach (self::$presetContentInstallers as $installer) {
             $installer($preset);
+        }
+
+        // The products and posts the arrangement is there to show. This is the
+        // only part of a template that can decline to install itself: it never
+        // touches a store that holds a catalogue of the merchant's own.
+        if ($slug !== '') {
+            app(DemoContentService::class)->install($slug, $preset);
         }
 
         foreach ((array) ($preset['banners'] ?? []) as $group) {
