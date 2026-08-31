@@ -66,6 +66,7 @@ return [
         'segment' => 'content',
         'items' => [
             ['key' => 'pages', 'label' => 'Pages', 'route' => 'admin.pages.index', 'icon' => 'pages', 'permission' => null, 'keywords' => ['cms', 'static']],
+            ['key' => 'layout', 'label' => 'Layout', 'route' => 'admin.layout', 'icon' => 'layers', 'permission' => null, 'keywords' => ['design', 'arrange', 'rows', 'regions', 'positions']],
         ],
     ],
     [

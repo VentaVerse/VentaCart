@@ -39,7 +39,7 @@ class LayoutController extends Controller
         // Counts per page type, so the rail answers "which pages have I
         // touched" without opening each one.
         $slug = $theme->getActiveTheme();
-        $installed = collect($theme->getInstalledThemes())->map(fn ($t, $k) => $t['name'] ?? $k)->all();
+        $installed = collect(\App\Http\Middleware\EditTheme::rideable($theme))->map(fn ($t, $k) => $t['name'] ?? $k)->all();
         $live = (string) (\App\Models\Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: \App\Services\ThemeService::THEME);
         // ?theme=… (applied by the EditTheme middleware) edits another
         // installed theme; every link and endpoint carries it along.

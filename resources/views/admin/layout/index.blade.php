@@ -9,12 +9,10 @@
                  there for now), but the page is core: the links only appear
                  while the theme editor is enabled to provide them. --}}
             <div class="v-head__trail">
-                @if (\Illuminate\Support\Facades\Route::has('admin.theme.index'))
-                    <a href="{{ route('admin.extensions.index') }}">Extensions</a>
+                @if (count($installedThemes) > 1)
+                    <span>Content</span>
                     <span aria-hidden="true">/</span>
-                    <a href="{{ route('admin.theme.index') }}">Themes</a>
-                    <span aria-hidden="true">/</span>
-                    <a href="{{ route('admin.theme.customise') }}">{{ $theme }}</a>
+                    <span>{{ $theme }}</span>
                     <span aria-hidden="true">/</span>
                 @else
                     <span>{{ $theme }}</span>

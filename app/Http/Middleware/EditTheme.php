@@ -15,13 +15,29 @@ use Illuminate\Http\Request;
  */
 class EditTheme
 {
+    /** Installed themes with no editor of their own: the ones this editor arranges. */
+    public static function rideable(ThemeService $theme): array
+    {
+        return array_filter($theme->getInstalledThemes(), function ($meta, $slug) {
+            $json = json_decode((string) @file_get_contents(resource_path("themes/{$slug}/theme.json")), true) ?: [];
+
+            return empty($json['editor']);
+        }, ARRAY_FILTER_USE_BOTH);
+    }
+
     public function handle(Request $request, Closure $next)
     {
-        $slug = trim((string) ($request->query('theme') ?? $request->input('theme') ?? ''));
         $theme = app(ThemeService::class);
         $live = (string) (Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: ThemeService::THEME);
+        $rideable = self::rideable($theme);
 
-        if ($slug === '' || $slug === $live || ! isset($theme->getInstalledThemes()[$slug])) {
+        // The asked-for theme when it rides this editor, else the live one
+        // when it does, else the first that does: a theme with its own
+        // editor (Plaza) is decoupled and never edited here.
+        $asked = trim((string) ($request->query('theme') ?? $request->input('theme') ?? ''));
+        $slug = isset($rideable[$asked]) ? $asked : (isset($rideable[$live]) ? $live : (string) array_key_first($rideable));
+
+        if ($slug === '' || $slug === $live) {
             return $next($request);
         }
 

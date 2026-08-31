@@ -40,14 +40,15 @@ class LayoutEditThemeTest extends TestCase
         ]];
     }
 
-    public function test_the_core_layout_editor_edits_any_installed_theme_through_the_theme_parameter(): void
+    public function test_the_core_layout_editor_edits_the_themes_that_ride_it(): void
     {
         $this->boot('plaza');
 
-        // The page names the theme being arranged and offers the others.
-        $html = $this->get(route('admin.layout', ['theme' => 'venta']))->assertOk()->getContent();
+        // Plaza brings its own editor, so with Plaza live the core editor
+        // opens on the first theme that rides it: Venta.
+        $html = $this->get(route('admin.layout'))->assertOk()->getContent();
         $this->assertStringContainsString('theme=venta', $html);
-        $this->assertStringContainsString('Theme being arranged', $html);
+        $this->assertStringContainsString('Venta', $html);
 
         $this->post(route('admin.layout.update', ['theme' => 'venta']), ['payload' => json_encode($this->payload('VENTA-OWN-ROW'))])
             ->assertRedirect()->assertSessionHas('success');
@@ -61,16 +62,22 @@ class LayoutEditThemeTest extends TestCase
         app(ThemeService::class)->clearCache();
         $this->assertStringContainsString('VENTA-OWN-ROW', $this->get('/')->assertOk()->getContent());
 
-        // Without the parameter the live theme is edited, as before.
+        // With Venta live (a riding theme), no parameter edits Venta itself.
         $this->post(route('admin.layout.update'), ['payload' => json_encode($this->payload('LIVE-ROW'))])->assertRedirect();
         $this->assertSame(1, LayoutPlacement::where('theme', 'venta')->where('page_type', 'home')->whereJsonContains('config->content', 'LIVE-ROW')->count());
     }
 
-    public function test_an_unknown_theme_parameter_falls_back_to_the_live_theme(): void
+    public function test_a_decoupled_or_unknown_theme_parameter_lands_on_a_riding_theme(): void
     {
         $this->boot('plaza');
-        $this->post(route('admin.layout.update', ['theme' => 'nope']), ['payload' => json_encode($this->payload('SOMEWHERE'))])->assertRedirect();
-        $this->assertSame(1, LayoutPlacement::where('theme', 'plaza')->whereJsonContains('config->content', 'SOMEWHERE')->count());
+        // Plaza is decoupled: asking the core editor for it, or for nothing
+        // real, both land on the theme that rides the editor.
+        $this->post(route('admin.layout.update', ['theme' => 'plaza']), ['payload' => json_encode($this->payload('SOMEWHERE'))])->assertRedirect();
+        $this->post(route('admin.layout.update', ['theme' => 'nope']), ['payload' => json_encode($this->payload('ELSEWHERE'))])->assertRedirect();
+        // Each save is the whole page, so the second replaced the first;
+        // both landed on Venta and neither touched Plaza.
+        $this->assertSame(1, LayoutPlacement::where('theme', 'venta')->whereJsonContains('config->content', 'ELSEWHERE')->count());
+        $this->assertSame(0, LayoutPlacement::where('theme', 'plaza')->where('widget', 'content.text')->count());
         $this->assertSame(0, LayoutPlacement::where('theme', 'nope')->count());
     }
 

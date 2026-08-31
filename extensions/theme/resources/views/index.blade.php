@@ -58,7 +58,7 @@
                 // Menu entries that leave this page. The Pages group used to
                 // promise eleven page types and deliver four, one of which was
                 // a redirect; the arranging of all eleven lives in Layout.
-                $vInstalledThemes = app(\App\Services\ThemeService::class)->getInstalledThemes();
+                $vInstalledThemes = \App\Http\Middleware\EditTheme::rideable(app(\App\Services\ThemeService::class));
                 $vLiveTheme = app(\App\Services\ThemeService::class)->getActiveTheme();
                 $vThemeLinks = [
                     'Pages' => count($vInstalledThemes) > 1

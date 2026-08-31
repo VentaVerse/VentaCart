@@ -4,13 +4,11 @@ use App\Http\Controllers\Admin\Layout\LayoutController;
 use App\Http\Controllers\Admin\Layout\MenuController;
 use Illuminate\Support\Facades\Route;
 
-// The Layout editor: what renders where, on which pages. Core since the
-// Plaza plan (2026-08-29); it edits store data the active theme reads.
-//
-// The URL follows the admin's grammar ({admin}/{section}/{entity}) and the
-// nav entry, which the owner kept under Extensions > Themes for now. When
-// the entry moves, this prefix moves with it; the route names do not.
-Route::prefix('extensions/theme/layout')->middleware(\App\Http\Middleware\EditTheme::class)->group(function () {
+// The Layout editor: what renders where, on which pages. OpenCart's shape
+// by the owner's ruling (2026-08-31): the layout system stands on its own
+// under Content, and themes without an editor of their own ride it. A theme
+// that brings its own editor (Plaza) is decoupled and never edited here.
+Route::prefix('content/layout')->middleware(\App\Http\Middleware\EditTheme::class)->group(function () {
     Route::get('/', [LayoutController::class, 'index'])->name('layout');
     Route::post('/', [LayoutController::class, 'update'])->name('layout.update');
     Route::get('/schemas', [LayoutController::class, 'schemas'])->name('layout.schemas');

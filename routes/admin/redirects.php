@@ -185,6 +185,8 @@ adminLegacyRedirect('settings/section/{section}', 'admin.settings.section');
 adminLegacyRedirect('automations', 'admin.automations.index');
 adminLegacyRedirect('api-sync-logs', 'admin.api-sync-logs.index');
 adminLegacyRedirect('modules', 'admin.extensions.index');
+adminLegacyRedirect('extensions/theme/layout', 'admin.layout');
+adminLegacyRedirect('extensions/theme/layout/menus', 'admin.layout.menus');
 
 // Sales — Abandoned Carts (operational) + Settings > Modules > Abandoned
 // Carts (config) — literal siblings before the {cart} show wildcard
