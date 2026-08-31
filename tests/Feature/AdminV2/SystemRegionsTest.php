@@ -54,25 +54,25 @@ class SystemRegionsTest extends TestCase
         $this->assertStringNotContainsString('search-bar', $html, 'The search piece was not placed, so it is not there.');
     }
 
-    public function test_the_editor_offers_the_shipped_row_and_saving_makes_it_the_merchants(): void
+    public function test_plazas_panel_offers_the_shipped_row_and_saving_makes_it_the_merchants(): void
     {
         app(\App\Services\ExtensionManager::class)->install('theme');
-        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->usePlaza();
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 
-        $html = $this->get(route('admin.layout', ['page' => '*']))->assertOk()->getContent();
-        $this->assertStringContainsString('"shipped":true', str_replace('\\u0022', '"', $html));
-        $this->assertStringContainsString('Header (as arranged)', $html);
+        // Decoupled: Plaza's shipped pieces show in its own panel.
+        $html = $this->get(route('admin.plaza.panel', ['panel' => 'builder', 'page' => '*']))->assertOk()->getContent();
+        preg_match('/id="pp-config"[^>]*>(.*?)<\/script>/s', $html, $m);
+        $config = json_decode(html_entity_decode($m[1]), true);
+        $header = collect($config['layouts']['*']['rows']['header'] ?? []);
+        $this->assertTrue($header->contains(fn ($u) => ! empty($u['shipped'])));
 
-        $this->post(route('admin.layout.update'), ['payload' => json_encode([
-            'page_type' => '*', 'columns' => ['left' => 0, 'right' => 0],
-            'rows' => [['id' => null, 'region' => 'header', 'columns' => [8], 'enabled' => true, 'placements' => [
-                ['id' => null, 'column' => 0, 'widget' => 'system.topbar', 'enabled' => true],
-                ['id' => null, 'column' => 0, 'widget' => 'system.logo', 'enabled' => true],
-                ['id' => null, 'column' => 0, 'widget' => 'system.nav', 'enabled' => true],
-            ]]],
-        ])])->assertRedirect()->assertSessionHas('success');
+        $this->postJson(route('admin.plaza.editor.save'), ['page' => '*', 'layout' => ['columns' => ['left' => 0, 'right' => 0], 'settings' => [], 'rows' => ['header' => [['id' => null, 'columns' => [8], 'enabled' => true, 'style' => [], 'cols' => [[
+            ['id' => null, 'widget' => 'system.topbar', 'enabled' => true, 'config' => []],
+            ['id' => null, 'widget' => 'system.logo', 'enabled' => true, 'config' => []],
+            ['id' => null, 'widget' => 'system.nav', 'enabled' => true, 'config' => []],
+        ]]]]]], 'colors' => [], 'fonts' => [], 'theme_settings' => []])->assertOk();
 
         $this->assertSame(3, LayoutPlacement::where('theme', 'plaza')->where('region', 'header')->count());
         $this->get('/')->assertOk()->assertSee('nav-bar', false);
@@ -116,20 +116,18 @@ class SystemRegionsTest extends TestCase
         $this->assertStringNotContainsString('product-description', $html, 'The tabs piece was not placed.');
     }
 
-    public function test_the_product_editor_arranges_the_page_body_as_a_region(): void
+    public function test_plazas_panel_arranges_the_product_page_body_as_a_region(): void
     {
         app(\App\Services\ExtensionManager::class)->install('theme');
-        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->usePlaza();
+        app(\App\Services\ExtensionManager::class)->bootEnabled();
         $this->actingAs(User::factory()->create());
 
-        $html = $this->get(route('admin.layout', ['page' => 'product']))->assertOk()->getContent();
-        $this->assertStringContainsString('Gallery and buy box', $html);
-        $this->assertStringContainsString('v-lay__pagebody--region', $html);
-
-        // On a page that is not the product page, the product region is not drawn.
-        $home = $this->get(route('admin.layout', ['page' => 'home']))->assertOk()->getContent();
-        $this->assertStringNotContainsString('v-lay__pagebody--region', $home);
+        $html = $this->get(route('admin.plaza.panel', ['panel' => 'builder', 'page' => 'product']))->assertOk()->getContent();
+        preg_match('/id="pp-config"[^>]*>(.*?)<\/script>/s', $html, $m);
+        $config = json_decode(html_entity_decode($m[1]), true);
+        $this->assertTrue(collect($config['regions'])->contains(fn ($r) => $r['key'] === 'product_main' && $r['page'] === 'product' && $r['system']));
+        $this->assertContains('system.product_buy', collect($config['catalogue'])->pluck('key')->all());
     }
 
     public function test_venta_keeps_its_fixed_product_page(): void

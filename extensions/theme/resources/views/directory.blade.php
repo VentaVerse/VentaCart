@@ -64,6 +64,7 @@
                         @if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor']))
                             <a href="{{ route($meta['editor']) }}" class="v-btn v-btn--sm">Edit</a>
                         @else
+                            <a href="{{ route('admin.theme.customise', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Customise</a>
                             <a href="{{ route('admin.layout', ['theme' => $slug]) }}" class="v-btn v-btn--sm">Arrange pages</a>
                         @endif
                         <form method="POST" action="{{ route('admin.theme.activate') }}">

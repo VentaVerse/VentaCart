@@ -23,15 +23,15 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         Route::post('/package/install', [ThemeController::class, 'install'])->name('package.install');
         Route::post('/package/uninstall', [ThemeController::class, 'uninstall'])->name('package.uninstall');
         // The editor for one theme, reached by choosing it.
-        Route::get('/customise', [ThemeController::class, 'index'])->name('customise');
+        Route::get('/customise', [ThemeController::class, 'index'])->name('customise')->middleware(\App\Http\Middleware\EditTheme::class);
         // The layout editor. Its own work page, not a tab inside the theme
         // editor: placements are store data that survive a theme switch.
         // The bench: storefront in a frame, controls beside it.
         Route::get('/preview', [ThemeController::class, 'preview'])->name('preview');
         Route::post('/preview', [ThemeController::class, 'savePreview'])->name('preview.save');
-        Route::post('/settings', [ThemeController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/settings', [ThemeController::class, 'updateSettings'])->name('settings.update')->middleware(\App\Http\Middleware\EditTheme::class);
         Route::post('/switch', [ThemeController::class, 'switchTheme'])->name('switch');
-        Route::post('/revert-colors', [ThemeController::class, 'revertThemeColors'])->name('revert-colors');
+        Route::post('/revert-colors', [ThemeController::class, 'revertThemeColors'])->name('revert-colors')->middleware(\App\Http\Middleware\EditTheme::class);
         Route::post('/presets', [ThemeController::class, 'storePreset'])->name('presets.store');
         Route::post('/presets/import', [ThemeController::class, 'importPreset'])->name('presets.import');
         Route::get('/presets/{slug}/export', [ThemeController::class, 'exportPreset'])->name('presets.export');
@@ -41,7 +41,7 @@ Route::middleware(['web', 'auth', 'admin.session.cap'])
         // layout system landed: a working form with a Save that reported
         // success and changed nothing. The data was carried across by
         // layout:carry-homepage-sections; the model stays for that command.
-        Route::post('/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('update-theme-settings');
+        Route::post('/theme-settings', [ThemeController::class, 'updateThemeSettings'])->name('update-theme-settings')->middleware(\App\Http\Middleware\EditTheme::class);
 
         Route::post('/footer', [FooterColumnController::class, 'store'])->name('footer.store');
         Route::post('/footer/bulk-update', [FooterColumnController::class, 'bulkUpdate'])->name('footer.bulk-update');

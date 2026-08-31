@@ -1,4 +1,4 @@
-<x-admin.shell title="Theme">
+<x-admin.shell :title="$editingNonLive ? 'Theme: ' . $editThemeName : 'Theme'">
     <div class="v-head">
         <div class="v-head__body">
             <div class="v-head__trail">
@@ -41,7 +41,7 @@
                 // different form. Presets leads, ungrouped: it is a
                 // snapshot of everything below it, not a peer of it.
                 $vThemeNav = [
-                    '' => ['presets' => ['Presets', 'tags']],
+                    '' => $editingNonLive ? [] : ['presets' => ['Presets', 'tags']],
                     'Look' => ['colors' => ['Colors', 'theme'], 'fonts' => ['Fonts', 'text'], 'badges' => ['Badges', 'check']],
                     // "Structure", not "Layout": the layout editor is a
                     // different thing one item below, and two menu entries a
@@ -186,6 +186,7 @@
              arms when something is dirty instead of standing permanently live
              with nothing to save. --}}
         <x-admin.form :action="route('admin.theme.settings.update')" :save-only-when-dirty="true">
+            @if ($editingNonLive)<input type="hidden" name="theme" value="{{ $editThemeSlug }}">@endif
             {{-- ========== COLORS ========== --}}
             <div x-show="tab === 'colors'">
                 <x-admin.panel title="Colors">
@@ -482,7 +483,7 @@
 
         <x-admin.confirm name="revert-colors" title="Revert to theme defaults?"
             message="Reverts BOTH colors and fonts to this theme's defaults. Unsaved edits on those tabs are lost."
-            confirm="Revert" :action="route('admin.theme.revert-colors')" method="POST" />
+            confirm="Revert" :action="route('admin.theme.revert-colors', $editingNonLive ? ['theme' => $editThemeSlug] : [])" method="POST" />
 
         {{-- ========== NAVIGATION (records) ========== --}}
         <div x-show="tab === 'navigation'" x-cloak>
@@ -555,6 +556,7 @@
             <x-admin.panel title="Theme options" note="Settings this theme's own manifest declares.">
                 @if (count($themeSettingsSchema) > 0)
                     <x-admin.form :header-save="false" :action="route('admin.theme.update-theme-settings')">
+                        @if ($editingNonLive)<input type="hidden" name="theme" value="{{ $editThemeSlug }}">@endif
                         <div class="v-narrow">
                             @foreach ($themeSettingsSchema as $key => $schema)
                                 <div class="{{ $loop->first ? '' : 'v-gap' }}">

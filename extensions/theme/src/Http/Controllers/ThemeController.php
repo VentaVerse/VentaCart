@@ -15,9 +15,24 @@ class ThemeController extends Controller
 {
     public function index(ThemeService $theme)
     {
+        // A theme with an editor of its own is customised there, not here.
+        $editSlug = $theme->getActiveTheme();
+        $meta = json_decode((string) @file_get_contents($theme->getThemePath($editSlug) . '/theme.json'), true) ?: [];
+        if (! empty($meta['editor']) && \Illuminate\Support\Facades\Route::has($meta['editor'])) {
+            return redirect()->route($meta['editor']);
+        }
+        $liveSlug = (string) (Setting::where('group', 'identity')->where('key', 'active_theme')->value('value') ?: ThemeService::THEME);
+        $editingNonLive = $editSlug !== $liveSlug;
+
         $settings = [];
         foreach (Setting::all() as $s) {
             $settings[$s->group][$s->key] = $s->value;
+        }
+        // Editing a theme that is not live: its look lives in its stash.
+        if ($editingNonLive) {
+            foreach (['colors', 'fonts', 'vars'] as $group) {
+                $settings[$group] = $theme->getGroup($theme->lookGroup($group, $editSlug));
+            }
         }
 
         $navItems = NavMenuItem::orderBy('sort_order')->get();
@@ -41,7 +56,11 @@ class ThemeController extends Controller
             'settings', 'navItems', 'footerColumns', 'currencies', 'categories',
             'installedPresets', 'activePreset',
             'themeSettingsSchema', 'themeSettingValues'
-        ));
+        ) + [
+            'editThemeSlug' => $editSlug,
+            'editThemeName' => $theme->getInstalledThemes()[$editSlug]['name'] ?? $editSlug,
+            'editingNonLive' => $editingNonLive,
+        ]);
     }
 
     public function updateSettings(Request $request)
@@ -50,9 +69,16 @@ class ThemeController extends Controller
         // (groups[colors][...], groups[fonts][...], ...). Per-theme
         // snapshots still happen at switch time, unchanged.
         if (is_array($request->input('groups'))) {
+            // The look groups follow the theme being edited: live groups for
+            // the live theme, its stash otherwise (EditTheme middleware).
+            $themeService = app(ThemeService::class);
+            $editSlug = $themeService->getActiveTheme();
             foreach ($request->input('groups') as $group => $data) {
                 if (!is_array($data)) {
                     continue;
+                }
+                if (in_array($group, ['colors', 'fonts', 'vars'], true)) {
+                    $group = $themeService->lookGroup($group, $editSlug);
                 }
                 foreach ($data as $key => $value) {
                     Setting::updateOrCreate(
@@ -188,15 +214,15 @@ class ThemeController extends Controller
 
         if (!empty($colors)) {
             // Clear and rewrite, removing orphan keys from old color systems
-            Setting::where('group', 'colors')->delete();
+            Setting::where('group', $themeService->lookGroup('colors', $activeTheme))->delete();
             foreach ($colors as $key => $value) {
-                Setting::create(['group' => 'colors', 'key' => $key, 'value' => $value]);
+                Setting::create(['group' => $themeService->lookGroup('colors', $activeTheme), 'key' => $key, 'value' => $value]);
             }
         }
 
-        Setting::where('group', 'fonts')->delete();
+        Setting::where('group', $themeService->lookGroup('fonts', $activeTheme))->delete();
         foreach ($fonts as $key => $value) {
-            Setting::create(['group' => 'fonts', 'key' => $key, 'value' => $value]);
+            Setting::create(['group' => $themeService->lookGroup('fonts', $activeTheme), 'key' => $key, 'value' => $value]);
         }
 
         if ($presetSlug) {
