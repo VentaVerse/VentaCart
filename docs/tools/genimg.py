@@ -52,9 +52,14 @@ def elevenlabs(shot, model):
     if not key:
         raise SystemExit("no ELEVENLABS_API_KEY in .env")
     h = {"xi-api-key": key}
-    job = post("https://api.elevenlabs.io/v1/flows/image", {
-        "model_id": model, "prompt": shot["prompt"],
-        "aspect_ratio": shot["aspect_ratio"], "resolution": shot["resolution"]}, h)
+    body = {"model_id": model, "prompt": shot["prompt"], "aspect_ratio": shot["aspect_ratio"]}
+    # Only some models take a resolution; the flash tiers reject it outright.
+    if "resolution" in shot and model not in NO_RESOLUTION:
+        body["resolution"] = shot["resolution"]
+    # The GPT tiers take a quality dial the Gemini ones do not.
+    if model.startswith("gpt-image"):
+        body["quality"] = os.environ.get("IMG_QUALITY", "high")
+    job = post("https://api.elevenlabs.io/v1/flows/image", body, h)
     if not job.get("id"):
         raise RuntimeError(json.dumps(job)[:300])
     for _ in range(90):
@@ -65,6 +70,8 @@ def elevenlabs(shot, model):
         if st.get("status") == "failed":
             raise RuntimeError(f"{st.get('failure_reason')}: {st.get('error_message')}")
     raise RuntimeError("timed out")
+
+NO_RESOLUTION = {"gemini-2.5-flash-image", "gemini-3.1-flash-image", "gemini-3.1-flash-lite-image"}
 
 DEFAULT_MODEL = {"gemini": "gemini-2.5-flash-image", "elevenlabs": "gemini-2.5-flash-image"}
 
