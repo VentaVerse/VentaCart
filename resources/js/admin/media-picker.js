@@ -84,10 +84,21 @@ export function registerMediaPicker(Alpine) {
             this.picked = [];
             this.q = '';
 
+            // Where to open. Reopening where you left off, or beside the image
+            // already chosen, is only a kindness while that folder sits inside
+            // the root this picker is aimed at. A picker pointed at brands must
+            // start in brands, however deep in products it was last time:
+            // otherwise every root on the library page opens the folder the
+            // previous one was left in, and only a page reload clears it.
+            const insideRoot = (p) => typeof p === 'string' && p !== ''
+                && (p === this.root || p.startsWith(this.root + '/'));
+
             const current = this.chosen[0];
-            const at = current && current.includes('/')
+            const beside = current && current.includes('/')
                 ? current.slice(0, current.lastIndexOf('/'))
-                : (this.lastPath || this.root);
+                : null;
+
+            const at = [beside, this.lastPath].find(insideRoot) || this.root;
 
             await this.browse(at, 1);
         },
