@@ -311,9 +311,20 @@ class ErpFulfillmentController extends Controller
             'order_status_id'     => ['nullable', 'integer'],
         ]);
 
-        $res = $service->bookManual($order, array_filter($data, fn ($v) => $v !== null && $v !== '') + [
-            'notify_customer' => $request->boolean('notify_customer'),
-        ]);
+        // notify_customer is forwarded only when the ERP actually sent it.
+        // It used to be coerced to a boolean either way, so an ERP that said
+        // nothing was recorded as having said no, and the store's own notify
+        // policy could never answer. Saying nothing now means "use the
+        // policy"; sending it still overrides, either way.
+        $opts = array_filter($data, fn ($v) => $v !== null && $v !== '');
+
+        if ($request->has('notify_customer')) {
+            $opts['notify_customer'] = $request->boolean('notify_customer');
+        } else {
+            unset($opts['notify_customer']);
+        }
+
+        $res = $service->bookManual($order, $opts);
 
         if (!($res['success'] ?? false)) {
             return $this->logAndRespond($request, [

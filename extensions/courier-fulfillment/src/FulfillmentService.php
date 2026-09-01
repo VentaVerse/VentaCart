@@ -1046,7 +1046,13 @@ class FulfillmentService
 
         $tracking = trim((string) ($opts['tracking_number'] ?? '')) ?: null;
         $note     = trim((string) ($opts['comment'] ?? $opts['note'] ?? '')) ?: null;
-        $notify   = (bool) ($opts['notify_customer'] ?? false);
+        // Who decides whether the customer hears about this. When the caller
+        // says nothing, the store's own policy answers: the packer records a
+        // parcel and the status settles the rest. An explicit value still
+        // wins, so a form or an ERP call can override the policy per order.
+        $notify = array_key_exists('notify_customer', $opts)
+            ? (bool) $opts['notify_customer']
+            : NotifyMap::notifies(($chosenStatus ?? self::bookedStatus())?->id);
 
         // Built from the courier's own {tracking_number} template, and only
         // when there is a number to put in it — a link to a tracking page with
