@@ -619,28 +619,40 @@ Alpine.data('addressForm', (config = {}) => ({
     },
 
     /**
-     * The dialling code beside the number is read off the address country, so
-     * changing the country re-points a number nobody edited: 9171234567 was
-     * +63, and after switching to Singapore the same digits read as +65.
-     * Nothing on screen changes except a prefix the customer has no reason to
-     * look at.
+     * The free text half of an address, wiped when the country changes.
      *
-     * So the number goes when the country does, and because the field is
-     * required they cannot save until they have entered it under the new
-     * code. The input is found in the DOM rather than in state because the
-     * three address forms hold it in three different places: newAddr.phone,
-     * billing.phone, and a plain named input on the account page.
+     * The cascading half (province, city, district, barangay) has always
+     * cleared here, but only because it had to: those are country-specific
+     * lists and a PH barangay is not a thing that exists in Singapore. The
+     * typed fields were left behind because nothing forced the issue, which
+     * left a street, a postcode and a mobile number sitting under a country
+     * they were never written for. The mobile is the worst of them: the
+     * dialling code shown beside it is read off the address country, so the
+     * same digits silently became a different number.
+     *
+     * The name stays. It is the one part of an address that does not change
+     * when the country does.
+     *
+     * Cleared through the DOM because the three address forms hold these in
+     * three different places (newAddr.*, billing.*, and plain named inputs on
+     * the account page) while sharing this one handler.
      */
-    clearPhone() {
-        const el = this.$root?.querySelector('input[type="tel"]');
+    clearTypedAddress() {
+        const fields = ['address_1', 'address_2', 'postcode', 'phone'];
 
-        if (!el || el.value === '') {
-            return;
-        }
+        this.$root?.querySelectorAll('input, textarea').forEach((el) => {
+            const model = el.getAttribute('x-model') || '';
+            const name = el.getAttribute('name') || '';
+            const hit = fields.some((f) => name === f || model.endsWith('.' + f));
 
-        el.value = '';
-        // Keeps x-model in step where there is one; harmless where there is not.
-        el.dispatchEvent(new Event('input', { bubbles: true }));
+            if (!hit || el.value === '') {
+                return;
+            }
+
+            el.value = '';
+            // Keeps x-model in step where there is one; harmless where not.
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
     },
 
     async onCountryChange(clear = true) {
@@ -649,7 +661,7 @@ Alpine.data('addressForm', (config = {}) => ({
             this.city = '';
             this.district = '';
             this.barangay = '';
-            this.clearPhone();
+            this.clearTypedAddress();
         }
         this.providerFields = [];
         this.providerData = {};
