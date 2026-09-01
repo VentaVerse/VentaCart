@@ -239,7 +239,7 @@
                                 <label class="account-label">Mobile Number <span class="text-[var(--color-secondary)]">*</span></label>
                                 <div class="flex gap-2">
                                     <span class="inline-flex items-center px-3 rounded-md bg-[var(--color-search-bg)] border border-[var(--color-input-border)] text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '-'"></span>
-                                    <input type="tel" x-model="newAddr.phone" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <input type="tel" required x-model="newAddr.phone" class="account-input flex-1" placeholder="Mobile number" minlength="7" maxlength="13" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                             </div>
 
@@ -394,7 +394,7 @@
                                 <label class="account-label">Mobile Number</label>
                                 <div class="flex gap-2">
                                     <span class="inline-flex items-center px-3 rounded-md bg-[var(--color-search-bg)] border border-[var(--color-input-border)] text-sm text-[var(--color-text-muted)]" x-text="window.__phoneCodes?.[countryCode] ? '+' + window.__phoneCodes[countryCode] : '-'"></span>
-                                    <input type="tel" x-model="$data.billing.phone" class="account-input flex-1" placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                                    <input type="tel" required x-model="$data.billing.phone" class="account-input flex-1" placeholder="Mobile number" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                                 </div>
                             </div>
                         </div>

@@ -618,12 +618,38 @@ Alpine.data('addressForm', (config = {}) => ({
         this[prop] = saved;
     },
 
+    /**
+     * The dialling code beside the number is read off the address country, so
+     * changing the country re-points a number nobody edited: 9171234567 was
+     * +63, and after switching to Singapore the same digits read as +65.
+     * Nothing on screen changes except a prefix the customer has no reason to
+     * look at.
+     *
+     * So the number goes when the country does, and because the field is
+     * required they cannot save until they have entered it under the new
+     * code. The input is found in the DOM rather than in state because the
+     * three address forms hold it in three different places: newAddr.phone,
+     * billing.phone, and a plain named input on the account page.
+     */
+    clearPhone() {
+        const el = this.$root?.querySelector('input[type="tel"]');
+
+        if (!el || el.value === '') {
+            return;
+        }
+
+        el.value = '';
+        // Keeps x-model in step where there is one; harmless where there is not.
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+
     async onCountryChange(clear = true) {
         if (clear) {
             this.state = '';
             this.city = '';
             this.district = '';
             this.barangay = '';
+            this.clearPhone();
         }
         this.providerFields = [];
         this.providerData = {};
