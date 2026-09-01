@@ -35,16 +35,16 @@ class DemoCatalogSeeder extends Seeder
      * the picker and unpickable by the merchant: the images would show on the
      * storefront but could not be replaced or deleted from the admin.
      *
-     * Straight into the root, not a demo/ subfolder of it. A subfolder reads
-     * as tidy and behaves badly: the merchant opens Products expecting the
-     * pictures the count promised and finds one folder and no images. These
-     * are the store's product photographs until they are deleted, so they
-     * belong where product photographs go.
+     * A demo/ subfolder inside each root keeps them together and makes them
+     * one thing to delete when the merchant is ready to clear the demo out.
+     * Every subfolder of a reachable root is itself reachable, and the root
+     * card counts files and folders separately, so a folder holding nothing
+     * but this one says so rather than promising pictures it does not have.
      */
     private const PUBLISH = [
-        'products' => 'products',
-        'categories' => 'categories',
-        'brands' => 'brands',
+        'products' => 'products/demo',
+        'categories' => 'categories/demo',
+        'brands' => 'brands/demo',
     ];
 
     public function run(): void
