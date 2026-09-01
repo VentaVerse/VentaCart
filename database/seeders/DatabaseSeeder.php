@@ -34,6 +34,11 @@ class DatabaseSeeder extends Seeder
             $this->call($seeder);
         }
 
+        // The shop a fresh install opens on. Declines to run the moment the
+        // catalogue holds anything, so an existing store is never given demo
+        // goods by an update.
+        $this->call(DemoCatalogSeeder::class);
+
         // Create super admin user. Username is derived from the email
         // local-part (the part before "@"), which is how every other admin
         // account gets its username too (see the one-off backfill for

@@ -19,12 +19,16 @@
 $root = dirname(__DIR__, 2);
 
 $widths = [
-    'hero'     => 1800,  // full-bleed slider, site width
-    'gallery'  => 1400,  // product gallery, roughly half the page
-    'tile'     => 1200,  // banner tiles, third to half width
-    'blog'     => 1200,  // post header
-    'category' => 1200,  // category strip
-    'product'  => 1000,  // product card and quick view
+    'hero'       => 1800,  // full-bleed slider, site width
+    'gallery'    => 1400,  // product gallery, roughly half the page
+    'tile'       => 1200,  // banner tiles, third to half width
+    'blog'       => 1200,  // post header
+    'category'   => 1200,  // category strip
+    'categories' => 1200,  // the demo catalogue's department tiles
+    'product'    => 1000,  // product card and quick view
+    'products'   => 1200,  // the demo catalogue's own shots, also used at
+                           // full size on the product page gallery
+    'brands'     => 400,   // a logo mark in a brand strip, never larger
 ];
 
 $quality = 86;

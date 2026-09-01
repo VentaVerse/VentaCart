@@ -79,15 +79,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--provider", choices=["gemini", "elevenlabs"], default="gemini")
     ap.add_argument("--model")
-    ap.add_argument("--only", help="one group: hero, product, gallery, tile, blog")
+    ap.add_argument("--manifest", default="docs/tools/demo-shots.json",
+                    help="which sheet to generate from, relative to the project root")
+    ap.add_argument("--only", help="one folder name from the manifest's paths, e.g. hero or products")
     ap.add_argument("--limit", type=int)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--force", action="store_true", help="regenerate even if the file exists")
     a = ap.parse_args()
 
-    shots = json.loads((ROOT / "docs/tools/demo-shots.json").read_text())
+    # A manifest is either a bare list of shots or an object with a "shots"
+    # key, so a sheet can carry a note about what it is for.
+    loaded = json.loads((ROOT / a.manifest).read_text())
+    shots = loaded["shots"] if isinstance(loaded, dict) else loaded
     if a.only:
-        shots = [s for s in shots if f"/demo/{a.only}/" in s["path"]]
+        shots = [s for s in shots if f"/{a.only}/" in s["path"]]
     todo = [s for s in shots if a.force or not (ROOT / s["path"]).exists()]
     if a.limit:
         todo = todo[: a.limit]

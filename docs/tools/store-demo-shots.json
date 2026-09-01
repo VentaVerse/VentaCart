@@ -1,0 +1,140 @@
+{
+  "note": "Photography for the demo catalogue a fresh Venta install ships with. Written to resources/demo/store/, which is tracked, and published into storage on install. Deliberately brand neutral: no logos, no lettering, no maker's marks, so the pictures stay correct whatever the demo products end up being called.",
+  "shots": [
+    {
+      "path": "resources/demo/store/products/phone-pro-graphite.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a modern flagship smartphone in graphite standing upright, centred on a plain background, screen off and dark, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, no icons on screen"
+    },
+    {
+      "path": "resources/demo/store/products/phone-pro-blue.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "the same modern flagship smartphone in deep blue standing upright, centred on a plain background, screen off and dark, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, no icons on screen"
+    },
+    {
+      "path": "resources/demo/store/products/phone-pro-desert.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "the same modern flagship smartphone in warm sand gold standing upright, centred on a plain background, screen off and dark, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, no icons on screen"
+    },
+    {
+      "path": "resources/demo/store/products/phone-compact-pink.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a compact modern smartphone in soft pink lying at a slight angle, centred on a plain background, screen off and dark, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names"
+    },
+    {
+      "path": "resources/demo/store/products/laptop-pro-14.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a thin 14 inch aluminium laptop in space grey, open, seen three quarters from the front, dark screen, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/laptop-air-13.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a very thin 13 inch silver laptop, open at a shallow angle, dark screen, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/laptop-closed-stack.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "two closed slim aluminium laptops stacked neatly, seen from a low three quarter angle, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names"
+    },
+    {
+      "path": "resources/demo/store/products/monitor-27-4k.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a 27 inch desktop monitor on a slim aluminium stand, thin bezels, dark screen, seen straight on, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/monitor-34-ultrawide.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a wide curved ultrawide computer monitor on a central stand, dark screen, seen from a slight angle, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/monitor-portable.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a small portable travel monitor propped on a folding kickstand, dark screen, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/tablet-pro-11.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "an 11 inch tablet in silver standing upright in portrait orientation, thin bezels, dark screen, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/tablet-keyboard-case.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a tablet seated in a detachable keyboard case, open like a small laptop, dark screen, seen three quarters from the front, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/tablet-stylus.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a tablet lying flat with a slim white stylus resting beside it, dark screen, seen from above at a slight angle, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/products/earbuds-case.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a pair of white wireless earbuds resting in an open charging case, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names"
+    },
+    {
+      "path": "resources/demo/store/products/hub-usbc.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a slim aluminium USB-C hub with several ports along its edge and a short braided cable coiled beside it, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names"
+    },
+    {
+      "path": "resources/demo/store/products/keyboard-mouse-set.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a low profile wireless keyboard with a matching slim mouse placed beside it, seen from above at a slight angle, centred on a plain background, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank key caps"
+    },
+    {
+      "path": "resources/demo/store/categories/phones.jpg",
+      "aspect_ratio": "4:3",
+      "prompt": "a group of three modern smartphones in different colours arranged upright in a row, screens off, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names"
+    },
+    {
+      "path": "resources/demo/store/categories/laptops.jpg",
+      "aspect_ratio": "4:3",
+      "prompt": "two slim aluminium laptops, one open and one closed, arranged together on a surface, dark screens, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/categories/monitors.jpg",
+      "aspect_ratio": "4:3",
+      "prompt": "two desktop monitors of different sizes standing side by side on their stands, dark screens, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/categories/tablets.jpg",
+      "aspect_ratio": "4:3",
+      "prompt": "two tablets of different sizes, one upright and one lying flat with a stylus, dark screens, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/categories/accessories.jpg",
+      "aspect_ratio": "4:3",
+      "prompt": "a group of small computer accessories arranged neatly together, wireless earbuds, a slim hub, a braided cable and a compact mouse, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names"
+    },
+    {
+      "path": "resources/demo/store/categories/computers.jpg",
+      "aspect_ratio": "4:3",
+      "prompt": "a laptop and a desktop monitor arranged together on a clean desk surface, dark screens, even soft studio lighting, pale cool grey seamless background, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screen"
+    },
+    {
+      "path": "resources/demo/store/brands/aurora.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a minimal abstract logo mark of a simple arc rising over a horizon line, flat vector style, single deep blue colour on a plain white square background, centred, generous margin, no text, no lettering, no words"
+    },
+    {
+      "path": "resources/demo/store/brands/northwind.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a minimal abstract logo mark of three stacked chevrons leaning right like wind, flat vector style, single slate grey colour on a plain white square background, centred, generous margin, no text, no lettering, no words"
+    },
+    {
+      "path": "resources/demo/store/brands/lumen.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a minimal abstract logo mark of concentric rings around a small solid centre like a lens, flat vector style, single amber colour on a plain white square background, centred, generous margin, no text, no lettering, no words"
+    },
+    {
+      "path": "resources/demo/store/brands/kestrel.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a minimal abstract logo mark of a bird's wing reduced to four clean angular strokes, flat vector style, single teal colour on a plain white square background, centred, generous margin, no text, no lettering, no words"
+    },
+    {
+      "path": "resources/demo/store/brands/vireo.jpg",
+      "aspect_ratio": "1:1",
+      "prompt": "a minimal abstract logo mark of a small leaf formed from two curved shapes, flat vector style, single green colour on a plain white square background, centred, generous margin, no text, no lettering, no words"
+    }
+  ]
+}
