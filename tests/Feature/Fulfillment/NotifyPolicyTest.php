@@ -54,6 +54,21 @@ class NotifyPolicyTest extends TestCase
         $this->handover = OrderStatus::create(['store_id' => 1, 'name' => 'Handed over', 'sort_order' => 3]);
         \Extensions\CourierFulfillment\PlacementMap::put($this->handover->id, 'to_handover');
 
+        // TemplateMailService looks the template up and quietly returns false
+        // when it is missing, so without this a test asserting "an email was
+        // sent" would fail for the wrong reason.
+        \DB::table('email_templates')->insert([
+            'store_id' => 1,
+            'slug' => 'order_status_update',
+            'name' => 'Order status update',
+            'subject' => 'Your order #{order_id} is now {new_status}',
+            'body' => '<p>Hi {customer_name}, order #{order_id} moved from {old_status} to {new_status}.</p><p>{comment}</p>',
+            'type' => 'customer',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         Mail::fake();
     }
 
@@ -155,5 +170,54 @@ class NotifyPolicyTest extends TestCase
         );
 
         return ['Authorization' => 'Bearer ' . $token];
+    }
+
+    /**
+     * One email, the same one the order page sends, with the parcel's number
+     * in it. A tracking number used to divert this to the shipping template,
+     * which never said the status had changed.
+     */
+    public function test_a_recorded_parcel_sends_one_status_email_carrying_the_tracking(): void
+    {
+        NotifyMap::put([$this->handover->id]);
+
+        $courier = \App\Models\ShippingCourier::create([
+            'store_id' => 1, 'name' => 'Test Courier', 'is_active' => true,
+            'tracking_url' => 'https://track.example.test/{tracking_number}',
+        ]);
+
+        app(FulfillmentService::class)->bookManual($this->order(), [
+            'order_status_id'     => $this->handover->id,
+            'shipping_courier_id' => $courier->id,
+            'tracking_number'     => 'TRK123456',
+            'comment'             => 'Left with the guard',
+        ]);
+
+        Mail::assertSent(\App\Mail\TemplateMail::class, 1);
+
+        Mail::assertSent(\App\Mail\TemplateMail::class, function ($mail) {
+            $body = $mail->renderedBody;
+
+            return str_contains($body, 'Handed over')
+                && str_contains($body, 'Left with the guard')
+                && str_contains($body, 'TRK123456')
+                && str_contains($body, 'https://track.example.test/TRK123456');
+        });
+    }
+
+    /** And with no number, the same email without a tracking tail. */
+    public function test_a_status_move_with_no_parcel_still_sends_one_plain_email(): void
+    {
+        NotifyMap::put([$this->handover->id]);
+
+        app(FulfillmentService::class)->bookManual($this->order(), [
+            'order_status_id' => $this->handover->id,
+            'comment'         => 'Ready for the rider',
+        ]);
+
+        Mail::assertSent(\App\Mail\TemplateMail::class, 1);
+        Mail::assertSent(\App\Mail\TemplateMail::class, fn ($m) =>
+            str_contains($m->renderedBody, 'Ready for the rider')
+            && ! str_contains($m->renderedBody, '<a href'));
     }
 }

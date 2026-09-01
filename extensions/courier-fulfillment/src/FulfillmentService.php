@@ -1120,17 +1120,20 @@ class FulfillmentService
         // "notify customer" on a recorded shipment sent nothing at all. A
         // parcel with a number gets the shipping email, which names the courier
         // and links the number; one without gets the plain status email.
-        if ($notify) {
-            if ($tracking) {
-                OrderNotificationService::shipped($order);
-            } elseif ($applied) {
-                OrderNotificationService::statusChanged(
-                    $order,
-                    OrderStatus::whereKey($preBookingStatusId)->value('name'),
-                    $applied->name,
-                    $note ?? '',
-                );
-            }
+        // One update, one email, and the same one the order page sends. A
+        // parcel with a number used to get the shipping mail instead, which
+        // never said the status had changed: record "Handed over" with a
+        // number and the customer was told the order had shipped and not
+        // where it now stood. The tracking rides in the comment now, built by
+        // the shared builder, so both screens answer a status change the same
+        // way whichever one the packer happened to use.
+        if ($notify && $applied) {
+            OrderNotificationService::statusChanged(
+                $order,
+                OrderStatus::whereKey($preBookingStatusId)->value('name'),
+                $applied->name,
+                OrderNotificationService::withTracking($order, $note),
+            );
         }
 
         return [

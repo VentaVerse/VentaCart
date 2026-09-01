@@ -33,6 +33,40 @@ class OrderNotificationService
      *
      * @return array{carrier_name: string, tracking_number: string, tracking_url: string, tracking_details: string}
      */
+    /**
+     * A status comment with the parcel's tracking on the end of it.
+     *
+     * The order page and the fulfilment queue both tell a customer the same
+     * thing and were assembling that sentence separately, which is how they
+     * drifted into sending different emails for the same act. One sentence,
+     * built once, and the carrier and link are resolved by the same fallbacks
+     * the shipping email uses rather than a second guess at them.
+     *
+     * The caller decides WHEN to append: the order page only does so when the
+     * tracking was part of that submission, so a plain status change on an
+     * order that already shipped does not repeat the number.
+     */
+    public static function withTracking(Order $order, ?string $comment = null): string
+    {
+        $tracking = self::trackingPlaceholders($order);
+        $number = trim((string) $tracking['tracking_number']);
+        $comment = trim((string) $comment);
+
+        if ($number === '') {
+            return $comment;
+        }
+
+        $carrier = trim((string) $tracking['carrier_name']);
+        $url = trim((string) $tracking['tracking_url']);
+
+        $tail = ($carrier !== '' ? e($carrier) . ': ' : '')
+            . ($url !== ''
+                ? '<a href="' . e($url) . '" target="_blank" rel="noopener">' . e($number) . '</a>'
+                : e($number));
+
+        return $comment !== '' ? $comment . ' | ' . $tail : $tail;
+    }
+
     public static function trackingPlaceholders(Order $order): array
     {
         $number = trim((string) $order->tracking_number);
