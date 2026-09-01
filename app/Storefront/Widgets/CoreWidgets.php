@@ -3,6 +3,7 @@
 namespace App\Storefront\Widgets;
 
 use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
 use App\Support\Widgets;
 use Illuminate\Support\Facades\DB;
@@ -99,6 +100,40 @@ class CoreWidgets
             'resolve' => fn () => ['brands' => Brand::where('is_active', true)
                 ->whereNotNull('image')->where('image', '!=', '')
                 ->orderBy('sort_order')->orderBy('name')->get()],
+        ]);
+
+        // Departments as pictures you can click, which every shop front has
+        // and this one had no way to draw: category_tabs below renders a
+        // placeholder, and a gallery is images without links.
+        Widgets::register('catalog.categories', [
+            'title' => 'Category grid',
+            'shape' => 'grid',
+            'module' => 'catalog',
+            'view' => 'widgets.catalog.categories',
+            'schema' => [
+                'show' => ['type' => 'select', 'label' => 'Which', 'default' => 'top',
+                    'options' => ['top' => 'Top level only', 'all' => 'All categories']],
+                'limit' => ['type' => 'number', 'label' => 'How many', 'default' => 8],
+                'columns' => ['type' => 'select', 'label' => 'Per row', 'default' => '4',
+                    'options' => ['2' => '2', '3' => '3', '4' => '4', '5' => '5', '6' => '6']],
+            ],
+            'resolve' => function (array $config) {
+                $query = Category::query()
+                    ->where('is_active', true)
+                    // A department with no picture is a grey box in a grid of
+                    // photographs, so it waits until it has one.
+                    ->whereNotNull('image')->where('image', '!=', '');
+
+                if (($config['show'] ?? 'top') !== 'all') {
+                    $query->whereNull('parent_id');
+                }
+
+                return ['categories' => $query
+                    ->withCount(['products' => fn ($q) => $q->where('is_active', true)])
+                    ->orderBy('sort_order')->orderBy('name')
+                    ->limit(max(1, min(24, (int) ($config['limit'] ?? 8))))
+                    ->get()];
+            },
         ]);
 
         Widgets::register('catalog.category_tabs', [

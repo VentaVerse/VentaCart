@@ -45,6 +45,9 @@ class DemoCatalogSeeder extends Seeder
         'products' => 'media/products/demo',
         'categories' => 'media/categories/demo',
         'brands' => 'media/brands/demo',
+        // The home page's hero photograph, which the layout seeder points a
+        // row background at.
+        'hero' => 'media/hero',
     ];
 
     public function run(): void

@@ -135,6 +135,16 @@
       "path": "resources/demo/store/brands/vireo.jpg",
       "aspect_ratio": "1:1",
       "prompt": "a minimal abstract logo mark of a small leaf formed from two curved shapes, flat vector style, single green colour on a plain white square background, centred, generous margin, no text, no lettering, no words"
+    },
+    {
+      "path": "resources/demo/store/hero/desk.jpg",
+      "aspect_ratio": "16:9",
+      "prompt": "a tidy modern desk seen from a low angle with a laptop, a monitor, a phone and headphones arranged across the right two thirds, the left third deliberately empty and softly lit, cool grey and deep blue tones, calm even studio lighting, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names, blank screens"
+    },
+    {
+      "path": "resources/demo/store/hero/promo.jpg",
+      "aspect_ratio": "16:9",
+      "prompt": "an overhead flat lay of small tech accessories on a plain warm grey surface, earbuds, a cable coiled neatly, a hub and a compact mouse spread across the right side, generous empty space on the left, soft daylight, crisp product photography, photographic, no text, no lettering, no logos, no watermarks, no brand names"
     }
   ]
 }
