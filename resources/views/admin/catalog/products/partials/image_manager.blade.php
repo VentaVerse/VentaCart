@@ -12,7 +12,7 @@
          asks for; the component dispatches the input event itself, so the
          _markDirty() dance every copy had to remember is gone. --}}
     <x-admin.media-picker name="__product_images" root="products" mode="multi"
-                          can="upload,url,delete" bare
+                          can="upload,url,delete,folder" bare
                           @media:picked="addPaths($event.detail.paths)" />
 
     <div class="v-filterbar v-gap-sm">

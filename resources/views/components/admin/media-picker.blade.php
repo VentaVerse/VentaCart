@@ -8,7 +8,11 @@
     // library page does and what it could not do until now: it rendered an
     // Add button that fired into a handler doing nothing.
     'commit' => 'add',
-    'can' => 'upload,url,delete',
+    // A picker that can put a file into the library can make somewhere to put
+    // it. Only the library page granted 'folder' before, so filing a product's
+    // photographs meant leaving the form, making the folder on the media page,
+    // and coming back. Pickers that mean to be read only still say so.
+    'can' => 'upload,url,delete,folder',
     'label' => null,
     'trigger' => 'Browse',
     'help' => null,
