@@ -33,14 +33,25 @@ class MediaController extends Controller
      */
     public function index(Request $request)
     {
+        MediaLibrary::ensure(MediaLibrary::ROOT);
+
+        foreach (MediaLibrary::DEFAULTS as $folder) {
+            MediaLibrary::ensure(MediaLibrary::ROOT . '/' . $folder);
+        }
+
+        // The folders that are actually there, not a fixed five. A merchant who
+        // makes "summer-sale" gets a card for it like any other.
+        $roots = array_map(
+            fn ($f) => $f['path'],
+            MediaLibrary::foldersIn(MediaLibrary::ROOT)
+        );
+
         $counts = [];
         $folders = [];
 
-        foreach (MediaLibrary::ROOTS as $root) {
-            MediaLibrary::ensure($root);
-
+        foreach ($roots as $root) {
             // Count what opening the folder will actually show. This used to
-            // count recursively while the browser lists one level, so a root
+            // count recursively while the browser lists one level, so a folder
             // whose pictures sat in a subfolder advertised a number and then
             // opened on nothing. The subfolders are reported separately
             // instead, which is the part the recursive total was hiding.
@@ -54,6 +65,7 @@ class MediaController extends Controller
         }
 
         return view('admin.catalog.media.index', [
+            'roots' => $roots,
             'counts' => $counts,
             'folders' => $folders,
             'orphans' => $this->orphans(),
@@ -69,10 +81,10 @@ class MediaController extends Controller
      */
     private function orphans(): array
     {
-        $where = 'catalog';
+        $where = MediaLibrary::ROOT . '/catalog';
 
         if (! Storage::disk('public')->exists($where)) {
-            return ['count' => 0, 'total' => 0, 'where' => $where, 'root' => 'products'];
+            return ['count' => 0, 'total' => 0, 'where' => $where, 'root' => MediaLibrary::ROOT . '/products'];
         }
 
         $files = collect(Storage::disk('public')->allFiles($where))

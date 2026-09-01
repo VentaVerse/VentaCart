@@ -42,9 +42,9 @@ class DemoCatalogSeeder extends Seeder
      * but this one says so rather than promising pictures it does not have.
      */
     private const PUBLISH = [
-        'products' => 'products/demo',
-        'categories' => 'categories/demo',
-        'brands' => 'brands/demo',
+        'products' => 'media/products/demo',
+        'categories' => 'media/categories/demo',
+        'brands' => 'media/brands/demo',
     ];
 
     public function run(): void

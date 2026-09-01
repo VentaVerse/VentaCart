@@ -31,7 +31,8 @@
      decided here now; a caller says what it points at and what it may do. --}}
 <div class="v-mpick {{ $bare ? 'v-mpick--bare' : '' }}"
      x-data="vMediaPicker({
-        root: @js($root),
+        root: @js(\App\Support\MediaLibrary::root($root)),
+        library: @js(\App\Support\MediaLibrary::ROOT),
         mode: @js($mode),
         can: @js($can),
         commit: @js($commit),
@@ -92,7 +93,10 @@
 
             <div class="v-mpick__head">
                 <nav class="v-crumbrow" aria-label="Folder path">
-                    <button type="button" class="v-link" @click="browse(root, 1)" x-text="root"></button>
+                    {{-- The trail starts at the library, not at whatever folder
+                         this picker was aimed at, because that folder is now a
+                         place you can walk out of. --}}
+                    <button type="button" class="v-link" @click="browse(library, 1)">Library</button>
                     <template x-for="crumb in crumbs.slice(1)" :key="crumb.path">
                         <span class="v-crumbrow">
                             <span aria-hidden="true">/</span>

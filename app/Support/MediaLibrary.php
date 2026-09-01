@@ -20,25 +20,47 @@ use Illuminate\Support\Str;
  */
 class MediaLibrary
 {
-    /** The folders the admin offers as a starting point. */
-    public const ROOTS = ['products', 'brands', 'categories', 'blog', 'banners'];
-
     /**
-     * Everywhere a picker may go, which is the roots plus the retired
-     * OpenCart tree.
+     * The one tree the admin may touch.
      *
-     * `catalog/` is not offered as a root and is not where anything new is
-     * written, but 17 live products still point into its 1,904 files, so
-     * blocking it outright would make those images unpickable. It stays
-     * reachable and stays unadvertised.
+     * Everything the merchant owns lives under here and they may arrange it
+     * however they like: rename folders, nest them, make new ones. What used
+     * to be five fixed roots that could not see each other are now ordinary
+     * folders inside this one, so a product photograph can be used on a blog
+     * post without being uploaded twice.
+     *
+     * It also makes the safety rule a sentence instead of a list. Public
+     * storage holds things that are not media and must never reach a picker's
+     * delete button: bank-qr with the store's payment codes, identity with its
+     * logo, theme, _tmp, and whatever a future package drops there. Before,
+     * each of those was safe only because somebody remembered to leave it off
+     * an allow list. Now they are safe because they are not in here.
      */
-    private const REACHABLE = ['products', 'brands', 'categories', 'blog', 'banners', 'catalog'];
+    public const ROOT = 'media';
+
+    /** Made on install, and no more special than a folder the merchant makes. */
+    public const DEFAULTS = ['products', 'brands', 'categories', 'blog', 'banners'];
 
     public const EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
+    /**
+     * Where a picker starts. A caller still says "products" and means the
+     * usual place for product photographs, but it is a starting point now,
+     * not a cage: the up tile walks out of it into the rest of the library.
+     */
     public static function root(?string $root): string
     {
-        return in_array($root, self::ROOTS, true) ? $root : 'products';
+        $root = trim(str_replace('\\', '/', (string) $root), '/');
+
+        if ($root === '' || $root === self::ROOT) {
+            return self::ROOT;
+        }
+
+        // Accept both "products" and "media/products", so every existing
+        // caller keeps working and nothing has to know about the prefix.
+        $path = str_starts_with($root, self::ROOT . '/') ? $root : self::ROOT . '/' . $root;
+
+        return self::safePath($path) ?: self::ROOT;
     }
 
     /**
@@ -49,26 +71,23 @@ class MediaLibrary
      * it was listed directly, so a product picker could walk into bank-qr/
      * and hand the store's payment QR code to a delete button.
      *
-     * An ALLOW list rather than a deny list, because a deny list only refuses
-     * the folders somebody remembered. Anything that is not a media root is
-     * not media: identity, bank-qr, theme, _tmp, and whatever a future
-     * package drops on the public disk.
+     * One tree, and the answer is whether the path is in it. Nothing outside
+     * the library is media, and nothing outside it can be reached, listed,
+     * written to or deleted through here.
      */
     public static function safePath(?string $path): string|false
     {
         $path = trim(str_replace('\\', '/', (string) $path), '/');
 
-        if ($path === '') {
-            return '';
+        if ($path === '' || $path === self::ROOT) {
+            return self::ROOT;
         }
 
         if (str_contains($path, '..') || str_contains($path, './') || str_starts_with($path, '.')) {
             return false;
         }
 
-        $head = explode('/', $path)[0];
-
-        return in_array($head, self::REACHABLE, true) ? $path : false;
+        return str_starts_with($path, self::ROOT . '/') ? $path : false;
     }
 
     public static function ensure(string $path): void
@@ -82,8 +101,8 @@ class MediaLibrary
     public static function foldersIn(string $path): array
     {
         return collect(Storage::disk('public')->directories($path))
-            // At the disk root the only folders offered are media roots; deeper
-            // in, every subfolder of a reachable root is fair game.
+            // Every folder inside the library is fair game; the filter is what
+            // stops a listing of the disk root offering identity or bank-qr.
             ->filter(fn ($dir) => self::safePath($dir) !== false)
             ->map(fn ($dir) => ['name' => basename($dir), 'path' => $dir])
             ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
@@ -168,10 +187,13 @@ class MediaLibrary
     /** @return array<int, array{name: string, path: string}> */
     public static function crumbs(string $path, string $root): array
     {
-        if ($path === '' || $path === $root) {
+        if ($path === '' || $path === self::ROOT) {
             return [];
         }
 
+        // The trail always starts at the library itself, whatever folder the
+        // picker was aimed at, because that is now somewhere you can walk back
+        // to rather than the edge of the world.
         $parts = explode('/', $path);
         $out = [];
         $so_far = '';
@@ -184,10 +206,10 @@ class MediaLibrary
         return $out;
     }
 
-    /** Null at the root, so the up-tile stops offering a trip to nowhere. */
+    /** Null only at the library itself, where up really is nowhere. */
     public static function parent(string $path, string $root): ?string
     {
-        if ($path === '' || $path === $root || ! str_contains($path, '/')) {
+        if ($path === '' || $path === self::ROOT || ! str_contains($path, '/')) {
             return null;
         }
 

@@ -13,7 +13,9 @@
 export function registerMediaPicker(Alpine) {
     Alpine.data('vMediaPicker', (cfg) => ({
         // --- what the caller fixed
-        root: cfg.root || 'products',
+        root: cfg.root || 'media/products',
+        // The top of the library, which every folder can be walked back to.
+        library: cfg.library || 'media',
         mode: cfg.mode || 'single',
         can: (cfg.can || 'upload').split(',').map((c) => c.trim()),
         // 'add' hands the selection to the caller; 'manage' deletes it.

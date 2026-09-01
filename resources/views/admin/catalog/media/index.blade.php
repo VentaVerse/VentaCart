@@ -34,10 +34,10 @@
             </x-slot:acts>
 
             <div class="v-mediaroots">
-                @foreach (\App\Support\MediaLibrary::ROOTS as $vRoot)
+                @foreach ($roots as $vRoot)
                     <button type="button" class="v-mediaroot" @click="open($event, '{{ $vRoot }}')">
                         <x-admin.icon name="folder" />
-                        <span>{{ ucfirst($vRoot) }}</span>
+                        <span>{{ ucfirst(basename($vRoot)) }}</span>
                         {{-- The pictures in this folder, then the folders
                              inside it. Two numbers rather than one total, so
                              opening it never shows less than it promised. --}}

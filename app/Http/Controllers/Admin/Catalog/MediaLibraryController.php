@@ -43,17 +43,18 @@ class MediaLibraryController extends Controller
         ]);
 
         $root = MediaLibrary::root($validated['root'] ?? null);
-        $path = MediaLibrary::safePath($validated['path'] ?? null);
+
+        // No path at all means the folder this picker is aimed at. A path that
+        // is given is honoured exactly, including the library root itself, so
+        // walking up out of a folder is possible: the old browse rewrote an
+        // empty path back to the root, which is what made the category picker
+        // a trap when its folder did not exist.
+        $asked = trim((string) ($validated['path'] ?? ''), '/');
+        $path = $asked === '' ? $root : MediaLibrary::safePath($asked);
 
         if ($path === false) {
             return response()->json(['ok' => false, 'message' => 'That path cannot be read.'], 422);
         }
-
-        // An explicit empty path means the library root, not "bounce back to
-        // where you started". The old browse rewrote it, which is what made
-        // the category picker a trap: its folder did not exist, and both the
-        // crumb and the up-tile resolved straight back into it.
-        $path = $path === '' ? $root : $path;
 
         MediaLibrary::ensure($root);
 
@@ -97,13 +98,15 @@ class MediaLibraryController extends Controller
             'root' => ['nullable', 'string'],
         ]);
 
-        $path = MediaLibrary::safePath($validated['path'] ?? null);
+        // Same rule as browse: nothing given means the folder this picker is
+        // aimed at, anything given is honoured as written.
+        $asked = trim((string) ($validated['path'] ?? ''), '/');
+        $path = $asked === '' ? MediaLibrary::root($validated['root'] ?? null) : MediaLibrary::safePath($asked);
 
         if ($path === false) {
             return response()->json(['ok' => false, 'message' => 'That folder cannot be written to.'], 422);
         }
 
-        $path = $path === '' ? MediaLibrary::root($validated['root'] ?? null) : $path;
         MediaLibrary::ensure($path);
 
         $written = [];
@@ -126,13 +129,15 @@ class MediaLibraryController extends Controller
             'root' => ['nullable', 'string'],
         ]);
 
-        $path = MediaLibrary::safePath($validated['path'] ?? null);
+        // Same rule as browse: nothing given means the folder this picker is
+        // aimed at, anything given is honoured as written.
+        $asked = trim((string) ($validated['path'] ?? ''), '/');
+        $path = $asked === '' ? MediaLibrary::root($validated['root'] ?? null) : MediaLibrary::safePath($asked);
 
         if ($path === false) {
             return response()->json(['ok' => false, 'message' => 'That folder cannot be written to.'], 422);
         }
 
-        $path = $path === '' ? MediaLibrary::root($validated['root'] ?? null) : $path;
         MediaLibrary::ensure($path);
 
         $result = $this->fetchRemoteImage($validated['url'], ['image/jpeg', 'image/png', 'image/webp']);
