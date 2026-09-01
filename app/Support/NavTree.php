@@ -77,17 +77,30 @@ final class NavTree
                 if ($item->category && ($config['dropdown'] ?? 'subcategories') !== 'none') {
                     $columns = self::subcategories($item->category->id, (int) ($config['depth'] ?? 2));
                     $mega = ($config['mega'] ?? 'no') === 'yes';
-                    $node['dropdown'] = [
-                        'kind' => $mega ? 'mega' : 'list',
-                        'all_label' => 'All ' . $item->label,
-                        'columns' => $columns,
-                        'banner' => $mega ? self::banner($config) : null,
-                        'brands' => $mega && ($config['brands'] ?? 'no') === 'yes' ? self::brands() : [],
-                    ];
+                    $banner = $mega ? self::banner($config) : null;
+                    $brands = $mega && ($config['brands'] ?? 'no') === 'yes' ? self::brands() : [];
+
+                    // A department with nothing under it opens onto nothing.
+                    // This used to build the dropdown regardless, so every
+                    // category in the menu wore a chevron and the ones without
+                    // children dropped an empty box under themselves.
+                    if ($columns !== [] || $banner !== null || $brands !== []) {
+                        $node['dropdown'] = [
+                            'kind' => $mega ? 'mega' : 'list',
+                            'all_label' => 'All ' . $item->label,
+                            'columns' => $columns,
+                            'banner' => $banner,
+                            'brands' => $brands,
+                        ];
+                    }
                 }
                 break;
             case 'categories':
-                $node['dropdown'] = ['kind' => 'list', 'all_label' => null, 'columns' => self::subcategories(null, 2), 'banner' => null, 'brands' => []];
+                $columns = self::subcategories(null, 2);
+
+                if ($columns !== []) {
+                    $node['dropdown'] = ['kind' => 'list', 'all_label' => null, 'columns' => $columns, 'banner' => null, 'brands' => []];
+                }
                 break;
             case 'brands':
                 $node['dropdown'] = ['kind' => 'brands', 'all_label' => 'All brands', 'columns' => [], 'banner' => null, 'brands' => self::brands()];

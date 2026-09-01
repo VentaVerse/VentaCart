@@ -22,22 +22,6 @@
     </div>
 
     <div class="v-settle v-menus">
-        {{-- which menu --}}
-        <nav class="v-menus__rail" aria-label="Menus">
-            <div class="v-lay__raillbl">Menus</div>
-            @foreach ($menus as $vMenu)
-                <a href="{{ route('admin.menus', ['menu' => $vMenu->key]) }}" class="{{ $vMenu->id === $menu->id ? 'is-on' : '' }}">
-                    <span>{{ $vMenu->name }}</span>
-                    <span class="mono">{{ $vMenu->key }}</span>
-                </a>
-            @endforeach
-            <form method="POST" action="{{ route('admin.menus.store') }}" class="v-menus__new">
-                @csrf
-                <input type="text" name="name" required maxlength="120" class="v-control" aria-label="New menu name" placeholder="">
-                <button type="submit" class="v-btn v-btn--sm">New menu</button>
-            </form>
-        </nav>
-
         <div class="v-menus__body">
             {{-- the arrangement: one save scope --}}
             <x-admin.form :action="route('admin.menus.arrange', $menu)">
@@ -89,15 +73,6 @@
                     </div>
                 </form>
             </x-admin.panel>
-
-            @if ($menu->key !== \App\Models\NavMenu::MAIN)
-                <div class="v-gap">
-                    <button type="button" class="v-btn v-btn--ghost v-btn--sm" @click="$dispatch('v-confirm', 'delete-menu')">Delete this menu</button>
-                    <x-admin.confirm name="delete-menu" :title="'Delete ' . $menu->name . '?'"
-                        message="Every item in it goes too. Positions showing it through a Menu widget will show nothing."
-                        confirm="Delete" :action="route('admin.menus.destroy', $menu)" method="DELETE" />
-                </div>
-            @endif
         </div>
     </div>
 

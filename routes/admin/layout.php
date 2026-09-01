@@ -24,10 +24,11 @@ Route::prefix('content/layout')->middleware(\App\Http\Middleware\EditTheme::clas
 // The menus. One menu is shared by every theme (nav_menus has no theme
 // column), so it is not a theme's to own, and it is edited as often as the
 // pages beside it. One door, under Content, and no second one anywhere.
+// One menu, the one the header draws. Creating a second was a capability
+// with no payoff: the header is not switchable and an extra menu could only
+// surface as a placed widget. Menus that do more are Plaza's to bring.
 Route::prefix('content/menus')->group(function () {
     Route::get('/', [MenuController::class, 'index'])->name('menus');
-    Route::post('/', [MenuController::class, 'storeMenu'])->name('menus.store');
-    Route::delete('/{menu}', [MenuController::class, 'destroyMenu'])->name('menus.destroy');
     Route::post('/{menu}/arrange', [MenuController::class, 'arrange'])->name('menus.arrange');
     Route::post('/{menu}/items', [MenuController::class, 'storeItem'])->name('menus.items.store');
     Route::get('/items/{item}/edit', [MenuController::class, 'editItem'])->name('menus.items.edit');

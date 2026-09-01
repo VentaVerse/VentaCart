@@ -33,29 +33,29 @@ class MenuComposerTest extends TestCase
         return NavMenuItem::create($attrs + ['menu_id' => $this->main->id, 'type' => 'custom', 'url' => '/x', 'sort_order' => NavMenuItem::max('sort_order') + 1, 'is_enabled' => true]);
     }
 
-    public function test_the_composer_lists_the_menus_and_draws_the_main_menu_as_a_tree(): void
+    public function test_the_composer_draws_the_main_menu_as_a_tree(): void
     {
         $top = $this->item(['label' => 'Guitars']);
         $this->item(['label' => 'Used', 'parent_id' => $top->id]);
-        NavMenu::create(['key' => 'footer', 'name' => 'Footer menu']);
 
         $this->get(route('admin.menus'))->assertOk()
-            ->assertSee('Main menu')->assertSee('Footer menu')
             ->assertSee('Guitars', false)->assertSee('Used', false)->assertSee('Add an item');
     }
 
-    public function test_a_menu_is_created_with_a_key_of_its_own_and_the_main_one_cannot_go(): void
+    /**
+     * One menu, because the header draws that one and nothing can change it.
+     * A second could only ever surface as a placed widget, so offering to
+     * create one promised a choice the storefront does not have. Menus that
+     * do more than this are Plaza's to bring.
+     */
+    public function test_a_second_menu_cannot_be_created_or_removed(): void
     {
-        $this->post(route('admin.menus.store'), ['name' => 'Footer links'])->assertRedirect();
-        $this->post(route('admin.menus.store'), ['name' => 'Footer links'])->assertRedirect();
-        $this->assertSame(['footer-links', 'footer-links-2'], NavMenu::where('key', '!=', 'main')->orderBy('id')->pluck('key')->all());
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.store'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('admin.menus.destroy'));
 
-        $this->delete(route('admin.menus.destroy', $this->main))->assertRedirect()->assertSessionHas('error');
-        $this->assertDatabaseHas('nav_menus', ['key' => 'main']);
-
-        $footer = NavMenu::where('key', 'footer-links')->sole();
-        $this->delete(route('admin.menus.destroy', $footer))->assertRedirect()->assertSessionHas('success');
-        $this->assertDatabaseMissing('nav_menus', ['id' => $footer->id]);
+        $view = file_get_contents(base_path('resources/views/admin/menus/index.blade.php'));
+        $this->assertStringNotContainsString('New menu', $view);
+        $this->assertStringNotContainsString('Delete this menu', $view);
     }
 
     public function test_every_kind_of_item_is_added_with_the_fields_it_needs(): void

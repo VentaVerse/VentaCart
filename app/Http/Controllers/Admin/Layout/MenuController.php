@@ -25,18 +25,13 @@ class MenuController extends Controller
 {
     public function index(Request $request)
     {
-        $menus = NavMenu::orderByRaw("CASE WHEN `key` = 'main' THEN 0 ELSE 1 END")->orderBy('name')->get();
-        if ($menus->isEmpty()) {
-            $menus = collect([NavMenu::main()]);
-        }
-
-        $key = (string) $request->query('menu', NavMenu::MAIN);
-        $menu = $menus->firstWhere('key', $key) ?? $menus->first();
+        // The one menu the header draws. There is no switcher because there
+        // is nothing to switch to: a second menu could never reach the header.
+        $menu = NavMenu::main();
 
         $items = $menu->items()->with(['category', 'page'])->get();
 
         return view('admin.menus.index', [
-            'menus' => $menus,
             'menu' => $menu,
             'tree' => $this->tree($items),
             'types' => NavMenuItem::TYPES,
@@ -102,30 +97,7 @@ class MenuController extends Controller
         return $out;
     }
 
-    public function storeMenu(Request $request)
-    {
-        $data = $request->validate(['name' => ['required', 'string', 'max:120']]);
-        $key = Str::slug($data['name']) ?: 'menu';
-        $base = $key;
-        for ($i = 2; NavMenu::where('key', $key)->exists(); $i++) {
-            $key = $base . '-' . $i;
-        }
-        $menu = NavMenu::create(['key' => $key, 'name' => $data['name']]);
-        app(ThemeService::class)->clearCache();
 
-        return redirect()->route('admin.menus', ['menu' => $menu->key])->with('success', $menu->name . ' created.');
-    }
-
-    public function destroyMenu(NavMenu $menu)
-    {
-        if ($menu->key === NavMenu::MAIN) {
-            return back()->with('error', 'The main menu is the header; it stays.');
-        }
-        $menu->delete();
-        app(ThemeService::class)->clearCache();
-
-        return redirect()->route('admin.menus')->with('success', $menu->name . ' deleted.');
-    }
 
     /** The arrangement: order and nesting for one menu, written as one save. */
     public function arrange(Request $request, NavMenu $menu)

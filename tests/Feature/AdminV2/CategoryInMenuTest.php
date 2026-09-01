@@ -106,6 +106,31 @@ class CategoryInMenuTest extends TestCase
         $this->assertSame(['Laptops', 'Monitors'], array_column($node['dropdown']['columns'], 'name'));
     }
 
+    /**
+     * A department with nothing under it opens onto nothing.
+     *
+     * The tree used to build a dropdown for every category in the menu
+     * regardless, so a top level category with no children wore a chevron and
+     * dropped an empty box under itself.
+     */
+    public function test_a_category_with_no_children_has_no_dropdown(): void
+    {
+        $lonely = $this->category('Phones');
+        $parent = $this->category('Computers');
+        $this->category('Laptops', $parent->id);
+
+        MainMenu::set($lonely, true);
+        MainMenu::set($parent, true);
+        NavTree::forget();
+
+        $tree = collect(NavTree::for(NavMenu::MAIN));
+
+        $this->assertNull($tree->firstWhere('label', 'Phones')['dropdown'],
+            'A category with no subcategories must not offer a dropdown.');
+        $this->assertNotNull($tree->firstWhere('label', 'Computers')['dropdown'],
+            'One that has children still does.');
+    }
+
     /** One door. The theme page must not offer a second way in. */
     public function test_the_theme_page_no_longer_links_to_the_composer(): void
     {
