@@ -331,6 +331,9 @@ class FulfillmentController extends Controller
                 ->orderBy('sort_order')
                 ->get(['id', 'name']),
             'manualDefaultStatusId' => FulfillmentService::bookedStatus()?->id,
+            // The store's notify policy as {statusId: true}, so the manual
+            // form's tick follows whichever status the packer picks.
+            'notifyByStatus' => array_fill_keys(\Extensions\CourierFulfillment\NotifyMap::all(), true),
             // Booking-time origin choice (owner ruling 2026-08-19): step 2
             // ALWAYS names where the parcel leaves from, for every courier
             // and however many addresses the store keeps. "Which address did

@@ -1046,7 +1046,13 @@ class FulfillmentService
 
         $tracking = trim((string) ($opts['tracking_number'] ?? '')) ?: null;
         $note     = trim((string) ($opts['comment'] ?? $opts['note'] ?? '')) ?: null;
-        $notify   = (bool) ($opts['notify_customer'] ?? false);
+        // Who decides whether the customer hears about this. When the caller
+        // says nothing, the store's own policy answers: the packer records a
+        // parcel and the status settles the rest. An explicit value still
+        // wins, so a form or an ERP call can override the policy per order.
+        $notify = array_key_exists('notify_customer', $opts)
+            ? (bool) $opts['notify_customer']
+            : NotifyMap::notifies(($chosenStatus ?? self::bookedStatus())?->id);
 
         // Built from the courier's own {tracking_number} template, and only
         // when there is a number to put in it — a link to a tracking page with
@@ -1114,17 +1120,20 @@ class FulfillmentService
         // "notify customer" on a recorded shipment sent nothing at all. A
         // parcel with a number gets the shipping email, which names the courier
         // and links the number; one without gets the plain status email.
-        if ($notify) {
-            if ($tracking) {
-                OrderNotificationService::shipped($order);
-            } elseif ($applied) {
-                OrderNotificationService::statusChanged(
-                    $order,
-                    OrderStatus::whereKey($preBookingStatusId)->value('name'),
-                    $applied->name,
-                    $note ?? '',
-                );
-            }
+        // One update, one email, and the same one the order page sends. A
+        // parcel with a number used to get the shipping mail instead, which
+        // never said the status had changed: record "Handed over" with a
+        // number and the customer was told the order had shipped and not
+        // where it now stood. The tracking rides in the comment now, built by
+        // the shared builder, so both screens answer a status change the same
+        // way whichever one the packer happened to use.
+        if ($notify && $applied) {
+            OrderNotificationService::statusChanged(
+                $order,
+                OrderStatus::whereKey($preBookingStatusId)->value('name'),
+                $applied->name,
+                OrderNotificationService::withTracking($order, $note),
+            );
         }
 
         return [

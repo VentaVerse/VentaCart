@@ -187,7 +187,14 @@ class OrderTrackingEmailsTest extends TestCase
 
     // ------------------------------------------ the recorded shipment path
 
-    public function test_a_recorded_shipment_with_notify_sends_the_shipping_email(): void
+    /**
+     * A recorded parcel now sends the same email the order page sends, with
+     * the courier and number in the comment, rather than the shipping
+     * template. It used to divert here on the presence of a tracking number,
+     * so recording "Handed over" with one told the customer their order had
+     * shipped and never mentioned the status at all (owner ruling, 2026-09-01).
+     */
+    public function test_a_recorded_shipment_with_notify_sends_one_status_email_carrying_the_tracking(): void
     {
         $this->installFulfillment();
         $this->placed('to_handover', 'Order Being Shipped', 3);
@@ -201,7 +208,11 @@ class OrderTrackingEmailsTest extends TestCase
         ]);
         $this->assertTrue($result['success'], $result['error'] ?? '');
 
-        Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedSubject, 'shipped')
+        // One email, and it is the status one.
+        Mail::assertSent(TemplateMail::class, 1);
+
+        Mail::assertSent(TemplateMail::class, fn (TemplateMail $m) => str_contains($m->renderedSubject, 'Order Being Shipped')
+            && ! str_contains($m->renderedSubject, 'has shipped')
             && str_contains($m->renderedBody, 'href="https://lbc.test/track/LBC999"')
             && str_contains($m->renderedBody, 'LBC Express'));
     }

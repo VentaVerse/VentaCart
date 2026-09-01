@@ -40,7 +40,7 @@
                 <div class="v-tablewrap">
                     <table class="v-table">
                         <thead>
-                            <tr><th>Order status</th><th>Tab</th><th class="v-cell-num">Orders</th></tr>
+                            <tr><th>Order status</th><th>Tab</th><th>Notify customer</th><th class="v-cell-num">Orders</th></tr>
                         </thead>
                         <tbody>
                             @foreach ($unplaced as $row)
@@ -55,6 +55,17 @@
                                                 <option value="{{ $value }}" @selected($value === '')>{{ $label }}</option>
                                             @endforeach
                                         </select>
+                                    </td>
+                                    <td>
+                                        {{-- Ticked here, the packer never
+                                             decides: recording a shipment into
+                                             this status tells the customer
+                                             every time. --}}
+                                        <label class="v-check">
+                                            <input type="checkbox" name="notify[{{ $row['id'] }}]" value="1"
+                                                   @checked($row['notifies'])
+                                                   aria-label="Notify the customer when an order moves to {{ $row['name'] }}">
+                                        </label>
                                     </td>
                                     <td class="v-cell-num v-mono">{{ number_format($row['orders']) }}</td>
                                 </tr>
@@ -72,7 +83,7 @@
                 <div class="v-tablewrap">
                     <table class="v-table">
                         <thead>
-                            <tr><th>Order status</th><th>Tab</th><th class="v-cell-num">Orders</th></tr>
+                            <tr><th>Order status</th><th>Tab</th><th>Notify customer</th><th class="v-cell-num">Orders</th></tr>
                         </thead>
                         <tbody>
                             @foreach ($placed as $row)
@@ -86,6 +97,17 @@
                                                 <option value="{{ $value }}" @selected($value === $row['placement'])>{{ $label }}</option>
                                             @endforeach
                                         </select>
+                                    </td>
+                                    <td>
+                                        {{-- Ticked here, the packer never
+                                             decides: recording a shipment into
+                                             this status tells the customer
+                                             every time. --}}
+                                        <label class="v-check">
+                                            <input type="checkbox" name="notify[{{ $row['id'] }}]" value="1"
+                                                   @checked($row['notifies'])
+                                                   aria-label="Notify the customer when an order moves to {{ $row['name'] }}">
+                                        </label>
                                     </td>
                                     <td class="v-cell-num v-mono">{{ number_format($row['orders']) }}</td>
                                 </tr>

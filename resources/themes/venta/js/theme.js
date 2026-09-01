@@ -629,12 +629,50 @@ Alpine.data('addressForm', (config = {}) => ({
         this[prop] = saved;
     },
 
+    /**
+     * The free text half of an address, wiped when the country changes.
+     *
+     * The cascading half (province, city, district, barangay) has always
+     * cleared here, but only because it had to: those are country-specific
+     * lists and a PH barangay is not a thing that exists in Singapore. The
+     * typed fields were left behind because nothing forced the issue, which
+     * left a street, a postcode and a mobile number sitting under a country
+     * they were never written for. The mobile is the worst of them: the
+     * dialling code shown beside it is read off the address country, so the
+     * same digits silently became a different number.
+     *
+     * The name stays. It is the one part of an address that does not change
+     * when the country does.
+     *
+     * Cleared through the DOM because the three address forms hold these in
+     * three different places (newAddr.*, billing.*, and plain named inputs on
+     * the account page) while sharing this one handler.
+     */
+    clearTypedAddress() {
+        const fields = ['address_1', 'address_2', 'postcode', 'phone'];
+
+        this.$root?.querySelectorAll('input, textarea').forEach((el) => {
+            const model = el.getAttribute('x-model') || '';
+            const name = el.getAttribute('name') || '';
+            const hit = fields.some((f) => name === f || model.endsWith('.' + f));
+
+            if (!hit || el.value === '') {
+                return;
+            }
+
+            el.value = '';
+            // Keeps x-model in step where there is one; harmless where not.
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    },
+
     async onCountryChange(clear = true) {
         if (clear) {
             this.state = '';
             this.city = '';
             this.district = '';
             this.barangay = '';
+            this.clearTypedAddress();
         }
         this.providerFields = [];
         this.providerData = {};

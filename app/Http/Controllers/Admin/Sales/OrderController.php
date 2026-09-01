@@ -359,17 +359,11 @@ class OrderController extends Controller
             $courierChanged = true;
         }
 
-        // Build comment with tracking link if tracking was provided
+        // Build comment with tracking link if tracking was provided. Through
+        // the shared builder, so the fulfilment queue says this the same way.
         $comment = $validated['comment'] ?? '';
         if ($courierChanged && !empty($order->tracking_number)) {
-            $courier = $order->shippingCourier;
-            $trackingLink = $courier?->getTrackingLink($order->tracking_number);
-            $trackingComment = $courier ? $courier->name . ': ' : '';
-            $trackingComment .= $trackingLink
-                ? '<a href="' . e($trackingLink) . '" target="_blank">' . e($order->tracking_number) . '</a>'
-                : $order->tracking_number;
-
-            $comment = $comment ? $comment . ' | ' . $trackingComment : $trackingComment;
+            $comment = OrderNotificationService::withTracking($order, $comment);
         }
 
         $validated['comment'] = $comment ?: null;
@@ -389,12 +383,14 @@ class OrderController extends Controller
         // After the write. The status email carries the tracking placeholders
         // whenever the order has a number; a tracking number recorded in this
         // same submission also earns the shipping email, as it always has.
+        // One update, one email. The comment built above already carries the
+        // courier and a clickable tracking number when one was given, so the
+        // status email says everything a second shipping email would have,
+        // and the customer is told once instead of twice. Recording a courier
+        // on an order that already had a number used to send the shipping
+        // mail again as well, announcing a despatch that had not happened.
         if ($validated['notify_customer'] && $order->email) {
             OrderNotificationService::statusChanged($order, $oldStatus, $newStatus?->name, $validated['comment'] ?? '');
-
-            if ($courierChanged && !empty($order->tracking_number)) {
-                OrderNotificationService::shipped($order);
-            }
         }
 
         return redirect()->route('admin.orders.show', $order)

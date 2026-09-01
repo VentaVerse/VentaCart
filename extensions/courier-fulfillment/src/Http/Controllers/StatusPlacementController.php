@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderStatus;
 use Extensions\CourierFulfillment\FulfillmentService;
+use Extensions\CourierFulfillment\NotifyMap;
 use Extensions\CourierFulfillment\PlacementMap;
 use Extensions\CourierFulfillment\PlacementSuggester;
 use Illuminate\Http\Request;
@@ -59,6 +60,7 @@ class StatusPlacementController extends Controller
             'id'         => $status->id,
             'name'       => $status->name,
             'placement'  => $placements[$status->id] ?? null,
+            'notifies'   => NotifyMap::notifies($status->id),
             'orders'     => (int) ($orderCounts[$status->id] ?? 0),
             // Offered by the "Suggest placements" button only, never applied
             // on its own (the module places nothing without being asked).
@@ -77,6 +79,8 @@ class StatusPlacementController extends Controller
         $validated = $request->validate([
             'placements'   => ['array'],
             'placements.*' => ['nullable', Rule::in(FulfillmentService::PLACEMENTS)],
+            'notify'       => ['array'],
+            'notify.*'     => ['nullable'],
         ]);
 
         // Only this store's own statuses can be placed: the form's keys are
@@ -95,6 +99,15 @@ class StatusPlacementController extends Controller
             // mapping everywhere in the module.
             PlacementMap::put($statusId, $placement ?: null);
         }
+
+        // Whose statuses tell the customer. Read from the same submission as
+        // the placements, and scoped to this store's own ids for the same
+        // reason: the form's keys are ids and an id from elsewhere must not
+        // be able to write policy through this endpoint.
+        NotifyMap::put(array_values(array_filter(
+            array_map('intval', array_keys($validated['notify'] ?? [])),
+            fn ($id) => in_array($id, $ownIds, true)
+        )));
 
         return redirect()->route('admin.fulfillment.settings.placement')
             ->with('success', 'Status Mapping saved.');

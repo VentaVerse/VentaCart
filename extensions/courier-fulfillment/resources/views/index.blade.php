@@ -1430,7 +1430,8 @@
                                                  would have applied on its own. --}}
                                             @if (!empty($orderStatuses) && count($orderStatuses) > 0)
                                                 <x-admin.field name="order_status_id" label="Status" required>
-                                                    <select name="order_status_id" required class="v-control">
+                                                    <select name="order_status_id" required class="v-control"
+                                                            @change="notifyCustomer = !!notifyByStatus[$event.target.value]">
                                                         @foreach ($orderStatuses as $orderStatus)
                                                             <option value="{{ $orderStatus->id }}" @selected($orderStatus->id === $manualDefaultStatusId)>{{ $orderStatus->name }}</option>
                                                         @endforeach
@@ -1461,8 +1462,14 @@
                                                  as a booked one would. --}}
                                             <div class="v-actrow">
                                                 <button type="button" class="v-btn v-btn--ghost" @click="backToCouriers()">Back</button>
+                                                {{-- The hidden 0 matters: an unticked box sends
+                                                     nothing at all, which the service reads as
+                                                     "the caller did not say" and answers from the
+                                                     store's policy. Untick has to mean no. --}}
                                                 <label class="v-check">
-                                                    <input type="checkbox" name="notify_customer" value="1">
+                                                    <input type="hidden" name="notify_customer" value="0">
+                                                    <input type="checkbox" name="notify_customer" value="1"
+                                                           x-model="notifyCustomer">
                                                     Notify customer
                                                 </label>
                                                 <button type="submit" class="v-btn v-btn--primary v-actrow__grow">Update</button>
@@ -1508,6 +1515,12 @@
                 // cleared everywhere `courier` is, so the two can never both
                 // be showing.
                 manual: false,
+                // The store's policy, keyed by order status id, and the tick
+                // it produces. The packer records the parcel; which statuses
+                // are worth telling a customer about was settled once under
+                // Status Mapping rather than twenty times an afternoon here.
+                notifyByStatus: @js($notifyByStatus ?? []),
+                notifyCustomer: @js((bool) ($notifyByStatus[$manualDefaultStatusId] ?? false)),
                 // Task T4: SPX-only step-2 state. Fetched LAZILY (never on
                 // page load — see FulfillmentController::index()'s
                 // courierOptions comment for why) so a queue page visit
