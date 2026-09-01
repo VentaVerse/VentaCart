@@ -26,8 +26,23 @@ use Illuminate\Support\Facades\DB;
  */
 class DemoCatalogSeeder extends Seeder
 {
-    /** Where the tracked photography is published to, under public storage. */
-    private const PUBLIC_DIR = 'demo/store';
+    /**
+     * Where the tracked photography is published to, under public storage.
+     *
+     * Into the media library's own roots, not a folder of our own. The library
+     * is a filesystem browser over an allow list (products, brands, categories,
+     * blog, banners), so anything written outside those roots is invisible in
+     * the picker and unpickable by the merchant: the images would show on the
+     * storefront but could not be replaced or deleted from the admin.
+     *
+     * A demo/ subfolder inside each root keeps them together, since every
+     * subfolder of a reachable root is itself reachable.
+     */
+    private const PUBLISH = [
+        'products' => 'products/demo',
+        'categories' => 'categories/demo',
+        'brands' => 'brands/demo',
+    ];
 
     public function run(): void
     {
@@ -39,7 +54,7 @@ class DemoCatalogSeeder extends Seeder
         // fresh checkout of an existing store arrives with the records and none
         // of the pictures, and seeding is what puts them back.
         $hasDemo = Product::withoutGlobalScopes()
-            ->where('image', 'like', self::PUBLIC_DIR . '/%')
+            ->where('image', 'like', self::PUBLISH['products'] . '/%')
             ->exists();
 
         if ($empty || $hasDemo) {
@@ -72,38 +87,30 @@ class DemoCatalogSeeder extends Seeder
      */
     private function publishImages(): void
     {
-        $from = resource_path('demo/store');
-        $to = storage_path('app/public/' . self::PUBLIC_DIR);
+        foreach (self::PUBLISH as $group => $target) {
+            $from = resource_path("demo/store/{$group}");
+            $to = storage_path('app/public/' . $target);
 
-        if (! is_dir($from)) {
-            return;
-        }
-
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($from, \FilesystemIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST
-        );
-
-        foreach ($files as $file) {
-            $target = $to . DIRECTORY_SEPARATOR . $files->getSubPathName();
-
-            if ($file->isDir()) {
-                is_dir($target) || @mkdir($target, 0775, true);
-
+            if (! is_dir($from)) {
                 continue;
             }
 
-            is_dir(dirname($target)) || @mkdir(dirname($target), 0775, true);
+            is_dir($to) || @mkdir($to, 0775, true);
 
-            if (! file_exists($target)) {
-                @copy($file->getPathname(), $target);
+            foreach (glob($from . '/*.jpg') ?: [] as $file) {
+                $dest = $to . '/' . basename($file);
+
+                // Never stand on a file the merchant put there.
+                if (! file_exists($dest)) {
+                    @copy($file, $dest);
+                }
             }
         }
     }
 
     private function img(string $group, string $file): string
     {
-        return self::PUBLIC_DIR . "/{$group}/{$file}";
+        return self::PUBLISH[$group] . "/{$file}";
     }
 
     /** @return array<string, Brand> */
