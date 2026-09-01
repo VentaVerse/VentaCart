@@ -2022,6 +2022,9 @@ svg.v-dlb-ic { width: 14px; height: 14px; }
 .v-mediaroot:hover { border-color: var(--v-act-fill); background: var(--v-act-wash); }
 .v-mediaroot svg { width: 18px; height: 18px; color: var(--v-ink-3); flex: none; }
 .v-mediaroot .mono { margin-left: auto; font-size: 11.5px; color: var(--v-ink-3); }
+/* The folders inside a root, said quietly beside the picture count so the
+   two numbers are never mistaken for one. */
+.v-mediaroot__sub { margin-left: 6px; opacity: 0.72; }
 
 /* The already-added tile: the wash carries the state, the label keeps the
    page's ink. Brass text on a brass wash measured 2.66:1 in dark. */

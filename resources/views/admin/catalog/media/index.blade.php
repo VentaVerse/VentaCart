@@ -38,7 +38,10 @@
                     <button type="button" class="v-mediaroot" @click="open($event, '{{ $vRoot }}')">
                         <x-admin.icon name="folder" />
                         <span>{{ ucfirst($vRoot) }}</span>
-                        <span class="mono">{{ number_format($counts[$vRoot] ?? 0) }}</span>
+                        {{-- The pictures in this folder, then the folders
+                             inside it. Two numbers rather than one total, so
+                             opening it never shows less than it promised. --}}
+                        <span class="mono">{{ number_format($counts[$vRoot] ?? 0) }}@if (($folders[$vRoot] ?? 0) > 0)<span class="v-mediaroot__sub">+{{ number_format($folders[$vRoot]) }} folder{{ $folders[$vRoot] === 1 ? '' : 's' }}</span>@endif</span>
                     </button>
                 @endforeach
             </div>

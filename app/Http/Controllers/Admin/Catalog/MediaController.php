@@ -34,18 +34,28 @@ class MediaController extends Controller
     public function index(Request $request)
     {
         $counts = [];
+        $folders = [];
 
         foreach (MediaLibrary::ROOTS as $root) {
             MediaLibrary::ensure($root);
+
+            // Count what opening the folder will actually show. This used to
+            // count recursively while the browser lists one level, so a root
+            // whose pictures sat in a subfolder advertised a number and then
+            // opened on nothing. The subfolders are reported separately
+            // instead, which is the part the recursive total was hiding.
             $counts[$root] = count(array_filter(
-                Storage::disk('public')->allFiles($root),
+                Storage::disk('public')->files($root),
                 fn ($f) => ! str_contains($f, '_thumb.')
                     && in_array(strtolower(pathinfo($f, PATHINFO_EXTENSION)), MediaLibrary::EXTENSIONS, true)
             ));
+
+            $folders[$root] = count(Storage::disk('public')->directories($root));
         }
 
         return view('admin.catalog.media.index', [
             'counts' => $counts,
+            'folders' => $folders,
             'orphans' => $this->orphans(),
         ]);
     }
